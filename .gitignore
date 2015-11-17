@@ -1,0 +1,4 @@
+target/
+#vert.x crap
+.vertx/
+file-uploads/
