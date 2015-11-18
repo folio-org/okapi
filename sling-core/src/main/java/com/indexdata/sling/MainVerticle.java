@@ -19,7 +19,7 @@ import java.io.IOException;
  *
  * @author jakub
  */
-public class CoreVerticle extends AbstractVerticle {
+public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) throws IOException {
