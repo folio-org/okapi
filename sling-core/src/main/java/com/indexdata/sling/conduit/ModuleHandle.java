@@ -4,13 +4,20 @@
  * See the file LICENSE for details.
  */
 package com.indexdata.sling.conduit;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 
-import io.vertx.core.Verticle;
 
 /**
  *
  * @author jakub
  */
-public interface ModuleHandle extends Verticle {
+public interface ModuleHandle {
+  void init(Vertx vertx);
   
+  void start(Handler<AsyncResult<Void>> startFuture);
+
+  void stop(Handler<AsyncResult<Void>> stopFuture);
 }
