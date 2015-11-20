@@ -5,8 +5,11 @@
  */
 package com.indexdata.sling;
 
+import com.indexdata.sling.conduit.service.ModuleService;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Context;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import static io.vertx.core.Vertx.vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
@@ -20,23 +23,35 @@ import java.io.IOException;
  * @author jakub
  */
 public class MainVerticle extends AbstractVerticle {
+  private int port = Integer.parseInt(System.getProperty("port", "8080"));
 
+  ModuleService ms;
+
+  @Override
+  public void init(Vertx vertx, Context context) {
+    super.init(vertx, context);
+    ms = new ModuleService(vertx);
+  }
+       
+    
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
-
-    String c = config().getString("service", "mock");
+    
     //hijack everything to conduit to allow for configuration
     router.route("/conduit*").handler(BodyHandler.create()); //enable reading body to string
+    router.post("/conduit/enabled_modules/").handler(ms::create);
+    router.delete("/conduit/enabled_modules/:id").handler(ms::delete);
+        
     //everything else gets proxified to modules
-    router.get("/*").handler(null);
-
+    router.get("/modules*").handler(null);
+    
     vertx.createHttpServer()
             .requestHandler(router::accept)
             .listen(
                     // Retrieve the port from the configuration,
                     // default to 8080.
-                    config().getInteger("http.port", 8080),
+                    port,
                     result -> {
                       if (result.succeeded()) {
                         fut.complete();

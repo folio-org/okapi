@@ -39,17 +39,15 @@ public class ProcessModuleHandleTest {
    @After
   public void tearDown(TestContext context) {
     vertx.close(context.asyncAssertSuccess());
-    System.out.println("closing down");
   }
 
   @Test
   public void test1(TestContext context) {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleep 10", "");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(desc);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc);
     ModuleHandle mh = pmh;
   
-    mh.init(vertx);
     mh.start(res -> {
       context.assertTrue(res.succeeded());
       if (!res.succeeded()) {
@@ -66,10 +64,9 @@ public class ProcessModuleHandleTest {
   public void test2(TestContext context) {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleepxx 10", "");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(desc);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc);
     ModuleHandle mh = pmh;
   
-    mh.init(vertx);
     mh.start(res -> {
       context.assertFalse(res.succeeded());
       async.complete();

@@ -14,18 +14,19 @@ import java.io.IOException;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
-  private Vertx vertx;
+  private final Vertx vertx;
   private final ProcessDeploymentDescriptor desc;
   private Process p;
 
-  public ProcessModuleHandle(ProcessDeploymentDescriptor desc) {
+  public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc) {
+    this.vertx = vertx;
     this.desc = desc;
   }
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
+    System.err.println("ProcessModuleHandle:start " + desc.getCmdlineStart());
     if (true) {
-      System.err.println("ProcessModuleHandle:start async");
       vertx.executeBlocking(future -> {
         if (p == null) {
           try {
@@ -38,15 +39,12 @@ public class ProcessModuleHandle implements ModuleHandle {
         future.complete();
       }, false, result -> {
         if (result.failed()) {
-          System.out.println("cb: failed");
           startFuture.handle(Future.failedFuture(result.cause()));
         } else {
-          System.out.println("cb: success");
           startFuture.handle(Future.succeededFuture());
         }
       });
     } else {
-      System.err.println("ProcessModuleHandle:start");
       if (p == null) {
         try {
           p = Runtime.getRuntime().exec(desc.getCmdlineStart());
@@ -56,11 +54,6 @@ public class ProcessModuleHandle implements ModuleHandle {
         }
       }
       startFuture.handle(Future.succeededFuture());
-
-    // TODO: perhaps throw error if it's already started?
-      // POST /init  (content is JSON struct with "url":"http://host:port"
-      // GET /routes (response is JSON struct with routes definitions)
-      // startFuture.complete((Void) new Object());
     }
   }
 
@@ -73,8 +66,4 @@ public class ProcessModuleHandle implements ModuleHandle {
     stopFuture.handle(Future.succeededFuture());
   }
 
-  @Override
-  public void init(Vertx vertx) {
-    this.vertx = vertx;
-  }
 }
