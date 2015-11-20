@@ -26,11 +26,10 @@ public class ProcessModuleHandle implements ModuleHandle {
   public void start(Handler<AsyncResult<Void>> startFuture) {
     if (true) {
       System.err.println("ProcessModuleHandle:start async");
-
       vertx.executeBlocking(future -> {
         if (p == null) {
           try {
-            p = Runtime.getRuntime().exec(desc.cmdline_start);
+            p = Runtime.getRuntime().exec(desc.getCmdlineStart());
           } catch (IOException ex) {
             future.fail(ex);
             return;
@@ -50,7 +49,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       System.err.println("ProcessModuleHandle:start");
       if (p == null) {
         try {
-          p = Runtime.getRuntime().exec(desc.cmdline_start);
+          p = Runtime.getRuntime().exec(desc.getCmdlineStart());
         } catch (IOException ex) {
           startFuture.handle(Future.failedFuture(ex));
           return;

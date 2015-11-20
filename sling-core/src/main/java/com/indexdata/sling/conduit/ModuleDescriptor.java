@@ -14,6 +14,4 @@ import java.util.List;
 public class ModuleDescriptor {
   private String name;
   private ProcessDeploymentDescriptor descriptor;
-  private List<RoutingEntry> entries;
-  
 }
