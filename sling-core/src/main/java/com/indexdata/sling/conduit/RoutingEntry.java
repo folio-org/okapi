@@ -5,10 +5,6 @@
  */
 package com.indexdata.sling.conduit;
 
-/**
- *
- * @author jakub
- */
 public class RoutingEntry {
   private String[] methods;
   private String pathPrefix;

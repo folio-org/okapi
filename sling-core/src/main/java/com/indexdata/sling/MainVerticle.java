@@ -18,22 +18,20 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 
-/**
- *
- * @author jakub
- */
 public class MainVerticle extends AbstractVerticle {
   private int port = Integer.parseInt(System.getProperty("port", "8080"));
+  private int port_start = Integer.parseInt(System.getProperty("port_start", "9130"));
+  private int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
 
+  
   ModuleService ms;
 
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
-    ms = new ModuleService(vertx);
+    ms = new ModuleService(vertx, port_start, port_end);
   }
-       
-    
+      
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);

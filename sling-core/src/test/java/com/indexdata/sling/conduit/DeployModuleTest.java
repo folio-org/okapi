@@ -61,7 +61,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"name\" : \"hello\" ,\n"
             + "  \"descriptor\" : {\n"
-            + "     \"cmdlineStart\" : \"dd if=/dev/random of=/tmp/sling bs=5 count=1\"\n"
+            + "     \"cmdlineStart\" : \"dd if=/dev/random of=/tmp/sling bs=5 count=%p\"\n"
             + "  }\n"
             + "}";
     final Async async = context.async();

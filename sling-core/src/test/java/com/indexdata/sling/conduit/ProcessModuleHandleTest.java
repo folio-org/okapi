@@ -22,11 +22,6 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
-
-/**
- *
- * @author adam
- */
 @RunWith(VertxUnitRunner.class)
 public class ProcessModuleHandleTest {
   private Vertx vertx;
@@ -45,7 +40,7 @@ public class ProcessModuleHandleTest {
   public void test1(TestContext context) {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleep 10", "");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
   
     mh.start(res -> {
@@ -64,7 +59,7 @@ public class ProcessModuleHandleTest {
   public void test2(TestContext context) {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleepxx 10", "");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
   
     mh.start(res -> {

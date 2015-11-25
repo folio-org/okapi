@@ -5,10 +5,6 @@
  */
 package com.indexdata.sling.util;
 
-/**
- *
- * @author adam
- */
 public class Box<T> {
   private T item;
 

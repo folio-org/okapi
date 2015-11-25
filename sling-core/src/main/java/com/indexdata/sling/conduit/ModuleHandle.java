@@ -7,11 +7,6 @@ package com.indexdata.sling.conduit;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 
-
-/**
- *
- * @author jakub
- */
 public interface ModuleHandle {
   void start(Handler<AsyncResult<Void>> startFuture);
 

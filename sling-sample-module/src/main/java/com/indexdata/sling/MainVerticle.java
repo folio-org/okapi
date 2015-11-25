@@ -15,10 +15,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 
-/**
- *
- * @author jakub
- */
 public class MainVerticle extends AbstractVerticle {
 
   @Override

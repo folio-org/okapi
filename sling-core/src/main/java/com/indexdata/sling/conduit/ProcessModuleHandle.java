@@ -6,7 +6,6 @@
 package com.indexdata.sling.conduit;
 
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -17,44 +16,36 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Vertx vertx;
   private final ProcessDeploymentDescriptor desc;
   private Process p;
+  private final int port;
 
-  public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc) {
+  public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
+          int port) {
     this.vertx = vertx;
     this.desc = desc;
+    this.port = port;
   }
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    System.err.println("ProcessModuleHandle:start " + desc.getCmdlineStart());
-    if (true) {
-      vertx.executeBlocking(future -> {
-        if (p == null) {
-          try {
-            p = Runtime.getRuntime().exec(desc.getCmdlineStart());
-          } catch (IOException ex) {
-            future.fail(ex);
-            return;
-          }
-        }
-        future.complete();
-      }, false, result -> {
-        if (result.failed()) {
-          startFuture.handle(Future.failedFuture(result.cause()));
-        } else {
-          startFuture.handle(Future.succeededFuture());
-        }
-      });
-    } else {
+    final String cmdline = desc.getCmdlineStart().replace("%p", Integer.toString(port));
+    System.err.println("ProcessModuleHandle:start " + cmdline);
+    vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          p = Runtime.getRuntime().exec(desc.getCmdlineStart());
+          p = Runtime.getRuntime().exec(cmdline);
         } catch (IOException ex) {
-          startFuture.handle(Future.failedFuture(ex));
+          future.fail(ex);
           return;
         }
       }
-      startFuture.handle(Future.succeededFuture());
-    }
+      future.complete();
+    }, false, result -> {
+      if (result.failed()) {
+        startFuture.handle(Future.failedFuture(result.cause()));
+      } else {
+        startFuture.handle(Future.succeededFuture());
+      }
+    });
   }
 
   @Override
@@ -65,5 +56,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
     stopFuture.handle(Future.succeededFuture());
   }
-
+  public int getPort() {
+    return port;
+  }
 }

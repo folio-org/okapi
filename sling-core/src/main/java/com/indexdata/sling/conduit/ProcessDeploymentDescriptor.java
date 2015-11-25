@@ -5,10 +5,6 @@
  */
 package com.indexdata.sling.conduit;
 
-/**
- *
- * @author jakub
- */
 public class ProcessDeploymentDescriptor {
   private String cmdlineStart;
   private String cmdlineStop;

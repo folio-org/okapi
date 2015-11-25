@@ -7,10 +7,6 @@ package com.indexdata.sling.conduit;
 
 import java.util.List;
 
-/**
- *
- * @author jakub
- */
 public class ModuleDescriptor {
   
   private String name;
