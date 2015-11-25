@@ -59,9 +59,10 @@ public class DeployModuleTest {
   @Test
   public void test1(TestContext context) {
     final String doc = "{\n"
-            + "  \"name\" : \"hello\" ,\n"
+            + "  \"name\" : \"sample-module\" ,\n"
             + "  \"descriptor\" : {\n"
-            + "     \"cmdlineStart\" : \"dd if=/dev/random of=/tmp/sling bs=5 count=%p\"\n"
+            + "     \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\"\n"
             + "  }\n"
             + "}";
     final Async async = context.async();
@@ -69,11 +70,17 @@ public class DeployModuleTest {
     c.post(port, "localhost", "/conduit/enabled_modules", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
-        deleteIt(context, async, response.getHeader("Location"));
+        useIt(context, async, response.getHeader("Location"));
       });
     }).end(doc);
   }
 
+  public void useIt(TestContext context, Async async, String location) {
+    vertx.setTimer(50, id -> {
+       deleteIt(context, async, location);
+    });
+  }
+  
   public void deleteIt(TestContext context, Async async, String location) {
     HttpClient c = vertx.createHttpClient();
     System.out.println("Location=" + location);

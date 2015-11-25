@@ -21,7 +21,7 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
 
-    String c = config().getString("service", "mock");
+    final int port = Integer.parseInt(System.getProperty("port", "8080"));
     //enable reading body to string
     router.route("/sample*").handler(BodyHandler.create()); 
     //everything else gets proxified to modules
@@ -30,9 +30,7 @@ public class MainVerticle extends AbstractVerticle {
     vertx.createHttpServer()
             .requestHandler(router::accept)
             .listen(
-                    // Retrieve the port from the configuration,
-                    // default to 8080.
-                    config().getInteger("http.port", 8080),
+                    port,
                     result -> {
                       if (result.succeeded()) {
                         fut.complete();
