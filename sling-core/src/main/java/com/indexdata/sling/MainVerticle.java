@@ -40,6 +40,7 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/conduit*").handler(BodyHandler.create()); //enable reading body to string
     router.post("/conduit/enabled_modules/").handler(ms::create);
     router.delete("/conduit/enabled_modules/:id").handler(ms::delete);
+    router.get("/conduit/enabled_modules/:id").handler(ms::get);
         
     //everything else gets proxified to modules
     router.get("/modules*").handler(null);
