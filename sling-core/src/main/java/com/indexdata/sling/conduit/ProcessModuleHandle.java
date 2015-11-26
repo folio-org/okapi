@@ -28,7 +28,6 @@ public class ProcessModuleHandle implements ModuleHandle {
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
     final String cmdline = desc.getCmdlineStart().replace("%p", Integer.toString(port));
-    System.err.println("ProcessModuleHandle:start " + cmdline);
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
@@ -50,7 +49,6 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    System.err.println("ProcessModuleHandle:stop");
     if (p != null) {
       p.destroy();
     }

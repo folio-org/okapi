@@ -82,7 +82,7 @@ public class ModuleService {
         return;
       }
 
-      final String uri = ctx.request().absoluteURI() + "/" + name;
+      final String uri = ctx.request().uri() + "/" + name;
       final int use_port = ports.get();
       if (use_port == -1) {
         ctx.response().setStatusCode(400).end("module " + name
@@ -105,6 +105,16 @@ public class ModuleService {
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
+  }
+  public void get(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+
+    if (!enabled.containsKey(id)) {
+      ctx.response().setStatusCode(404).end();
+      return;
+    }
+    String s = Json.encodePrettily(enabled.get(id).md);
+    ctx.response().end(s);
   }
 
   public void delete(RoutingContext ctx) {

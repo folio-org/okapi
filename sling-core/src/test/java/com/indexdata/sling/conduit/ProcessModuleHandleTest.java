@@ -5,20 +5,13 @@
  */
 package com.indexdata.sling.conduit;
 
-import com.indexdata.sling.util.Box;
 import org.junit.Test;
 
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.junit.After;
-import org.junit.Assert;
-import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
