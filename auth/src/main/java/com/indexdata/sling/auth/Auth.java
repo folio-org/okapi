@@ -16,7 +16,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * A dummy auth module.
+ * Provides a minimal authentication mechanism.  
  * @author heikki
  */
 
