@@ -13,6 +13,7 @@
   <modules>
     <module>sling-core</module>
     <module>sling-sample-module</module>
+    <module>auth</module>
   </modules>
 
   <prerequisites>
