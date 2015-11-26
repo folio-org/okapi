@@ -6,6 +6,7 @@
 package com.indexdata.sling;
 
 import com.indexdata.sling.conduit.service.ModuleService;
+import com.indexdata.sling.conduit.service.TenantService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -22,14 +23,15 @@ public class MainVerticle extends AbstractVerticle {
   private int port = Integer.parseInt(System.getProperty("port", "8080"));
   private int port_start = Integer.parseInt(System.getProperty("port_start", "9130"));
   private int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
-
   
   ModuleService ms;
+  TenantService ts;
 
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
     ms = new ModuleService(vertx, port_start, port_end);
+    ts = new TenantService(vertx);
   }
       
   @Override
@@ -38,10 +40,13 @@ public class MainVerticle extends AbstractVerticle {
     
     //hijack everything to conduit to allow for configuration
     router.route("/conduit*").handler(BodyHandler.create()); //enable reading body to string
-    router.post("/conduit/enabled_modules/").handler(ms::create);
-    router.delete("/conduit/enabled_modules/:id").handler(ms::delete);
-    router.get("/conduit/enabled_modules/:id").handler(ms::get);
-        
+    router.post("/conduit/modules/").handler(ms::create);
+    router.delete("/conduit/modules/:id").handler(ms::delete);
+    router.get("/conduit/modules/:id").handler(ms::get);
+    router.post("/conduit/tenant").handler(ts::create);
+    router.get("/conduit/tenant/:id").handler(ts::get);
+    router.delete("/conduit/tenant/:id").handler(ts::delete);
+
     //everything else gets proxified to modules
     router.get("/modules*").handler(null);
     

@@ -63,7 +63,7 @@ public class DeployModuleTest {
             + "}";
     final Async async = context.async();
     HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/conduit/enabled_modules", response -> {
+    c.post(port, "localhost", "/conduit/modules", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         getIt(context, async, response.getHeader("Location"), doc);
@@ -75,7 +75,7 @@ public class DeployModuleTest {
           String doc) {
     HttpClient c = vertx.createHttpClient();
     System.out.println("Location=" + location);
-    c.getAbs(location, response -> {
+    c.get(port, "localhost", location, response -> {
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
@@ -89,7 +89,7 @@ public class DeployModuleTest {
   
   public void deleteIt(TestContext context, Async async, String location) {
     HttpClient c = vertx.createHttpClient();
-    c.deleteAbs(location, response -> {
+    c.delete(port, "localhost", location, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         async.complete();

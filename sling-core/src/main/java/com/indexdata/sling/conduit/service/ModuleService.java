@@ -82,7 +82,7 @@ public class ModuleService {
         return;
       }
 
-      final String uri = ctx.request().absoluteURI() + "/" + name;
+      final String uri = ctx.request().uri() + "/" + name;
       final int use_port = ports.get();
       if (use_port == -1) {
         ctx.response().setStatusCode(400).end("module " + name
