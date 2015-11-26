@@ -8,12 +8,7 @@ package com.indexdata.sling.conduit;
 import com.indexdata.sling.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import static io.vertx.core.impl.VertxImpl.context;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -59,10 +54,11 @@ public class DeployModuleTest {
   @Test
   public void test1(TestContext context) {
     final String doc = "{\n"
-            + "  \"name\" : \"sample-module\" ,\n"
+            + "  \"name\" : \"sample-module\",\n"
             + "  \"descriptor\" : {\n"
-            + "     \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\"\n"
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "    \"cmdlineStop\" : null\n"
             + "  }\n"
             + "}";
     final Async async = context.async();
@@ -70,31 +66,34 @@ public class DeployModuleTest {
     c.post(port, "localhost", "/conduit/enabled_modules", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
-        useIt(context, async, response.getHeader("Location"));
+        getIt(context, async, response.getHeader("Location"), doc);
       });
     }).end(doc);
   }
 
-  public void useIt(TestContext context, Async async, String location) {
-    vertx.setTimer(50, id -> {
-       deleteIt(context, async, location);
-    });
+  public void getIt(TestContext context, Async async, String location,
+          String doc) {
+    HttpClient c = vertx.createHttpClient();
+    System.out.println("Location=" + location);
+    c.getAbs(location, response -> {
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
+      response.endHandler(x -> {
+        vertx.setTimer(50, id -> {
+          deleteIt(context, async, location);
+        });
+      });
+    }).end();
   }
   
   public void deleteIt(TestContext context, Async async, String location) {
     HttpClient c = vertx.createHttpClient();
-    System.out.println("Location=" + location);
-    
-    // The HttpClient.delete does not take a full URI, so just get the path
-    int p = location.indexOf("/conduit");
-    context.assertTrue(p > 0);
-    String uri = location.substring(p);
-    c.delete(port, "localhost", uri, response -> {
+    c.deleteAbs(location, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         async.complete();
       });
     }).end();
   }
-
 }
