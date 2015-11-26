@@ -5,6 +5,9 @@
  */
 package com.indexdata.sling.auth;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Parameters for the login service 
  * @author heikki
@@ -14,7 +17,12 @@ public class LoginParameters {
   private final String username;
   private final String password;
 
-  public LoginParameters(String tenant, String username, String password) {
+  
+  @JsonCreator
+  public LoginParameters(
+      @JsonProperty("tenant")   String tenant, 
+      @JsonProperty("username") String username, 
+      @JsonProperty("password") String password) {
     this.tenant = tenant;
     this.username = username;
     this.password = password;
