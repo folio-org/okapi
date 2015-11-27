@@ -19,6 +19,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.streams.Pump;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class ModuleService {
@@ -68,7 +70,7 @@ public class ModuleService {
     }
   }
 
-  Map<String, ModuleInstance> enabled = new HashMap<>();
+  LinkedHashMap<String, ModuleInstance> enabled = new LinkedHashMap<>();
   Ports ports;
 
   final private Vertx vertx;
@@ -144,14 +146,18 @@ public class ModuleService {
     });
   }
   
-  private boolean match(RoutingEntry[] routingEntries, HttpServerRequest req) {
+  private boolean match(RoutingEntry[] routingEntries, HttpServerRequest req,
+          boolean head) {
     for (int i = 0; i < routingEntries.length; i++) {
       RoutingEntry e = routingEntries[i];
       if (req.uri().startsWith(e.getPath())) {
         String[] methods = e.getMethods();
         for (int j = 0; j < methods.length; j++) {
-          if (methods[j].equals(req.method().name())) {
-            return true;
+          if (head) {
+            return methods[j].equals("CHECK");
+          } else {
+            if (methods[j].equals("*") || methods[j].equals(req.method().name()))
+              return true;
           }
         }
       }
@@ -160,13 +166,25 @@ public class ModuleService {
   }
 
   public void proxy(RoutingContext ctx) {
-    for (String m : enabled.keySet()) {
+    Iterator<String> it = enabled.keySet().iterator();
+    proxyHead(ctx, it);
+  }
+
+  public void proxyRequest(RoutingContext ctx, Iterator<String> it) {
+    if (!it.hasNext()) {
+      ctx.response().setStatusCode(404).end();
+    } else {
+      String m = it.next();
       ModuleInstance mi = enabled.get(m);
-      if (match(mi.md.getRoutingEntries(), ctx.request())) {
+      if (!match(mi.md.getRoutingEntries(), ctx.request(), false)) {
+        proxyRequest(ctx, it);
+      } else {
         HttpServerRequest req = ctx.request();
         HttpClient c = vertx.createHttpClient();
+        System.out.println("Make request to " + mi.md.getName());
         HttpClientRequest c_req = c.request(ctx.request().method(), mi.port,
                 "localhost", req.uri(), res -> {
+                  System.out.println("Got response " + res.statusCode() + " from " + mi.md.getName());
                   ctx.response().setChunked(true);
                   ctx.response().setStatusCode(res.statusCode());
                   ctx.response().headers().setAll(res.headers());
@@ -175,16 +193,50 @@ public class ModuleService {
                   });
                   res.endHandler(v -> ctx.response().end());
                 });
+        System.out.println("Make request phase two to " + mi.md.getName());
         c_req.setChunked(true);
         c_req.headers().setAll(req.headers());
         req.handler(data -> {
           c_req.write(data);
         });
         req.endHandler(v -> c_req.end());
-        return;
       }
     }
-    ctx.response().setStatusCode(404).end();
   }
-  
+
+  public void proxyHead(RoutingContext ctx, Iterator<String> it) {
+    if (!it.hasNext()) {
+      proxyRequest(ctx, enabled.keySet().iterator());
+    } else {
+      String m = it.next();
+      ModuleInstance mi = enabled.get(m);
+      if (!match(mi.md.getRoutingEntries(), ctx.request(), true)) {
+        proxyHead(ctx, it);
+      } else {
+        HttpServerRequest req = ctx.request();
+        HttpClient c = vertx.createHttpClient();
+        System.out.println("Make head method=" + ctx.request().method() + " to " + mi.md.getName());
+        HttpClientRequest c_req = c.get(mi.port,
+                "localhost", req.uri(), res -> {
+                  System.out.println("Got head res " + res.statusCode() + "/" + res.statusMessage() + " from " + mi.md.getName());
+                  if (res.statusCode() == 202) {
+                    proxyHead(ctx, it);
+                    return;
+                  }
+                  ctx.response().setStatusCode(res.statusCode());
+                  ctx.response().headers().setAll(res.headers());
+                  res.handler(data -> {
+                    System.out.println("Got data " + data);
+                    ctx.response().write(data);
+                  });
+                  res.endHandler(v -> ctx.response().end());
+                  return;
+                });
+        System.out.println("Make head phase two to " + mi.md.getName());
+        c_req.headers().setAll(req.headers());
+        c_req.end();
+      }
+    }
+  }
+
 } // class

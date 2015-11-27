@@ -7,8 +7,10 @@ package com.indexdata.sling.conduit;
 
 import com.indexdata.sling.MainVerticle;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -23,6 +25,10 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class DeployModuleTest {
   Vertx vertx;
+  
+  private String locationSample;
+  private String locationAuth;
+  private String slingToken;
   
   public DeployModuleTest() {
   }
@@ -53,7 +59,40 @@ public class DeployModuleTest {
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
   @Test
-  public void test1(TestContext context) {
+  public void test_sample(TestContext context)
+  {
+     final Async async = context.async();
+     deployAuth(context, async);
+  }
+
+  public void deployAuth(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"name\" : \"auth\",\n"
+            + "  \"descriptor\" : {\n"
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../auth/target/auth-fat.jar\",\n"
+            + "    \"cmdlineStop\" : null\n"
+            + "  },\n"
+            + "  \"routingEntries\" : [ {\n"
+            + "    \"methods\" : [ \"CHECK\" ],\n"
+            + "    \"path\" : \"/\"\n"
+            + "  }, {"
+            + "    \"methods\" : [ \"POST\" ],\n"
+            + "    \"path\" : \"/login\"\n"
+
+            + "  } ]\n"
+            + "}";
+    HttpClient c = vertx.createHttpClient();
+    c.post(port, "localhost", "/conduit/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      locationAuth = response.getHeader("Location");
+      response.endHandler(x -> {
+        deploySample(context, async);
+      });
+    }).end(doc);
+  }
+
+  public void deploySample(TestContext context, Async async) {
     final String doc = "{\n"
             + "  \"name\" : \"sample-module\",\n"
             + "  \"descriptor\" : {\n"
@@ -66,72 +105,135 @@ public class DeployModuleTest {
             + "    \"path\" : \"/sample\"\n"
             + "  } ]\n"
             + "}";
-    final Async async = context.async();
     HttpClient c = vertx.createHttpClient();
     c.post(port, "localhost", "/conduit/modules", response -> {
       context.assertEquals(201, response.statusCode());
+      locationSample =  response.getHeader("Location");
       response.endHandler(x -> {
-        getIt(context, async, response.getHeader("Location"), doc);
+        getIt(context, async, doc);
       });
     }).end(doc);
   }
 
-  public void getIt(TestContext context, Async async, String location,
-          String doc) {
+  public void getIt(TestContext context, Async async, String doc) {
+    System.out.println("getIt");
     HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", location, response -> {
+    c.get(port, "localhost", locationSample, response -> {
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
         vertx.setTimer(300, id -> {
-          useIt(context, async, location);
+          useWithoutLogin(context, async);
         });
       });
     }).end();
   }
-  
-  public void useIt(TestContext context, Async async, String location) {
+
+  public void useWithoutLogin(TestContext context, Async async) {
+    System.out.println("useWithoutLogin");
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/sample", response -> {
-      context.assertEquals(200, response.statusCode());
-      System.out.println("Got response in useIt");
-      response.bodyHandler(x -> {
-         context.assertEquals("It works", x.toString());
-      });
+      context.assertEquals(401, response.statusCode());
       response.endHandler(x -> {
-         useNoPath(context, async, location);        
+         failLogin(context, async);
       });
     }).end();
   }
 
-  public void useNoPath(TestContext context, Async async, String location) {
+  public void failLogin(TestContext context, Async async) {
+    System.out.println("failLogin");
+    HttpClient c = vertx.createHttpClient();
+    String doc = "{\n"
+            + "  \"tenant\" : \"t1\",\n"
+            + "  \"username\" : \"peter\",\n"
+            + "  \"password\" : \"peter37\"\n"
+            + "}";
+    c.post(port, "localhost", "/login", response -> {
+      context.assertEquals(401, response.statusCode());
+      response.endHandler(x -> {
+         doLogin(context, async);
+      });
+    }).end(doc);
+  }
+
+  public void doLogin(TestContext context, Async async) {
+    System.out.println("doLogin");
+    HttpClient c = vertx.createHttpClient();
+    String doc = "{\n"
+            + "  \"tenant\" : \"t1\",\n"
+            + "  \"username\" : \"peter\",\n"
+            + "  \"password\" : \"peter36\"\n"
+            + "}";
+    c.post(port, "localhost", "/login", response -> {
+      context.assertEquals(200, response.statusCode());
+      slingToken = response.getHeader("X-Sling-Token");
+      System.out.println("token=" + slingToken);
+      response.endHandler(x -> {
+         useIt(context, async);
+      });
+    }).end(doc);
+  }
+
+  public void useIt(TestContext context, Async async) {
+    HttpClient c = vertx.createHttpClient();
+    HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      System.out.println("Got response in useIt");
+      response.bodyHandler(x -> {
+        context.assertEquals("It works", x.toString());
+      });
+      response.endHandler(x -> {
+        useNoPath(context, async);
+      });
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
+  }
+
+  public void useNoPath(TestContext context, Async async) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/samplE", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-         useNoMethod(context, async, location);        
+         useNoMethod(context, async);
       });
     }).end();
   }
 
-  public void useNoMethod(TestContext context, Async async, String location) {
+  public void useNoMethod(TestContext context, Async async) {
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-         deleteIt(context, async, location);        
+         deleteSample(context, async);
       });
     }).end();
   }
 
-  public void deleteIt(TestContext context, Async async, String location) {
+  
+  public void deleteSample(TestContext context, Async async) {
     HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", location, response -> {
+    c.delete(port, "localhost", locationSample, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
-        async.complete();
+        deleteAuth(context, async);
       });
     }).end();
+  }
+  
+  public void deleteAuth(TestContext context, Async async) {
+    HttpClient c = vertx.createHttpClient();
+    c.delete(port, "localhost", locationAuth, response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        done(context, async);
+      });
+    }).end();
+  }
+  
+  public void done(TestContext context, Async async)
+  {
+    async.complete();
   }
 }

@@ -135,7 +135,7 @@ public class Auth {
    */
   public void accept (RoutingContext ctx) {
     System.out.println("Auth accept OK");
-    ctx.response().setStatusCode(200).end("Accepted"); 
+    ctx.response().setStatusCode(202).end("Accepted"); 
     
   }
 
