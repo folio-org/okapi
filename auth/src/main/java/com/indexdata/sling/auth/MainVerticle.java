@@ -10,6 +10,7 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
+import java.net.BindException;
 
 /**
  * The auth module provides two services: login and check.
@@ -27,25 +28,25 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     Auth auth = new Auth();
     
-    final int port = Integer.parseInt(System.getProperty("port", "8080"));
+    final int port = Integer.parseInt(System.getProperty("port", "9020"));
     
     router.post("/login").handler(BodyHandler.create());
     router.post("/login").handler(auth::login);
+    router.route("/login").handler(auth::accept);  
     router.route("/*").handler(auth::check);
       
-    
     vertx.createHttpServer()
-            .requestHandler(router::accept)
-            .listen(
-                    port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        fut.fail(result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router::accept)
+      .listen(
+        port,
+        result -> {
+          if (result.succeeded()) {
+            fut.complete();
+          } else {
+            fut.fail(result.cause());
+          }
+        }
+      );
   }
 
   @Override

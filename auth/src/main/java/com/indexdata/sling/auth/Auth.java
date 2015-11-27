@@ -126,6 +126,18 @@ public class Auth {
     ctx.response().setStatusCode(202).end(); // 202 = Accepted
     // signal to the conduit that we want to continue the module chain
   }
+  
+  /** 
+   * Accept a request.
+   * Gets called with anything else than a POST to /login. These need to be
+   * accepted, so we can do a pre-check before the proper POST
+   * @param ctx 
+   */
+  public void accept (RoutingContext ctx) {
+    System.out.println("Auth accept OK");
+    ctx.response().setStatusCode(200).end("Accepted"); 
+    
+  }
 
   
 }
