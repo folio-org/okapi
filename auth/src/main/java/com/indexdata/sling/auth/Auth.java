@@ -10,13 +10,12 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * A dummy auth module.
+ * Provides a minimal authentication mechanism.  
  * @author heikki
  */
 
@@ -124,7 +123,8 @@ public class Auth {
     System.out.println("Auth check OK");
     ctx.response()
       .headers().add(SLINGTOKENHEADER,tok);
-    ctx.response().setStatusCode(200).end(); // OK
+    ctx.response().setStatusCode(202).end(); // 202 = Accepted
+    // signal to the conduit that we want to continue the module chain
   }
 
   

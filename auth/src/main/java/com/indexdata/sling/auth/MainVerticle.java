@@ -5,9 +5,6 @@
  */
 package com.indexdata.sling.auth;
 
-
-
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.ext.web.Router;
@@ -18,6 +15,9 @@ import java.io.IOException;
  * The auth module provides two services: login and check.
  *  /login takes username, password, and other parameters, and returns a token
  *  /check takes the token, and verifies that everything is all right
+ * This is a very trivial dummy module, that provides simple hard-coded 
+ * authentication for any user who can append '36' to his username to make
+ * a fake password.
  * @author heikki
  */
 public class MainVerticle extends AbstractVerticle {
