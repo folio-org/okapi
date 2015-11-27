@@ -7,9 +7,16 @@ package com.indexdata.sling.conduit.service;
 
 import com.indexdata.sling.conduit.ModuleDescriptor;
 import com.indexdata.sling.conduit.ProcessModuleHandle;
+import com.indexdata.sling.conduit.RoutingEntry;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.streams.Pump;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -22,9 +29,10 @@ public class ModuleService {
     ProcessModuleHandle pmh;
     int port;
 
-    ModuleInstance(ModuleDescriptor md, ProcessModuleHandle pmh) {
+    ModuleInstance(ModuleDescriptor md, ProcessModuleHandle pmh, int port) {
       this.md = md;
       this.pmh = pmh;
+      this.port = port;
     }
   }
 
@@ -91,7 +99,7 @@ public class ModuleService {
       // enable it now so that activation for 2nd one will fail
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
               use_port);
-      enabled.put(name, new ModuleInstance(md, pmh));
+      enabled.put(name, new ModuleInstance(md, pmh, use_port));
 
       pmh.start(future -> {
         if (future.succeeded()) {
@@ -135,4 +143,48 @@ public class ModuleService {
       }
     });
   }
-}
+  
+  private boolean match(RoutingEntry[] routingEntries, HttpServerRequest req) {
+    for (int i = 0; i < routingEntries.length; i++) {
+      RoutingEntry e = routingEntries[i];
+      if (req.uri().startsWith(e.getPath())) {
+        String[] methods = e.getMethods();
+        for (int j = 0; j < methods.length; j++) {
+          if (methods[j].equals(req.method().name())) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  public void proxy(RoutingContext ctx) {
+    for (String m : enabled.keySet()) {
+      ModuleInstance mi = enabled.get(m);
+      if (match(mi.md.getRoutingEntries(), ctx.request())) {
+        HttpServerRequest req = ctx.request();
+        HttpClient c = vertx.createHttpClient();
+        HttpClientRequest c_req = c.request(ctx.request().method(), mi.port,
+                "localhost", req.uri(), res -> {
+                  ctx.response().setChunked(true);
+                  ctx.response().setStatusCode(res.statusCode());
+                  ctx.response().headers().setAll(res.headers());
+                  res.handler(data -> {
+                    ctx.response().write(data);
+                  });
+                  res.endHandler(v -> ctx.response().end());
+                });
+        c_req.setChunked(true);
+        c_req.headers().setAll(req.headers());
+        req.handler(data -> {
+          c_req.write(data);
+        });
+        req.endHandler(v -> c_req.end());
+        return;
+      }
+    }
+    ctx.response().setStatusCode(404).end();
+  }
+  
+} // class

@@ -20,8 +20,8 @@ import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 
 public class MainVerticle extends AbstractVerticle {
-  private int port = Integer.parseInt(System.getProperty("port", "8080"));
-  private int port_start = Integer.parseInt(System.getProperty("port_start", "9130"));
+  private int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
   private int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
   
   ModuleService ms;
@@ -46,9 +46,9 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/conduit/tenant").handler(ts::create);
     router.get("/conduit/tenant/:id").handler(ts::get);
     router.delete("/conduit/tenant/:id").handler(ts::delete);
-
+    
     //everything else gets proxified to modules
-    router.get("/modules*").handler(null);
+    router.route("/*").handler(ms::proxy);
     
     vertx.createHttpServer()
             .requestHandler(router::accept)

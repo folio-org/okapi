@@ -9,6 +9,7 @@ import com.indexdata.sling.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -49,7 +50,7 @@ public class DeployModuleTest {
     vertx.close(context.asyncAssertSuccess());
   }
   
-  private int port = Integer.parseInt(System.getProperty("port", "8080"));
+  private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
   @Test
   public void test1(TestContext context) {
@@ -59,7 +60,11 @@ public class DeployModuleTest {
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
             + "    \"cmdlineStop\" : null\n"
-            + "  }\n"
+            + "  },\n"
+            + "  \"routingEntries\" : [ {\n"
+            + "    \"methods\" : [ \"GET\" ],\n"
+            + "    \"path\" : \"/sample\"\n"
+            + "  } ]\n"
             + "}";
     final Async async = context.async();
     HttpClient c = vertx.createHttpClient();
@@ -74,19 +79,52 @@ public class DeployModuleTest {
   public void getIt(TestContext context, Async async, String location,
           String doc) {
     HttpClient c = vertx.createHttpClient();
-    System.out.println("Location=" + location);
     c.get(port, "localhost", location, response -> {
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
-        vertx.setTimer(50, id -> {
-          deleteIt(context, async, location);
+        vertx.setTimer(300, id -> {
+          useIt(context, async, location);
         });
       });
     }).end();
   }
   
+  public void useIt(TestContext context, Async async, String location) {
+    HttpClient c = vertx.createHttpClient();
+    c.get(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      System.out.println("Got response in useIt");
+      response.bodyHandler(x -> {
+         context.assertEquals("It works", x.toString());
+      });
+      response.endHandler(x -> {
+         useNoPath(context, async, location);        
+      });
+    }).end();
+  }
+
+  public void useNoPath(TestContext context, Async async, String location) {
+    HttpClient c = vertx.createHttpClient();
+    c.get(port, "localhost", "/samplE", response -> {
+      context.assertEquals(404, response.statusCode());
+      response.endHandler(x -> {
+         useNoMethod(context, async, location);        
+      });
+    }).end();
+  }
+
+  public void useNoMethod(TestContext context, Async async, String location) {
+    HttpClient c = vertx.createHttpClient();
+    c.delete(port, "localhost", "/sample", response -> {
+      context.assertEquals(404, response.statusCode());
+      response.endHandler(x -> {
+         deleteIt(context, async, location);        
+      });
+    }).end();
+  }
+
   public void deleteIt(TestContext context, Async async, String location) {
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", location, response -> {

@@ -12,20 +12,26 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 
 public class MainVerticle extends AbstractVerticle {
 
+  public void my_handle(RoutingContext ctx) {
+    System.out.println("my_handle " + ctx.request());
+    ctx.response().setStatusCode(200).end("It works");
+  }
+          
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
+    System.out.println("Started sample-module on port " + port);
     //enable reading body to string
     router.route("/sample*").handler(BodyHandler.create()); 
-    //everything else gets proxified to modules
-    router.get("/*").handler(null);
+    router.get("/sample").handler(this::my_handle);
 
     vertx.createHttpServer()
             .requestHandler(router::accept)
@@ -36,6 +42,7 @@ public class MainVerticle extends AbstractVerticle {
                         fut.complete();
                       } else {
                         fut.fail(result.cause());
+                        vertx.close();
                       }
                     }
             );

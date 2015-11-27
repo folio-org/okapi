@@ -11,6 +11,15 @@ public class ModuleDescriptor {
   
   private String name;
   private ProcessDeploymentDescriptor descriptor;
+  private RoutingEntry [] routingEntries;
+
+  public RoutingEntry[] getRoutingEntries() {
+    return routingEntries;
+  }
+
+  public void setRoutingEntries(RoutingEntry[] routingEntries) {
+    this.routingEntries = routingEntries;
+  }
 
   public String getName() {
     return name;
