@@ -166,6 +166,7 @@ public class ModuleService {
   }
 
   public void proxy(RoutingContext ctx) {
+    ctx.request().pause();
     Iterator<String> it = enabled.keySet().iterator();
     proxyHead(ctx, it);
   }
@@ -196,10 +197,15 @@ public class ModuleService {
         System.out.println("Make request phase two to " + mi.md.getName());
         c_req.setChunked(true);
         c_req.headers().setAll(req.headers());
+        System.out.println(" ... Setting data handler ");
         req.handler(data -> {
+          System.out.println(" ... request data handler: " + data);
           c_req.write(data);
         });
         req.endHandler(v -> c_req.end());
+        System.out.println(" ... Resuming reading");
+        req.resume();
+        System.out.println(" ... done");
       }
     }
   }
