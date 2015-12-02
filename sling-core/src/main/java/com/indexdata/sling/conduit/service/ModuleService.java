@@ -229,8 +229,10 @@ public class ModuleService {
                     proxyHead(ctx, it);
                     return;
                   }
-                  ctx.response().setStatusCode(res.statusCode());
                   ctx.response().headers().setAll(res.headers());
+                  int status = res.statusCode();
+                  ctx.response().setStatusCode(status);
+                  System.out.println("Make head: Setting status code " + status);
                   res.handler(data -> {
                     System.out.println("Got data " + data);
                     ctx.response().write(data);

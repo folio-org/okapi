@@ -200,23 +200,27 @@ public class DeployModuleTest {
   public void useNoPath(TestContext context, Async async) {
     System.out.println("useNoPath");
     HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", "/samplE", response -> {
+    HttpClientRequest req = c.get(port, "localhost", "/samplE", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-         useNoMethod(context, async);
+        useNoMethod(context, async);
       });
-    }).end();
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
   }
 
   public void useNoMethod(TestContext context, Async async) {
     System.out.println("useNoMethod");
     HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", "/sample", response -> {
+    HttpClientRequest req  = c.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-         deleteSample(context, async);
+        deleteSample(context, async);
       });
-    }).end();
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
   }
 
   
