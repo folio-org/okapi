@@ -66,6 +66,7 @@ public class DeployModuleTest {
   }
 
   public void deployAuth(TestContext context, Async async) {
+    System.out.println("deployAuth");
     final String doc = "{\n"
             + "  \"name\" : \"auth\",\n"
             + "  \"descriptor\" : {\n"
@@ -93,6 +94,7 @@ public class DeployModuleTest {
   }
 
   public void deploySample(TestContext context, Async async) {
+    System.out.println("deploySample");
     final String doc = "{\n"
             + "  \"name\" : \"sample-module\",\n"
             + "  \"descriptor\" : {\n"
@@ -123,7 +125,10 @@ public class DeployModuleTest {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
-        vertx.setTimer(300, id -> {
+        // Need a small delay before the modules are actually listening.
+        // On a workstation 300 seems to be sufficient, but on my laptop
+        // I seem to need 1000ms.
+        vertx.setTimer(1000, id -> {  
           useWithoutLogin(context, async);
         });
       });
@@ -176,6 +181,7 @@ public class DeployModuleTest {
   }
 
   public void useIt(TestContext context, Async async) {
+    System.out.println("useIt");
     HttpClient c = vertx.createHttpClient();
     HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
@@ -192,6 +198,7 @@ public class DeployModuleTest {
   }
 
   public void useNoPath(TestContext context, Async async) {
+    System.out.println("useNoPath");
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/samplE", response -> {
       context.assertEquals(404, response.statusCode());
@@ -202,6 +209,7 @@ public class DeployModuleTest {
   }
 
   public void useNoMethod(TestContext context, Async async) {
+    System.out.println("useNoMethod");
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(404, response.statusCode());
@@ -213,6 +221,7 @@ public class DeployModuleTest {
 
   
   public void deleteSample(TestContext context, Async async) {
+    System.out.println("deleteSample");
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", locationSample, response -> {
       context.assertEquals(204, response.statusCode());
@@ -223,6 +232,7 @@ public class DeployModuleTest {
   }
   
   public void deleteAuth(TestContext context, Async async) {
+    System.out.println("deleteAuth");
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", locationAuth, response -> {
       context.assertEquals(204, response.statusCode());
@@ -234,6 +244,7 @@ public class DeployModuleTest {
   
   public void done(TestContext context, Async async)
   {
+    System.out.println("done");
     async.complete();
   }
 }
