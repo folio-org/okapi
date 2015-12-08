@@ -12,8 +12,8 @@
 
   <modules>
     <module>sling-sample-module</module>
-    <module>sling-core</module>
     <module>auth</module>
+    <module>sling-core</module>
   </modules>
 
   <prerequisites>
