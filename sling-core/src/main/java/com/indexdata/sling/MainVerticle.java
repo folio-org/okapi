@@ -39,13 +39,13 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     
     //hijack everything to conduit to allow for configuration
-    router.route("/conduit*").handler(BodyHandler.create()); //enable reading body to string
-    router.post("/conduit/modules/").handler(ms::create);
-    router.delete("/conduit/modules/:id").handler(ms::delete);
-    router.get("/conduit/modules/:id").handler(ms::get);
-    router.post("/conduit/tenant").handler(ts::create);
-    router.get("/conduit/tenant/:id").handler(ts::get);
-    router.delete("/conduit/tenant/:id").handler(ts::delete);
+    router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
+    router.post("/_/modules/").handler(ms::create);
+    router.delete("/_/modules/:id").handler(ms::delete);
+    router.get("/_/modules/:id").handler(ms::get);
+    router.post("/_/tenant").handler(ts::create);
+    router.get("/_/tenant/:id").handler(ts::get);
+    router.delete("/_/tenant/:id").handler(ts::delete);
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);

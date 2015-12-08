@@ -84,7 +84,7 @@ public class DeployModuleTest {
             + "  } ]\n"
             + "}";
     HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/conduit/modules", response -> {
+    c.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       response.endHandler(x -> {
@@ -108,7 +108,7 @@ public class DeployModuleTest {
             + "  } ]\n"
             + "}";
     HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/conduit/modules", response -> {
+    c.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample =  response.getHeader("Location");
       response.endHandler(x -> {
