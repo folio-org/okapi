@@ -43,9 +43,9 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/modules/").handler(ms::create);
     router.delete("/_/modules/:id").handler(ms::delete);
     router.get("/_/modules/:id").handler(ms::get);
-    router.post("/_/tenant").handler(ts::create);
-    router.get("/_/tenant/:id").handler(ts::get);
-    router.delete("/_/tenant/:id").handler(ts::delete);
+    router.post("/_/tenants").handler(ts::create);
+    router.get("/_/tenants/:id").handler(ts::get);
+    router.delete("/_/tenants/:id").handler(ts::delete);
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
