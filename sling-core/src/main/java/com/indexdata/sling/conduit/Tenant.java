@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit.service;
+package com.indexdata.sling.conduit;
 
 import com.indexdata.sling.conduit.TenantDescriptor;
 import java.util.HashMap;

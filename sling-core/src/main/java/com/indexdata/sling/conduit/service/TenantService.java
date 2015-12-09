@@ -5,6 +5,7 @@
  */
 package com.indexdata.sling.conduit.service;
 
+import com.indexdata.sling.conduit.Tenant;
 import com.indexdata.sling.conduit.TenantDescriptor;
 import com.indexdata.sling.conduit.TenantModuleDescriptor;
 import io.vertx.core.Vertx;
