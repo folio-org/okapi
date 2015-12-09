@@ -7,6 +7,7 @@ package com.indexdata.sling.conduit.service;
 
 import com.indexdata.sling.conduit.ModuleDescriptor;
 import com.indexdata.sling.conduit.ModuleInstance;
+import com.indexdata.sling.conduit.Modules;
 import com.indexdata.sling.conduit.Ports;
 import com.indexdata.sling.conduit.ProcessModuleHandle;
 import com.indexdata.sling.conduit.RoutingEntry;
@@ -18,12 +19,9 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-
 
 public class ModuleService {
-
-  LinkedHashMap<String, ModuleInstance> enabled = new LinkedHashMap<>();
+  Modules modules;
   Ports ports;
 
   final private Vertx vertx;
@@ -31,6 +29,7 @@ public class ModuleService {
   public ModuleService(Vertx vertx, int port_start, int port_end) {
     this.vertx = vertx;
     this.ports = new Ports(port_start, port_end);
+    this.modules = new Modules();
   }
 
   public void create(RoutingContext ctx) {
@@ -39,7 +38,8 @@ public class ModuleService {
               ModuleDescriptor.class);
 
       final String name = md.getName();
-      if (enabled.containsKey(name)) {
+      ModuleInstance m = modules.get(name);
+      if (m != null) {
         ctx.response().setStatusCode(400).end("module " + name
                 + " already deployed");
         return;
@@ -54,13 +54,13 @@ public class ModuleService {
       // enable it now so that activation for 2nd one will fail
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
               use_port);
-      enabled.put(name, new ModuleInstance(md, pmh, use_port));
+      modules.put(name, new ModuleInstance(md, pmh, use_port));
 
       pmh.start(future -> {
         if (future.succeeded()) {
           ctx.response().setStatusCode(201).putHeader("Location", uri).end();
         } else {
-          enabled.remove(md.getName());
+          modules.remove(md.getName());
           ports.free(use_port);
           ctx.response().setStatusCode(500).end(future.cause().getMessage());
         }
@@ -72,25 +72,27 @@ public class ModuleService {
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    if (!enabled.containsKey(id)) {
+    ModuleInstance m = modules.get(id);
+    if (m == null) {
       ctx.response().setStatusCode(404).end();
       return;
     }
-    String s = Json.encodePrettily(enabled.get(id).getModuleDescriptor());
+    String s = Json.encodePrettily(modules.get(id).getModuleDescriptor());
     ctx.response().end(s);
   }
 
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    if (!enabled.containsKey(id)) {
+    ModuleInstance m = modules.get(id);
+    if (id == null) {
       ctx.response().setStatusCode(404).end();
       return;
     }
-    ProcessModuleHandle pmh = enabled.get(id).getProcessModuleHandle();
+    ProcessModuleHandle pmh = m.getProcessModuleHandle();
     pmh.stop(future -> {
       if (future.succeeded()) {
-        enabled.remove(id);
+        modules.remove(id);
         ports.free(pmh.getPort());
         ctx.response().setStatusCode(204).end();
       } else {
@@ -120,7 +122,7 @@ public class ModuleService {
 
   public void proxy(RoutingContext ctx) {
     ctx.request().pause();
-    Iterator<String> it = enabled.keySet().iterator();
+    Iterator<String> it = modules.iterator();
     proxyHead(ctx, it);
   }
 
@@ -129,7 +131,7 @@ public class ModuleService {
       ctx.response().setStatusCode(404).end();
     } else {
       String m = it.next();
-      ModuleInstance mi = enabled.get(m);
+      ModuleInstance mi = modules.get(m);
       if (!match(mi.getModuleDescriptor().getRoutingEntries(), ctx.request(), false)) {
         proxyRequest(ctx, it);
       } else {
@@ -165,10 +167,10 @@ public class ModuleService {
 
   public void proxyHead(RoutingContext ctx, Iterator<String> it) {
     if (!it.hasNext()) {
-      proxyRequest(ctx, enabled.keySet().iterator());
+      proxyRequest(ctx, modules.iterator());
     } else {
       String m = it.next();
-      ModuleInstance mi = enabled.get(m);
+      ModuleInstance mi = modules.get(m);
       if (!match(mi.getModuleDescriptor().getRoutingEntries(), ctx.request(), true)) {
         proxyHead(ctx, it);
       } else {
