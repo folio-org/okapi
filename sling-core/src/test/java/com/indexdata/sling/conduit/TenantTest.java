@@ -62,7 +62,7 @@ public class TenantTest {
     c.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
-        getIt(context, async, response.getHeader("Location"), doc);
+        getNone(context, async, response.getHeader("Location"), doc);
       });
     }).end(doc);
   }

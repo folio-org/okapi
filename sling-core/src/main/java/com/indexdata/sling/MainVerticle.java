@@ -31,7 +31,7 @@ public class MainVerticle extends AbstractVerticle {
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
     ms = new ModuleService(vertx, port_start, port_end);
-    ts = new TenantService(vertx);
+    ts = new TenantService(vertx, ms);
   }
       
   @Override
@@ -46,6 +46,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants").handler(ts::create);
     router.get("/_/tenants/:id").handler(ts::get);
     router.delete("/_/tenants/:id").handler(ts::delete);
+    router.post("/_/tenants/:id/modules").handler(ts::enableModule);
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
