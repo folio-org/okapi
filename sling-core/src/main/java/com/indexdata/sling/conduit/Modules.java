@@ -8,10 +8,6 @@ package com.indexdata.sling.conduit;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 
-/**
- *
- * @author adam
- */
 public class Modules {
   LinkedHashMap<String, ModuleInstance> enabled = new LinkedHashMap<>();
   
