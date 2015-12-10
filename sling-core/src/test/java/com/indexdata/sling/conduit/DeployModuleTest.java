@@ -7,11 +7,9 @@ package com.indexdata.sling.conduit;
 
 import com.indexdata.sling.MainVerticle;
 import io.vertx.core.DeploymentOptions;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.json.Json;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -169,6 +167,8 @@ public class DeployModuleTest {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(401, response.statusCode());
+      String trace = response.getHeader("X-Sling-Trace");
+      context.assertTrue(trace.matches(".*CHECK auth:401.*"));
       response.endHandler(x -> {
          failLogin(context, async);
       });
@@ -201,8 +201,11 @@ public class DeployModuleTest {
             + "}";
     c.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
-      System.out.println("doLogin Headers: " + response.headers().entries());
-      System.out.println("doLogin trace: " + response.getHeader("X-Sling-Trace") );
+      String headers = response.headers().entries().toString();
+      //System.out.println("doLogin Headers: '" + headers );
+      // There must be an easier way to check two headers! (excl timing)
+      context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Sling-Trace=POST auth:200.*"));
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
       response.endHandler(x -> {
@@ -216,8 +219,11 @@ public class DeployModuleTest {
     HttpClient c = vertx.createHttpClient();
     HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
-      System.out.println("Got response in useIt");
-      System.out.println("useit Headers: " + response.headers().entries());
+      String headers = response.headers().entries().toString();
+      //System.out.println("Useit Headers: '" + headers );
+      // There must be an easier way to check two headers! (excl timing)
+      context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module:200.*"));
       response.bodyHandler(x -> {
         context.assertEquals("It works", x.toString());
       });

@@ -224,15 +224,15 @@ public class ModuleService {
                   int status = res.statusCode();
                   ctx.response().setStatusCode(status);
                   System.out.println("Make head: Setting status code " + status);
+                  long timeDiff = (System.nanoTime() - startTime) / 1000;
+                  traceHeaders.add("CHECK " + mi.getModuleDescriptor().getName() + ":"
+                          + res.statusCode() + " " + timeDiff + "us");
+                  addTraceHeaders(ctx, traceHeaders);
                   res.handler(data -> {
                     System.out.println("Got data " + data);
                     ctx.response().write(data);
                   });
                   res.endHandler(v -> {
-                    long timeDiff = (System.nanoTime() - startTime) / 1000;
-                    traceHeaders.add("CHECK " + mi.getModuleDescriptor().getName() + ":"
-                            + res.statusCode() + " " + timeDiff + "us");
-                    addTraceHeaders(ctx, traceHeaders);
                     ctx.response().end();
                   });
                 });
