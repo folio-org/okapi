@@ -18,9 +18,11 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.streams.Pump;
 import io.vertx.ext.web.RoutingContext;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ModuleService {
@@ -165,34 +167,60 @@ public class ModuleService {
     return false;
   }
 
+  /** 
+   * Add the trace headers to the response 
+   */
+  private void addTraceHeaders(RoutingContext ctx, List<String> traceHeaders) {
+    for ( String th : traceHeaders ) {
+      System.out.println("X-Sling-Trace: " + th);
+      ctx.response().headers().add("X-Sling-Trace", th);
+    }
+  }
+  
   public void proxy(RoutingContext ctx) {
     ctx.request().pause();
+    List<String> traceHeaders = new ArrayList<>();
     Iterator<String> it = enabled.keySet().iterator();
-    proxyHead(ctx, it);
+    proxyHead(ctx, it, traceHeaders);
   }
 
-  public void proxyRequest(RoutingContext ctx, Iterator<String> it) {
+  // TODO - This can be simplified, no need to recurse, just iterate until
+  // the first found.
+  public void proxyRequest(RoutingContext ctx, 
+          Iterator<String> it, List<String> traceHeaders ) {
     if (!it.hasNext()) {
+      addTraceHeaders(ctx, traceHeaders);
       ctx.response().setStatusCode(404).end();
     } else {
       String m = it.next();
       ModuleInstance mi = enabled.get(m);
       if (!match(mi.md.getRoutingEntries(), ctx.request(), false)) {
-        proxyRequest(ctx, it);
+        proxyRequest(ctx, it,traceHeaders); // try the next one
       } else {
         HttpServerRequest req = ctx.request();
         HttpClient c = vertx.createHttpClient();
         System.out.println("Make request to " + mi.md.getName());
+        final long startTime = System.nanoTime();
         HttpClientRequest c_req = c.request(ctx.request().method(), mi.port,
                 "localhost", req.uri(), res -> {
                   System.out.println("Got response " + res.statusCode() + " from " + mi.md.getName());
                   ctx.response().setChunked(true);
                   ctx.response().setStatusCode(res.statusCode());
                   ctx.response().headers().setAll(res.headers());
+                  long timeDiff = ( System.nanoTime() - startTime) / 1000 ;
+                  // Actually, this is a bit too early to stop measuring the time, but we
+                  // need to do all headers before we do the data, or they get lost
+                  // along the way.
+                  traceHeaders.add( ctx.request().method() + " " + mi.md.getName() + ":" + 
+                          res.statusCode() + " " + timeDiff + "us" );
+                  addTraceHeaders(ctx, traceHeaders);
+                  System.out.println(" .. Final headers: " + Json.encode(ctx.response().headers().entries()));
                   res.handler(data -> {
                     ctx.response().write(data);
                   });
-                  res.endHandler(v -> ctx.response().end());
+                  res.endHandler(v -> {
+                    ctx.response().end();
+                  });
                 });
         System.out.println("Make request phase two to " + mi.md.getName());
         c_req.setChunked(true);
@@ -210,15 +238,17 @@ public class ModuleService {
     }
   }
 
-  public void proxyHead(RoutingContext ctx, Iterator<String> it) {
+  public void proxyHead(RoutingContext ctx, 
+          Iterator<String> it, List<String> traceHeaders) {
     if (!it.hasNext()) {
-      proxyRequest(ctx, enabled.keySet().iterator());
+      proxyRequest(ctx, enabled.keySet().iterator(),traceHeaders);
     } else {
       String m = it.next();
       ModuleInstance mi = enabled.get(m);
       if (!match(mi.md.getRoutingEntries(), ctx.request(), true)) {
-        proxyHead(ctx, it);
+        proxyHead(ctx, it, traceHeaders);
       } else {
+        final long startTime = System.nanoTime();
         HttpServerRequest req = ctx.request();
         HttpClient c = vertx.createHttpClient();
         System.out.println("Make head method=" + ctx.request().method() + " to " + mi.md.getName());
@@ -226,7 +256,10 @@ public class ModuleService {
                 "localhost", req.uri(), res -> {
                   System.out.println("Got head res " + res.statusCode() + "/" + res.statusMessage() + " from " + mi.md.getName());
                   if (res.statusCode() == 202) {
-                    proxyHead(ctx, it);
+                    long timeDiff = (System.nanoTime() - startTime) / 1000;
+                    traceHeaders.add("CHECK " + mi.md.getName() + ":"
+                            + res.statusCode() + " " + timeDiff + "us");
+                    proxyHead(ctx, it, traceHeaders);
                     return;
                   }
                   ctx.response().headers().setAll(res.headers());
@@ -237,8 +270,13 @@ public class ModuleService {
                     System.out.println("Got data " + data);
                     ctx.response().write(data);
                   });
-                  res.endHandler(v -> ctx.response().end());
-                  return;
+                  res.endHandler(v -> {
+                    long timeDiff = (System.nanoTime() - startTime) / 1000;
+                    traceHeaders.add("CHECK " + mi.md.getName() + ":"
+                            + res.statusCode() + " " + timeDiff + "us");
+                    addTraceHeaders(ctx, traceHeaders);
+                    ctx.response().end();
+                  });
                 });
         System.out.println("Make head phase two to " + mi.md.getName());
         c_req.headers().setAll(req.headers());

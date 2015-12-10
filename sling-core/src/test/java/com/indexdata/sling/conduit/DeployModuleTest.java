@@ -172,6 +172,8 @@ public class DeployModuleTest {
             + "}";
     c.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
+      System.out.println("doLogin Headers: " + response.headers().entries());
+      System.out.println("doLogin trace: " + response.getHeader("X-Sling-Trace") );
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
       response.endHandler(x -> {
@@ -186,6 +188,7 @@ public class DeployModuleTest {
     HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       System.out.println("Got response in useIt");
+      System.out.println("useit Headers: " + response.headers().entries());
       response.bodyHandler(x -> {
         context.assertEquals("It works", x.toString());
       });
