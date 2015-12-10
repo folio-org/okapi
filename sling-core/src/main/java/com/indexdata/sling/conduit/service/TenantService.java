@@ -5,7 +5,9 @@
  */
 package com.indexdata.sling.conduit.service;
 
+import com.indexdata.sling.conduit.Tenant;
 import com.indexdata.sling.conduit.TenantDescriptor;
+import com.indexdata.sling.conduit.TenantModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -16,11 +18,13 @@ import java.util.Map;
 public class TenantService {
   
   final private Vertx vertx;
+  private ModuleService ms;
   
-  Map<String, TenantDescriptor> enabled = new HashMap<>();
+  Map<String, Tenant> enabled = new HashMap<>();
   
-  public TenantService(Vertx vertx) {
+  public TenantService(Vertx vertx, ModuleService ms) {
     this.vertx = vertx;
+    this.ms = ms;
   }
 
   public void create(RoutingContext ctx) {
@@ -30,7 +34,7 @@ public class TenantService {
       final String name = td.getName();
       final String uri = ctx.request().uri() + "/" + name;
       
-      enabled.put(name, td);
+      enabled.put(name, new Tenant(td));
       ctx.response().setStatusCode(201).putHeader("Location", uri).end();
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
@@ -40,11 +44,12 @@ public class TenantService {
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    if (!enabled.containsKey(id)) {
+    Tenant tenant = enabled.get(id);
+    if (tenant == null) {
       ctx.response().setStatusCode(404).end();
-      return;
+      return;      
     }
-    String s = Json.encodePrettily(enabled.get(id));
+    String s = Json.encodePrettily(tenant.getDescriptor());
     ctx.response().end(s);
   }
   
@@ -57,5 +62,25 @@ public class TenantService {
     }
     enabled.remove(id);
     ctx.response().setStatusCode(204).end();
+  }
+  
+   public void enableModule(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+
+    Tenant tenant = enabled.get(id);
+    if (tenant == null) {
+      ctx.response().setStatusCode(404).end();
+      return;
+    }
+    try {
+      final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
+              TenantModuleDescriptor.class);
+      
+      final String module = td.getModule();
+      tenant.enableModule(module);
+      ctx.response().setStatusCode(200).end();
+    } catch (DecodeException ex) {
+      ctx.response().setStatusCode(400).end(ex.getMessage());
+    }
   }
 }

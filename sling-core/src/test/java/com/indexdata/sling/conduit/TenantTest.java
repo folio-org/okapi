@@ -62,22 +62,32 @@ public class TenantTest {
     c.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
-        getIt(context, async, response.getHeader("Location"), doc);
+        getNone(context, async, response.getHeader("Location"), doc);
       });
     }).end(doc);
   }
 
+  public void getNone(TestContext context, Async async, String location,
+          String doc) {
+    HttpClient c = vertx.createHttpClient();
+    c.get(port, "localhost", location + "_none", response -> {
+      context.assertEquals(404, response.statusCode());
+      response.endHandler(x -> {
+        getIt(context, async, location, doc);
+      });
+    }).end();
+  }
+  
   public void getIt(TestContext context, Async async, String location,
           String doc) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", location, response -> {
+      context.assertEquals(200, response.statusCode());
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
-        vertx.setTimer(50, id -> {
-          deleteIt(context, async, location);
-        });
+        deleteIt(context, async, location);
       });
     }).end();
   }

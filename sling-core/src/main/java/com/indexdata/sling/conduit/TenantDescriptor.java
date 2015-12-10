@@ -5,10 +5,6 @@
  */
 package com.indexdata.sling.conduit;
 
-/**
- *
- * @author adam
- */
 public class TenantDescriptor {
   private String name;
   private String description;

@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 public class DeployModuleTest {
   Vertx vertx;
   
+  private String locationTenant;
   private String locationSample;
   private String locationAuth;
   private String slingToken;
@@ -116,7 +117,7 @@ public class DeployModuleTest {
       });
     }).end(doc);
   }
-
+  
   public void getIt(TestContext context, Async async, String doc) {
     System.out.println("getIt");
     HttpClient c = vertx.createHttpClient();
@@ -129,12 +130,40 @@ public class DeployModuleTest {
         // On a workstation 300 seems to be sufficient, but on my laptop
         // I seem to need 1000ms.
         vertx.setTimer(1000, id -> {  
-          useWithoutLogin(context, async);
+          createTenant(context, async);
         });
       });
     }).end();
   }
 
+  public void createTenant(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"name\" : \"roskilde\",\n"
+            + "  \"description\" : \"Roskilde bibliotek\"\n"
+            + "}";
+    HttpClient c = vertx.createHttpClient();
+    c.post(port, "localhost", "/_/tenants", response -> {
+      context.assertEquals(201, response.statusCode());
+      locationTenant = response.getHeader("Location");
+      response.endHandler(x -> {
+        tenantEnableModule(context, async);
+      });
+    }).end(doc);
+  }
+ 
+  public void tenantEnableModule(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"module\" : \"" + locationAuth + "\"\n"
+            + "}";
+    HttpClient c = vertx.createHttpClient();
+    c.post(port, "localhost", "/_/tenants/roskilde/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.endHandler(x -> {
+        useWithoutLogin(context, async);
+      });
+    }).end(doc);
+  }
+  
   public void useWithoutLogin(TestContext context, Async async) {
     System.out.println("useWithoutLogin");
     HttpClient c = vertx.createHttpClient();
@@ -244,13 +273,22 @@ public class DeployModuleTest {
     c.delete(port, "localhost", locationAuth, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
+        deleteTenant(context, async);
+      });
+    }).end();
+  }
+  
+   public void deleteTenant(TestContext context, Async async) {
+    HttpClient c = vertx.createHttpClient();
+    c.delete(port, "localhost", locationTenant, response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
         done(context, async);
       });
     }).end();
   }
   
-  public void done(TestContext context, Async async)
-  {
+  public void done(TestContext context, Async async) {
     System.out.println("done");
     async.complete();
   }
