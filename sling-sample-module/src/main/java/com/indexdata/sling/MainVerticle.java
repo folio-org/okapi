@@ -8,6 +8,7 @@ package com.indexdata.sling;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import static io.vertx.core.Vertx.vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -18,11 +19,24 @@ import java.io.IOException;
 
 public class MainVerticle extends AbstractVerticle {
 
-  public void my_handle(RoutingContext ctx) {
-    System.out.println("my_handle " + ctx.request());
-    ctx.response().setStatusCode(200).end("It works");
+  public void my_stream_handle(RoutingContext ctx) {
+    ctx.response().setStatusCode(200);
+    if (ctx.request().method().equals(HttpMethod.GET)) {
+      ctx.request().endHandler(x -> {
+        ctx.response().end("It works");
+      });
+    } else {
+      ctx.response().setChunked(true);
+      ctx.response().write("Hello ");
+      ctx.request().handler(x -> {
+        ctx.response().write(x);
+      });
+      ctx.request().endHandler(x -> {
+        ctx.response().end();
+      });
+    }
   }
-          
+
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
@@ -30,8 +44,9 @@ public class MainVerticle extends AbstractVerticle {
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     System.out.println("Started sample-module on port " + port);
     //enable reading body to string
-    router.route("/sample*").handler(BodyHandler.create()); 
-    router.get("/sample").handler(this::my_handle);
+    
+    router.get("/sample").handler(this::my_stream_handle);
+    router.post("/sample").handler(this::my_stream_handle);
 
     vertx.createHttpServer()
             .requestHandler(router::accept)

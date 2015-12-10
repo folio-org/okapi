@@ -102,7 +102,7 @@ public class DeployModuleTest {
             + "    \"cmdlineStop\" : null\n"
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"GET\" ],\n"
+            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
             + "    \"path\" : \"/sample\"\n"
             + "  } ]\n"
             + "}";
@@ -209,23 +209,40 @@ public class DeployModuleTest {
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
       response.endHandler(x -> {
-         useIt(context, async);
+         useItWithGet(context, async);
       });
     }).end(doc);
   }
 
-  public void useIt(TestContext context, Async async) {
-    System.out.println("useIt");
+  public void useItWithGet(TestContext context, Async async) {
+    System.out.println("useItWithGet");
     HttpClient c = vertx.createHttpClient();
     HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      //System.out.println("Useit Headers: '" + headers );
-      // There must be an easier way to check two headers! (excl timing)
       context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module:200.*"));
-      response.bodyHandler(x -> {
+      response.handler(x -> {
         context.assertEquals("It works", x.toString());
+      });
+      response.endHandler(x -> {
+        useItWithPost(context, async);
+      });
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
+  }
+
+  public void useItWithPost(TestContext context, Async async) {
+    System.out.println("useItWithPost");
+    HttpClient c = vertx.createHttpClient();
+    HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      String headers = response.headers().entries().toString();
+      context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
+      response.handler(x -> {
+        context.assertEquals("Hello ", x.toString());
       });
       response.endHandler(x -> {
         useNoPath(context, async);
