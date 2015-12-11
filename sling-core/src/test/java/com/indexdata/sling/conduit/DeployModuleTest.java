@@ -8,6 +8,7 @@ package com.indexdata.sling.conduit;
 import com.indexdata.sling.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.unit.Async;
@@ -236,20 +237,24 @@ public class DeployModuleTest {
   public void useItWithPost(TestContext context, Async async) {
     System.out.println("useItWithPost");
     HttpClient c = vertx.createHttpClient();
+    Buffer body = Buffer.buffer();
     HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
+      
       response.handler(x -> {
-        context.assertEquals("Hello ", x.toString());
+        body.appendBuffer(x);
       });
       response.endHandler(x -> {
+        System.out.println("body=" + body);
+        context.assertEquals("Hello Sling", body.toString());
         useNoPath(context, async);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
-    req.end();
+    req.end("Sling");
   }
 
   public void useNoPath(TestContext context, Async async) {
