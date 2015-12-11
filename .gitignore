@@ -2,3 +2,4 @@ target/
 #vert.x crap
 .vertx/
 file-uploads/
+/sling-core/nbproject/

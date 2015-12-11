@@ -75,12 +75,13 @@ public class DeployModuleTest {
             + "    \"cmdlineStop\" : null\n"
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"CHECK\" ],\n"
-            + "    \"path\" : \"/\"\n"
+            + "    \"methods\" : [ \"*\" ],\n"
+            + "    \"path\" : \"/\",\n"
+            + "    \"level\" : \"10\"\n"
             + "  }, {"
             + "    \"methods\" : [ \"POST\" ],\n"
-            + "    \"path\" : \"/login\"\n"
-
+            + "    \"path\" : \"/login\",\n"
+            + "    \"level\" : \"20\"\n"
             + "  } ]\n"
             + "}";
     HttpClient c = vertx.createHttpClient();
@@ -104,7 +105,8 @@ public class DeployModuleTest {
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
             + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
-            + "    \"path\" : \"/sample\"\n"
+            + "    \"path\" : \"/sample\",\n"
+            + "    \"level\" : \"30\"\n"
             + "  } ]\n"
             + "}";
     HttpClient c = vertx.createHttpClient();
@@ -169,7 +171,7 @@ public class DeployModuleTest {
     c.get(port, "localhost", "/sample", response -> {
       context.assertEquals(401, response.statusCode());
       String trace = response.getHeader("X-Sling-Trace");
-      context.assertTrue(trace.matches(".*CHECK auth:401.*"));
+      context.assertTrue(trace.matches(".*GET auth:401.*"));
       response.endHandler(x -> {
          failLogin(context, async);
       });
@@ -205,7 +207,6 @@ public class DeployModuleTest {
       String headers = response.headers().entries().toString();
       //System.out.println("doLogin Headers: '" + headers );
       // There must be an easier way to check two headers! (excl timing)
-      context.assertTrue(headers.matches(".*X-Sling-Trace=CHECK auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST auth:200.*"));
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
@@ -248,7 +249,6 @@ public class DeployModuleTest {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        System.out.println("body=" + body);
         context.assertEquals("Hello Sling", body.toString());
         useNoPath(context, async);
       });

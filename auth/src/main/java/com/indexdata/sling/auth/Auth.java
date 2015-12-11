@@ -87,10 +87,8 @@ public class Auth {
     System.out.println("Ok login for " + u + ": " + tok);
     ctx.response()
       .headers().add(SLINGTOKENHEADER,tok);
-    ctx.response()      
-      .setStatusCode(200).end(tok); // OK
-    
-    
+    ctx.response().setStatusCode(200);
+    ctx.response().end(json);
   }
 
   public void check (RoutingContext ctx) {
@@ -123,10 +121,21 @@ public class Auth {
     System.out.println("Auth check OK");
     ctx.response()
       .headers().add(SLINGTOKENHEADER,tok);
-    ctx.response().setStatusCode(202).end(); // 202 = Accepted
+    ctx.response().setStatusCode(202); // 202 = Accepted
+    echo(ctx);
     // signal to the conduit that we want to continue the module chain
   }
   
+  private void echo(RoutingContext ctx) {
+    ctx.response().setChunked(true);
+    // todo: content-type copy from request?
+    ctx.request().handler(x -> {
+       ctx.response().write(x); // echo content
+    });
+    ctx.request().endHandler(x -> {
+       ctx.response().end();
+    });
+  }
   /** 
    * Accept a request.
    * Gets called with anything else than a POST to /login. These need to be
@@ -135,9 +144,7 @@ public class Auth {
    */
   public void accept (RoutingContext ctx) {
     System.out.println("Auth accept OK");
-    ctx.response().setStatusCode(202).end("Accepted"); 
-    
-  }
-
-  
+    ctx.response().setStatusCode(202);
+    echo(ctx);
+  }  
 }
