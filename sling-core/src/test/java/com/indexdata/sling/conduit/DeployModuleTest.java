@@ -54,9 +54,50 @@ public class DeployModuleTest {
   
   @After
   public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+    final Async async = context.async();
+    td(context, async);
   }
-  
+
+  public void td(TestContext context, Async async) {
+    if (locationAuth.length() > 0) {
+      System.out.println("tearDown auth");
+      HttpClient c = vertx.createHttpClient();
+      c.delete(port, "localhost", locationAuth, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationAuth = "";
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
+    if (locationSample.length() > 0) {
+      System.out.println("tearDown sample");
+      HttpClient c = vertx.createHttpClient();
+      c.delete(port, "localhost", locationSample, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSample = "";
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
+    if (locationSample2.length() > 0) {
+      System.out.println("tearDown sample2");
+      HttpClient c = vertx.createHttpClient();
+      c.delete(port, "localhost", locationSample2, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSample2 = "";
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
+    async.complete();
+  }
+
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
   @Test
@@ -347,47 +388,13 @@ public class DeployModuleTest {
       });
       response.endHandler(x -> {
         context.assertEquals("Hello Hello Sling", body.toString());
-        deleteSample2(context, async);
+        deleteTenant(context, async);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
     req.end("Sling");
   }
 
-  public void deleteSample2(TestContext context, Async async) {
-    System.out.println("deleteSample2");
-    HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", locationSample2, response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        deleteSample(context, async);
-      });
-    }).end();
-  }
-  
-  public void deleteSample(TestContext context, Async async) {
-    System.out.println("deleteSample");
-    HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", locationSample, response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        deleteAuth(context, async);
-      });
-    }).end();
-  }
-  
-  
-  public void deleteAuth(TestContext context, Async async) {
-    System.out.println("deleteAuth");
-    HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", locationAuth, response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        deleteTenant(context, async);
-      });
-    }).end();
-  }
-  
    public void deleteTenant(TestContext context, Async async) {
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", locationTenant, response -> {
