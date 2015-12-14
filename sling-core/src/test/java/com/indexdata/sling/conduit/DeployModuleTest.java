@@ -27,6 +27,7 @@ public class DeployModuleTest {
   
   private String locationTenant;
   private String locationSample;
+  private String locationSample2;
   private String locationAuth;
   private String slingToken;
   
@@ -277,13 +278,92 @@ public class DeployModuleTest {
     HttpClientRequest req  = c.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(202, response.statusCode());
       response.endHandler(x -> {
-        deleteSample(context, async);
+        deploySample2(context, async);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
     req.end();
   }
 
+  public void deploySample2(TestContext context, Async async) {
+    System.out.println("deploySample2");
+    final String doc = "{\n"
+            + "  \"name\" : \"sample-module2\",\n"
+            + "  \"descriptor\" : {\n"
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "    \"cmdlineStop\" : null\n"
+            + "  },\n"
+            + "  \"routingEntries\" : [ {\n"
+            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
+            + "    \"path\" : \"/sample\",\n"
+            + "    \"level\" : \"31\"\n"
+            + "  } ]\n"
+            + "}";
+    HttpClient c = vertx.createHttpClient();
+    c.post(port, "localhost", "/_/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      locationSample2 =  response.getHeader("Location");
+      response.endHandler(x -> {
+        vertx.setTimer(1000, id -> {  
+          useItWithGet2(context, async);
+        });
+      });
+    }).end(doc);
+  }
+  
+  public void useItWithGet2(TestContext context, Async async) {
+    System.out.println("useItWithGet2");
+    HttpClient c = vertx.createHttpClient();
+    HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      String headers = response.headers().entries().toString();
+      System.out.println("useWithGet headers " + headers);
+      // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
+      response.handler(x -> {
+        context.assertEquals("It works", x.toString());
+      });
+      response.endHandler(x -> {
+        useItWithPost2(context, async);
+      });
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
+  }
+
+  public void useItWithPost2(TestContext context, Async async) {
+    System.out.println("useItWithPost2");
+    HttpClient c = vertx.createHttpClient();
+    Buffer body = Buffer.buffer();
+    HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      String headers = response.headers().entries().toString();
+      System.out.println("useWithPost headers " + headers);
+      context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module2:200.*"));
+      
+      response.handler(x -> {
+        body.appendBuffer(x);
+      });
+      response.endHandler(x -> {
+        context.assertEquals("Hello Hello Sling", body.toString());
+        deleteSample2(context, async);
+      });
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end("Sling");
+  }
+
+  public void deleteSample2(TestContext context, Async async) {
+    System.out.println("deleteSample2");
+    HttpClient c = vertx.createHttpClient();
+    c.delete(port, "localhost", locationSample2, response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        deleteSample(context, async);
+      });
+    }).end();
+  }
   
   public void deleteSample(TestContext context, Async async) {
     System.out.println("deleteSample");
@@ -295,6 +375,7 @@ public class DeployModuleTest {
       });
     }).end();
   }
+  
   
   public void deleteAuth(TestContext context, Async async) {
     System.out.println("deleteAuth");
