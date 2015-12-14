@@ -30,6 +30,7 @@ public class DeployModuleTest {
   private String locationSample2;
   private String locationAuth;
   private String slingToken;
+  private long startTime;
   
   public DeployModuleTest() {
   }
@@ -95,8 +96,10 @@ public class DeployModuleTest {
       }).end();
       return;
     }
-    async.complete();
-  }
+    vertx.close(x -> {
+      async.complete();
+    });
+  }    
 
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
@@ -285,9 +288,7 @@ public class DeployModuleTest {
     HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      System.out.println("useWithPost headers " + headers);
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
-      
       response.handler(x -> {
         body.appendBuffer(x);
       });
@@ -366,35 +367,42 @@ public class DeployModuleTest {
         context.assertEquals("It works", x.toString());
       });
       response.endHandler(x -> {
-        useItWithPost2(context, async);
+        repeatPost(context, async, 0, 1000);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
     req.end();
   }
 
-  public void useItWithPost2(TestContext context, Async async) {
-    System.out.println("useItWithPost2");
+  public void repeatPost(TestContext context, Async async, int cnt, int max) {
+    if (cnt == max) {
+      long timeDiff = (System.nanoTime() - startTime) / 1000000;
+      System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max / timeDiff + " req/sec");
+      deleteTenant(context, async);
+      return;
+    } else if (cnt == 0) {
+      System.out.println("repeatPost " + max + " iterations");
+      startTime = System.nanoTime();
+    }
     HttpClient c = vertx.createHttpClient();
     Buffer body = Buffer.buffer();
     HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      System.out.println("useWithPost headers " + headers);
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module2:200.*"));
-      
       response.handler(x -> {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
         context.assertEquals("Hello Hello Sling", body.toString());
-        deleteTenant(context, async);
+        repeatPost(context, async, cnt + 1, max);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
     req.end("Sling");
   }
 
+  
    public void deleteTenant(TestContext context, Async async) {
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", locationTenant, response -> {
