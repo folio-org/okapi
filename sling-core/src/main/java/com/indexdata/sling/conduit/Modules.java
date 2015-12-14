@@ -56,10 +56,6 @@ public class Modules {
       }
     };
     r.sort(cmp);
-    System.out.println("Modules");
-    for (ModuleInstance mi : r) {
-      System.out.println("mi: " + mi.getModuleDescriptor().getName() + " " + mi.getRoutingEntry().getLevel());
-    }
     return r.iterator();
   }
 }
