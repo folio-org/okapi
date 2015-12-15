@@ -42,6 +42,7 @@ public class MainVerticle extends AbstractVerticle {
         result -> {
           if (result.succeeded()) {
             fut.complete();
+            System.out.println("Auth listening on " + port);
           } else {
             fut.fail(result.cause());
           }
