@@ -18,6 +18,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -50,6 +51,8 @@ public class MainVerticle extends AbstractVerticle {
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
+    
+    System.out.println("API Gateway started PID " + ManagementFactory.getRuntimeMXBean().getName());
     
     vertx.createHttpServer()
             .requestHandler(router::accept)
