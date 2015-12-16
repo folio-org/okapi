@@ -37,6 +37,9 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = pmh;
   
     mh.start(res -> {
+      if (!res.succeeded()) {
+        System.out.println("CAUSE: " + res.cause());
+      }
       context.assertTrue(res.succeeded());
       if (!res.succeeded()) {
         async.complete();

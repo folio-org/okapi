@@ -13,6 +13,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.TestOptions;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -96,6 +97,7 @@ public class DeployModuleTest {
       }).end();
       return;
     }
+    System.out.println("About to close");
     vertx.close(x -> {
       async.complete();
     });
@@ -103,7 +105,7 @@ public class DeployModuleTest {
 
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
-  @Test
+  @Test(timeout = 300000)
   public void test_sample(TestContext context)
   {
      final Async async = context.async();
@@ -367,7 +369,7 @@ public class DeployModuleTest {
         context.assertEquals("It works", x.toString());
       });
       response.endHandler(x -> {
-        repeatPost(context, async, 0, 1000);
+        repeatPost(context, async, 0, 10);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
@@ -375,6 +377,7 @@ public class DeployModuleTest {
   }
 
   public void repeatPost(TestContext context, Async async, int cnt, int max) {
+    final String msg = "Sling" + cnt;
     if (cnt == max) {
       long timeDiff = (System.nanoTime() - startTime) / 1000000;
       System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max / timeDiff + " req/sec");
@@ -394,12 +397,16 @@ public class DeployModuleTest {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        context.assertEquals("Hello Hello Sling", body.toString());
+        c.close();
+        context.assertEquals("Hello Hello " + msg, body.toString());
         repeatPost(context, async, cnt + 1, max);
+      });
+      response.exceptionHandler(e -> { 
+        context.fail(e);
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
-    req.end("Sling");
+    req.end(msg);
   }
 
   
