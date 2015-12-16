@@ -23,8 +23,9 @@ import java.util.List;
 import java.util.Iterator;
 
 public class ModuleService {
-  Modules modules;
-  Ports ports;
+  private Modules modules;
+  private Ports ports;
+  private HttpClient httpClient;
 
   final private Vertx vertx;
 
@@ -32,6 +33,7 @@ public class ModuleService {
     this.vertx = vertx;
     this.ports = new Ports(port_start, port_end);
     this.modules = new Modules();
+    this.httpClient = vertx.createHttpClient();
   }
 
   public void create(RoutingContext ctx) {
@@ -116,7 +118,6 @@ public class ModuleService {
     Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request());
     List<String> traceHeaders = new ArrayList<>();
     ReadStream<Buffer> content = ctx.request();
-    // content.pause();
     proxyR(ctx, it, traceHeaders, content);
   }
   
@@ -129,9 +130,7 @@ public class ModuleService {
     } else {
       ModuleInstance mi = it.next();
       final long startTime = System.nanoTime();
-      HttpClient c = vertx.createHttpClient();
-
-      HttpClientRequest c_req = c.request(ctx.request().method(), mi.getPort(),
+      HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
               "localhost", ctx.request().uri(), res -> {
                 if (res.statusCode() >= 200 && res.statusCode() < 300
                 && it.hasNext()) {
@@ -158,6 +157,9 @@ public class ModuleService {
                   res.endHandler(v -> {
                     ctx.response().end();
                   });
+                  res.exceptionHandler(v -> {
+                    System.out.println("res exception " + v.getMessage());
+                  });
                 }
               });
       c_req.setChunked(true);
@@ -165,7 +167,12 @@ public class ModuleService {
       content.handler(data -> {
         c_req.write(data);
       });
-      content.endHandler(v -> c_req.end());
+      content.endHandler(v -> {
+              c_req.end();
+      });
+      content.exceptionHandler(v -> {
+        System.out.println("content exception " + v.getMessage());
+      });
     }
   }
 } // class
