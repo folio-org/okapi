@@ -32,6 +32,8 @@ public class DeployModuleTest {
   private String locationAuth;
   private String slingToken;
   private long startTime;
+  private int repeatPostRunning;
+  private HttpClient httpClient;
   
   public DeployModuleTest() {
   }
@@ -51,7 +53,7 @@ public class DeployModuleTest {
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
-    
+    httpClient = vertx.createHttpClient();
   }
   
   @After
@@ -63,8 +65,7 @@ public class DeployModuleTest {
   public void td(TestContext context, Async async) {
     if (locationAuth.length() > 0) {
       System.out.println("tearDown auth");
-      HttpClient c = vertx.createHttpClient();
-      c.delete(port, "localhost", locationAuth, response -> {
+      httpClient.delete(port, "localhost", locationAuth, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationAuth = "";
@@ -75,8 +76,7 @@ public class DeployModuleTest {
     }
     if (locationSample.length() > 0) {
       System.out.println("tearDown sample");
-      HttpClient c = vertx.createHttpClient();
-      c.delete(port, "localhost", locationSample, response -> {
+      httpClient.delete(port, "localhost", locationSample, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSample = "";
@@ -87,8 +87,7 @@ public class DeployModuleTest {
     }
     if (locationSample2.length() > 0) {
       System.out.println("tearDown sample2");
-      HttpClient c = vertx.createHttpClient();
-      c.delete(port, "localhost", locationSample2, response -> {
+      httpClient.delete(port, "localhost", locationSample2, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSample2 = "";
@@ -131,8 +130,7 @@ public class DeployModuleTest {
             + "    \"level\" : \"20\"\n"
             + "  } ]\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       response.endHandler(x -> {
@@ -156,8 +154,7 @@ public class DeployModuleTest {
             + "    \"level\" : \"30\"\n"
             + "  } ]\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample =  response.getHeader("Location");
       response.endHandler(x -> {
@@ -168,8 +165,7 @@ public class DeployModuleTest {
   
   public void getIt(TestContext context, Async async, String doc) {
     System.out.println("getIt");
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", locationSample, response -> {
+    httpClient.get(port, "localhost", locationSample, response -> {
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
@@ -189,8 +185,7 @@ public class DeployModuleTest {
             + "  \"name\" : \"roskilde\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/tenants", response -> {
+    httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.endHandler(x -> {
@@ -203,8 +198,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"module\" : \"" + locationAuth + "\"\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/tenants/roskilde/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/roskilde/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         useWithoutLogin(context, async);
@@ -214,8 +208,7 @@ public class DeployModuleTest {
   
   public void useWithoutLogin(TestContext context, Async async) {
     System.out.println("useWithoutLogin");
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", "/sample", response -> {
+    httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(401, response.statusCode());
       String trace = response.getHeader("X-Sling-Trace");
       context.assertTrue(trace.matches(".*GET auth:401.*"));
@@ -227,13 +220,12 @@ public class DeployModuleTest {
 
   public void failLogin(TestContext context, Async async) {
     System.out.println("failLogin");
-    HttpClient c = vertx.createHttpClient();
     String doc = "{\n"
             + "  \"tenant\" : \"t1\",\n"
             + "  \"username\" : \"peter\",\n"
             + "  \"password\" : \"peter37\"\n"
             + "}";
-    c.post(port, "localhost", "/login", response -> {
+    httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(401, response.statusCode());
       response.endHandler(x -> {
          doLogin(context, async);
@@ -243,13 +235,12 @@ public class DeployModuleTest {
 
   public void doLogin(TestContext context, Async async) {
     System.out.println("doLogin");
-    HttpClient c = vertx.createHttpClient();
     String doc = "{\n"
             + "  \"tenant\" : \"t1\",\n"
             + "  \"username\" : \"peter\",\n"
             + "  \"password\" : \"peter36\"\n"
             + "}";
-    c.post(port, "localhost", "/login", response -> {
+    httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       //System.out.println("doLogin Headers: '" + headers );
@@ -265,8 +256,7 @@ public class DeployModuleTest {
 
   public void useItWithGet(TestContext context, Async async) {
     System.out.println("useItWithGet");
-    HttpClient c = vertx.createHttpClient();
-    HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet headers " + headers);
@@ -285,9 +275,8 @@ public class DeployModuleTest {
 
   public void useItWithPost(TestContext context, Async async) {
     System.out.println("useItWithPost");
-    HttpClient c = vertx.createHttpClient();
     Buffer body = Buffer.buffer();
-    HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
@@ -305,8 +294,7 @@ public class DeployModuleTest {
 
   public void useNoPath(TestContext context, Async async) {
     System.out.println("useNoPath");
-    HttpClient c = vertx.createHttpClient();
-    HttpClientRequest req = c.get(port, "localhost", "/samplE", response -> {
+    HttpClientRequest req = httpClient.get(port, "localhost", "/samplE", response -> {
       context.assertEquals(202, response.statusCode());
       response.endHandler(x -> {
         useNoMethod(context, async);
@@ -318,8 +306,7 @@ public class DeployModuleTest {
 
   public void useNoMethod(TestContext context, Async async) {
     System.out.println("useNoMethod");
-    HttpClient c = vertx.createHttpClient();
-    HttpClientRequest req  = c.delete(port, "localhost", "/sample", response -> {
+    HttpClientRequest req  = httpClient.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(202, response.statusCode());
       response.endHandler(x -> {
         deploySample2(context, async);
@@ -344,8 +331,7 @@ public class DeployModuleTest {
             + "    \"level\" : \"31\"\n"
             + "  } ]\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample2 =  response.getHeader("Location");
       response.endHandler(x -> {
@@ -358,8 +344,7 @@ public class DeployModuleTest {
   
   public void useItWithGet2(TestContext context, Async async) {
     System.out.println("useItWithGet2");
-    HttpClient c = vertx.createHttpClient();
-    HttpClientRequest req = c.get(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet headers " + headers);
@@ -369,7 +354,10 @@ public class DeployModuleTest {
         context.assertEquals("It works", x.toString());
       });
       response.endHandler(x -> {
-        repeatPost(context, async, 0, 10);
+        repeatPostRunning = 0;
+        for (int i = 0; i < 10; i++) {
+          repeatPost(context, async, 0, 1000);
+        }
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
@@ -379,17 +367,22 @@ public class DeployModuleTest {
   public void repeatPost(TestContext context, Async async, int cnt, int max) {
     final String msg = "Sling" + cnt;
     if (cnt == max) {
-      long timeDiff = (System.nanoTime() - startTime) / 1000000;
-      System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max / timeDiff + " req/sec");
-      deleteTenant(context, async);
+      if (--repeatPostRunning == 0) {
+        long timeDiff = (System.nanoTime() - startTime) / 1000000;
+        System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max / timeDiff + " req/sec");
+        vertx.setTimer(3, x -> deleteTenant(context, async));
+        // deleteTenant(context, async);
+      }
       return;
     } else if (cnt == 0) {
+      if (repeatPostRunning == 0) {
+        startTime = System.nanoTime();
+      }
+      repeatPostRunning++;
       System.out.println("repeatPost " + max + " iterations");
-      startTime = System.nanoTime();
     }
-    HttpClient c = vertx.createHttpClient();
     Buffer body = Buffer.buffer();
-    HttpClientRequest req = c.post(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module2:200.*"));
@@ -397,7 +390,6 @@ public class DeployModuleTest {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        c.close();
         context.assertEquals("Hello Hello " + msg, body.toString());
         repeatPost(context, async, cnt + 1, max);
       });
@@ -410,9 +402,8 @@ public class DeployModuleTest {
   }
 
   
-   public void deleteTenant(TestContext context, Async async) {
-    HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", locationTenant, response -> {
+  public void deleteTenant(TestContext context, Async async) {
+    httpClient.delete(port, "localhost", locationTenant, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         done(context, async);
