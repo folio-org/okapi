@@ -118,7 +118,6 @@ public class Auth {
       } catch (NoSuchAlgorithmException ex) {
         Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
       }
-    System.out.println("Auth check OK");
     ctx.response()
       .headers().add(SLINGTOKENHEADER,tok);
     ctx.response().setStatusCode(202); // 202 = Accepted
