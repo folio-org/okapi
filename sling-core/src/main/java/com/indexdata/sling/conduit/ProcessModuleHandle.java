@@ -31,7 +31,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          p = Runtime.getRuntime().exec(cmdline);
+          // TODO: handle quoted strings / backslashes
+          ProcessBuilder pb = new ProcessBuilder(cmdline.split(" "));
+          pb.inheritIO();
+          p = pb.start();
         } catch (IOException ex) {
           future.fail(ex);
           return;
