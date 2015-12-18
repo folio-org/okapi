@@ -113,6 +113,15 @@ public class ModuleService {
       ctx.response().headers().add("X-Sling-Trace", th);
     }
   }
+
+  private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode, long startTime, List<String> traceHeaders) {
+    long timeDiff = (System.nanoTime() - startTime) / 1000;
+    traceHeaders.add(ctx.request().method() + " "
+            + mi.getModuleDescriptor().getName() + ":"
+            + statusCode+ " " + timeDiff + "us");
+    addTraceHeaders(ctx, traceHeaders);
+  }
+
   
   public void proxy(RoutingContext ctx) {
     Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request());
@@ -134,23 +143,14 @@ public class ModuleService {
               "localhost", ctx.request().uri(), res -> {
                 if (res.statusCode() >= 200 && res.statusCode() < 300
                 && it.hasNext()) {
-                  long timeDiff = (System.nanoTime() - startTime) / 1000;
-                  traceHeaders.add(ctx.request().method() + " "
-                          + mi.getModuleDescriptor().getName() + ":"
-                          + res.statusCode() + " " + timeDiff + "us");
-                  addTraceHeaders(ctx, traceHeaders);
+                  makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
                   ReadStream<Buffer> response = res;
                   proxyR(ctx, it, traceHeaders, response);
                 } else {
                   ctx.response().setChunked(true);
                   ctx.response().setStatusCode(res.statusCode());
                   ctx.response().headers().setAll(res.headers());
-                  long timeDiff = (System.nanoTime() - startTime) / 1000;
-                  traceHeaders.add(ctx.request().method() + " "
-                          + mi.getModuleDescriptor().getName() + ":"
-                          + res.statusCode() + " " + timeDiff + "us");
-                  addTraceHeaders(ctx, traceHeaders);
-
+                  makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
                   res.handler(data -> {
                     ctx.response().write(data);
                   });
@@ -175,4 +175,5 @@ public class ModuleService {
       });
     }
   }
+
 } // class
