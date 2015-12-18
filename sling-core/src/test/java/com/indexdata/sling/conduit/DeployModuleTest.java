@@ -347,7 +347,7 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      System.out.println("useWithGet headers " + headers);
+      System.out.println("useWithGet2 headers " + headers);
       // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
@@ -355,8 +355,12 @@ public class DeployModuleTest {
       });
       response.endHandler(x -> {
         repeatPostRunning = 0;
-        for (int i = 0; i < 10; i++) {
-          repeatPost(context, async, 0, 1000);
+        // 1k is enough for regular testing, but the performance improves up to 50k
+        final int iterations = 1000;
+        //final int iterations = 50000;
+        final int parallels = 10;
+        for (int i = 0; i < parallels; i++) {
+          repeatPost(context, async, 0, iterations, parallels);
         }
       });
     });
@@ -364,13 +368,15 @@ public class DeployModuleTest {
     req.end();
   }
 
-  public void repeatPost(TestContext context, Async async, int cnt, int max) {
+  public void repeatPost(TestContext context, Async async, 
+            int cnt, int max, int parallels) {
     final String msg = "Sling" + cnt;
     if (cnt == max) {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
-        System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max / timeDiff + " req/sec");
-        vertx.setTimer(3, x -> deleteTenant(context, async));
+        System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
+        vertx.setTimer(3, x -> useItWithGet3(context, async));
+        //vertx.setTimer(3, x -> deleteTenant(context, async));
         // deleteTenant(context, async);
       }
       return;
@@ -391,7 +397,7 @@ public class DeployModuleTest {
       });
       response.endHandler(x -> {
         context.assertEquals("Hello Hello " + msg, body.toString());
-        repeatPost(context, async, cnt + 1, max);
+        repeatPost(context, async, cnt + 1, max, parallels);
       });
       response.exceptionHandler(e -> { 
         context.fail(e);
@@ -401,6 +407,27 @@ public class DeployModuleTest {
     req.end(msg);
   }
 
+  // Repeat the Get test, to see timing headers of a system that has been warmed up
+  public void useItWithGet3(TestContext context, Async async) {
+    System.out.println("useItWithGet3");
+    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
+      context.assertEquals(200, response.statusCode());
+      String headers = response.headers().entries().toString();
+      System.out.println("useWithGet3 headers " + headers);
+      // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
+      response.handler(x -> {
+        context.assertEquals("It works", x.toString());
+      });
+      response.endHandler(x -> {
+        deleteTenant(context, async);
+      });
+    });
+    req.headers().add("X-Sling-Token", slingToken);
+    req.end();
+  }
+
+  
   
   public void deleteTenant(TestContext context, Async async) {
     httpClient.delete(port, "localhost", locationTenant, response -> {
