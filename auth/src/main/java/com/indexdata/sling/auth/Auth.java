@@ -17,6 +17,13 @@ import java.util.logging.Logger;
  * A dummy auth module.
  * Provides a minimal authentication mechanism.  
  * @author heikki
+ * 
+ * TODO: Check the X-Sling-Tenant header matches the tenant parameter, or use
+ * that one instead of the parameter.
+ * 
+ * TODO: Add a time stamp and some salt to the crypto. 
+ * 
+ * TODO: Accept also the previous token, so sessions don't die at turnover.
  */
 
 public class Auth {
