@@ -13,7 +13,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.TestOptions;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -31,6 +30,7 @@ public class DeployModuleTest {
   private String locationSample2;
   private String locationAuth;
   private String slingToken;
+  private final String slingTenant = "roskilde";
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
@@ -63,34 +63,34 @@ public class DeployModuleTest {
   }
 
   public void td(TestContext context, Async async) {
-    if (locationAuth.length() > 0) {
-      System.out.println("tearDown auth");
+    if (locationAuth != null) {
+      System.out.println("tearDown " + locationAuth);
       httpClient.delete(port, "localhost", locationAuth, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
-          locationAuth = "";
+          locationAuth = null;
           td(context, async);
         });
       }).end();
       return;
     }
-    if (locationSample.length() > 0) {
-      System.out.println("tearDown sample");
+    if (locationSample != null) {
+      System.out.println("tearDown " + locationSample);
       httpClient.delete(port, "localhost", locationSample, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
-          locationSample = "";
+          locationSample = null;
           td(context, async);
         });
       }).end();
       return;
     }
-    if (locationSample2.length() > 0) {
-      System.out.println("tearDown sample2");
+    if (locationSample2 != null) {
+      System.out.println("tearDown " + locationSample2);
       httpClient.delete(port, "localhost", locationSample2, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
-          locationSample2 = "";
+          locationSample2 = null;
           td(context, async);
         });
       }).end();
@@ -182,40 +182,67 @@ public class DeployModuleTest {
 
   public void createTenant(TestContext context, Async async) {
     final String doc = "{\n"
-            + "  \"name\" : \"roskilde\",\n"
+            + "  \"name\" : \"" + slingTenant + "\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.endHandler(x -> {
-        tenantEnableModule(context, async);
+        tenantEnableModuleAuth(context, async);
       });
     }).end(doc);
   }
  
-  public void tenantEnableModule(TestContext context, Async async) {
+  public void tenantEnableModuleAuth(TestContext context, Async async) {
     final String doc = "{\n"
-            + "  \"module\" : \"" + locationAuth + "\"\n"
+            + "  \"module\" : \"auth\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/roskilde/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
-        useWithoutLogin(context, async);
+        tenantEnableModuleSample(context, async);
       });
     }).end(doc);
+  }
+
+  public void tenantEnableModuleSample(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"module\" : \"sample-module\"\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.endHandler(x -> {
+        useWithoutTenant(context, async);
+      });
+    }).end(doc);
+  }
+
+  public void useWithoutTenant(TestContext context, Async async) {
+    System.out.println("useWithoutTenant");
+    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
+      context.assertEquals(403, response.statusCode());
+      String trace = response.getHeader("X-Sling-Trace");
+      context.assertTrue(trace == null);
+      response.endHandler(x -> {
+         useWithoutLogin(context, async);
+      });
+    });
+    req.end();
   }
   
   public void useWithoutLogin(TestContext context, Async async) {
     System.out.println("useWithoutLogin");
-    httpClient.get(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(401, response.statusCode());
       String trace = response.getHeader("X-Sling-Trace");
-      context.assertTrue(trace.matches(".*GET auth:401.*"));
+      context.assertTrue(trace != null && trace.matches(".*GET auth:401.*"));
       response.endHandler(x -> {
          failLogin(context, async);
       });
-    }).end();
+    });
+    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.end();
   }
 
   public void failLogin(TestContext context, Async async) {
@@ -225,12 +252,14 @@ public class DeployModuleTest {
             + "  \"username\" : \"peter\",\n"
             + "  \"password\" : \"peter37\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/login", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(401, response.statusCode());
       response.endHandler(x -> {
          doLogin(context, async);
       });
-    }).end(doc);
+    });
+    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.end(doc);
   }
 
   public void doLogin(TestContext context, Async async) {
@@ -240,18 +269,18 @@ public class DeployModuleTest {
             + "  \"username\" : \"peter\",\n"
             + "  \"password\" : \"peter36\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/login", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      //System.out.println("doLogin Headers: '" + headers );
-      // There must be an easier way to check two headers! (excl timing)
-      context.assertTrue(headers.matches(".*X-Sling-Trace=POST auth:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=POST auth:200.*"));
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
       response.endHandler(x -> {
          useItWithGet(context, async);
       });
-    }).end(doc);
+    });
+    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.end(doc);
   }
 
   public void useItWithGet(TestContext context, Async async) {
@@ -260,8 +289,7 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet headers " + headers);
-      // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
-      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=GET sample-module:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -270,6 +298,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end();
   }
 
@@ -279,7 +308,7 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
       response.handler(x -> {
         body.appendBuffer(x);
       });
@@ -289,6 +318,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end("Sling");
   }
 
@@ -301,6 +331,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end();
   }
 
@@ -313,6 +344,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end();
   }
 
@@ -336,20 +368,30 @@ public class DeployModuleTest {
       locationSample2 =  response.getHeader("Location");
       response.endHandler(x -> {
         vertx.setTimer(1000, id -> {  
-          useItWithGet2(context, async);
+          tenantEnableModuleSample2(context, async);
         });
       });
     }).end(doc);
   }
   
+  public void tenantEnableModuleSample2(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"module\" : \"sample-module2\"\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.endHandler(x -> {
+        useItWithGet2(context, async);
+      });
+    }).end(doc);
+  }
   public void useItWithGet2(TestContext context, Async async) {
     System.out.println("useItWithGet2");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet2 headers " + headers);
-      // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
-      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -365,6 +407,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end();
   }
 
@@ -404,6 +447,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end(msg);
   }
 
@@ -424,6 +468,7 @@ public class DeployModuleTest {
       });
     });
     req.headers().add("X-Sling-Token", slingToken);
+    req.putHeader("X-Sling-Tenant", slingTenant);
     req.end();
   }
 

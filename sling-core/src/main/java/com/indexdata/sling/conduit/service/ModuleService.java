@@ -10,6 +10,7 @@ import com.indexdata.sling.conduit.ModuleInstance;
 import com.indexdata.sling.conduit.Modules;
 import com.indexdata.sling.conduit.Ports;
 import com.indexdata.sling.conduit.ProcessModuleHandle;
+import com.indexdata.sling.conduit.Tenant;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -26,13 +27,15 @@ public class ModuleService {
   private Modules modules;
   private Ports ports;
   private HttpClient httpClient;
+  private TenantService tenantService;
 
   final private Vertx vertx;
 
-  public ModuleService(Vertx vertx, int port_start, int port_end) {
+  public ModuleService(Vertx vertx, int port_start, int port_end, TenantService ts) {
     this.vertx = vertx;
     this.ports = new Ports(port_start, port_end);
     this.modules = new Modules();
+    this.tenantService = ts;
     this.httpClient = vertx.createHttpClient();
   }
 
@@ -124,7 +127,17 @@ public class ModuleService {
 
   
   public void proxy(RoutingContext ctx) {
-    Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request());
+    String tenant_id = ctx.request().getHeader("X-Sling-Tenant");
+    if (tenant_id == null) {
+      ctx.response().setStatusCode(403).end("Missing Tenant");
+      return;
+    }
+    Tenant tenant = tenantService.get(tenant_id);
+    if (tenant == null) {
+      ctx.response().setStatusCode(400).end("No such Tenant " + tenant_id);
+      return;     
+    }
+    Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request(), tenant);
     List<String> traceHeaders = new ArrayList<>();
     ReadStream<Buffer> content = ctx.request();
     proxyR(ctx, it, traceHeaders, content);

@@ -18,13 +18,11 @@ import java.util.Map;
 public class TenantService {
   
   final private Vertx vertx;
-  private ModuleService ms;
   
   Map<String, Tenant> enabled = new HashMap<>();
   
-  public TenantService(Vertx vertx, ModuleService ms) {
+  public TenantService(Vertx vertx) {
     this.vertx = vertx;
-    this.ms = ms;
   }
 
   public void create(RoutingContext ctx) {
@@ -53,6 +51,10 @@ public class TenantService {
     ctx.response().end(s);
   }
   
+  public Tenant get(String id) {
+    return enabled.get(id);
+  }
+  
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
@@ -64,7 +66,7 @@ public class TenantService {
     ctx.response().setStatusCode(204).end();
   }
   
-   public void enableModule(RoutingContext ctx) {
+  public void enableModule(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
     Tenant tenant = enabled.get(id);

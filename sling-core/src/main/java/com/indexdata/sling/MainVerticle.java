@@ -11,19 +11,15 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import static io.vertx.core.Vertx.vertx;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
-  private int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
-  private int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
+  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
+  private final int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
   
   ModuleService ms;
   TenantService ts;
@@ -31,8 +27,8 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
-    ms = new ModuleService(vertx, port_start, port_end);
-    ts = new TenantService(vertx, ms);
+    ts = new TenantService(vertx);
+    ms = new ModuleService(vertx, port_start, port_end, ts);
   }
       
   @Override
@@ -74,5 +70,4 @@ public class MainVerticle extends AbstractVerticle {
   public void stop(Future<Void> fut) throws IOException {
     fut.complete();
   }
-
 }

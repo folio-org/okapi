@@ -39,14 +39,16 @@ public class Modules {
     return false;
   }
    
-  public Iterator<ModuleInstance> getModulesForRequest(HttpServerRequest hreq) {
+  public Iterator<ModuleInstance> getModulesForRequest(HttpServerRequest hreq, Tenant t) {
     List<ModuleInstance> r = new ArrayList<>();
     for (String s : enabled.keySet()) {
-      RoutingEntry[] rr = enabled.get(s).getModuleDescriptor().getRoutingEntries();
-      for (int i = 0; i < rr.length; i++) {
-        if (match(rr[i], hreq)) {
-          ModuleInstance mi = new ModuleInstance(enabled.get(s), rr[i]);
-          r.add(mi);
+      if (t.isEnabled(s)) {
+        RoutingEntry[] rr = enabled.get(s).getModuleDescriptor().getRoutingEntries();
+        for (int i = 0; i < rr.length; i++) {
+          if (match(rr[i], hreq)) {
+            ModuleInstance mi = new ModuleInstance(enabled.get(s), rr[i]);
+            r.add(mi);
+          }
         }
       }
     }
