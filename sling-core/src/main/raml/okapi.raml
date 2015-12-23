@@ -1,9 +1,9 @@
 #%RAML 1.0 
-title: SLING Module API
+title: OKAPI Core API
 version: v1
 baseUri: https://okapi.io
 mediaType:  application/json
-types: !include types.yaml
+types: !include types.raml
 #resourceTypes:
 #traits:
 
@@ -18,7 +18,7 @@ types: !include types.yaml
 /_/modules:
   post:
     description: Creates an instance of a given module type, includes all
-      nessasary mechanics to put the module into operation (launching 
+      necessary mechanics to put the module into operation (launching 
       a process, binding to a port, setting up routing)
      # most likely we will want to read some initial configuration
     body:
@@ -28,7 +28,7 @@ types: !include types.yaml
       201:
         headers:
          Location:
-          description: Url to the created module instance
+          description: URI to the created module instance
 
   /{module_id}:
     get:
@@ -56,7 +56,7 @@ types: !include types.yaml
         description: tenant has been created
         headers:
           Location:
-            description: url to the created tenant
+            description: URI to the created tenant
 
   /{tenant_id}:
     get:
