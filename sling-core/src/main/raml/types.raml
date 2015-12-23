@@ -1,0 +1,33 @@
+ModuleDescriptor:
+  type: object
+  properties:
+    id: string
+    name: string
+    descriptor: ProcessDeploymentDescriptor
+    routingEntries: RoutingEntry[]
+
+ProcessDeploymentDescriptor:
+  type: object
+  properties:
+    cmdlineStart: string
+    cmdlineStop: string
+
+RoutingEntry:
+  type: object
+  properties:
+    methods: string[]
+    path: string
+    level: string
+
+TenantDescriptor:
+  type: object
+  properties:
+    id: string
+    name: string
+    url: string
+
+TenantModuleDescriptor:
+  type: object
+  properties:
+    id: string
+    module: string
