@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -123,11 +123,13 @@ public class DeployModuleTest {
             + "  \"routingEntries\" : [ {\n"
             + "    \"methods\" : [ \"*\" ],\n"
             + "    \"path\" : \"/\",\n"
-            + "    \"level\" : \"10\"\n"
+            + "    \"level\" : \"10\",\n"
+            + "    \"type\" : \"request-response\"\n"
             + "  }, {"
             + "    \"methods\" : [ \"POST\" ],\n"
             + "    \"path\" : \"/login\",\n"
-            + "    \"level\" : \"20\"\n"
+            + "    \"level\" : \"20\",\n"
+            + "    \"type\" : \"request-response\"\n"
             + "  } ]\n"
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
@@ -151,7 +153,8 @@ public class DeployModuleTest {
             + "  \"routingEntries\" : [ {\n"
             + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
             + "    \"path\" : \"/sample\",\n"
-            + "    \"level\" : \"30\"\n"
+            + "    \"level\" : \"30\",\n"
+            + "    \"type\" : \"request-response\"\n"
             + "  } ]\n"
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {

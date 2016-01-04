@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -9,6 +9,15 @@ public class RoutingEntry {
   private String[] methods;
   private String path;
   private String level;
+  private String type;
+
+  public String getType() {
+    return type;
+  }
+
+  public void setType(String type) {
+    this.type = type;
+  }
 
   public String getLevel() {
     return level;
