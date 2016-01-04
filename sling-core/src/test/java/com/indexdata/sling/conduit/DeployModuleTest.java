@@ -28,6 +28,7 @@ public class DeployModuleTest {
   private String locationTenant;
   private String locationSample;
   private String locationSample2;
+  private String locationSample3;
   private String locationAuth;
   private String slingToken;
   private final String slingTenant = "roskilde";
@@ -91,6 +92,17 @@ public class DeployModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSample2 = null;
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
+    if (locationSample3 != null) {
+      System.out.println("tearDown " + locationSample3);
+      httpClient.delete(port, "localhost", locationSample3, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSample3 = null;
           td(context, async);
         });
       }).end();
@@ -363,7 +375,8 @@ public class DeployModuleTest {
             + "  \"routingEntries\" : [ {\n"
             + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
             + "    \"path\" : \"/sample\",\n"
-            + "    \"level\" : \"31\"\n"
+            + "    \"level\" : \"31\",\n"
+            + "    \"type\" : \"request-response\"\n"
             + "  } ]\n"
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
@@ -384,10 +397,51 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
+        deploySample3(context, async);
+      });
+    }).end(doc);
+  }
+
+    public void deploySample3(TestContext context, Async async) {
+    System.out.println("deploySample3");
+    final String doc = "{\n"
+            + "  \"name\" : \"sample-module3\",\n"
+            + "  \"descriptor\" : {\n"
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "    \"cmdlineStop\" : null\n"
+            + "  },\n"
+            + "  \"routingEntries\" : [ {\n"
+            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
+            + "    \"path\" : \"/sample\",\n"
+            + "    \"level\" : \"33\",\n"
+            + "    \"type\" : \"request-only\"\n"
+            + "  } ]\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      locationSample3 =  response.getHeader("Location");
+      response.endHandler(x -> {
+        vertx.setTimer(1000, id -> {  
+          tenantEnableModuleSample3(context, async);
+        });
+      });
+    }).end(doc);
+  }
+  
+  public void tenantEnableModuleSample3(TestContext context, Async async) {
+    final String doc = "{\n"
+            + "  \"module\" : \"sample-module3\"\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.endHandler(x -> {
         useItWithGet2(context, async);
       });
     }).end(doc);
   }
+
+
   public void useItWithGet2(TestContext context, Async async) {
     System.out.println("useItWithGet2");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
