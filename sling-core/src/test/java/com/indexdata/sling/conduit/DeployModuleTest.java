@@ -235,7 +235,7 @@ public class DeployModuleTest {
       String trace = response.getHeader("X-Sling-Trace");
       context.assertTrue(trace == null);
       response.endHandler(x -> {
-         useWithoutLogin(context, async);
+        useWithoutLogin(context, async);
       });
     });
     req.end();
@@ -248,7 +248,7 @@ public class DeployModuleTest {
       String trace = response.getHeader("X-Sling-Trace");
       context.assertTrue(trace != null && trace.matches(".*GET auth:401.*"));
       response.endHandler(x -> {
-         failLogin(context, async);
+        failLogin(context, async);
       });
     });
     req.putHeader("X-Sling-Tenant", slingTenant);
