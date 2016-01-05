@@ -185,12 +185,7 @@ public class DeployModuleTest {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
-        // Need a small delay before the modules are actually listening.
-        // On a workstation 300 seems to be sufficient, but on my laptop
-        // I seem to need 1000ms.
-        vertx.setTimer(1000, id -> {  
-          createTenant(context, async);
-        });
+        createTenant(context, async);
       });
     }).end();
   }
@@ -383,9 +378,7 @@ public class DeployModuleTest {
       context.assertEquals(201, response.statusCode());
       locationSample2 =  response.getHeader("Location");
       response.endHandler(x -> {
-        vertx.setTimer(1000, id -> {  
-          tenantEnableModuleSample2(context, async);
-        });
+        tenantEnableModuleSample2(context, async);
       });
     }).end(doc);
   }
@@ -422,9 +415,7 @@ public class DeployModuleTest {
       context.assertEquals(201, response.statusCode());
       locationSample3 =  response.getHeader("Location");
       response.endHandler(x -> {
-        vertx.setTimer(1000, id -> {  
-          tenantEnableModuleSample3(context, async);
-        });
+        tenantEnableModuleSample3(context, async);
       });
     }).end(doc);
   }
@@ -475,9 +466,7 @@ public class DeployModuleTest {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
         System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
-        vertx.setTimer(3, x -> useItWithGet3(context, async));
-        //vertx.setTimer(3, x -> deleteTenant(context, async));
-        // deleteTenant(context, async);
+        vertx.setTimer(1, x -> useItWithGet3(context, async));
       }
       return;
     } else if (cnt == 0) {

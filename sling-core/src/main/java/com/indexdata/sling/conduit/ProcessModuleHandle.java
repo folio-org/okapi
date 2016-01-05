@@ -9,6 +9,9 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.NetClient;
+import io.vertx.core.net.NetClientOptions;
+import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 
 public class ProcessModuleHandle implements ModuleHandle {
@@ -23,6 +26,28 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.vertx = vertx;
     this.desc = desc;
     this.port = port;
+  }
+
+  private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
+    NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
+    NetClient c = vertx.createNetClient(options);
+    c.connect(port, "localhost", res -> {
+      if (res.succeeded()) {
+        System.out.println("Connected to service at port " + port + " count " + count);
+        NetSocket socket = res.result();
+        socket.close();
+        startFuture.handle(Future.succeededFuture());
+      } else {
+        if (count < 8) {
+          vertx.setTimer((count + 1) * 200, id -> {
+            tryConnect(startFuture, count + 1);
+          });
+        } else {
+          System.out.println("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
+          startFuture.handle(Future.failedFuture(res.cause()));
+        }
+      }
+    });
   }
 
   @Override
@@ -45,7 +70,11 @@ public class ProcessModuleHandle implements ModuleHandle {
       if (result.failed()) {
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
-        startFuture.handle(Future.succeededFuture());
+        if (port > 0) {
+          tryConnect(startFuture, 0);
+        } else {
+          startFuture.handle(Future.succeededFuture());
+        }
       }
     });
   }
