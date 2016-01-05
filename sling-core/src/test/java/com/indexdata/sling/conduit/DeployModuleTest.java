@@ -116,7 +116,7 @@ public class DeployModuleTest {
 
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
             
-  @Test(timeout = 300000)
+  @Test(timeout = 600000)
   public void test_sample(TestContext context)
   {
      final Async async = context.async();
