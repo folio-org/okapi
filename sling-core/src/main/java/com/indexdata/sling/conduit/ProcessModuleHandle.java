@@ -38,7 +38,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         socket.close();
         startFuture.handle(Future.succeededFuture());
       } else {
-        if (count < 8) {
+        if (count < 20) { // Raspberry PI takes about 10 iterations!
           vertx.setTimer((count + 1) * 200, id -> {
             tryConnect(startFuture, count + 1);
           });
