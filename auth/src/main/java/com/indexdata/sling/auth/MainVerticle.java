@@ -10,7 +10,6 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
-import java.net.BindException;
 
 /**
  * The auth module provides two services: login and check.
@@ -19,7 +18,10 @@ import java.net.BindException;
  * This is a very trivial dummy module, that provides simple hard-coded 
  * authentication for any user who can append '36' to his username to make
  * a fake password.
+ *
  * @author heikki
+ *
+ * ...
  */
 public class MainVerticle extends AbstractVerticle {
 
