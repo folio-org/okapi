@@ -20,6 +20,13 @@ import java.util.logging.Logger;
  * 
  * TODO: Check the X-Sling-Tenant header matches the tenant parameter, or use
  * that one instead of the parameter.
+ * TODO: Separate the headers so that
+ *   - X-Sling-Tenant is the tenant
+ *   - X-Sling-User is the user
+ *   - X-Sling-token is the crypto token
+ * OKAPI needs to get hold of the tenant already before a login, so it should
+ * be separate.
+
  * 
  * TODO: Add a time stamp and some salt to the crypto. 
  * 

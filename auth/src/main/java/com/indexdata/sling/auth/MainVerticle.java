@@ -10,7 +10,6 @@ import io.vertx.core.Future;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
-import java.net.BindException;
 
 /**
  * The auth module provides two services: login and check.
