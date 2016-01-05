@@ -23,8 +23,9 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class DeployModuleTest {
+
   Vertx vertx;
-  
+
   private String locationTenant;
   private String locationSample;
   private String locationSample2;
@@ -35,28 +36,28 @@ public class DeployModuleTest {
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
-  
+
   public DeployModuleTest() {
   }
-  
+
   @BeforeClass
   public static void setUpClass() {
   }
-  
+
   @AfterClass
   public static void tearDownClass() {
   }
-  
+
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-    
+
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
   }
-  
+
   @After
   public void tearDown(TestContext context) {
     final Async async = context.async();
@@ -112,15 +113,14 @@ public class DeployModuleTest {
     vertx.close(x -> {
       async.complete();
     });
-  }    
+  }
 
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
-            
+
   @Test(timeout = 600000)
-  public void test_sample(TestContext context)
-  {
-     final Async async = context.async();
-     deployAuth(context, async);
+  public void test_sample(TestContext context) {
+    final Async async = context.async();
+    deployAuth(context, async);
   }
 
   public void deployAuth(TestContext context, Async async) {
@@ -171,13 +171,13 @@ public class DeployModuleTest {
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
-      locationSample =  response.getHeader("Location");
+      locationSample = response.getHeader("Location");
       response.endHandler(x -> {
         getIt(context, async, doc);
       });
     }).end(doc);
   }
-  
+
   public void getIt(TestContext context, Async async, String doc) {
     System.out.println("getIt");
     httpClient.get(port, "localhost", locationSample, response -> {
@@ -203,7 +203,7 @@ public class DeployModuleTest {
       });
     }).end(doc);
   }
- 
+
   public void tenantEnableModuleAuth(TestContext context, Async async) {
     final String doc = "{\n"
             + "  \"module\" : \"auth\"\n"
@@ -240,7 +240,7 @@ public class DeployModuleTest {
     });
     req.end();
   }
-  
+
   public void useWithoutLogin(TestContext context, Async async) {
     System.out.println("useWithoutLogin");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
@@ -265,7 +265,7 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(401, response.statusCode());
       response.endHandler(x -> {
-         doLogin(context, async);
+        doLogin(context, async);
       });
     });
     req.putHeader("X-Sling-Tenant", slingTenant);
@@ -286,7 +286,7 @@ public class DeployModuleTest {
       slingToken = response.getHeader("X-Sling-Token");
       System.out.println("token=" + slingToken);
       response.endHandler(x -> {
-         useItWithGet(context, async);
+        useItWithGet(context, async);
       });
     });
     req.putHeader("X-Sling-Tenant", slingTenant);
@@ -347,7 +347,7 @@ public class DeployModuleTest {
 
   public void useNoMethod(TestContext context, Async async) {
     System.out.println("useNoMethod");
-    HttpClientRequest req  = httpClient.delete(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.delete(port, "localhost", "/sample", response -> {
       context.assertEquals(202, response.statusCode());
       response.endHandler(x -> {
         deploySample2(context, async);
@@ -376,13 +376,13 @@ public class DeployModuleTest {
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
-      locationSample2 =  response.getHeader("Location");
+      locationSample2 = response.getHeader("Location");
       response.endHandler(x -> {
         tenantEnableModuleSample2(context, async);
       });
     }).end(doc);
   }
-  
+
   public void tenantEnableModuleSample2(TestContext context, Async async) {
     final String doc = "{\n"
             + "  \"module\" : \"sample-module2\"\n"
@@ -395,7 +395,7 @@ public class DeployModuleTest {
     }).end(doc);
   }
 
-    public void deploySample3(TestContext context, Async async) {
+  public void deploySample3(TestContext context, Async async) {
     System.out.println("deploySample3");
     final String doc = "{\n"
             + "  \"name\" : \"sample-module3\",\n"
@@ -413,13 +413,13 @@ public class DeployModuleTest {
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
-      locationSample3 =  response.getHeader("Location");
+      locationSample3 = response.getHeader("Location");
       response.endHandler(x -> {
         tenantEnableModuleSample3(context, async);
       });
     }).end(doc);
   }
-  
+
   public void tenantEnableModuleSample3(TestContext context, Async async) {
     final String doc = "{\n"
             + "  \"module\" : \"sample-module3\"\n"
@@ -431,7 +431,6 @@ public class DeployModuleTest {
       });
     }).end(doc);
   }
-
 
   public void useItWithGet2(TestContext context, Async async) {
     System.out.println("useItWithGet2");
@@ -459,8 +458,8 @@ public class DeployModuleTest {
     req.end();
   }
 
-  public void repeatPost(TestContext context, Async async, 
-            int cnt, int max, int parallels) {
+  public void repeatPost(TestContext context, Async async,
+          int cnt, int max, int parallels) {
     final String msg = "Sling" + cnt;
     if (cnt == max) {
       if (--repeatPostRunning == 0) {
@@ -488,7 +487,7 @@ public class DeployModuleTest {
         context.assertEquals("Hello Hello " + msg, body.toString());
         repeatPost(context, async, cnt + 1, max, parallels);
       });
-      response.exceptionHandler(e -> { 
+      response.exceptionHandler(e -> {
         context.fail(e);
       });
     });
@@ -518,8 +517,6 @@ public class DeployModuleTest {
     req.end();
   }
 
-  
-  
   public void deleteTenant(TestContext context, Async async) {
     httpClient.delete(port, "localhost", locationTenant, response -> {
       context.assertEquals(204, response.statusCode());
@@ -528,7 +525,7 @@ public class DeployModuleTest {
       });
     }).end();
   }
-  
+
   public void done(TestContext context, Async async) {
     System.out.println("done");
     async.complete();

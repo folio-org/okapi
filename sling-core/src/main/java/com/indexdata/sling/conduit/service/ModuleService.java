@@ -238,8 +238,8 @@ public class ModuleService {
                   }
                 });
         c_req.exceptionHandler(res -> {
-          ctx.response().setStatusCode(500).end("connect port " +
-                  mi.getPort() + ": " + res.getMessage());
+          ctx.response().setStatusCode(500).end("connect port "
+                  + mi.getPort() + ": " + res.getMessage());
         });
         c_req.setChunked(true);
         c_req.headers().setAll(ctx.request().headers());
