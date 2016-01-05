@@ -12,11 +12,6 @@ public class ProcessDeploymentDescriptor {
   public ProcessDeploymentDescriptor() {
   }
   
-  public ProcessDeploymentDescriptor(String cmdlineStart, String cmdlineStop) {
-    this.cmdlineStart = cmdlineStart;
-    this.cmdlineStop = cmdlineStop;
-  }
-  
   public String getCmdlineStart() {
     return cmdlineStart;
   }
