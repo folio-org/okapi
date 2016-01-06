@@ -156,24 +156,28 @@ public class ModuleService {
       if ("request-only".equals(rtype)) {
         if (bcontent != null) {
           HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-                "localhost", ctx.request().uri(), res -> {
-                  if (res.statusCode() >= 200 && res.statusCode() < 300
-                  && it.hasNext()) {
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    proxyR(ctx, it, traceHeaders, null, bcontent);
-                  } else {
-                    ctx.response().setChunked(true);
-                    ctx.response().setStatusCode(res.statusCode());
-                    ctx.response().headers().setAll(res.headers());
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    res.endHandler(x -> {
-                      ctx.response().end(bcontent);
-                    });
-                    res.exceptionHandler(x -> {
-                      System.out.println("res exception " + x.getMessage());
-                    });
-                  }
-                });     
+                  "localhost", ctx.request().uri(), res -> {
+                    if (res.statusCode() >= 200 && res.statusCode() < 300
+                    && it.hasNext()) {
+                      makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                      proxyR(ctx, it, traceHeaders, null, bcontent);
+                    } else {
+                      ctx.response().setChunked(true);
+                      ctx.response().setStatusCode(res.statusCode());
+                      ctx.response().headers().setAll(res.headers());
+                      makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                      res.endHandler(x -> {
+                        ctx.response().end(bcontent);
+                      });
+                      res.exceptionHandler(x -> {
+                        System.out.println("res exception " + x.getMessage());
+                      });
+                    }
+                  });
+          c_req.exceptionHandler(res -> {
+            ctx.response().setStatusCode(500).end("connect port "
+                    + mi.getPort() + ": " + res.getMessage());
+          });
           c_req.headers().setAll(ctx.request().headers());
           c_req.end(bcontent);
         } else {
@@ -192,7 +196,7 @@ public class ModuleService {
                         ctx.response().setChunked(true);
                         ctx.response().setStatusCode(res.statusCode());
                         ctx.response().headers().setAll(res.headers());
-                        makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);                      
+                        makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
                         res.endHandler(x -> {
                           ctx.response().end(incoming);
                         });
@@ -201,6 +205,10 @@ public class ModuleService {
                         });
                       }
                     });
+            c_req.exceptionHandler(res -> {
+              ctx.response().setStatusCode(500).end("connect port "
+                      + mi.getPort() + ": " + res.getMessage());
+            });
             c_req.setChunked(true);
             c_req.headers().setAll(ctx.request().headers());
             c_req.end(incoming);
@@ -229,6 +237,10 @@ public class ModuleService {
                     });
                   }
                 });
+        c_req.exceptionHandler(res -> {
+          ctx.response().setStatusCode(500).end("connect port "
+                  + mi.getPort() + ": " + res.getMessage());
+        });
         c_req.setChunked(true);
         c_req.headers().setAll(ctx.request().headers());
         if (bcontent != null) {

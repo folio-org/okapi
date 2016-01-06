@@ -32,7 +32,8 @@ public class ProcessModuleHandleTest {
   @Test
   public void test1(TestContext context) {
     final Async async = context.async();
-    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleep 10", "");
+    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
+    desc.setCmdlineStart("sleep 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
   
@@ -54,7 +55,8 @@ public class ProcessModuleHandleTest {
   @Test
   public void test2(TestContext context) {
     final Async async = context.async();
-    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor("sleepxx 10", "");
+    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
+    desc.setCmdlineStart("sleepxx 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
   
