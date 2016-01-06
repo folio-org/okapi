@@ -43,7 +43,7 @@ public class Auth {
    * and ccc is a crypto thing that depends on those two. 
    * @param tenant
    * @param user
-   * @return
+   * @return the token
    * @throws NoSuchAlgorithmException which should never happen
    */
   private String token (String tenant, String user ) throws NoSuchAlgorithmException {
