@@ -173,9 +173,25 @@ public class DeployModuleTest {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
       response.endHandler(x -> {
-        getIt(context, async, doc);
+        listModules(context, async, doc);
       });
     }).end(doc);
+  }
+
+  public void listModules(TestContext context, Async async, String doc) {
+    System.out.println("listModules start");
+    httpClient.get(port, "localhost", "/_/modules/", response -> {
+      System.out.println("listModules response");
+      response.handler(body -> {
+        System.out.println("listModules body" + body.toString());
+        context.assertEquals(200, response.statusCode());
+        context.assertEquals("[ \"auth\", \"sample-module\" ]", body.toString());
+      });
+      response.endHandler(x -> {
+        getIt(context, async, doc);
+      });
+    }).end();
+
   }
 
   public void getIt(TestContext context, Async async, String doc) {

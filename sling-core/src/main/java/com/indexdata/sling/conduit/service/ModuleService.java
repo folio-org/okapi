@@ -76,6 +76,7 @@ public class ModuleService {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
   }
+
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
@@ -85,6 +86,10 @@ public class ModuleService {
       return;
     }
     String s = Json.encodePrettily(modules.get(id).getModuleDescriptor());
+    ctx.response().end(s);
+  }
+  public void list(RoutingContext ctx) {
+    String s = Json.encodePrettily(modules.list());
     ctx.response().end(s);
   }
 

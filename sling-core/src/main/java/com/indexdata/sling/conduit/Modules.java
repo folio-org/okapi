@@ -11,12 +11,17 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 public class Modules {
   LinkedHashMap<String, ModuleInstance> enabled = new LinkedHashMap<>();
   
   public ModuleInstance get(String name) {
     return enabled.getOrDefault(name, null);
+  }
+
+  public Set<String> list() {
+     return enabled.keySet();
   }
   
   public void put(String name, ModuleInstance m) {
