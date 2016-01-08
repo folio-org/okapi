@@ -39,6 +39,11 @@ public class TenantService {
     }
   }
   
+  public void list(RoutingContext ctx) {
+    String s = Json.encodePrettily( enabled.keySet());
+    ctx.response().end(s);
+  }
+
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 

@@ -50,14 +50,31 @@ public class TenantTest {
   }
   
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
-            
+
   @Test
   public void test1(TestContext context) {
+    final Async async = context.async();
+    listNone(context, async);
+  }
+
+  public void listNone(TestContext context, Async async) {
+    HttpClient c = vertx.createHttpClient();
+    c.get(port, "localhost", "/_/tenants", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(body -> {
+        context.assertEquals("[ ]", body.toString());
+      });
+      response.endHandler(x -> {
+        post(context, async);
+      });
+    }).end();
+  }
+
+  public void post(TestContext context, Async async) {
     final String doc = "{\n"
             + "  \"name\" : \"roskilde\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
-    final Async async = context.async();
     HttpClient c = vertx.createHttpClient();
     c.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
@@ -73,11 +90,25 @@ public class TenantTest {
     c.get(port, "localhost", location + "_none", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-        getIt(context, async, location, doc);
+        listOne(context, async, location, doc);
       });
     }).end();
   }
-  
+
+  public void listOne(TestContext context, Async async, String location,
+          String doc) {
+    HttpClient c = vertx.createHttpClient();
+    c.get(port, "localhost", "/_/tenants", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(body -> {
+        context.assertEquals("[ \"roskilde\" ]", body.toString());
+      });
+      response.endHandler(x -> {
+        getIt(context, async,location,doc);
+      });
+    }).end();
+  }
+
   public void getIt(TestContext context, Async async, String location,
           String doc) {
     HttpClient c = vertx.createHttpClient();
@@ -101,5 +132,7 @@ public class TenantTest {
       });
     }).end();
   }
+
+
 }
 
