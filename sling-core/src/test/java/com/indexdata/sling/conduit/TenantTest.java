@@ -22,6 +22,8 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class TenantTest {
   Vertx vertx;
+  String doc;
+  String location;
   
   public TenantTest() {
   }
@@ -53,11 +55,10 @@ public class TenantTest {
 
   @Test
   public void test1(TestContext context) {
-    final Async async = context.async();
-    listNone(context, async);
+    listNone(context);
   }
 
-  public void listNone(TestContext context, Async async) {
+  public void listNone(TestContext context) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
@@ -65,13 +66,13 @@ public class TenantTest {
         context.assertEquals("[ ]", body.toString());
       });
       response.endHandler(x -> {
-        post(context, async);
+        post(context);
       });
     }).end();
   }
 
-  public void post(TestContext context, Async async) {
-    final String doc = "{\n"
+  public void post(TestContext context) {
+    doc = "{\n"
             + "  \"name\" : \"roskilde\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
@@ -79,24 +80,23 @@ public class TenantTest {
     c.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
-        getNone(context, async, response.getHeader("Location"), doc);
+        location = response.getHeader("Location");
+        getNone(context);
       });
     }).end(doc);
   }
 
-  public void getNone(TestContext context, Async async, String location,
-          String doc) {
+  public void getNone(TestContext context) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", location + "_none", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
-        listOne(context, async, location, doc);
+        listOne(context);
       });
     }).end();
   }
 
-  public void listOne(TestContext context, Async async, String location,
-          String doc) {
+  public void listOne(TestContext context) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
@@ -104,13 +104,12 @@ public class TenantTest {
         context.assertEquals("[ \"roskilde\" ]", body.toString());
       });
       response.endHandler(x -> {
-        getIt(context, async,location,doc);
+        getIt(context);
       });
     }).end();
   }
 
-  public void getIt(TestContext context, Async async, String location,
-          String doc) {
+  public void getIt(TestContext context) {
     HttpClient c = vertx.createHttpClient();
     c.get(port, "localhost", location, response -> {
       context.assertEquals(200, response.statusCode());
@@ -118,21 +117,25 @@ public class TenantTest {
         context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
-        deleteIt(context, async, location);
+        deleteIt(context);
       });
     }).end();
   }
   
-  public void deleteIt(TestContext context, Async async, String location) {
+  public void deleteIt(TestContext context) {
     HttpClient c = vertx.createHttpClient();
     c.delete(port, "localhost", location, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
-        async.complete();
+        done(context);
       });
     }).end();
   }
 
+public void done(TestContext context){
+  final Async async2 = context.async();
+  async2.complete();
+}
 
 }
 
