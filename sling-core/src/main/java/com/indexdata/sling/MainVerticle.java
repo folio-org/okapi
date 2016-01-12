@@ -11,8 +11,10 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
@@ -35,6 +37,13 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
     
+    //handle CORS
+    router.route().handler(CorsHandler.create("*")
+            .allowedMethod(HttpMethod.PUT)
+            .allowedMethod(HttpMethod.DELETE)
+            .allowedMethod(HttpMethod.GET)
+            .allowedMethod(HttpMethod.POST));
+
     //hijack everything to conduit to allow for configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
     router.post("/_/modules/").handler(ms::create);
