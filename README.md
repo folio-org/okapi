@@ -1,5 +1,5 @@
-# sling
-Sling core and modules
+# okapi
+Okapi core and modules
 
 Java 8 and Apache Maven 3 are required for compilation.
 The test suite must be able to bind to ports 9130 thru 9134 to succeed.
