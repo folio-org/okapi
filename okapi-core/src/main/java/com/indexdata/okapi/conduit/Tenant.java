@@ -3,9 +3,9 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit;
+package com.indexdata.okapi.conduit;
 
-import com.indexdata.sling.conduit.TenantDescriptor;
+import com.indexdata.okapi.conduit.TenantDescriptor;
 import java.util.HashMap;
 
 public class Tenant {

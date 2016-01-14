@@ -1,4 +1,4 @@
-package com.indexdata.sling.util;
+package com.indexdata.okapi.util;
 import io.vertx.core.AsyncResult;
 
 public class Success<T> implements AsyncResult<T> {

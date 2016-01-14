@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit;
+package com.indexdata.okapi.conduit;
 
 public class Ports {
 

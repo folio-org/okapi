@@ -3,9 +3,9 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit;
+package com.indexdata.okapi.conduit;
 
-import com.indexdata.sling.MainVerticle;
+import com.indexdata.okapi.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;

@@ -3,14 +3,14 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit.service;
+package com.indexdata.okapi.conduit.service;
 
-import com.indexdata.sling.conduit.ModuleDescriptor;
-import com.indexdata.sling.conduit.ModuleInstance;
-import com.indexdata.sling.conduit.Modules;
-import com.indexdata.sling.conduit.Ports;
-import com.indexdata.sling.conduit.ProcessModuleHandle;
-import com.indexdata.sling.conduit.Tenant;
+import com.indexdata.okapi.conduit.ModuleDescriptor;
+import com.indexdata.okapi.conduit.ModuleInstance;
+import com.indexdata.okapi.conduit.Modules;
+import com.indexdata.okapi.conduit.Ports;
+import com.indexdata.okapi.conduit.ProcessModuleHandle;
+import com.indexdata.okapi.conduit.Tenant;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -118,7 +118,7 @@ public class ModuleService {
    */
   private void addTraceHeaders(RoutingContext ctx, List<String> traceHeaders) {
     for ( String th : traceHeaders ) {
-      ctx.response().headers().add("X-Sling-Trace", th);
+      ctx.response().headers().add("X-Okapi-Trace", th);
     }
   }
 
@@ -132,7 +132,7 @@ public class ModuleService {
 
   
   public void proxy(RoutingContext ctx) {
-    String tenant_id = ctx.request().getHeader("X-Sling-Tenant");
+    String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
       ctx.response().setStatusCode(403).end("Missing Tenant");
       return;

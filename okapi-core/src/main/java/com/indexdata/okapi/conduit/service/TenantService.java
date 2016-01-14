@@ -3,11 +3,11 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit.service;
+package com.indexdata.okapi.conduit.service;
 
-import com.indexdata.sling.conduit.Tenant;
-import com.indexdata.sling.conduit.TenantDescriptor;
-import com.indexdata.sling.conduit.TenantModuleDescriptor;
+import com.indexdata.okapi.conduit.Tenant;
+import com.indexdata.okapi.conduit.TenantDescriptor;
+import com.indexdata.okapi.conduit.TenantModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;

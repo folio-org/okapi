@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.util;
+package com.indexdata.okapi.util;
 
 public class Box<T> {
   private T item;

@@ -3,9 +3,9 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.conduit;
+package com.indexdata.okapi.conduit;
 
-import com.indexdata.sling.MainVerticle;
+import com.indexdata.okapi.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -31,8 +31,8 @@ public class DeployModuleTest {
   private String locationSample2;
   private String locationSample3;
   private String locationAuth;
-  private String slingToken;
-  private final String slingTenant = "roskilde";
+  private String okapiToken;
+  private final String okapiTenant = "roskilde";
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
@@ -159,7 +159,7 @@ public class DeployModuleTest {
             + "  \"name\" : \"sample-module\",\n"
             + "  \"descriptor\" : {\n"
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
             + "    \"cmdlineStop\" : null\n"
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
@@ -208,7 +208,7 @@ public class DeployModuleTest {
 
   public void createTenant(TestContext context, Async async) {
     final String doc = "{\n"
-            + "  \"name\" : \"" + slingTenant + "\",\n"
+            + "  \"name\" : \"" + okapiTenant + "\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
@@ -224,7 +224,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"module\" : \"auth\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         tenantEnableModuleSample(context, async);
@@ -236,7 +236,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"module\" : \"sample-module\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         useWithoutTenant(context, async);
@@ -248,7 +248,7 @@ public class DeployModuleTest {
     System.out.println("useWithoutTenant");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(403, response.statusCode());
-      String trace = response.getHeader("X-Sling-Trace");
+      String trace = response.getHeader("X-Okapi-Trace");
       context.assertTrue(trace == null);
       response.endHandler(x -> {
         useWithoutLogin(context, async);
@@ -261,13 +261,13 @@ public class DeployModuleTest {
     System.out.println("useWithoutLogin");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
       context.assertEquals(401, response.statusCode());
-      String trace = response.getHeader("X-Sling-Trace");
+      String trace = response.getHeader("X-Okapi-Trace");
       context.assertTrue(trace != null && trace.matches(".*GET auth:401.*"));
       response.endHandler(x -> {
         failLogin(context, async);
       });
     });
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
@@ -284,7 +284,7 @@ public class DeployModuleTest {
         doLogin(context, async);
       });
     });
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end(doc);
   }
 
@@ -298,14 +298,14 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=POST auth:200.*"));
-      slingToken = response.getHeader("X-Sling-Token");
-      System.out.println("token=" + slingToken);
+      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST auth:200.*"));
+      okapiToken = response.getHeader("X-Okapi-Token");
+      System.out.println("token=" + okapiToken);
       response.endHandler(x -> {
         useItWithGet(context, async);
       });
     });
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end(doc);
   }
 
@@ -315,7 +315,7 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet headers " + headers);
-      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=GET sample-module:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -323,8 +323,8 @@ public class DeployModuleTest {
         useItWithPost(context, async);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
@@ -334,18 +334,18 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=POST sample-module:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST sample-module:200.*"));
       response.handler(x -> {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        context.assertEquals("Hello Sling", body.toString());
+        context.assertEquals("Hello Okapi", body.toString());
         useNoPath(context, async);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
-    req.end("Sling");
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
+    req.end("Okapi");
   }
 
   public void useNoPath(TestContext context, Async async) {
@@ -356,8 +356,8 @@ public class DeployModuleTest {
         useNoMethod(context, async);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
@@ -369,8 +369,8 @@ public class DeployModuleTest {
         deploySample2(context, async);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
@@ -380,7 +380,7 @@ public class DeployModuleTest {
             + "  \"name\" : \"sample-module2\",\n"
             + "  \"descriptor\" : {\n"
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
             + "    \"cmdlineStop\" : null\n"
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
@@ -403,7 +403,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"module\" : \"sample-module2\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         deploySample3(context, async);
@@ -417,7 +417,7 @@ public class DeployModuleTest {
             + "  \"name\" : \"sample-module3\",\n"
             + "  \"descriptor\" : {\n"
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../sling-sample-module/target/sling-sample-module-fat.jar\",\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
             + "    \"cmdlineStop\" : null\n"
             + "  },\n"
             + "  \"routingEntries\" : [ {\n"
@@ -440,7 +440,7 @@ public class DeployModuleTest {
     final String doc = "{\n"
             + "  \"module\" : \"sample-module3\"\n"
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + slingTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         useItWithGet2(context, async);
@@ -454,7 +454,7 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet2 headers " + headers);
-      context.assertTrue(headers != null && headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
+      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -469,14 +469,14 @@ public class DeployModuleTest {
         }
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
   public void repeatPost(TestContext context, Async async,
           int cnt, int max, int parallels) {
-    final String msg = "Sling" + cnt;
+    final String msg = "Okapi" + cnt;
     if (cnt == max) {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
@@ -495,7 +495,7 @@ public class DeployModuleTest {
     HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers.matches(".*X-Sling-Trace=POST sample-module2:200.*"));
+      context.assertTrue(headers.matches(".*X-Okapi-Trace=POST sample-module2:200.*"));
       response.handler(x -> {
         body.appendBuffer(x);
       });
@@ -507,8 +507,8 @@ public class DeployModuleTest {
         context.fail(e);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end(msg);
   }
 
@@ -519,8 +519,8 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet3 headers " + headers);
-      // context.assertTrue(headers.matches(".*X-Sling-Trace=GET auth:202.*")); 
-      context.assertTrue(headers.matches(".*X-Sling-Trace=GET sample-module2:200.*"));
+      // context.assertTrue(headers.matches(".*X-Okapi-Trace=GET auth:202.*")); 
+      context.assertTrue(headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -528,8 +528,8 @@ public class DeployModuleTest {
         deleteTenant(context, async);
       });
     });
-    req.headers().add("X-Sling-Token", slingToken);
-    req.putHeader("X-Sling-Tenant", slingTenant);
+    req.headers().add("X-Okapi-Token", okapiToken);
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 

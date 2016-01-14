@@ -3,10 +3,10 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling;
+package com.indexdata.okapi;
 
-import com.indexdata.sling.conduit.service.ModuleService;
-import com.indexdata.sling.conduit.service.TenantService;
+import com.indexdata.okapi.conduit.service.ModuleService;
+import com.indexdata.okapi.conduit.service.TenantService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
