@@ -3,3 +3,6 @@ target/
 .vertx/
 file-uploads/
 /sling-core/nbproject/
+.project
+.settings/
+.classpath

@@ -23,7 +23,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
- 
+
   <build>
     <plugins>
       <plugin>
@@ -34,6 +34,26 @@
           <target>1.8</target>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>1.2.1</version>
+        <executions>
+            <execution>
+                <id>default-cli</id>
+                <goals>
+                    <goal>exec</goal>
+                </goals>
+                <configuration>
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>-jar</argument>
+                        <argument>${basedir}/sling-core/target/sling-core-fat.jar</argument>
+                    </arguments>
+                </configuration>
+            </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>
