@@ -8,7 +8,8 @@ In some cases, if tests fail, the API gateway will not be able to shut down
 the spawned micro services. In this case, you'll have to manually kill them.
 
 To build and run:
-	$ mvn install
-	$ mvn exec:exec
+
+    $ mvn install
+    $ mvn exec:exec
 
 Listens on port 9130.
