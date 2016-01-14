@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling.auth;
+package com.indexdata.okapi.auth;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -18,12 +18,12 @@ import java.util.logging.Logger;
  * Provides a minimal authentication mechanism.  
  * @author heikki
  * 
- * TODO: Check the X-Sling-Tenant header matches the tenant parameter, or use
+ * TODO: Check the X-Okapi-Tenant header matches the tenant parameter, or use
  * that one instead of the parameter.
  * TODO: Separate the headers so that
- *   - X-Sling-Tenant is the tenant
- *   - X-Sling-User is the user
- *   - X-Sling-token is the crypto token
+ *   - X-Okapi-Tenant is the tenant
+ *   - X-Okapi-User is the user
+ *   - X-Okapi-token is the crypto token
  * OKAPI needs to get hold of the tenant already before a login, so it should
  * be separate.
 
@@ -35,7 +35,7 @@ import java.util.logging.Logger;
 
 public class Auth {
 
-    static final String SLINGTOKENHEADER = "X-Sling-Token";
+    static final String OKAPITOKENHEADER = "X-Okapi-Token";
     
   /**
    * Calculate a token from tenant and username.
@@ -100,18 +100,18 @@ public class Auth {
     }
     System.out.println("Ok login for " + u + ": " + tok);
     ctx.response()
-      .headers().add(SLINGTOKENHEADER,tok);
+      .headers().add(OKAPITOKENHEADER,tok);
     ctx.response().setStatusCode(200);
     ctx.response().end(json);
   }
 
   public void check (RoutingContext ctx) {
-    String tok = ctx.request().getHeader(SLINGTOKENHEADER);
+    String tok = ctx.request().getHeader(OKAPITOKENHEADER);
     if ( tok == null || tok.isEmpty() ) {
-      System.out.println("Auth.check called without " + SLINGTOKENHEADER);
+      System.out.println("Auth.check called without " + OKAPITOKENHEADER);
       ctx.response()
         .setStatusCode(401) // Check symbolic name for "forbidden"
-        .end("Auth.check called without " + SLINGTOKENHEADER ); 
+        .end("Auth.check called without " + OKAPITOKENHEADER ); 
       return;
     }
     //System.out.println("Auth.check called with " + tok);
@@ -133,7 +133,7 @@ public class Auth {
         Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
       }
     ctx.response()
-      .headers().add(SLINGTOKENHEADER,tok);
+      .headers().add(OKAPITOKENHEADER,tok);
     ctx.response().setStatusCode(202); // 202 = Accepted
     echo(ctx);
     // signal to the conduit that we want to continue the module chain
