@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package com.indexdata.sling;
+package com.indexdata.okapi;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
