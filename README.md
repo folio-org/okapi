@@ -9,6 +9,6 @@ the spawned micro services. In this case, you'll have to manually kill them.
 
 To build and run:
 	$ mvn install
-	$ java -jar target/*-fat.jar
+	$ mvn exec:exec
 
 Listens on port 9130.
