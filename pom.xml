@@ -4,16 +4,16 @@
   http://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
-  <groupId>com.indexdata.sling</groupId>
-  <artifactId>sling</artifactId>
+  <groupId>com.indexdata.okapi</groupId>
+  <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
   <version>1.0-SNAPSHOT</version>
-  <name>sling</name>
+  <name>okapi</name>
 
   <modules>
-    <module>sling-sample-module</module>
+    <module>okapi-sample-module</module>
     <module>auth</module>
-    <module>sling-core</module>
+    <module>okapi-core</module>
   </modules>
 
   <prerequisites>
@@ -49,7 +49,7 @@
                     <executable>java</executable>
                     <arguments>
                         <argument>-jar</argument>
-                        <argument>${basedir}/sling-core/target/sling-core-fat.jar</argument>
+                        <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
                     </arguments>
                 </configuration>
             </execution>
