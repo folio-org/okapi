@@ -8,8 +8,6 @@ In some cases, if tests fail, the API gateway will not be able to shut down
 the spawned micro services. In this case, you'll have to manually kill them.
 
 To build and run:
-	$ (cd auth; mvn install)
-	$ cd sling-core
 	$ mvn install
 	$ java -jar target/*-fat.jar
 
