@@ -1,8 +1,11 @@
+#mvn build
 target/
-#vert.x crap
+#vert.x
 .vertx/
 file-uploads/
-/sling-core/nbproject/
+#netbeans
+nbproject/
+#eclipse
 .project
 .settings/
 .classpath
