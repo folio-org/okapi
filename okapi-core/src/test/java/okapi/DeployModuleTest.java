@@ -36,6 +36,7 @@ public class DeployModuleTest {
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
+  private static String LS = System.lineSeparator();
 
   public DeployModuleTest() {
   }
@@ -125,24 +126,24 @@ public class DeployModuleTest {
 
   public void deployAuth(TestContext context, Async async) {
     System.out.println("deployAuth");
-    final String doc = "{\n"
-            + "  \"name\" : \"auth\",\n"
-            + "  \"descriptor\" : {\n"
+    final String doc = "{"+LS
+            + "  \"name\" : \"auth\","+LS
+            + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\",\n"
-            + "    \"cmdlineStop\" : null\n"
-            + "  },\n"
-            + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"*\" ],\n"
-            + "    \"path\" : \"/\",\n"
-            + "    \"level\" : \"10\",\n"
-            + "    \"type\" : \"request-response\"\n"
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"*\" ],"+LS
+            + "    \"path\" : \"/\","+LS
+            + "    \"level\" : \"10\","+LS
+            + "    \"type\" : \"request-response\""+LS
             + "  }, {"
-            + "    \"methods\" : [ \"POST\" ],\n"
-            + "    \"path\" : \"/login\",\n"
-            + "    \"level\" : \"20\",\n"
-            + "    \"type\" : \"request-response\"\n"
-            + "  } ]\n"
+            + "    \"methods\" : [ \"POST\" ],"+LS
+            + "    \"path\" : \"/login\","+LS
+            + "    \"level\" : \"20\","+LS
+            + "    \"type\" : \"request-response\""+LS
+            + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -155,19 +156,19 @@ public class DeployModuleTest {
 
   public void deploySample(TestContext context, Async async) {
     System.out.println("deploySample");
-    final String doc = "{\n"
-            + "  \"name\" : \"sample-module\",\n"
-            + "  \"descriptor\" : {\n"
+    final String doc = "{"+LS
+            + "  \"name\" : \"sample-module\","+LS
+            + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
-            + "    \"cmdlineStop\" : null\n"
-            + "  },\n"
-            + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
-            + "    \"path\" : \"/sample\",\n"
-            + "    \"level\" : \"30\",\n"
-            + "    \"type\" : \"request-response\"\n"
-            + "  } ]\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
+            + "    \"path\" : \"/sample\","+LS
+            + "    \"level\" : \"30\","+LS
+            + "    \"type\" : \"request-response\""+LS
+            + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -207,9 +208,9 @@ public class DeployModuleTest {
   }
 
   public void createTenant(TestContext context, Async async) {
-    final String doc = "{\n"
-            + "  \"name\" : \"" + okapiTenant + "\",\n"
-            + "  \"description\" : \"Roskilde bibliotek\"\n"
+    final String doc = "{"+LS
+            + "  \"name\" : \"" + okapiTenant + "\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
@@ -221,8 +222,8 @@ public class DeployModuleTest {
   }
 
   public void tenantEnableModuleAuth(TestContext context, Async async) {
-    final String doc = "{\n"
-            + "  \"module\" : \"auth\"\n"
+    final String doc = "{"+LS
+            + "  \"module\" : \"auth\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -233,8 +234,8 @@ public class DeployModuleTest {
   }
 
   public void tenantEnableModuleSample(TestContext context, Async async) {
-    final String doc = "{\n"
-            + "  \"module\" : \"sample-module\"\n"
+    final String doc = "{"+LS
+            + "  \"module\" : \"sample-module\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -273,10 +274,10 @@ public class DeployModuleTest {
 
   public void failLogin(TestContext context, Async async) {
     System.out.println("failLogin");
-    String doc = "{\n"
-            + "  \"tenant\" : \"t1\",\n"
-            + "  \"username\" : \"peter\",\n"
-            + "  \"password\" : \"peter37\"\n"
+    String doc = "{"+LS
+            + "  \"tenant\" : \"t1\","+LS
+            + "  \"username\" : \"peter\","+LS
+            + "  \"password\" : \"peter37\""+LS
             + "}";
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(401, response.statusCode());
@@ -290,10 +291,10 @@ public class DeployModuleTest {
 
   public void doLogin(TestContext context, Async async) {
     System.out.println("doLogin");
-    String doc = "{\n"
-            + "  \"tenant\" : \"t1\",\n"
-            + "  \"username\" : \"peter\",\n"
-            + "  \"password\" : \"peter36\"\n"
+    String doc = "{"+LS
+            + "  \"tenant\" : \"t1\","+LS
+            + "  \"username\" : \"peter\","+LS
+            + "  \"password\" : \"peter36\""+LS
             + "}";
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
@@ -376,19 +377,19 @@ public class DeployModuleTest {
 
   public void deploySample2(TestContext context, Async async) {
     System.out.println("deploySample2");
-    final String doc = "{\n"
-            + "  \"name\" : \"sample-module2\",\n"
-            + "  \"descriptor\" : {\n"
+    final String doc = "{"+LS
+            + "  \"name\" : \"sample-module2\","+LS
+            + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
-            + "    \"cmdlineStop\" : null\n"
-            + "  },\n"
-            + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
-            + "    \"path\" : \"/sample\",\n"
-            + "    \"level\" : \"31\",\n"
-            + "    \"type\" : \"request-response\"\n"
-            + "  } ]\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
+            + "    \"path\" : \"/sample\","+LS
+            + "    \"level\" : \"31\","+LS
+            + "    \"type\" : \"request-response\""+LS
+            + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -400,8 +401,8 @@ public class DeployModuleTest {
   }
 
   public void tenantEnableModuleSample2(TestContext context, Async async) {
-    final String doc = "{\n"
-            + "  \"module\" : \"sample-module2\"\n"
+    final String doc = "{"+LS
+            + "  \"module\" : \"sample-module2\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -413,19 +414,19 @@ public class DeployModuleTest {
 
   public void deploySample3(TestContext context, Async async) {
     System.out.println("deploySample3");
-    final String doc = "{\n"
-            + "  \"name\" : \"sample-module3\",\n"
-            + "  \"descriptor\" : {\n"
+    final String doc = "{"+LS
+            + "  \"name\" : \"sample-module3\","+LS
+            + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\",\n"
-            + "    \"cmdlineStop\" : null\n"
-            + "  },\n"
-            + "  \"routingEntries\" : [ {\n"
-            + "    \"methods\" : [ \"GET\", \"POST\" ],\n"
-            + "    \"path\" : \"/sample\",\n"
-            + "    \"level\" : \"33\",\n"
-            + "    \"type\" : \"request-only\"\n"
-            + "  } ]\n"
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
+            + "    \"path\" : \"/sample\","+LS
+            + "    \"level\" : \"33\","+LS
+            + "    \"type\" : \"request-only\""+LS
+            + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -437,8 +438,8 @@ public class DeployModuleTest {
   }
 
   public void tenantEnableModuleSample3(TestContext context, Async async) {
-    final String doc = "{\n"
-            + "  \"module\" : \"sample-module3\"\n"
+    final String doc = "{"+LS
+            + "  \"module\" : \"sample-module3\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
