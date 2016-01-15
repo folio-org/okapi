@@ -12,8 +12,8 @@
 
   <modules>
     <module>okapi-sample-module</module>
-    <module>auth</module>
     <module>okapi-core</module>
+    <module>okapi-auth</module>
   </modules>
 
   <prerequisites>
