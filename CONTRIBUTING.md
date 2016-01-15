@@ -66,6 +66,12 @@ _Delete the Branch_. For a simple feature branch, you might as well delete
 it now, it has served its purpose. But if you think there is more work that
 should be done in this branch, of course you don't delete it.
 
+This merging can also be done on the command line, if you prefer
+(TODO - Describe how)
+
+When done, you probably want to delete the local branch from your own machine
+
+    git branch -d gh-7
 
 (TODO - Describe the automatic testing, when it is up and running)
 
@@ -142,6 +148,7 @@ implemented, we bump the version number to 3.15.1 or 4.1.1.
 
 Basically we try to adhere to Sun Java coding conventions, as in
   http://www.oracle.com/technetwork/java/codeconvtoc-136057.html
+(That document is old and unmaintained, but seems to be good enough as it is)
 
 There are some few exceptions:
 
