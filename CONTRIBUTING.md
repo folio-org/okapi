@@ -2,24 +2,33 @@
 
 ## Git and branches
 
-The Master branch should always work - at least pass all tests.  It is OK to
-make small trivial changes into it, but most work should always be done in a
-feature branch.
+We are trying to follow "GitHub Flow" - see
+http://scottchacon.com/2011/08/31/github-flow.html
+
+In short, the master branch is always the head of latest development. Anything
+merged into master should be of such good quality that at any time a snapshot
+from master passes all tests, and can be deployed. That is not to say that it
+will be free of bugs, we are not superhuman.
+
+All real work should be done in feature branches. It is still OK to make a
+small trivial change directly in the master. Stuff like editing the readme.
+
 
 ### Feature branches
 
-The naming of those is not strict, but if you start a branch to fix issue _#7_
-in GitHub issue tracker, you might well call the branch _gh-7_, or if you want
-to be more descriptive, something like _gh-7-contribution-guidelines_
+Feature branches should be branched off from the master. The naming of those
+is not strict, but if you start a branch to fix issue _#7_ in GitHub issue
+tracker, you might well call the branch _gh-7_, or if you want to be more
+descriptive, something like _gh-7-contribution-guidelines_
 
     git checkout -b gh-7
 
 You can commit stuff as you go, but try not push obviously broken stuff into
-GitHub - that will be visible for the whole world, and we plan to set up
-automatic testing for each branch, so pushing a broken commit will cause
-some emails. But if you need to share the code, for example for collaborating,
-of course you need to push it. Naturally you will write decent commit messages
-explaining what you have done.
+GitHub, not even in your development branch - that will be visible for the
+whole world, and we plan to set up automatic testing for each branch, so
+pushing a broken commit will cause some emails. But if you need to share the
+code, for example for collaborating, of course you need to push it. Naturally
+you will write decent commit messages explaining what you have done.
 
 The first time you want to push your branch to GitHub, you may encounter an
 error _The current branch gh-7 has no upstream branch_. Git tells you what to
@@ -38,6 +47,9 @@ When you are all done, pull master in again, to make sure your branch merges
 cleanly and passes all tests. Commit the merge, and push to your branch
 
     git push
+
+You may also want to `git rebase` your branch, compressing multiple commits
+into one, and editing the commit messages.
 
 ### Requesting a merge
 
