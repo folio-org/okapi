@@ -460,19 +460,24 @@ public class DeployModuleTest {
         context.assertEquals("It works", x.toString());
       });
       response.endHandler(x -> {
-        repeatPostRunning = 0;
-        // 1k is enough for regular testing, but the performance improves up to 50k
-        final int iterations = 1000;
-        //final int iterations = 50000;
-        final int parallels = 10;
-        for (int i = 0; i < parallels; i++) {
-          repeatPost(context, async, 0, iterations, parallels);
-        }
+        preparePost(context, async);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
+  }
+
+  public void preparePost(TestContext context, Async async) {
+    System.out.println("preparePost");
+    repeatPostRunning = 0;
+    // 1k is enough for regular testing, but the performance improves up to 50k
+    final int iterations = 1000;
+    //final int iterations = 50000;
+    final int parallels = 10;
+    for (int i = 0; i < parallels; i++) {
+      repeatPost(context, async, 0, iterations, parallels);
+    }
   }
 
   public void repeatPost(TestContext context, Async async,
@@ -513,7 +518,6 @@ public class DeployModuleTest {
     req.end(msg);
   }
 
-  // Repeat the Get test, to see timing headers of a system that has been warmed up
   public void useItWithGet3(TestContext context, Async async) {
     System.out.println("useItWithGet3");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
