@@ -261,6 +261,35 @@ public class ModuleService {
             System.out.println("content exception " + v.getMessage());
           });
         }
+      } else if ("headers".equals(rtype)) {
+        HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
+                "localhost", ctx.request().uri(), res -> {
+                  if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                    ctx.response().setChunked(true);
+                    ctx.response().setStatusCode(res.statusCode());
+                    ctx.response().headers().setAll(res.headers());
+                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                    res.handler(data -> {
+                      ctx.response().write(data);
+                    });
+                    res.endHandler(v -> {
+                      ctx.response().end();
+                    });
+                    res.exceptionHandler(v -> {
+                      System.out.println("res exception " + v.getMessage());
+                    });
+                  } else if (it.hasNext()) {
+                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                    proxyR(ctx, it, traceHeaders, content, bcontent);
+                  }
+                });
+        c_req.exceptionHandler(res -> {
+          ctx.response().setStatusCode(500).end("connect port "
+                  + mi.getPort() + ": " + res.getMessage());
+        });
+        // c_req.setChunked(true);
+        // c_req.headers().setAll(ctx.request().headers());
+        c_req.end();
       } else {
         System.out.println("rtype = " + rtype);
       }
