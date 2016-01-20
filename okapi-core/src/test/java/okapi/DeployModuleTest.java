@@ -61,11 +61,9 @@ public class DeployModuleTest {
 
   @Before
   public void setUp(TestContext context) {
-    final Graphite graphite = new Graphite(new InetSocketAddress("tapas.index", 2003));
+    //final Graphite graphite = new Graphite(new InetSocketAddress("tapas.index", 2003));
 
-    MetricRegistry registry = SharedMetricRegistries.getOrCreate("my-registry");
-    final ConsoleReporter reporter = ConsoleReporter.forRegistry(registry).build();
-
+    final String registryName = "okapi";
     /*
     final GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
                                                   .prefixedWith("tuna.index")
@@ -74,12 +72,15 @@ public class DeployModuleTest {
                                                   .filter(MetricFilter.ALL)
                                                   .build(graphite);
     */
-    reporter.start(1, TimeUnit.MINUTES);
 
     DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions().
-            setEnabled(true).setRegistryName("my-registry");
+            setEnabled(true).setRegistryName(registryName);
 
     vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOpt));
+    
+    MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
+    final ConsoleReporter reporter = ConsoleReporter.forRegistry(registry).build();
+    reporter.start(1, TimeUnit.SECONDS);
 
     System.out.println("Test.setup vertx = " + vertx);
     DeploymentOptions opt = new DeploymentOptions();
