@@ -36,6 +36,7 @@ public class ModuleService {
     this.ports = new Ports(port_start, port_end);
     this.modules = new Modules();
     this.tenantService = ts;
+    System.out.println("ModuleService vertx=" + vertx);
     this.httpClient = vertx.createHttpClient();
   }
 

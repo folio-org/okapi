@@ -28,8 +28,10 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
+    System.out.println("mainVerticle 1 vertx = " + vertx);
     super.init(vertx, context);
     ts = new TenantService(vertx);
+    System.out.println("mainVerticle 2 vertx = " + vertx);
     ms = new ModuleService(vertx, port_start, port_end, ts);
   }
       
