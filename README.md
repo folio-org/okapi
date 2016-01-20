@@ -30,4 +30,8 @@ To build and run:
 
 Okapi listens on port 9130.
 
+To debug remotely:
 
+    $ mvn exec:exec@debug
+
+This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
