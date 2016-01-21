@@ -6,6 +6,7 @@
 package okapi.bean;
 
 public class TenantDescriptor {
+  private String id;
   private String name;
   private String description;
 
@@ -25,10 +26,20 @@ public class TenantDescriptor {
     return description;
   }
 
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
   public TenantDescriptor() {}
 
-  public TenantDescriptor(String name, String description) {
+  public TenantDescriptor(String id, String name, String description) {
+    this.id = id;
     this.name = name;
     this.description = description;
   }
+
 }
