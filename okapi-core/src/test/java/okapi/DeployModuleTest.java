@@ -61,26 +61,27 @@ public class DeployModuleTest {
 
   @Before
   public void setUp(TestContext context) {
-    //final Graphite graphite = new Graphite(new InetSocketAddress("tapas.index", 2003));
-
     final String registryName = "okapi";
-    /*
-    final GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
-                                                  .prefixedWith("tuna.index")
-                                                  .convertRatesTo(TimeUnit.SECONDS)
-                                                  .convertDurationsTo(TimeUnit.MILLISECONDS)
-                                                  .filter(MetricFilter.ALL)
-                                                  .build(graphite);
-    */
+    MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
 
     DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions().
-            setEnabled(true).setRegistryName(registryName);
+          setEnabled(true).setRegistryName(registryName);
 
     vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOpt));
-    
-    MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
-    final ConsoleReporter reporter = ConsoleReporter.forRegistry(registry).build();
-    reporter.start(1, TimeUnit.SECONDS);
+
+    final ConsoleReporter reporter1 = ConsoleReporter.forRegistry(registry).build();
+    reporter1.start(1, TimeUnit.SECONDS);
+
+    final Graphite graphite = new Graphite(new InetSocketAddress("tapas.index", 2003));
+    final GraphiteReporter reporter2 = GraphiteReporter.forRegistry(registry)
+            .prefixedWith("tuna.index")
+            /*
+            .convertRatesTo(TimeUnit.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .filter(MetricFilter.ALL)
+*/
+            .build(graphite);
+    reporter2.start(1, TimeUnit.SECONDS);
 
     System.out.println("Test.setup vertx = " + vertx);
     DeploymentOptions opt = new DeploymentOptions();
