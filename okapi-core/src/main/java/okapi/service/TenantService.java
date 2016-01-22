@@ -29,10 +29,10 @@ public class TenantService {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
-      final String name = td.getName();
-      final String uri = ctx.request().uri() + "/" + name;
+      final String id = td.getId();
+      final String uri = ctx.request().uri() + "/" + id;
       
-      enabled.put(name, new Tenant(td));
+      enabled.put(id, new Tenant(td));
       ctx.response().setStatusCode(201).putHeader("Location", uri).end();
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());

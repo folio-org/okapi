@@ -22,8 +22,11 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class TenantTest {
   Vertx vertx;
-  String doc;
+  String doc1, doc2;
   String location;
+  Async async;
+  private HttpClient httpClient;
+
   
   public TenantTest() {
   }
@@ -43,7 +46,7 @@ public class TenantTest {
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
-    
+    this.httpClient = vertx.createHttpClient();
   }
   
   @After
@@ -55,12 +58,12 @@ public class TenantTest {
 
   @Test
   public void test1(TestContext context) {
+    this.async = context.async();
     listNone(context);
   }
 
   public void listNone(TestContext context) {
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", "/_/tenants", response -> {
+    httpClient.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(body -> {
         context.assertEquals("[ ]", body.toString());
@@ -72,23 +75,26 @@ public class TenantTest {
   }
 
   public void post(TestContext context) {
-    doc = "{\n"
+    doc1 = "{\n"
             + "  \"name\" : \"roskilde\",\n"
             + "  \"description\" : \"Roskilde bibliotek\"\n"
             + "}";
-    HttpClient c = vertx.createHttpClient();
-    c.post(port, "localhost", "/_/tenants", response -> {
+    doc2 = "{\n"
+            + "  \"id\" : \"roskilde\",\n"
+            + "  \"name\" : \"roskilde\",\n"
+            + "  \"description\" : \"Roskilde bibliotek\"\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         location = response.getHeader("Location");
         getNone(context);
       });
-    }).end(doc);
+    }).end(doc1);
   }
 
   public void getNone(TestContext context) {
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", location + "_none", response -> {
+    httpClient.get(port, "localhost", location + "_none", response -> {
       context.assertEquals(404, response.statusCode());
       response.endHandler(x -> {
         listOne(context);
@@ -97,8 +103,7 @@ public class TenantTest {
   }
 
   public void listOne(TestContext context) {
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", "/_/tenants", response -> {
+    httpClient.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(body -> {
         context.assertEquals("[ \"roskilde\" ]", body.toString());
@@ -110,11 +115,10 @@ public class TenantTest {
   }
 
   public void getIt(TestContext context) {
-    HttpClient c = vertx.createHttpClient();
-    c.get(port, "localhost", location, response -> {
+    httpClient.get(port, "localhost", location, response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(body -> {
-        context.assertEquals(doc, body.toString());
+        context.assertEquals(doc2, body.toString());
       });
       response.endHandler(x -> {
         deleteIt(context);
@@ -123,19 +127,43 @@ public class TenantTest {
   }
   
   public void deleteIt(TestContext context) {
-    HttpClient c = vertx.createHttpClient();
-    c.delete(port, "localhost", location, response -> {
+    httpClient.delete(port, "localhost", location, response -> {
       context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        post2(context);
+      });
+    }).end();
+  }
+
+  public void post2(TestContext context) {
+    doc1 = "{\n"
+            + "  \"name\" : \"roskilde\",\n"
+            + "  \"id\" : \"roskildedk\",\n"
+            + "  \"description\" : \"Roskilde bibliotek\"\n"
+            + "}";
+    httpClient.post(port, "localhost", "/_/tenants", response -> {
+      context.assertEquals(201, response.statusCode());
+      response.endHandler(x -> {
+        location = response.getHeader("Location");
+        listOne2(context);
+      });
+    }).end(doc1);
+  }
+
+  public void listOne2(TestContext context) {
+    httpClient.get(port, "localhost", "/_/tenants", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(body -> {
+        context.assertEquals("[ \"roskildedk\" ]", body.toString());
+      });
       response.endHandler(x -> {
         done(context);
       });
     }).end();
   }
 
-public void done(TestContext context){
-  final Async async2 = context.async();
-  async2.complete();
-}
-
+  public void done(TestContext context){
+    async.complete();
+  }
 }
 
