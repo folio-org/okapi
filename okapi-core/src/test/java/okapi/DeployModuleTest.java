@@ -424,6 +424,16 @@ public class DeployModuleTest {
             + "  \"routingEntries\" : [ {"+LS
             + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
             + "    \"path\" : \"/sample\","+LS
+            + "    \"level\" : \"05\","+LS
+            + "    \"type\" : \"headers\""+LS
+            + "  }, {"+LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
+            + "    \"path\" : \"/sample\","+LS
+            + "    \"level\" : \"45\","+LS
+            + "    \"type\" : \"headers\""+LS
+            + "  }, {"+LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
+            + "    \"path\" : \"/sample\","+LS
             + "    \"level\" : \"33\","+LS
             + "    \"type\" : \"request-only\""+LS
             + "  } ]"+LS
@@ -460,14 +470,7 @@ public class DeployModuleTest {
         context.assertEquals("It works", x.toString());
       });
       response.endHandler(x -> {
-        repeatPostRunning = 0;
-        // 1k is enough for regular testing, but the performance improves up to 50k
-        final int iterations = 1000;
-        //final int iterations = 50000;
-        final int parallels = 10;
-        for (int i = 0; i < parallels; i++) {
-          repeatPost(context, async, 0, iterations, parallels);
-        }
+        repeatPostInit(context, async);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
@@ -475,7 +478,18 @@ public class DeployModuleTest {
     req.end();
   }
 
-  public void repeatPost(TestContext context, Async async,
+  public void repeatPostInit(TestContext context, Async async) {
+    repeatPostRunning = 0;
+    // 1k is enough for regular testing, but the performance improves up to 50k
+    final int iterations = 1000;
+    //final int iterations = 50000;
+    final int parallels = 10;
+    for (int i = 0; i < parallels; i++) {
+      repeatPostRun(context, async, 0, iterations, parallels);
+    }
+  }
+
+  public void repeatPostRun(TestContext context, Async async,
           int cnt, int max, int parallels) {
     final String msg = "Okapi" + cnt;
     if (cnt == max) {
@@ -502,7 +516,7 @@ public class DeployModuleTest {
       });
       response.endHandler(x -> {
         context.assertEquals("Hello Hello " + msg, body.toString());
-        repeatPost(context, async, cnt + 1, max, parallels);
+        repeatPostRun(context, async, cnt + 1, max, parallels);
       });
       response.exceptionHandler(e -> {
         context.fail(e);

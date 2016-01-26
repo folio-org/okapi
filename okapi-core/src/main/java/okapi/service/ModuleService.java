@@ -145,6 +145,7 @@ public class ModuleService {
     Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request(), tenant);
     List<String> traceHeaders = new ArrayList<>();
     ReadStream<Buffer> content = ctx.request();
+    content.pause();
     proxyR(ctx, it, traceHeaders, content, null);
   }
   
@@ -218,6 +219,7 @@ public class ModuleService {
             c_req.headers().setAll(ctx.request().headers());
             c_req.end(incoming);
           });
+          content.resume();
         }
       } else if ("request-response".equals(rtype)) {
         HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
@@ -225,6 +227,7 @@ public class ModuleService {
                   if (res.statusCode() >= 200 && res.statusCode() < 300
                   && it.hasNext()) {
                     makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                    res.pause();
                     proxyR(ctx, it, traceHeaders, res, null);
                   } else {
                     ctx.response().setChunked(true);
@@ -260,7 +263,57 @@ public class ModuleService {
           content.exceptionHandler(v -> {
             System.out.println("content exception " + v.getMessage());
           });
+          content.resume();
         }
+      } else if ("headers".equals(rtype)) {
+        HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
+                        "localhost", ctx.request().uri(), res -> {
+                          if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                            ctx.response().setChunked(true);
+                            ctx.response().setStatusCode(res.statusCode());
+                            ctx.response().headers().setAll(res.headers());
+                            makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                            res.handler(data -> {
+                              ctx.response().write(data);
+                            });
+                            res.endHandler(v -> {
+                              ctx.response().end();
+                            });
+                            res.exceptionHandler(v -> {
+                              System.out.println("res exception " + v.getMessage());
+                            });
+                          } else if (it.hasNext()) {
+                            res.endHandler(x -> {
+                              proxyR(ctx, it, traceHeaders, content, bcontent);
+                            });
+                          } else {
+                            ctx.response().setChunked(true);
+                            ctx.response().setStatusCode(res.statusCode());
+                            ctx.response().headers().setAll(res.headers());
+                            makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                            if (bcontent == null) {
+                              content.handler(data -> {
+                                ctx.response().write(data);
+                              });
+                              content.endHandler(v -> {
+                                ctx.response().end();
+                              });
+                              content.exceptionHandler(v -> {
+                                System.out.println("content exception " + v.getMessage());
+                              });
+                              content.resume();
+                            } else {
+                              ctx.response().end(bcontent);
+                            }
+                          }
+                        });
+          c_req.exceptionHandler(res -> {
+          ctx.response().setStatusCode(500).end("connect port "
+                  + mi.getPort() + ": " + res.getMessage());
+        });
+        // c_req.setChunked(true);
+        // c_req.headers().setAll(ctx.request().headers());
+        c_req.end();
       } else {
         System.out.println("rtype = " + rtype);
       }
