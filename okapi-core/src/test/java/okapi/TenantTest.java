@@ -59,7 +59,18 @@ public class TenantTest {
   @Test
   public void test1(TestContext context) {
     this.async = context.async();
-    listNone(context);
+    healthCheck(context);
+  }
+
+  public void healthCheck(TestContext context) {
+    httpClient.get(port, "localhost", "/_/health", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(body -> {
+      });
+      response.endHandler(x -> {
+        listNone(context);
+      });
+    }).end();
   }
 
   public void listNone(TestContext context) {
