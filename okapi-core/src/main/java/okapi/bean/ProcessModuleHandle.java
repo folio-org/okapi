@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -37,15 +37,15 @@ public class ProcessModuleHandle implements ModuleHandle {
         NetSocket socket = res.result();
         socket.close();
         startFuture.handle(Future.succeededFuture());
+      } else if (!p.isAlive() && p.exitValue() != 0) {
+        startFuture.handle(Future.failedFuture("Exit failure for service"));
+      } else if (count < 20) { // Raspberry PI takes about 10 iterations!
+        vertx.setTimer((count + 1) * 200, id -> {
+          tryConnect(startFuture, count + 1);
+        });
       } else {
-        if (count < 20) { // Raspberry PI takes about 10 iterations!
-          vertx.setTimer((count + 1) * 200, id -> {
-            tryConnect(startFuture, count + 1);
-          });
-        } else {
-          System.out.println("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
-          startFuture.handle(Future.failedFuture(res.cause()));
-        }
+        System.out.println("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
+        startFuture.handle(Future.failedFuture(res.cause()));
       }
     });
   }
@@ -69,12 +69,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     }, false, result -> {
       if (result.failed()) {
         startFuture.handle(Future.failedFuture(result.cause()));
+      } else if (port > 0) {
+        tryConnect(startFuture, 0);
       } else {
-        if (port > 0) {
-          tryConnect(startFuture, 0);
-        } else {
-          startFuture.handle(Future.succeededFuture());
-        }
+        startFuture.handle(Future.succeededFuture());
       }
     });
   }
@@ -86,6 +84,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
     stopFuture.handle(Future.succeededFuture());
   }
+
   public int getPort() {
     return port;
   }

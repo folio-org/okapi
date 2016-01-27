@@ -121,7 +121,32 @@ public class DeployModuleTest {
   @Test(timeout = 600000)
   public void test_sample(TestContext context) {
     final Async async = context.async();
-    deployAuth(context, async);
+    deployBadModule(context, async);
+  }
+
+  public void deployBadModule(TestContext context, Async async) {
+    System.out.println("deployAuth");
+    final String doc = "{"+LS
+            + "  \"name\" : \"auth\","+LS
+            + "  \"descriptor\" : {"+LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\","+LS
+            // + "\"sleep %p\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"*\" ],"+LS
+            + "    \"path\" : \"/\","+LS
+            + "    \"level\" : \"10\","+LS
+            + "    \"type\" : \"request-response\""+LS
+            + "  } ]"+LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/modules", response -> {
+      context.assertEquals(500, response.statusCode());
+      response.endHandler(x -> {
+        deployAuth(context, async);
+      });
+    }).end(doc);
   }
 
   public void deployAuth(TestContext context, Async async) {
