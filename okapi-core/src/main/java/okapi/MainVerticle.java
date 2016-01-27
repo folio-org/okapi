@@ -17,18 +17,21 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import okapi.service.HealthService;
 
 public class MainVerticle extends AbstractVerticle {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
   private final int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
   private final int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
   
+  HealthService hc;
   ModuleService ms;
   TenantService ts;
 
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
+    hc = new HealthService();
     ts = new TenantService(vertx);
     ms = new ModuleService(vertx, port_start, port_end, ts);
   }
@@ -55,6 +58,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id").handler(ts::get);
     router.delete("/_/tenants/:id").handler(ts::delete);
     router.post("/_/tenants/:id/modules").handler(ts::enableModule);
+    router.get("/_/health").handler(hc::get);
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
