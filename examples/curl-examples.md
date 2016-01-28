@@ -357,6 +357,12 @@ curl -w '\n' -X POST -D - \
   --data-binary @/tmp/enabletenant2b.json  \
   http://localhost:9130/_/tenants/otherlibrary/modules
 ```
+You can list the enabled modules with
+```
+curl -w '\n' -D -    \
+    -H "X-Okapi-Tenant: otherlibrary"   \
+    http://localhost:9130/_/tenants/otherlibrary/modules
+```
 
 ## Authentication problems
 
