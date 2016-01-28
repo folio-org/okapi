@@ -450,9 +450,7 @@ curl -w '\n' -X POST -D - \
 ```
 You can list the enabled modules with
 ```
-curl -w '\n' -D -    \
-    -H "X-Okapi-Tenant: otherlibrary"   \
-    http://localhost:9130/_/tenants/otherlibrary/modules
+curl -w '\n' -D - http://localhost:9130/_/tenants/otherlibrary/modules
 ```
 
 ### Authentication problems
