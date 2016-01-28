@@ -9,7 +9,8 @@
 
 ### TODO
 
- * Persistent storage #2
- * Remote module #3
+
+ * Persistent storage (GitHub issue #2)
+ * Remote module (#3)
  * Interface with Consul for Service Discovery etc
  
