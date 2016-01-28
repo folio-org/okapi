@@ -202,8 +202,9 @@ cases:
 So we need to tell Okapi that we want to work with some modules.
 
 #### Deploying the sample module
-So, we need to tell Okapi that we want to be using the sample module. So we
-create a JSON structure, and POST it to Okapi
+
+To tell Okapi that we want to use the sample module, we create a JSON
+structure of module metadata and POST it to Okapi
 
 ```
 cat > /tmp/samplemodule.json <<END
@@ -372,7 +373,7 @@ curl -w '\n' http://localhost:9130/_/tenants
 
 ### Enabling a module for a tenant
 
-There is still one step before we can use our modules. We need to tell which
+There is still one step before we can use our modules. We need to specify which
 tenants have which modules enabled. For our own library we enable the sample
 module, without enabling the auth module.
 
@@ -387,6 +388,20 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/enabletenant1.json  \
   http://localhost:9130/_/tenants/ourlibrary/modules
 ```
+
+Note that we are using a RESTful approach here: the URL
+`http://localhost:9130/_/tenants/ourlibrary/modules` names the set of
+modules that are enabled for our library, and we POST an deployed
+module to this set. The tenant to enable the module for is in the URL;
+the module to enable it for is in the payload.
+
+Now we can ask Okapi which modules are enabled for our tenant, and get
+back a JSON list:
+
+````
+$ curl -w '\n' http://localhost:9130/_/tenants/ourlibrary/modules
+[ "sample-module" ]
+````
 
 ### Using a module
 Finally we should be able to make use of the module, as a regular tenant.
