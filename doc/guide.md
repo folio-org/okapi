@@ -1,35 +1,100 @@
+# Okapi Guide and Reference
 
-# Curl-examples
+This is the guide and reference to the Okapi: a gateway for
+managing and running microservices.
 
-These examples show how to use Okapi from the command line, using the `curl`
-http client. You should be able to copy and paste the command(s) to your 
-command line from this document.
+## Table of Contents
 
-## Compiling Okapi
+* [Compilation and Installation](#Compilation_and_Installation)
+* [Using Okapi](#Using_Okapi)
+* [Developing Modules](#Developing_Modules)
+* [Reference](#Reference)
 
-To compile Okapi and its example modules, go to the root of
-the source tree, and issue the command
+<a name="Compilation_and_Installation"/>
+
+## Compilation and Installation
+
+The latest source of the software can be found at
+[GitHub](https://github.com/sling-incubator/okapi).
+
+Build Requirements are
+
+ * Apache Maven 3.0.5 or later.
+ * Java 8 JDK
+ * [Git](https://git-scm.com)
+
+With these available, build with:
 
 ```
+git clone git@github.com:sling-incubator/okapi.git
+cd okapi
 mvn install
-
 ```
-This will churn a little while, especially the first time you do it, 
-since Maven will have to download a number of dependencies. There 
-will be a lot of output scrolling past. You can ignore most of it, as 
-long as you check that near the very end there is a line that says
+
+The install rule also runs a few tests. Tests should not fail.
+If they do, please report it and turn to `mvn install -DskipTests`.
+
+If successful, the output of `mvn install` should have this line near
+the end:
 ```
 [INFO] BUILD SUCCESS
 ```
-This has built the Okapi project, and its built-in modules.
+
+The okapi directory contains a few sub modules. These are
+
+ * `okapi-core`: the gateway server
+ * `okapi-auth`: a simple module demonstrating authentication
+ * `okapi-sample-module`: a module mangling HTTP content
+
+These two modules are used in tests for okapi-core so they must be build
+before okapi-core tests are performed.
+
+The result for each module and okapi-core is a combined jar file
+with all necessary components combined - including Vert.x. The listening
+port is adjusted with property `port`.
+
+For example, to run the okapi-auth module and listen on port 8600, use:
+
+```
+cd okapi-auth
+java -Dport=8600 -jar target/okapi-auth-fat.jar
+```
+
+In the same way, to run the okapi-core, use:
+```
+cd okapi-core
+java -Dport=8600 -jar target/okapi-core-fat.jar
+```
+
+A Maven rule to run the gateway, is part of the `pom.xml`, in the
+main directory.
+
+```
+mvn exec:exec
+```
+This will start the okapi-core and make it listen on its default port: 9130.
+
+For remote debugging you can use
+```
+mvn exec:exec@debug
+```
+This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
+
+<a name="Using_Okapi"/>
+
+## Using Okapi
+
+These examples show how to use Okapi from the command line, using the `curl`
+http client. You should be able to copy and paste the command(s) to your
+command line from this document.
 
 
-## Modules
+### Example modules
 
 The Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with two dummy modules that demonstrate different things.
 
-### Okapi-sample-module
+#### Okapi-sample-module
 
 Is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
@@ -47,14 +112,14 @@ java -jar okapi-sample-module/target/okapi-sample-module-fat.jar
 This starts the sample module listening on port 8080.
 
 
-Now open another console window, and try to access the 
+Now open another console window, and try to access the
 sample module with
 
 ```
 curl -w '\n' http://localhost:8080/sample
 ```
-It should tell you that it works. The option "`-w '\n'`" is just to 
-make curl output an extra newline, because the responses do not necessarily 
+It should tell you that it works. The option "`-w '\n'`" is just to
+make curl output an extra newline, because the responses do not necessarily
 end in newlines.
 
 
@@ -68,31 +133,31 @@ curl -w '\n' -X POST -d okapi.txt http://localhost:8080/sample
 
 ```
 Again we have the -w option to get a newline in the output, and this
-time we add `-X POST` to make it a post request, and `-d okapi.txt` 
-to specify what we want to post. 
+time we add `-X POST` to make it a post request, and `-d okapi.txt`
+to specify what we want to post.
 
-The test module should respond with 
+The test module should respond with
     Hello Testing Okapi
 which is our test data, with a "Hello" prepended to it.
 
 
-That is enough about the sample module, go back to the window where you 
-left it running, and kill it with a Ctrl-C. it should not have produced 
-any output after the initial messages. 
+That is enough about the sample module, go back to the window where you
+left it running, and kill it with a Ctrl-C. it should not have produced
+any output after the initial messages.
 
 
 
-### Okapi-auth-module
+#### Okapi-auth-module
 
 Okapi itself does not do authentication, it delegates that to a module.
-We do not have such a module yet, but we have a very trivial dummy 
+We do not have such a module yet, but we have a very trivial dummy
 module that can be used to demonstrate how it works.
 
 The dummy module supports two functions: /login is, as its name implies,
-a login function that takes a username and password, and if acceptable, 
+a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
-headers.  The token is simply the username and tenant-id concatenated 
+headers.  The token is simply the username and tenant-id concatenated
 with a checksum.
 
 We will see examples of this when we get to play with Okapi itself. If
@@ -101,15 +166,15 @@ you want, you can start the module directly as with the sample module.
 TODO - make a real example of this too
 
 
-## Running Okapi itself
+### Running Okapi itself
 
 Now we are ready to start Okapi.
 
 ```
-java -jar okapi-core/target/okapi-core-fat.jar 
+java -jar okapi-core/target/okapi-core-fat.jar
 
 ```
-It lists its PID and says it `succeeded deploying verticle`. 
+It lists its PID and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130.
 
@@ -124,11 +189,11 @@ curl -w '\n' http://localhost:9130/_/tenants
 Both of these return an empty list, as a JSON structure:
     [ ]
 
-## Deploying modules
+### Deploying modules
 
 So we need to tell Okapi that we want to work with some modules.
 
-### Deploying the sample module
+#### Deploying the sample module
 So, we need to tell Okapi that we want to be using the sample module. So we
 create a JSON structure, and POST it to Okapi
 
@@ -169,7 +234,7 @@ be helpful and say something about it being url-encoded, which will confuse
 the Java libraries and result in a "500 - Internal Error".
 
 We also added the "-D -" option that makes curl to display all response
-headers. 
+headers.
 
 You should see something like this
 ```
@@ -180,7 +245,7 @@ Content-Length: 0
 ```
 
 
-If you repeat the same request, you should now get an error 
+If you repeat the same request, you should now get an error
 ```
 HTTP/1.1 400 Bad Request
 Content-Length: 37
@@ -192,11 +257,11 @@ which seems quite reasonable.
 
 If you look at the output of
     ps axf | grep -C4 okapi
-you should see that okapi-core has spawned a new process for the 
-okapi-sample-module, and that it has been assigned port 9131. You can try to 
+you should see that okapi-core has spawned a new process for the
+okapi-sample-module, and that it has been assigned port 9131. You can try to
 access it directly if you like, just as before.
 
-### Deploying the auth module
+#### Deploying the auth module
 This is similar to the sample module. First we create the JSON structure for it:
 
 ```
@@ -222,12 +287,12 @@ cat > /tmp/authmodule.json <<END
 END
 ```
 
-Here we have two routing entries. The second says that this module is 
+Here we have two routing entries. The second says that this module is
 interested in POST requests to the /login path. This is what we use for
-actually logging in. 
+actually logging in.
 
-The first routing entry says that this module is interested in seeing 
-any request at all, and on a pretty low level (10) too, which means that 
+The first routing entry says that this module is interested in seeing
+any request at all, and on a pretty low level (10) too, which means that
 any request should go through the auth module before being directed to
 the module that does the actual work. In this way, supporting modules
 like authentication or logging can be tied to some or all requests.
@@ -249,7 +314,7 @@ Location: /_/modules/auth
 Content-Length: 0
 ```
 
-Now we have two modules, as can be seen with 
+Now we have two modules, as can be seen with
 
 ```
 curl -w '\n' -D -  http://localhost:9130/_/modules
@@ -258,7 +323,7 @@ curl -w '\n' -D -  http://localhost:9130/_/modules
 but we still can not use them. We need to have some
 tenants too.
 
-## Creating tenants
+### Creating tenants
 For this example we create two tenants. These are simple requests.
 
 ```
@@ -289,12 +354,12 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/_/tenants
 ```
 
-Again, we can list them with 
+Again, we can list them with
 ```
 curl -w '\n' http://localhost:9130/_/tenants
 ```
 
-## Enabling a module for a tenant
+### Enabling a module for a tenant
 
 There is still one step before we can use our modules. We need to tell which
 tenants have which modules enabled. For our own library we enable the sample
@@ -312,10 +377,10 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/_/tenants/ourlibrary/modules
 ```
 
-## Using a module
+### Using a module
 Finally we should be able to make use of the module, as a regular tenant.
 ```
-curl -w '\n' -D -  http://localhost:9130/sample-module/
+curl -w '\n' -D -  http://localhost:9130/sample
 ```
 But of course Okapi can not know which tenant it is that is wanting to use our
 sample module, so it can not allow such, and returns a 403 forbidden.
@@ -329,7 +394,7 @@ curl -w '\n' -D -  \
 and indeed we get back a note saying that it works.
 
 
-## Enabling both modules for the other tenant
+### Enabling both modules for the other tenant
 
 Our other tenant needs to use /sample as well, but it needs to be authenticated
 to be allowed to do so. So we need to enable both sample-module and auth for it:
@@ -364,7 +429,7 @@ curl -w '\n' -D -    \
     http://localhost:9130/_/tenants/otherlibrary/modules
 ```
 
-## Authentication problems
+### Authentication problems
 
 If the other library tries to use our sample module:
 ```
@@ -413,4 +478,19 @@ curl -w '\n' -D -  \
 ```
 
 it works!
+
+
+<a name="Developing_Modules"/>
+
+## Developing Modules
+
+<a name="Reference"/>
+
+## Reference
+
+The Okapi service requests (all those prefixed with /_/) are specified
+in the [RAML](http://raml.org/) syntax.
+
+  * [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
+  * [types.raml](../okapi-core/src/main/raml/types.raml)
 

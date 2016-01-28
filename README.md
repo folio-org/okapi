@@ -1,8 +1,6 @@
 
-
 Okapi — a multitenant API Gateway
 =================================
-
 
 System requirements
 -------------------
@@ -19,9 +17,8 @@ In addition, the test suite must be able to bind to ports 9130-9134 to succeed.
 microservices that it has spawned, and they may need to be terminated
 manually.*
 
-
-Starting Okapi
---------------
+Quick start
+-----------
 
 To build and run:
 
@@ -30,8 +27,9 @@ To build and run:
 
 Okapi listens on port 9130.
 
-To debug remotely:
 
-    $ mvn exec:exec@debug
+Documentation
+-------------
 
-This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
+* [Okapi Guide and Reference](doc/guide.md)
+* [Contributing guidelines](CONTRIBUTING.md)
