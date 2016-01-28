@@ -253,9 +253,21 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
-        tenantEnableModuleSample(context, async);
+        tenantListModules1(context, async);
       });
     }).end(doc);
+  }
+
+  public void tenantListModules1(TestContext context, Async async) {
+    httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        context.assertEquals("[ \"auth\" ]", x.toString());
+      });
+      response.endHandler(x -> {
+        tenantEnableModuleSample(context, async);
+      });
+    }).end();
   }
 
   public void tenantEnableModuleSample(TestContext context, Async async) {
@@ -265,10 +277,23 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
-        useWithoutTenant(context, async);
+        tenantListModules2(context, async);
       });
     }).end(doc);
   }
+
+  public void tenantListModules2(TestContext context, Async async) {
+    httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
+      });
+      response.endHandler(x -> {
+        useWithoutTenant(context, async);
+      });
+    }).end();
+  }
+
 
   public void useWithoutTenant(TestContext context, Async async) {
     System.out.println("useWithoutTenant");

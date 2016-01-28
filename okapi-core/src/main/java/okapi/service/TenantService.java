@@ -90,4 +90,16 @@ public class TenantService {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
   }
+
+  public void listModules(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+
+    Tenant tenant = enabled.get(id);
+    if (tenant == null) {
+      ctx.response().setStatusCode(404).end();
+      return;
+    }
+    String s = Json.encodePrettily(tenant.listModules());
+    ctx.response().setStatusCode(200).end(s);
+  }
 }

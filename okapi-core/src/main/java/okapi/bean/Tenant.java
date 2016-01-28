@@ -7,6 +7,7 @@ package okapi.bean;
 
 import okapi.bean.TenantDescriptor;
 import java.util.HashMap;
+import java.util.Set;
 
 public class Tenant {
   private final TenantDescriptor td;
@@ -31,5 +32,9 @@ public class Tenant {
   
   public boolean isEnabled(String m) {
     return enabled.getOrDefault(m, false);
+  }
+
+  public Set<String> listModules() {
+     return enabled.keySet();
   }
 }

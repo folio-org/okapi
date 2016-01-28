@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -58,6 +58,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id").handler(ts::get);
     router.delete("/_/tenants/:id").handler(ts::delete);
     router.post("/_/tenants/:id/modules").handler(ts::enableModule);
+    router.get("/_/tenants/:id/modules").handler(ts::listModules);
     router.get("/_/health").handler(hc::get);
     
     //everything else gets proxified to modules
