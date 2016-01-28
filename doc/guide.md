@@ -1,6 +1,6 @@
 # Okapi Guide and Reference
 
-This is the guide and reference to the Okapi: a gateway for
+This is the guide and reference to Okapi: a gateway for
 managing and running microservices.
 
 ## Table of Contents
@@ -91,7 +91,7 @@ command line from this document.
 
 ### Example modules
 
-The Okapi is all about invoking modules, so we need to have a few to play with.
+Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with two dummy modules that demonstrate different things.
 
 #### Okapi-sample-module
