@@ -226,15 +226,16 @@ END
 The module descriptor tells Okapi that it needs to start the given process to
 deploy the module. The routingEntries tell that the module is interested in
 GET and POST requests to the /sample path and nothing else, and that the module
-is supposed to provide a full response. The level is used to for finding out the
+is supposed to provide a full response. The level is used to to specify the
 order in which the request will be sent to multiple modules, as will be seen later.
+
+Now let's add the module:
 
 ```
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
   --data-binary @/tmp/samplemodule.json  \
   http://localhost:9130/_/modules
-
 ```
 
 Note that we need to add the Content-Type header, otherwise curl will try to
@@ -249,9 +250,7 @@ You should see something like this
 HTTP/1.1 201 Created
 Location: /_/modules/sample-module
 Content-Length: 0
-
 ```
-
 
 If you repeat the same request, you should now get an error
 ```
@@ -259,9 +258,7 @@ HTTP/1.1 400 Bad Request
 Content-Length: 37
 
 module sample-module already deployed
-
 ```
-which seems quite reasonable.
 
 If you look at the output of
     ps axf | grep -C4 okapi
