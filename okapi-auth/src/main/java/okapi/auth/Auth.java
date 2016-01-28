@@ -76,7 +76,7 @@ public class Auth {
       return;      
     }
     
-    // Simple password validation: "peter" has a password "peter36", etc
+    // Simple password validation: "peter" has a password "peter-password", etc
     String u = p.getUsername();
     String correctpw = u + "-password";
     if ( ! p.getPassword().equals(correctpw)) {
