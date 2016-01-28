@@ -471,9 +471,15 @@ Transfer-Encoding: chunked
 Auth.check called without X-Okapi-Token
 ```
 
-which is true enough. In order to get that token, we need to invoke the
-/login service first.
+Why does this happen? The other library has the auth module enabled,
+and that module intercepts _all_ requests (by means of the
+routingEntry whose path is `/` and whose level is 10). As a result,
+the auth module is invoked before the sample module. And the auth
+module causes the request to be rejected unless it contains a suitable
+`X-Okapi-Token`.
 
+In order to get that token, we need to invoke the /login service
+first.
 
 ```
 cat > /tmp/login.json <<END
