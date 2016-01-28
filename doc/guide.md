@@ -65,6 +65,12 @@ mvn exec:exec
 ```
 This will start the okapi-core and make it listen on its default port: 9130.
 
+For remote debugging you can use
+```
+mvn exec:exec@debug
+```
+This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
+
 ## Using Okapi
 
 These examples show how to use Okapi from the command line, using the `curl`
