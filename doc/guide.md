@@ -3,6 +3,15 @@
 This is the guide and reference to the Okapi: a gateway for
 managing and running microservices.
 
+## Table of Contents
+
+* [Compilation and Installation](#Compilation_and_Installation)
+* [Using Okapi](#Using_Okapi)
+* [Developing Modules](#Developing_Modules)
+* [Reference](#Reference)
+
+<a name="Compilation_and_Installation"/>
+
 ## Compilation and Installation
 
 The latest source of the software can be found at
@@ -70,6 +79,8 @@ For remote debugging you can use
 mvn exec:exec@debug
 ```
 This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
+
+<a name="Using_Okapi"/>
 
 ## Using Okapi
 
@@ -469,8 +480,11 @@ curl -w '\n' -D -  \
 it works!
 
 
+<a name="Developing_Modules"/>
 
 ## Developing Modules
+
+<a name="Reference"/>
 
 ## Reference
 
