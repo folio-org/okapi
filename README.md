@@ -36,5 +36,4 @@ This command format requires Maven >= 3.3.1. Will listen for debugging client at
 Documentation
 -------------
 
-Refer to the [Okapi Guide and Reference](okapi-core/src/main/doc/guide.md)
-Full guide and reference
+Refer to the [Okapi Guide and Reference](okapi-core/src/main/doc/guide.md).
