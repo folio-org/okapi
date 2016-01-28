@@ -234,7 +234,7 @@ Now let's add the module:
 ```
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/samplemodule.json  \
+  -d @/tmp/samplemodule.json  \
   http://localhost:9130/_/modules
 ```
 
@@ -268,7 +268,7 @@ you ask Okapi to list its modules, as before, the response is:
 
     [ "sample-module" ]
 
-You can access the sample directly if you like, just as before.
+You can access the sample module directly if you like, just as before.
 
 #### Deploying the auth module
 This is similar to the sample module. First we create the JSON structure for it:
@@ -301,17 +301,18 @@ interested in POST requests to the /login path. This is what we use for
 actually logging in.
 
 The first routing entry says that this module is interested in seeing
-any request at all, and on a pretty low level (10) too, which means that
-any request should go through the auth module before being directed to
-the module that does the actual work. In this way, supporting modules
-like authentication or logging can be tied to some or all requests.
+any request at all, and on a pretty low level too (10), which means
+that any request should go through the auth module before being
+directed to a higher-level module that does the actual work. In this
+way, supporting modules like authentication or logging can be tied to
+some or all requests.
 
-Then we deploy it as before
+Then we deploy it as before:
 
 ```
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/authmodule.json  \
+  -d @/tmp/authmodule.json  \
   http://localhost:9130/_/modules
 
 ```
@@ -326,11 +327,12 @@ Content-Length: 0
 Now we have two modules, as can be seen with
 
 ```
-curl -w '\n' -D -  http://localhost:9130/_/modules
+curl -w '\n' http://localhost:9130/_/modules
 ```
 
-but we still can not use them. We need to have some
-tenants too.
+but we still can not use them as they will be used in a real
+system. Since each invocation of a module is on behalf of a tenant,
+we need to create some tenants, too.
 
 ### Creating tenants
 For this example we create two tenants. These are simple requests.
@@ -345,7 +347,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/tenant1.json  \
+  -d @/tmp/tenant1.json  \
   http://localhost:9130/_/tenants
 ```
 
@@ -359,7 +361,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/tenant2.json  \
+  -d @/tmp/tenant2.json  \
   http://localhost:9130/_/tenants
 ```
 
@@ -382,7 +384,7 @@ cat > /tmp/enabletenant1.json <<END
 END
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/enabletenant1.json  \
+  -d @/tmp/enabletenant1.json  \
   http://localhost:9130/_/tenants/ourlibrary/modules
 ```
 
@@ -417,7 +419,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/enabletenant2a.json  \
+  -d @/tmp/enabletenant2a.json  \
   http://localhost:9130/_/tenants/otherlibrary/modules
 
 cat > /tmp/enabletenant2b.json <<END
@@ -428,7 +430,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
-  --data-binary @/tmp/enabletenant2b.json  \
+  -d @/tmp/enabletenant2b.json  \
   http://localhost:9130/_/tenants/otherlibrary/modules
 ```
 You can list the enabled modules with
@@ -471,7 +473,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: Application/Json" \
   -H "X-Okapi-Tenant: otherlibrary" \
-  --data-binary @/tmp/login.json  \
+  -d @/tmp/login.json  \
   http://localhost:9130/login
 ```
 This returns us a header
