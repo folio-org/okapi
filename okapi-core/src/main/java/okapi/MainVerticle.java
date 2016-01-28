@@ -63,7 +63,9 @@ public class MainVerticle extends AbstractVerticle {
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
     
-    System.out.println("API Gateway started PID " + ManagementFactory.getRuntimeMXBean().getName());
+    System.out.println("API Gateway started PID "
+      + ManagementFactory.getRuntimeMXBean().getName()
+      + ". Listening on port " + port );
     
     vertx.createHttpServer()
             .requestHandler(router::accept)
