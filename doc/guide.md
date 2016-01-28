@@ -26,7 +26,7 @@ Build Requirements are
 With these available, build with:
 
 ```
-git clone https://github.com/sling-incubator/okapi.git
+git clone git@github.com:sling-incubator/okapi.git
 cd okapi
 mvn install
 ```
