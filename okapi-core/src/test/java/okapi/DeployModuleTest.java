@@ -121,7 +121,31 @@ public class DeployModuleTest {
   @Test(timeout = 600000)
   public void test_sample(TestContext context) {
     final Async async = context.async();
-    deployBadModule(context, async);
+    postUnknownService(context, async);
+  }
+
+  public void postUnknownService(TestContext context, Async async) {
+    System.out.println("useUnknownService");
+    final String doc = "{ }";
+    httpClient.post(port, "localhost", "/_/xyz", response -> {
+      context.assertEquals(404, response.statusCode());
+      response.endHandler(x -> {
+        postBadJSON(context, async);
+      });
+    }).end(doc);
+  }
+
+  public void postBadJSON(TestContext context, Async async) {
+    System.out.println("deployAuth");
+    final String bad_doc = "{"+LS
+            + "  \"name\" : \"auth\","+LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/modules", response -> {
+      context.assertEquals(400, response.statusCode());
+      response.endHandler(x -> {
+        deployBadModule(context, async);
+      });
+    }).end(bad_doc);
   }
 
   public void deployBadModule(TestContext context, Async async) {
