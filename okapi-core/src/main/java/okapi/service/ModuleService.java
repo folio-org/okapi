@@ -319,6 +319,7 @@ public class ModuleService {
           Iterator<ModuleInstance> it, List<String> traceHeaders,
           ReadStream<Buffer> content, Buffer bcontent) {
     if (!it.hasNext()) {
+      content.resume();
       addTraceHeaders(ctx, traceHeaders);
       ctx.response().setStatusCode(404).end();
     } else {

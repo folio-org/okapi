@@ -184,7 +184,7 @@ public class DeployModuleTest {
             + "  },"+LS
             + "  \"routingEntries\" : [ {"+LS
             + "    \"methods\" : [ \"*\" ],"+LS
-            + "    \"path\" : \"/\","+LS
+            + "    \"path\" : \"/s\","+LS
             + "    \"level\" : \"10\","+LS
             + "    \"type\" : \"request-response\""+LS
             + "  }, {"
@@ -326,9 +326,22 @@ public class DeployModuleTest {
       String trace = response.getHeader("X-Okapi-Trace");
       context.assertTrue(trace == null);
       response.endHandler(x -> {
+        useWithoutMatchingPath(context, async);
+      });
+    });
+    req.end();
+  }
+
+  public void useWithoutMatchingPath(TestContext context, Async async) {
+    System.out.println("useWithoutMatcingPath");
+    // auth only listens on /s*
+    HttpClientRequest req = httpClient.get(port, "localhost", "/q", response -> {
+      context.assertEquals(404, response.statusCode());
+      response.endHandler(x -> {
         useWithoutLogin(context, async);
       });
     });
+    req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end();
   }
 
