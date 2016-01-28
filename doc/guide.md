@@ -96,12 +96,13 @@ It comes with two dummy modules that demonstrate different things.
 
 #### Okapi-sample-module
 
-Is a very simple module. If you make a GET request to it, it will reply "It
+This is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
 what ever you posted.
 
 Normally Okapi will be starting and stopping these modules for you, but let's
-take a quick look at this one, mostly to see how to use curl.
+run this one directly for now -- mostly to see how to use curl, a
+command-line HTTP client that is useful for testing.
 
 Open a console window, navigate to the okapi project root and issue the command
 
@@ -129,19 +130,21 @@ would be a JSON structure, but for now a simple text string will do.
 
 ```
 echo "Testing Okapi" > okapi.txt
-curl -w '\n' -X POST -d okapi.txt http://localhost:8080/sample
+curl -w '\n' -X POST -d @okapi.txt http://localhost:8080/sample
 
 ```
 Again we have the -w option to get a newline in the output, and this
-time we add `-X POST` to make it a post request, and `-d okapi.txt`
-to specify what we want to post.
+time we add `-X POST` to make it a post request, and `-d @okapi.txt`
+to specify the name of the file containing the data that we want to
+post.
 
 The test module should respond with
+
     Hello Testing Okapi
+
 which is our test data, with a "Hello" prepended to it.
 
-
-That is enough about the sample module, go back to the window where you
+That's enough about the sample module. Go back to the window where you
 left it running, and kill it with a Ctrl-C. it should not have produced
 any output after the initial messages.
 
