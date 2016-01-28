@@ -78,7 +78,7 @@ public class Auth {
     
     // Simple password validation: "peter" has a password "peter36", etc
     String u = p.getUsername();
-    String correctpw = u + "36";
+    String correctpw = u + "-password";
     if ( ! p.getPassword().equals(correctpw)) {
       System.out.println("Bad passwd for '" + u + "'. "
         + "Got '" + p.getPassword() + "' expected '" + correctpw + "'" );
