@@ -486,7 +486,7 @@ cat > /tmp/login.json <<END
 {
   "tenant": "otherlibrary",
   "username": "peter",
-  "password": "peter36"
+  "password": "peter-password"
 }
 END
 curl -w '\n' -X POST -D - \
@@ -495,7 +495,15 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/login.json  \
   http://localhost:9130/login
 ```
-This returns us a header
+
+At present, any username is accepted so long as the password is that
+username with "-password" appended. Obviously a real authentication
+module would look up the username/password pair in a user register.
+
+When successful, /login echoes the login parameters as its response;
+but more importantly, it also returns a header containing an
+authentication token:
+
     X-Okapi-Token: otherlibrary:peter:ca9b9b7beca02fa9f95dd7a2a6fb65d4
 
 Now we can add that header to the request, and see if things finally work:
