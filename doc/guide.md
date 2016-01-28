@@ -108,8 +108,8 @@ Open a console window, navigate to the okapi project root and issue the command
 
 ```
 java -jar okapi-sample-module/target/okapi-sample-module-fat.jar
-
 ```
+
 This starts the sample module listening on port 8080.
 
 
@@ -131,8 +131,8 @@ would be a JSON structure, but for now a simple text string will do.
 ```
 echo "Testing Okapi" > okapi.txt
 curl -w '\n' -X POST -d @okapi.txt http://localhost:8080/sample
-
 ```
+
 Again we have the -w option to get a newline in the output, and this
 time we add `-X POST` to make it a post request, and `-d @okapi.txt`
 to specify the name of the file containing the data that we want to
