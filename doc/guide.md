@@ -152,21 +152,23 @@ any output after the initial messages.
 
 #### Okapi-auth-module
 
-Okapi itself does not do authentication, it delegates that to a module.
-We do not have such a module yet, but we have a very trivial dummy
-module that can be used to demonstrate how it works.
+Okapi itself does not do authentication: it delegates that to a
+module.  We do not have a functional authentication module yet, but we
+have a trivial dummy module that can be used to demonstrate how it
+works.
 
 The dummy module supports two functions: /login is, as its name implies,
 a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
-headers.  The token is simply the username and tenant-id concatenated
-with a checksum.
+headers.  The token, for this dummy module, is simply the username and
+tenant-id concatenated with a checksum. In a real authentication
+module, it will be something opaque and difficult to fake.
 
 We will see examples of this when we get to play with Okapi itself. If
 you want, you can start the module directly as with the sample module.
 
-TODO - make a real example of this too
+TODO - make a real example of this, too.
 
 
 ### Running Okapi itself
