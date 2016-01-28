@@ -1,13 +1,13 @@
 
 # Curl-examples
 
-These examples show how to use OKAPI from the command line, using the `curl`
+These examples show how to use Okapi from the command line, using the `curl`
 http client. You should be able to copy and paste the command(s) to your 
 command line from this document.
 
-## Compiling OKAPI
+## Compiling Okapi
 
-To compile OKAPI and its example modules, go to the root of
+To compile Okapi and its example modules, go to the root of
 the source tree, and issue the command
 
 ```
@@ -21,12 +21,12 @@ long as you check that near the very end there is a line that says
 ```
 [INFO] BUILD SUCCESS
 ```
-This has built the OKAPI project, and its built-in modules.
+This has built the Okapi project, and its built-in modules.
 
 
 ## Modules
 
-The OKAPI is all about invoking modules, so we need to have a few to play with.
+The Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with two dummy modules that demonstrate different things.
 
 ### Okapi-sample-module
@@ -35,7 +35,7 @@ Is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
 what ever you posted.
 
-Normally OKAPI will be starting and stopping these modules for you, but let's
+Normally Okapi will be starting and stopping these modules for you, but let's
 take a quick look at this one, mostly to see how to use curl.
 
 Open a console window, navigate to the okapi project root and issue the command
@@ -63,7 +63,7 @@ Now let's try to POST something to the sample module. In real life this
 would be a JSON structure, but for now a simple text string will do.
 
 ```
-echo "Testing OKAPI" > okapi.txt
+echo "Testing Okapi" > okapi.txt
 curl -w '\n' -X POST -d okapi.txt http://localhost:8080/sample
 
 ```
@@ -72,7 +72,7 @@ time we add `-X POST` to make it a post request, and `-d okapi.txt`
 to specify what we want to post. 
 
 The test module should respond with 
-    Hello Testing OKAPI
+    Hello Testing Okapi
 which is our test data, with a "Hello" prepended to it.
 
 
@@ -95,15 +95,15 @@ function that checks that we have a valid token in the HTTP request
 headers.  The token is simply the username and tenant-id concatenated 
 with a checksum.
 
-We will see examples of this when we get to play with OKAPI itself. If
+We will see examples of this when we get to play with Okapi itself. If
 you want, you can start the module directly as with the sample module.
 
 TODO - make a real example of this too
 
 
-## Running OKAPI itself
+## Running Okapi itself
 
-Now we are ready to start OKAPI. 
+Now we are ready to start Okapi.
 
 ```
 java -jar okapi-core/target/okapi-core-fat.jar 
@@ -114,8 +114,8 @@ That means it is running, and listening on the default port
 which happens to be 9130.
 
 
-At the moment OKAPI does not know of any module or tenant. But it does 
-have its own web services enabled. We can verify both by asking OKAPI 
+At the moment Okapi does not know of any module or tenant. But it does
+have its own web services enabled. We can verify both by asking Okapi
 to list modules and tenants.
 ```
 curl -w '\n' http://localhost:9130/_/modules
@@ -126,11 +126,11 @@ Both of these return an empty list, as a JSON structure:
 
 ## Deploying modules
 
-So we need to tell OKAPI that we want to work with some modules.
+So we need to tell Okapi that we want to work with some modules.
 
 ### Deploying the sample module
-So, we need to tell OKAPI that we want to be using the sample module. So we 
-create a JSON structure, and POST it to OKAPI
+So, we need to tell Okapi that we want to be using the sample module. So we
+create a JSON structure, and POST it to Okapi
 
 ```
 cat > /tmp/samplemodule.json <<END
@@ -150,7 +150,7 @@ cat > /tmp/samplemodule.json <<END
 END
 
 ```
-The module descriptor tells OKAPI that it needs to start the given process to
+The module descriptor tells Okapi that it needs to start the given process to
 deploy the module. The routingEntries tell that the module is interested in
 GET and POST requests to the /sample path and nothing else, and that the module
 is supposed to provide a full response. The level is used to for finding out the
@@ -317,7 +317,7 @@ Finally we should be able to make use of the module, as a regular tenant.
 ```
 curl -w '\n' -D -  http://localhost:9130/sample-module/
 ```
-But of course OKAPI can not know which tenant it is that is wanting to use our
+But of course Okapi can not know which tenant it is that is wanting to use our
 sample module, so it can not allow such, and returns a 403 forbidden.
 
 We need to pass the tenant in our request:
