@@ -76,10 +76,7 @@ public class MainVerticle extends AbstractVerticle {
     
     vertx.createHttpServer()
             .requestHandler(router::accept)
-            .listen(
-                    // Retrieve the port from the configuration,
-                    // default to 8080.
-                    port,
+            .listen(port,
                     result -> {
                       if (result.succeeded()) {
                         fut.complete();
