@@ -177,8 +177,8 @@ Now we are ready to start Okapi.
 
 ```
 java -jar okapi-core/target/okapi-core-fat.jar
-
 ```
+
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130.
@@ -263,8 +263,12 @@ module sample-module already deployed
 If you look at the output of
     ps axf | grep -C4 okapi
 you should see that okapi-core has spawned a new process for the
-okapi-sample-module, and that it has been assigned port 9131. You can try to
-access it directly if you like, just as before.
+okapi-sample-module, and that it has been assigned port 9131. Now, if
+you ask Okapi to list its modules, as before, the response is:
+
+    [ "sample-module" ]
+
+You can access the sample directly if you like, just as before.
 
 #### Deploying the auth module
 This is similar to the sample module. First we create the JSON structure for it:
