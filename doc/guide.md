@@ -32,7 +32,7 @@ mvn install
 ```
 
 The install rule also runs a few tests. Tests should not fail.
-If they do, please report it and turn to `mvn install -DskipTests`.
+If they do, please report it and in the mean time fall back to `mvn install -DskipTests`.
 
 If successful, the output of `mvn install` should have this line near
 the end:
@@ -42,11 +42,11 @@ the end:
 
 The okapi directory contains a few sub modules. These are
 
- * `okapi-core`: the gateway server
+ * `okapi-core`: the gateway server itself
  * `okapi-auth`: a simple module demonstrating authentication
  * `okapi-sample-module`: a module mangling HTTP content
 
-These two modules are used in tests for okapi-core so they must be build
+These two modules are used in tests for okapi-core so they must be built
 before okapi-core tests are performed.
 
 The result for each module and okapi-core is a combined jar file
