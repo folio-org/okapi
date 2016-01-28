@@ -381,7 +381,7 @@ public class DeployModuleTest {
     String doc = "{"+LS
             + "  \"tenant\" : \"t1\","+LS
             + "  \"username\" : \"peter\","+LS
-            + "  \"password\" : \"peter36\""+LS
+            + "  \"password\" : \"peter-password\""+LS
             + "}";
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
