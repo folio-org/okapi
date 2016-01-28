@@ -206,7 +206,8 @@ public class DeployModuleTest {
   public void deploySample(TestContext context, Async async) {
     System.out.println("deploySample");
     final String doc = "{"+LS
-            + "  \"name\" : \"sample-module\","+LS
+            + "  \"id\" : \"sample-module\","+LS
+            + "  \"name\" : \"sample module\","+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS

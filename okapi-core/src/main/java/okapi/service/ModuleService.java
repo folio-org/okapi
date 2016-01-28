@@ -44,30 +44,30 @@ public class ModuleService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
 
-      final String name = md.getName();
-      ModuleInstance m = modules.get(name);
+      final String id = md.getId();
+      ModuleInstance m = modules.get(id);
       if (m != null) {
-        ctx.response().setStatusCode(400).end("module " + name
+        ctx.response().setStatusCode(400).end("module " + id
                 + " already deployed");
         return;
       }
 
-      final String uri = ctx.request().uri() + "/" + name;
+      final String uri = ctx.request().uri() + "/" + id;
       final int use_port = ports.get();
       if (use_port == -1) {
-        ctx.response().setStatusCode(400).end("module " + name
+        ctx.response().setStatusCode(400).end("module " + id
                 + " can not be deployed: all ports in use");
       }
       // enable it now so that activation for 2nd one will fail
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
               use_port);
-      modules.put(name, new ModuleInstance(md, pmh, use_port));
+      modules.put(id, new ModuleInstance(md, pmh, use_port));
 
       pmh.start(future -> {
         if (future.succeeded()) {
           ctx.response().setStatusCode(201).putHeader("Location", uri).end();
         } else {
-          modules.remove(md.getName());
+          modules.remove(md.getId());
           ports.free(use_port);
           ctx.response().setStatusCode(500).end(future.cause().getMessage());
         }
@@ -125,7 +125,7 @@ public class ModuleService {
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode, long startTime, List<String> traceHeaders) {
     long timeDiff = (System.nanoTime() - startTime) / 1000;
     traceHeaders.add(ctx.request().method() + " "
-            + mi.getModuleDescriptor().getName() + ":"
+            + mi.getModuleDescriptor().getId() + ":"
             + statusCode+ " " + timeDiff + "us");
     addTraceHeaders(ctx, traceHeaders);
   }
