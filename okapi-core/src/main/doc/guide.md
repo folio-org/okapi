@@ -1,6 +1,6 @@
-# OKAPI Guide and Reference
+# Okapi Guide and Reference
 
-This is the guide and reference to the OKAPI: a gateway for
+This is the guide and reference to the Okapi: a gateway for
 managing and running microservices.
 
 ## Compilation and Installation
@@ -59,7 +59,7 @@ mvn exec:exec
 ```
 This will start the okapi-core and make it listen on its default port: 9130.
 
-## Using OKAPI
+## Using Okapi
 
 ## Developing Modules
 
