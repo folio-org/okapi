@@ -179,7 +179,7 @@ Now we are ready to start Okapi.
 java -jar okapi-core/target/okapi-core-fat.jar
 
 ```
-It lists its PID and says it `succeeded deploying verticle`.
+It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130.
 
@@ -191,7 +191,10 @@ to list modules and tenants.
 curl -w '\n' http://localhost:9130/_/modules
 curl -w '\n' http://localhost:9130/_/tenants
 ```
-Both of these return an empty list, as a JSON structure:
+Both of these return lists in the form of JSON structures. At present,
+because we have just starting running, it's an empty list in both
+cases:
+
     [ ]
 
 ### Deploying modules
