@@ -44,34 +44,50 @@ public class ModuleService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
 
-      final String name = md.getName();
-      ModuleInstance m = modules.get(name);
+      final String id = md.getId();
+      String url;
+      final int use_port = ports.get();
+      int spawn_port = -1;
+      ModuleInstance m = modules.get(id);
       if (m != null) {
-        ctx.response().setStatusCode(400).end("module " + name
+        ctx.response().setStatusCode(400).end("module " + id
                 + " already deployed");
         return;
       }
-
-      final String uri = ctx.request().uri() + "/" + name;
-      final int use_port = ports.get();
-      if (use_port == -1) {
-        ctx.response().setStatusCode(400).end("module " + name
-                + " can not be deployed: all ports in use");
-      }
-      // enable it now so that activation for 2nd one will fail
-      ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-              use_port);
-      modules.put(name, new ModuleInstance(md, pmh, use_port));
-
-      pmh.start(future -> {
-        if (future.succeeded()) {
-          ctx.response().setStatusCode(201).putHeader("Location", uri).end();
-        } else {
-          modules.remove(md.getName());
-          ports.free(use_port);
-          ctx.response().setStatusCode(500).end(future.cause().getMessage());
+      if (md.getUrl() == null) {
+        if (use_port == -1) {
+          ctx.response().setStatusCode(400).end("module " + id
+                  + " can not be deployed: all ports in use");
         }
-      });
+        spawn_port = use_port;
+        url = "http://localhost:" + use_port;
+      } else {
+        ports.free(use_port);
+        url = md.getUrl();
+      }
+      if (md.getDescriptor() != null) {
+        // enable it now so that activation for 2nd one will fail
+        ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
+                spawn_port);
+        modules.put(id, new ModuleInstance(md, pmh, url));
+
+        pmh.start(future -> {
+          if (future.succeeded()) {
+            ctx.response().setStatusCode(201)
+                    .putHeader("Location", ctx.request().uri() + "/" + id)
+                    .end();
+          } else {
+            modules.remove(md.getId());
+            ports.free(use_port);
+            ctx.response().setStatusCode(500).end(future.cause().getMessage());
+          }
+        });
+      } else {
+        modules.put(id, new ModuleInstance(md, null, url));
+            ctx.response().setStatusCode(201)
+                    .putHeader("Location", ctx.request().uri() + "/" + id)
+                    .end();
+      }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
@@ -101,16 +117,21 @@ public class ModuleService {
       ctx.response().setStatusCode(404).end();
       return;
     }
+
     ProcessModuleHandle pmh = m.getProcessModuleHandle();
-    pmh.stop(future -> {
-      if (future.succeeded()) {
-        modules.remove(id);
-        ports.free(pmh.getPort());
-        ctx.response().setStatusCode(204).end();
-      } else {
-        ctx.response().setStatusCode(500).end(future.cause().getMessage());
-      }
-    });
+    if (pmh == null) {
+      ctx.response().setStatusCode(204).end();
+    } else {
+      pmh.stop(future -> {
+        if (future.succeeded()) {
+          modules.remove(id);
+          ports.free(pmh.getPort());
+          ctx.response().setStatusCode(204).end();
+        } else {
+          ctx.response().setStatusCode(500).end(future.cause().getMessage());
+        }
+      });
+    }
   }
   
   /** 
@@ -125,7 +146,7 @@ public class ModuleService {
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode, long startTime, List<String> traceHeaders) {
     long timeDiff = (System.nanoTime() - startTime) / 1000;
     traceHeaders.add(ctx.request().method() + " "
-            + mi.getModuleDescriptor().getName() + ":"
+            + mi.getModuleDescriptor().getId() + ":"
             + statusCode+ " " + timeDiff + "us");
     addTraceHeaders(ctx, traceHeaders);
   }
@@ -154,8 +175,8 @@ public class ModuleService {
           List<String> traceHeaders, Buffer bcontent,
           ModuleInstance mi, long startTime)
   {
-    HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-            "localhost", ctx.request().uri(), res -> {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
@@ -187,8 +208,8 @@ public class ModuleService {
               }
             });
     c_req.exceptionHandler(res -> {
-      ctx.response().setStatusCode(500).end("connect port "
-              + mi.getPort() + ": " + res.getMessage());
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
@@ -217,8 +238,8 @@ public class ModuleService {
           Iterator<ModuleInstance> it, List<String> traceHeaders,
           ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime)
   {
-    HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-            "localhost", ctx.request().uri(), res -> {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
               && it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
@@ -241,8 +262,8 @@ public class ModuleService {
               }
             });
     c_req.exceptionHandler(res -> {
-      ctx.response().setStatusCode(500).end("connect port "
-              + mi.getPort() + ": " + res.getMessage());
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
@@ -265,8 +286,8 @@ public class ModuleService {
   private void proxyHeaders(RoutingContext ctx,
           Iterator<ModuleInstance> it, List<String> traceHeaders,
           ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime) {
-    HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-            "localhost", ctx.request().uri(), res -> {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
@@ -307,8 +328,8 @@ public class ModuleService {
               }
             });
     c_req.exceptionHandler(res -> {
-      ctx.response().setStatusCode(500).end("connect port "
-              + mi.getPort() + ": " + res.getMessage());
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
     });
     // c_req.setChunked(true);
     // c_req.headers().setAll(ctx.request().headers());

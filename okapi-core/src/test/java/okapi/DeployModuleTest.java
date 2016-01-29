@@ -206,7 +206,9 @@ public class DeployModuleTest {
   public void deploySample(TestContext context, Async async) {
     System.out.println("deploySample");
     final String doc = "{"+LS
-            + "  \"name\" : \"sample-module\","+LS
+            + "  \"id\" : \"sample-module\","+LS
+            + "  \"name\" : \"sample module\","+LS
+            + "  \"url\" : null,"+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
@@ -466,11 +468,8 @@ public class DeployModuleTest {
     System.out.println("deploySample2");
     final String doc = "{"+LS
             + "  \"name\" : \"sample-module2\","+LS
-            + "  \"descriptor\" : {"+LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
+            + "  \"url\" : \"http://localhost:9132\","+LS
+            + "  \"descriptor\" : null,"+LS
             + "  \"routingEntries\" : [ {"+LS
             + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
             + "    \"path\" : \"/sample\","+LS
@@ -503,9 +502,9 @@ public class DeployModuleTest {
     System.out.println("deploySample3");
     final String doc = "{"+LS
             + "  \"name\" : \"sample-module3\","+LS
+            + "  \"url\" : \"http://localhost:9132\","+LS
             + "  \"descriptor\" : {"+LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
+            + "    \"cmdlineStart\" : \"sleep 1\","+LS
             + "    \"cmdlineStop\" : null"+LS
             + "  },"+LS
             + "  \"routingEntries\" : [ {"+LS
