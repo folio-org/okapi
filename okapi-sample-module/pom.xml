@@ -6,7 +6,7 @@
   <parent>
     <groupId>com.indexdata.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>0.1</version>
+    <version>0.2-SNAPSHOT</version>
   </parent>
   
   <artifactId>okapi-sample-module</artifactId>
