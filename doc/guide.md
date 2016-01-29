@@ -810,7 +810,6 @@ curl -w '\n' -D -  \
 
 it works!
 
-<<<<<<< HEAD
 ### Cleaning up
 Now we can clean up some things
 ```
