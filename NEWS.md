@@ -9,8 +9,8 @@
 
 ### TODO
 
-
  * Persistent storage (GitHub issue #2)
- * Remote module (#3)
- * Interface with Consul for Service Discovery etc
+ * Interface with Consul for Clustering, Service Discovery, etc.
+ * Header merging (#33)
+
  
