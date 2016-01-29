@@ -305,7 +305,10 @@ mvn install
 ```
 
 The install rule also runs a few tests. Tests should not fail.
-If they do, please report it and in the mean time fall back to `mvn install -DskipTests`.
+If they do, please report it and in the mean time fall back to
+```
+mvn install -DskipTests
+```
 
 If successful, the output of `mvn install` should have this line near
 the end:
