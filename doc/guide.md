@@ -449,7 +449,11 @@ TODO - make a real example of this, too.
 
 ### Running Okapi itself
 
+
 Now we are ready to start Okapi.
+Note: for this example to work it is important that current directory
+of the Okapi is the top-level directory `.../okapi`.
+
 
 ```
 java -jar okapi-core/target/okapi-core-fat.jar
@@ -458,6 +462,7 @@ java -jar okapi-core/target/okapi-core-fat.jar
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130.
+
 
 
 At the moment Okapi does not know of any module or tenant. But it does
@@ -473,9 +478,10 @@ cases:
 
     [ ]
 
-### Deploying modules
+### Deploying Modules
 
-So we need to tell Okapi that we want to work with some modules.
+So we need to tell Okapi that we want to work with some modules. In real life
+these operations would be carried out by a properly authorized administrator.
 
 #### Deploying the sample module
 
@@ -500,11 +506,12 @@ cat > /tmp/samplemodule.json <<END
 END
 
 ```
-The module descriptor tells Okapi that it needs to start the given process to
-deploy the module. The routingEntries tell that the module is interested in
-GET and POST requests to the /sample path and nothing else, and that the module
-is supposed to provide a full response. The level is used to to specify the
-order in which the request will be sent to multiple modules, as will be seen later.
+The module descriptor tells Okapi that it needs to start the given
+process to deploy the module. The routingEntries tell that the module
+is interested in GET and POST requests to the /sample path and nothing
+else, and that the module is supposed to provide a full response. The
+level is used to to specify the order in which the request will be
+sent to multiple modules, as will be seen later.
 
 Now let's add the module:
 
@@ -628,6 +635,16 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/_/tenants
 ```
 
+Okapi responds with
+```
+HTTP/1.1 201 Created
+Location: /_/tenants/ourlibrary
+Content-Length: 0
+
+```
+
+And the second tenant is similar.
+
 ```
 cat > /tmp/tenant2.json <<END
 {
@@ -645,6 +662,11 @@ curl -w '\n' -X POST -D - \
 Again, we can list them with
 ```
 curl -w '\n' http://localhost:9130/_/tenants
+```
+
+We can now get information for one of these again.
+```
+curl -w '\n' http://localhost:9130/_/tenants/ourlibrary
 ```
 
 ### Enabling a module for a tenant
@@ -694,7 +716,6 @@ curl -w '\n' -D -  \
   http://localhost:9130/sample
 ```
 and indeed we get back a note saying that it works.
-
 
 ### Enabling both modules for the other tenant
 
