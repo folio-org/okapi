@@ -274,20 +274,21 @@ some open messaging protocols (e.g. STOMP).
 
 ## Implementation
 
-TODO: Write something about implementation status.
+We have a rudimentary implementation of Okapi in place. The examples below
+are supposed to work with the current implementation.
 
-### Status
-
-Missing:
+### Missing features
 
  * Header merging
  * Persistent Storage
- * Consul integration (or other)
+ * Consul integration (or other) and clustering
+
 
 ## Compiling and Running
 
 The latest source of the software can be found at
-[GitHub](https://github.com/sling-incubator/okapi).
+[GitHub](https://github.com/sling-incubator/okapi). At the moment the repository
+is not publicly visible.
 
 Build Requirements are
 
@@ -358,6 +359,8 @@ These examples show how to use Okapi from the command line, using the `curl`
 http client. You should be able to copy and paste the command(s) to your
 command line from this document.
 
+The exact definition of the services is in the RAML files listed in
+the [Reference](#reference) section.
 
 ### Example modules
 
@@ -496,7 +499,11 @@ END
 
 ```
 The module descriptor tells Okapi that it needs to start the given
-process to deploy the module. The routingEntries tell that the module
+process to deploy the module. If we wanted to access a process that is 
+already running, we could pass a null descriptor, and add a `url` after
+the name.
+
+The routingEntries tell that the module
 is interested in GET and POST requests to the /sample path and nothing
 else, and that the module is supposed to provide a full response. The
 level is used to to specify the order in which the request will be
@@ -817,14 +824,7 @@ Okapi responds to each of these with a simple
 HTTP/1.1 204 No Content
 Content-Length: 0
 ```
-
-Finally we can stop the Okapi instance we had runnnig, with a simple Ctrl-C
-
-
-
-<a name="Developing_Modules"/>
-
-## Developing Modules
+Finally we can stop the Okapi instance we had runnnig, with a simple Ctrl-C.
 
 ## Reference
 
