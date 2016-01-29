@@ -5,14 +5,13 @@ managing and running microservices.
 
 ## Table of Contents
 
-* [Introduction](#Introduction)
-* [Architecture](#Architecture)
-* [Compilation and Installation](#Compilation_and_Installation)
-* [Using Okapi](#Using_Okapi)
-* [Developing Modules](#Developing_Modules)
-* [Reference](#Reference)
+* [Introduction](#introduction)
+* [Architecture](#architecture)
+* [Compilation and Installation](#compilation-and-installation)
+* [Using Okapi](#using-okapi)
+* [Reference](#reference)
 
-## Introduction <a name="Introduction"/>
+## Introduction
 
 This document aims to provide details of the implementation and usage
 of Okapi (in its current form) by presenting concrete web service
@@ -61,17 +60,17 @@ detail and offer a general overview of allowed formats and styles for
 the latter.
 
 The specification of the core Okapi web services, in its current form,
-is captured in RAML (RESTful API Modeling Language). See the
-[Reference](#Reference) section.  The specification, however, aims to
-make very few assumptions about the actual API endpoints exposed by
-specific modules, which are basically left undefined.  The goal is to
-allow for different styles and formats of those APIs (RESTful vs RPC
-and JSON vs XML, etc.) with only the basic requirement of a common
-transport protocol (HTTP). It is envisioned that the transport
-protocol assumption may be lifted or worked around for some special
-cases (e.g. the ability to integrate non-HTTP, binary protocols, such
-as a truly asynchronous protocol for operation similar to a message
-queue).
+is captured in [RAML](http://raml.org/) (RESTful API Modeling
+Language). See the [Reference](#Reference) section.  The
+specification, however, aims to make very few assumptions about the
+actual API endpoints exposed by specific modules, which are basically
+left undefined.  The goal is to allow for different styles and formats
+of those APIs (RESTful vs RPC and JSON vs XML, etc.) with only the
+basic requirement of a common transport protocol (HTTP). It is
+envisioned that the transport protocol assumption may be lifted or
+worked around for some special cases (e.g. the ability to integrate
+non-HTTP, binary protocols, such as a truly asynchronous protocol for
+operation similar to a message queue).
 
 ### Okapi's own Web Services
 
@@ -145,7 +144,8 @@ below.
 ### Status Codes
 
 Continuation or termination of the pipeline is controlled by a status
-code returned by an executed module. Standard HTTP status code ranges
+code returned by an executed module. Standard [HTTP status
+code](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html) ranges
 are accepted in Okapi:
 
  * 2xx range: OK return codes; if a code in this range is
@@ -272,8 +272,6 @@ websockets. We anticipate that for future releases of Okapi we will
 investigate the asynchronous approach in depth and provide support for
 some open messaging protocols (e.g. STOMP).
 
-<a name="Implementation"/>
-
 ## Implementation
 
 TODO: Write something about implementation status.
@@ -285,8 +283,6 @@ Missing:
  * Header merging
  * Persistent Storage
  * Consul integration (or other)
-
-<a name="Compilation_and_Installation"/>
 
 ## Compilation and Installation
 
@@ -355,8 +351,6 @@ For remote debugging you can use
 mvn exec:exec@debug
 ```
 This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
-
-<a name="Using_Okapi"/>
 
 ## Using Okapi
 
@@ -809,6 +803,7 @@ curl -w '\n' -D -  \
 
 it works!
 
+<<<<<<< HEAD
 ### Cleaning up
 Now we can clean up some things
 ```
@@ -830,8 +825,6 @@ Finally we can stop the Okapi instance we had runnnig, with a simple Ctrl-C
 <a name="Developing_Modules"/>
 
 ## Developing Modules
-
-<a name="Reference"/>
 
 ## Reference
 
