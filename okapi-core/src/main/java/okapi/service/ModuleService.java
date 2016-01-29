@@ -113,7 +113,7 @@ public class ModuleService {
     final String id = ctx.request().getParam("id");
 
     ModuleInstance m = modules.get(id);
-    if (id == null) {
+    if (m == null) {
       ctx.response().setStatusCode(404).end();
       return;
     }
