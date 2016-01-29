@@ -60,17 +60,17 @@ detail and offer a general overview of allowed formats and styles for
 the latter.
 
 The specification of the core Okapi web services, in its current form,
-is captured in RAML (RESTful API Modeling Language). See the
-[Reference](#Reference) section.  The specification, however, aims to
-make very few assumptions about the actual API endpoints exposed by
-specific modules, which are basically left undefined.  The goal is to
-allow for different styles and formats of those APIs (RESTful vs RPC
-and JSON vs XML, etc.) with only the basic requirement of a common
-transport protocol (HTTP). It is envisioned that the transport
-protocol assumption may be lifted or worked around for some special
-cases (e.g. the ability to integrate non-HTTP, binary protocols, such
-as a truly asynchronous protocol for operation similar to a message
-queue).
+is captured in [RAML](http://raml.org/) (RESTful API Modeling
+Language). See the [Reference](#Reference) section.  The
+specification, however, aims to make very few assumptions about the
+actual API endpoints exposed by specific modules, which are basically
+left undefined.  The goal is to allow for different styles and formats
+of those APIs (RESTful vs RPC and JSON vs XML, etc.) with only the
+basic requirement of a common transport protocol (HTTP). It is
+envisioned that the transport protocol assumption may be lifted or
+worked around for some special cases (e.g. the ability to integrate
+non-HTTP, binary protocols, such as a truly asynchronous protocol for
+operation similar to a message queue).
 
 ### Okapi's own Web Services
 
@@ -144,7 +144,8 @@ below.
 ### Status Codes
 
 Continuation or termination of the pipeline is controlled by a status
-code returned by an executed module. Standard HTTP status code ranges
+code returned by an executed module. Standard [HTTP status
+code](https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html) ranges
 are accepted in Okapi:
 
  * 2xx range: OK return codes; if a code in this range is
