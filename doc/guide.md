@@ -444,16 +444,11 @@ module, it will be something opaque and difficult to fake.
 We will see examples of this when we get to play with Okapi itself. If
 you want, you can start the module directly as with the sample module.
 
-TODO - make a real example of this, too.
-
-
 ### Running Okapi itself
-
 
 Now we are ready to start Okapi.
 Note: for this example to work it is important that current directory
 of the Okapi is the top-level directory `.../okapi`.
-
 
 ```
 java -jar okapi-core/target/okapi-core-fat.jar
@@ -813,6 +808,23 @@ curl -w '\n' -D -  \
 ```
 
 it works!
+
+### Cleaning up
+Now we can clean up some things
+```
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/modules/sample-module
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/modules/auth
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/ourlibrary
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/otherlibrary
+```
+Okapi responds to each of these with a simple
+```
+HTTP/1.1 204 No Content
+Content-Length: 0
+```
+
+Finally we can stop the Okapi instance we had runnnig, with a simple Ctrl-C
+
 
 
 <a name="Developing_Modules"/>
