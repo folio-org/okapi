@@ -1,7 +1,7 @@
 #%RAML 1.0
-title: OKAPI Core API
-version: v1
-baseUri: https://okapi.io
+title: Okapi Core API
+version: 0.1
+# baseUri: https://okapi.io
 mediaType:  application/json
 types: !include types.raml
 #resourceTypes:
@@ -11,7 +11,7 @@ types: !include types.raml
 # to allow okapi environment to orchestrate it
 #
 # This version assumes that a module instance may be shared by multiple
-# tenants, e.g we have a global set of module instances (aka Seb's doc)
+# tenants, e.g we have a global set of module instances
 
 # TODO we will most likely need a web service to list and browse module types
 
@@ -49,7 +49,7 @@ types: !include types.raml
   post:
     description: create a new tenant
     body:
-      appllication/json:
+      application/json:
         schema: TenantDescriptor
     responses:
       201:
@@ -76,9 +76,12 @@ types: !include types.raml
           200:
             body:
               application/json:
-                schema: TenantModuleDescriptor[]
+                schema: string[]
       post:
         description: Link a module instance to the specified tenant
+	body:
+          application/json:
+          schema: TenantModuleDescriptor
 
         /{module_tenant_id}:
           get:
@@ -90,3 +93,10 @@ types: !include types.raml
                     schema: TenantModuleDescriptor
           delete:
             description: remove tenant-module registration
+
+/_/health:
+  get:
+    description: health status
+    responses:
+      200:
+        description: guess what
