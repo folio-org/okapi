@@ -5,10 +5,286 @@ managing and running microservices.
 
 ## Table of Contents
 
+* [Introduction](#Introduction)
+* [Architecture](#Architecture)
 * [Compilation and Installation](#Compilation_and_Installation)
 * [Using Okapi](#Using_Okapi)
 * [Developing Modules](#Developing_Modules)
 * [Reference](#Reference)
+
+## Introduction <a name="Introduction"/>
+
+This document aims to provide details of the implementation and usage
+of Okapi (in its current form) by presenting concrete web service
+endpoints and details of request processing — handling of request and
+response entities, status codes, error conditions, etc.
+
+Okapi is an implementation of a flavour of the API Gateway pattern
+commonly used within microservice architectures. Conceptually, the API
+Gateway is a server that is a single entry point into the system. It
+is similar to the [Facade
+pattern](http://en.wikipedia.org/wiki/Facade_pattern) from
+object-oriented design. Per the [standard
+definition](https://www.nginx.com/blog/building-microservices-using-an-api-gateway/),
+which Okapi follows quite closely, _the API Gateway encapsulates the
+internal system architecture and provides a unified API that may be
+tailored to each client; it might also include core responsibilities
+such as authentication, monitoring, load balancing, caching, request
+shaping and management, and static response handling_ from the Message
+Queue design pattern to allow broadcasting of requests to multiple
+services (initially synchronously and eventually, possibly,
+asynchronously) and returning a final response. Finally, Okapi
+facilitates communication between services by acting as a Service
+Discovery tool: service A wanting to talk to service B only needs to
+know its HTTP interface since Okapi will inspect the registry of
+available services to locate the physical instance of the service.
+
+Okapi is designed to be configurable and extensible - it allows one to
+expose new, or enrich existing, web service endpoints without a need
+for programmatic changes to the software itself. Registration of new
+services ('modules') happens by making calls to the Okapi core web
+services. It is envisioned that the registration, and associated core
+management tasks, will be performed by the Service Provider
+administrator. This configurability and extensibility is necessary to
+allow for app store features in which services or groups of services
+('applications') can be enabled or disabled per tenant on demand.
+
+## Architecture
+
+Web service endpoints in Okapi can be, roughly, divided into two
+parts: (1) general modules and tenant management APIs, sometimes
+referred to as 'core' - initially part of Okapi itself but potentially
+separable into their own modules - and (2) endpoints for accessing
+module­provided, business-logic specific interfaces, e.g. Patron
+management or Circulation. This document will discuss the former in
+detail and offer a general overview of allowed formats and styles for
+the latter.
+
+The specification of the core Okapi web services, in its current form,
+is captured in RAML (RESTful API Modeling Language). See the
+[Reference](#Reference) section.  The specification, however, aims to
+make very few assumptions about the actual API endpoints exposed by
+specific modules, which are basically left undefined.  The goal is to
+allow for different styles and formats of those APIs (RESTful vs RPC
+and JSON vs XML, etc.) with only the basic requirement of a common
+transport protocol (HTTP). It is envisioned that the transport
+protocol assumption may be lifted or worked around for some special
+cases (e.g. the ability to integrate non-HTTP, binary protocols, such
+as a truly asynchronous protocol for operation similar to a message
+queue).
+
+### Okapi's own Web Services
+
+As mentioned, Okapi's own web services provide the basic functionality
+to set up, configure and enable modules and manage tenants. The two
+core endpoints are:
+
+ * `/_/modules/`
+ * `/_/tenants/`
+
+The special prefix `/_` is used to to distinguish the routing for Okapi
+internal web services from the extension points provided by modules.
+
+#### Core Okapi Web Service Authentication and Authorization
+
+Access to the core services (all resources under the `/_/` path) is
+granted to the Service Provider (SP) administrator, as the
+functionality provided by those services spans multiple tenants. The
+details of authentication and authorization of the SP administrators
+are to be defined at a later stage and will most likely be provided by
+an external module that can hook into a specific Service Provider
+authn/authz system.
+
+### Request Processing
+
+Any number of modules can request registration on a single URI
+path. Okapi will then forward the requests to those modules in an
+order controlled by the level integer setting in the module
+registration configuration.
+
+We envision that different kinds of modules will carry different level
+values: e.g. authentication and authorization will have the highest
+possible priority, next the actual business logic processing unit,
+followed by metrics, statistics, monitoring, logging, etc.
+
+The module metadata also controls how the request is forwarded to
+consecutive modules in a pipeline and how the responses are being
+processed. Currently, we have three kinds of request processing by
+modules (controlled by the type parameter in the module registration
+configuration). The possible values are:
+
+ * `headers` - the module is interested in headers/parameters only,
+and it can inspect them and perform an action based on the
+presence/absence of headers/parameters and their corresponding
+value. The module is not expected to return any entity in the
+response, but only a status code to control the further chain of
+execution or, in the case of an error, an immediate termination. The
+module may return certain response headers that will be merged into
+the complete response header list according to the header manipulation
+rules below.
+
+ * `request-only` - the module is interested in the full client
+request: header/parameters and the entity body attached to the
+request. It does not produce a modified version or a new entity in the
+response but performs an associated action and returns optional
+headers and a status code to indicate further processing or
+termination. In cases when an entity is returned, Okapi will discard
+it and continue forwarding the original request body to the subsequent
+modules in the pipeline.
+
+ * `request-response` - the module is interested in both
+headers/parameters and the request body. It is also expected that the
+module will return an entity in the response. This may be e.g. a
+modified request body, in which case the module acts as a filter. The
+returned response may then be forwarded on to the subsequent modules
+as the new request body. Again, the chain of processing or termination
+is controlled via the response status codes, and the response headers
+are merged back into the complete response using the rules described
+below.
+
+### Status Codes
+
+Continuation or termination of the pipeline is controlled by a status
+code returned by an executed module. Standard HTTP status code ranges
+are accepted in Okapi:
+
+ * 2xx range: OK return codes; if a code in this range is
+returned by a module, Okapi continues execution of the pipeline and
+forwards information to the consecutive modules according to the rules
+described above.
+
+ * 3xx range: Redirect codes. The pipeline is terminated.
+
+ * 4xx-5xx range: user request errors or internal system errors; if a
+code in this range is returned by a module, Okapi immediately
+terminates the entire chain and returns the code back to the caller.
+
+### Header Merging Rules
+
+Since Okapi forwards the response from a previous module on to the
+next module (e.g.  for additional filtering/processing) in the
+pipeline, certain initial request headers become invalid - e.g. when a
+module converts the entity to a different content type or changes its
+size. Invalid headers need to be updated, based on the module’s
+response header values, before the request can be forwarded to the
+next module. At the same time Okapi collects response headers in order
+to produce a final response that is sent back to the original client
+when the processing pipeline completes.
+
+Both sets are modified according to the following rules:
+
+ * Any headers that provide meta-data about the request entity body
+(e.g.  Content-Type, Content-Length, etc.) are merged from the last
+response back into the request.
+
+ * An additional set of special debug and monitoring headers is merged
+from the last response into the current request (in order to forward
+them to the next module).
+
+ * A list of headers that provide meta-data about the response entity
+body is merged to the final response header set.
+
+ * An additional set of special headers (debug, monitoring) or any
+other headers that should be visible in the final response is merged
+into the final response header set.
+
+### Open Issues
+
+#### Security
+
+There is extensive work going on in parallel to Okapi development to
+establish and define security requirements for the entire SLING
+platform.
+
+Generally, within a microservice architecture, each module can decide
+to handle authentication and authorization separately. Obviously, this
+means a lot of duplication, and so a better option is to use Okapi to
+serve as a protection between the modules and the outside world, as
+well as between the modules themselves, and to provide a Single Sign
+On (SSO) facilities. As such, Okapi may be able to provide fairly
+effective coarse-grained authentication, e.g. it may prevent access to
+modules from non- authenticated users.
+
+For authorization, it is common to place users in groups or assign
+them roles. Okapi may, optionally, be used to allow/disallow access to
+a module based on a role, but finer grained permissions may be left to
+the module itself. For example a staff member may be able to access a
+specific module – but what they can actually do within the module
+(their specific role) is up to the module.  Making that the
+responsibility of the gateway would probably result in a system that
+is difficult to manage.
+
+Even though within the SLING perimeter we can assume a certain level
+of trust between modules, for module-to-module authentication and
+authorization, we will still want Okapi to serve as a watchdog to
+prevent the services from escalating their privileges or engaging in
+malicious behavior. We are investigating various
+authentication/authorization mechanisms as potential candidates to
+include in Okapi, such as OpenID Connect, SAML and HMAC-over-HTTP.
+
+#### Caching
+
+Okapi can provide an additional caching layer between modules,
+especially in busy, read-heavy, multi-module pipelines. We plan to
+follow standard HTTP mechanisms and semantics in this respect, and
+implementation details will be established within the coming months.
+
+### Instrumentation and Analytics
+
+In a microservices architecture monitoring is key to ensure robustness
+and health of the entire system. The way to provide useful monitoring
+is to include well defined instrumentation points (“hooks”) before and
+after each step of execution of the request processing
+pipeline. Besides monitoring, instrumentation is crucial for the
+ability to quickly diagnose issues in the running system (“hot”
+debugging) and discovering performance bottlenecks (profiling). We are
+looking at established solution in this regard: e.g. JMX,
+Dropwizard Metrics, Graphite, etc.
+
+A multi-module system may provide a wide variety of metrics and an
+immense amount of measurement data. Only a fraction of this data can
+be analyzed at runtime, most of it must be captured for analysis at a
+later stage. Capturing and storing data in a form that lends itself to
+an effortless post factum analysis is essential for analytics and we
+are looking into integration between open and popular solutions and
+Okapi.
+
+#### Response Aggregation
+
+There is no direct support for response aggregation in Okapi at the
+moment, as Okapi assumes sequential execution of the pipeline and
+forwards the last response to the next module in the pipeline. In this
+mode, it is entirely possible to implement an aggregation module that
+will communicate with multiple modules (via Okapi, to retain the
+provided authentication and service discovery) and combine the
+responses. In further releases a more generic approach to response
+aggregation will be evaluated.
+
+#### Asynchronous messaging
+
+At present, Okapi assumes and implements HTTP as the transport
+protocol between modules, both on the front-end and within the
+system. HTTP is based on a request- response paradigm and does not
+directly include asynchronous messaging capabilities.  It is, however,
+entirely possible to model an asynchronous mode of operation on top of
+HTTP, e.g. using a polling approach or HTTP extensions like
+websockets. We anticipate that for future releases of Okapi we will
+investigate the asynchronous approach in depth and provide support for
+some open messaging protocols (e.g. STOMP).
+
+<a name="Implementation"/>
+
+## Implementation
+
+TODO: Write something about implementation status.
+
+### Status
+
+Missing:
+
+ * Header merging
+ * Persistent Storage
+ * Consul integration (or other)
 
 <a name="Compilation_and_Installation"/>
 
