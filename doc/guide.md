@@ -5,14 +5,13 @@ managing and running microservices.
 
 ## Table of Contents
 
-* [Introduction](#Introduction)
-* [Architecture](#Architecture)
-* [Compilation and Installation](#Compilation_and_Installation)
-* [Using Okapi](#Using_Okapi)
-* [Developing Modules](#Developing_Modules)
-* [Reference](#Reference)
+* [Introduction](#introduction)
+* [Architecture](#architecture)
+* [Compilation and Installation](#compilation-and-installation)
+* [Using Okapi](#using-okapi)
+* [Reference](#reference)
 
-## Introduction <a name="Introduction"/>
+## Introduction
 
 This document aims to provide details of the implementation and usage
 of Okapi (in its current form) by presenting concrete web service
@@ -272,8 +271,6 @@ websockets. We anticipate that for future releases of Okapi we will
 investigate the asynchronous approach in depth and provide support for
 some open messaging protocols (e.g. STOMP).
 
-<a name="Implementation"/>
-
 ## Implementation
 
 TODO: Write something about implementation status.
@@ -285,8 +282,6 @@ Missing:
  * Header merging
  * Persistent Storage
  * Consul integration (or other)
-
-<a name="Compilation_and_Installation"/>
 
 ## Compilation and Installation
 
@@ -355,8 +350,6 @@ For remote debugging you can use
 mvn exec:exec@debug
 ```
 This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
-
-<a name="Using_Okapi"/>
 
 ## Using Okapi
 
@@ -813,13 +806,6 @@ curl -w '\n' -D -  \
 ```
 
 it works!
-
-
-<a name="Developing_Modules"/>
-
-## Developing Modules
-
-<a name="Reference"/>
 
 ## Reference
 
