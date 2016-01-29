@@ -3,6 +3,7 @@ ModuleDescriptor:
   properties:
     id: string
     name: string
+    url: string
     descriptor: ProcessDeploymentDescriptor
     routingEntries: RoutingEntry[]
 
@@ -18,16 +19,17 @@ RoutingEntry:
     methods: string[]
     path: string
     level: string
+    type: string
 
 TenantDescriptor:
   type: object
   properties:
     id: string
     name: string
-    url: string
+    description: string
 
 TenantModuleDescriptor:
   type: object
   properties:
-    id: string
     module: string
+
