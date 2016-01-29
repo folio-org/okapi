@@ -1,4 +1,4 @@
-#%RAML 1.0 
+#%RAML 1.0
 title: OKAPI Core API
 version: v1
 baseUri: https://okapi.io
@@ -18,7 +18,7 @@ types: !include types.raml
 /_/modules:
   post:
     description: Creates an instance of a given module type, includes all
-      necessary mechanics to put the module into operation (launching 
+      necessary mechanics to put the module into operation (launching
       a process, binding to a port, setting up routing)
      # most likely we will want to read some initial configuration
     body:
@@ -39,12 +39,12 @@ types: !include types.raml
             application/json:
               schema: ModuleDescriptor
     delete:
-      description: Remove module instance from operation 
+      description: Remove module instance from operation
         (shutdown process etc)
       responses:
         204:
 
-           
+
 /_/tenants:
   post:
     description: create a new tenant
