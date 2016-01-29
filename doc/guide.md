@@ -7,7 +7,7 @@ managing and running microservices.
 
 * [Introduction](#introduction)
 * [Architecture](#architecture)
-* [Compilation and Installation](#compilation-and-installation)
+* [Compiling and Running](#compiling-and-running)
 * [Using Okapi](#using-okapi)
 * [Reference](#reference)
 
@@ -284,7 +284,7 @@ Missing:
  * Persistent Storage
  * Consul integration (or other)
 
-## Compilation and Installation
+## Compiling and Running
 
 The latest source of the software can be found at
 [GitHub](https://github.com/sling-incubator/okapi).
