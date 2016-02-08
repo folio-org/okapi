@@ -41,7 +41,6 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-dropwizard-metrics</artifactId>
       <version>${vertx-version}</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
      <groupId>io.dropwizard.metrics</groupId>
