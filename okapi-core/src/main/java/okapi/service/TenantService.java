@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -29,10 +29,10 @@ public class TenantService {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
-      final String name = td.getName();
-      final String uri = ctx.request().uri() + "/" + name;
+      final String id = td.getId();
+      final String uri = ctx.request().uri() + "/" + id;
       
-      enabled.put(name, new Tenant(td));
+      enabled.put(id, new Tenant(td));
       ctx.response().setStatusCode(201).putHeader("Location", uri).end();
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
@@ -89,5 +89,17 @@ public class TenantService {
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
+  }
+
+  public void listModules(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+
+    Tenant tenant = enabled.get(id);
+    if (tenant == null) {
+      ctx.response().setStatusCode(404).end();
+      return;
+    }
+    String s = Json.encodePrettily(tenant.listModules());
+    ctx.response().setStatusCode(200).end(s);
   }
 }

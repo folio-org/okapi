@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -9,20 +9,20 @@ public class ModuleInstance {
 
   ModuleDescriptor md;
   ProcessModuleHandle pmh;
-  int port;
+  String url;
   final RoutingEntry re;
 
-  public ModuleInstance(ModuleDescriptor md, ProcessModuleHandle pmh, int port) {
+  public ModuleInstance(ModuleDescriptor md, ProcessModuleHandle pmh, String url) {
     this.md = md;
     this.pmh = pmh;
-    this.port = port;
+    this.url = url;
     this.re = null;
   }
 
   public ModuleInstance(ModuleInstance mi, RoutingEntry re) {
     this.md = mi.md;
     this.pmh = mi.pmh;
-    this.port = mi.port;
+    this.url = mi.url;
     this.re = re;
   }
 
@@ -34,8 +34,8 @@ public class ModuleInstance {
     return pmh;
   }
   
-  public int getPort() {
-    return port;
+  public String getUrl() {
+    return url;
   }
 
   public RoutingEntry getRoutingEntry() {

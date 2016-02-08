@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -76,9 +76,9 @@ public class Auth {
       return;      
     }
     
-    // Simple password validation: "peter" has a password "peter36", etc
+    // Simple password validation: "peter" has a password "peter-password", etc
     String u = p.getUsername();
-    String correctpw = u + "36";
+    String correctpw = u + "-password";
     if ( ! p.getPassword().equals(correctpw)) {
       System.out.println("Bad passwd for '" + u + "'. "
         + "Got '" + p.getPassword() + "' expected '" + correctpw + "'" );

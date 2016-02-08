@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -36,7 +36,6 @@ public class ModuleService {
     this.ports = new Ports(port_start, port_end);
     this.modules = new Modules();
     this.tenantService = ts;
-    System.out.println("ModuleService vertx=" + vertx);
     this.httpClient = vertx.createHttpClient();
   }
 
@@ -45,34 +44,50 @@ public class ModuleService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
 
-      final String name = md.getName();
-      ModuleInstance m = modules.get(name);
+      final String id = md.getId();
+      String url;
+      final int use_port = ports.get();
+      int spawn_port = -1;
+      ModuleInstance m = modules.get(id);
       if (m != null) {
-        ctx.response().setStatusCode(400).end("module " + name
+        ctx.response().setStatusCode(400).end("module " + id
                 + " already deployed");
         return;
       }
-
-      final String uri = ctx.request().uri() + "/" + name;
-      final int use_port = ports.get();
-      if (use_port == -1) {
-        ctx.response().setStatusCode(400).end("module " + name
-                + " can not be deployed: all ports in use");
-      }
-      // enable it now so that activation for 2nd one will fail
-      ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-              use_port);
-      modules.put(name, new ModuleInstance(md, pmh, use_port));
-
-      pmh.start(future -> {
-        if (future.succeeded()) {
-          ctx.response().setStatusCode(201).putHeader("Location", uri).end();
-        } else {
-          modules.remove(md.getName());
-          ports.free(use_port);
-          ctx.response().setStatusCode(500).end(future.cause().getMessage());
+      if (md.getUrl() == null) {
+        if (use_port == -1) {
+          ctx.response().setStatusCode(400).end("module " + id
+                  + " can not be deployed: all ports in use");
         }
-      });
+        spawn_port = use_port;
+        url = "http://localhost:" + use_port;
+      } else {
+        ports.free(use_port);
+        url = md.getUrl();
+      }
+      if (md.getDescriptor() != null) {
+        // enable it now so that activation for 2nd one will fail
+        ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
+                spawn_port);
+        modules.put(id, new ModuleInstance(md, pmh, url));
+
+        pmh.start(future -> {
+          if (future.succeeded()) {
+            ctx.response().setStatusCode(201)
+                    .putHeader("Location", ctx.request().uri() + "/" + id)
+                    .end();
+          } else {
+            modules.remove(md.getId());
+            ports.free(use_port);
+            ctx.response().setStatusCode(500).end(future.cause().getMessage());
+          }
+        });
+      } else {
+        modules.put(id, new ModuleInstance(md, null, url));
+            ctx.response().setStatusCode(201)
+                    .putHeader("Location", ctx.request().uri() + "/" + id)
+                    .end();
+      }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
@@ -98,20 +113,25 @@ public class ModuleService {
     final String id = ctx.request().getParam("id");
 
     ModuleInstance m = modules.get(id);
-    if (id == null) {
+    if (m == null) {
       ctx.response().setStatusCode(404).end();
       return;
     }
+
     ProcessModuleHandle pmh = m.getProcessModuleHandle();
-    pmh.stop(future -> {
-      if (future.succeeded()) {
-        modules.remove(id);
-        ports.free(pmh.getPort());
-        ctx.response().setStatusCode(204).end();
-      } else {
-        ctx.response().setStatusCode(500).end(future.cause().getMessage());
-      }
-    });
+    if (pmh == null) {
+      ctx.response().setStatusCode(204).end();
+    } else {
+      pmh.stop(future -> {
+        if (future.succeeded()) {
+          modules.remove(id);
+          ports.free(pmh.getPort());
+          ctx.response().setStatusCode(204).end();
+        } else {
+          ctx.response().setStatusCode(500).end(future.cause().getMessage());
+        }
+      });
+    }
   }
   
   /** 
@@ -126,7 +146,7 @@ public class ModuleService {
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode, long startTime, List<String> traceHeaders) {
     long timeDiff = (System.nanoTime() - startTime) / 1000;
     traceHeaders.add(ctx.request().method() + " "
-            + mi.getModuleDescriptor().getName() + ":"
+            + mi.getModuleDescriptor().getId() + ":"
             + statusCode+ " " + timeDiff + "us");
     addTraceHeaders(ctx, traceHeaders);
   }
@@ -146,13 +166,181 @@ public class ModuleService {
     Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request(), tenant);
     List<String> traceHeaders = new ArrayList<>();
     ReadStream<Buffer> content = ctx.request();
+    content.pause();
     proxyR(ctx, it, traceHeaders, content, null);
   }
-  
+
+  private void proxyRequestHttpClient(RoutingContext ctx,
+          Iterator<ModuleInstance> it,
+          List<String> traceHeaders, Buffer bcontent,
+          ModuleInstance mi, long startTime)
+  {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
+              if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                ctx.response().setChunked(true);
+                ctx.response().setStatusCode(res.statusCode());
+                ctx.response().headers().setAll(res.headers());
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                res.handler(data -> {
+                  ctx.response().write(data);
+                });
+                res.endHandler(x -> {
+                  ctx.response().end();
+                });
+                res.exceptionHandler(x -> {
+                  System.out.println("res exception " + x.getMessage());
+                });
+              } else if (it.hasNext()) {
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                proxyR(ctx, it, traceHeaders, null, bcontent);
+              } else {
+                ctx.response().setChunked(true);
+                ctx.response().setStatusCode(res.statusCode());
+                ctx.response().headers().setAll(res.headers());
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                res.endHandler(x -> {
+                  ctx.response().end(bcontent);
+                });
+                res.exceptionHandler(x -> {
+                  System.out.println("res exception " + x.getMessage());
+                });
+              }
+            });
+    c_req.exceptionHandler(res -> {
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
+    });
+    c_req.setChunked(true);
+    c_req.headers().setAll(ctx.request().headers());
+    c_req.end(bcontent);
+  }
+
+  private void proxyRequestOnly(RoutingContext ctx,
+          Iterator<ModuleInstance> it, List<String> traceHeaders,
+          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime)
+  {
+    if (bcontent != null) {
+      proxyRequestHttpClient(ctx, it, traceHeaders, bcontent, mi, startTime);
+    } else {
+      final Buffer incoming = Buffer.buffer();
+      content.handler(data -> {
+        incoming.appendBuffer(data);
+      });
+      content.endHandler(v -> {
+        proxyRequestHttpClient(ctx, it, traceHeaders, incoming, mi, startTime);
+      });
+      content.resume();
+    }
+  }
+
+  private void proxyRequestResponse(RoutingContext ctx,
+          Iterator<ModuleInstance> it, List<String> traceHeaders,
+          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime)
+  {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
+              if (res.statusCode() >= 200 && res.statusCode() < 300
+              && it.hasNext()) {
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                res.pause();
+                proxyR(ctx, it, traceHeaders, res, null);
+              } else {
+                ctx.response().setChunked(true);
+                ctx.response().setStatusCode(res.statusCode());
+                ctx.response().headers().setAll(res.headers());
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                res.handler(data -> {
+                  ctx.response().write(data);
+                });
+                res.endHandler(v -> {
+                  ctx.response().end();
+                });
+                res.exceptionHandler(v -> {
+                  System.out.println("res exception " + v.getMessage());
+                });
+              }
+            });
+    c_req.exceptionHandler(res -> {
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
+    });
+    c_req.setChunked(true);
+    c_req.headers().setAll(ctx.request().headers());
+    if (bcontent != null) {
+      c_req.end(bcontent);
+    } else {
+      content.handler(data -> {
+        c_req.write(data);
+      });
+      content.endHandler(v -> {
+        c_req.end();
+      });
+      content.exceptionHandler(v -> {
+        System.out.println("content exception " + v.getMessage());
+      });
+      content.resume();
+    }
+  }
+
+  private void proxyHeaders(RoutingContext ctx,
+          Iterator<ModuleInstance> it, List<String> traceHeaders,
+          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime) {
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+            mi.getUrl() + ctx.request().uri(), res -> {
+              if (res.statusCode() < 200 || res.statusCode() >= 300) {
+                ctx.response().setChunked(true);
+                ctx.response().setStatusCode(res.statusCode());
+                ctx.response().headers().setAll(res.headers());
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                res.handler(data -> {
+                  ctx.response().write(data);
+                });
+                res.endHandler(v -> {
+                  ctx.response().end();
+                });
+                res.exceptionHandler(v -> {
+                  System.out.println("res exception " + v.getMessage());
+                });
+              } else if (it.hasNext()) {
+                res.endHandler(x -> {
+                  proxyR(ctx, it, traceHeaders, content, bcontent);
+                });
+              } else {
+                ctx.response().setChunked(true);
+                ctx.response().setStatusCode(res.statusCode());
+                ctx.response().headers().setAll(res.headers());
+                makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
+                if (bcontent == null) {
+                  content.handler(data -> {
+                    ctx.response().write(data);
+                  });
+                  content.endHandler(v -> {
+                    ctx.response().end();
+                  });
+                  content.exceptionHandler(v -> {
+                    System.out.println("content exception " + v.getMessage());
+                  });
+                  content.resume();
+                } else {
+                  ctx.response().end(bcontent);
+                }
+              }
+            });
+    c_req.exceptionHandler(res -> {
+      ctx.response().setStatusCode(500).end("connect url "
+              + mi.getUrl() + ": " + res.getMessage());
+    });
+    // c_req.setChunked(true);
+    // c_req.headers().setAll(ctx.request().headers());
+    c_req.end();
+  }
+
   private void proxyR(RoutingContext ctx,
           Iterator<ModuleInstance> it, List<String> traceHeaders,
           ReadStream<Buffer> content, Buffer bcontent) {
     if (!it.hasNext()) {
+      content.resume();
       addTraceHeaders(ctx, traceHeaders);
       ctx.response().setStatusCode(404).end();
     } else {
@@ -160,141 +348,14 @@ public class ModuleService {
       final long startTime = System.nanoTime();
       String rtype = mi.getRoutingEntry().getType();
       if ("request-only".equals(rtype)) {
-        if (bcontent != null) {
-          HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-                  "localhost", ctx.request().uri(), res -> {
-                    if (res.statusCode() >= 200 && res.statusCode() < 300
-                    && it.hasNext()) {
-                      makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                      proxyR(ctx, it, traceHeaders, null, bcontent);
-                    } else {
-                      ctx.response().setChunked(true);
-                      ctx.response().setStatusCode(res.statusCode());
-                      ctx.response().headers().setAll(res.headers());
-                      makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                      res.endHandler(x -> {
-                        ctx.response().end(bcontent);
-                      });
-                      res.exceptionHandler(x -> {
-                        System.out.println("res exception " + x.getMessage());
-                      });
-                    }
-                  });
-          c_req.exceptionHandler(res -> {
-            ctx.response().setStatusCode(500).end("connect port "
-                    + mi.getPort() + ": " + res.getMessage());
-          });
-          c_req.headers().setAll(ctx.request().headers());
-          c_req.end(bcontent);
-        } else {
-          final Buffer incoming = Buffer.buffer();
-          content.handler(data -> {
-            incoming.appendBuffer(data);
-          });
-          content.endHandler(v -> {
-            HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-                    "localhost", ctx.request().uri(), res -> {
-                      if (res.statusCode() >= 200 && res.statusCode() < 300
-                      && it.hasNext()) {
-                        makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                        proxyR(ctx, it, traceHeaders, null, incoming);
-                      } else {
-                        ctx.response().setChunked(true);
-                        ctx.response().setStatusCode(res.statusCode());
-                        ctx.response().headers().setAll(res.headers());
-                        makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                        res.endHandler(x -> {
-                          ctx.response().end(incoming);
-                        });
-                        res.exceptionHandler(x -> {
-                          System.out.println("res exception " + x.getMessage());
-                        });
-                      }
-                    });
-            c_req.exceptionHandler(res -> {
-              ctx.response().setStatusCode(500).end("connect port "
-                      + mi.getPort() + ": " + res.getMessage());
-            });
-            c_req.setChunked(true);
-            c_req.headers().setAll(ctx.request().headers());
-            c_req.end(incoming);
-          });
-        }
+        proxyRequestOnly(ctx, it, traceHeaders, content, bcontent, mi, startTime);
       } else if ("request-response".equals(rtype)) {
-        HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-                "localhost", ctx.request().uri(), res -> {
-                  if (res.statusCode() >= 200 && res.statusCode() < 300
-                  && it.hasNext()) {
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    proxyR(ctx, it, traceHeaders, res, null);
-                  } else {
-                    ctx.response().setChunked(true);
-                    ctx.response().setStatusCode(res.statusCode());
-                    ctx.response().headers().setAll(res.headers());
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    res.handler(data -> {
-                      ctx.response().write(data);
-                    });
-                    res.endHandler(v -> {
-                      ctx.response().end();
-                    });
-                    res.exceptionHandler(v -> {
-                      System.out.println("res exception " + v.getMessage());
-                    });
-                  }
-                });
-        c_req.exceptionHandler(res -> {
-          ctx.response().setStatusCode(500).end("connect port "
-                  + mi.getPort() + ": " + res.getMessage());
-        });
-        c_req.setChunked(true);
-        c_req.headers().setAll(ctx.request().headers());
-        if (bcontent != null) {
-          c_req.end(bcontent);
-        } else {
-          content.handler(data -> {
-            c_req.write(data);
-          });
-          content.endHandler(v -> {
-            c_req.end();
-          });
-          content.exceptionHandler(v -> {
-            System.out.println("content exception " + v.getMessage());
-          });
-        }
+        proxyRequestResponse(ctx, it, traceHeaders, content, bcontent, mi, startTime);
       } else if ("headers".equals(rtype)) {
-        HttpClientRequest c_req = httpClient.request(ctx.request().method(), mi.getPort(),
-                "localhost", ctx.request().uri(), res -> {
-                  if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                    ctx.response().setChunked(true);
-                    ctx.response().setStatusCode(res.statusCode());
-                    ctx.response().headers().setAll(res.headers());
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    res.handler(data -> {
-                      ctx.response().write(data);
-                    });
-                    res.endHandler(v -> {
-                      ctx.response().end();
-                    });
-                    res.exceptionHandler(v -> {
-                      System.out.println("res exception " + v.getMessage());
-                    });
-                  } else if (it.hasNext()) {
-                    makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
-                    proxyR(ctx, it, traceHeaders, content, bcontent);
-                  }
-                });
-        c_req.exceptionHandler(res -> {
-          ctx.response().setStatusCode(500).end("connect port "
-                  + mi.getPort() + ": " + res.getMessage());
-        });
-        // c_req.setChunked(true);
-        // c_req.headers().setAll(ctx.request().headers());
-        c_req.end();
+        proxyHeaders(ctx, it, traceHeaders, content, bcontent, mi, startTime);
       } else {
         System.out.println("rtype = " + rtype);
       }
     }
   }
-
 } // class

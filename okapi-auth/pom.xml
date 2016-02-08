@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.indexdata.okapi</groupId>
         <artifactId>okapi</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>0.2-SNAPSHOT</version>
     </parent>
     <artifactId>okapi-auth</artifactId>
     <packaging>jar</packaging>
@@ -12,13 +12,13 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
-            <version>3.2.0</version>
+            <version>3.2.1</version>
             <type>jar</type>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
-            <version>3.2.0</version>
+            <version>3.2.1</version>
             <type>jar</type>
         </dependency>
     </dependencies>

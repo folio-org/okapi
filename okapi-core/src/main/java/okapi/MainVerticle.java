@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995-2015, Index Data
+ * Copyright (c) 2015-2016, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -13,28 +13,34 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import okapi.service.HealthService;
 
 public class MainVerticle extends AbstractVerticle {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
   private final int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
   private final int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
   
+  HealthService hc;
   ModuleService ms;
   TenantService ts;
 
   @Override
   public void init(Vertx vertx, Context context) {
-    System.out.println("mainVerticle 1 vertx = " + vertx);
     super.init(vertx, context);
+    hc = new HealthService();
     ts = new TenantService(vertx);
-    System.out.println("mainVerticle 2 vertx = " + vertx);
     ms = new ModuleService(vertx, port_start, port_end, ts);
   }
-      
+
+  public void NotFound(RoutingContext ctx) {
+    ctx.response().setStatusCode(404).end("Okapi: unrecognized service");
+  }
+
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
@@ -57,18 +63,20 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id").handler(ts::get);
     router.delete("/_/tenants/:id").handler(ts::delete);
     router.post("/_/tenants/:id/modules").handler(ts::enableModule);
+    router.get("/_/tenants/:id/modules").handler(ts::listModules);
+    router.get("/_/health").handler(hc::get);
+    router.route("/_*").handler(this::NotFound);
     
     //everything else gets proxified to modules
     router.route("/*").handler(ms::proxy);
     
-    System.out.println("API Gateway started PID " + ManagementFactory.getRuntimeMXBean().getName());
+    System.out.println("API Gateway started PID "
+      + ManagementFactory.getRuntimeMXBean().getName()
+      + ". Listening on port " + port );
     
     vertx.createHttpServer()
             .requestHandler(router::accept)
-            .listen(
-                    // Retrieve the port from the configuration,
-                    // default to 8080.
-                    port,
+            .listen(port,
                     result -> {
                       if (result.succeeded()) {
                         fut.complete();
