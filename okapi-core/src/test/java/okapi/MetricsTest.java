@@ -56,8 +56,9 @@ public class MetricsTest {
     final String registryName = "okapi";
     MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
 
+    // Note the setEnabled (true or false)
     DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions().
-          setEnabled(true).setRegistryName(registryName);
+          setEnabled(false).setRegistryName(registryName);
 
     vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOpt));
 
@@ -83,7 +84,6 @@ public class MetricsTest {
   public void tearDown(TestContext context) {
     vertx.close(context.asyncAssertSuccess());
     if (reporter1 != null) {
-      System.out.println("reporter1.report xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
       reporter1.report();
       reporter1.stop();
     }
