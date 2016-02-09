@@ -5,25 +5,15 @@
  */
 package okapi;
 
-import com.codahale.metrics.ConsoleReporter;
-import com.codahale.metrics.MetricFilter;
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SharedMetricRegistries;
-import com.codahale.metrics.graphite.Graphite;
-import com.codahale.metrics.graphite.GraphiteReporter;
 import okapi.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -61,31 +51,9 @@ public class DeployModuleTest {
 
   @Before
   public void setUp(TestContext context) {
-    final String registryName = "okapi";
-    MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
+    vertx = Vertx.vertx();
 
-    DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions().
-          setEnabled(true).setRegistryName(registryName);
-
-    vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOpt));
-
-    final ConsoleReporter reporter1 = ConsoleReporter.forRegistry(registry).build();
-    reporter1.start(1, TimeUnit.SECONDS);
-
-    final Graphite graphite = new Graphite(new InetSocketAddress("tapas.index", 2003));
-    final GraphiteReporter reporter2 = GraphiteReporter.forRegistry(registry)
-            .prefixedWith("tuna.index")
-            /*
-            .convertRatesTo(TimeUnit.SECONDS)
-            .convertDurationsTo(TimeUnit.MILLISECONDS)
-            .filter(MetricFilter.ALL)
-*/
-            .build(graphite);
-    reporter2.start(1, TimeUnit.SECONDS);
-
-    System.out.println("Test.setup vertx = " + vertx);
     DeploymentOptions opt = new DeploymentOptions();
-
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
