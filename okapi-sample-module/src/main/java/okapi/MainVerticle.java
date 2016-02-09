@@ -21,13 +21,19 @@ public class MainVerticle extends AbstractVerticle {
 
   public void my_stream_handle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
+    final String ctype = ctx.request().headers().get("Content-Type");
+    String xmlMsg = "";
+    if ( ctype != null && ctype.toLowerCase().contains("xml"))
+      xmlMsg = " (XML) ";
+    final String xmlMsg2 = xmlMsg;
+    //System.out.println("Sample: ctype='" + ctype + "'");
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> {
-        ctx.response().end("It works");
+        ctx.response().end("It works" + xmlMsg2);
       });
     } else {
       ctx.response().setChunked(true);
-      ctx.response().write("Hello ");
+      ctx.response().write("Hello " + xmlMsg2);
       ctx.request().handler(x -> {
         ctx.response().write(x);
       });
