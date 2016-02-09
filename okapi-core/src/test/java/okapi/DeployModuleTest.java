@@ -429,12 +429,14 @@ public class DeployModuleTest {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        context.assertEquals("Hello Okapi", body.toString());
+        //context.assertEquals("Hello Okapi", body.toString());
+        context.assertEquals("Hello  (XML) Okapi", body.toString());
         useNoPath(context, async);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
+    req.putHeader("Content-Type", "text/xml");  
     req.end("Okapi");
   }
 
@@ -551,7 +553,8 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet2 headers " + headers);
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
+      context.assertTrue(headers != null
+        && headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -614,6 +617,8 @@ public class DeployModuleTest {
   }
 
   // Repeat the Get test, to see timing headers of a system that has been warmed up
+  // Also, pass a content-type that claims to be XML, the sample will see this and
+  // respond with a different message
   public void useItWithGet3(TestContext context, Async async) {
     System.out.println("useItWithGet3");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
@@ -623,7 +628,9 @@ public class DeployModuleTest {
       // context.assertTrue(headers.matches(".*X-Okapi-Trace=GET auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
-        context.assertEquals("It works", x.toString());
+        System.out.println("useItWithGet3: '" + x + "'");
+        //context.assertEquals("It works", x.toString());
+        context.assertEquals("It works (XML) ", x.toString());
       });
       response.endHandler(x -> {
         deleteTenant(context, async);
@@ -631,6 +638,7 @@ public class DeployModuleTest {
     });
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
+    req.putHeader("Content-Type", "text/xml");  
     req.end();
   }
 
