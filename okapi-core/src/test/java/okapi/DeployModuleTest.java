@@ -430,7 +430,6 @@ public class DeployModuleTest {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        //context.assertEquals("Hello Okapi", body.toString());
         context.assertEquals("Hello  (XML) Okapi", body.toString());
         useNoPath(context);
       });
@@ -626,11 +625,9 @@ public class DeployModuleTest {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet3 headers " + headers);
-      // context.assertTrue(headers.matches(".*X-Okapi-Trace=GET auth:202.*")); 
       context.assertTrue(headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
       response.handler(x -> {
         System.out.println("useItWithGet3: '" + x + "'");
-        //context.assertEquals("It works", x.toString());
         context.assertEquals("It works (XML) ", x.toString());
       });
       response.endHandler(x -> {
