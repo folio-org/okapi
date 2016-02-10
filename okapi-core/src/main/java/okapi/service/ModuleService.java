@@ -15,13 +15,16 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
+import okapi.bean.RoutingEntry;
 
 public class ModuleService {
   private Modules modules;
@@ -151,7 +154,41 @@ public class ModuleService {
     addTraceHeaders(ctx, traceHeaders);
   }
 
-  
+  private boolean match(RoutingEntry e, HttpServerRequest req) {
+    if (req.uri().startsWith(e.getPath())) {
+      String[] methods = e.getMethods();
+      for (int j = 0; j < methods.length; j++) {
+        if (methods[j].equals("*") || methods[j].equals(req.method().name())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  public Iterator<ModuleInstance> getModulesForRequest(HttpServerRequest hreq, Tenant t) {
+    List<ModuleInstance> r = new ArrayList<>();
+    for (String s : modules.list()) {
+      if (t.isEnabled(s)) {
+        RoutingEntry[] rr = modules.get(s).getModuleDescriptor().getRoutingEntries();
+        for (int i = 0; i < rr.length; i++) {
+          if (match(rr[i], hreq)) {
+            ModuleInstance mi = new ModuleInstance(modules.get(s), rr[i]);
+            r.add(mi);
+          }
+        }
+      }
+    }
+
+    Comparator<ModuleInstance> cmp = new Comparator<ModuleInstance>() {
+      public int compare(ModuleInstance a, ModuleInstance b) {
+        return a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
+      }
+    };
+    r.sort(cmp);
+    return r.iterator();
+  }
+
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
@@ -163,7 +200,7 @@ public class ModuleService {
       ctx.response().setStatusCode(400).end("No such Tenant " + tenant_id);
       return;     
     }
-    Iterator<ModuleInstance> it = modules.getModulesForRequest(ctx.request(), tenant);
+    Iterator<ModuleInstance> it = getModulesForRequest(ctx.request(), tenant);
     List<String> traceHeaders = new ArrayList<>();
     ReadStream<Buffer> content = ctx.request();
     content.pause();
