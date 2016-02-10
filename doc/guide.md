@@ -101,6 +101,9 @@ path. Okapi will then forward the requests to those modules in an
 order controlled by the level integer setting in the module
 registration configuration.
 
+Although Okapi accepts HTTP 1.0 requests, it uses HTTP 1.1 with
+chunked encoding to make the connections to the modules.
+
 We envision that different kinds of modules will carry different level
 values: e.g. authentication and authorization will have the highest
 possible priority, next the actual business logic processing unit,
