@@ -516,7 +516,7 @@ Now let's add the module:
 
 ```
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/samplemodule.json  \
   http://localhost:9130/_/modules
 ```
@@ -594,7 +594,7 @@ Then we deploy it as before:
 
 ```
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/authmodule.json  \
   http://localhost:9130/_/modules
 
@@ -629,7 +629,7 @@ cat > /tmp/tenant1.json <<END
 END
 
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/tenant1.json  \
   http://localhost:9130/_/tenants
 ```
@@ -653,7 +653,7 @@ cat > /tmp/tenant2.json <<END
 END
 
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/tenant2.json  \
   http://localhost:9130/_/tenants
 ```
@@ -681,7 +681,7 @@ cat > /tmp/enabletenant1.json <<END
 }
 END
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/enabletenant1.json  \
   http://localhost:9130/_/tenants/ourlibrary/modules
 ```
@@ -729,7 +729,7 @@ cat > /tmp/enabletenant2a.json <<END
 END
 
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/enabletenant2a.json  \
   http://localhost:9130/_/tenants/otherlibrary/modules
 
@@ -740,7 +740,7 @@ cat > /tmp/enabletenant2b.json <<END
 END
 
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -d @/tmp/enabletenant2b.json  \
   http://localhost:9130/_/tenants/otherlibrary/modules
 ```
@@ -786,7 +786,7 @@ cat > /tmp/login.json <<END
 }
 END
 curl -w '\n' -X POST -D - \
-  -H "Content-type: Application/Json" \
+  -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: otherlibrary" \
   -d @/tmp/login.json  \
   http://localhost:9130/login
