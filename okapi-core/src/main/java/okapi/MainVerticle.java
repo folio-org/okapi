@@ -73,6 +73,8 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(ts::enableModule);
     router.get("/_/tenants/:id/modules").handler(ts::listModules);
     router.get("/_/health").handler(hc::get);
+    router.delete("/_/initmodules").handler(moduleDbService::init);
+
     router.route("/_*").handler(this::NotFound);
     
     //everything else gets proxified to modules

@@ -13,6 +13,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import okapi.bean.ModuleInstance;
 
@@ -33,16 +34,28 @@ public class ModuleDbService {
     this.cli = MongoClient.createShared(vertx, opt);
   }
 
+  public void init(RoutingContext ctx) {
+    cli.dropCollection(collection, res -> {
+      if (res.succeeded()) {
+        ctx.response().setStatusCode(204).end();
+      } else {
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      }
+    });
+  }
+  
   public void create(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       String s = Json.encodePrettily(md);
       JsonObject document = new JsonObject(s);
+      document.put("_id", document.getString("id"));
       cli.insert(collection, document, res -> {
         if (res.succeeded()) {
           moduleService.create(ctx);
         } else {
+          System.out.println("create failred " + res.cause().getLocalizedMessage());
           ctx.response().setStatusCode(500).end(res.cause().getMessage());
         }
       });
@@ -72,7 +85,20 @@ public class ModuleDbService {
   }
 
   public void list(RoutingContext ctx) {
-    moduleService.list(ctx);
+    String q = "{}";
+    JsonObject jq = new JsonObject(q);
+    cli.find(collection, jq, res -> {
+      List<String> ids = new ArrayList<>(res.result().size());
+      if (res.succeeded()) {
+        for (JsonObject jo : res.result()) {
+          ids.add(jo.getString("id"));
+        }
+        ctx.response().setStatusCode(200).end(Json.encodePrettily(ids));
+      } else {
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      }
+    });
+    // moduleService.list(ctx);
   }
 
   public void delete(RoutingContext ctx) {

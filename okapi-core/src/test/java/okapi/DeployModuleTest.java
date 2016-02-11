@@ -122,7 +122,17 @@ public class DeployModuleTest {
   @Test(timeout = 600000)
   public void test_sample(TestContext context) {
     async = context.async();
-    postUnknownService(context);
+    initModules(context);
+  }
+
+  public void initModules(TestContext context) {
+    System.out.println("useUnknownService");
+    httpClient.delete(port, "localhost", "/_/initmodules", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        postUnknownService(context);
+      });
+    }).end();
   }
 
   public void postUnknownService(TestContext context) {
@@ -144,13 +154,14 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(400, response.statusCode());
       response.endHandler(x -> {
-        deployBadModule(context);
+        // deployBadModule(context);  disabled for now
+        deployAuth(context);
       });
     }).end(bad_doc);
   }
 
   public void deployBadModule(TestContext context) {
-    System.out.println("deployAuth");
+    System.out.println("deployBadModule");
     final String doc = "{"+LS
             + "  \"name\" : \"auth\","+LS
             + "  \"descriptor\" : {"+LS
