@@ -18,7 +18,9 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import okapi.bean.Modules;
 import okapi.service.HealthService;
+import okapi.service.ProxyService;
 
 public class MainVerticle extends AbstractVerticle {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -27,6 +29,7 @@ public class MainVerticle extends AbstractVerticle {
   
   HealthService hc;
   ModuleService ms;
+  ProxyService ps;
   TenantService ts;
 
   @Override
@@ -34,7 +37,9 @@ public class MainVerticle extends AbstractVerticle {
     super.init(vertx, context);
     hc = new HealthService();
     ts = new TenantService(vertx);
-    ms = new ModuleService(vertx, port_start, port_end, ts);
+    Modules modules = new Modules();
+    ms = new ModuleService(vertx, modules, port_start, port_end);
+    ps = new ProxyService(vertx, modules, ts);
   }
 
   public void NotFound(RoutingContext ctx) {
@@ -68,7 +73,7 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/_*").handler(this::NotFound);
     
     //everything else gets proxified to modules
-    router.route("/*").handler(ms::proxy);
+    router.route("/*").handler(ps::proxy);
     
     System.out.println("API Gateway started PID "
       + ManagementFactory.getRuntimeMXBean().getName()
