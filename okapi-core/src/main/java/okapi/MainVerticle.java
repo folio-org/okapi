@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import okapi.bean.Modules;
 import okapi.service.HealthService;
+import okapi.service.ModuleDbService;
 import okapi.service.ProxyService;
 
 public class MainVerticle extends AbstractVerticle {
@@ -29,6 +30,7 @@ public class MainVerticle extends AbstractVerticle {
   
   HealthService hc;
   ModuleService ms;
+  ModuleDbService moduleDbService;
   ProxyService ps;
   TenantService ts;
 
@@ -39,6 +41,7 @@ public class MainVerticle extends AbstractVerticle {
     ts = new TenantService(vertx);
     Modules modules = new Modules();
     ms = new ModuleService(vertx, modules, port_start, port_end);
+    moduleDbService = new ModuleDbService(vertx, ms);
     ps = new ProxyService(vertx, modules, ts);
   }
 
@@ -59,10 +62,10 @@ public class MainVerticle extends AbstractVerticle {
 
     //hijack everything to conduit to allow for configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
-    router.post("/_/modules/").handler(ms::create);
-    router.delete("/_/modules/:id").handler(ms::delete);
-    router.get("/_/modules/:id").handler(ms::get);
-    router.get("/_/modules/").handler(ms::list);
+    router.post("/_/modules/").handler(moduleDbService::create);
+    router.delete("/_/modules/:id").handler(moduleDbService::delete);
+    router.get("/_/modules/:id").handler(moduleDbService::get);
+    router.get("/_/modules/").handler(moduleDbService::list);
     router.post("/_/tenants").handler(ts::create);
     router.get("/_/tenants/").handler(ts::list);
     router.get("/_/tenants/:id").handler(ts::get);

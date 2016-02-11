@@ -5,6 +5,9 @@
  */
 package okapi.bean;
 
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import java.io.IOException;
 import java.util.List;
 
 public class ModuleDescriptor {
