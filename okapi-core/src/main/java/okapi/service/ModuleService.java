@@ -10,21 +10,10 @@ import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
 import okapi.bean.Ports;
 import okapi.bean.ProcessModuleHandle;
-import okapi.bean.Tenant;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Iterator;
-import okapi.bean.RoutingEntry;
 
 public class ModuleService {
   private Modules modules;
