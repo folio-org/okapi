@@ -18,6 +18,15 @@ import java.util.Iterator;
 import java.util.List;
 import okapi.bean.ModuleInstance;
 
+/* TODO 
+  - Factor the Mongo stuff away, make a memory-only alternative
+  - Message bus to force a reload after any op: broadcast, receive, reload
+  - Remove http stuff from moduleservice
+  - Rename moduleService to moduleManager
+
+*/
+
+
 public class ModuleDbService {
   ModuleService moduleService;
   MongoClient cli;
@@ -54,7 +63,7 @@ public class ModuleDbService {
       document.put("_id", document.getString("id"));
       cli.insert(collection, document, res -> {
         if (res.succeeded()) {
-          moduleService.create(ctx);
+          moduleService.create(ctx);  // TODO - try this first, with the md
         } else {
           System.out.println("create failred " + res.cause().getLocalizedMessage());
           ctx.response().setStatusCode(500).end(res.cause().getMessage());

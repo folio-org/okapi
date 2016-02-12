@@ -100,22 +100,7 @@ public class ModuleService {
     }
   }
 
-  public void get(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-
-    ModuleInstance m = modules.get(id);
-    if (m == null) {
-      ctx.response().setStatusCode(404).end();
-      return;
-    }
-    String s = Json.encodePrettily(modules.get(id).getModuleDescriptor());
-    ctx.response().end(s);
-  }
-  public void list(RoutingContext ctx) {
-    String s = Json.encodePrettily(modules.list());
-    ctx.response().end(s);
-  }
-
+  // TODO - Drop ctx, do memory only, w callback, like create
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
