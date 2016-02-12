@@ -596,7 +596,7 @@ public class DeployModuleTest {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
         System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
-        vertx.setTimer(1, x -> useItWithGet3(context));
+        vertx.setTimer(1, x -> reloadModules(context));
       }
       return;
     } else if (cnt == 0) {
@@ -625,6 +625,16 @@ public class DeployModuleTest {
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
     req.end(msg);
+  }
+
+  // Reload the modules
+  public void reloadModules(TestContext context) {
+    httpClient.get(port, "localhost", "/_/reloadmodules", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        useItWithGet3(context);
+      });
+    }).end();
   }
 
   // Repeat the Get test, to see timing headers of a system that has been warmed up

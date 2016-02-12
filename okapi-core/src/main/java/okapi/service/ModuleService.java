@@ -5,6 +5,8 @@
  */
 package okapi.service;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
@@ -14,6 +16,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Set;
+import okapi.util.Failure;
+import okapi.util.Success;
 
 public class ModuleService {
   private Modules modules;
@@ -119,6 +124,36 @@ public class ModuleService {
           ctx.response().setStatusCode(500).end(future.cause().getMessage());
         }
       });
+    }
+  }
+
+  public void deleteAll(Handler<AsyncResult<Void>> fut) {
+    Set<String> list = modules.list();
+    if ( list.isEmpty())
+      fut.handle(new Success<Void>());
+    else {
+      String id = list.iterator().next();
+      ModuleInstance mi = modules.get(id);
+      ProcessModuleHandle pmh = mi.getProcessModuleHandle();
+      if ( pmh == null ) {
+        modules.remove(id);
+        System.out.println("Deleted module " + id);
+        deleteAll(fut);
+      } else {
+        pmh.stop(res -> {
+          if (res.succeeded()) {
+            System.out.println("Stopped module " + id);
+            ports.free(pmh.getPort());
+          } else {
+            System.out.println("Failed to stop module " + id + ":" + res.cause().getMessage());
+            fut.handle(new Failure<Void>("Failed to stop module " + id + ":" + res.cause().getMessage()));
+            // TODO - What to in this case? Declare the whole node dead?
+          }
+          modules.remove(id); // remove in any case
+          System.out.println("Deleted module " + id);
+          deleteAll(fut);
+        });
+      }
     }
   }
    

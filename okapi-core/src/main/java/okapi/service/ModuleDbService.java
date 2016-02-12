@@ -125,4 +125,19 @@ public class ModuleDbService {
       }
     });
   }
+
+  public void reloadModules(RoutingContext ctx) {
+    System.out.println("Starting to reload modules");
+    moduleService.deleteAll(res->{
+      if ( res.failed()) {
+        System.out.println("Reload: Failed to delete all");
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      } else {
+        System.out.println("Reload: Should restart all modules");
+        ctx.response().setStatusCode(204).end();
+      }
+    });
+    
+  }
+
 } // class

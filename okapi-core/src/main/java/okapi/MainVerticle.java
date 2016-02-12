@@ -74,6 +74,7 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id/modules").handler(ts::listModules);
     router.get("/_/health").handler(hc::get);
     router.delete("/_/initmodules").handler(moduleDbService::init);
+    router.get("/_/reloadmodules").handler(moduleDbService::reloadModules);
 
     router.route("/_*").handler(this::NotFound);
     
