@@ -14,6 +14,7 @@ import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import okapi.bean.ModuleInstance;
 
@@ -110,11 +111,11 @@ public class ModuleDbService {
         List<JsonObject> l = res.result();
         if (l.size() > 0) {
           cli.remove(collection, jq, res2 -> {
-            if (res.succeeded()) {
+            if (res2.succeeded()) {
               moduleService.delete(ctx);
               // ctx.response().setStatusCode(204).end();
             } else {
-              ctx.response().setStatusCode(500).end(res.cause().getMessage());
+              ctx.response().setStatusCode(500).end(res2.cause().getMessage());
             }
           });
         } else {
@@ -134,10 +135,43 @@ public class ModuleDbService {
         ctx.response().setStatusCode(500).end(res.cause().getMessage());
       } else {
         System.out.println("Reload: Should restart all modules");
-        ctx.response().setStatusCode(204).end();
+        loadModules(ctx);
       }
-    });
-    
+    });    
   }
 
+  private void loadModules(RoutingContext ctx) {
+    String q = "{}";
+    JsonObject jq = new JsonObject(q);
+    cli.find(collection, jq, res -> {
+      if (res.failed()) {
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      } else {
+        System.out.println("Got " + res.result().size() + " modules to deploy");
+        Iterator<JsonObject> it = res.result().iterator();
+        loadR(it,ctx);
+      }
+    });
+  }
+
+  private void loadR(Iterator<JsonObject> it, RoutingContext ctx) {
+    if ( !it.hasNext() ) {
+      System.out.println("All modules deployed");
+      ctx.response().setStatusCode(204).end();
+    } else {
+      JsonObject jo = it.next();
+      jo.remove("_id");
+      System.out.println("Starting " + jo);
+      final ModuleDescriptor md = Json.decodeValue(jo.encode(),
+              ModuleDescriptor.class);
+      moduleService.create(md, res-> {
+        if ( res.failed()) {
+          ctx.response().setStatusCode(500).end( res.cause().getMessage());
+        } else {
+          loadR(it, ctx);
+        }
+      });
+    }
+
+  }
 } // class

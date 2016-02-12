@@ -631,7 +631,9 @@ public class DeployModuleTest {
   public void reloadModules(TestContext context) {
     httpClient.get(port, "localhost", "/_/reloadmodules", response -> {
       context.assertEquals(204, response.statusCode());
+      System.out.println("reloadModules callback");
       response.endHandler(x -> {
+        System.out.println("reloadModules endHandler");
         useItWithGet3(context);
       });
     }).end();

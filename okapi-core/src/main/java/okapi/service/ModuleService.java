@@ -17,8 +17,11 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
+import static okapi.util.ErrorType.*;
 import okapi.util.Failure;
+import okapi.util.InternalFailure;
 import okapi.util.Success;
+import okapi.util.UserFailure;
 
 public class ModuleService {
   private Modules modules;
@@ -32,25 +35,20 @@ public class ModuleService {
     this.modules = modules;
   }
 
-  public void create(RoutingContext ctx) {
-    try {
-      final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-              ModuleDescriptor.class);
-
-      final String id = md.getId();
+ public void create(ModuleDescriptor md, Handler<AsyncResult<String>> fut) {
+   final String id = md.getId();
       String url;
       final int use_port = ports.get();
       int spawn_port = -1;
       ModuleInstance m = modules.get(id);
       if (m != null) {
-        ctx.response().setStatusCode(400).end("module " + id
-                + " already deployed");
+        fut.handle(new UserFailure<>("Already deployed"));
         return;
       }
       if (md.getUrl() == null) {
         if (use_port == -1) {
-          ctx.response().setStatusCode(400).end("module " + id
-                  + " can not be deployed: all ports in use");
+          fut.handle(new UserFailure<>( "module " + id
+                  + " can not be deployed: all ports in use"));
         }
         spawn_port = use_port;
         url = "http://localhost:" + use_port;
@@ -66,21 +64,37 @@ public class ModuleService {
 
         pmh.start(future -> {
           if (future.succeeded()) {
-            ctx.response().setStatusCode(201)
-                    .putHeader("Location", ctx.request().uri() + "/" + id)
-                    .end();
+            fut.handle(new Success<>(id));
           } else {
             modules.remove(md.getId());
             ports.free(use_port);
-            ctx.response().setStatusCode(500).end(future.cause().getMessage());
+            fut.handle(new InternalFailure<>( future.cause() ) );
           }
         });
       } else {
         modules.put(id, new ModuleInstance(md, null, url));
-            ctx.response().setStatusCode(201)
-                    .putHeader("Location", ctx.request().uri() + "/" + id)
-                    .end();
+        fut.handle(new Success<>(id));
       }
+  }
+
+  public void create(RoutingContext ctx) {
+    try {
+      final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
+              ModuleDescriptor.class);
+      final String id = md.getId();
+      create(md, res->{
+        if(res.succeeded()) {
+          ctx.response().setStatusCode(201)
+                  .putHeader("Location", ctx.request().uri() + "/" + res.result())
+                  .end();
+        } else {
+          if ( ((Failure)res).getType() == INTERNAL ) {
+            ctx.response().setStatusCode(500).end(res.cause().getMessage());
+          } else if ( ((Failure)res).getType() == USER ) {
+            ctx.response().setStatusCode(400).end(res.cause().getMessage());
+          }
+        }
+      });
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }

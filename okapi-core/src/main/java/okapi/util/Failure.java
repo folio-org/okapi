@@ -1,6 +1,7 @@
 package okapi.util;
 
 import io.vertx.core.AsyncResult;
+import static okapi.util.ErrorType.ANY;
 
 public class Failure<T> implements AsyncResult<T> {
   private Throwable failure;
@@ -30,5 +31,8 @@ public class Failure<T> implements AsyncResult<T> {
   @Override
   public boolean failed() {
     return true;
+  }
+  public ErrorType getType() {
+    return ANY;
   }
 }
