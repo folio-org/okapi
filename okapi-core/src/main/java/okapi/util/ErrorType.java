@@ -6,9 +6,12 @@
 package okapi.util;
 
 /**
+ * Types of errors.
  *
- * @author heikki
  */
 public enum ErrorType {
-   ANY, INTERNAL, USER, NOT_FOUND;
+   ANY,
+   INTERNAL,   // Internal errors of any kind
+   USER,       // Bad requests, etc
+   NOT_FOUND;  // Stuff that is not there
 }

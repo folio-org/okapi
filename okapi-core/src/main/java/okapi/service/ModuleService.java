@@ -18,10 +18,9 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
 import static okapi.util.ErrorType.*;
+import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
-import okapi.util.InternalFailure;
 import okapi.util.Success;
-import okapi.util.UserFailure;
 
 public class ModuleService {
   private Modules modules;
@@ -35,19 +34,19 @@ public class ModuleService {
     this.modules = modules;
   }
 
- public void create(ModuleDescriptor md, Handler<AsyncResult<String>> fut) {
+ public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
    final String id = md.getId();
       String url;
       final int use_port = ports.get();
       int spawn_port = -1;
       ModuleInstance m = modules.get(id);
       if (m != null) {
-        fut.handle(new UserFailure<>("Already deployed"));
+        fut.handle(new Failure<>(USER,"Already deployed"));
         return;
       }
       if (md.getUrl() == null) {
         if (use_port == -1) {
-          fut.handle(new UserFailure<>( "module " + id
+          fut.handle(new Failure<>(USER, "module " + id
                   + " can not be deployed: all ports in use"));
         }
         spawn_port = use_port;
@@ -68,7 +67,7 @@ public class ModuleService {
           } else {
             modules.remove(md.getId());
             ports.free(use_port);
-            fut.handle(new InternalFailure<>( future.cause() ) );
+            fut.handle(new Failure<>( INTERNAL, future.cause() ) );
           }
         });
       } else {
@@ -88,9 +87,9 @@ public class ModuleService {
                   .putHeader("Location", ctx.request().uri() + "/" + res.result())
                   .end();
         } else {
-          if ( ((Failure)res).getType() == INTERNAL ) {
+          if ( res.getType() == INTERNAL ) {
             ctx.response().setStatusCode(500).end(res.cause().getMessage());
-          } else if ( ((Failure)res).getType() == USER ) {
+          } else if ( res.getType() == USER ) {
             ctx.response().setStatusCode(400).end(res.cause().getMessage());
           }
         }
@@ -126,7 +125,7 @@ public class ModuleService {
     }
   }
 
-  public void deleteAll(Handler<AsyncResult<Void>> fut) {
+  public void deleteAll(Handler<ExtendedAsyncResult<Void>> fut) {
     Set<String> list = modules.list();
     if ( list.isEmpty())
       fut.handle(new Success<Void>());
@@ -145,7 +144,7 @@ public class ModuleService {
             ports.free(pmh.getPort());
           } else {
             System.out.println("Failed to stop module " + id + ":" + res.cause().getMessage());
-            fut.handle(new Failure<Void>("Failed to stop module " + id + ":" + res.cause().getMessage()));
+            fut.handle(new Failure<>(INTERNAL,"Failed to stop module " + id + ":" + res.cause().getMessage()));
             // TODO - What to in this case? Declare the whole node dead?
           }
           modules.remove(id); // remove in any case
