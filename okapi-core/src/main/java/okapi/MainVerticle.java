@@ -25,8 +25,8 @@ import okapi.service.ProxyService;
 
 public class MainVerticle extends AbstractVerticle {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private final int port_start = Integer.parseInt(System.getProperty("port_start", "9131"));
-  private final int port_end = Integer.parseInt(System.getProperty("port_end", "9140"));
+  private final int port_start = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
+  private final int port_end = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
   
   HealthService hc;
   ModuleService ms;

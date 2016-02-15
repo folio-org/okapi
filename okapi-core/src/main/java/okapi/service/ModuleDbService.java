@@ -59,6 +59,7 @@ public class ModuleDbService {
   public void init(RoutingContext ctx) {
     cli.dropCollection(collection, res -> {
       if (res.succeeded()) {
+        this.sendReloadSignal();
         ctx.response().setStatusCode(204).end();
       } else {
         ctx.response().setStatusCode(500).end(res.cause().getMessage());
