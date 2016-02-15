@@ -12,15 +12,14 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import okapi.bean.ModuleInstance;
+import io.vertx.core.eventbus.EventBus;
 
-/* TODO 
-  - Factor the Mongo stuff away, make a memory-only alternative
+/* TODO
   - Message bus to force a reload after any op: broadcast, receive, reload
+  - Factor the Mongo stuff away, make a memory-only alternative
   - Remove http stuff from moduleservice
   - Rename moduleService to moduleManager
 
@@ -30,6 +29,8 @@ import okapi.bean.ModuleInstance;
 public class ModuleDbService {
   ModuleService moduleService;
   MongoClient cli;
+  EventBus eb;
+  private final String eventBusName = "okapi.conf.modules";
 
   final private Vertx vertx;
   final String collection = "okapi.modules";
@@ -42,6 +43,17 @@ public class ModuleDbService {
             put("host", "127.0.0.1").
             put("port", 27017);
     this.cli = MongoClient.createShared(vertx, opt);
+
+    
+    this.eb = vertx.eventBus();
+    eb.consumer(eventBusName, message -> {
+      System.out.println("I have received a message: " + message.body());
+    });
+
+  }
+
+  private void sendReloadSignal() {
+    eb.publish(eventBusName, "Someone did something with the config!");
   }
 
   public void init(RoutingContext ctx) {
@@ -64,6 +76,7 @@ public class ModuleDbService {
       cli.insert(collection, document, res -> {
         if (res.succeeded()) {
           moduleService.create(ctx);  // TODO - try this first, with the md
+          sendReloadSignal();
         } else {
           System.out.println("create failred " + res.cause().getLocalizedMessage());
           ctx.response().setStatusCode(500).end(res.cause().getMessage());
@@ -123,6 +136,7 @@ public class ModuleDbService {
             if (res2.succeeded()) {
               moduleService.delete(ctx);
               // ctx.response().setStatusCode(204).end();
+              sendReloadSignal();
             } else {
               ctx.response().setStatusCode(500).end(res2.cause().getMessage());
             }

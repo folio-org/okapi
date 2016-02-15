@@ -645,6 +645,7 @@ public class DeployModuleTest {
   public void useItWithGet3(TestContext context) {
     System.out.println("useItWithGet3");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
+      System.out.println("useItWithGet3 response " + response.statusCode() );
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet3 headers " + headers);
