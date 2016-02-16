@@ -16,6 +16,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -149,7 +150,7 @@ public class DeployModuleTest {
   public void postBadJSON(TestContext context) {
     System.out.println("deployAuth");
     final String bad_doc = "{"+LS
-            + "  \"name\" : \"auth\","+LS
+            + "  \"name\" : \"auth\","+LS  // the comma here makes it bad json!
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(400, response.statusCode());
@@ -236,6 +237,7 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
+      Assert.assertNotNull(locationSample);
       response.endHandler(x -> {
         listModules(context, doc);
       });
@@ -259,8 +261,9 @@ public class DeployModuleTest {
   }
 
   public void getIt(TestContext context, String doc) {
-    System.out.println("getIt");
+    System.out.println("getIt " + locationSample);
     httpClient.get(port, "localhost", locationSample, response -> {
+      System.out.println("getIt: response " + response.statusCode());
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });

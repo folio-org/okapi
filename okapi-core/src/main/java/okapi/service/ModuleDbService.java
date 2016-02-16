@@ -124,9 +124,9 @@ public class ModuleDbService {
     cli.dropCollection(collection, res -> {
       if (res.succeeded()) {
         this.sendReloadSignal(res2->{
-          if ( res.succeeded())
+          if ( res.succeeded()){
             ctx.response().setStatusCode(204).end();
-          else
+          }else
             ctx.response().setStatusCode(500).end(res2.cause().getMessage());
         });
       } else {
@@ -134,21 +134,35 @@ public class ModuleDbService {
       }
     });
   }
-  
+
+
   public void create(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-              ModuleDescriptor.class);
-      String s = Json.encodePrettily(md);
-      JsonObject document = new JsonObject(s);
-      document.put("_id", document.getString("id"));
-      cli.insert(collection, document, res -> {
-        if (res.succeeded()) {
-          moduleService.create(ctx);  // TODO - try this first, with the md
-          //sendReloadSignal();
+        ModuleDescriptor.class);
+      moduleService.create(md, cres -> {
+        if (cres.failed()) {
+          System.out.println("Failed to start service, will not update the DB. " + md);
+          if (cres.getType() == INTERNAL) {
+            ctx.response().setStatusCode(500).end(cres.cause().getMessage());
+          } else // must be some kind of bad request
+          {
+            ctx.response().setStatusCode(400).end(cres.cause().getMessage());
+          }
         } else {
-          System.out.println("create failred " + res.cause().getLocalizedMessage());
-          ctx.response().setStatusCode(500).end(res.cause().getMessage());
+          String s = Json.encodePrettily(md);
+          JsonObject document = new JsonObject(s);
+          document.put("_id", document.getString("id"));
+          cli.insert(collection, document, ires -> {
+            if (ires.succeeded()) {
+              ctx.response().setStatusCode(201)
+                  .putHeader("Location", ctx.request().uri() + "/" + cres.result())
+                  .end();
+            } else {
+              System.out.println("create failred " + ires.cause().getMessage());
+              ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+            }
+          });
         }
       });
     } catch (DecodeException ex) {
@@ -157,15 +171,18 @@ public class ModuleDbService {
   }
 
   public void get(RoutingContext ctx) {
+    System.out.println("Dbs: get");
     final String id = ctx.request().getParam("id");
     final String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
+    System.out.println("Trying to get " + q);
     cli.find(collection, jq, res -> {
       if (res.succeeded()) {
         List<JsonObject> l = res.result();
         if (l.size() > 0) {
           JsonObject d = l.get(0);
           d.remove("_id");
+          System.out.println("get: " + Json.encodePrettily(d));
           ctx.response().setStatusCode(200).end(Json.encodePrettily(d));
         } else {
           ctx.response().setStatusCode(404).end();
@@ -220,6 +237,8 @@ public class ModuleDbService {
   }
 
 
+  // TODO - Refactor this so that this part generates a list of modules,
+  // and the module manager restarts and stops what is needed. Later.
   public void reloadModules(RoutingContext ctx) {
     reloadModules( res-> {
       if ( res.succeeded() ) {
