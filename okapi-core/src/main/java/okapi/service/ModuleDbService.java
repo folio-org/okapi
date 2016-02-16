@@ -56,8 +56,16 @@ public class ModuleDbService {
       System.out.println("I have received a message: " + message.body());
       Long receivedStamp = (Long)(message.body());
       if ( this.timestamp < receivedStamp ) {
-        System.out.println("Received message is newer tnan my config, reloading");
-        // TODO - Actual reload - need to refactor that not to use ctx first
+        System.out.println("Received message is newer than my config, reloading");
+        reloadModules( rres-> {
+          if ( rres.succeeded())
+            System.out.println("Reload succeeded");
+          else {
+            System.out.println("Reload FAILED - No idea what to do about that!");
+            // TODO - What can we do if reload fails here ?
+            // We have nowehere to report failures. Declare the whole node dead?
+          }
+        });
       } else {
         System.out.println("Received stamp is not newer, not reloading");
       }
@@ -155,9 +163,15 @@ public class ModuleDbService {
           document.put("_id", document.getString("id"));
           cli.insert(collection, document, ires -> {
             if (ires.succeeded()) {
-              ctx.response().setStatusCode(201)
-                  .putHeader("Location", ctx.request().uri() + "/" + cres.result())
-                  .end();
+              sendReloadSignal(sres->{
+                if ( sres.succeeded()) {
+                  ctx.response().setStatusCode(201)
+                    .putHeader("Location", ctx.request().uri() + "/" + cres.result())
+                    .end();
+                } else { // TODO - What to if this fails ??
+                  ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+                }
+              });
             } else {
               System.out.println("create failred " + ires.cause().getMessage());
               ctx.response().setStatusCode(500).end(ires.cause().getMessage());
