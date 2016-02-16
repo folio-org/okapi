@@ -143,6 +143,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
+      System.out.println("proxyRequestHttpClient failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });
@@ -197,6 +198,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
+      System.out.println("proxyRequestResponse failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });
@@ -263,6 +265,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
+      System.out.println("proxyHeaders failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });

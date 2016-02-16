@@ -159,7 +159,9 @@ public class ModuleDbService {
         ctx.response().setStatusCode(500).end(res.cause().getMessage());
       } else {
         System.out.println("Reload: Should restart all modules");
-        loadModules(ctx);
+        vertx.setTimer(1000, t -> {
+          loadModules(ctx);
+        });
       }
     });    
   }
@@ -180,8 +182,12 @@ public class ModuleDbService {
 
   private void loadR(Iterator<JsonObject> it, RoutingContext ctx) {
     if ( !it.hasNext() ) {
-      System.out.println("All modules deployed");
-      ctx.response().setStatusCode(204).end();
+      System.out.println("All modules deployed. Sleeping a second");
+      vertx.setTimer(1000, t -> {
+        // TODO - This is not right. But the tests occasionally fail after reload
+        System.out.println("Slept a second, loadR is done");
+        ctx.response().setStatusCode(204).end();
+      });
     } else {
       JsonObject jo = it.next();
       jo.remove("_id");
