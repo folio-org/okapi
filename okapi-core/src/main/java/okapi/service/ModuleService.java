@@ -103,25 +103,38 @@ public class ModuleService {
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
+    this.delete(id, res->{
+      if ( res.succeeded())
+        ctx.response().setStatusCode(204).end();
+      else {
+        if (res.getType() == NOT_FOUND )
+          ctx.response().setStatusCode(404).end(res.cause().getMessage());
+        else
+          ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      }
+    });
+  }
+
+  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     ModuleInstance m = modules.get(id);
     if (m == null) {
-      ctx.response().setStatusCode(404).end();
-      return;
-    }
-
-    ProcessModuleHandle pmh = m.getProcessModuleHandle();
-    if (pmh == null) {
-      ctx.response().setStatusCode(204).end();
+      fut.handle(new Failure<>(NOT_FOUND, "Can not delete " + id + ". Not found"));
     } else {
-      pmh.stop(future -> {
-        if (future.succeeded()) {
-          modules.remove(id);
-          ports.free(pmh.getPort());
-          ctx.response().setStatusCode(204).end();
-        } else {
-          ctx.response().setStatusCode(500).end(future.cause().getMessage());
-        }
-      });
+      ProcessModuleHandle pmh = m.getProcessModuleHandle();
+      if (pmh == null) {
+        modules.remove(id); // nothing running, just remove it from our list
+        fut.handle(new Success<>());
+      } else {
+        pmh.stop(future -> {
+          if (future.succeeded()) {
+            modules.remove(id);
+            ports.free(pmh.getPort());
+            fut.handle(new Success<>());
+          } else {
+            fut.handle(new Failure<>(INTERNAL, future.cause()));
+          }
+        });
+      }
     }
   }
 

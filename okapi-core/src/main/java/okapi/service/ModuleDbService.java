@@ -226,30 +226,50 @@ public class ModuleDbService {
 
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-    String q = "{ \"id\": \"" + id + "\"}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.succeeded()) {
-        List<JsonObject> l = res.result();
-        if (l.size() > 0) {
-          cli.remove(collection, jq, res2 -> {
-            if (res2.succeeded()) {
-              moduleService.delete(ctx);
-              // ctx.response().setStatusCode(204).end();
-              //sendReloadSignal();
-            } else {
-              ctx.response().setStatusCode(500).end(res2.cause().getMessage());
-            }
-          });
-        } else {
-          ctx.response().setStatusCode(404).end();
-        }
+    System.out.println("Starting to delete " + id);
+    moduleService.delete(id, sres->{
+      if ( sres.failed()) {
+        System.out.println("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
+        if ( sres.getType() == NOT_FOUND)
+          ctx.response().setStatusCode(404).end(sres.cause().getMessage());
+        else
+          ctx.response().setStatusCode(500).end(sres.cause().getMessage());
       } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        String q = "{ \"id\": \"" + id + "\"}";
+        JsonObject jq = new JsonObject(q);
+        cli.find(collection, jq, dres -> {
+          if (dres.succeeded()) {
+            List<JsonObject> l = dres.result();
+            if (l.size() > 0) {
+              cli.remove(collection, jq, rres -> {
+                if (rres.succeeded()) {
+                  sendReloadSignal(res-> {
+                    if ( res.succeeded())
+                      ctx.response().setStatusCode(204).end();
+                    else { // TODO - What can be done if sending signal fails?
+                      // Probably best to report failure of deleting the module
+                      // we can not really undelete it here...
+                      ctx.response().setStatusCode(500).end(rres.cause().getMessage());
+                    }
+                  });
+                } else {
+                  ctx.response().setStatusCode(500).end(rres.cause().getMessage());
+                }
+              });
+            } else {
+              // TODO - what to do if the thing was not in the db?
+              // Could be ok, could be inconsistent database...
+              System.out.println("Delete (db) failed to find the module"  );
+              ctx.response().setStatusCode(404).end("Delete did not find the module in the ");
+            }
+          } else {
+            System.out.println("delete failed to find the module in the db:" + dres.cause().getMessage());
+            ctx.response().setStatusCode(500).end(dres.cause().getMessage());
+          }
+        });
       }
     });
   }
-
 
   // TODO - Refactor this so that this part generates a list of modules,
   // and the module manager restarts and stops what is needed. Later.
