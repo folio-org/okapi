@@ -23,11 +23,10 @@ import okapi.util.Failure;
 import okapi.util.Success;
 
 /* TODO
-  - Message bus to force a reload after any op: broadcast, receive, reload
   - Factor the Mongo stuff away, make a memory-only alternative
   - Remove http stuff from moduleservice
   - Rename moduleService to moduleManager
-
+  - Same stuff for the tenants
 */
 
 
