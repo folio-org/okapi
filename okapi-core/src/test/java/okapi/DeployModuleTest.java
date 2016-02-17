@@ -148,7 +148,7 @@ public class DeployModuleTest {
   }
 
   public void postBadJSON(TestContext context) {
-    System.out.println("deployAuth");
+    System.out.println("deployBadJson");
     final String bad_doc = "{"+LS
             + "  \"name\" : \"auth\","+LS  // the comma here makes it bad json!
             + "}";
@@ -210,6 +210,8 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
+      context.assertNotNull(locationAuth);
+      System.out.println("Deployed sample: " + locationAuth);
       response.endHandler(x -> {
         deploySample(context);
       });

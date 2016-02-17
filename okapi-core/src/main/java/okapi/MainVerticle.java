@@ -19,18 +19,25 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import okapi.bean.Modules;
-import okapi.service.HealthService;
-import okapi.service.ModuleDbService;
+import opkapi.web.HealthService;
+import okapi.service.ModuleStore;
+import opkapi.web.ModuleWebService;
 import okapi.service.ProxyService;
+import okapi.service.TimeStampStore;
+import okapi.service.impl.ModuleStoreMemory;
+import okapi.service.impl.ModuleStoreMongo;
+import okapi.service.impl.TimeStampMemory;
+import okapi.service.impl.TimeStampMongo;
 
 public class MainVerticle extends AbstractVerticle {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
   private final int port_start = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
   private final int port_end = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
-  
+  private final String storage = System.getProperty("storage", "mongo");
+
   HealthService hc;
   ModuleManager ms;
-  ModuleDbService moduleDbService;
+  ModuleWebService moduleWebService;
   ProxyService ps;
   TenantService ts;
 
@@ -41,7 +48,23 @@ public class MainVerticle extends AbstractVerticle {
     ts = new TenantService(vertx);
     Modules modules = new Modules();
     ms = new ModuleManager(vertx, modules, port_start, port_end);
-    moduleDbService = new ModuleDbService(vertx, ms);
+    ModuleStore moduleStore = null;
+    TimeStampStore timeStampStore = null;
+
+    switch (storage) {
+      case "mongo":
+        moduleStore = new ModuleStoreMongo(vertx);
+        timeStampStore = new TimeStampMongo(vertx);
+        break;
+      case "inmemory":
+        moduleStore = new ModuleStoreMemory(vertx);
+        timeStampStore = new TimeStampMemory(vertx);
+        break;
+      default:
+        System.out.println("FATAL: Unknown storage type '" + storage + "'");
+        System.exit(1);
+    }
+    moduleWebService = new ModuleWebService(vertx, ms, moduleStore, timeStampStore );
     ps = new ProxyService(vertx, modules, ts);
   }
 
@@ -62,10 +85,10 @@ public class MainVerticle extends AbstractVerticle {
 
     //hijack everything to conduit to allow for configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
-    router.post("/_/modules/").handler(moduleDbService::create);
-    router.delete("/_/modules/:id").handler(moduleDbService::delete);
-    router.get("/_/modules/:id").handler(moduleDbService::get);
-    router.get("/_/modules/").handler(moduleDbService::list);
+    router.post("/_/modules/").handler(moduleWebService::create);
+    router.delete("/_/modules/:id").handler(moduleWebService::delete);
+    router.get("/_/modules/:id").handler(moduleWebService::get);
+    router.get("/_/modules/").handler(moduleWebService::list);
     router.post("/_/tenants").handler(ts::create);
     router.get("/_/tenants/").handler(ts::list);
     router.get("/_/tenants/:id").handler(ts::get);
@@ -73,8 +96,8 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(ts::enableModule);
     router.get("/_/tenants/:id/modules").handler(ts::listModules);
     router.get("/_/health").handler(hc::get);
-    router.delete("/_/initmodules").handler(moduleDbService::init);
-    router.get("/_/reloadmodules").handler(moduleDbService::reloadModules);
+    router.delete("/_/initmodules").handler(moduleWebService::init);
+    router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
 
     router.route("/_*").handler(this::NotFound);
     
