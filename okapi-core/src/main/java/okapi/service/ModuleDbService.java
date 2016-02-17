@@ -23,8 +23,8 @@ import okapi.util.Failure;
 import okapi.util.Success;
 
 /* TODO
-  - Factor the Mongo stuff away, make a memory-only alternative
   - Remove http stuff from moduleservice
+  - Factor the Mongo stuff away, make a memory-only alternative
   - Rename moduleService to moduleManager
   - Same stuff for the tenants
 */

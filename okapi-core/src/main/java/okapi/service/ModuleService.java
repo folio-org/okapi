@@ -5,7 +5,6 @@
  */
 package okapi.service;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
 import okapi.bean.ModuleInstance;
@@ -13,15 +12,16 @@ import okapi.bean.Modules;
 import okapi.bean.Ports;
 import okapi.bean.ProcessModuleHandle;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
-import io.vertx.ext.web.RoutingContext;
 import java.util.Set;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Manages the running modules, and the ports they listen on
+ *
+ */
 public class ModuleService {
   private Modules modules;
   private Ports ports;
@@ -76,44 +76,6 @@ public class ModuleService {
       }
   }
 
-  public void create(RoutingContext ctx) {
-    try {
-      final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-              ModuleDescriptor.class);
-      final String id = md.getId();
-      create(md, res->{
-        if(res.succeeded()) {
-          ctx.response().setStatusCode(201)
-                  .putHeader("Location", ctx.request().uri() + "/" + res.result())
-                  .end();
-        } else {
-          if ( res.getType() == INTERNAL ) {
-            ctx.response().setStatusCode(500).end(res.cause().getMessage());
-          } else if ( res.getType() == USER ) {
-            ctx.response().setStatusCode(400).end(res.cause().getMessage());
-          }
-        }
-      });
-    } catch (DecodeException ex) {
-      ctx.response().setStatusCode(400).end(ex.getMessage());
-    }
-  }
-
-  // TODO - Drop ctx, do memory only, w callback, like create
-  public void delete(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-
-    this.delete(id, res->{
-      if ( res.succeeded())
-        ctx.response().setStatusCode(204).end();
-      else {
-        if (res.getType() == NOT_FOUND )
-          ctx.response().setStatusCode(404).end(res.cause().getMessage());
-        else
-          ctx.response().setStatusCode(500).end(res.cause().getMessage());
-      }
-    });
-  }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     ModuleInstance m = modules.get(id);
