@@ -22,13 +22,12 @@ import okapi.util.Success;
  * Manages the running modules, and the ports they listen on
  *
  */
-public class ModuleService {
-  private Modules modules;
-  private Ports ports;
-
+public class ModuleManager {
+  private final Modules modules;
+  private final Ports ports;
   final private Vertx vertx;
 
-  public ModuleService(Vertx vertx, Modules modules, int port_start, int port_end) {
+  public ModuleManager(Vertx vertx, Modules modules, int port_start, int port_end) {
     this.vertx = vertx;
     this.ports = new Ports(port_start, port_end);
     this.modules = modules;

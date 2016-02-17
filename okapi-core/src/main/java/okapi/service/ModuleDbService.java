@@ -23,15 +23,18 @@ import okapi.util.Failure;
 import okapi.util.Success;
 
 /* TODO
-  - Remove http stuff from moduleservice
   - Factor the Mongo stuff away, make a memory-only alternative
-  - Rename moduleService to moduleManager
   - Same stuff for the tenants
 */
 
-
+/**
+ * Services related to adding and deleting modules.
+ * All operations try to do the thing on the locally running system first.
+ * If that succeeds, they update the database, and tell other instances to
+ * reload the configuration.
+ */
 public class ModuleDbService {
-  ModuleService moduleService;
+  ModuleManager moduleService;
   MongoClient cli;
   EventBus eb;
   private final String eventBusName = "okapi.conf.modules";
@@ -39,9 +42,9 @@ public class ModuleDbService {
   final String collection = "okapi.modules";
   final String timestampCollection = "okapi.timestamps";
   final String timestampId = "modules";
-  private Long timestamp = new Long(-1);
+  private Long timestamp = (long) -1;
 
-  public ModuleDbService(Vertx vertx, ModuleService moduleService) {
+  public ModuleDbService(Vertx vertx, ModuleManager moduleService) {
     this.vertx = vertx;
     this.moduleService = moduleService;
 

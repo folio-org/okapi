@@ -5,7 +5,7 @@
  */
 package okapi;
 
-import okapi.service.ModuleService;
+import okapi.service.ModuleManager;
 import okapi.service.TenantService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
@@ -29,7 +29,7 @@ public class MainVerticle extends AbstractVerticle {
   private final int port_end = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
   
   HealthService hc;
-  ModuleService ms;
+  ModuleManager ms;
   ModuleDbService moduleDbService;
   ProxyService ps;
   TenantService ts;
@@ -40,7 +40,7 @@ public class MainVerticle extends AbstractVerticle {
     hc = new HealthService();
     ts = new TenantService(vertx);
     Modules modules = new Modules();
-    ms = new ModuleService(vertx, modules, port_start, port_end);
+    ms = new ModuleManager(vertx, modules, port_start, port_end);
     moduleDbService = new ModuleDbService(vertx, ms);
     ps = new ProxyService(vertx, modules, ts);
   }
