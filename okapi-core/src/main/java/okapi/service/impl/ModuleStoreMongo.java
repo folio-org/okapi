@@ -27,12 +27,10 @@ public class ModuleStoreMongo implements ModuleStore {
   MongoClient cli;
   final private String collection = "okapi.modules";
 
-  public ModuleStoreMongo(Vertx vertx) {
-    JsonObject opt = new JsonObject().
-        put("host", "127.0.0.1"). // TODO - pass as parameters
-        put("port", 27017);       // or read from some kind of config
-    this.cli = MongoClient.createShared(vertx, opt);
+  public ModuleStoreMongo(MongoHandle mongo) {
+    this.cli = mongo.getClient();
   }
+    
 
   /**
    * Initialize the whole database.

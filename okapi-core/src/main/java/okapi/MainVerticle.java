@@ -26,6 +26,7 @@ import okapi.service.ProxyService;
 import okapi.service.TimeStampStore;
 import okapi.service.impl.ModuleStoreMemory;
 import okapi.service.impl.ModuleStoreMongo;
+import okapi.service.impl.MongoHandle;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 
@@ -53,8 +54,9 @@ public class MainVerticle extends AbstractVerticle {
 
     switch (storage) {
       case "mongo":
-        moduleStore = new ModuleStoreMongo(vertx);
-        timeStampStore = new TimeStampMongo(vertx);
+        MongoHandle mongo = new MongoHandle(vertx);
+        moduleStore = new ModuleStoreMongo(mongo);
+        timeStampStore = new TimeStampMongo(mongo);
         break;
       case "inmemory":
         moduleStore = new ModuleStoreMemory(vertx);

@@ -7,9 +7,7 @@ package okapi.service.impl;
 
 import okapi.service.TimeStampStore;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.ext.mongo.MongoClient;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import java.util.List;
 import static okapi.util.ErrorType.INTERNAL;
@@ -26,11 +24,8 @@ public class TimeStampMongo implements TimeStampStore {
   MongoClient cli;
   final private String collection = "okapi.timestamps";
 
-  public TimeStampMongo(Vertx vertx) {
-    JsonObject opt = new JsonObject().
-      put("host", "127.0.0.1"). // TODO - pass as parameters
-      put("port", 27017);       // or read from some kind of config
-    this.cli = MongoClient.createShared(vertx, opt);
+  public TimeStampMongo(MongoHandle mongo) {
+    this.cli = mongo.getClient();
   }
 
   @Override
