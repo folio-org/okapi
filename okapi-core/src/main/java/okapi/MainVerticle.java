@@ -6,7 +6,7 @@
 package okapi;
 
 import okapi.service.ModuleManager;
-import okapi.service.TenantService;
+import opkapi.web.TenantWebService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -23,6 +23,7 @@ import opkapi.web.HealthService;
 import okapi.service.ModuleStore;
 import opkapi.web.ModuleWebService;
 import okapi.service.ProxyService;
+import okapi.service.TenantManager;
 import okapi.service.TimeStampStore;
 import okapi.service.impl.ModuleStoreMemory;
 import okapi.service.impl.ModuleStoreMongo;
@@ -40,13 +41,17 @@ public class MainVerticle extends AbstractVerticle {
   ModuleManager ms;
   ModuleWebService moduleWebService;
   ProxyService ps;
-  TenantService ts;
+  TenantWebService ts;
 
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
     hc = new HealthService();
-    ts = new TenantService(vertx);
+
+    TenantManager tman = new TenantManager();
+    ts = new TenantWebService(vertx, tman);
+
+
     Modules modules = new Modules();
     ms = new ModuleManager(vertx, modules, port_start, port_end);
     ModuleStore moduleStore = null;

@@ -5,6 +5,7 @@
  */
 package okapi.service;
 
+import opkapi.web.TenantWebService;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
 import okapi.bean.Tenant;
@@ -24,11 +25,11 @@ import okapi.bean.RoutingEntry;
 public class ProxyService {
   private Modules modules;
   private HttpClient httpClient;
-  private TenantService tenantService;
+  private TenantWebService tenantService;
 
   final private Vertx vertx;
 
-  public ProxyService(Vertx vertx, Modules modules, TenantService ts) {
+  public ProxyService(Vertx vertx, Modules modules, TenantWebService ts) {
     this.vertx = vertx;
     this.modules = modules;
     this.tenantService = ts;

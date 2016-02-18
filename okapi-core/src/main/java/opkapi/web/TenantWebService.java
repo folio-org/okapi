@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.service;
+package opkapi.web;
 
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
@@ -14,15 +14,20 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
+import okapi.service.TenantManager;
+import okapi.util.ErrorType;
+import static okapi.util.ErrorType.*;
 
-public class TenantService {
+public class TenantWebService {
   
   final private Vertx vertx;
+  TenantManager tenants;
+
+  Map<String, Tenant> tenantMap = new HashMap<>();
   
-  Map<String, Tenant> enabled = new HashMap<>();
-  
-  public TenantService(Vertx vertx) {
+  public TenantWebService(Vertx vertx, TenantManager tenantManager) {
     this.vertx = vertx;
+    this.tenants = tenantManager;
   }
 
   public void create(RoutingContext ctx) {
@@ -32,7 +37,7 @@ public class TenantService {
       final String id = td.getId();
       final String uri = ctx.request().uri() + "/" + id;
       
-      enabled.put(id, new Tenant(td));
+      tenants.put(id, new Tenant(td));
       ctx.response().setStatusCode(201).putHeader("Location", uri).end();
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
@@ -40,14 +45,14 @@ public class TenantService {
   }
   
   public void list(RoutingContext ctx) {
-    String s = Json.encodePrettily( enabled.keySet());
+    String s = Json.encodePrettily(tenants.getIds());
     ctx.response().end(s);
   }
 
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    Tenant tenant = enabled.get(id);
+    Tenant tenant = tenants.get(id);
     if (tenant == null) {
       ctx.response().setStatusCode(404).end();
       return;      
@@ -56,36 +61,35 @@ public class TenantService {
     ctx.response().end(s);
   }
   
-  public Tenant get(String id) {
-    return enabled.get(id);
+  public Tenant get(String id) {  // TODO - should not be needed, belongs in the TenantService, which already has it
+    return tenants.get(id);
   }
   
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-
-    if (!enabled.containsKey(id)) {
+    if ( tenants.delete(id))
+      ctx.response().setStatusCode(204).end();
+    else
       ctx.response().setStatusCode(404).end();
-      return;
-    }
-    enabled.remove(id);
-    ctx.response().setStatusCode(204).end();
   }
   
   public void enableModule(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-
-    Tenant tenant = enabled.get(id);
-    if (tenant == null) {
-      ctx.response().setStatusCode(404).end();
-      return;
-    }
     try {
+      final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantModuleDescriptor.class);
-      
       final String module = td.getModule();
-      tenant.enableModule(module);
-      ctx.response().setStatusCode(200).end();
+      ErrorType err =  tenants.enableModule(id, module);
+      switch(err) {
+        case OK:
+          ctx.response().setStatusCode(200).end();  // 204 - no content??
+          break;
+        case NOT_FOUND:
+          ctx.response().setStatusCode(404).end();
+          break;
+        default:
+          ctx.response().setStatusCode(400).end();
+      }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
@@ -94,7 +98,7 @@ public class TenantService {
   public void listModules(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    Tenant tenant = enabled.get(id);
+    Tenant tenant = tenants.get(id);
     if (tenant == null) {
       ctx.response().setStatusCode(404).end();
       return;
