@@ -37,8 +37,10 @@ public class TenantWebService {
       final String id = td.getId();
       final String uri = ctx.request().uri() + "/" + id;
       
-      tenants.put(id, new Tenant(td));
-      ctx.response().setStatusCode(201).putHeader("Location", uri).end();
+      if ( tenants.insert(id, new Tenant(td)) )
+        ctx.response().setStatusCode(201).putHeader("Location", uri).end();
+      else
+        ctx.response().setStatusCode(400).end("Duplicate id " + id);
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
