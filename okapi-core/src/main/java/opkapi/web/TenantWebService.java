@@ -12,6 +12,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Set;
 import okapi.service.TenantManager;
 import okapi.service.impl.TenantStoreMemory;
 import okapi.util.ErrorType;
@@ -35,7 +36,6 @@ public class TenantWebService {
         TenantDescriptor.class);
       Tenant t = new Tenant(td);
       final String id = td.getId();
-      System.out.println("TenantWebService.create: " + Json.encode(t));
       if (tenants.insert(t)) {
         tenantStore.insert(t, res -> {
           if (res.succeeded()) {
@@ -103,16 +103,21 @@ public class TenantWebService {
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantModuleDescriptor.class);
       final String module = td.getModule();
+      // TODO - Validate we know about that module!
       ErrorType err =  tenants.enableModule(id, module);
-      switch(err) {
-        case OK:
-          ctx.response().setStatusCode(200).end();  // 204 - no content??
-          break;
-        case NOT_FOUND:
+      if ( err == OK ) {
+        tenantStore.enableModule(id, module, res->{
+          if ( res.succeeded() ) {
+            ctx.response().setStatusCode(200).end();  // 204 - no content??
+          } else {
+            ctx.response().setStatusCode(500).end(res.cause().getMessage());
+          }
+        });
+
+      } else if ( err == NOT_FOUND ) {
           ctx.response().setStatusCode(404).end();
-          break;
-        default:
-          ctx.response().setStatusCode(400).end();
+      } else {
+          ctx.response().setStatusCode(500).end();
       }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
@@ -121,13 +126,19 @@ public class TenantWebService {
 
   public void listModules(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-
-    Tenant tenant = tenants.get(id);
-    if (tenant == null) {
-      ctx.response().setStatusCode(404).end();
-      return;
-    }
-    String s = Json.encodePrettily(tenant.listModules());
-    ctx.response().setStatusCode(200).end(s);
+    tenantStore.get(id, res->{
+      if ( res.succeeded()) {
+        Tenant t = res.result();
+        String s = Json.encodePrettily(t.listModules());
+        ctx.response().setStatusCode(200).end(s);
+      } else {
+        if ( res.getType() == NOT_FOUND) {
+          ctx.response().setStatusCode(404).end(res.cause().getMessage());
+        } else {
+          ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        }
+      }
+    });
   }
-}
+
+} // class

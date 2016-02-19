@@ -32,7 +32,6 @@ public class TenantStoreMemory {
                      Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getName(); // TODO - Should be getId()  Issue #43
     tenants.put(id, t);
-    System.out.println("TenantStore: Inserted tenant " + id + ":" + Json.encode(t));
     fut.handle(new Success<>(id));
   }
 
@@ -40,10 +39,8 @@ public class TenantStoreMemory {
     List<String> tl = new ArrayList<>();
     for ( String id : tenants.keySet() ) {
       Tenant t = tenants.get(id);
-      System.out.println("TenantStore: listIds: Looking at " + id + ": " + Json.encode(tenants.get(id)));
       tl.add(t.getId());
     }
-    System.out.println("TenantStore: listIds " + Json.encode(tl));
     fut.handle(new Success<>(tl));
   }
 
@@ -60,5 +57,18 @@ public class TenantStoreMemory {
       fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
     }
   }
+
+  public void enableModule(String id, String module,
+        Handler<ExtendedAsyncResult<Void>> fut ) {
+    Tenant t = tenants.get(id);
+    if ( t == null ) {
+      fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
+    } else {
+      t.enableModule(module);
+      fut.handle(new Success<>());
+    }
+
+  }
+
 
 }
