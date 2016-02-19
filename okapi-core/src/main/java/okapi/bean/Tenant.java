@@ -5,7 +5,6 @@
  */
 package okapi.bean;
 
-import okapi.bean.TenantDescriptor;
 import java.util.HashMap;
 import java.util.Set;
 
@@ -20,6 +19,10 @@ public class Tenant {
 
   public String getName() {
     return td.getName();
+  }
+
+  public String getId() {
+    return td.getId();
   }
 
   public TenantDescriptor getDescriptor() {

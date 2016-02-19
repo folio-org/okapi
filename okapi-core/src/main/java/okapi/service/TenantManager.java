@@ -6,6 +6,7 @@
 
 package okapi.service;
 
+import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ import static okapi.util.ErrorType.*;
  * need to use vert.x callbacks for this.
  *
  * TODO
+ * - What is it with tenant name/id stuff ??
  * - Add storage stuff to the tenantWebService
  * - Add tenant reloading
  * - Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
@@ -28,15 +30,20 @@ import static okapi.util.ErrorType.*;
 public class TenantManager {
   Map<String, Tenant> tenants = new HashMap<>();
 
-  public boolean insert(String id, Tenant t) {
-    if ( tenants.containsKey(id))
+  public boolean insert(Tenant t) {
+    String id = t.getId();
+    if ( tenants.containsKey(id)) {
+      System.out.println("TenantManager: Not inserting " + id + ":" + Json.encode(t));
       return false;
+    }
     tenants.put(id, t);
+    System.out.println("TenantManager: Inserted " + id + ":" + Json.encode(t));
     return true;
   }
 
   public Set<String> getIds() {
     Set<String> ids = tenants.keySet();
+    System.out.println("TenantManager: getIds: " + Json.encode(ids));
     return ids;
   }
 

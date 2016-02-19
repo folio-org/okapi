@@ -25,14 +25,15 @@ import okapi.bean.RoutingEntry;
 public class ProxyService {
   private Modules modules;
   private HttpClient httpClient;
-  private TenantWebService tenantService;
+  //private TenantWebService tenantService;
+  private TenantManager tenantService;
 
   final private Vertx vertx;
 
-  public ProxyService(Vertx vertx, Modules modules, TenantWebService ts) {
+  public ProxyService(Vertx vertx, Modules modules, TenantManager tm) {
     this.vertx = vertx;
     this.modules = modules;
-    this.tenantService = ts;
+    this.tenantService = tm;
     this.httpClient = vertx.createHttpClient();
   }
   

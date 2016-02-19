@@ -11,26 +11,17 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.web.RoutingContext;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import io.vertx.core.eventbus.EventBus;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
-import okapi.service.impl.ModuleStoreMongo;
-import okapi.service.impl.TimeStampMongo;
 import okapi.service.TimeStampStore;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
-/* TODO
-  - Factor the Mongo stuff away, make a memory-only alternative
-  - Same stuff for the tenants
-*/
 
 /**
  * Services related to adding and deleting modules.

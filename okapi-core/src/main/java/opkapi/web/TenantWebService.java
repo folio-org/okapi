@@ -12,9 +12,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
-import java.util.HashMap;
-import java.util.Map;
 import okapi.service.TenantManager;
+import okapi.service.impl.TenantStoreMemory;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 
@@ -22,57 +21,80 @@ public class TenantWebService {
   
   final private Vertx vertx;
   TenantManager tenants;
-
-  Map<String, Tenant> tenantMap = new HashMap<>();
+  TenantStoreMemory tenantStore;
   
-  public TenantWebService(Vertx vertx, TenantManager tenantManager) {
+  public TenantWebService(Vertx vertx, TenantManager tenantManager, TenantStoreMemory tenantStore) {
     this.vertx = vertx;
     this.tenants = tenantManager;
+    this.tenantStore = tenantStore;
   }
 
   public void create(RoutingContext ctx) {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
-              TenantDescriptor.class);
+        TenantDescriptor.class);
+      Tenant t = new Tenant(td);
       final String id = td.getId();
-      final String uri = ctx.request().uri() + "/" + id;
-      
-      if ( tenants.insert(id, new Tenant(td)) )
-        ctx.response().setStatusCode(201).putHeader("Location", uri).end();
-      else
+      System.out.println("TenantWebService.create: " + Json.encode(t));
+      if (tenants.insert(t)) {
+        tenantStore.insert(t, res -> {
+          if (res.succeeded()) {
+            final String uri = ctx.request().uri() + "/" + id;
+            ctx.response().setStatusCode(201).putHeader("Location", uri).end();
+          } else { // TODO - Check what errors the mongo store can return
+            ctx.response().setStatusCode(400).end(res.cause().getMessage());
+          }
+        });
+      } else {
         ctx.response().setStatusCode(400).end("Duplicate id " + id);
+      }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }
   }
-  
+
   public void list(RoutingContext ctx) {
-    String s = Json.encodePrettily(tenants.getIds());
-    ctx.response().end(s);
+    tenantStore.listIds(res->{
+      if (res.succeeded()) {
+        String s = Json.encodePrettily(res.result());
+        ctx.response().end(s);
+      } else {
+        ctx.response().setStatusCode(400).end(res.cause().getMessage());
+      }
+    });
   }
 
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
 
-    Tenant tenant = tenants.get(id);
-    if (tenant == null) {
-      ctx.response().setStatusCode(404).end();
-      return;      
-    }
-    String s = Json.encodePrettily(tenant.getDescriptor());
-    ctx.response().end(s);
-  }
-  
-  public Tenant get(String id) {  // TODO - should not be needed, belongs in the TenantService, which already has it
-    return tenants.get(id);
+    tenantStore.get(id, res -> {
+      if ( res.succeeded() ) {
+        Tenant t = res.result();
+        if ( t != null ) {
+        String s = Json.encodePrettily(t.getDescriptor());
+        ctx.response().end(s);
+        } else {
+          ctx.response().setStatusCode(404).end();
+        }
+      } else {
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      }
+    });
   }
   
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-    if ( tenants.delete(id))
-      ctx.response().setStatusCode(204).end();
-    else
+    if ( tenants.delete(id)) {
+      tenantStore.delete(id, res->{
+        if ( res.succeeded()) {
+          ctx.response().setStatusCode(204).end();
+        } else {
+          ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        }
+      });
+    } else {
       ctx.response().setStatusCode(404).end();
+    }
   }
   
   public void enableModule(RoutingContext ctx) {

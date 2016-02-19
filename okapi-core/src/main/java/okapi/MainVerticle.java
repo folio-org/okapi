@@ -28,6 +28,7 @@ import okapi.service.TimeStampStore;
 import okapi.service.impl.ModuleStoreMemory;
 import okapi.service.impl.ModuleStoreMongo;
 import okapi.service.impl.MongoHandle;
+import okapi.service.impl.TenantStoreMemory;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 
@@ -48,8 +49,9 @@ public class MainVerticle extends AbstractVerticle {
     super.init(vertx, context);
     hc = new HealthService();
 
+    TenantStoreMemory tenantStore = new TenantStoreMemory();
     TenantManager tman = new TenantManager();
-    ts = new TenantWebService(vertx, tman);
+    ts = new TenantWebService(vertx, tman, tenantStore);
 
 
     Modules modules = new Modules();
@@ -72,7 +74,7 @@ public class MainVerticle extends AbstractVerticle {
         System.exit(1);
     }
     moduleWebService = new ModuleWebService(vertx, ms, moduleStore, timeStampStore );
-    ps = new ProxyService(vertx, modules, ts);
+    ps = new ProxyService(vertx, modules, tman);
   }
 
   public void NotFound(RoutingContext ctx) {
