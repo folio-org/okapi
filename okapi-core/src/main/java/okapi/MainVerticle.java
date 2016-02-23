@@ -24,11 +24,13 @@ import okapi.service.ModuleStore;
 import opkapi.web.ModuleWebService;
 import okapi.service.ProxyService;
 import okapi.service.TenantManager;
+import okapi.service.TenantStore;
 import okapi.service.TimeStampStore;
 import okapi.service.impl.ModuleStoreMemory;
 import okapi.service.impl.ModuleStoreMongo;
 import okapi.service.impl.MongoHandle;
 import okapi.service.impl.TenantStoreMemory;
+import okapi.service.impl.TenantStoreMongo;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 
@@ -37,22 +39,21 @@ public class MainVerticle extends AbstractVerticle {
   private final int port_start = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
   private final int port_end = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
   private final String storage = System.getProperty("storage", "mongo");
+  //private final String storage = System.getProperty("storage", "inmemory");
 
   HealthService hc;
   ModuleManager ms;
   ModuleWebService moduleWebService;
   ProxyService ps;
-  TenantWebService ts;
+  TenantWebService tenantWebService;
 
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
     hc = new HealthService();
 
-    TenantStoreMemory tenantStore = new TenantStoreMemory();
+    TenantStore tenantStore = null;
     TenantManager tman = new TenantManager();
-    ts = new TenantWebService(vertx, tman, tenantStore);
-
 
     Modules modules = new Modules();
     ms = new ModuleManager(vertx, modules, port_start, port_end);
@@ -64,16 +65,19 @@ public class MainVerticle extends AbstractVerticle {
         MongoHandle mongo = new MongoHandle(vertx);
         moduleStore = new ModuleStoreMongo(mongo);
         timeStampStore = new TimeStampMongo(mongo);
+        tenantStore = new TenantStoreMongo(mongo);
         break;
       case "inmemory":
         moduleStore = new ModuleStoreMemory(vertx);
         timeStampStore = new TimeStampMemory(vertx);
+        tenantStore = new TenantStoreMemory();
         break;
       default:
         System.out.println("FATAL: Unknown storage type '" + storage + "'");
         System.exit(1);
     }
     moduleWebService = new ModuleWebService(vertx, ms, moduleStore, timeStampStore );
+    tenantWebService = new TenantWebService(vertx, tman, tenantStore);
     ps = new ProxyService(vertx, modules, tman);
   }
 
@@ -98,14 +102,15 @@ public class MainVerticle extends AbstractVerticle {
     router.delete("/_/modules/:id").handler(moduleWebService::delete);
     router.get("/_/modules/:id").handler(moduleWebService::get);
     router.get("/_/modules/").handler(moduleWebService::list);
-    router.post("/_/tenants").handler(ts::create);
-    router.get("/_/tenants/").handler(ts::list);
-    router.get("/_/tenants/:id").handler(ts::get);
-    router.delete("/_/tenants/:id").handler(ts::delete);
-    router.post("/_/tenants/:id/modules").handler(ts::enableModule);
-    router.get("/_/tenants/:id/modules").handler(ts::listModules);
+    router.post("/_/tenants").handler(tenantWebService::create);
+    router.get("/_/tenants/").handler(tenantWebService::list);
+    router.get("/_/tenants/:id").handler(tenantWebService::get);
+    router.delete("/_/tenants/:id").handler(tenantWebService::delete);
+    router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
+    router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/health").handler(hc::get);
     router.delete("/_/initmodules").handler(moduleWebService::init);
+    router.delete("/_/inittenants").handler(tenantWebService::init);
     router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
 
     router.route("/_*").handler(this::NotFound);

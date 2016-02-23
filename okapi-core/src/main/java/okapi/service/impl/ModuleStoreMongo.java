@@ -89,6 +89,7 @@ public class ModuleStoreMongo implements ModuleStore {
       }
     });
   }
+  
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     final String q = "{}";

@@ -12,9 +12,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Set;
 import okapi.service.TenantManager;
-import okapi.service.impl.TenantStoreMemory;
+import okapi.service.TenantStore;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 
@@ -22,13 +21,32 @@ public class TenantWebService {
   
   final private Vertx vertx;
   TenantManager tenants;
-  TenantStoreMemory tenantStore;
+  TenantStore tenantStore;
   
-  public TenantWebService(Vertx vertx, TenantManager tenantManager, TenantStoreMemory tenantStore) {
+  public TenantWebService(Vertx vertx, TenantManager tenantManager, TenantStore tenantStore) {
     this.vertx = vertx;
     this.tenants = tenantManager;
     this.tenantStore = tenantStore;
   }
+
+  public void init(RoutingContext ctx) {
+    tenantStore.init(res->{
+      if (res.succeeded()) {
+        ctx.response().setStatusCode(204).end();
+        /*
+        this.sendReloadSignal(res2->{
+          if ( res.succeeded()){
+            ctx.response().setStatusCode(204).end();
+          }else
+            ctx.response().setStatusCode(500).end(res2.cause().getMessage());
+        });
+                */
+      } else {
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+      }
+    });
+  }
+
 
   public void create(RoutingContext ctx) {
     try {
@@ -70,14 +88,13 @@ public class TenantWebService {
     tenantStore.get(id, res -> {
       if ( res.succeeded() ) {
         Tenant t = res.result();
-        if ( t != null ) {
         String s = Json.encodePrettily(t.getDescriptor());
         ctx.response().end(s);
-        } else {
-          ctx.response().setStatusCode(404).end();
-        }
       } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        if ( res.getType() == NOT_FOUND )
+          ctx.response().setStatusCode(404).end(res.cause().getMessage());
+        else
+          ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }
     });
   }
@@ -110,12 +127,16 @@ public class TenantWebService {
           if ( res.succeeded() ) {
             ctx.response().setStatusCode(200).end();  // 204 - no content??
           } else {
-            ctx.response().setStatusCode(500).end(res.cause().getMessage());
+            if (res.getType() == NOT_FOUND) {
+              ctx.response().setStatusCode(404).end(res.cause().getMessage());
+            } else {
+              ctx.response().setStatusCode(500).end(res.cause().getMessage());
+            }
           }
         });
 
       } else if ( err == NOT_FOUND ) {
-          ctx.response().setStatusCode(404).end();
+          ctx.response().setStatusCode(404).end("Tenant " + id + " not found (enableModule)");
       } else {
           ctx.response().setStatusCode(500).end();
       }

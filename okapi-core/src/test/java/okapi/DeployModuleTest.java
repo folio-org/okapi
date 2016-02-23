@@ -127,8 +127,18 @@ public class DeployModuleTest {
   }
 
   public void initModules(TestContext context) {
-    System.out.println("useUnknownService");
+    System.out.println("initModules");
     httpClient.delete(port, "localhost", "/_/initmodules", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        initTenants(context);
+      });
+    }).end();
+  }
+
+  public void initTenants(TestContext context) {
+    System.out.println("initTenants");
+    httpClient.delete(port, "localhost", "/_/inittenants", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         postUnknownService(context);
@@ -294,6 +304,7 @@ public class DeployModuleTest {
             + "  \"module\" : \"auth\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      System.out.println("tenantEnableModuleAuth: " +response.statusCode() + " " + response.statusMessage() );
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         tenantListModules1(context);

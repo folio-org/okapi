@@ -59,7 +59,21 @@ public class TenantTest {
   @Test
   public void test1(TestContext context) {
     this.async = context.async();
-    healthCheck(context);
+    initTenants(context);
+  }
+
+  public void initTenants(TestContext context) {
+    System.out.println("initTenants");
+    httpClient.delete(port, "localhost", "/_/inittenants", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        healthCheck(context);
+      });
+    }).end();
+  }
+
+  public void initStoreage(TestContext context) {
+
   }
 
   public void healthCheck(TestContext context) {
@@ -156,6 +170,7 @@ public class TenantTest {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         location = response.getHeader("Location");
+        System.out.println("post2: location: " + location);
         listOne2(context);
       });
     }).end(doc1);

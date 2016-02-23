@@ -5,28 +5,55 @@
  */
 package okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.*;
+import io.vertx.core.json.Json;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class Tenant {
-  private final TenantDescriptor td;
+  @JsonProperty
+  private TenantDescriptor descriptor;
+  @JsonProperty
+  private  Map<String,Boolean> enabled;
   
-  private final HashMap<String,Boolean> enabled = new HashMap<>();
+  public Tenant(TenantDescriptor descriptor) {
+    this.descriptor = descriptor;
+    this.enabled = new HashMap<>();
+  }
   
-  public Tenant(TenantDescriptor td) {
-    this.td = td;
+  public Tenant(TenantDescriptor descriptor, Map<String,Boolean> enabled) {
+    this.descriptor = descriptor;
+    this.enabled = enabled;
   }
 
+  public Tenant() {
+    this.descriptor = new TenantDescriptor();
+    this.enabled = new HashMap<>();
+  }
+
+  /**
+   * Get the name.
+   * The JsonIgnore tells Json not to encode the name as a top-level thing
+   * @return
+   */
+  @JsonIgnore
   public String getName() {
-    return td.getName();
+    return descriptor.getName();
   }
 
+  @JsonIgnore
   public String getId() {
-    return td.getId();
+    return descriptor.getId();
   }
 
   public TenantDescriptor getDescriptor() {
-    return td;
+    return descriptor;
+  }
+
+  public Map<String,Boolean> getEnabled() {
+    return enabled;
   }
 
   public void enableModule(String n) {

@@ -21,8 +21,7 @@ import static okapi.util.ErrorType.*;
  * need to use vert.x callbacks for this.
  *
  * TODO
- * - What is it with tenant name/id stuff ??
- * - Add storage stuff to the tenantWebService
+ * - Add mongo storage 
  * - Add tenant reloading
  * - Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
  */
