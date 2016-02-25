@@ -29,17 +29,17 @@ public class TimeStampMongo implements TimeStampStore {
   }
 
   @Override
-  public void updateTimeStamp(String stampId, Handler<ExtendedAsyncResult<Long>> fut) {
-    // TODO - Get the current timestamp, check if in the future
-    // If so, just increment it by 1 ms, and hope we will catch up in time
-    // This may work with daylight saving changes, but is not a generic solution
+  public void updateTimeStamp(String stampId,  long currentStamp, Handler<ExtendedAsyncResult<Long>> fut) {
     long ts = System.currentTimeMillis();
+        if ( ts < currentStamp )  // the clock jumping backwards, or something
+      ts = currentStamp + 1;
+    final Long tsL = ts; // just to make it a final thing for the callback...
     final String q = "{ \"_id\": \"" + stampId + "\", "
                  + "\"timestamp\": \" " + Long.toString(ts)+ "\" }";
     JsonObject doc = new JsonObject(q);
     cli.save(collection, doc, res-> {
       if ( res.succeeded() ) {
-          fut.handle(new Success<>(new Long(ts)));
+          fut.handle(new Success<>(tsL));
       } else {
         fut.handle(new Failure<>(INTERNAL, "Updating timestamp  " + stampId + " failed: "
                  + res.cause().getMessage() ));

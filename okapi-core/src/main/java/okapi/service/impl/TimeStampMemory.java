@@ -8,13 +8,7 @@ package okapi.service.impl;
 import okapi.service.TimeStampStore;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.ext.mongo.MongoClient;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import java.util.List;
-import static okapi.util.ErrorType.INTERNAL;
 import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
 import okapi.util.Success;
 
 
@@ -29,8 +23,10 @@ public class TimeStampMemory implements TimeStampStore {
   }
 
   @Override
-  public void updateTimeStamp(String stampId, Handler<ExtendedAsyncResult<Long>> fut) {
+  public void updateTimeStamp(String stampId, long currentStamp, Handler<ExtendedAsyncResult<Long>> fut) {
     long ts = System.currentTimeMillis();
+    if ( ts < currentStamp )  // the clock jumping backwards, or something
+      ts = currentStamp + 1;
     lastTs = ts;
     fut.handle(new Success<>(ts));
   }

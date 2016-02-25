@@ -16,6 +16,6 @@ public interface TimeStampStore {
 
   void getTimeStamp(String stampId, Handler<ExtendedAsyncResult<Long>> fut);
 
-  void updateTimeStamp(String stampId, Handler<ExtendedAsyncResult<Long>> fut);
+  void updateTimeStamp(String stampId, long currentStamp, Handler<ExtendedAsyncResult<Long>> fut);
 
 }

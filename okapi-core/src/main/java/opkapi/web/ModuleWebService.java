@@ -70,8 +70,7 @@ public class ModuleWebService {
   }
 
   public void updateTimeStamp(Handler<ExtendedAsyncResult<Long>> fut) {
-    this.timestamp = System.currentTimeMillis();
-    timeStampStore.updateTimeStamp(timestampId, res->{
+    timeStampStore.updateTimeStamp(timestampId, this.timestamp, res->{
       if ( res.succeeded() ) {
         this.timestamp = res.result();
         System.out.println("updated modules timestamp to " + timestamp);

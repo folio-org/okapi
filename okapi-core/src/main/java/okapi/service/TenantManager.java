@@ -68,7 +68,6 @@ public class TenantManager {
    *
    * @param id
    * @param module
-   * @param fut - callback with a success, or some type of error
    * @return
    */
   public ErrorType enableModule(String id, String module ) {

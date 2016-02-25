@@ -17,6 +17,14 @@ import okapi.service.TenantStore;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 
+/* TODO
+ - Define reload signal: tenant id and time stamp. Should be kept in the manager!
+ - Signal handler to recognize when to reload, and which tenant
+ - Web service to reload a given tenant
+ - Send reload signal on changes
+ - Check new time stamp is not less than the previous one - blindly increment if so
+*/
+
 public class TenantWebService {
   
   final private Vertx vertx;
