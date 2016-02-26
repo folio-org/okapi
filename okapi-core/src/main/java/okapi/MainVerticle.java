@@ -112,6 +112,7 @@ public class MainVerticle extends AbstractVerticle {
     router.delete("/_/initmodules").handler(moduleWebService::init);
     router.delete("/_/inittenants").handler(tenantWebService::init);
     router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
+    router.get("/_/reloadtenant/:id").handler(tenantWebService::reloadTenant);
 
     router.route("/_*").handler(this::NotFound);
     

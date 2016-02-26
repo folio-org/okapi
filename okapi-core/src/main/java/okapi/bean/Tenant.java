@@ -7,31 +7,48 @@ package okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.*;
-import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 public class Tenant {
+
   @JsonProperty
-  private TenantDescriptor descriptor;
+  final private TenantDescriptor descriptor;
+
   @JsonProperty
-  private  Map<String,Boolean> enabled;
+  final private  Map<String,Boolean> enabled;
+
+  @JsonIgnore
+  private long timestamp;
+
   
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;
     this.enabled = new HashMap<>();
+    this.timestamp = 0;
   }
   
   public Tenant(TenantDescriptor descriptor, Map<String,Boolean> enabled) {
     this.descriptor = descriptor;
     this.enabled = enabled;
+    this.timestamp = 0;
   }
 
   public Tenant() {
     this.descriptor = new TenantDescriptor();
     this.enabled = new HashMap<>();
+    this.timestamp = 0;
   }
+
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  public void setTimestamp(long timestamp) {
+    this.timestamp = timestamp;
+  }
+
 
   /**
    * Get the name.

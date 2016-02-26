@@ -343,6 +343,26 @@ public class DeployModuleTest {
         context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
       });
       response.endHandler(x -> {
+        reload(context);
+      });
+    }).end();
+  }
+
+  public void reload(TestContext context) {
+    httpClient.get(port, "localhost", "/_/reloadtenant/" + okapiTenant, response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        tenantListModules3(context);
+      });
+    }).end();
+  }
+  public void tenantListModules3(TestContext context) {
+    httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
+      });
+      response.endHandler(x -> {
         useWithoutTenant(context);
       });
     }).end();

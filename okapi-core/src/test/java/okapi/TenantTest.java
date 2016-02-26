@@ -5,7 +5,6 @@
  */
 package okapi;
 
-import okapi.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -182,6 +181,15 @@ public class TenantTest {
       response.handler(body -> {
         context.assertEquals("[ \"roskildedk\" ]", body.toString());
       });
+      response.endHandler(x -> {
+        reload2(context);
+      });
+    }).end();
+  }
+
+  public void reload2(TestContext context) {
+    httpClient.get(port, "localhost", "/_/reloadtenant/roskildedk", response -> {
+      context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         done(context);
       });

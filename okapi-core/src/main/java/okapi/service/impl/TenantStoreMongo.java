@@ -11,12 +11,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import okapi.bean.ModuleDescriptor;
 import okapi.bean.Tenant;
-import okapi.bean.TenantDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -31,6 +27,7 @@ public class TenantStoreMongo implements TenantStore {
   //Map<String, Tenant> tenants = new HashMap<>();
   MongoClient cli;
   final private String collection = "okapi.tenants";
+  private long lastTimestamp = 0;
 
   public TenantStoreMongo(MongoHandle mongo) {
     this.cli = mongo.getClient();
@@ -53,7 +50,7 @@ public class TenantStoreMongo implements TenantStore {
   @Override
   public void insert(Tenant t,
                      Handler<ExtendedAsyncResult<String>> fut) {
-    String id = t.getName(); // TODO - Should be getId()  Issue #43
+    String id = t.getId(); 
     String s = Json.encodePrettily(t);
     JsonObject document = new JsonObject(s);
     document.put("_id", id);
@@ -133,14 +130,14 @@ public class TenantStoreMongo implements TenantStore {
             } else {
               fut.handle(new Success<>());
             }
-          });
+          }); 
         }
       }
     } );
   }
 
   @Override
-  public void enableModule(String id, String module,
+  public void enableModule(String id, String module,  long timestamp,
         Handler<ExtendedAsyncResult<Void>> fut ) {
 
     final String q = "{ \"_id\": \"" + id + "\"}";
@@ -160,6 +157,7 @@ public class TenantStoreMongo implements TenantStore {
           d.remove("_id");
           System.out.println("TenantStoreMongo: enableModule: d: " +Json.encode(d) );
           final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
+          t.setTimestamp(timestamp);
           System.out.println("TenantStoreMongo: enableModule: " + Json.encodePrettily(t));
           t.enableModule(module);
           String s = Json.encodePrettily(t);
