@@ -114,7 +114,6 @@ public class ModuleManager {
       } else {
         pmh.stop(res -> {
           if (res.succeeded()) {
-            System.out.println("Stopped module " + id);
             ports.free(pmh.getPort());
           } else {
             System.out.println("Failed to stop module " + id + ":" + res.cause().getMessage());
@@ -122,7 +121,7 @@ public class ModuleManager {
             // TODO - What to in this case? Declare the whole node dead?
           }
           modules.remove(id); // remove in any case
-          System.out.println("Deleted module " + id);
+          System.out.println("Stopped and deleted module " + id);
           deleteAll(fut);
         });
       }

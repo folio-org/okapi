@@ -37,12 +37,10 @@ import okapi.service.impl.TimeStampMongo;
 
 public class MainVerticle extends AbstractVerticle {
 
-  private int port; //  = Integer.parseInt(System.getProperty("port", "9130"));
-  private int port_start; // = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
-  private int port_end; // = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
-  private String storage; // = System.getProperty("storage", "mongo");
-  //private final String storage = System.getProperty("storage", "inmemory");
-
+  private int port;
+  private int port_start;
+  private int port_end;
+  private String storage;
 
   HealthService hc;
   ModuleManager ms;
@@ -127,6 +125,9 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/health").handler(hc::get);
+
+    // TODO Remove these reload calls, as soon as we have an integration test
+    // that checks that the modules and tenants propagate between okapi nodes
     router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
     router.get("/_/reloadtenant/:id").handler(tenantWebService::reloadTenant);
 

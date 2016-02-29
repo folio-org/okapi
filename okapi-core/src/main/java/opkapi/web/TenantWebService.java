@@ -53,9 +53,7 @@ public class TenantWebService {
 
   private void sendReloadSignal(String id, long ts) {
     ReloadSignal sig = new ReloadSignal(id,ts);
-    //ReloadSignal sig = new ReloadSignal();
     String js = Json.encode(sig);
-    System.out.println("Sending signal " + js);
     eb.publish(eventBusName, js );
   }
 
@@ -68,7 +66,7 @@ public class TenantWebService {
     eb.consumer(eventBusName, message -> {
       ReloadSignal sig = Json.decodeValue(message.body().toString(), ReloadSignal.class);
       if ( this.lastTimestamp < sig.timestamp ) {
-        System.out.println("Received timestamp is newer than my own, reloading tenant " + sig.id);
+        //System.out.println("Received timestamp is newer than my own, reloading tenant " + sig.id);
         reloadTenant(sig.id, res->{
           if ( res.succeeded() ) {
             this.lastTimestamp = max(this.lastTimestamp,sig.timestamp);
@@ -79,9 +77,9 @@ public class TenantWebService {
           }
         });
       } else {
-        System.out.println("Received an older timestamp, "
-          + sig.timestamp + " >= " + this.lastTimestamp
-          + ". Not reloading tenant " + sig.id );
+        //System.out.println("Received an older timestamp, "
+        //  + sig.timestamp + " >= " + this.lastTimestamp
+        //  + ". Not reloading tenant " + sig.id );
       }
     });
 
