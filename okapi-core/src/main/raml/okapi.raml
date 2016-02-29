@@ -1,9 +1,14 @@
-#%RAML 1.0
+#%RAML 0.8
 title: Okapi Core API
 version: 0.1
-# baseUri: https://okapi.io
-mediaType:  application/json
-types: !include types.raml
+baseUri: https://okapi.io
+## mediaType:  application/json
+schemas:
+  - ModuleDescriptor: !include ModuleDescriptor.json
+  - TenantDescriptor: !include TenantDescriptor.json
+  - TenantModuleDescriptor: !include TenantModuleDescriptor.json
+  - TenantModules: !include TenantModules.json
+
 #resourceTypes:
 #traits:
 
@@ -27,9 +32,8 @@ types: !include types.raml
     responses:
       201:
         headers:
-         Location:
-          description: URI to the created module instance
-
+          Location:
+            description: URI to the created module instance
   /{module_id}:
     get:
       description: Retrieve information about the module instance
@@ -76,23 +80,23 @@ types: !include types.raml
           200:
             body:
               application/json:
-                schema: string[]
+                schema: TenantModules
       post:
         description: Link a module instance to the specified tenant
         body:
           application/json:
-          schema: TenantModuleDescriptor
+            schema: TenantModuleDescriptor
 
-        /{module_tenant_id}:
-          get:
-            description: look up tenant-module mapping
-            responses:
-              200:
-                body:
-                  application/json:
-                    schema: TenantModuleDescriptor
-          delete:
-            description: remove tenant-module registration
+      /{module_tenant_id}:
+        get:
+          description: look up tenant-module mapping
+          responses:
+            200:
+              body:
+                application/json:
+                  schema: TenantModuleDescriptor
+        delete:
+          description: remove tenant-module registration
 
 /_/health:
   get:
