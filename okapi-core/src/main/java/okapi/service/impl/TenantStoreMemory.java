@@ -28,12 +28,6 @@ public class TenantStoreMemory implements TenantStore {
   public TenantStoreMemory() {
   }
 
-  @Override
-  public void init(Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.clear();
-    fut.handle(new Success<>());
-  }
-
 
   @Override
   public void insert(Tenant t,

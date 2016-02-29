@@ -22,13 +22,6 @@ public interface ModuleStore {
 
   void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut);
 
-  /**
-   * Initialize the whole database.
-   * Watch out! Deletes all your modules from the database!
-   * @param fut
-   */
-  void init(Handler<ExtendedAsyncResult<Void>> fut);
-
   void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut);
 
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);

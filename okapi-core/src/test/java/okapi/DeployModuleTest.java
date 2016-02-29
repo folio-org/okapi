@@ -11,6 +11,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -38,7 +39,7 @@ public class DeployModuleTest {
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
-  private static String LS = System.lineSeparator();
+  private static final String LS = System.lineSeparator();
 
   public DeployModuleTest() {
   }
@@ -54,8 +55,12 @@ public class DeployModuleTest {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+    JsonObject conf = new JsonObject()
+      .put("storage", "inmemory");
 
-    DeploymentOptions opt = new DeploymentOptions();
+    System.out.println("About to deploy. conf= " + conf.encode());
+    DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
@@ -123,27 +128,7 @@ public class DeployModuleTest {
   @Test(timeout = 600000)
   public void test_sample(TestContext context) {
     async = context.async();
-    initModules(context);
-  }
-
-  public void initModules(TestContext context) {
-    System.out.println("initModules");
-    httpClient.delete(port, "localhost", "/_/initmodules", response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        initTenants(context);
-      });
-    }).end();
-  }
-
-  public void initTenants(TestContext context) {
-    System.out.println("initTenants");
-    httpClient.delete(port, "localhost", "/_/inittenants", response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        postUnknownService(context);
-      });
-    }).end();
+    postUnknownService(context);
   }
 
   public void postUnknownService(TestContext context) {

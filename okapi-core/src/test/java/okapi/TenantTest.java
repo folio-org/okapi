@@ -8,6 +8,7 @@ package okapi;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -42,7 +43,8 @@ public class TenantTest {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     
-    DeploymentOptions opt = new DeploymentOptions();
+    DeploymentOptions opt = new DeploymentOptions()
+      .setConfig(new JsonObject().put("storage", "inmemory"));
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     this.httpClient = vertx.createHttpClient();
@@ -58,21 +60,7 @@ public class TenantTest {
   @Test
   public void test1(TestContext context) {
     this.async = context.async();
-    initTenants(context);
-  }
-
-  public void initTenants(TestContext context) {
-    System.out.println("initTenants");
-    httpClient.delete(port, "localhost", "/_/inittenants", response -> {
-      context.assertEquals(204, response.statusCode());
-      response.endHandler(x -> {
-        healthCheck(context);
-      });
-    }).end();
-  }
-
-  public void initStoreage(TestContext context) {
-
+    healthCheck(context);
   }
 
   public void healthCheck(TestContext context) {

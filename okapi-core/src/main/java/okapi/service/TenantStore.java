@@ -16,8 +16,6 @@ import okapi.util.ExtendedAsyncResult;
  */
 public interface TenantStore {
 
-  void init(Handler<ExtendedAsyncResult<Void>> fut);
-
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
   void enableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut );

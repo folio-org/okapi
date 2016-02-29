@@ -28,16 +28,6 @@ public class ModuleStoreMemory implements ModuleStore {
   public ModuleStoreMemory(Vertx vertx) {
   }
 
-  /**
-   * Initialize the whole database.
-   * Watch out! Deletes all your modules from the database!
-   * @param fut
-   */
-  @Override
-  public void init(Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.clear();
-    fut.handle(new Success<>());
-  }
 
   @Override
   public void insert(ModuleDescriptor md,

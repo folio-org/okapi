@@ -49,21 +49,19 @@ public class ModuleWebService {
 
     this.eb = vertx.eventBus();
     eb.consumer(eventBusName, message -> {
-      System.out.println("I have received a message: " + message.body());
       Long receivedStamp = (Long)(message.body());
       if ( this.timestamp < receivedStamp ) {
-        System.out.println("Received message is newer than my config, reloading");
         reloadModules( rres-> {
           if ( rres.succeeded())
-            System.out.println("Reload succeeded");
+            System.out.println("Reload of modules succeeded");
           else {
-            System.out.println("Reload FAILED - No idea what to do about that!");
+            System.out.println("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
             // We have nowehere to report failures. Declare the whole node dead?
           }
         });
       } else {
-        System.out.println("Received stamp is not newer, not reloading");
+        //System.out.println("Received stamp is not newer, not reloading modules");
       }
     });
 
@@ -73,7 +71,7 @@ public class ModuleWebService {
     timeStampStore.updateTimeStamp(timestampId, this.timestamp, res->{
       if ( res.succeeded() ) {
         this.timestamp = res.result();
-        System.out.println("updated modules timestamp to " + timestamp);
+        //System.out.println("updated modules timestamp to " + timestamp);
           fut.handle(new Success<>(timestamp));
       } else {
         fut.handle(res);
@@ -88,21 +86,6 @@ public class ModuleWebService {
       else {
         eb.publish(eventBusName, res.result() );
         fut.handle(new Success<>(null));
-      }
-    });
-  }
-
-  public void init(RoutingContext ctx) {
-    moduleStore.init(res->{
-      if (res.succeeded()) {
-        this.sendReloadSignal(res2->{
-          if ( res.succeeded()){
-            ctx.response().setStatusCode(204).end();
-          }else
-            ctx.response().setStatusCode(500).end(res2.cause().getMessage());
-        });
-      } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }
     });
   }
@@ -145,11 +128,9 @@ public class ModuleWebService {
   }
 
   public void get(RoutingContext ctx) {
-    System.out.println("Dbs: get");
     final String id = ctx.request().getParam("id");
     final String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    System.out.println("Trying to get " + q);
     //cli.find(collection, jq, res -> {
     moduleStore.get(id, res->{
       if (res.succeeded()) {
@@ -183,7 +164,6 @@ public class ModuleWebService {
    */
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-    System.out.println("Starting to delete " + id);
     moduleManager.delete(id, sres->{
       if ( sres.failed()) {
         System.out.println("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
@@ -229,13 +209,12 @@ public class ModuleWebService {
   }
 
   public void reloadModules(Handler<ExtendedAsyncResult<Void>> fut) {
-    System.out.println("Starting to reload modules");
     moduleManager.deleteAll(res->{
       if ( res.failed()) {
-        System.out.println("Reload: Failed to delete all");
+        System.out.println("ReloadModules: Failed to delete all");
         fut.handle(res);
       } else {
-        System.out.println("Reload: Should restart all modules");
+        System.out.println("ReloadModules: Should restart all modules");
         vertx.setTimer(1000, t -> {
           loadModules(fut);
         });
@@ -251,7 +230,6 @@ public class ModuleWebService {
       if (res.failed()) {
         fut.handle( new Failure<>(INTERNAL,res.cause()));
       } else {
-        System.out.println("Got " + res.result().size() + " modules to deploy");
         Iterator<ModuleDescriptor> it = res.result().iterator();
         loadR(it,fut);
       }

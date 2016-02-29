@@ -15,6 +15,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import static java.lang.Long.max;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;
 import okapi.util.ErrorType;
@@ -24,10 +25,12 @@ import okapi.util.Failure;
 import okapi.util.Success;
 
 /* TODO
- - Web service to reload a given tenant, or all?
- - Define reload signal: tenant id and time stamp. Should be kept in the manager!
- - Signal handler to recognize when to reload, and which tenant
- - Send reload signal on changes
+ - Use in-memory for tests
+ - Clean debug output
+ - Testing scripts
+ - Check RAML
+ - Check documentation
+ - Merge to master
 */
 
 public class TenantWebService {
@@ -67,7 +70,9 @@ public class TenantWebService {
       if ( this.lastTimestamp < sig.timestamp ) {
         System.out.println("Received timestamp is newer than my own, reloading tenant " + sig.id);
         reloadTenant(sig.id, res->{
-          if ( res.failed() ) {
+          if ( res.succeeded() ) {
+            this.lastTimestamp = max(this.lastTimestamp,sig.timestamp);
+          } else {
             // TODO - What to do in this case. Nowhere to report any errors.
             System.out.println("Reloading tenant " + sig.id
               + "FAILED. Don't know what to do about that. PANIC!");
@@ -95,19 +100,6 @@ public class TenantWebService {
     lastTimestamp = ts;
     return ts;
   }
-
-  public void init(RoutingContext ctx) {
-    tenantStore.init(res->{
-      if (res.succeeded()) {
-        long ts = getTimestamp();
-        sendReloadSignal("", ts);
-        ctx.response().setStatusCode(204).end();
-      } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
-      }
-    });
-  }
-
 
   public void create(RoutingContext ctx) {
     try {

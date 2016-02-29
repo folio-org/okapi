@@ -12,6 +12,7 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -35,11 +36,13 @@ import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 
 public class MainVerticle extends AbstractVerticle {
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private final int port_start = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
-  private final int port_end = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
-  private final String storage = System.getProperty("storage", "mongo");
+
+  private int port; //  = Integer.parseInt(System.getProperty("port", "9130"));
+  private int port_start; // = Integer.parseInt(System.getProperty("port_start", Integer.toString(port+1) ));
+  private int port_end; // = Integer.parseInt(System.getProperty("port_end", Integer.toString(port_start+10)));
+  private String storage; // = System.getProperty("storage", "mongo");
   //private final String storage = System.getProperty("storage", "inmemory");
+
 
   HealthService hc;
   ModuleManager ms;
@@ -47,9 +50,24 @@ public class MainVerticle extends AbstractVerticle {
   ProxyService ps;
   TenantWebService tenantWebService;
 
+
+  // Little helper to get a config value
+  // First from System (-D on command line),
+  // then from config (from the way the vertcle gets deployed, f.ex. in tests
+  // finally a default value
+  static String conf(String key, String def, JsonObject c) {
+    return System.getProperty(key, c.getString(key,def));
+  }
+
   @Override
   public void init(Vertx vertx, Context context) {
     super.init(vertx, context);
+
+    JsonObject config = context.config();
+    port = Integer.parseInt(conf("port", "9130",config));
+    port_start = Integer.parseInt(conf("port_start", Integer.toString(port+1),config));
+    port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start+10),config));
+    storage = conf("storage","mongo",config);
     hc = new HealthService();
 
     TenantStore tenantStore = null;
@@ -109,8 +127,6 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/health").handler(hc::get);
-    router.delete("/_/initmodules").handler(moduleWebService::init);
-    router.delete("/_/inittenants").handler(tenantWebService::init);
     router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
     router.get("/_/reloadtenant/:id").handler(tenantWebService::reloadTenant);
 
@@ -121,7 +137,7 @@ public class MainVerticle extends AbstractVerticle {
     
     System.out.println("API Gateway started PID "
       + ManagementFactory.getRuntimeMXBean().getName()
-      + ". Listening on port " + port );
+      + ". Listening on port " + port + " using '" + storage + "' storage");
     
     vertx.createHttpServer()
             .requestHandler(router::accept)

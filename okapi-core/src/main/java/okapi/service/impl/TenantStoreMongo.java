@@ -32,20 +32,6 @@ public class TenantStoreMongo implements TenantStore {
   public TenantStoreMongo(MongoHandle mongo) {
     this.cli = mongo.getClient();
   }
-  /**
-   * Initialize the whole database.
-   * Watch out! Deletes all your tenants from the database!
-   * @param fut
-   */
-  @Override
-  public void init(Handler<ExtendedAsyncResult<Void>> fut) {
-    cli.dropCollection(collection, res -> {
-      if ( res.succeeded() )
-        fut.handle(new Success<>());
-      else
-        fut.handle(new Failure<>(INTERNAL,res.cause()));
-    });
-  }
 
   @Override
   public void insert(Tenant t,
