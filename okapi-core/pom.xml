@@ -41,6 +41,12 @@
       <version>${vertx-version}</version>
     </dependency>
     <dependency>
+      <groupId>org.raml</groupId>
+      <artifactId>raml-parser</artifactId>
+      <version>0.8.13</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-hazelcast</artifactId>
       <version>${vertx-version}</version>
@@ -89,5 +95,11 @@
       </plugin>
     </plugins>
   </build>
-
+  <repositories>
+    <repository>
+      <id>mulesoft-releases</id>
+      <name>MuleSoft Releases Repository</name>
+      <url>https://repository-master.mulesoft.org/releases/</url>
+    </repository>
+  </repositories>
 </project>
