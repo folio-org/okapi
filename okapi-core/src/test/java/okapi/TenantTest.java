@@ -26,7 +26,7 @@ public class TenantTest {
   String location;
   Async async;
   private HttpClient httpClient;
-
+  private static String LS = System.lineSeparator();
   
   public TenantTest() {
   }
@@ -86,14 +86,14 @@ public class TenantTest {
   }
 
   public void post(TestContext context) {
-    doc1 = "{\n"
-            + "  \"name\" : \"roskilde\",\n"
-            + "  \"description\" : \"Roskilde bibliotek\"\n"
+    doc1 = "{"+LS
+            + "  \"name\" : \"roskilde\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
-    doc2 = "{\n"
-            + "  \"id\" : \"roskilde\",\n"
-            + "  \"name\" : \"roskilde\",\n"
-            + "  \"description\" : \"Roskilde bibliotek\"\n"
+    doc2 = "{"+LS
+            + "  \"id\" : \"roskilde\","+LS
+            + "  \"name\" : \"roskilde\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
@@ -147,10 +147,10 @@ public class TenantTest {
   }
 
   public void post2(TestContext context) {
-    doc1 = "{\n"
-            + "  \"name\" : \"roskilde\",\n"
-            + "  \"id\" : \"roskildedk\",\n"
-            + "  \"description\" : \"Roskilde bibliotek\"\n"
+    doc1 = "{"+LS
+            + "  \"name\" : \"roskilde\","+LS
+            + "  \"id\" : \"roskildedk\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
