@@ -837,5 +837,5 @@ The Okapi service requests (all those prefixed with /_/) are specified
 in the [RAML](http://raml.org/) syntax.
 
   * [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
-  * [types.raml](../okapi-core/src/main/raml/types.raml)
+  * [RAML and included files](../okapi-core/src/main/raml)
 
