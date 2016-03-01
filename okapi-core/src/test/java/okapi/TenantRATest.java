@@ -60,7 +60,7 @@ public class TenantRATest {
 
     given().port(port).get(location).then().statusCode(200).body(equalTo(doc2));
     given().port(port).get(location + "none").then().statusCode(404);
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ \"roskilde\" ]"));
+    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
     given().port(port).delete(location).then().statusCode(204);
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 
@@ -75,7 +75,7 @@ public class TenantRATest {
     String location3 = r3.getHeader("Location");
     System.out.println("location3 = " + location3);
 
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ \"roskildedk\" ]"));
+    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
 
     // given().port(port).delete(location3).then().statusCode(204);
   }
