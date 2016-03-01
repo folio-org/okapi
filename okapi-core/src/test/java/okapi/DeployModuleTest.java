@@ -11,11 +11,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -37,7 +39,7 @@ public class DeployModuleTest {
   private long startTime;
   private int repeatPostRunning;
   private HttpClient httpClient;
-  private static String LS = System.lineSeparator();
+  private static final String LS = System.lineSeparator();
 
   public DeployModuleTest() {
   }
@@ -53,8 +55,12 @@ public class DeployModuleTest {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+    JsonObject conf = new JsonObject()
+      .put("storage", "inmemory");
 
-    DeploymentOptions opt = new DeploymentOptions();
+    System.out.println("About to deploy. conf= " + conf.encode());
+    DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
@@ -137,20 +143,21 @@ public class DeployModuleTest {
   }
 
   public void postBadJSON(TestContext context) {
-    System.out.println("deployAuth");
+    System.out.println("deployBadJson");
     final String bad_doc = "{"+LS
-            + "  \"name\" : \"auth\","+LS
+            + "  \"name\" : \"auth\","+LS  // the comma here makes it bad json!
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(400, response.statusCode());
       response.endHandler(x -> {
-        deployBadModule(context);
+        // deployBadModule(context);  disabled for now
+        deployAuth(context);
       });
     }).end(bad_doc);
   }
 
   public void deployBadModule(TestContext context) {
-    System.out.println("deployAuth");
+    System.out.println("deployBadModule");
     final String doc = "{"+LS
             + "  \"name\" : \"auth\","+LS
             + "  \"descriptor\" : {"+LS
@@ -198,6 +205,8 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
+      context.assertNotNull(locationAuth);
+      System.out.println("Deployed sample: " + locationAuth);
       response.endHandler(x -> {
         deploySample(context);
       });
@@ -225,6 +234,10 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
+      Assert.assertNotNull(locationSample);
       response.endHandler(x -> {
         listModules(context, doc);
       });
@@ -248,8 +261,9 @@ public class DeployModuleTest {
   }
 
   public void getIt(TestContext context, String doc) {
-    System.out.println("getIt");
+    System.out.println("getIt " + locationSample);
     httpClient.get(port, "localhost", locationSample, response -> {
+      System.out.println("getIt: response " + response.statusCode());
       response.handler(body -> {
         context.assertEquals(doc, body.toString());
       });
@@ -264,9 +278,17 @@ public class DeployModuleTest {
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
+    final String doc2 = "{"+LS
+            + "  \"id\" : \"" + okapiTenant + "\","+LS
+            + "  \"name\" : \"" + okapiTenant + "\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
+            + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc2, body.toString());
+      });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
       });
@@ -278,6 +300,7 @@ public class DeployModuleTest {
             + "  \"module\" : \"auth\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      System.out.println("tenantEnableModuleAuth: " +response.statusCode() + " " + response.statusMessage() );
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         tenantListModules1(context);
@@ -310,6 +333,26 @@ public class DeployModuleTest {
   }
 
   public void tenantListModules2(TestContext context) {
+    httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
+      });
+      response.endHandler(x -> {
+        reload(context);
+      });
+    }).end();
+  }
+
+  public void reload(TestContext context) {
+    httpClient.get(port, "localhost", "/_/test/reloadtenant/" + okapiTenant, response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        tenantListModules3(context);
+      });
+    }).end();
+  }
+  public void tenantListModules3(TestContext context) {
     httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(x -> {
@@ -585,7 +628,7 @@ public class DeployModuleTest {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
         System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
-        vertx.setTimer(1, x -> useItWithGet3(context));
+        vertx.setTimer(1, x -> reloadModules(context));
       }
       return;
     } else if (cnt == 0) {
@@ -616,12 +659,25 @@ public class DeployModuleTest {
     req.end(msg);
   }
 
+  // Reload the modules
+  public void reloadModules(TestContext context) {
+    httpClient.get(port, "localhost", "/_/test/reloadmodules", response -> {
+      context.assertEquals(204, response.statusCode());
+      System.out.println("reloadModules callback");
+      response.endHandler(x -> {
+        System.out.println("reloadModules endHandler");
+        useItWithGet3(context);
+      });
+    }).end();
+  }
+
   // Repeat the Get test, to see timing headers of a system that has been warmed up
   // Also, pass a content-type that claims to be XML, the sample will see this and
   // respond with a different message
   public void useItWithGet3(TestContext context) {
     System.out.println("useItWithGet3");
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
+      System.out.println("useItWithGet3 response " + response.statusCode() );
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       System.out.println("useWithGet3 headers " + headers);

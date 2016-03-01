@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.service;
+package opkapi.web;
 
 import io.vertx.ext.web.RoutingContext;
 
