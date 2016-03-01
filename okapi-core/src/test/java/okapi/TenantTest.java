@@ -176,7 +176,7 @@ public class TenantTest {
   }
 
   public void reload2(TestContext context) {
-    httpClient.get(port, "localhost", "/_/reloadtenant/roskildedk", response -> {
+    httpClient.get(port, "localhost", "/_/test/reloadtenant/roskildedk", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         done(context);

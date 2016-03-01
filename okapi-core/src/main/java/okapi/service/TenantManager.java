@@ -14,19 +14,17 @@ import okapi.bean.Tenant;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 
+
+
 /**
  * Manages the tenants in the run-time system.
  * These will be modified by the web service, and (more often) reloaded from
  * the storage. Note that these are all in-memory operations, so there is no
  * need to use vert.x callbacks for this.
- *
- * TODO
- * - Add mongo storage 
- * - Add tenant reloading
- * - Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
  */
 
 public class TenantManager {
+  // TODO Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
   Map<String, Tenant> tenants = new HashMap<>();
 
   public boolean insert(Tenant t) {

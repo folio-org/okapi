@@ -334,7 +334,7 @@ public class DeployModuleTest {
   }
 
   public void reload(TestContext context) {
-    httpClient.get(port, "localhost", "/_/reloadtenant/" + okapiTenant, response -> {
+    httpClient.get(port, "localhost", "/_/test/reloadtenant/" + okapiTenant, response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         tenantListModules3(context);
@@ -650,7 +650,7 @@ public class DeployModuleTest {
 
   // Reload the modules
   public void reloadModules(TestContext context) {
-    httpClient.get(port, "localhost", "/_/reloadmodules", response -> {
+    httpClient.get(port, "localhost", "/_/test/reloadmodules", response -> {
       context.assertEquals(204, response.statusCode());
       System.out.println("reloadModules callback");
       response.endHandler(x -> {

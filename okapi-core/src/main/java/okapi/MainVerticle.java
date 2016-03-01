@@ -126,10 +126,11 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/health").handler(hc::get);
 
-    // TODO Remove these reload calls, as soon as we have an integration test
-    // that checks that the modules and tenants propagate between okapi nodes
-    router.get("/_/reloadmodules").handler(moduleWebService::reloadModules);
-    router.get("/_/reloadtenant/:id").handler(tenantWebService::reloadTenant);
+    // Endpoints for internal testing only.
+    // The reload points can be removed as soon as we have a good integration
+    // test that verifies that changes propagate across a cluster...
+    router.get("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
+    router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
 
     router.route("/_*").handler(this::NotFound);
     
