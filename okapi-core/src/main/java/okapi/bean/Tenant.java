@@ -5,25 +5,72 @@
  */
 package okapi.bean;
 
-import okapi.bean.TenantDescriptor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class Tenant {
-  private final TenantDescriptor td;
+
+  @JsonProperty
+  final private TenantDescriptor descriptor;
+
+  @JsonProperty
+  final private  Map<String,Boolean> enabled;
+
+  @JsonIgnore
+  private long timestamp;
+
   
-  private final HashMap<String,Boolean> enabled = new HashMap<>();
+  public Tenant(TenantDescriptor descriptor) {
+    this.descriptor = descriptor;
+    this.enabled = new HashMap<>();
+    this.timestamp = 0;
+  }
   
-  public Tenant(TenantDescriptor td) {
-    this.td = td;
+  public Tenant(TenantDescriptor descriptor, Map<String,Boolean> enabled) {
+    this.descriptor = descriptor;
+    this.enabled = enabled;
+    this.timestamp = 0;
   }
 
+  public Tenant() {
+    this.descriptor = new TenantDescriptor();
+    this.enabled = new HashMap<>();
+    this.timestamp = 0;
+  }
+
+  public long getTimestamp() {
+    return timestamp;
+  }
+
+  public void setTimestamp(long timestamp) {
+    this.timestamp = timestamp;
+  }
+
+
+  /**
+   * Get the name.
+   * The JsonIgnore tells Json not to encode the name as a top-level thing
+   * @return
+   */
+  @JsonIgnore
   public String getName() {
-    return td.getName();
+    return descriptor.getName();
+  }
+
+  @JsonIgnore
+  public String getId() {
+    return descriptor.getId();
   }
 
   public TenantDescriptor getDescriptor() {
-    return td;
+    return descriptor;
+  }
+
+  public Map<String,Boolean> getEnabled() {
+    return enabled;
   }
 
   public void enableModule(String n) {

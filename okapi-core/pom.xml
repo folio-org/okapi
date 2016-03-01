@@ -26,6 +26,33 @@
       <version>${vertx-version}</version>
     </dependency>
     <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-dropwizard-metrics</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+     <groupId>io.dropwizard.metrics</groupId>
+     <artifactId>metrics-graphite</artifactId>
+     <version>3.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-mongo-client</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.raml</groupId>
+      <artifactId>raml-parser</artifactId>
+      <version>0.8.13</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-hazelcast</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+
+    <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.12</version>
@@ -36,22 +63,6 @@
       <artifactId>vertx-unit</artifactId>
       <version>${vertx-version}</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.raml</groupId>
-      <artifactId>raml-parser</artifactId>
-      <version>0.8.13</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-dropwizard-metrics</artifactId>
-      <version>${vertx-version}</version>
-    </dependency>
-    <dependency>
-     <groupId>io.dropwizard.metrics</groupId>
-     <artifactId>metrics-graphite</artifactId>
-     <version>3.1.2</version>
     </dependency>
   </dependencies>
   
@@ -72,7 +83,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>okapi.MainBare</Main-Class>
+                    <Main-Class>okapi.MainCluster</Main-Class>
                   </manifestEntries>
                 </transformer>
               </transformers>

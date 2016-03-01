@@ -5,10 +5,10 @@
  */
 package okapi;
 
-import okapi.MainVerticle;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -43,7 +43,8 @@ public class TenantTest {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     
-    DeploymentOptions opt = new DeploymentOptions();
+    DeploymentOptions opt = new DeploymentOptions()
+      .setConfig(new JsonObject().put("storage", "inmemory"));
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     this.httpClient = vertx.createHttpClient();
@@ -156,6 +157,7 @@ public class TenantTest {
       context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         location = response.getHeader("Location");
+        System.out.println("post2: location: " + location);
         listOne2(context);
       });
     }).end(doc1);
@@ -167,6 +169,15 @@ public class TenantTest {
       response.handler(body -> {
         context.assertEquals("[ \"roskildedk\" ]", body.toString());
       });
+      response.endHandler(x -> {
+        reload2(context);
+      });
+    }).end();
+  }
+
+  public void reload2(TestContext context) {
+    httpClient.get(port, "localhost", "/_/test/reloadtenant/roskildedk", response -> {
+      context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         done(context);
       });

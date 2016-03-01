@@ -5,8 +5,6 @@
  */
 package okapi.bean;
 
-import java.util.List;
-
 public class ModuleDescriptor {
 
   private String id;
