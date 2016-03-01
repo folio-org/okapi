@@ -6,9 +6,7 @@
 package okapi;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -19,14 +17,6 @@ public class HealthCheckTest {
   Vertx vertx;
 
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-
-  @BeforeClass
-  public static void setUpClass() {
-  }
-
-  @AfterClass
-  public static void tearDownClass() {
-  }
 
   @Before
   public void setUp() {
