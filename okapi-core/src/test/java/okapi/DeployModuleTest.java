@@ -275,9 +275,17 @@ public class DeployModuleTest {
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
+    final String doc2 = "{"+LS
+            + "  \"id\" : \"" + okapiTenant + "\","+LS
+            + "  \"name\" : \"" + okapiTenant + "\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
+            + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc2, body.toString());
+      });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
       });

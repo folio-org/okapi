@@ -111,7 +111,11 @@ public class TenantWebService {
         tenantStore.insert(t, res -> {
           if (res.succeeded()) {
             final String uri = ctx.request().uri() + "/" + id;
-            ctx.response().setStatusCode(201).putHeader("Location", uri).end();
+            final String s = Json.encodePrettily(t.getDescriptor());
+            ctx.response()
+              .setStatusCode(201)
+              .putHeader("Location", uri)
+              .end(s);
             sendReloadSignal(id, ts);
           } else { // TODO - Check what errors the mongo store can return
             ctx.response().setStatusCode(400).end(res.cause().getMessage());
