@@ -16,12 +16,12 @@ import com.jayway.restassured.response.Response;
 import io.vertx.core.json.JsonObject;
 import static org.hamcrest.Matchers.*;
 
-public class TenantTestRA {
+public class TenantRATest {
 
   Vertx vertx;
   private static final String LS = System.lineSeparator();
 
-  public TenantTestRA() {
+  public TenantRATest() {
   }
 
   @Before

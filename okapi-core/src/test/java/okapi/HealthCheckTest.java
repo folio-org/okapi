@@ -6,16 +6,16 @@
 package okapi;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import static com.jayway.restassured.RestAssured.*;
 import io.vertx.core.json.JsonObject;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 
-public class HealthCheck {
+public class HealthCheckTest {
   Vertx vertx;
 
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -43,7 +43,7 @@ public class HealthCheck {
   }
 
   @Test
-  public void test1() {
+  public void testHealthCheck() {
     given().port(port).get("/_/health").then().assertThat().statusCode(200);
     given().port(port).get("/_/health2").then().assertThat().statusCode(404);
   }
