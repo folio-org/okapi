@@ -234,6 +234,9 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
       Assert.assertNotNull(locationSample);
       response.endHandler(x -> {
         listModules(context, doc);
