@@ -63,6 +63,7 @@ public class ModuleStoreMemory implements ModuleStore {
       ml.add(id);
     fut.handle(new Success<>(ml));
   }
+  
 
   @Override
   public void delete(String id,Handler<ExtendedAsyncResult<Void>> fut ) {

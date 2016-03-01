@@ -245,13 +245,23 @@ public class DeployModuleTest {
   }
 
   public void listModules(TestContext context, String doc) {
+    final String listdoc = "[ {"+LS
+        + "  \"id\" : \"auth\"," +LS
+        + "  \"name\" : \"auth\"," +LS
+        + "  \"url\" : null" +LS
+        + "}, {" + LS
+        + "  \"id\" : \"sample-module\"," +LS
+        + "  \"name\" : \"sample module\"," +LS
+        + "  \"url\" : null" +LS
+        + "} ]";
     System.out.println("listModules start");
     httpClient.get(port, "localhost", "/_/modules/", response -> {
       System.out.println("listModules response");
       response.handler(body -> {
         System.out.println("listModules body" + body.toString());
         context.assertEquals(200, response.statusCode());
-        context.assertEquals("[ \"auth\", \"sample-module\" ]", body.toString());
+        //context.assertEquals("[ \"auth\", \"sample-module\" ]", body.toString());
+        context.assertEquals(listdoc, body.toString());
       });
       response.endHandler(x -> {
         getIt(context, doc);
