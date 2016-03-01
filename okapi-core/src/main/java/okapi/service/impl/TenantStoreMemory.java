@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import okapi.bean.Tenant;
+import okapi.bean.TenantDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -48,6 +49,17 @@ public class TenantStoreMemory implements TenantStore {
   }
 
   @Override
+  public void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
+    List<TenantDescriptor> tl = new ArrayList<>();
+    for ( String id : tenants.keySet() ) {
+      Tenant t = tenants.get(id);
+      tl.add(t.getDescriptor());
+    }
+    fut.handle(new Success<>(tl));
+  }
+
+
+  @Override
   public void get(String id,Handler<ExtendedAsyncResult<Tenant>> fut ) {
     Tenant t = tenants.get(id);
     if (t != null)
@@ -79,6 +91,7 @@ public class TenantStoreMemory implements TenantStore {
     }
 
   }
+
 
 
 }

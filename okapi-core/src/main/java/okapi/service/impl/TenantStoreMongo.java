@@ -13,6 +13,7 @@ import io.vertx.ext.mongo.MongoClient;
 import java.util.ArrayList;
 import java.util.List;
 import okapi.bean.Tenant;
+import okapi.bean.TenantDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -70,6 +71,27 @@ public class TenantStoreMongo implements TenantStore {
       }
     });
   }
+
+  @Override
+  public void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
+    String q = "{}";
+    JsonObject jq = new JsonObject(q);
+    cli.find(collection, jq, res -> {
+      if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL,res.cause()));
+        } else {
+          List<TenantDescriptor> ts = new ArrayList<>(res.result().size());
+          for (JsonObject jo : res.result()) {
+            jo.remove("_id");
+            final Tenant t = Json.decodeValue(jo.encode(),  Tenant.class);
+            ts.add(t.getDescriptor());
+          }
+          System.out.println("TenantStoreMongo: listIds: " + Json.encode(ts));
+          fut.handle(new Success<>(ts));
+      }
+    });
+  }
+
 
   @Override
   public void get(String id,Handler<ExtendedAsyncResult<Tenant>> fut ) {

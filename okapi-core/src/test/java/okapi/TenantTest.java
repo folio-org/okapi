@@ -118,7 +118,7 @@ public class TenantTest {
     httpClient.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(body -> {
-        context.assertEquals("[ \"roskilde\" ]", body.toString());
+        context.assertEquals("[ " + doc2 + " ]", body.toString());
       });
       response.endHandler(x -> {
         getIt(context);
@@ -149,8 +149,8 @@ public class TenantTest {
 
   public void post2(TestContext context) {
     doc1 = "{"+LS
-            + "  \"name\" : \"roskilde\","+LS
             + "  \"id\" : \"roskildedk\","+LS
+            + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
@@ -167,7 +167,7 @@ public class TenantTest {
     httpClient.get(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(body -> {
-        context.assertEquals("[ \"roskildedk\" ]", body.toString());
+        context.assertEquals("[ " + doc1 + " ]", body.toString());
       });
       response.endHandler(x -> {
         reload2(context);

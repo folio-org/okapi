@@ -8,6 +8,7 @@ package okapi.service;
 import io.vertx.core.Handler;
 import java.util.List;
 import okapi.bean.Tenant;
+import okapi.bean.TenantDescriptor;
 import okapi.util.ExtendedAsyncResult;
 
 /**
@@ -25,5 +26,8 @@ public interface TenantStore {
   void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
 
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
+  
+  void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut);
+    // TODO - Add list parameters, like which fields, start, and maxrecs
 
 }
