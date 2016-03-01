@@ -62,5 +62,21 @@ public class TenantRATest {
     given().port(port).get(location + "none").then().statusCode(404);
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ \"roskilde\" ]"));
     given().port(port).delete(location).then().statusCode(204);
+    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+
+    String doc3 = "{"+LS
+            + "  \"id\" : \"roskildedk\","+LS
+            + "  \"name\" : \"roskilde\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
+            + "}";
+
+    Response r3 = given().port(port).body(doc3).post("/_/tenants").then().statusCode(201).
+              body(equalTo(doc3)).extract().response();
+    String location3 = r3.getHeader("Location");
+    System.out.println("location3 = " + location3);
+
+    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ \"roskildedk\" ]"));
+
+    // given().port(port).delete(location3).then().statusCode(204);
   }
 }
