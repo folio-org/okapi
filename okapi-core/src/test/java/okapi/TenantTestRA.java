@@ -13,6 +13,7 @@ import org.junit.Test;
 import static com.jayway.restassured.RestAssured.*;
 import static com.jayway.restassured.matcher.RestAssuredMatchers.*;
 import com.jayway.restassured.response.Response;
+import io.vertx.core.json.JsonObject;
 import static org.hamcrest.Matchers.*;
 
 public class TenantTestRA {
@@ -27,7 +28,8 @@ public class TenantTestRA {
   public void setUp() {
     vertx = Vertx.vertx();
 
-    DeploymentOptions opt = new DeploymentOptions();
+    DeploymentOptions opt = new DeploymentOptions()
+            .setConfig(new JsonObject().put("storage", "inmemory"));
     vertx.deployVerticle(MainVerticle.class.getName(), opt);
   }
 
@@ -52,7 +54,8 @@ public class TenantTestRA {
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r = given().port(port).body(doc1).post("/_/tenants").then().statusCode(201).body(equalTo("")).extract().response();
+    Response r = given().port(port).body(doc1).post("/_/tenants").then().statusCode(201).
+              body(equalTo(doc2)).extract().response();
     String location = r.getHeader("Location");
 
     given().port(port).get(location).then().statusCode(200).body(equalTo(doc2));
