@@ -11,6 +11,7 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -110,7 +111,10 @@ public class MainVerticle extends AbstractVerticle {
             .allowedMethod(HttpMethod.PUT)
             .allowedMethod(HttpMethod.DELETE)
             .allowedMethod(HttpMethod.GET)
-            .allowedMethod(HttpMethod.POST));
+            .allowedMethod(HttpMethod.POST)
+            //allow request headers
+            .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+    );
 
     //hijack everything to conduit to allow for configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
