@@ -114,6 +114,8 @@ public class MainVerticle extends AbstractVerticle {
             .allowedMethod(HttpMethod.POST)
             //allow request headers
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+            //expose response headers
+            .exposedHeader(HttpHeaders.LOCATION.toString())
     );
 
     //hijack everything to conduit to allow for configuration
