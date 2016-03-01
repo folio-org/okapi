@@ -234,6 +234,9 @@ public class DeployModuleTest {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
       Assert.assertNotNull(locationSample);
       response.endHandler(x -> {
         listModules(context, doc);
@@ -275,9 +278,17 @@ public class DeployModuleTest {
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
+    final String doc2 = "{"+LS
+            + "  \"id\" : \"" + okapiTenant + "\","+LS
+            + "  \"name\" : \"" + okapiTenant + "\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
+            + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
+      response.handler(body -> {
+        context.assertEquals(doc2, body.toString());
+      });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
       });

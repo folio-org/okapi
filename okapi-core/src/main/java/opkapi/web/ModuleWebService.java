@@ -108,9 +108,10 @@ public class ModuleWebService {
             if (ires.succeeded()) {
               sendReloadSignal(sres->{
                 if ( sres.succeeded()) {
+                  final String s = Json.encodePrettily(md);
                   ctx.response().setStatusCode(201)
                     .putHeader("Location", ctx.request().uri() + "/" + ires.result())
-                    .end();
+                    .end(s);
                 } else { // TODO - What to if this fails ??
                   ctx.response().setStatusCode(500).end(sres.cause().getMessage());
                 }
