@@ -14,6 +14,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Iterator;
 import io.vertx.core.eventbus.EventBus;
+import java.util.ArrayList;
+import java.util.List;
+import okapi.bean.ModuleDescriptorBrief;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
 import okapi.service.TimeStampStore;
@@ -145,11 +148,15 @@ public class ModuleWebService {
   }
 
   public void list(RoutingContext ctx) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    moduleStore.listIds(res->{
+    moduleStore.getAll(res->{
       if (res.succeeded()) {
-        ctx.response().setStatusCode(200).end(Json.encodePrettily(res.result()));
+          List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
+          for (ModuleDescriptor md : res.result()) {
+            ml.add(new ModuleDescriptorBrief(md));
+          }
+        ctx.response()
+          .setStatusCode(200)
+          .end(Json.encodePrettily(ml));
       } else {
         ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }

@@ -130,7 +130,7 @@ public class TenantWebService {
   }
 
   public void list(RoutingContext ctx) {
-    tenantStore.listIds(res->{
+    tenantStore.listTenants(res->{
       if (res.succeeded()) {
         String s = Json.encodePrettily(res.result());
         ctx.response().end(s);

@@ -116,6 +116,7 @@ public class ModuleStoreMongo implements ModuleStore {
     });
   }
 
+
   @Override
   public void delete(String id,Handler<ExtendedAsyncResult<Void>> fut ) {
     String q = "{ \"id\": \"" + id + "\"}";
