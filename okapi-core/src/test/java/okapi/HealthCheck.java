@@ -6,9 +6,7 @@
 package okapi;
 
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -17,13 +15,7 @@ import static com.jayway.restassured.RestAssured.*;
 public class HealthCheck {
   Vertx vertx;
 
-  @BeforeClass
-  public static void setUpClass() {
-  }
-
-  @AfterClass
-  public static void tearDownClass() {
-  }
+  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   @Before
   public void setUp() {
@@ -37,8 +29,6 @@ public class HealthCheck {
   public void tearDown() {
     vertx.close();
   }
-
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   @Test
   public void testHealthCheck() {
