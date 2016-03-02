@@ -259,9 +259,7 @@ public class ModuleWebService {
         fut.handle(res);
       } else {
         System.out.println("ReloadModules: Should restart all modules");
-        vertx.setTimer(1000, t -> {
-          loadModules(fut);
-        });
+        loadModules(fut);
       }
     });
 
@@ -282,13 +280,8 @@ public class ModuleWebService {
 
   private void loadR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if ( !it.hasNext() ) {
-      System.out.println("All modules deployed. Sleeping a second");
-      vertx.setTimer(1000, t -> {
-        // TODO - This is not right. But the tests occasionally fail after reload
-        // Some kind of race condition
-        System.out.println("Slept a second, loadR is done");
-        fut.handle(new Success<>());
-      });
+      System.out.println("All modules deployed");
+      fut.handle(new Success<>());
     } else {
       ModuleDescriptor md = it.next();
       moduleManager.create(md, res-> {
