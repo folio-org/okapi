@@ -79,7 +79,7 @@ public class TenantRATest {
 
     String doc4 = "{"+LS
             + "  \"id\" : \"roskildedk\","+LS
-            + "  \"name\" : \"roskilde\","+LS
+            + "  \"name\" : \"Roskildes Real Name\","+LS
             + "  \"description\" : \"Roskilde bibliotek with a better description\""+LS
             + "}";
     given().port(port).body(doc4).put(location).then().statusCode(200).body(equalTo(doc4));
