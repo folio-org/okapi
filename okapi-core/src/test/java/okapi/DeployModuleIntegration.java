@@ -253,7 +253,8 @@ public class DeployModuleIntegration {
       });
     }).end();
   }
-
+ // TODO - Test module PUT as well
+  
   public void createTenant(TestContext context) {
     final String doc = "{"+LS
             + "  \"name\" : \"" + okapiTenant + "\","+LS

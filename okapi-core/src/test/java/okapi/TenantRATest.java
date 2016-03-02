@@ -77,7 +77,16 @@ public class TenantRATest {
 
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
 
+    String doc4 = "{"+LS
+            + "  \"id\" : \"roskildedk\","+LS
+            + "  \"name\" : \"roskilde\","+LS
+            + "  \"description\" : \"Roskilde bibliotek with a better description\""+LS
+            + "}";
+    given().port(port).body(doc4).put(location).then().statusCode(200).body(equalTo(doc4));
+
+
     given().port(port).get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
+
     given().port(port).delete(location3).then().statusCode(204);
   }
 }

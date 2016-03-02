@@ -283,7 +283,6 @@ are supposed to work with the current implementation.
 ### Missing features
 
  * Header merging
- * Persistent Storage
  * Consul integration (or other) and clustering
 
 
@@ -367,6 +366,13 @@ command line from this document.
 
 The exact definition of the services is in the RAML files listed in
 the [Reference](#reference) section.
+
+## Storage
+The Okapi defaults to an internal in-memory mock storage, so it can run without
+any database layer under it. This is fine for development and testing, but of
+course in real life we will want some of our data to persist from one invocation
+to the next. At the moment the MongoDb storage can be enabled by addding the
+option `-Dstorage=mongo` to the command line that starts Okapi.
 
 ### Example modules
 
@@ -459,7 +465,8 @@ java -jar okapi-core/target/okapi-core-fat.jar
 
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
-which happens to be 9130.
+which happens to be 9130, and using the 'inmemory' storage. For MongoDb
+storage, add `-Dstorage=mongo` to the command line.
 
 
 
@@ -535,15 +542,34 @@ You should see something like this
 ```
 HTTP/1.1 201 Created
 Location: /_/modules/sample-module
-Content-Length: 0
+Content-Length: 363
+
+{
+  "id" : "sample-module",
+  "name" : "sample-module",
+  "url" : null,
+  "descriptor" : {
+    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
+    "cmdlineStop" : null
+  },
+  "routingEntries" : [ {
+    "methods" : [ "GET", "POST" ],
+    "path" : "/sample",
+    "level" : "30",
+    "type" : "request-response"
+  } ]
+}
 ```
+Note that the displayed record is not exactly identical, Okapi has added an id
+to it, since every record must have one, and the request did not specify it.
+Okapi uses the name as the id. Of course you could also specify your own id.
 
 If you repeat the same request, you should now get an error
 ```
 HTTP/1.1 400 Bad Request
 Content-Length: 37
 
-module sample-module already deployed
+Already deployed
 ```
 
 If you look at the output of
@@ -551,8 +577,13 @@ If you look at the output of
 you should see that okapi-core has spawned a new process for the
 okapi-sample-module, and that it has been assigned port 9131. Now, if
 you ask Okapi to list its modules, as before, the response is:
-
-    [ "sample-module" ]
+```
+[ {
+  "id" : "sample-module",
+  "name" : "sample-module",
+  "url" : null
+} ]
+```
 
 You can access the sample module directly if you like, just as before.
 
@@ -607,7 +638,28 @@ And should see
 ```
 HTTP/1.1 201 Created
 Location: /_/modules/auth
-Content-Length: 0
+Content-Length: 421
+
+{
+  "id" : "auth",
+  "name" : "auth",
+  "url" : null,
+  "descriptor" : {
+    "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
+    "cmdlineStop" : null
+  },
+  "routingEntries" : [ {
+    "methods" : [ "*" ],
+    "path" : "/",
+    "level" : "10",
+    "type" : "request-response"
+  }, {
+    "methods" : [ "POST" ],
+    "path" : "/login",
+    "level" : "20",
+    "type" : "request-response"
+  } ]
+}
 ```
 
 Now we have two modules, as can be seen with
@@ -616,7 +668,7 @@ Now we have two modules, as can be seen with
 curl -w '\n' http://localhost:9130/_/modules
 ```
 
-but we still can not use them as they will be used in a real
+but we still can not use them the way they would be used in a real
 system. Since each invocation of a module is on behalf of a tenant,
 we need to create some tenants, too.
 
@@ -641,8 +693,13 @@ Okapi responds with
 ```
 HTTP/1.1 201 Created
 Location: /_/tenants/ourlibrary
-Content-Length: 0
+Content-Length: 87
 
+{
+  "id" : "ourlibrary",
+  "name" : "ourlibrary",
+  "description" : "Our Own Library"
+}
 ```
 
 And the second tenant is similar.
@@ -815,6 +872,9 @@ curl -w '\n' -D -  \
 ```
 
 it works!
+
+Okapi also supports PUT requests to modify existing modules and tenants.
+These are left as an exercise for the reader.
 
 ### Cleaning up
 Now we can clean up some things

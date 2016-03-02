@@ -38,6 +38,17 @@ public class TenantManager {
     return true;
   }
 
+  public boolean update(Tenant t) {
+    String id = t.getId();
+    if ( ! tenants.containsKey(id)) {
+      System.out.println("TenantManager: Tenant " + id + " not found, can not update");
+      return false;
+    }
+    tenants.put(id, t);
+    System.out.println("TenantManager: Updated" + id + ":" + Json.encode(t));
+    return true;
+  }
+
   public Set<String> getIds() {
     Set<String> ids = tenants.keySet();
     System.out.println("TenantManager: getIds: " + Json.encode(ids));

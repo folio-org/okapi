@@ -42,8 +42,27 @@ public class ModuleStoreMongo implements ModuleStore {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("ModuleDbMongo: Failed to insert " + md.getId()
+        System.out.println("ModuleDbMongo: Failed to insert " + id
           + ": " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL,res.cause()));
+      }
+    });
+  }
+  @Override
+  public void update(ModuleDescriptor md,
+                     Handler<ExtendedAsyncResult<String>> fut) {
+    String id = md.getId();
+    final String q = "{ \"_id\": \"" + id + "\"}";
+    JsonObject jq = new JsonObject(q);
+    String s = Json.encodePrettily(md);
+    JsonObject document = new JsonObject(s);
+    document.put("_id", id);
+    cli.update(collection, jq,document, res -> {
+      if (res.succeeded()) {
+        fut.handle(new Success<>(id));
+      } else {
+        System.out.println("ModuleDbMongo: Failed to update" + id
+                + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
     });

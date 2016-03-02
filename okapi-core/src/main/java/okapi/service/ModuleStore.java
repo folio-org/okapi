@@ -24,6 +24,8 @@ public interface ModuleStore {
 
   void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut);
 
+  void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut);
+
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
 
 }
