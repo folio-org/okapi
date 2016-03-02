@@ -77,6 +77,7 @@ public class TenantRATest {
 
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
 
+    given().port(port).get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
     given().port(port).delete(location3).then().statusCode(204);
   }
 }
