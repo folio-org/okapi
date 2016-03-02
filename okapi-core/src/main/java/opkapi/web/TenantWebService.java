@@ -129,6 +129,34 @@ public class TenantWebService {
     }
   }
 
+  public void update(RoutingContext ctx) {
+    try {
+      final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
+        TenantDescriptor.class);
+      Tenant t = new Tenant(td);
+      final long ts = getTimestamp();
+      t.setTimestamp(ts);
+      final String id = td.getId();
+      if (tenants.update(t)) {
+        tenantStore.update(t, res -> {
+          if (res.succeeded()) {
+            final String s = Json.encodePrettily(t.getDescriptor());
+            ctx.response()
+              .setStatusCode(200)
+              .end(s);
+            sendReloadSignal(id, ts);
+          } else { 
+            ctx.response().setStatusCode(404).end(res.cause().getMessage());
+          }
+        });
+      } else {
+        ctx.response().setStatusCode(400).end("Dailed to update " + id);
+      }
+    } catch (DecodeException ex) {
+      ctx.response().setStatusCode(400).end(ex.getMessage());
+    }
+  }
+
   public void list(RoutingContext ctx) {
     tenantStore.listTenants(res->{
       if (res.succeeded()) {
