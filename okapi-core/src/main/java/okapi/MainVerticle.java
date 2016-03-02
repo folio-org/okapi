@@ -66,7 +66,7 @@ public class MainVerticle extends AbstractVerticle {
     port = Integer.parseInt(conf("port", "9130",config));
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port+1),config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start+10),config));
-    storage = conf("storage","mongo",config);
+    storage = conf("storage","inmemory",config);
     hc = new HealthService();
 
     TenantStore tenantStore = null;
