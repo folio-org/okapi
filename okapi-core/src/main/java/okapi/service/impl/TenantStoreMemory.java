@@ -33,7 +33,7 @@ public class TenantStoreMemory implements TenantStore {
   @Override
   public void insert(Tenant t,
                      Handler<ExtendedAsyncResult<String>> fut) {
-    String id = t.getName(); // TODO - Should be getId()  Issue #43
+    String id = t.getId(); 
     tenants.put(id, t);
     fut.handle(new Success<>(id));
   }
