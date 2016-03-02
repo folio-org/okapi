@@ -131,6 +131,42 @@ public class ModuleWebService {
     }
   }
 
+  public void update(RoutingContext ctx) {
+    try {
+      final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
+        ModuleDescriptor.class);
+      moduleManager.update(md, cres -> {
+        if (cres.failed()) {
+          System.out.println("Failed to update service, will not update the DB. " + md);
+          if (cres.getType() == NOT_FOUND) {
+            ctx.response().setStatusCode(404).end(cres.cause().getMessage());
+          } else {
+            ctx.response().setStatusCode(500).end(cres.cause().getMessage());
+          }
+        } else {
+          moduleStore.update(md, ires -> {
+            if (ires.succeeded()) {
+              sendReloadSignal(sres->{
+                if ( sres.succeeded()) {
+                  final String s = Json.encodePrettily(md);
+                  ctx.response().setStatusCode(200)
+                    .end(s);
+                } else { // TODO - What to if this fails ??
+                  ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+                }
+              });
+            } else {
+              System.out.println("Module db update failred " + ires.cause().getMessage());
+              ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+            }
+          });
+        }
+      });
+    } catch (DecodeException ex) {
+      ctx.response().setStatusCode(400).end(ex.getMessage());
+    }
+  }
+
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     final String q = "{ \"id\": \"" + id + "\"}";

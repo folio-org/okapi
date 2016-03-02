@@ -33,8 +33,24 @@ public class ModuleStoreMemory implements ModuleStore {
   public void insert(ModuleDescriptor md,
                      Handler<ExtendedAsyncResult<String>> fut) {
     String id = md.getId();
-    modules.put(id, md);
-    fut.handle(new Success<>(id));
+    if ( modules.containsKey(id)) {
+      fut.handle(new Failure<>(USER,"Duplicate module id '" + id + "' in in-memory insert"));
+    } else {
+      modules.put(id, md);
+      fut.handle(new Success<>(id));
+    }
+  }
+
+  @Override
+  public void update(ModuleDescriptor md,
+                     Handler<ExtendedAsyncResult<String>> fut) {
+    String id = md.getId();
+    if ( !modules.containsKey(id)) {
+      fut.handle(new Failure<>(NOT_FOUND,"Module " + id + " not found, can not update (inmemory-db)"));
+    } else {
+      modules.put(id, md);
+      fut.handle(new Success<>(id));
+    }
   }
 
   @Override
