@@ -24,14 +24,6 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
-/* TODO
- - Use in-memory for tests
- - Clean debug output
- - Testing scripts
- - Check RAML
- - Check documentation
- - Merge to master
-*/
 
 public class TenantWebService {
   
