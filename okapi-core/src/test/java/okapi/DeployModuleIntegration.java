@@ -24,7 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class DeployModuleTest {
+public class DeployModuleIntegration {
 
   Vertx vertx;
   Async async;
@@ -41,7 +41,7 @@ public class DeployModuleTest {
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
 
-  public DeployModuleTest() {
+  public DeployModuleIntegration() {
   }
 
   @BeforeClass
