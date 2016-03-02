@@ -43,7 +43,7 @@ public class TenantRATest {
     int port = Integer.parseInt(System.getProperty("port", "9130"));
 
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
-    
+
     String doc1 = "{"+LS
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
@@ -85,6 +85,6 @@ public class TenantRATest {
     given().port(port).body(doc4).put(location).then().statusCode(200).body(equalTo(doc4));
 
 
-    // given().port(port).delete(location3).then().statusCode(204);
+    given().port(port).delete(location3).then().statusCode(204);
   }
 }
