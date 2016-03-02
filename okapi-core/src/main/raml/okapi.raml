@@ -34,9 +34,19 @@ schemas:
         headers:
           Location:
             description: URI to the created module instance
+        body:
+          application/json:
+            schema: ModuleDescriptor
   /{module_id}:
     get:
       description: Retrieve information about the module instance
+      responses:
+        200:
+          body:
+            application/json:
+              schema: ModuleDescriptor
+    put:
+      description: Update the module instance.
       responses:
         200:
           body:
@@ -61,10 +71,20 @@ schemas:
         headers:
           Location:
             description: URI to the created tenant
+        body:
+          application/json:
+            schema: TenantDescriptor
 
   /{tenant_id}:
     get:
       description: retrieve tenant
+      responses:
+        200:
+          body:
+            application/json:
+              schema: TenantDescriptor
+    put:
+      description: update tenant
       responses:
         200:
           body:

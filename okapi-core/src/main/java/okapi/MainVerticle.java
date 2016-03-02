@@ -120,13 +120,17 @@ public class MainVerticle extends AbstractVerticle {
 
     //hijack everything to conduit to allow for configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
+
     router.post("/_/modules/").handler(moduleWebService::create);
     router.delete("/_/modules/:id").handler(moduleWebService::delete);
     router.get("/_/modules/:id").handler(moduleWebService::get);
     router.get("/_/modules/").handler(moduleWebService::list);
+    router.put("/_/modules/:id").handler(moduleWebService::update);
+
     router.post("/_/tenants").handler(tenantWebService::create);
     router.get("/_/tenants/").handler(tenantWebService::list);
     router.get("/_/tenants/:id").handler(tenantWebService::get);
+    router.put("/_/tenants/:id").handler(tenantWebService::update);
     router.delete("/_/tenants/:id").handler(tenantWebService::delete);
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);

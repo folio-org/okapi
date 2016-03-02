@@ -25,6 +25,8 @@ public interface TenantStore {
 
   void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
 
+  void update(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
+
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
   
   void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut);

@@ -33,46 +33,68 @@ public class ModuleManager {
     this.modules = modules;
   }
 
- public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
-   final String id = md.getId();
-      String url;
-      final int use_port = ports.get();
-      int spawn_port = -1;
-      ModuleInstance m = modules.get(id);
-      if (m != null) {
-        fut.handle(new Failure<>(USER,"Already deployed"));
-        return;
+  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
+    final String id = md.getId();
+    String url;
+    final int use_port = ports.get();
+    int spawn_port = -1;
+    ModuleInstance m = modules.get(id);
+    if (m != null) {
+      fut.handle(new Failure<>(USER, "Already deployed"));
+      return;
+    }
+    if (md.getUrl() == null) {
+      if (use_port == -1) {
+        fut.handle(new Failure<>(USER, "module " + id
+                + " can not be deployed: all ports in use"));
       }
-      if (md.getUrl() == null) {
-        if (use_port == -1) {
-          fut.handle(new Failure<>(USER, "module " + id
-                  + " can not be deployed: all ports in use"));
-        }
-        spawn_port = use_port;
-        url = "http://localhost:" + use_port;
-      } else {
-        ports.free(use_port);
-        url = md.getUrl();
-      }
-      if (md.getDescriptor() != null) {
-        // enable it now so that activation for 2nd one will fail
-        ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-                spawn_port);
-        modules.put(id, new ModuleInstance(md, pmh, url));
+      spawn_port = use_port;
+      url = "http://localhost:" + use_port;
+    } else {
+      ports.free(use_port);
+      url = md.getUrl();
+    }
+    if (md.getDescriptor() != null) {
+      // enable it now so that activation for 2nd one will fail
+      ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
+              spawn_port);
+      modules.put(id, new ModuleInstance(md, pmh, url));
 
-        pmh.start(future -> {
-          if (future.succeeded()) {
-            fut.handle(new Success<>(id));
+      pmh.start(future -> {
+        if (future.succeeded()) {
+          fut.handle(new Success<>(id));
+        } else {
+          modules.remove(md.getId());
+          ports.free(use_port);
+          fut.handle(new Failure<>(INTERNAL, future.cause()));
+        }
+      });
+    } else {
+      modules.put(id, new ModuleInstance(md, null, url));
+      fut.handle(new Success<>(id));
+    }
+  }
+
+ /** Simplistic implementation of updating a module: Deletes it and inserts.
+  *
+ */
+  public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = md.getId();
+    this.delete(id, dres -> {
+      if (dres.failed()) {
+        System.out.println("ModuleManager: Update: Delete failed: " + dres.cause());
+        fut.handle(new Failure<>(dres.getType(), dres.cause()));
+      } else {
+        this.create(md, cres -> {
+          if (cres.failed()) {
+            System.out.println("ModuleManager: Update: Delete failed: " + dres.cause());
+            fut.handle(new Failure<>(dres.getType(), dres.cause()));
           } else {
-            modules.remove(md.getId());
-            ports.free(use_port);
-            fut.handle(new Failure<>( INTERNAL, future.cause() ) );
+            fut.handle(new Success<>());
           }
         });
-      } else {
-        modules.put(id, new ModuleInstance(md, null, url));
-        fut.handle(new Success<>(id));
       }
+    });
   }
 
 

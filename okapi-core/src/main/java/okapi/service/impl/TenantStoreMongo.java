@@ -51,6 +51,25 @@ public class TenantStoreMongo implements TenantStore {
       }
     });
   }
+  @Override
+  public void update(Tenant t,
+                     Handler<ExtendedAsyncResult<String>> fut) {
+    String id = t.getId();
+    String s = Json.encodePrettily(t);
+    JsonObject document = new JsonObject(s);
+    document.put("_id", id);
+    final String q = "{ \"_id\": \"" + id + "\"}";
+    JsonObject jq = new JsonObject(q);
+    cli.update(collection, jq, document, res -> {
+      if (res.succeeded()) {
+        fut.handle(new Success<>(id));
+      } else {
+        System.out.println("TenantStoreMongo: Failed to insert " + id
+          + ": " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL,res.cause()));
+      }
+    });
+  }
 
   @Override
   public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
