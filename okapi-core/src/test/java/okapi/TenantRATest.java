@@ -5,6 +5,7 @@
  */
 package okapi;
 
+import com.jayway.restassured.RestAssured;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import org.junit.After;
@@ -42,7 +43,9 @@ public class TenantRATest {
   public void test1() {
     int port = Integer.parseInt(System.getProperty("port", "9130"));
 
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    RestAssured.port = port;
+
+    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 
     String doc1 = "{"+LS
             + "  \"name\" : \"roskilde\","+LS
@@ -54,15 +57,15 @@ public class TenantRATest {
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r = given().port(port).body(doc1).post("/_/tenants").then().statusCode(201).
+    Response r = given().body(doc1).post("/_/tenants").then().statusCode(201).
               body(equalTo(doc2)).extract().response();
     String location = r.getHeader("Location");
 
-    given().port(port).get(location).then().statusCode(200).body(equalTo(doc2));
-    given().port(port).get(location + "none").then().statusCode(404);
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
-    given().port(port).delete(location).then().statusCode(204);
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    given().get(location).then().statusCode(200).body(equalTo(doc2));
+    given().get(location + "none").then().statusCode(404);
+    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
+    given().delete(location).then().statusCode(204);
+    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 
     String doc3 = "{"+LS
             + "  \"id\" : \"roskildedk\","+LS
@@ -70,23 +73,23 @@ public class TenantRATest {
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r3 = given().port(port).body(doc3).post("/_/tenants").then().statusCode(201).
+    Response r3 = given().body(doc3).post("/_/tenants").then().statusCode(201).
               body(equalTo(doc3)).extract().response();
     String location3 = r3.getHeader("Location");
     System.out.println("location3 = " + location3);
 
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
+    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
 
     String doc4 = "{"+LS
             + "  \"id\" : \"roskildedk\","+LS
             + "  \"name\" : \"Roskildes Real Name\","+LS
             + "  \"description\" : \"Roskilde bibliotek with a better description\""+LS
             + "}";
-    given().port(port).body(doc4).put(location).then().statusCode(200).body(equalTo(doc4));
+    given().body(doc4).put(location).then().statusCode(200).body(equalTo(doc4));
 
 
-    given().port(port).get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
+    given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
 
-    given().port(port).delete(location3).then().statusCode(204);
+    given().delete(location3).then().statusCode(204);
   }
 }
