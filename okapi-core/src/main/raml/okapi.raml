@@ -92,6 +92,8 @@ schemas:
               schema: TenantDescriptor
     delete:
       description: remove tenant
+      responses:
+        204:
 
     /modules:
       get:
@@ -103,9 +105,11 @@ schemas:
                 schema: TenantModules
       post:
         description: Link a module instance to the specified tenant
-        body:
-          application/json:
-            schema: TenantModuleDescriptor
+        responses:
+          201:
+            body:
+              application/json:
+                schema: TenantModuleDescriptor
 
       /{module_tenant_id}:
         get:
@@ -117,6 +121,8 @@ schemas:
                   schema: TenantModuleDescriptor
         delete:
           description: remove tenant-module registration
+          responses:
+            204:
 
 /_/health:
   get:
