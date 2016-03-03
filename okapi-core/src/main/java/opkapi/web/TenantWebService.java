@@ -106,6 +106,7 @@ public class TenantWebService {
             final String s = Json.encodePrettily(t.getDescriptor());
             ctx.response()
               .setStatusCode(201)
+              .putHeader("Content-Type", "application/json")
               .putHeader("Location", uri)
               .end(s);
             sendReloadSignal(id, ts);
@@ -135,6 +136,7 @@ public class TenantWebService {
             final String s = Json.encodePrettily(t.getDescriptor());
             ctx.response()
               .setStatusCode(200)
+              .putHeader("Content-Type", "application/json")
               .end(s);
             sendReloadSignal(id, ts);
           } else { 
@@ -153,7 +155,10 @@ public class TenantWebService {
     tenantStore.listTenants(res->{
       if (res.succeeded()) {
         String s = Json.encodePrettily(res.result());
-        ctx.response().end(s);
+        ctx.response()
+                .setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(s);
       } else {
         ctx.response().setStatusCode(400).end(res.cause().getMessage());
       }
@@ -167,10 +172,15 @@ public class TenantWebService {
       if ( res.succeeded() ) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
-        ctx.response().end(s);
+        ctx.response()
+                .setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(s);
       } else {
         if ( res.getType() == NOT_FOUND )
-          ctx.response().setStatusCode(404).end(res.cause().getMessage());
+          ctx.response().setStatusCode(404)
+                  .putHeader("Content-Type", "text/plain")
+                  .end(res.cause().getMessage());
         else
           ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }

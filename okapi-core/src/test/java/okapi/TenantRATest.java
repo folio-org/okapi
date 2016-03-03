@@ -14,8 +14,12 @@ import org.junit.Test;
 import static com.jayway.restassured.RestAssured.*;
 import static com.jayway.restassured.matcher.RestAssuredMatchers.*;
 import com.jayway.restassured.response.Response;
+import guru.nidi.ramltester.RamlDefinition;
+import guru.nidi.ramltester.RamlLoaders;
+import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.json.JsonObject;
 import static org.hamcrest.Matchers.*;
+import org.junit.Assert;
 
 public class TenantRATest {
 
@@ -45,7 +49,16 @@ public class TenantRATest {
 
     RestAssured.port = port;
 
-    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.io");
+
+    RestAssuredClient c;
+
+    c = api.createRestAssured();
+    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
 
     String doc1 = "{"+LS
             + "  \"name\" : \"roskilde\","+LS
@@ -57,14 +70,44 @@ public class TenantRATest {
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r = given().body(doc1).post("/_/tenants").then().statusCode(201).
-              body(equalTo(doc2)).extract().response();
+    c = api.createRestAssured();
+    Response r = c.given().header("Content-Type", "application/json").body(doc1).post("/_/tenants")
+            .then().statusCode(201).
+             body(equalTo(doc2)).extract().response();
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
+    Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
 
-    given().get(location).then().statusCode(200).body(equalTo(doc2));
-    given().get(location + "none").then().statusCode(404);
-    given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
-    given().delete(location).then().statusCode(204);
+    c = api.createRestAssured();
+    c.given().get(location).then().statusCode(200).body(equalTo(doc2));
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get(location + "none").then().statusCode(404);
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(location).then().statusCode(204);
+    if (!c.getLastReport().isEmpty()) {
+       System.out.println(c.getLastReport().toString());
+    }
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
     given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 
     String doc3 = "{"+LS
