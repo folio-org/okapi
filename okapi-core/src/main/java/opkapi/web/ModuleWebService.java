@@ -194,7 +194,7 @@ public class ModuleWebService {
           ml.add(new ModuleDescriptorBrief(md));
         }
         ctx.response()
-                .setStatusCode(209)
+                .setStatusCode(200)
                 .putHeader("Content-Type", "application/json")
                 .end(Json.encodePrettily(ml));
       } else {
