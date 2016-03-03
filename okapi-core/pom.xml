@@ -47,9 +47,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.raml</groupId>
-      <artifactId>raml-parser</artifactId>
-      <version>0.8.13</version>
+      <groupId>guru.nidi.raml</groupId>
+      <artifactId>raml-tester</artifactId>
+      <version>0.8.7</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -175,11 +175,4 @@
       </build>
     </profile>
   </profiles>
-  <repositories>
-    <repository>
-      <id>mulesoft-releases</id>
-      <name>MuleSoft Releases Repository</name>
-      <url>https://repository-master.mulesoft.org/releases/</url>
-    </repository>
-  </repositories>
 </project>
