@@ -95,26 +95,32 @@ public class TenantWebService {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
         TenantDescriptor.class);
-      Tenant t = new Tenant(td);
-      final long ts = getTimestamp();
-      t.setTimestamp(ts);
-      final String id = td.getId();
-      if (tenants.insert(t)) {
-        tenantStore.insert(t, res -> {
-          if (res.succeeded()) {
-            final String uri = ctx.request().uri() + "/" + id;
-            final String s = Json.encodePrettily(t.getDescriptor());
-            ctx.response()
-              .setStatusCode(201)
-              .putHeader("Location", uri)
-              .end(s);
-            sendReloadSignal(id, ts);
-          } else { // TODO - Check what errors the mongo store can return
-            ctx.response().setStatusCode(400).end(res.cause().getMessage());
-          }
-        });
+      if ( td.getId() == null || td.getId().isEmpty() ) {
+        ctx.response().setStatusCode(400).end("No Id in tenant");
+      } else if ( ! td.getId().matches("^[a-z0-9._-]+$")) {
+        ctx.response().setStatusCode(400).end("Invalid id");
       } else {
-        ctx.response().setStatusCode(400).end("Duplicate id " + id);
+        Tenant t = new Tenant(td);
+        final long ts = getTimestamp();
+        t.setTimestamp(ts);
+        final String id = td.getId();
+        if (tenants.insert(t)) {
+          tenantStore.insert(t, res -> {
+            if (res.succeeded()) {
+              final String uri = ctx.request().uri() + "/" + id;
+              final String s = Json.encodePrettily(t.getDescriptor());
+              ctx.response()
+                .setStatusCode(201)
+                .putHeader("Location", uri)
+                .end(s);
+              sendReloadSignal(id, ts);
+            } else { // TODO - Check what errors the mongo store can return
+              ctx.response().setStatusCode(400).end(res.cause().getMessage());
+            }
+          });
+        } else {
+          ctx.response().setStatusCode(400).end("Duplicate id " + id);
+        }
       }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());

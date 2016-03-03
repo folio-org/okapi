@@ -44,23 +44,26 @@ public class TenantRATest {
 
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 
-    String doc1 = "{"+LS
+    String badId = "{"+LS
+            + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\","+LS
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
-    String doc2 = "{"+LS
+    given().port(port).body(badId).post("/_/tenants").then().statusCode(400);
+
+    String doc = "{"+LS
             + "  \"id\" : \"roskilde\","+LS
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r = given().port(port).body(doc1).post("/_/tenants").then().statusCode(201).
-              body(equalTo(doc2)).extract().response();
+    Response r = given().port(port).body(doc).post("/_/tenants").then().statusCode(201).
+              body(equalTo(doc)).extract().response();
     String location = r.getHeader("Location");
 
-    given().port(port).get(location).then().statusCode(200).body(equalTo(doc2));
+    given().port(port).get(location).then().statusCode(200).body(equalTo(doc));
     given().port(port).get(location + "none").then().statusCode(404);
-    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
+    given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
     given().port(port).delete(location).then().statusCode(204);
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
 

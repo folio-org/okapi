@@ -257,10 +257,6 @@ public class DeployModuleIntegration {
   
   public void createTenant(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"" + okapiTenant + "\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
-            + "}";
-    final String doc2 = "{"+LS
             + "  \"id\" : \"" + okapiTenant + "\","+LS
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
@@ -269,7 +265,7 @@ public class DeployModuleIntegration {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.handler(body -> {
-        context.assertEquals(doc2, body.toString());
+        context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
