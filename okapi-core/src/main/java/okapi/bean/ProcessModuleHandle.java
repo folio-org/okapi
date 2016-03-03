@@ -79,10 +79,24 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    if (p != null) {
-      p.destroy();
-    }
-    stopFuture.handle(Future.succeededFuture());
+    vertx.executeBlocking(future -> {
+      if (p != null) {
+        p.destroy();
+        while (p.isAlive()) {
+          try {
+            int x = p.waitFor();
+          } catch (InterruptedException ex) {
+          }
+        }
+      }
+      future.complete();
+    }, false, result -> {
+      if (result.failed()) {
+        stopFuture.handle(Future.failedFuture(result.cause()));
+      } else {
+        stopFuture.handle(Future.succeededFuture());
+      }
+    });
   }
 
   public int getPort() {
