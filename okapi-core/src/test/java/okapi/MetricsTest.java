@@ -21,9 +21,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -38,14 +36,6 @@ public class MetricsTest {
   private GraphiteReporter reporter2;
 
   public MetricsTest() {
-  }
-
-  @BeforeClass
-  public static void setUpClass() {
-  }
-
-  @AfterClass
-  public static void tearDownClass() {
   }
 
   @Before
