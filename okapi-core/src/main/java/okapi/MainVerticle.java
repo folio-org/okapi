@@ -14,6 +14,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -37,6 +39,7 @@ import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 
 public class MainVerticle extends AbstractVerticle {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private int port;
   private int port_start;
@@ -105,7 +108,7 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
-    
+       
     //handle CORS
     router.route().handler(CorsHandler.create("*")
             .allowedMethod(HttpMethod.PUT)
@@ -147,7 +150,7 @@ public class MainVerticle extends AbstractVerticle {
     //everything else gets proxified to modules
     router.route("/*").handler(ps::proxy);
     
-    System.out.println("API Gateway started PID "
+    logger.info("API Gateway started PID "
       + ManagementFactory.getRuntimeMXBean().getName()
       + ". Listening on port " + port + " using '" + storage + "' storage");
     
