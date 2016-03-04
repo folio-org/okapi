@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package opkapi.web;
+package okapi.web;
 
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
@@ -98,34 +98,51 @@ public class ModuleWebService {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
         ModuleDescriptor.class);
-      moduleManager.create(md, cres -> {
-        if (cres.failed()) {
-          System.out.println("Failed to start service, will not update the DB. " + md);
-          if (cres.getType() == INTERNAL) {
-            ctx.response().setStatusCode(500).end(cres.cause().getMessage());
-          } else { // must be some kind of bad request
-            ctx.response().setStatusCode(400).end(cres.cause().getMessage());
-          }
-        } else {
-          moduleStore.insert(md, ires -> {
-            if (ires.succeeded()) {
-              sendReloadSignal(sres->{
-                if ( sres.succeeded()) {
-                  final String s = Json.encodePrettily(md);
-                  ctx.response().setStatusCode(201)
-                    .putHeader("Location", ctx.request().uri() + "/" + ires.result())
-                    .end(s);
-                } else { // TODO - What to if this fails ??
-                  ctx.response().setStatusCode(500).end(sres.cause().getMessage());
-                }
-              });
-            } else {
-              System.out.println("create failred " + ires.cause().getMessage());
-              ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+      if (md.getId() == null || md.getId().isEmpty()) {
+        ctx.response().setStatusCode(400).end("No Id in tenant");
+      } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
+        ctx.response().setStatusCode(400).end("Invalid id");
+      } else {
+        moduleManager.create(md, cres -> {
+          if (cres.failed()) {
+            System.out.println("Failed to start service, will not update the DB. " + md);
+            if (cres.getType() == INTERNAL) {
+              ctx.response().setStatusCode(500).end(cres.cause().getMessage());
+            } else { // must be some kind of bad request
+              ctx.response().setStatusCode(400).end(cres.cause().getMessage());
             }
-          });
-        }
-      });
+          } else {
+            moduleStore.insert(md, ires -> {
+              if (ires.succeeded()) {
+                sendReloadSignal(sres -> {
+                  if (sres.succeeded()) {
+                    final String s = Json.encodePrettily(md);
+                    ctx.response().setStatusCode(201)
+                      .putHeader("Location", ctx.request().uri() + "/" + ires.result())
+                      .end(s);
+                  } else { // TODO - What to if this fails ??
+                    ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+                  }
+                });
+              } else {
+                // This can only happen in some kind of race condition, we should
+                // have detected duplicates when creating in the manager. This
+                // TODO - How to test these cases?
+                System.out.println("create failed " + ires.cause().getMessage());
+                moduleManager.delete(md.getId(), dres->{ // remove from runtime too
+                  if ( dres.succeeded()) {
+                    ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+                    // Note, we return ires.cause, the reason why the insert failed
+                  } else {
+                    // TODO - What to do now - the system may be inconsistent!
+                    ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+                  }
+                });
+              }
+            });
+          }
+        });
+      }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
     }

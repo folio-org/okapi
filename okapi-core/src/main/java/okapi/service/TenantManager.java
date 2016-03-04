@@ -30,22 +30,22 @@ public class TenantManager {
   public boolean insert(Tenant t) {
     String id = t.getId();
     if ( tenants.containsKey(id)) {
-      System.out.println("TenantManager: Not inserting " + id + ":" + Json.encode(t));
+      System.out.println("TenantManager: Not inserting duplicate '" + id + "':" + Json.encode(t));
       return false;
     }
     tenants.put(id, t);
-    System.out.println("TenantManager: Inserted " + id + ":" + Json.encode(t));
+    System.out.println("TenantManager: Inserted '" + id + "':" + Json.encode(t));
     return true;
   }
 
   public boolean update(Tenant t) {
     String id = t.getId();
     if ( ! tenants.containsKey(id)) {
-      System.out.println("TenantManager: Tenant " + id + " not found, can not update");
+      System.out.println("TenantManager: Tenant '" + id + "' not found, can not update");
       return false;
     }
     tenants.put(id, t);
-    System.out.println("TenantManager: Updated" + id + ":" + Json.encode(t));
+    System.out.println("TenantManager: Updated '" + id + "':" + Json.encode(t));
     return true;
   }
 
@@ -66,9 +66,11 @@ public class TenantManager {
    */
   public boolean delete(String id) {
     if (!tenants.containsKey(id)) {
+      System.out.println("TenantManager: Tenant '" + id + "' not found, can not delete");
       return false;
     }
     tenants.remove(id);
+    System.out.println("TenantManager: Deleted '" + id + "'");
     return true;
   }
 
