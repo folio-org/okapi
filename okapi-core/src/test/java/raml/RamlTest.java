@@ -5,14 +5,19 @@
  */
 package raml;
 
+import guru.nidi.ramltester.RamlDefinition;
+import guru.nidi.ramltester.RamlLoaders;
+import guru.nidi.ramltester.core.RamlReport;
+import guru.nidi.ramltester.core.RamlValidator;
+import guru.nidi.ramltester.core.Validation;
+import static guru.nidi.ramltester.junit.RamlMatchers.validates;
 import java.util.List;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.raml.parser.rule.ValidationResult;
-import org.raml.parser.visitor.RamlValidationService;
 
 public class RamlTest {
   public RamlTest() {
@@ -36,9 +41,11 @@ public class RamlTest {
 
   @Test
   public void testOkapiRaml() {
-    String ramlLocation = "src/main/raml/okapi.raml";
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
 
-    List<ValidationResult> results = RamlValidationService.createDefault().validate(ramlLocation);
-    assert(results.isEmpty());
+    // Don't check Validation.DESCRIPTION
+    RamlValidator v = api.validator().withChecks(Validation.URI_PARAMETER, Validation.PARAMETER, Validation.EMPTY);
+
+    Assert.assertThat(v.validate(), validates());
   }
 }

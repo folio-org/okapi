@@ -189,27 +189,31 @@ public class ModuleWebService {
     final String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     //cli.find(collection, jq, res -> {
-    moduleStore.get(id, res->{
+    moduleStore.get(id, res -> {
       if (res.succeeded()) {
-          ctx.response().setStatusCode(200).end(Json.encodePrettily(res.result()));
-      } else if ( res.getType() == NOT_FOUND ) {
-          ctx.response().setStatusCode(404).end(res.cause().getMessage());
+        ctx.response()
+                .setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(Json.encodePrettily(res.result()));
+      } else if (res.getType() == NOT_FOUND) {
+        ctx.response().setStatusCode(404).end(res.cause().getMessage());
       } else { // must be internal error then
-          ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }
     });
   }
 
   public void list(RoutingContext ctx) {
-    moduleStore.getAll(res->{
+    moduleStore.getAll(res -> {
       if (res.succeeded()) {
-          List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
-          for (ModuleDescriptor md : res.result()) {
-            ml.add(new ModuleDescriptorBrief(md));
-          }
+        List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
+        for (ModuleDescriptor md : res.result()) {
+          ml.add(new ModuleDescriptorBrief(md));
+        }
         ctx.response()
-          .setStatusCode(200)
-          .end(Json.encodePrettily(ml));
+                .setStatusCode(200)
+                .putHeader("Content-Type", "application/json")
+                .end(Json.encodePrettily(ml));
       } else {
         ctx.response().setStatusCode(500).end(res.cause().getMessage());
       }

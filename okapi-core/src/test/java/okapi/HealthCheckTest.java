@@ -5,6 +5,7 @@
  */
 package okapi;
 
+import com.jayway.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +35,9 @@ public class HealthCheckTest {
 
   @Test
   public void testHealthCheck() {
-    given().port(port).get("/_/health").then().assertThat().statusCode(200);
-    given().port(port).get("/_/health2").then().assertThat().statusCode(404);
+    RestAssured.port = port;
+
+    given().get("/_/health").then().assertThat().statusCode(200);
+    given().get("/_/health2").then().assertThat().statusCode(404);
   }
 }

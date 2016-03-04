@@ -58,7 +58,6 @@ schemas:
       responses:
         204:
 
-
 /_/tenants:
   post:
     description: create a new tenant
@@ -74,7 +73,14 @@ schemas:
         body:
           application/json:
             schema: TenantDescriptor
-
+  get:
+    description: list all tenants
+    responses:
+      200:
+        description: list of tenant in a brief format
+        body:
+          application/json:
+            schema: TenantModules
   /{tenant_id}:
     get:
       description: retrieve tenant
@@ -83,6 +89,10 @@ schemas:
           body:
             application/json:
               schema: TenantDescriptor
+        404:
+          description: not found
+          body:
+            text/plain:
     put:
       description: update tenant
       responses:
@@ -92,6 +102,8 @@ schemas:
               schema: TenantDescriptor
     delete:
       description: remove tenant
+      responses:
+        204:
 
     /modules:
       get:
@@ -103,9 +115,11 @@ schemas:
                 schema: TenantModules
       post:
         description: Link a module instance to the specified tenant
-        body:
-          application/json:
-            schema: TenantModuleDescriptor
+        responses:
+          201:
+            body:
+              application/json:
+                schema: TenantModuleDescriptor
 
       /{module_tenant_id}:
         get:
@@ -117,6 +131,8 @@ schemas:
                   schema: TenantModuleDescriptor
         delete:
           description: remove tenant-module registration
+          responses:
+            204:
 
 /_/health:
   get:
