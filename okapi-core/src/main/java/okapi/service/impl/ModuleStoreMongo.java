@@ -71,7 +71,7 @@ public class ModuleStoreMongo implements ModuleStore {
   @Override
   public void get(String id,
                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    final String q = "{ \"id\": \"" + id + "\"}";
+    final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     System.out.println("Trying to get " + q);
     cli.find(collection, jq, res -> {

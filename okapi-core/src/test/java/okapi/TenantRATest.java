@@ -60,28 +60,34 @@ public class TenantRATest {
        System.out.println(c.getLastReport().toString());
     }
 
-    String doc1 = "{"+LS
+    String badId = "{"+LS
+            + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\","+LS
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
-    String doc2 = "{"+LS
+    given().port(port).body(badId).post("/_/tenants").then().statusCode(400);
+
+    String doc = "{"+LS
             + "  \"id\" : \"roskilde\","+LS
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    c = api.createRestAssured();
-    Response r = c.given().header("Content-Type", "application/json").body(doc1).post("/_/tenants")
-            .then().statusCode(201).
-             body(equalTo(doc2)).extract().response();
+    Response r = given().port(port).body(doc).post("/_/tenants").then().statusCode(201).
+              body(equalTo(doc)).extract().response();
     if (!c.getLastReport().isEmpty()) {
        System.out.println(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
 
+    // post again, fail because of duplicate
+    given().port(port).body(doc).post("/_/tenants").then().statusCode(400);
+
+
+
     c = api.createRestAssured();
-    c.given().get(location).then().statusCode(200).body(equalTo(doc2));
+    c.given().get(location).then().statusCode(200).body(equalTo(doc));
     if (!c.getLastReport().isEmpty()) {
        System.out.println(c.getLastReport().toString());
     }
@@ -95,7 +101,7 @@ public class TenantRATest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc2 + " ]"));
+    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
     if (!c.getLastReport().isEmpty()) {
        System.out.println(c.getLastReport().toString());
     }

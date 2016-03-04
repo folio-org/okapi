@@ -138,6 +138,7 @@ public class DeployModuleIntegration {
 
   public void deployBadModule(TestContext context) {
     final String doc = "{"+LS
+            + "  \"id\" : \"auth\","+LS
             + "  \"name\" : \"auth\","+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
@@ -155,6 +156,27 @@ public class DeployModuleIntegration {
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(500, response.statusCode());
       response.endHandler(x -> {
+        deployNoId(context);
+      });
+    }).end(doc);
+  }
+  public void deployNoId(TestContext context) {
+    final String doc = "{"+LS
+            + "  \"name\" : \"auth\","+LS
+            + "  \"descriptor\" : {"+LS
+            + "    \"cmdlineStart\" : \"sleep %p\","+LS
+            + "    \"cmdlineStop\" : null"+LS
+            + "  },"+LS
+            + "  \"routingEntries\" : [ {"+LS
+            + "    \"methods\" : [ \"*\" ],"+LS
+            + "    \"path\" : \"/\","+LS
+            + "    \"level\" : \"10\","+LS
+            + "    \"type\" : \"request-response\""+LS
+            + "  } ]"+LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/modules", response -> {
+      context.assertEquals(400, response.statusCode());
+      response.endHandler(x -> {
         deployAuth(context);
       });
     }).end(doc);
@@ -162,6 +184,7 @@ public class DeployModuleIntegration {
 
   public void deployAuth(TestContext context) {
     final String doc = "{"+LS
+            + "  \"id\" : \"auth\","+LS
             + "  \"name\" : \"auth\","+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
@@ -257,10 +280,6 @@ public class DeployModuleIntegration {
   
   public void createTenant(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"" + okapiTenant + "\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
-            + "}";
-    final String doc2 = "{"+LS
             + "  \"id\" : \"" + okapiTenant + "\","+LS
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
@@ -269,7 +288,7 @@ public class DeployModuleIntegration {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.handler(body -> {
-        context.assertEquals(doc2, body.toString());
+        context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
@@ -481,7 +500,8 @@ public class DeployModuleIntegration {
 
   public void deploySample2(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"sample-module2\","+LS
+            + "  \"id\" : \"sample-module2\","+LS
+            + "  \"name\" : \"another-sample-module2\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
             + "  \"descriptor\" : null,"+LS
             + "  \"routingEntries\" : [ {"+LS
@@ -514,6 +534,7 @@ public class DeployModuleIntegration {
 
   public void deploySample3(TestContext context) {
     final String doc = "{"+LS
+            + "  \"id\" : \"sample-module3\","+LS
             + "  \"name\" : \"sample-module3\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
             + "  \"descriptor\" : {"+LS

@@ -27,8 +27,6 @@ public class TenantDescriptor {
   }
 
   public String getId() {
-    if (id == null)
-      return name;
     return id;
   }
 
