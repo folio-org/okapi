@@ -496,7 +496,8 @@ structure of module metadata and POST it to Okapi
 ```
 cat > /tmp/samplemodule.json <<END
 {
-  "name" : "sample-module",
+  "id" : "sample-module",
+  "name" : "okapi sample module",
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
     "cmdlineStop" : null
@@ -546,7 +547,7 @@ Content-Length: 363
 
 {
   "id" : "sample-module",
-  "name" : "sample-module",
+  "name" : "okapi sample module",
   "url" : null,
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
@@ -560,9 +561,6 @@ Content-Length: 363
   } ]
 }
 ```
-Note that the displayed record is not exactly identical, Okapi has added an id
-to it, since every record must have one, and the request did not specify it.
-Okapi uses the name as the id. Of course you could also specify your own id.
 
 If you repeat the same request, you should now get an error
 ```
@@ -593,6 +591,7 @@ This is similar to the sample module. First we create the JSON structure for it:
 ```
 cat > /tmp/authmodule.json <<END
 {
+  "id" : "auth",
   "name" : "auth",
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
@@ -678,7 +677,8 @@ For this example we create two tenants. These are simple requests.
 ```
 cat > /tmp/tenant1.json <<END
 {
-  "name" : "ourlibrary",
+  "id" : "our",
+  "name" : "our library",
   "description" : "Our Own Library"
 }
 END
@@ -696,8 +696,8 @@ Location: /_/tenants/ourlibrary
 Content-Length: 87
 
 {
-  "id" : "ourlibrary",
-  "name" : "ourlibrary",
+  "id" : "our",
+  "name" : "our library",
   "description" : "Our Own Library"
 }
 ```
@@ -707,6 +707,7 @@ And the second tenant is similar.
 ```
 cat > /tmp/tenant2.json <<END
 {
+  "id" : "other",
   "name" : "otherlibrary",
   "description" : "The Other Library"
 }
@@ -725,7 +726,7 @@ curl -w '\n' http://localhost:9130/_/tenants
 
 We can now get information for one of these again.
 ```
-curl -w '\n' http://localhost:9130/_/tenants/ourlibrary
+curl -w '\n' http://localhost:9130/_/tenants/our
 ```
 
 ### Enabling a module for a tenant
@@ -743,11 +744,11 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant1.json  \
-  http://localhost:9130/_/tenants/ourlibrary/modules
+  http://localhost:9130/_/tenants/our/modules
 ```
 
 Note that we are using a RESTful approach here: the URL
-`http://localhost:9130/_/tenants/ourlibrary/modules` names the set of
+`http://localhost:9130/_/tenants/our/modules` names the set of
 modules that are enabled for our library, and we POST an deployed
 module to this set. The tenant to enable the module for is in the URL;
 the module to enable it for is in the payload.
@@ -756,8 +757,7 @@ Now we can ask Okapi which modules are enabled for our tenant, and get
 back a JSON list:
 
 ````
-$ curl -w '\n' http://localhost:9130/_/tenants/ourlibrary/modules
-[ "sample-module" ]
+curl -w '\n' http://localhost:9130/_/tenants/our/modules
 ````
 
 ### Using a module
@@ -771,10 +771,10 @@ sample module, so it can not allow such, and returns a 403 forbidden.
 We need to pass the tenant in our request:
 ```
 curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: ourlibrary" \
+  -H "X-Okapi-Tenant: our" \
   http://localhost:9130/sample
 ```
-and indeed we get back a note saying that it works.
+and indeed the sample module says that _it works_.
 
 ### Enabling both modules for the other tenant
 
@@ -791,7 +791,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant2a.json  \
-  http://localhost:9130/_/tenants/otherlibrary/modules
+  http://localhost:9130/_/tenants/other/modules
 
 cat > /tmp/enabletenant2b.json <<END
 {
@@ -802,11 +802,11 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant2b.json  \
-  http://localhost:9130/_/tenants/otherlibrary/modules
+  http://localhost:9130/_/tenants/other/modules
 ```
 You can list the enabled modules with
 ```
-curl -w '\n' -D - http://localhost:9130/_/tenants/otherlibrary/modules
+curl -w '\n' -D - http://localhost:9130/_/tenants/other/modules
 ```
 
 ### Authentication problems
@@ -814,7 +814,7 @@ curl -w '\n' -D - http://localhost:9130/_/tenants/otherlibrary/modules
 If the other library tries to use our sample module:
 ```
 curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: otherlibrary" \
+  -H "X-Okapi-Tenant: other" \
   http://localhost:9130/sample
 ```
 it fails with
@@ -840,14 +840,14 @@ first.
 ```
 cat > /tmp/login.json <<END
 {
-  "tenant": "otherlibrary",
+  "tenant": "other",
   "username": "peter",
   "password": "peter-password"
 }
 END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -H "X-Okapi-Tenant: otherlibrary" \
+  -H "X-Okapi-Tenant: other" \
   -d @/tmp/login.json  \
   http://localhost:9130/login
 ```
@@ -860,14 +860,14 @@ When successful, /login echoes the login parameters as its response;
 but more importantly, it also returns a header containing an
 authentication token:
 
-    X-Okapi-Token: otherlibrary:peter:ca9b9b7beca02fa9f95dd7a2a6fb65d4
+    X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c
 
 Now we can add that header to the request, and see if things finally work:
 
 ```
 curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: otherlibrary" \
-  -H "X-Okapi-Token: otherlibrary:peter:ca9b9b7beca02fa9f95dd7a2a6fb65d4" \
+  -H "X-Okapi-Tenant: other" \
+  -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
   http://localhost:9130/sample
 ```
 
@@ -881,8 +881,8 @@ Now we can clean up some things
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/modules/sample-module
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/modules/auth
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/ourlibrary
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/otherlibrary
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/our
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/tenants/other
 ```
 Okapi responds to each of these with a simple
 ```
