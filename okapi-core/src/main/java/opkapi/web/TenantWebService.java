@@ -114,7 +114,12 @@ public class TenantWebService {
                 .putHeader("Location", uri)
                 .end(s);
               sendReloadSignal(id, ts);
-            } else { // TODO - Check what errors the mongo store can return
+            } else { 
+              // This should never happen in a well behaving system. It is 
+              // possible with some race conditions etc. Hard to test...
+              // TODO - Check what errors the mongo store can return
+              System.out.println("TenantWebService:create: Db layer error " +res.cause().getMessage() );
+              tenants.delete(id); // Take it away from the runtime, since it was no good.
               ctx.response().setStatusCode(400).end(res.cause().getMessage());
             }
           });

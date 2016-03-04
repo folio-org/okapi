@@ -61,6 +61,9 @@ public class TenantRATest {
               body(equalTo(doc)).extract().response();
     String location = r.getHeader("Location");
 
+    // post again, fail because of duplicate
+    given().port(port).body(doc).post("/_/tenants").then().statusCode(400);
+
     given().port(port).get(location).then().statusCode(200).body(equalTo(doc));
     given().port(port).get(location + "none").then().statusCode(404);
     given().port(port).get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
