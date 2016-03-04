@@ -6,7 +6,7 @@
 package okapi;
 
 import okapi.service.ModuleManager;
-import opkapi.web.TenantWebService;
+import okapi.web.TenantWebService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -21,9 +21,9 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import okapi.bean.Modules;
-import opkapi.web.HealthService;
+import okapi.web.HealthService;
 import okapi.service.ModuleStore;
-import opkapi.web.ModuleWebService;
+import okapi.web.ModuleWebService;
 import okapi.service.ProxyService;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;

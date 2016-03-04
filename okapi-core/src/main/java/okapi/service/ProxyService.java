@@ -5,7 +5,7 @@
  */
 package okapi.service;
 
-import opkapi.web.TenantWebService;
+import okapi.web.TenantWebService;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
 import okapi.bean.Tenant;

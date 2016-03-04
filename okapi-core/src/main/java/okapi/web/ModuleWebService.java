@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package opkapi.web;
+package okapi.web;
 
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
