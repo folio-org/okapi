@@ -18,9 +18,16 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.Async;
+import io.vertx.ext.unit.TestContext;
+import io.vertx.ext.unit.junit.VertxUnitRunner;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
+import org.junit.runner.RunWith;
 
+
+
+@RunWith(VertxUnitRunner.class)
 public class TenantRATest {
 
   Vertx vertx;
@@ -30,17 +37,20 @@ public class TenantRATest {
   }
 
   @Before
-  public void setUp() {
+  public void setUp(TestContext context) {
     vertx = Vertx.vertx();
 
     DeploymentOptions opt = new DeploymentOptions()
             .setConfig(new JsonObject().put("storage", "inmemory"));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt);
+    vertx.deployVerticle(MainVerticle.class.getName(), opt,  context.asyncAssertSuccess());
   }
 
   @After
-  public void tearDown() {
-    vertx.close();
+  public void tearDown(TestContext context) {
+    Async async = context.async();
+    vertx.close(x -> {
+      async.complete();
+    });
   }
 
   @Test
