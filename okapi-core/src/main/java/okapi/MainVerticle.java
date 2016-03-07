@@ -152,7 +152,7 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/*").handler(ps::proxy);
     
 
-    startListening(router, 3, 100, fut);
+    startListening(router, 0, 100, fut); // Retrying is disabled time being!
   }
 
   /**

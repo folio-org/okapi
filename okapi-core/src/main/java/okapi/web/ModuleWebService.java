@@ -305,8 +305,10 @@ public class ModuleWebService {
       fut.handle(new Success<>());
     } else {
       ModuleDescriptor md = it.next();
+      System.out.println("About to start module " + md.getId() );
       moduleManager.create(md, res-> {
         if ( res.failed()) {
+          System.out.println("Failed to start module " + md.getId() + ": " + res.cause());
           fut.handle(new Failure<>(res.getType(),res.cause() ));
         } else {
           loadR(it, fut);

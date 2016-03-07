@@ -91,7 +91,7 @@ public class TenantManager {
     return OK;
   }
   /**
-   * Enable a module for a given tenant.
+   * Disable a module for a given tenant.
    *
    * @param id
    * @param module

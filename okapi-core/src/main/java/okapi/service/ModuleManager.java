@@ -105,16 +105,20 @@ public class ModuleManager {
     } else {
       ProcessModuleHandle pmh = m.getProcessModuleHandle();
       if (pmh == null) {
+        System.out.println("ModuleManager: not running, just deleting " + m.getModuleDescriptor().getId());
         modules.remove(id); // nothing running, just remove it from our list
         fut.handle(new Success<>());
       } else {
+        System.out.println("ModuleManager: About to stop " + m.getModuleDescriptor().getId());
         pmh.stop(future -> {
           if (future.succeeded()) {
+            System.out.println("ModuleManager: Did stop " + m.getModuleDescriptor().getId());
             modules.remove(id);
             ports.free(pmh.getPort());
             fut.handle(new Success<>());
           } else {
             fut.handle(new Failure<>(INTERNAL, future.cause()));
+            System.out.println("ModuleManager: FAILED to stop " + m.getModuleDescriptor().getId());
           }
         });
       }
