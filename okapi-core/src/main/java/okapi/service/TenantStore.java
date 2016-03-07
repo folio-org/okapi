@@ -20,6 +20,7 @@ public interface TenantStore {
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
   void enableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut );
+  void disableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut );
 
   void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut);
 

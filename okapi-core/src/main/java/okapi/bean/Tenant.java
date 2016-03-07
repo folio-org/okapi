@@ -41,6 +41,17 @@ public class Tenant {
     this.timestamp = 0;
   }
 
+  /**
+   * Copy constructor.
+   * Makes separate copies of everything
+   * @param other 
+   */
+  public Tenant( Tenant other) {
+    this.descriptor = new TenantDescriptor(other.descriptor);
+    this.enabled = new HashMap<>(other.enabled);
+    this.timestamp = 0;
+  }
+
   public long getTimestamp() {
     return timestamp;
   }
@@ -75,6 +86,10 @@ public class Tenant {
 
   public void enableModule(String n) {
     enabled.put(n, true);
+  }
+
+  public void disableModule(String n) {
+    enabled.remove(n, true);
   }
   
   public boolean isEnabled(String m) {

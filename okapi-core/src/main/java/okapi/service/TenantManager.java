@@ -90,6 +90,25 @@ public class TenantManager {
     tenant.enableModule(module);
     return OK;
   }
+  /**
+   * Enable a module for a given tenant.
+   *
+   * @param id
+   * @param module
+   * @return
+   */
+  public ErrorType disableModule(String id, String module ) {
+    Tenant tenant = tenants.get(id);
+    if (tenant == null) {
+      return USER; // Indicates tenant not found
+    }
+    if (tenant.isEnabled(module)) {
+      tenant.disableModule(module);
+      return OK;
+    } else
+      return NOT_FOUND; // tenant ok, but no such module
+  }
+
 
   /**
    * List modules for a given tenant.

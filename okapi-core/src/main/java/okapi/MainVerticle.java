@@ -133,6 +133,7 @@ public class MainVerticle extends AbstractVerticle {
     router.put("/_/tenants/:id").handler(tenantWebService::update);
     router.delete("/_/tenants/:id").handler(tenantWebService::delete);
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
+    router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/health").handler(hc::get);
 

@@ -247,6 +247,47 @@ public class TenantWebService {
     }
   }
 
+  public void disableModule(RoutingContext ctx) {
+    try {
+      final String id = ctx.request().getParam("id");
+      final String module = ctx.request().getParam("mod");
+      final long ts = getTimestamp();
+      System.out.println("TenantWebService: disablemodule t=" + id + " m=" + module + " XXXXXXXX");
+      ErrorType err =  tenants.disableModule(id, module);
+      if ( err == OK ) {
+        System.out.println("TenantWebService: tenantManager: OK");
+        tenantStore.disableModule(id, module, ts, res->{
+          if ( res.succeeded() ) {
+            System.out.println("TenantWebService: disablemodule: storage OK");
+            sendReloadSignal(id, ts);
+            ctx.response().setStatusCode(204).end();
+          } else {
+            if (res.getType() == NOT_FOUND) {
+              System.out.println("TenantWebService: disablemodule: storage NOTFOUND: " + res.cause().getMessage());
+              ctx.response().setStatusCode(404).end(res.cause().getMessage());
+            } else {
+              System.out.println("TenantWebService: disablemodule: storage other " + res.cause().getMessage());
+              ctx.response().setStatusCode(500).end(res.cause().getMessage());
+            }
+          }
+        });
+
+      } else if ( err == USER ) {
+        System.out.println("TenantWebService: tenantManager: USER");
+        ctx.response().setStatusCode(404).end("Tenant " + id + " not found (disableModule)");
+      } else if ( err == NOT_FOUND ) {
+        System.out.println("TenantWebService: tenantManager: NOT_FOUND");
+        ctx.response().setStatusCode(404).end("Tenant " + id + " has no module " + module + " (disableModule)");
+      } else {
+        System.out.println("TenantWebService: tenantManager: Other error");
+        ctx.response().setStatusCode(500).end();
+      }
+    } catch (DecodeException ex) {
+      ctx.response().setStatusCode(400).end(ex.getMessage());
+    }
+  }
+
+
   public void listModules(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     tenantStore.get(id, res->{

@@ -166,7 +166,6 @@ public class TenantStoreMongo implements TenantStore {
   @Override
   public void enableModule(String id, String module,  long timestamp,
         Handler<ExtendedAsyncResult<Void>> fut ) {
-
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     System.out.println("TenantStoreMongo: Trying to enable module " + module + " for tenant " + id);
@@ -176,7 +175,7 @@ public class TenantStoreMongo implements TenantStore {
         fut.handle(new Failure<>(INTERNAL,gres.cause()));
       } else {
         List<JsonObject> l = gres.result();
-        if (l.size() == 0) {
+        if (l.isEmpty()) {
           System.out.println("TenantStoreMongo: enableModule: not found: " + id);
           fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
         } else {
@@ -204,5 +203,44 @@ public class TenantStoreMongo implements TenantStore {
     });
   }
 
+  @Override
+  public void disableModule(String id, String module,  long timestamp,
+        Handler<ExtendedAsyncResult<Void>> fut ) {
+    final String q = "{ \"_id\": \"" + id + "\"}";
+    JsonObject jq = new JsonObject(q);
+    System.out.println("TenantStoreMongo: Trying to disable module " + module + " for tenant " + id);
+    cli.find(collection, jq, gres -> {
+      if ( gres.failed()) {
+        System.out.println("TenantStoreMongo: disable: find failed: " + gres.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL,gres.cause()));
+      } else {
+        List<JsonObject> l = gres.result();
+        if (l.isEmpty()) {
+          System.out.println("TenantStoreMongo: disableModule: not found: " + id);
+          fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
+        } else {
+          JsonObject d = l.get(0);
+          d.remove("_id");
+          System.out.println("TenantStoreMongo: disableModule: d: " +Json.encode(d) );
+          final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
+          t.setTimestamp(timestamp);
+          System.out.println("TenantStoreMongo: disableModule: " + Json.encodePrettily(t));
+          t.disableModule(module);
+          String s = Json.encodePrettily(t);
+          JsonObject document = new JsonObject(s);
+          document.put("_id", id);
+          cli.save(collection, document, sres -> {
+            if ( sres.failed() ) {
+              System.out.println("TenantStoreMongo: disable: saving failed: " + gres.cause().getMessage());
+              fut.handle(new Failure<>(INTERNAL,gres.cause()));
+            } else {
+              System.out.println("TenantStoreMongo: disabled module " + module + " for " + id + "ok");
+              fut.handle(new Success<>());
+            }
+          });
+        }
+      }
+    });
+  }
 
 }

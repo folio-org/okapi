@@ -638,7 +638,7 @@ public class DeployModuleIntegration {
         context.assertEquals("It works (XML) ", x.toString());
       });
       response.endHandler(x -> {
-        deleteTenant(context);
+        listTenantModules1(context);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
@@ -646,6 +646,46 @@ public class DeployModuleIntegration {
     req.putHeader("Content-Type", "text/xml");  
     req.end();
   }
+
+  public void listTenantModules1(TestContext context) {
+    httpClient.get(port, "localhost", locationTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        System.out.println("listTenantModules: " + x.toString());
+        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\", \"sample-module3\" ]";
+        context.assertEquals(explist, x.toString());
+      });
+      response.endHandler(x -> {
+        disableTenantModule(context);
+      });
+    }).end();
+  }
+
+
+  public void disableTenantModule(TestContext context) {
+    httpClient.delete(port, "localhost", locationTenant + "/modules/sample-module3", response -> {
+      System.out.println("disableTenantModule: " + response.statusCode());
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        listTenantModules2(context);
+      });
+    }).end();
+  }
+
+  public void listTenantModules2(TestContext context) {
+    httpClient.get(port, "localhost", locationTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\" ]";
+        System.out.println("listTenantModules: " + x.toString());
+        context.assertEquals(explist, x.toString());
+      });
+      response.endHandler(x -> {
+        deleteTenant(context);
+      });
+    }).end();
+  }
+
 
   public void deleteTenant(TestContext context) {
     httpClient.delete(port, "localhost", locationTenant, response -> {
