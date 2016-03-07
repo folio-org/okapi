@@ -151,21 +151,44 @@ public class MainVerticle extends AbstractVerticle {
     //everything else gets proxified to modules
     router.route("/*").handler(ps::proxy);
     
-    logger.info("API Gateway started PID "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + ". Listening on port " + port + " using '" + storage + "' storage");
-    
+
+    startListening(router, 3, 100, fut);
+  }
+
+  /**
+   * Start the http server and start listening.
+   * If it fails, retries a few times. If a (test) program terminates quickly,
+   * the port may still be in use when the next (test) program starts up the
+   * main verticle. 
+   * @param router
+   * @param retries
+   * @param fut 
+   */
+  private void startListening(Router router, int retries, int delay, Future<Void> fut) {
     vertx.createHttpServer()
-            .requestHandler(router::accept)
-            .listen(port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        fut.fail(result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router::accept)
+      .listen(port,
+        result -> {
+          if (result.succeeded()) {
+            logger.info("API Gateway started PID "
+              + ManagementFactory.getRuntimeMXBean().getName()
+              + ". Listening on port " + port + " using '" + storage + "' storage");
+            fut.complete();
+          } else {
+            if ( retries > 0 ) {
+              logger.fatal("createHttpServer failed: "
+                + result.cause().getMessage()+ " Retry #" + retries + " " + delay + "ms");
+              vertx.setTimer(delay, id -> {
+                startListening(router, retries-1, delay*2, fut);
+              });
+            } else {
+              logger.fatal("createHttpServer failed", result.cause() );
+              fut.fail(result.cause());
+            }
+          }
+        }
+      );
+
   }
 
   @Override
