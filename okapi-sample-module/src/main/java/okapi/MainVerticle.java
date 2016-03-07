@@ -16,6 +16,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -60,18 +61,27 @@ public class MainVerticle extends AbstractVerticle {
                     port,
                     result -> {
                       if (result.succeeded()) {
+                        System.out.println("Okapi-Sample started PID "
+                          + ManagementFactory.getRuntimeMXBean().getName()
+                          + ". Listening on port " + port );
                         fut.complete();
                       } else {
                         fut.fail(result.cause());
-                        vertx.close();
+                        System.out.println("Okapi-Sample failed to start listening! " + result.cause());
+                        //vertx.close();
                       }
                     }
             );
   }
 
+
   @Override
   public void stop(Future<Void> fut) throws IOException {
-    fut.complete();
+    System.out.println("Sample module stop called");
+    vertx.close(x -> {
+      System.out.println("Sample main verticle closed vert");
+      fut.complete();
+    });
   }
 
 }
