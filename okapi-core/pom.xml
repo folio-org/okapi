@@ -15,6 +15,52 @@
     <vertx-version>3.2.1</vertx-version>
   </properties>
   <dependencies>
+    <!-- logging see http://www.slf4j.org/legacy.html -->
+    <!-- we use SLF4J for our logging interface -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>1.7.18</version>
+    </dependency>
+    <!-- we use log4j as our logging implementation -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <version>1.7.13</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
+    </dependency>
+    <!-- inlcude slf4j bridges to proxy all logging from library deps to our logging impl -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <version>1.7.18</version>
+    </dependency>
+    <!-- we don't use JUL bridge because it requires bootsrtapping in the code -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>1.7.18</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- exlude transitive logging dependecies pulled by library deps, we do
+      that by setting the scope to 'provided' -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+      <version>1.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.1.3</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- logging config ends -->
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
@@ -98,6 +144,16 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.19.1</version>
+        <configuration>
+          <systemPropertyVariables>
+            <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
+          </systemPropertyVariables>
+        </configuration>
       </plugin>
     </plugins>
   </build>
