@@ -59,13 +59,4 @@ public class MainVerticle extends AbstractVerticle {
       );
   }
 
-  @Override
-  public void stop(Future<Void> fut) throws IOException {
-    System.out.println("Auth module stop called");
-    vertx.close(x -> {
-      System.out.println("Auth main verticle closed vert");
-      fut.complete();
-    });
-  }
-
 }
