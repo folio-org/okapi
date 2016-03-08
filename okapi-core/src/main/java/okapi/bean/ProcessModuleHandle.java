@@ -52,6 +52,25 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
+    if (port > 0) {
+      // fail if port is already in use
+      NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
+      NetClient c = vertx.createNetClient(options);
+      c.connect(port, "localhost", res -> {
+        if (res.succeeded()) {
+          NetSocket socket = res.result();
+          socket.close();
+          startFuture.handle(Future.failedFuture("port " + port + " already in use"));
+        } else {
+          start2(startFuture);
+        }
+      });
+    } else {
+      start2(startFuture);
+    }
+  }
+
+  private void start2(Handler<AsyncResult<Void>> startFuture) {
     final String cmdline = desc.getCmdlineStart().replace("%p", Integer.toString(port));
     vertx.executeBlocking(future -> {
       if (p == null) {
