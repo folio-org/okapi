@@ -13,6 +13,21 @@ public class ModuleDescriptor {
   private ProcessDeploymentDescriptor descriptor;
   private RoutingEntry [] routingEntries;
 
+  public ModuleDescriptor() {
+  }
+
+  /**
+   * Copy constructor.
+   * @param other
+   */
+  public ModuleDescriptor(ModuleDescriptor other) {
+    this.id = other.id;
+    this.name = other.name;
+    this.url = other.url;
+    this.descriptor = other.descriptor;
+    this.routingEntries = other.routingEntries;
+  }
+
   public String getUrl() {
     return url;
   }

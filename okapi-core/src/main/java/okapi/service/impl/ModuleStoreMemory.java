@@ -36,7 +36,7 @@ public class ModuleStoreMemory implements ModuleStore {
     if ( modules.containsKey(id)) {
       fut.handle(new Failure<>(USER,"Duplicate module id '" + id + "' in in-memory insert"));
     } else {
-      modules.put(id, md);
+      modules.put(id, new ModuleDescriptor(md));
       fut.handle(new Success<>(id));
     }
   }
@@ -48,7 +48,7 @@ public class ModuleStoreMemory implements ModuleStore {
     if ( !modules.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND,"Module " + id + " not found, can not update (inmemory-db)"));
     } else {
-      modules.put(id, md);
+      modules.put(id, new ModuleDescriptor(md));
       fut.handle(new Success<>(id));
     }
   }
@@ -61,14 +61,14 @@ public class ModuleStoreMemory implements ModuleStore {
     if (md == null)
       fut.handle(new Failure<>(NOT_FOUND,""));
     else
-      fut.handle(new Success<>(md));
+      fut.handle(new Success<>(new ModuleDescriptor(md)));
   }
 
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     List<ModuleDescriptor> ml = new ArrayList<>();
     for ( String id : modules.keySet() )
-      ml.add(modules.get(id));
+      ml.add(new ModuleDescriptor(modules.get(id)));
     fut.handle(new Success<>(ml));
   }
 
