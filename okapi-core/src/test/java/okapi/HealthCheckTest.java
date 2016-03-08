@@ -33,6 +33,7 @@ public class HealthCheckTest {
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
+
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();

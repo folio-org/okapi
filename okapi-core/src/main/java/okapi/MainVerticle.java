@@ -191,8 +191,4 @@ public class MainVerticle extends AbstractVerticle {
 
   }
 
-  @Override
-  public void stop(Future<Void> fut) throws IOException {
-    fut.complete();
-  }
 }

@@ -75,13 +75,4 @@ public class MainVerticle extends AbstractVerticle {
   }
 
 
-  @Override
-  public void stop(Future<Void> fut) throws IOException {
-    System.out.println("Sample module stop called");
-    vertx.close(x -> {
-      System.out.println("Sample main verticle closed vert");
-      fut.complete();
-    });
-  }
-
 }
