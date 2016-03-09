@@ -7,7 +7,6 @@ package okapi.service.impl;
 
 import okapi.service.ModuleStore;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
@@ -57,7 +56,7 @@ public class ModuleStoreMongo implements ModuleStore {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     document.put("_id", id);
-    cli.update(collection, jq,document, res -> {
+    cli.replace(collection, jq,document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
