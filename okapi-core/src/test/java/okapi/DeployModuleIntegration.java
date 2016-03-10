@@ -652,7 +652,8 @@ public class DeployModuleIntegration {
       context.assertEquals(200, response.statusCode());
       response.handler(x -> {
         System.out.println("listTenantModules: " + x.toString());
-        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\", \"sample-module3\" ]";
+        //String explist = "[ \"sample-module2\", \"sample-module\", \"auth\", \"sample-module3\" ]";
+        String explist = "[ \"auth\", \"sample-module\", \"sample-module2\", \"sample-module3\" ]";
         context.assertEquals(explist, x.toString());
       });
       response.endHandler(x -> {
@@ -676,7 +677,7 @@ public class DeployModuleIntegration {
     httpClient.get(port, "localhost", locationTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(x -> {
-        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\" ]";
+        String explist = "[ \"auth\", \"sample-module\", \"sample-module2\" ]";
         System.out.println("listTenantModules: " + x.toString());
         context.assertEquals(explist, x.toString());
       });

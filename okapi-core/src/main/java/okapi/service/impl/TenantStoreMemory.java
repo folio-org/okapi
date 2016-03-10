@@ -7,6 +7,7 @@ package okapi.service.impl;
 
 import okapi.service.TenantStore;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -70,9 +71,9 @@ public class TenantStoreMemory implements TenantStore {
   @Override
   public void get(String id,Handler<ExtendedAsyncResult<Tenant>> fut ) {
     Tenant t = tenants.get(id);
-    if (t != null)
+    if (t != null) {
       fut.handle(new Success<>(new Tenant(t)));
-    else
+    } else
       fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
   }
 
