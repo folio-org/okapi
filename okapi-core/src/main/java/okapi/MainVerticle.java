@@ -46,6 +46,8 @@ public class MainVerticle extends AbstractVerticle {
   private int port_end;
   private String storage;
 
+  MongoHandle mongo = null;
+
   HealthService hc;
   ModuleManager ms;
   ModuleWebService moduleWebService;
@@ -81,8 +83,9 @@ public class MainVerticle extends AbstractVerticle {
     TimeStampStore timeStampStore = null;
 
     switch (storage) {
+
       case "mongo":
-        MongoHandle mongo = new MongoHandle(vertx);
+        mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo);
         timeStampStore = new TimeStampMongo(mongo);
         tenantStore = new TenantStoreMongo(mongo);
@@ -106,7 +109,23 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Future<Void> fut) {
+    if ( mongo.isTransient() ) {
+      mongo.dropDatabase(res->{
+        if ( res.succeeded()) {
+          startListening(fut);
+        } else {
+          logger.fatal("createHttpServer failed", res.cause() );
+          fut.fail(res.cause());
+        }
+      });
+    } else {
+      startListening(fut);
+    }
+  }
+
+  
+  public void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
        
     //handle CORS
@@ -150,7 +169,7 @@ public class MainVerticle extends AbstractVerticle {
     
     //everything else gets proxified to modules
     router.route("/*").handler(ps::proxy);
-    
+
     vertx.createHttpServer()
       .requestHandler(router::accept)
       .listen(port,
@@ -166,7 +185,10 @@ public class MainVerticle extends AbstractVerticle {
           }
         }
       );
+    
 
   }
+
+
 
 }

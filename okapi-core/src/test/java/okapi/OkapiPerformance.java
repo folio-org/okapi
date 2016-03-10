@@ -116,7 +116,8 @@ public class OkapiPerformance {
 
   public void deployAuth(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"auth\","+LS
+            + "  \"id\" : \"auth\","+LS
+            + "  \"name\" : \"authmodule\","+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\","+LS
@@ -135,6 +136,7 @@ public class OkapiPerformance {
             + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
+      System.out.println("deployAuth: " + response.statusCode() + " " + response.statusMessage() );
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       context.assertNotNull(locationAuth);
@@ -176,10 +178,6 @@ public class OkapiPerformance {
 
   public void createTenant(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"" + okapiTenant + "\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
-            + "}";
-    final String doc2 = "{"+LS
             + "  \"id\" : \"" + okapiTenant + "\","+LS
             + "  \"name\" : \"" + okapiTenant + "\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
@@ -188,7 +186,7 @@ public class OkapiPerformance {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.handler(body -> {
-        context.assertEquals(doc2, body.toString());
+        context.assertEquals(doc, body.toString());
       });
       response.endHandler(x -> {
         tenantEnableModuleAuth(context);
@@ -278,7 +276,8 @@ public class OkapiPerformance {
 
   public void deploySample2(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"sample-module2\","+LS
+            + "  \"id\" : \"sample-module2\","+LS
+            + "  \"name\" : \"sample2\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
             + "  \"descriptor\" : null,"+LS
             + "  \"routingEntries\" : [ {"+LS
@@ -311,7 +310,8 @@ public class OkapiPerformance {
 
   public void deploySample3(TestContext context) {
     final String doc = "{"+LS
-            + "  \"name\" : \"sample-module3\","+LS
+            + "  \"id\" : \"sample-module3\","+LS
+            + "  \"name\" : \"sample3\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
             + "  \"descriptor\" : {"+LS
             + "    \"cmdlineStart\" : \"sleep 1\","+LS

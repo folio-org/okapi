@@ -25,7 +25,6 @@ import okapi.util.Success;
  * 
  */
 public class TenantStoreMongo implements TenantStore {
-  //Map<String, Tenant> tenants = new HashMap<>();
   MongoClient cli;
   final private String collection = "okapi.tenants";
   private long lastTimestamp = 0;
@@ -60,11 +59,11 @@ public class TenantStoreMongo implements TenantStore {
     document.put("_id", id);
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    cli.update(collection, jq, document, res -> {
+    cli.replace(collection, jq, document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("TenantStoreMongo: Failed to insert " + id
+        System.out.println("TenantStoreMongo: Failed to update " + id
           + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
