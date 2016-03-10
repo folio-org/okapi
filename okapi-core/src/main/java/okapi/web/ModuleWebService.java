@@ -60,7 +60,7 @@ public class ModuleWebService {
           else {
             System.out.println("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
-            // We have nowehere to report failures. Declare the whole node dead?
+            // We have nowhere to report failures. Declare the whole node dead?
           }
         });
       } else {
@@ -168,7 +168,7 @@ public class ModuleWebService {
                   final String s = Json.encodePrettily(md);
                   ctx.response().setStatusCode(200)
                     .end(s);
-                } else { // TODO - What to if this fails ??
+                } else { // TODO - What to do if this fails ??
                   ctx.response().setStatusCode(500).end(sres.cause().getMessage());
                 }
               });
