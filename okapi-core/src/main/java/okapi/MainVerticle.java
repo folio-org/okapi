@@ -110,7 +110,7 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
-    if ( mongo.isTransient() ) {
+    if ( mongo != null && mongo.isTransient() ) {
       mongo.dropDatabase(res->{
         if ( res.succeeded()) {
           startListening(fut);
