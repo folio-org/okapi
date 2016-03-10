@@ -371,7 +371,7 @@ the [Reference](#reference) section.
 The Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment the MongoDb storage can be enabled by addding the
+to the next. At the moment the MongoDB storage can be enabled by adding the
 option `-Dstorage=mongo` to the command line that starts Okapi.
 
 ### Example modules
@@ -430,7 +430,7 @@ The test module should respond with
 which is our test data, with a "Hello" prepended to it.
 
 That's enough about the sample module. Go back to the window where you
-left it running, and kill it with a Ctrl-C. it should not have produced
+left it running, and kill it with a Ctrl-C. It should not have produced
 any output after the initial messages.
 
 
@@ -465,7 +465,7 @@ java -jar okapi-core/target/okapi-core-fat.jar
 
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
-which happens to be 9130, and using the 'inmemory' storage. For MongoDb
+which happens to be 9130, and using the 'inmemory' storage. For MongoDB
 storage, add `-Dstorage=mongo` to the command line.
 
 
@@ -889,7 +889,7 @@ Okapi responds to each of these with a simple
 HTTP/1.1 204 No Content
 Content-Length: 0
 ```
-Finally we can stop the Okapi instance we had runnnig, with a simple Ctrl-C.
+Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
 
 ## Reference
 
