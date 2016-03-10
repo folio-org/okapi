@@ -13,6 +13,8 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import static com.jayway.restassured.RestAssured.*;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;

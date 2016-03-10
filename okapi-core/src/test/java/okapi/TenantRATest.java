@@ -17,6 +17,8 @@ import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -28,6 +30,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
+  private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
 
   Vertx vertx;
   private static final String LS = System.lineSeparator();
@@ -66,7 +69,7 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.info(c.getLastReport().toString());
     }
 
     String badId = "{"+LS
@@ -85,7 +88,7 @@ public class TenantRATest {
     Response r = given().port(port).body(doc).post("/_/tenants").then().statusCode(201).
               body(equalTo(doc)).extract().response();
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.debug(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
@@ -98,28 +101,28 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.debug(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get(location + "none").then().statusCode(404);
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.debug(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.debug(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().delete(location).then().statusCode(204);
     if (!c.getLastReport().isEmpty()) {
-       System.out.println(c.getLastReport().toString());
+       logger.debug(c.getLastReport().toString());
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
@@ -134,7 +137,7 @@ public class TenantRATest {
     Response r3 = given().body(doc3).post("/_/tenants").then().statusCode(201).
               body(equalTo(doc3)).extract().response();
     String location3 = r3.getHeader("Location");
-    System.out.println("location3 = " + location3);
+    logger.debug("location3 = " + location3);
 
     given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
 

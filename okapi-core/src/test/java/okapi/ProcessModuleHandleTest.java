@@ -11,6 +11,8 @@ import okapi.bean.ProcessModuleHandle;
 import org.junit.Test;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -20,6 +22,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class ProcessModuleHandleTest {
+  private final Logger logger = LoggerFactory.getLogger("okapi.ProcessModuleHandleTest");
   private Vertx vertx;
   
   @Before
@@ -42,7 +45,7 @@ public class ProcessModuleHandleTest {
   
     mh.start(res -> {
       if (!res.succeeded()) {
-        System.out.println("CAUSE: " + res.cause());
+        logger.error("CAUSE: " + res.cause());
       }
       context.assertTrue(res.succeeded());
       if (!res.succeeded()) {

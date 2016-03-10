@@ -11,6 +11,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -22,6 +24,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class OkapiPerformance {
+  private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
 
   Vertx vertx;
   Async async;
@@ -136,7 +139,7 @@ public class OkapiPerformance {
             + "  } ]"+LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
-      System.out.println("deployAuth: " + response.statusCode() + " " + response.statusMessage() );
+      logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage() );
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       context.assertNotNull(locationAuth);
@@ -372,7 +375,7 @@ public class OkapiPerformance {
     if (cnt == max) {
       if (--repeatPostRunning == 0) {
         long timeDiff = (System.nanoTime() - startTime) / 1000000;
-        System.out.println("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
+        logger.info("repeatPost " + timeDiff + " elapsed ms. " + 1000 * max * parallels / timeDiff + " req/sec");
         vertx.setTimer(1, x -> deleteTenant(context));
       }
       return;
@@ -381,7 +384,7 @@ public class OkapiPerformance {
         startTime = System.nanoTime();
       }
       repeatPostRunning++;
-      System.out.println("repeatPost " + max + " iterations");
+      logger.debug("repeatPost " + max + " iterations");
     }
     Buffer body = Buffer.buffer();
     HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
