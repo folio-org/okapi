@@ -8,12 +8,16 @@ package okapi;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
+
+  private final Logger logger = LoggerFactory.getLogger("okapi-sample");
 
   public void my_stream_handle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
@@ -23,7 +27,6 @@ public class MainVerticle extends AbstractVerticle {
       xmlMsg = " (XML) ";
     }
     final String xmlMsg2 = xmlMsg;
-    //System.out.println("Sample: ctype='" + ctype + "'");
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> {
         ctx.response().end("It works" + xmlMsg2);
@@ -45,7 +48,7 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    System.out.println("Started sample-module on port " + port);
+    logger.info("Starting " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
     //enable reading body to string
 
     router.get("/sample").handler(this::my_stream_handle);
@@ -57,17 +60,13 @@ public class MainVerticle extends AbstractVerticle {
         port,
         result -> {
           if (result.succeeded()) {
-            System.out.println("Okapi-Sample started PID "
-              + ManagementFactory.getRuntimeMXBean().getName()
-              + ". Listening on port " + port);
+            logger.info("listening ok");
             fut.complete();
           } else {
             fut.fail(result.cause());
-            System.out.println("Okapi-Sample failed to start listening! " + result.cause());
-            //vertx.close();
+            logger.error("failed: " + result.cause());
           }
         }
       );
   }
-
 }
