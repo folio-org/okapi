@@ -8,6 +8,8 @@ package okapi.service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.Iterator;
 import java.util.List;
@@ -22,6 +24,7 @@ import okapi.util.Success;
  * that can be passed on to other Mongo-based storage modules.
  */
 public class MongoHandle {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   private final MongoClient cli;
   private final String transientDbName = "mongo_transient_test";
   private boolean transientDb = false;
@@ -50,7 +53,7 @@ public class MongoHandle {
     String db = conf("mongo_db_name", "", conf, opt, "db_name");
     this.cli = MongoClient.createShared(vertx, opt);
     if ( transientDbName.equals(db)) {
-      System.out.println("Mongohandle: Decided that this a transient backend!");
+      logger.debug("Mongohandle: Decided that this a transient backend!");
       this.transientDb = true;
     }
   }
@@ -84,6 +87,7 @@ public class MongoHandle {
   private void dropCollection(Iterator<String> it,
         Handler<ExtendedAsyncResult<Void>> fut) {
     if ( !it.hasNext()) { // all done
+      logger.info("Dropped all okapi collections from " + transientDbName);
       fut.handle(new Success<>());
     } else {
       String coll = it.next();
@@ -92,12 +96,12 @@ public class MongoHandle {
           if (res.failed()) {
             fut.handle(new Failure<>(INTERNAL,res.cause()));
           } else {
-            System.out.println("Dropped whole collection " + coll);
+            logger.debug("Dropped whole collection " + coll);
             dropCollection(it,fut);        
           }
         });
       } else {
-        System.out.println("Not dropping collection '" + coll + "'");
+        logger.debug("Not dropping collection '" + coll + "'");
         dropCollection(it,fut);
       }
     }

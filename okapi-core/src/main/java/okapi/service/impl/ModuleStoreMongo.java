@@ -9,6 +9,8 @@ import okapi.service.ModuleStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +25,8 @@ import okapi.util.Success;
  * 
  */
 public class ModuleStoreMongo implements ModuleStore {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
+
   MongoClient cli;
   final private String collection = "okapi.modules";
 
@@ -41,7 +45,7 @@ public class ModuleStoreMongo implements ModuleStore {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("ModuleDbMongo: Failed to insert " + id
+        logger.debug("ModuleDbMongo: Failed to insert " + id
           + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
@@ -60,7 +64,7 @@ public class ModuleStoreMongo implements ModuleStore {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("ModuleDbMongo: Failed to update" + id
+        logger.debug("ModuleDbMongo: Failed to update" + id
                 + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
@@ -72,7 +76,6 @@ public class ModuleStoreMongo implements ModuleStore {
                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    System.out.println("Trying to get " + q);
     cli.find(collection, jq, res -> {
       if ( res.failed()) {
         fut.handle(new Failure<>(INTERNAL,res.cause()));
@@ -85,7 +88,6 @@ public class ModuleStoreMongo implements ModuleStore {
           d.remove("_id");
           final ModuleDescriptor md = Json.decodeValue(d.encode(),
             ModuleDescriptor.class);
-          System.out.println("get: " + Json.encodePrettily(d));
           fut.handle(new Success<>(md));
         }
       }

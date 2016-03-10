@@ -7,6 +7,8 @@
 package okapi.service;
 
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -24,34 +26,33 @@ import static okapi.util.ErrorType.*;
  */
 
 public class TenantManager {
+    private final Logger logger = LoggerFactory.getLogger("okapi");
+
   // TODO Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
   Map<String, Tenant> tenants = new HashMap<>();
 
   public boolean insert(Tenant t) {
     String id = t.getId();
     if ( tenants.containsKey(id)) {
-      System.out.println("TenantManager: Not inserting duplicate '" + id + "':" + Json.encode(t));
+      logger.debug("Not inserting duplicate '" + id + "':" + Json.encode(t));
       return false;
     }
     tenants.put(id, t);
-    System.out.println("TenantManager: Inserted '" + id + "':" + Json.encode(t));
     return true;
   }
 
   public boolean update(Tenant t) {
     String id = t.getId();
     if ( ! tenants.containsKey(id)) {
-      System.out.println("TenantManager: Tenant '" + id + "' not found, can not update");
+      logger.debug("Tenant '" + id + "' not found, can not update");
       return false;
     }
     tenants.put(id, t);
-    System.out.println("TenantManager: Updated '" + id + "':" + Json.encode(t));
     return true;
   }
 
   public Set<String> getIds() {
     Set<String> ids = tenants.keySet();
-    System.out.println("TenantManager: getIds: " + Json.encode(ids));
     return ids;
   }
 
@@ -66,11 +67,10 @@ public class TenantManager {
    */
   public boolean delete(String id) {
     if (!tenants.containsKey(id)) {
-      System.out.println("TenantManager: Tenant '" + id + "' not found, can not delete");
+      logger.debug("TenantManager: Tenant '" + id + "' not found, can not delete");
       return false;
     }
     tenants.remove(id);
-    System.out.println("TenantManager: Deleted '" + id + "'");
     return true;
   }
 

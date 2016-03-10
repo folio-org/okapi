@@ -57,7 +57,6 @@ public class TimeStampMongo implements TimeStampStore {
         if (l.size() > 0) {
           JsonObject d = l.get(0);
           Long ts = d.getLong("timestamp");
-          System.out.println("Got time stamp " + stampId + ":" + ts);
           fut.handle(new Success<>(ts));
         } else {
           fut.handle(new Failure<>(INTERNAL,"Corrupt database - no timestamp for " + stampId ));

@@ -8,6 +8,8 @@ package okapi.service.impl;
 import okapi.service.ModuleStore;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,6 +25,7 @@ import okapi.util.Success;
  * 
  */
 public class ModuleStoreMemory implements ModuleStore {
+
   private final Map<String,ModuleDescriptor> modules = new LinkedHashMap<>();
 
   public ModuleStoreMemory(Vertx vertx) {
@@ -56,7 +59,6 @@ public class ModuleStoreMemory implements ModuleStore {
   @Override
   public void get(String id,
                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    System.out.println("Trying to get " + id);
     ModuleDescriptor md = modules.get(id);
     if (md == null)
       fut.handle(new Failure<>(NOT_FOUND,""));

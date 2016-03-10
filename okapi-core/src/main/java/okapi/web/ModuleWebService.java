@@ -14,6 +14,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Iterator;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import okapi.bean.ModuleDescriptorBrief;
@@ -33,6 +35,8 @@ import okapi.util.Success;
  * reload the configuration.
  */
 public class ModuleWebService {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
+
   ModuleManager moduleManager;
   ModuleStore moduleStore; 
   EventBus eb;
@@ -56,15 +60,14 @@ public class ModuleWebService {
       if ( this.timestamp < receivedStamp ) {
         reloadModules( rres-> {
           if ( rres.succeeded())
-            System.out.println("Reload of modules succeeded");
+            logger.info("Reload of modules succeeded");
           else {
-            System.out.println("Reload modules FAILED - No idea what to do about that!");
+            logger.fatal("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
             // We have nowehere to report failures. Declare the whole node dead?
           }
         });
       } else {
-        //System.out.println("Received stamp is not newer, not reloading modules");
       }
     });
 
@@ -74,7 +77,6 @@ public class ModuleWebService {
     timeStampStore.updateTimeStamp(timestampId, this.timestamp, res->{
       if ( res.succeeded() ) {
         this.timestamp = res.result();
-        //System.out.println("updated modules timestamp to " + timestamp);
           fut.handle(new Success<>(timestamp));
       } else {
         fut.handle(res);
@@ -105,7 +107,7 @@ public class ModuleWebService {
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
-            System.out.println("Failed to start service, will not update the DB. " + md);
+            logger.error("Failed to start service, will not update the DB. " + md);
             if (cres.getType() == INTERNAL) {
               ctx.response().setStatusCode(500).end(cres.cause().getMessage());
             } else { // must be some kind of bad request
@@ -128,7 +130,7 @@ public class ModuleWebService {
                 // This can only happen in some kind of race condition, we should
                 // have detected duplicates when creating in the manager. This
                 // TODO - How to test these cases?
-                System.out.println("create failed " + ires.cause().getMessage());
+                logger.warn("create failed " + ires.cause().getMessage());
                 moduleManager.delete(md.getId(), dres->{ // remove from runtime too
                   if ( dres.succeeded()) {
                     ctx.response().setStatusCode(500).end(ires.cause().getMessage());
@@ -154,7 +156,7 @@ public class ModuleWebService {
         ModuleDescriptor.class);
       moduleManager.update(md, cres -> {
         if (cres.failed()) {
-          System.out.println("Failed to update service, will not update the DB. " + md);
+          logger.warn("Failed to update service, will not update the DB. " + md);
           if (cres.getType() == NOT_FOUND) {
             ctx.response().setStatusCode(404).end(cres.cause().getMessage());
           } else {
@@ -173,7 +175,7 @@ public class ModuleWebService {
                 }
               });
             } else {
-              System.out.println("Module db update failred " + ires.cause().getMessage());
+              logger.error("Module db update failed " + ires.cause().getMessage());
               ctx.response().setStatusCode(500).end(ires.cause().getMessage());
             }
           });
@@ -231,7 +233,7 @@ public class ModuleWebService {
     final String id = ctx.request().getParam("id");
     moduleManager.delete(id, sres->{
       if ( sres.failed()) {
-        System.out.println("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
+        logger.error("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
         if ( sres.getType() == NOT_FOUND)
           ctx.response().setStatusCode(404).end(sres.cause().getMessage());
         else
@@ -276,10 +278,10 @@ public class ModuleWebService {
   public void reloadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     moduleManager.deleteAll(res->{
       if ( res.failed()) {
-        System.out.println("ReloadModules: Failed to delete all");
+        logger.error("ReloadModules: Failed to delete all");
         fut.handle(res);
       } else {
-        System.out.println("ReloadModules: Should restart all modules");
+        logger.debug("ReloadModules: Should restart all modules");
         loadModules(fut);
       }
     });
@@ -301,14 +303,14 @@ public class ModuleWebService {
 
   private void loadR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if ( !it.hasNext() ) {
-      System.out.println("All modules deployed");
+      logger.debug("All modules deployed");
       fut.handle(new Success<>());
     } else {
       ModuleDescriptor md = it.next();
-      System.out.println("About to start module " + md.getId() );
+      logger.debug("About to start module " + md.getId() );
       moduleManager.create(md, res-> {
         if ( res.failed()) {
-          System.out.println("Failed to start module " + md.getId() + ": " + res.cause());
+          logger.debug("Failed to start module " + md.getId() + ": " + res.cause());
           fut.handle(new Failure<>(res.getType(),res.cause() ));
         } else {
           loadR(it, fut);

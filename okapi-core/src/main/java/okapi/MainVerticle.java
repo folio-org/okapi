@@ -96,7 +96,7 @@ public class MainVerticle extends AbstractVerticle {
         tenantStore = new TenantStoreMemory();
         break;
       default:
-        System.out.println("FATAL: Unknown storage type '" + storage + "'");
+        logger.fatal("Unknown storage type '" + storage + "'");
         System.exit(1);
     }
     moduleWebService = new ModuleWebService(vertx, ms, moduleStore, timeStampStore );

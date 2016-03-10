@@ -14,6 +14,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import static java.lang.Long.max;
 import okapi.service.TenantManager;
@@ -26,6 +28,7 @@ import okapi.util.Success;
 
 
 public class TenantWebService {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   
   final private Vertx vertx;
   TenantManager tenants;
@@ -58,20 +61,15 @@ public class TenantWebService {
     eb.consumer(eventBusName, message -> {
       ReloadSignal sig = Json.decodeValue(message.body().toString(), ReloadSignal.class);
       if ( this.lastTimestamp < sig.timestamp ) {
-        //System.out.println("Received timestamp is newer than my own, reloading tenant " + sig.id);
         reloadTenant(sig.id, res->{
           if ( res.succeeded() ) {
             this.lastTimestamp = max(this.lastTimestamp,sig.timestamp);
           } else {
             // TODO - What to do in this case. Nowhere to report any errors.
-            System.out.println("Reloading tenant " + sig.id
+            logger.fatal("Reloading tenant " + sig.id
               + "FAILED. Don't know what to do about that. PANIC!");
           }
         });
-      } else {
-        //System.out.println("Received an older timestamp, "
-        //  + sig.timestamp + " >= " + this.lastTimestamp
-        //  + ". Not reloading tenant " + sig.id );
       }
     });
 
@@ -118,7 +116,7 @@ public class TenantWebService {
               // This should never happen in a well behaving system. It is 
               // possible with some race conditions etc. Hard to test...
               // TODO - Check what errors the mongo store can return
-              System.out.println("TenantWebService:create: Db layer error " +res.cause().getMessage() );
+              logger.error("create: Db layer error " +res.cause().getMessage() );
               tenants.delete(id); // Take it away from the runtime, since it was no good.
               ctx.response().setStatusCode(400).end(res.cause().getMessage());
             }
@@ -252,34 +250,32 @@ public class TenantWebService {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
-      System.out.println("TenantWebService: disablemodule t=" + id + " m=" + module + " XXXXXXXX");
+      logger.debug("TenantWebService: disablemodule t=" + id + " m=" + module + " XXXXXXXX");
       ErrorType err =  tenants.disableModule(id, module);
       if ( err == OK ) {
-        System.out.println("TenantWebService: tenantManager: OK");
         tenantStore.disableModule(id, module, ts, res->{
           if ( res.succeeded() ) {
-            System.out.println("TenantWebService: disablemodule: storage OK");
             sendReloadSignal(id, ts);
             ctx.response().setStatusCode(204).end();
           } else {
             if (res.getType() == NOT_FOUND) {
-              System.out.println("TenantWebService: disablemodule: storage NOTFOUND: " + res.cause().getMessage());
+              logger.debug("TenantWebService: disablemodule: storage NOTFOUND: " + res.cause().getMessage());
               ctx.response().setStatusCode(404).end(res.cause().getMessage());
             } else {
-              System.out.println("TenantWebService: disablemodule: storage other " + res.cause().getMessage());
+              logger.error("TenantWebService: disablemodule: storage other " + res.cause().getMessage());
               ctx.response().setStatusCode(500).end(res.cause().getMessage());
             }
           }
         });
 
       } else if ( err == USER ) {
-        System.out.println("TenantWebService: tenantManager: USER");
+        logger.error("disableModule: tenantManager: USER");
         ctx.response().setStatusCode(404).end("Tenant " + id + " not found (disableModule)");
       } else if ( err == NOT_FOUND ) {
-        System.out.println("TenantWebService: tenantManager: NOT_FOUND");
+        logger.error("disableModule: tenantManager: NOT_FOUND");
         ctx.response().setStatusCode(404).end("Tenant " + id + " has no module " + module + " (disableModule)");
       } else {
-        System.out.println("TenantWebService: tenantManager: Other error");
+        logger.error("disableModule: tenantManager: Other error");
         ctx.response().setStatusCode(500).end();
       }
     } catch (DecodeException ex) {
@@ -323,19 +319,19 @@ public class TenantWebService {
         Tenant t = res.result();
         tenants.delete(id);
         if (tenants.insert(t)) {
-            System.out.println("Reloaded tenant " + id);
+            logger.debug("Reloaded tenant " + id);
             fut.handle(new Success<>());
           } else {
-            System.out.println("Reloading of tenant " + id + " FAILED");
+            logger.error("Reloading of tenant " + id + " FAILED");
             fut.handle( new Failure<>(INTERNAL,res.cause()));
           }
       } else {
         if ( res.getType() == NOT_FOUND ) {  // that's OK, it has been deleted
           tenants.delete(id); // ignore result code, ok to delete nonexisting
-          System.out.println("reload deleted tenant " + id);
+          logger.debug("reload deleted tenant " + id);
           fut.handle(new Success<>());
         } else {
-          System.out.println("Reload tenant " + id + "Failed: " +res.cause().getMessage());
+          logger.error("Reload tenant " + id + "Failed: " +res.cause().getMessage());
           fut.handle( new Failure<>(INTERNAL,res.cause()));
         }
       }
