@@ -35,6 +35,8 @@ public class MainVerticle extends AbstractVerticle {
     Auth auth = new Auth();
     
     final int port = Integer.parseInt(System.getProperty("port", "9020"));
+
+    logger.info("Starting " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
     
     router.post("/login").handler(BodyHandler.create());
     router.post("/login").handler(auth::login);
@@ -48,11 +50,9 @@ public class MainVerticle extends AbstractVerticle {
         result -> {
           if (result.succeeded()) {
             fut.complete();
-            System.out.println("Okapi-Auth started PID "
-              + ManagementFactory.getRuntimeMXBean().getName()
-              + ". Listening on port " + port );
+            logger.info("listening ok");
           } else {
-            logger.fatal("Okapi-Auth failed to start listening! " + result.cause());
+            logger.fatal("failed: " + result.cause());
             fut.fail(result.cause());
           }
         }
