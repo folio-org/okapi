@@ -25,6 +25,8 @@ public class MainCluster {
         res.result().deployVerticle(MainVerticle.class.getName(), opt);
       } else {
         System.out.println("Failed to create a clustered vert.x");
+          // We probably should not use logging here, as it depends
+          // on vert.x, which just failed to start!
       }
     });
 

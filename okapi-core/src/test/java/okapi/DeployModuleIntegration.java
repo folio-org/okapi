@@ -24,7 +24,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class DeployModuleIntegration {
-  private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
   Async async;

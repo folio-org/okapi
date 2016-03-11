@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class ProcessModuleHandleTest {
-  private final Logger logger = LoggerFactory.getLogger("okapi.ProcessModuleHandleTest");
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   private Vertx vertx;
   
   @Before
