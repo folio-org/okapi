@@ -8,12 +8,7 @@
     <artifactId>okapi</artifactId>
     <version>0.2-SNAPSHOT</version>
   </parent>
-  
   <artifactId>okapi-core</artifactId>
-  
-  <properties>
-    <vertx-version>3.2.1</vertx-version>
-  </properties>
   <dependencies>
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->

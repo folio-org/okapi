@@ -15,12 +15,12 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
-      <version>3.2.1</version>
+      <version>${vertx-version}</version>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
-      <version>3.2.1</version>
+      <version>${vertx-version}</version>
     </dependency>
     <dependency>
       <groupId>junit</groupId>
@@ -31,7 +31,7 @@
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-unit</artifactId>
-      <version>3.2.1</version>
+      <version>${vertx-version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
