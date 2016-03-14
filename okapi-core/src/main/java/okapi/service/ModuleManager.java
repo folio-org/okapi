@@ -90,7 +90,7 @@ public class ModuleManager {
       } else {
         this.create(md, cres -> {
           if (cres.failed()) {
-            logger.warn("ModuleManager: Update: create failed: " + dres.cause());
+            logger.warn("Update: create failed: " + dres.cause());
             fut.handle(new Failure<>(dres.getType(), dres.cause()));
           } else {
             fut.handle(new Success<>());
@@ -108,20 +108,20 @@ public class ModuleManager {
     } else {
       ProcessModuleHandle pmh = m.getProcessModuleHandle();
       if (pmh == null) {
-        logger.debug("ModuleManager: not running, just deleting " + m.getModuleDescriptor().getId());
+        logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
         modules.remove(id); // nothing running, just remove it from our list
         fut.handle(new Success<>());
       } else {
-        logger.debug("ModuleManager: About to stop " + m.getModuleDescriptor().getId());
+        logger.debug("About to stop " + m.getModuleDescriptor().getId());
         pmh.stop(future -> {
           if (future.succeeded()) {
-            logger.debug("ModuleManager: Did stop " + m.getModuleDescriptor().getId());
+            logger.debug("Did stop " + m.getModuleDescriptor().getId());
             modules.remove(id);
             ports.free(pmh.getPort());
             fut.handle(new Success<>());
           } else {
             fut.handle(new Failure<>(INTERNAL, future.cause()));
-            logger.warn("ModuleManager: FAILED to stop " + m.getModuleDescriptor().getId());
+            logger.warn("FAILED to stop " + m.getModuleDescriptor().getId());
             // TODO - What to do in case it was already dead? Probably safe to ignore
             // TODO - What to do in case stopping failed, and it still runs. That is bad!
           }
