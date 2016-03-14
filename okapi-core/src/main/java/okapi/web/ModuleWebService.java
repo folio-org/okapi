@@ -28,18 +28,17 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
-
 /**
- * Services related to adding and deleting modules.
- * All operations try to do the thing on the locally running system first.
- * If that succeeds, they update the database, and tell other instances to
- * reload the configuration.
+ * Services related to adding and deleting modules. All operations try to do the
+ * thing on the locally running system first. If that succeeds, they update the
+ * database, and tell other instances to reload the configuration.
  */
 public class ModuleWebService {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   ModuleManager moduleManager;
-  ModuleStore moduleStore; 
+  ModuleStore moduleStore;
   EventBus eb;
   private final String eventBusName = "okapi.conf.modules";
   final private Vertx vertx;
@@ -52,15 +51,20 @@ public class ModuleWebService {
   }
 
   private HttpServerResponse responseText(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
+    return ctx.response()
+            .setStatusCode(code)
+            .putHeader("Content-Type", "text/plain");
   }
 
   private HttpServerResponse responseJson(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
+    return ctx.response()
+            .setStatusCode(code)
+            .putHeader("Content-Type", "application/json");
   }
+
   public ModuleWebService(Vertx vertx,
-            ModuleManager moduleService, ModuleStore moduleStore,
-            TimeStampStore timeStampStore) {
+          ModuleManager moduleService, ModuleStore moduleStore,
+          TimeStampStore timeStampStore) {
     this.vertx = vertx;
     this.moduleManager = moduleService;
     this.moduleStore = moduleStore;
@@ -68,12 +72,12 @@ public class ModuleWebService {
 
     this.eb = vertx.eventBus();
     eb.consumer(eventBusName, message -> {
-      Long receivedStamp = (Long)(message.body());
-      if ( this.timestamp < receivedStamp ) {
-        reloadModules( rres-> {
-          if ( rres.succeeded())
+      Long receivedStamp = (Long) (message.body());
+      if (this.timestamp < receivedStamp) {
+        reloadModules(rres -> {
+          if (rres.succeeded()) {
             logger.info("Reload of modules succeeded");
-          else {
+          } else {
             logger.fatal("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
             // We have nowehere to report failures. Declare the whole node dead?
@@ -82,14 +86,13 @@ public class ModuleWebService {
       } else {
       }
     });
-
   }
 
   public void updateTimeStamp(Handler<ExtendedAsyncResult<Long>> fut) {
-    timeStampStore.updateTimeStamp(timestampId, this.timestamp, res->{
-      if ( res.succeeded() ) {
+    timeStampStore.updateTimeStamp(timestampId, this.timestamp, res -> {
+      if (res.succeeded()) {
         this.timestamp = res.result();
-          fut.handle(new Success<>(timestamp));
+        fut.handle(new Success<>(timestamp));
       } else {
         fut.handle(res);
       }
@@ -97,21 +100,20 @@ public class ModuleWebService {
   }
 
   private void sendReloadSignal(Handler<ExtendedAsyncResult<Long>> fut) {
-    updateTimeStamp(res->{
-      if ( res.failed() )
+    updateTimeStamp(res -> {
+      if (res.failed()) {
         fut.handle(res);
-      else {
-        eb.publish(eventBusName, res.result() );
+      } else {
+        eb.publish(eventBusName, res.result());
         fut.handle(new Success<>(null));
       }
     });
   }
 
-
   public void create(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-        ModuleDescriptor.class);
+              ModuleDescriptor.class);
       if (md.getId() == null || md.getId().isEmpty()) {
         responseText(ctx, 400).end("No Id in tenant");
       } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
@@ -132,8 +134,8 @@ public class ModuleWebService {
                   if (sres.succeeded()) {
                     final String s = Json.encodePrettily(md);
                     responseJson(ctx, 201)
-                      .putHeader("Location", ctx.request().uri() + "/" + ires.result())
-                      .end(s);
+                            .putHeader("Location", ctx.request().uri() + "/" + ires.result())
+                            .end(s);
                   } else { // TODO - What to if this fails ??
                     responseError(ctx, 500, sres.cause());
                   }
@@ -143,8 +145,8 @@ public class ModuleWebService {
                 // have detected duplicates when creating in the manager. This
                 // TODO - How to test these cases?
                 logger.warn("create failed " + ires.cause().getMessage());
-                moduleManager.delete(md.getId(), dres->{ // remove from runtime too
-                  if ( dres.succeeded()) {
+                moduleManager.delete(md.getId(), dres -> { // remove from runtime too
+                  if (dres.succeeded()) {
                     responseError(ctx, 500, ires.cause());
                     // Note, we return ires.cause, the reason why the insert failed
                   } else {
@@ -165,7 +167,7 @@ public class ModuleWebService {
   public void update(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-        ModuleDescriptor.class);
+              ModuleDescriptor.class);
       moduleManager.update(md, cres -> {
         if (cres.failed()) {
           logger.warn("Failed to update service, will not update the DB. " + md);
@@ -177,8 +179,8 @@ public class ModuleWebService {
         } else {
           moduleStore.update(md, ires -> {
             if (ires.succeeded()) {
-              sendReloadSignal(sres->{
-                if ( sres.succeeded()) {
+              sendReloadSignal(sres -> {
+                if (sres.succeeded()) {
                   final String s = Json.encodePrettily(md);
                   responseJson(ctx, 200).end(s);
                 } else { // TODO - What to if this fails ??
@@ -229,20 +231,23 @@ public class ModuleWebService {
   }
 
   /**
-   * Delete a module.
-   * TODO - Is the logic the right way around? What to check first for notfound?
-   * Deletes first from the running system, then from the database.
+   * Delete a module. TODO - Is the logic the right way around? What to check
+   * first for notfound? Deletes first from the running system, then from the
+   * database.
+   *
    * @param ctx
    */
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
-    moduleManager.delete(id, sres->{
-      if ( sres.failed()) {
-        logger.error("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
-        if ( sres.getType() == NOT_FOUND)
+    moduleManager.delete(id, sres -> {
+      if (sres.failed()) {
+        logger.error("delete (runtime) failed: " + sres.getType()
+                + ":" + sres.cause().getMessage());
+        if (sres.getType() == NOT_FOUND) {
           responseError(ctx, 404, sres.cause());
-        else
+        } else {
           responseError(ctx, 500, sres.cause());
+        }
       } else {
         moduleStore.delete(id, rres -> {
           if (rres.succeeded()) {
@@ -255,12 +260,10 @@ public class ModuleWebService {
                 responseError(ctx, 500, res.cause());
               }
             });
+          } else if (rres.getType() == NOT_FOUND) {
+            responseError(ctx, 404, rres.cause());
           } else {
-            if (rres.getType() == NOT_FOUND) {
-              responseError(ctx, 404, rres.cause());
-            } else {
-              responseError(ctx, 500, rres.cause());
-            }
+            responseError(ctx, 500, rres.cause());
           }
         });
       }
@@ -270,19 +273,18 @@ public class ModuleWebService {
   // TODO - Refactor this so that this part generates a listIds of modules,
   // and the module manager restarts and stops what is needed. Later.
   public void reloadModules(RoutingContext ctx) {
-    reloadModules( res-> {
-      if ( res.succeeded() ) {
+    reloadModules(res -> {
+      if (res.succeeded()) {
         responseText(ctx, 204).end();
       } else {
         responseError(ctx, 500, res.cause());
       }
     });
-
   }
 
   public void reloadModules(Handler<ExtendedAsyncResult<Void>> fut) {
-    moduleManager.deleteAll(res->{
-      if ( res.failed()) {
+    moduleManager.deleteAll(res -> {
+      if (res.failed()) {
         logger.error("ReloadModules: Failed to delete all");
         fut.handle(res);
       } else {
@@ -290,38 +292,36 @@ public class ModuleWebService {
         loadModules(fut);
       }
     });
-
   }
-
 
   private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     //cli.find(collection, jq, res -> {
-    moduleStore.getAll( res -> {
+    moduleStore.getAll(res -> {
       if (res.failed()) {
-        fut.handle( new Failure<>(INTERNAL,res.cause()));
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         Iterator<ModuleDescriptor> it = res.result().iterator();
-        loadR(it,fut);
+        loadR(it, fut);
       }
     });
   }
 
-  private void loadR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
-    if ( !it.hasNext() ) {
+  private void loadR(Iterator<ModuleDescriptor> it,
+          Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!it.hasNext()) {
       logger.debug("All modules deployed");
       fut.handle(new Success<>());
     } else {
       ModuleDescriptor md = it.next();
-      logger.debug("About to start module " + md.getId() );
-      moduleManager.create(md, res-> {
-        if ( res.failed()) {
+      logger.debug("About to start module " + md.getId());
+      moduleManager.create(md, res -> {
+        if (res.failed()) {
           logger.debug("Failed to start module " + md.getId() + ": " + res.cause());
-          fut.handle(new Failure<>(res.getType(),res.cause() ));
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           loadR(it, fut);
         }
       });
     }
-
   }
 } // class

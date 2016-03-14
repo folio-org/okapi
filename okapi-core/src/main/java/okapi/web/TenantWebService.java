@@ -51,15 +51,15 @@ public class TenantWebService {
     }
   } // reloadSignal
 
-  private void tenantResponseError(RoutingContext ctx, int code, Throwable cause) {
-    tenantResponseText(ctx, code).end(cause.getMessage());
+  private void responseError(RoutingContext ctx, int code, Throwable cause) {
+    responseText(ctx, code).end(cause.getMessage());
   }
 
-  private HttpServerResponse tenantResponseText(RoutingContext ctx, int code) {
+  private HttpServerResponse responseText(RoutingContext ctx, int code) {
     return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
   }
 
-  private HttpServerResponse tenantResponseJson(RoutingContext ctx, int code) {
+  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
     return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
   }
 
@@ -112,9 +112,9 @@ public class TenantWebService {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
-        tenantResponseText(ctx, 400).end("No Id in tenant");
+        responseText(ctx, 400).end("No Id in tenant");
       } else if (!td.getId().matches("^[a-z0-9._-]+$")) {
-        tenantResponseText(ctx, 400).end("Invalid id");
+        responseText(ctx, 400).end("Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
@@ -125,7 +125,7 @@ public class TenantWebService {
             if (res.succeeded()) {
               final String uri = ctx.request().uri() + "/" + id;
               final String s = Json.encodePrettily(t.getDescriptor());
-              tenantResponseJson(ctx, 201).putHeader("Location", uri).end(s);
+              responseJson(ctx, 201).putHeader("Location", uri).end(s);
               sendReloadSignal(id, ts);
             } else {
               // This should never happen in a well behaving system. It is 
@@ -133,15 +133,15 @@ public class TenantWebService {
               // TODO - Check what errors the mongo store can return
               logger.error("create: Db layer error " + res.cause().getMessage());
               tenants.delete(id); // Take it away from the runtime, since it was no good.
-              tenantResponseError(ctx, 400, res.cause());
+              responseError(ctx, 400, res.cause());
             }
           });
         } else {
-          tenantResponseText(ctx, 400).end("Duplicate id " + id);
+          responseText(ctx, 400).end("Duplicate id " + id);
         }
       }
     } catch (DecodeException ex) {
-      tenantResponseError(ctx, 400, ex);
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -157,17 +157,17 @@ public class TenantWebService {
         tenantStore.update(t, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
-            tenantResponseJson(ctx, 200).end(s);
+            responseJson(ctx, 200).end(s);
             sendReloadSignal(id, ts);
           } else {
-            tenantResponseError(ctx, 404, res.cause());
+            responseError(ctx, 404, res.cause());
           }
         });
       } else {
         ctx.response().setStatusCode(400).end("Dailed to update " + id);
       }
     } catch (DecodeException ex) {
-      tenantResponseError(ctx, 400, ex);
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -175,9 +175,9 @@ public class TenantWebService {
     tenantStore.listTenants(res -> {
       if (res.succeeded()) {
         String s = Json.encodePrettily(res.result());
-        tenantResponseJson(ctx, 200).end(s);
+        responseJson(ctx, 200).end(s);
       } else {
-        tenantResponseError(ctx, 400, res.cause());
+        responseError(ctx, 400, res.cause());
       }
     });
   }
@@ -189,11 +189,11 @@ public class TenantWebService {
       if (res.succeeded()) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
-        tenantResponseJson(ctx, 200).end(s);
+        responseJson(ctx, 200).end(s);
       } else if (res.getType() == NOT_FOUND) {
-        tenantResponseError(ctx, 404, res.cause());
+        responseError(ctx, 404, res.cause());
       } else {
-        tenantResponseError(ctx, 500, res.cause());
+        responseError(ctx, 500, res.cause());
       }
     });
   }
@@ -205,13 +205,13 @@ public class TenantWebService {
         if (res.succeeded()) {
           final long ts = getTimestamp();
           sendReloadSignal(id, ts);
-          tenantResponseJson(ctx, 204).end();
+          responseText(ctx, 204).end();
         } else {
-          tenantResponseError(ctx, 500, res.cause());
+          responseError(ctx, 500, res.cause());
         }
       });
     } else {
-      tenantResponseText(ctx, 404).end(id);
+      responseText(ctx, 404).end(id);
     }
   }
 
@@ -228,21 +228,21 @@ public class TenantWebService {
         tenantStore.enableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            tenantResponseText(ctx, 200).end(); // 204 - no content??
+            responseText(ctx, 200).end(); // 204 - no content??
           } else if (res.getType() == NOT_FOUND) {
-            tenantResponseError(ctx, 404, res.cause());
+            responseError(ctx, 404, res.cause());
           } else {
-            tenantResponseError(ctx, 500, res.cause());
+            responseError(ctx, 500, res.cause());
           }
         });
 
       } else if (err == NOT_FOUND) {
-        tenantResponseText(ctx, 404).end("Tenant " + id + " not found (enableModule)");
+        responseText(ctx, 404).end("Tenant " + id + " not found (enableModule)");
       } else {
-        tenantResponseText(ctx, 500).end();
+        responseText(ctx, 500).end();
       }
     } catch (DecodeException ex) {
-      tenantResponseError(ctx, 400, ex);
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -257,28 +257,28 @@ public class TenantWebService {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            tenantResponseText(ctx, 204).end();
+            responseText(ctx, 204).end();
           } else if (res.getType() == NOT_FOUND) {
             logger.debug("TenantWebService: disablemodule: storage NOTFOUND: " + res.cause().getMessage());
-            tenantResponseError(ctx, 404, res.cause());
+            responseError(ctx, 404, res.cause());
           } else {
             logger.error("TenantWebService: disablemodule: storage other " + res.cause().getMessage());
-            tenantResponseError(ctx, 500, res.cause());
+            responseError(ctx, 500, res.cause());
           }
         });
 
       } else if (err == USER) {
         logger.error("disableModule: tenantManager: USER");
-        tenantResponseText(ctx, 404).end("Tenant " + id + " not found (disableModule)");
+        responseText(ctx, 404).end("Tenant " + id + " not found (disableModule)");
       } else if (err == NOT_FOUND) {
         logger.error("disableModule: tenantManager: NOT_FOUND");
-        tenantResponseText(ctx, 404).end("Tenant " + id + " has no module " + module + " (disableModule)");
+        responseText(ctx, 404).end("Tenant " + id + " has no module " + module + " (disableModule)");
       } else {
         logger.error("disableModule: tenantManager: Other error");
-        tenantResponseText(ctx, 500).end();
+        responseText(ctx, 500).end();
       }
     } catch (DecodeException ex) {
-      tenantResponseError(ctx, 400, ex);
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -290,9 +290,9 @@ public class TenantWebService {
         String s = Json.encodePrettily(t.listModules());
         ctx.response().setStatusCode(200).end(s);
       } else if (res.getType() == NOT_FOUND) {
-        tenantResponseError(ctx, 404, res.cause());
+        responseError(ctx, 404, res.cause());
       } else {
-        tenantResponseError(ctx, 500, res.cause());
+        responseError(ctx, 500, res.cause());
       }
     });
   }
@@ -301,9 +301,9 @@ public class TenantWebService {
     final String id = ctx.request().getParam("id");
     reloadTenant(id, res -> {
       if (res.succeeded()) {
-        tenantResponseText(ctx, 204).end();
+        responseText(ctx, 204).end();
       } else {
-        tenantResponseError(ctx, 500, res.cause());
+        responseError(ctx, 500, res.cause());
       }
     });
   }
@@ -330,5 +330,4 @@ public class TenantWebService {
       }
     });
   }
-
 } // class
