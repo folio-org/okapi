@@ -14,6 +14,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Iterator;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -46,6 +47,17 @@ public class ModuleWebService {
   final String timestampId = "modules";
   private Long timestamp = (long) -1;
 
+  private void responseError(RoutingContext ctx, int code, Throwable cause) {
+    responseText(ctx, code).end(cause.getMessage());
+  }
+
+  private HttpServerResponse responseText(RoutingContext ctx, int code) {
+    return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
+  }
+
+  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
+    return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
+  }
   public ModuleWebService(Vertx vertx,
             ModuleManager moduleService, ModuleStore moduleStore,
             TimeStampStore timeStampStore) {
@@ -101,17 +113,17 @@ public class ModuleWebService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
         ModuleDescriptor.class);
       if (md.getId() == null || md.getId().isEmpty()) {
-        ctx.response().setStatusCode(400).end("No Id in tenant");
+        responseText(ctx, 400).end("No Id in tenant");
       } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
-        ctx.response().setStatusCode(400).end("Invalid id");
+        responseText(ctx, 400).end("Invalid id");
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
             logger.error("Failed to start service, will not update the DB. " + md);
             if (cres.getType() == INTERNAL) {
-              ctx.response().setStatusCode(500).end(cres.cause().getMessage());
+              responseError(ctx, 500, cres.cause());
             } else { // must be some kind of bad request
-              ctx.response().setStatusCode(400).end(cres.cause().getMessage());
+              responseError(ctx, 400, cres.cause());
             }
           } else {
             moduleStore.insert(md, ires -> {
@@ -119,11 +131,11 @@ public class ModuleWebService {
                 sendReloadSignal(sres -> {
                   if (sres.succeeded()) {
                     final String s = Json.encodePrettily(md);
-                    ctx.response().setStatusCode(201)
+                    responseJson(ctx, 201)
                       .putHeader("Location", ctx.request().uri() + "/" + ires.result())
                       .end(s);
                   } else { // TODO - What to if this fails ??
-                    ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+                    responseError(ctx, 500, sres.cause());
                   }
                 });
               } else {
@@ -133,11 +145,11 @@ public class ModuleWebService {
                 logger.warn("create failed " + ires.cause().getMessage());
                 moduleManager.delete(md.getId(), dres->{ // remove from runtime too
                   if ( dres.succeeded()) {
-                    ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+                    responseError(ctx, 500, ires.cause());
                     // Note, we return ires.cause, the reason why the insert failed
                   } else {
                     // TODO - What to do now - the system may be inconsistent!
-                    ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+                    responseError(ctx, 500, ires.cause());
                   }
                 });
               }
@@ -146,7 +158,7 @@ public class ModuleWebService {
         });
       }
     } catch (DecodeException ex) {
-      ctx.response().setStatusCode(400).end(ex.getMessage());
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -158,9 +170,9 @@ public class ModuleWebService {
         if (cres.failed()) {
           logger.warn("Failed to update service, will not update the DB. " + md);
           if (cres.getType() == NOT_FOUND) {
-            ctx.response().setStatusCode(404).end(cres.cause().getMessage());
+            responseError(ctx, 404, cres.cause());
           } else {
-            ctx.response().setStatusCode(500).end(cres.cause().getMessage());
+            responseError(ctx, 500, cres.cause());
           }
         } else {
           moduleStore.update(md, ires -> {
@@ -168,21 +180,20 @@ public class ModuleWebService {
               sendReloadSignal(sres->{
                 if ( sres.succeeded()) {
                   final String s = Json.encodePrettily(md);
-                  ctx.response().setStatusCode(200)
-                    .end(s);
+                  responseJson(ctx, 200).end(s);
                 } else { // TODO - What to if this fails ??
-                  ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+                  responseError(ctx, 500, sres.cause());
                 }
               });
             } else {
               logger.error("Module db update failed " + ires.cause().getMessage());
-              ctx.response().setStatusCode(500).end(ires.cause().getMessage());
+              responseError(ctx, 500, ires.cause());
             }
           });
         }
       });
     } catch (DecodeException ex) {
-      ctx.response().setStatusCode(400).end(ex.getMessage());
+      responseError(ctx, 400, ex);
     }
   }
 
@@ -193,14 +204,11 @@ public class ModuleWebService {
     //cli.find(collection, jq, res -> {
     moduleStore.get(id, res -> {
       if (res.succeeded()) {
-        ctx.response()
-                .setStatusCode(200)
-                .putHeader("Content-Type", "application/json")
-                .end(Json.encodePrettily(res.result()));
+        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
       } else if (res.getType() == NOT_FOUND) {
-        ctx.response().setStatusCode(404).end(res.cause().getMessage());
+        responseError(ctx, 404, res.cause());
       } else { // must be internal error then
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        responseError(ctx, 500, res.cause());
       }
     });
   }
@@ -212,12 +220,9 @@ public class ModuleWebService {
         for (ModuleDescriptor md : res.result()) {
           ml.add(new ModuleDescriptorBrief(md));
         }
-        ctx.response()
-                .setStatusCode(200)
-                .putHeader("Content-Type", "application/json")
-                .end(Json.encodePrettily(ml));
+        responseJson(ctx, 200).end(Json.encodePrettily(ml));
       } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        responseError(ctx, 500, res.cause());
       }
     });
     // moduleManager.listIds(ctx);
@@ -235,26 +240,26 @@ public class ModuleWebService {
       if ( sres.failed()) {
         logger.error("delete (runtime) failed: " + sres.getType() + ":" + sres.cause().getMessage());
         if ( sres.getType() == NOT_FOUND)
-          ctx.response().setStatusCode(404).end(sres.cause().getMessage());
+          responseError(ctx, 404, sres.cause());
         else
-          ctx.response().setStatusCode(500).end(sres.cause().getMessage());
+          responseError(ctx, 500, sres.cause());
       } else {
         moduleStore.delete(id, rres -> {
           if (rres.succeeded()) {
             sendReloadSignal(res -> {
               if (res.succeeded()) {
-                ctx.response().setStatusCode(204).end();
+                responseText(ctx, 204).end();
               } else { // TODO - What can be done if sending signal fails?
                 // Probably best to report failure of deleting the module
                 // we can not really undelete it here...
-                ctx.response().setStatusCode(500).end(rres.cause().getMessage());
+                responseError(ctx, 500, res.cause());
               }
             });
           } else {
             if (rres.getType() == NOT_FOUND) {
-              ctx.response().setStatusCode(404).end(rres.cause().getMessage());
+              responseError(ctx, 404, rres.cause());
             } else {
-              ctx.response().setStatusCode(500).end(rres.cause().getMessage());
+              responseError(ctx, 500, rres.cause());
             }
           }
         });
@@ -267,9 +272,9 @@ public class ModuleWebService {
   public void reloadModules(RoutingContext ctx) {
     reloadModules( res-> {
       if ( res.succeeded() ) {
-        ctx.response().setStatusCode(204).end();
+        responseText(ctx, 204).end();
       } else {
-        ctx.response().setStatusCode(500).end(res.cause().getMessage());
+        responseError(ctx, 500, res.cause());
       }
     });
 
