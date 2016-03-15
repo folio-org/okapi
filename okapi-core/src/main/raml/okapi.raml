@@ -73,6 +73,10 @@ schemas:
         body:
           application/json:
             schema: TenantDescriptor
+      400:
+        description: Bad Request
+        body:
+          text/plain
   get:
     description: list all tenants
     responses:
@@ -90,16 +94,27 @@ schemas:
             application/json:
               schema: TenantDescriptor
         404:
-          description: not found
+          description: Not Found
           body:
             text/plain:
     put:
       description: update tenant
+      body:
+        application/json:
+          schema: TenantDescriptor
       responses:
         200:
           body:
             application/json:
               schema: TenantDescriptor
+        400:
+          description: Bad Request
+          body:
+            text/plain
+        404:
+          description: Not Found
+          body:
+            text/plain
     delete:
       description: remove tenant
       responses:
