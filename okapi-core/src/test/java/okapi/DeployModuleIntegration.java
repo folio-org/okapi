@@ -21,6 +21,12 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import com.jayway.restassured.RestAssured;
+import static com.jayway.restassured.RestAssured.*;
+import com.jayway.restassured.response.Response;
+import guru.nidi.ramltester.RamlDefinition;
+import guru.nidi.ramltester.RamlLoaders;
+import guru.nidi.ramltester.restassured.RestAssuredClient;
 
 @RunWith(VertxUnitRunner.class)
 public class DeployModuleIntegration {
@@ -109,37 +115,39 @@ public class DeployModuleIntegration {
 
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
 
-  @Test(timeout = 600000)
+  @Test
   public void test_sample(TestContext context) {
     async = context.async();
-    postUnknownService(context);
-  }
 
-  public void postUnknownService(TestContext context) {
-    final String doc = "{ }";
-    httpClient.post(port, "localhost", "/_/xyz", response -> {
-      context.assertEquals(404, response.statusCode());
-      response.endHandler(x -> {
-        postBadJSON(context);
-      });
-    }).end(doc);
-  }
+    RestAssured.port = port;
 
-  public void postBadJSON(TestContext context) {
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.io");
+
+    RestAssuredClient c;
+
+    final String doc1 = "{ }";
+    c = api.createRestAssured();
+    // not according to RAML spec so that can not be verified
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc1).post("/_/xyz").then().statusCode(404);
+    if (!c.getLastReport().isEmpty()) {
+      logger.info("0:" + c.getLastReport().toString());
+    }
+
+    c = api.createRestAssured();
     final String bad_doc = "{"+LS
             + "  \"name\" : \"auth\","+LS  // the comma here makes it bad json!
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
-      context.assertEquals(400, response.statusCode());
-      response.endHandler(x -> {
-        // deployBadModule(context);  disabled for now
-        deployAuth(context);
-      });
-    }).end(bad_doc);
-  }
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(bad_doc).post("/_/modules").then().statusCode(400);
+    if (!c.getLastReport().isEmpty()) {
+      logger.info("1:" + c.getLastReport().toString());
+    }
 
-  public void deployBadModule(TestContext context) {
-    final String doc = "{"+LS
+    final String doc2 = "{"+LS
             + "  \"id\" : \"auth\","+LS
             + "  \"name\" : \"auth\","+LS
             + "  \"descriptor\" : {"+LS
@@ -155,13 +163,16 @@ public class DeployModuleIntegration {
             + "    \"type\" : \"request-response\""+LS
             + "  } ]"+LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
-      context.assertEquals(500, response.statusCode());
-      response.endHandler(x -> {
-        deployNoId(context);
-      });
-    }).end(doc);
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc2).post("/_/modules").then().statusCode(500);
+    if (!c.getLastReport().isEmpty()) {
+      logger.info("2:" + c.getLastReport().toString());
+    }
+    deployNoId(context);
   }
+
   public void deployNoId(TestContext context) {
     final String doc = "{"+LS
             + "  \"name\" : \"auth\","+LS

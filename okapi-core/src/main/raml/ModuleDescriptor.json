@@ -10,7 +10,7 @@
       "type": "object",
       "properties": {
         "cmdlineStart": {"type": "string"},
-        "cmdlineStop": {"type": "string"}
+        "cmdlineStop": {"type": ["string", "null"]}
       }
     },
     "routingEntries": {

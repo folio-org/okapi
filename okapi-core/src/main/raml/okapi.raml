@@ -31,12 +31,21 @@ schemas:
         schema: ModuleDescriptor
     responses:
       201:
+        description: Created
         headers:
           Location:
             description: URI to the created module instance
         body:
           application/json:
             schema: ModuleDescriptor
+      400:
+        description: Bad Request
+        body:
+          text/plain
+      500:
+        description: Server Error
+        body:
+          text/plain
   /{module_id}:
     get:
       description: Retrieve information about the module instance
