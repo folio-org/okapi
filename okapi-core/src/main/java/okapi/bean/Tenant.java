@@ -7,9 +7,9 @@ package okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.*;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class Tenant {
 
@@ -17,7 +17,10 @@ public class Tenant {
   final private TenantDescriptor descriptor;
 
   @JsonProperty
-  final private  Map<String,Boolean> enabled;
+  final private  TreeMap<String,Boolean> enabled;
+  // Note that this can not just be a Map, or the order of enabled modules
+  // will be undefined. That should not harm in real life, but it messes up
+  // our tests!
 
   @JsonIgnore
   private long timestamp;
@@ -25,11 +28,11 @@ public class Tenant {
   
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;
-    this.enabled = new HashMap<>();
+    this.enabled = new TreeMap<>();
     this.timestamp = 0;
   }
   
-  public Tenant(TenantDescriptor descriptor, Map<String,Boolean> enabled) {
+  public Tenant(TenantDescriptor descriptor, TreeMap<String,Boolean> enabled) {
     this.descriptor = descriptor;
     this.enabled = enabled;
     this.timestamp = 0;
@@ -37,7 +40,7 @@ public class Tenant {
 
   public Tenant() {
     this.descriptor = new TenantDescriptor();
-    this.enabled = new HashMap<>();
+    this.enabled = new TreeMap<>();
     this.timestamp = 0;
   }
 
@@ -48,7 +51,7 @@ public class Tenant {
    */
   public Tenant( Tenant other) {
     this.descriptor = new TenantDescriptor(other.descriptor);
-    this.enabled = new HashMap<>(other.enabled);
+    this.enabled = new TreeMap<>(other.enabled);
     this.timestamp = 0;
   }
 

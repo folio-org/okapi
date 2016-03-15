@@ -70,9 +70,9 @@ public class TenantStoreMemory implements TenantStore {
   @Override
   public void get(String id,Handler<ExtendedAsyncResult<Tenant>> fut ) {
     Tenant t = tenants.get(id);
-    if (t != null)
+    if (t != null) {
       fut.handle(new Success<>(new Tenant(t)));
-    else
+    } else
       fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
   }
 
@@ -95,7 +95,6 @@ public class TenantStoreMemory implements TenantStore {
     } else {
       t.setTimestamp(timestamp);
       t.enableModule(module);
-      System.out.println("TenantStoreMemory: Enabled modules: " + t.listModules());
       fut.handle(new Success<>());
     }
 
@@ -107,7 +106,6 @@ public class TenantStoreMemory implements TenantStore {
     if ( t == null ) {
       fut.handle(new Failure<>(USER,"Tenant " + id + " not found"));
     } else if ( ! t.isEnabled(module)) {
-      System.out.println("TenantStoreMemory: module '" + module + "' not enabled. " + t.listModules());
       fut.handle(new Failure<>(NOT_FOUND,"Module " + module + " for Tenant " + id + " not found, can not disable"));
     } else {
       t.setTimestamp(timestamp);

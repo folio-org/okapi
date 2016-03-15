@@ -9,6 +9,8 @@ import okapi.service.TenantStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,7 @@ import okapi.util.Success;
  * 
  */
 public class TenantStoreMongo implements TenantStore {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   MongoClient cli;
   final private String collection = "okapi.tenants";
   private long lastTimestamp = 0;
@@ -44,7 +47,7 @@ public class TenantStoreMongo implements TenantStore {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("TenantStoreMongo: Failed to insert " + id
+        logger.debug("TenantStoreMongo: Failed to insert " + id
           + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
@@ -63,7 +66,7 @@ public class TenantStoreMongo implements TenantStore {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        System.out.println("TenantStoreMongo: Failed to update " + id
+        logger.debug("TenantStoreMongo: Failed to update " + id
           + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       }
@@ -84,7 +87,6 @@ public class TenantStoreMongo implements TenantStore {
             final Tenant t = Json.decodeValue(jo.encode(),  Tenant.class);
             ids.add(t.getId());
           }
-          System.out.println("TenantStoreMongo: listIds: " + Json.encode(ids));
           fut.handle(new Success<>(ids));
       }
     });
@@ -104,7 +106,6 @@ public class TenantStoreMongo implements TenantStore {
             final Tenant t = Json.decodeValue(jo.encode(),  Tenant.class);
             ts.add(t.getDescriptor());
           }
-          System.out.println("TenantStoreMongo: listIds: " + Json.encode(ts));
           fut.handle(new Success<>(ts));
       }
     });
@@ -115,21 +116,18 @@ public class TenantStoreMongo implements TenantStore {
   public void get(String id,Handler<ExtendedAsyncResult<Tenant>> fut ) {
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    System.out.println("TenantStoreMongo: Trying to get " + q);
     cli.find(collection, jq, res -> {
       if ( res.failed()) {
-        System.out.println("TenantStoreMongo: get: find failed: " + res.cause().getMessage());
+        logger.debug("TenantStoreMongo: get: find failed: " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,res.cause()));
       } else {
         List<JsonObject> l = res.result();
         if (l.size() == 0) {
-        System.out.println("TenantStoreMongo: get: not found: " + id);
           fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
-          System.out.println("TenantStoreMongo: get: " + Json.encodePrettily(t));
           fut.handle(new Success<>(t));
         }
       }
@@ -147,7 +145,7 @@ public class TenantStoreMongo implements TenantStore {
       } else {
         List<JsonObject> l = fres.result();
         if (l.size() == 0) {
-          System.out.println("TeanntStoreMongo: delete. Not found " + id + ":" + q );
+          logger.debug("TeanntStoreMongo: delete. Not found " + id + ":" + q );
           fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found (delete)"));
         } else {
           cli.remove(collection, jq, rres -> {
@@ -167,33 +165,29 @@ public class TenantStoreMongo implements TenantStore {
         Handler<ExtendedAsyncResult<Void>> fut ) {
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    System.out.println("TenantStoreMongo: Trying to enable module " + module + " for tenant " + id);
     cli.find(collection, jq, gres -> {
       if ( gres.failed()) {
-        System.out.println("TenantStoreMongo: enable: find failed: " + gres.cause().getMessage());
+        logger.debug("enableModule: find failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,gres.cause()));
       } else {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
-          System.out.println("TenantStoreMongo: enableModule: not found: " + id);
+          logger.debug("enableModule: " + id + " not found: ");
           fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
-          System.out.println("TenantStoreMongo: enableModule: d: " +Json.encode(d) );
           final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
           t.setTimestamp(timestamp);
-          System.out.println("TenantStoreMongo: enableModule: " + Json.encodePrettily(t));
           t.enableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
           document.put("_id", id);
           cli.save(collection, document, sres -> {
             if ( sres.failed() ) {
-              System.out.println("TenantStoreMongo: enable: saving failed: " + gres.cause().getMessage());
+              logger.debug("TenantStoreMongo: enable: saving failed: " + gres.cause().getMessage());
               fut.handle(new Failure<>(INTERNAL,gres.cause()));
             } else {
-              System.out.println("TenantStoreMongo: enabled module " + module + " for " + id + "ok");
               fut.handle(new Success<>());
             }
           });
@@ -207,33 +201,29 @@ public class TenantStoreMongo implements TenantStore {
         Handler<ExtendedAsyncResult<Void>> fut ) {
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
-    System.out.println("TenantStoreMongo: Trying to disable module " + module + " for tenant " + id);
     cli.find(collection, jq, gres -> {
       if ( gres.failed()) {
-        System.out.println("TenantStoreMongo: disable: find failed: " + gres.cause().getMessage());
+        logger.debug("disableModule: find failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL,gres.cause()));
       } else {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
-          System.out.println("TenantStoreMongo: disableModule: not found: " + id);
+          logger.debug("disableModule: not found: " + id);
           fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
-          System.out.println("TenantStoreMongo: disableModule: d: " +Json.encode(d) );
           final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
           t.setTimestamp(timestamp);
-          System.out.println("TenantStoreMongo: disableModule: " + Json.encodePrettily(t));
           t.disableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
           document.put("_id", id);
           cli.save(collection, document, sres -> {
             if ( sres.failed() ) {
-              System.out.println("TenantStoreMongo: disable: saving failed: " + gres.cause().getMessage());
+              logger.debug("TenantStoreMongo: disable: saving failed: " + gres.cause().getMessage());
               fut.handle(new Failure<>(INTERNAL,gres.cause()));
             } else {
-              System.out.println("TenantStoreMongo: disabled module " + module + " for " + id + "ok");
               fut.handle(new Success<>());
             }
           });

@@ -5,7 +5,6 @@
  */
 package okapi.service;
 
-import okapi.web.TenantWebService;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
 import okapi.bean.Tenant;
@@ -14,6 +13,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -23,6 +24,8 @@ import java.util.Iterator;
 import okapi.bean.RoutingEntry;
 
 public class ProxyService {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
+
   private Modules modules;
   private HttpClient httpClient;
   //private TenantWebService tenantService;
@@ -126,7 +129,7 @@ public class ProxyService {
                   ctx.response().end();
                 });
                 res.exceptionHandler(x -> {
-                  System.out.println("res exception " + x.getMessage());
+                  logger.debug("proxyRequestHttpClient: res exception " + x.getMessage());
                 });
               } else if (it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), startTime, traceHeaders);
@@ -140,12 +143,12 @@ public class ProxyService {
                   ctx.response().end(bcontent);
                 });
                 res.exceptionHandler(x -> {
-                  System.out.println("res exception " + x.getMessage());
+                  logger.debug("proxyRequestHttpClient: res exception " + x.getMessage());
                 });
               }
             });
     c_req.exceptionHandler(res -> {
-      System.out.println("proxyRequestHttpClient failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyRequestHttpClient failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });
@@ -195,12 +198,12 @@ public class ProxyService {
                   ctx.response().end();
                 });
                 res.exceptionHandler(v -> {
-                  System.out.println("res exception " + v.getMessage());
+                  logger.debug("proxyRequestResponse: res exception " + v.getMessage());
                 });
               }
             });
     c_req.exceptionHandler(res -> {
-      System.out.println("proxyRequestResponse failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyRequestResponse failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });
@@ -216,7 +219,7 @@ public class ProxyService {
         c_req.end();
       });
       content.exceptionHandler(v -> {
-        System.out.println("content exception " + v.getMessage());
+        logger.debug("proxyRequestResponse: content exception " + v.getMessage());
       });
       content.resume();
     }
@@ -239,7 +242,7 @@ public class ProxyService {
                   ctx.response().end();
                 });
                 res.exceptionHandler(v -> {
-                  System.out.println("res exception " + v.getMessage());
+                  logger.debug("proxyHeaders: res exception " + v.getMessage());
                 });
               } else if (it.hasNext()) {
                 res.endHandler(x -> {
@@ -258,7 +261,7 @@ public class ProxyService {
                     ctx.response().end();
                   });
                   content.exceptionHandler(v -> {
-                    System.out.println("content exception " + v.getMessage());
+                    logger.debug("proxyHeaders: content exception " + v.getMessage());
                   });
                   content.resume();
                 } else {
@@ -267,7 +270,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
-      System.out.println("proxyHeaders failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyHeaders failure: "+ mi.getUrl() + ": " + res.getMessage() );
       ctx.response().setStatusCode(500).end("connect url "
               + mi.getUrl() + ": " + res.getMessage());
     });
@@ -294,7 +297,7 @@ public class ProxyService {
       } else if ("headers".equals(rtype)) {
         proxyHeaders(ctx, it, traceHeaders, content, bcontent, mi, startTime);
       } else {
-        System.out.println("rtype = " + rtype);
+        logger.warn("proxyR: bad rtype: " + rtype);
       }
     }
   }

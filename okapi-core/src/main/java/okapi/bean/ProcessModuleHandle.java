@@ -9,12 +9,15 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 
 public class ProcessModuleHandle implements ModuleHandle {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
   private final ProcessDeploymentDescriptor desc;
@@ -33,7 +36,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     NetClient c = vertx.createNetClient(options);
     c.connect(port, "localhost", res -> {
       if (res.succeeded()) {
-        System.out.println("Connected to service at port " + port + " count " + count);
+        logger.info("Connected to service at port " + port + " count " + count);
         NetSocket socket = res.result();
         socket.close();
         startFuture.handle(Future.succeededFuture());
@@ -44,7 +47,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           tryConnect(startFuture, count + 1);
         });
       } else {
-        System.out.println("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
+        logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
         startFuture.handle(Future.failedFuture(res.cause()));
       }
     });

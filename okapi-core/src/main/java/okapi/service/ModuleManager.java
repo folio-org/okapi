@@ -12,6 +12,8 @@ import okapi.bean.Modules;
 import okapi.bean.Ports;
 import okapi.bean.ProcessModuleHandle;
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.Set;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -23,6 +25,7 @@ import okapi.util.Success;
  *
  */
 public class ModuleManager {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   private final Modules modules;
   private final Ports ports;
   final private Vertx vertx;
@@ -82,12 +85,12 @@ public class ModuleManager {
     final String id = md.getId();
     this.delete(id, dres -> {
       if (dres.failed()) {
-        System.out.println("ModuleManager: Update: Delete failed: " + dres.cause());
+        logger.warn("Update: Delete failed: " + dres.cause());
         fut.handle(new Failure<>(dres.getType(), dres.cause()));
       } else {
         this.create(md, cres -> {
           if (cres.failed()) {
-            System.out.println("ModuleManager: Update: Delete failed: " + dres.cause());
+            logger.warn("Update: create failed: " + dres.cause());
             fut.handle(new Failure<>(dres.getType(), dres.cause()));
           } else {
             fut.handle(new Success<>());
@@ -105,20 +108,22 @@ public class ModuleManager {
     } else {
       ProcessModuleHandle pmh = m.getProcessModuleHandle();
       if (pmh == null) {
-        System.out.println("ModuleManager: not running, just deleting " + m.getModuleDescriptor().getId());
+        logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
         modules.remove(id); // nothing running, just remove it from our list
         fut.handle(new Success<>());
       } else {
-        System.out.println("ModuleManager: About to stop " + m.getModuleDescriptor().getId());
+        logger.debug("About to stop " + m.getModuleDescriptor().getId());
         pmh.stop(future -> {
           if (future.succeeded()) {
-            System.out.println("ModuleManager: Did stop " + m.getModuleDescriptor().getId());
+            logger.debug("Did stop " + m.getModuleDescriptor().getId());
             modules.remove(id);
             ports.free(pmh.getPort());
             fut.handle(new Success<>());
           } else {
             fut.handle(new Failure<>(INTERNAL, future.cause()));
-            System.out.println("ModuleManager: FAILED to stop " + m.getModuleDescriptor().getId());
+            logger.warn("FAILED to stop " + m.getModuleDescriptor().getId());
+            // TODO - What to do in case it was already dead? Probably safe to ignore
+            // TODO - What to do in case stopping failed, and it still runs. That is bad!
           }
         });
       }
@@ -135,19 +140,19 @@ public class ModuleManager {
       ProcessModuleHandle pmh = mi.getProcessModuleHandle();
       if ( pmh == null ) {
         modules.remove(id);
-        System.out.println("Deleted module " + id);
+        logger.debug("Deleted module " + id);
         deleteAll(fut);
       } else {
         pmh.stop(res -> {
           if (res.succeeded()) {
             ports.free(pmh.getPort());
           } else {
-            System.out.println("Failed to stop module " + id + ":" + res.cause().getMessage());
+            logger.warn("Failed to stop module " + id + ":" + res.cause().getMessage());
             fut.handle(new Failure<>(INTERNAL,"Failed to stop module " + id + ":" + res.cause().getMessage()));
             // TODO - What to do in this case? Declare the whole node dead?
           }
           modules.remove(id); // remove in any case
-          System.out.println("Stopped and deleted module " + id);
+          logger.debug("Stopped and deleted module " + id);
           deleteAll(fut);
         });
       }

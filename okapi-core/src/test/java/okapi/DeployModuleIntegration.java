@@ -11,6 +11,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -22,6 +24,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class DeployModuleIntegration {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
   Async async;
@@ -651,8 +654,9 @@ public class DeployModuleIntegration {
     httpClient.get(port, "localhost", locationTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(x -> {
-        System.out.println("listTenantModules: " + x.toString());
-        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\", \"sample-module3\" ]";
+        logger.debug("listTenantModules: " + x.toString());
+        //String explist = "[ \"sample-module2\", \"sample-module\", \"auth\", \"sample-module3\" ]";
+        String explist = "[ \"auth\", \"sample-module\", \"sample-module2\", \"sample-module3\" ]";
         context.assertEquals(explist, x.toString());
       });
       response.endHandler(x -> {
@@ -664,7 +668,7 @@ public class DeployModuleIntegration {
 
   public void disableTenantModule(TestContext context) {
     httpClient.delete(port, "localhost", locationTenant + "/modules/sample-module3", response -> {
-      System.out.println("disableTenantModule: " + response.statusCode());
+      logger.debug("disableTenantModule: " + response.statusCode());
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         listTenantModules2(context);
@@ -676,8 +680,8 @@ public class DeployModuleIntegration {
     httpClient.get(port, "localhost", locationTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.handler(x -> {
-        String explist = "[ \"sample-module2\", \"sample-module\", \"auth\" ]";
-        System.out.println("listTenantModules: " + x.toString());
+        String explist = "[ \"auth\", \"sample-module\", \"sample-module2\" ]";
+        logger.debug("listTenantModules: " + x.toString());
         context.assertEquals(explist, x.toString());
       });
       response.endHandler(x -> {

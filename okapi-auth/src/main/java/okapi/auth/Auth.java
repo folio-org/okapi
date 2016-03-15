@@ -7,11 +7,11 @@ package okapi.auth;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * A dummy auth module.
@@ -36,6 +36,8 @@ import java.util.logging.Logger;
 public class Auth {
 
     static final String OKAPITOKENHEADER = "X-Okapi-Token";
+
+    private final Logger logger = LoggerFactory.getLogger("okapi-auth");
     
   /**
    * Calculate a token from tenant and username.
@@ -62,13 +64,10 @@ public class Auth {
   };
 
   public void login(RoutingContext ctx) {
-    //System.out.println("Auth.login called");
     final String json = ctx.getBodyAsString();
     LoginParameters p;
     try {
-      //System.out.println("Got some json" + json);
       p = Json.decodeValue(json, LoginParameters.class);
-      //System.out.println("Parsed the params");
     } catch (DecodeException ex) {
       ctx.response()
         .setStatusCode(400)  // Bad request
@@ -80,7 +79,7 @@ public class Auth {
     String u = p.getUsername();
     String correctpw = u + "-password";
     if ( ! p.getPassword().equals(correctpw)) {
-      System.out.println("Bad passwd for '" + u + "'. "
+      logger.info("Bad passwd for '" + u + "'. "
         + "Got '" + p.getPassword() + "' expected '" + correctpw + "'" );
       ctx.response()
         .setStatusCode(401)  // Forbidden
@@ -91,14 +90,13 @@ public class Auth {
     String tok;
     try {
       tok = token(p.getTenant(), p.getUsername());
-      //System.out.println("Got a token " + tok);
     } catch (NoSuchAlgorithmException ex) {
       ctx.response()
         .setStatusCode(500)  // Internal error
         .end("Error in invoking MD5sum: "+ex); 
       return;
     }
-    System.out.println("Ok login for " + u + ": " + tok);
+    logger.info("Ok login for " + u + ": " + tok);
     ctx.response()
       .headers().add(OKAPITOKENHEADER,tok);
     ctx.response().setStatusCode(200);
@@ -108,21 +106,20 @@ public class Auth {
   public void check (RoutingContext ctx) {
     String tok = ctx.request().getHeader(OKAPITOKENHEADER);
     if ( tok == null || tok.isEmpty() ) {
-      System.out.println("Auth.check called without " + OKAPITOKENHEADER);
+      logger.info("Auth.check called without " + OKAPITOKENHEADER);
       ctx.response()
         .setStatusCode(401) // Check symbolic name for "forbidden"
         .end("Auth.check called without " + OKAPITOKENHEADER ); 
       return;
     }
-    //System.out.println("Auth.check called with " + tok);
-      // Do some magic
+    // Do some magic
     String[] split = tok.split(":",3);
     String properToken = "???";
     try {
       if ( split.length == 3 )
         properToken = token(split[0],split[1]);
       if ( ! tok.equals(properToken)) {
-        System.out.println("Invalid token. "
+        logger.info("Invalid token. "
           + "Got '" + tok + "' Expected '" + properToken + "'");
         ctx.response()
           .setStatusCode(401) // Check symbolic name for "forbidden"
@@ -130,7 +127,7 @@ public class Auth {
         return;          
         }
       } catch (NoSuchAlgorithmException ex) {
-        Logger.getLogger(Auth.class.getName()).log(Level.SEVERE, null, ex);
+        logger.error("no such algorithm: " + ex.getMessage());
       }
     ctx.response()
       .headers().add(OKAPITOKENHEADER,tok);
@@ -156,7 +153,7 @@ public class Auth {
    * @param ctx 
    */
   public void accept (RoutingContext ctx) {
-    System.out.println("Auth accept OK");
+    logger.info("Auth accept OK");
     ctx.response().setStatusCode(202);
     echo(ctx);
   }  
