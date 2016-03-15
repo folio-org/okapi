@@ -77,7 +77,7 @@ public class TenantRATest {
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
-    given().port(port).body(badId).post("/_/tenants").then().statusCode(400);
+    given().body(badId).post("/_/tenants").then().statusCode(400);
 
     String doc = "{"+LS
             + "  \"id\" : \"roskilde\","+LS
@@ -85,7 +85,7 @@ public class TenantRATest {
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
 
-    Response r = given().port(port).body(doc).post("/_/tenants").then().statusCode(201).
+    Response r = given().body(doc).post("/_/tenants").then().statusCode(201).
               body(equalTo(doc)).extract().response();
     if (!c.getLastReport().isEmpty()) {
        logger.debug(c.getLastReport().toString());
@@ -94,9 +94,7 @@ public class TenantRATest {
     String location = r.getHeader("Location");
 
     // post again, fail because of duplicate
-    given().port(port).body(doc).post("/_/tenants").then().statusCode(400);
-
-
+    given().body(doc).post("/_/tenants").then().statusCode(400);
 
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
