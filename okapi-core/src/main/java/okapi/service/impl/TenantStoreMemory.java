@@ -7,6 +7,7 @@ package okapi.service.impl;
 
 import okapi.service.TenantStore;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +45,15 @@ public class TenantStoreMemory implements TenantStore {
     String id = t.getId(); 
     tenants.put(id, new Tenant(t));
     fut.handle(new Success<>(id));
+  }
+
+  @Override
+  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut){
+    Tenant t = tenants.get(id);
+    Tenant nt = new Tenant(td, t.getEnabled());
+    // TODO - Validate that we don't change the id
+    tenants.put(id, nt);
+    fut.handle(new Success<>());
   }
 
   @Override

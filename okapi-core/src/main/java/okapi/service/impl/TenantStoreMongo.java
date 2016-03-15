@@ -74,6 +74,43 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
+  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut){
+    final String q = "{ \"_id\": \"" + id + "\"}";
+    JsonObject jq = new JsonObject(q);
+    cli.find(collection, jq, res -> {
+      if ( res.failed()) {
+        logger.debug("updateDescriptor: find failed: " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL,res.cause()));
+      } else {
+        List<JsonObject> l = res.result();
+        if (l.size() == 0) {
+          fut.handle(new Failure<>(NOT_FOUND,"Tenant " + id + " not found"));
+        } else {
+          JsonObject d = l.get(0);
+          d.remove("_id");
+          final Tenant t = Json.decodeValue(d.encode(),  Tenant.class);
+          Tenant nt = new Tenant(td, t.getEnabled());
+          // TODO - Validate that we don't change the id
+          // tenants.put(id, nt);
+          String s = Json.encodePrettily(nt);
+          JsonObject document = new JsonObject(s);
+          document.put("_id", id);
+          cli.replace(collection, jq, document, ures -> {
+            if (ures.succeeded()) {
+              fut.handle(new Success<>());
+            } else {
+              logger.debug("Failed to update descriptor for " + id
+                + ": " + ures.cause().getMessage());
+              fut.handle(new Failure<>(INTERNAL, ures.cause()));
+            }
+          });
+        }
+      }
+    });
+  }
+
+
+  @Override
   public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
     String q = "{}";
     JsonObject jq = new JsonObject(q);
@@ -132,7 +169,6 @@ public class TenantStoreMongo implements TenantStore {
         }
       }
     });
-
   }
 
   @Override

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import okapi.bean.Tenant;
+import okapi.bean.TenantDescriptor;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 
@@ -47,6 +48,18 @@ public class TenantManager {
       return false;
     }
     tenants.put(id, t);
+    return true;
+  }
+
+  public boolean updateDescriptor(String id, TenantDescriptor td, long ts) {
+    if ( ! tenants.containsKey(id)) {
+      logger.debug("Tenant '" + id + "' not found, can not update descriptor");
+      return false;
+    }
+    Tenant t = tenants.get(id);
+    Tenant nt = new Tenant(td, t.getEnabled());
+    nt.setTimestamp(ts);
+    tenants.put(id, nt);
     return true;
   }
 
