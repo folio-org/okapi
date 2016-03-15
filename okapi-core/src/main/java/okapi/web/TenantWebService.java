@@ -138,8 +138,8 @@ public class TenantWebService {
       final long ts = getTimestamp();
       t.setTimestamp(ts);
       final String id = td.getId();
-      if (tenants.update(t)) {
-        tenantStore.update(t, res -> {
+      if (tenants.updateDescriptor(id,td,ts)) {
+        tenantStore.updateDescriptor(id, td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
             ctx.response()
@@ -152,7 +152,7 @@ public class TenantWebService {
           }
         });
       } else {
-        ctx.response().setStatusCode(400).end("Dailed to update " + id);
+        ctx.response().setStatusCode(400).end("Failed to update descriptor " + id);
       }
     } catch (DecodeException ex) {
       ctx.response().setStatusCode(400).end(ex.getMessage());
@@ -250,7 +250,7 @@ public class TenantWebService {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
-      logger.debug("TenantWebService: disablemodule t=" + id + " m=" + module + " XXXXXXXX");
+      logger.debug("disablemodule t=" + id + " m=" + module );
       ErrorType err =  tenants.disableModule(id, module);
       if ( err == OK ) {
         tenantStore.disableModule(id, module, ts, res->{
@@ -259,10 +259,10 @@ public class TenantWebService {
             ctx.response().setStatusCode(204).end();
           } else {
             if (res.getType() == NOT_FOUND) {
-              logger.debug("TenantWebService: disablemodule: storage NOTFOUND: " + res.cause().getMessage());
+              logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
               ctx.response().setStatusCode(404).end(res.cause().getMessage());
             } else {
-              logger.error("TenantWebService: disablemodule: storage other " + res.cause().getMessage());
+              logger.error("disablemodule: storage other " + res.cause().getMessage());
               ctx.response().setStatusCode(500).end(res.cause().getMessage());
             }
           }

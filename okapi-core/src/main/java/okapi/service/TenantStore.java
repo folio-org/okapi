@@ -28,6 +28,8 @@ public interface TenantStore {
 
   void update(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
 
+  void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
+
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
   
   void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut);

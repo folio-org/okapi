@@ -83,7 +83,7 @@ public class Tenant {
     return descriptor;
   }
 
-  public Map<String,Boolean> getEnabled() {
+  public TreeMap<String,Boolean> getEnabled() {
     return enabled;
   }
 

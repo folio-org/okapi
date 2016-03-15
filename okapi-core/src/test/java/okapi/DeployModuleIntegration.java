@@ -36,7 +36,6 @@ public class DeployModuleIntegration {
   private String locationAuth;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
-  private long startTime;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
 
@@ -279,7 +278,6 @@ public class DeployModuleIntegration {
       });
     }).end();
   }
- // TODO - Test module PUT as well
   
   public void createTenant(TestContext context) {
     final String doc = "{"+LS
@@ -355,6 +353,9 @@ public class DeployModuleIntegration {
       });
     }).end();
   }
+
+
+
   public void tenantListModules3(TestContext context) {
     httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -362,11 +363,40 @@ public class DeployModuleIntegration {
         context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
       });
       response.endHandler(x -> {
-        useWithoutTenant(context);
+        updateTenant(context);
       });
     }).end();
   }
 
+  public void updateTenant(TestContext context) {
+    final String doc = "{"+LS
+            + "  \"id\" : \"" + okapiTenant + "\","+LS
+            + "  \"name\" : \"Roskilde-library\","+LS
+            + "  \"description\" : \"Roskilde bibliotek\""+LS
+            + "}";
+    httpClient.put(port, "localhost", "/_/tenants/" + okapiTenant, response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
+      response.endHandler(x -> {
+        tenantListModules4(context);
+      });
+    }).end(doc);
+  }
+  
+  public void tenantListModules4(TestContext context) {
+    httpClient.get(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+      context.assertEquals(200, response.statusCode());
+      response.handler(x -> {
+        System.out.println("tenantListModules4: " + x);
+        context.assertEquals("[ \"auth\", \"sample-module\" ]", x.toString());
+      });
+      response.endHandler(x -> {
+        useWithoutTenant(context);
+      });
+    }).end();
+  }
 
   public void useWithoutTenant(TestContext context) {
     HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
