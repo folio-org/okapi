@@ -164,7 +164,7 @@ public class TenantWebService {
           }
         });
       } else {
-        ctx.response().setStatusCode(400).end("Failed to update descriptor " + id);
+        responseText(ctx, 400).end("Failed to update descriptor " + id);
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
