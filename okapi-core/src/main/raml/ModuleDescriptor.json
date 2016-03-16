@@ -5,7 +5,7 @@
   "properties": {
     "id": {"type": "string"},
     "name": {"type": "string"},
-    "url": {"type": "string"},
+    "url": {"type": ["string", "null"]},
     "descriptor" : {
       "type": "object",
       "properties": {
