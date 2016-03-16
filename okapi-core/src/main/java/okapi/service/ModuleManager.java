@@ -149,7 +149,7 @@ public class ModuleManager {
           } else {
             logger.warn("Failed to stop module " + id + ":" + res.cause().getMessage());
             fut.handle(new Failure<>(INTERNAL,"Failed to stop module " + id + ":" + res.cause().getMessage()));
-            // TODO - What to in this case? Declare the whole node dead?
+            // TODO - What to do in this case? Declare the whole node dead?
           }
           modules.remove(id); // remove in any case
           logger.debug("Stopped and deleted module " + id);
