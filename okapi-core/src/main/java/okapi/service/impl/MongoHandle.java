@@ -33,24 +33,24 @@ public class MongoHandle {
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  static String conf(String key, String def, JsonObject conf,
-        JsonObject mongoOpt, String mongoKey) {
+  static String conf(String key, String def, JsonObject conf) {
     String v = System.getProperty(key, conf.getString(key,def));
-    if ( v != null && ! v.isEmpty() )
-      mongoOpt.put(mongoKey, v);
     return v;
   }
 
 
   public MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
-    String h = conf.getString("mongo_host","127.0.0.1");
+    String h = conf("mongo_host","127.0.0.1", conf);
     if ( ! h.isEmpty() )
       opt.put("host", h);
-    String p = conf.getString("mongo_port","27017");
+    String p = conf("mongo_port","27017", conf);
     if ( ! p.isEmpty() )
       opt.put("port",Integer.parseInt(p));
-    String db = conf("mongo_db_name", "", conf, opt, "db_name");
+    String db = conf("mongo_db_name", "", conf);
+    if ( ! db.isEmpty())
+      opt.put("db_name", db);
+    logger.info("Using mongo backend at " + h + " : " + p + " / " + db);
     this.cli = MongoClient.createShared(vertx, opt);
     if ( transientDbName.equals(db)) {
       logger.debug("Mongohandle: Decided that this a transient backend!");
