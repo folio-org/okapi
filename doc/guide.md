@@ -29,7 +29,7 @@ which Okapi follows quite closely, _the API Gateway encapsulates the
 internal system architecture and provides a unified API that may be
 tailored to each client; it might also include core responsibilities
 such as authentication, monitoring, load balancing, caching, request
-shaping and management, and static response handling_ from the Message
+shaping and management, and static response handling_: from the Message
 Queue design pattern to allow broadcasting of requests to multiple
 services (initially synchronously and eventually, possibly,
 asynchronously) and returning a final response. Finally, Okapi
@@ -176,7 +176,7 @@ when the processing pipeline completes.
 
 Both sets are modified according to the following rules:
 
- * Any headers that provide meta-data about the request entity body
+ * Any headers that provide metadata about the request entity body
 (e.g.  Content-Type, Content-Length, etc.) are merged from the last
 response back into the request.
 
@@ -184,7 +184,7 @@ response back into the request.
 from the last response into the current request (in order to forward
 them to the next module).
 
- * A list of headers that provide meta-data about the response entity
+ * A list of headers that provide metadata about the response entity
 body is merged to the final response header set.
 
  * An additional set of special headers (debug, monitoring) or any
@@ -195,7 +195,7 @@ into the final response header set.
 
 #### Security
 
-There is extensive work going on in parallel to Okapi development to
+There is extensive work going on in parallel to Okapi development, to
 establish and define security requirements for the entire SLING
 platform.
 
@@ -234,14 +234,14 @@ implementation details will be established within the coming months.
 
 ### Instrumentation and Analytics
 
-In a microservices architecture monitoring is key to ensure robustness
+In a microservices architecture, monitoring is key to ensure robustness
 and health of the entire system. The way to provide useful monitoring
 is to include well defined instrumentation points (“hooks”) before and
 after each step of execution of the request processing
 pipeline. Besides monitoring, instrumentation is crucial for the
 ability to quickly diagnose issues in the running system (“hot”
 debugging) and discovering performance bottlenecks (profiling). We are
-looking at established solution in this regard: e.g. JMX,
+looking at established solutions in this regard: e.g. JMX,
 Dropwizard Metrics, Graphite, etc.
 
 A multi-module system may provide a wide variety of metrics and an
@@ -267,7 +267,7 @@ aggregation will be evaluated.
 
 At present, Okapi assumes and implements HTTP as the transport
 protocol between modules, both on the front-end and within the
-system. HTTP is based on a request- response paradigm and does not
+system. HTTP is based on a request-response paradigm and does not
 directly include asynchronous messaging capabilities.  It is, however,
 entirely possible to model an asynchronous mode of operation on top of
 HTTP, e.g. using a polling approach or HTTP extensions like
@@ -307,7 +307,7 @@ mvn install
 ```
 
 The install rule also runs a few tests. Tests should not fail.
-If they do, please report it and in the mean time fall back to
+If they do, please report it and in the meantime fall back to
 ```
 mvn install -DskipTests
 ```
@@ -344,7 +344,7 @@ cd okapi-core
 java -Dport=8600 -jar target/okapi-core-fat.jar
 ```
 
-A Maven rule to run the gateway, is part of the `pom.xml`, in the
+A Maven rule to run the gateway is part of the `pom.xml`, in the
 main directory.
 
 ```
@@ -360,9 +360,9 @@ This command format requires Maven >= 3.3.1. Will listen for debugging client at
 
 ## Using Okapi
 
-These examples show how to use Okapi from the command line, using the `curl`
-http client. You should be able to copy and paste the command(s) to your
-command line from this document.
+These examples show how to use Okapi from the command-line, using the `curl`
+http client. You should be able to copy and paste the commands to your
+command-line from this document.
 
 The exact definition of the services is in the RAML files listed in
 the [Reference](#reference) section.
@@ -372,7 +372,7 @@ The Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
 to the next. At the moment the MongoDB storage can be enabled by adding the
-option `-Dstorage=mongo` to the command line that starts Okapi.
+option `-Dstorage=mongo` to the command-line that starts Okapi.
 
 ### Example modules
 
@@ -385,7 +385,7 @@ This is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
 what ever you posted.
 
-Normally Okapi will be starting and stopping these modules for you, but let's
+Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
 command-line HTTP client that is useful for testing.
 
@@ -404,13 +404,14 @@ sample module with
 ```
 curl -w '\n' http://localhost:8080/sample
 ```
+
 It should tell you that it works. The option "`-w '\n'`" is just to
 make curl output an extra newline, because the responses do not necessarily
 end in newlines.
 
 
 
-Now let's try to POST something to the sample module. In real life this
+Now we will try to POST something to the sample module. In real life this
 would be a JSON structure, but for now a simple text string will do.
 
 ```
@@ -429,7 +430,7 @@ The test module should respond with
 
 which is our test data, with a "Hello" prepended to it.
 
-That's enough about the sample module. Go back to the window where you
+That is enough about the sample module. Go back to the window where you
 left it running, and kill it with a Ctrl-C. It should not have produced
 any output after the initial messages.
 
@@ -448,7 +449,7 @@ returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
 headers.  The token, for this dummy module, is simply the username and
 tenant-id concatenated with a checksum. In a real authentication
-module, it will be something opaque and difficult to fake.
+module it will be something opaque and difficult to fake.
 
 We will see examples of this when we get to play with Okapi itself. If
 you want, you can start the module directly as with the sample module.
@@ -456,7 +457,7 @@ you want, you can start the module directly as with the sample module.
 ### Running Okapi itself
 
 Now we are ready to start Okapi.
-Note: for this example to work it is important that current directory
+Note: for this example to work it is important that the current directory
 of the Okapi is the top-level directory `.../okapi`.
 
 ```
@@ -466,7 +467,7 @@ java -jar okapi-core/target/okapi-core-fat.jar
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using the 'inmemory' storage. For MongoDB
-storage, add `-Dstorage=mongo` to the command line.
+storage, add `-Dstorage=mongo` to the command-line.
 
 
 
@@ -478,7 +479,7 @@ curl -w '\n' http://localhost:9130/_/modules
 curl -w '\n' http://localhost:9130/_/tenants
 ```
 Both of these return lists in the form of JSON structures. At present,
-because we have just starting running, it's an empty list in both
+because we have just started running, it is an empty list in both
 cases:
 
     [ ]
@@ -523,7 +524,7 @@ else, and that the module is supposed to provide a full response. The
 level is used to to specify the order in which the request will be
 sent to multiple modules, as will be seen later.
 
-Now let's add the module:
+Now we will add the module:
 
 ```
 curl -w '\n' -X POST -D - \
@@ -536,7 +537,7 @@ Note that we need to add the Content-Type header, otherwise curl will try to
 be helpful and say something about it being url-encoded, which will confuse
 the Java libraries and result in a "500 - Internal Error".
 
-We also added the "-D -" option that makes curl to display all response
+We also added the "-D -" option to make curl display all response
 headers.
 
 You should see something like this
@@ -667,9 +668,9 @@ Now we have two modules, as can be seen with
 curl -w '\n' http://localhost:9130/_/modules
 ```
 
-but we still can not use them the way they would be used in a real
+but we still can not use them in the way that they would be used in a real
 system. Since each invocation of a module is on behalf of a tenant,
-we need to create some tenants, too.
+we need to create some tenants too.
 
 ### Creating tenants
 For this example we create two tenants. These are simple requests.
@@ -749,9 +750,9 @@ curl -w '\n' -X POST -D - \
 
 Note that we are using a RESTful approach here: the URL
 `http://localhost:9130/_/tenants/our/modules` names the set of
-modules that are enabled for our library, and we POST an deployed
-module to this set. The tenant to enable the module for is in the URL;
-the module to enable it for is in the payload.
+modules that are enabled for our library, and we POST a deployed
+module to this set. The tenant for which to enable the module is in the URL;
+the module to be enabled is in the payload.
 
 Now we can ask Okapi which modules are enabled for our tenant, and get
 back a JSON list:
@@ -779,7 +780,7 @@ and indeed the sample module says that _it works_.
 ### Enabling both modules for the other tenant
 
 Our other tenant needs to use /sample as well, but it needs to be authenticated
-to be allowed to do so. So we need to enable both sample-module and auth for it:
+to be allowed to do that. So we need to enable both sample-module and auth for it:
 
 ```
 cat > /tmp/enabletenant2a.json <<END
