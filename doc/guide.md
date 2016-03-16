@@ -544,7 +544,7 @@ You should see something like this
 ```
 HTTP/1.1 201 Created
 Location: /_/modules/sample-module
-Content-Length: 363
+Content-Length: 369
 
 {
   "id" : "sample-module",
@@ -566,20 +566,20 @@ Content-Length: 363
 If you repeat the same request, you should now get an error
 ```
 HTTP/1.1 400 Bad Request
-Content-Length: 37
+Content-Length: 16
 
 Already deployed
 ```
 
 If you look at the output of
-    ps axf | grep -C4 okapi
+    ps axf | grep okapi
 you should see that okapi-core has spawned a new process for the
 okapi-sample-module, and that it has been assigned port 9131. Now, if
 you ask Okapi to list its modules, as before, the response is:
 ```
 [ {
   "id" : "sample-module",
-  "name" : "sample-module",
+  "name" : "okapi sample module",
   "url" : null
 } ]
 ```
@@ -631,7 +631,6 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/authmodule.json  \
   http://localhost:9130/_/modules
-
 ```
 And should see
 
@@ -693,8 +692,8 @@ curl -w '\n' -X POST -D - \
 Okapi responds with
 ```
 HTTP/1.1 201 Created
-Location: /_/tenants/ourlibrary
-Content-Length: 87
+Location: /_/tenants/our
+Content-Length: 81
 
 {
   "id" : "our",
@@ -742,6 +741,7 @@ cat > /tmp/enabletenant1.json <<END
   "module" : "sample-module"
 }
 END
+
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant1.json  \
@@ -846,6 +846,7 @@ cat > /tmp/login.json <<END
   "password": "peter-password"
 }
 END
+
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: other" \
