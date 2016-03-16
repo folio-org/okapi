@@ -1,7 +1,7 @@
 /*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
+ * Copyright (c) 2015-2016, Index Data
+ * All rights reserved.
+ * See the file LICENSE for details.
  */
 package okapi.service.impl;
 
@@ -31,7 +31,7 @@ public class MongoHandle {
 
   // Little helper to get a config value
   // First from System (-D on command line),
-  // then from config (from the way the vertcle gets deployed, f.ex. in tests
+  // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
   static String conf(String key, String def, JsonObject conf,
         JsonObject mongoOpt, String mongoKey) {

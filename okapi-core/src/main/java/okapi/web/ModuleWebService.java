@@ -80,7 +80,7 @@ public class ModuleWebService {
           } else {
             logger.fatal("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
-            // We have nowehere to report failures. Declare the whole node dead?
+            // We have nowhere to report failures. Declare the whole node dead?
           }
         });
       } else {
@@ -183,7 +183,7 @@ public class ModuleWebService {
                 if (sres.succeeded()) {
                   final String s = Json.encodePrettily(md);
                   responseJson(ctx, 200).end(s);
-                } else { // TODO - What to if this fails ??
+                } else { // TODO - What to do if this fails ??
                   responseError(ctx, 500, sres.cause());
                 }
               });

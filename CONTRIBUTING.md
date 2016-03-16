@@ -94,7 +94,7 @@ be something like we are doing for other software:
 
 * Freeze the master for a short while
 * Make a release branch
-* Make changes specific for this release in the banch
+* Make changes specific for this release in the branch
 * Tag a version
 * Package and release it
 
@@ -181,5 +181,5 @@ There are some few exceptions:
 
 * We indent with two spaces only, because vert.x uses deeply nested callbacks.
 
-Remember to set your IDE to remove trailing spaces on saving files, those procuce
+Remember to set your IDE to remove trailing spaces on saving files, those produce
 unnecessary diffs in Git.

@@ -3,7 +3,6 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-
 package okapi.service;
 
 import io.vertx.core.json.Json;

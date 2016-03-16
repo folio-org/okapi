@@ -57,7 +57,7 @@ public class MainVerticle extends AbstractVerticle {
 
   // Little helper to get a config value
   // First from System (-D on command line),
-  // then from config (from the way the vertcle gets deployed, f.ex. in tests
+  // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value
   static String conf(String key, String def, JsonObject c) {
     return System.getProperty(key, c.getString(key,def));
