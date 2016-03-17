@@ -20,7 +20,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import okapi.bean.Modules;
 import okapi.web.HealthService;
@@ -37,6 +36,7 @@ import okapi.service.impl.TenantStoreMemory;
 import okapi.service.impl.TenantStoreMongo;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
+import okapi.util.LogHelper;
 
 public class MainVerticle extends AbstractVerticle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -72,6 +72,10 @@ public class MainVerticle extends AbstractVerticle {
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port+1),config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start+10),config));
     storage = conf("storage","inmemory",config);
+    String loglevel = conf("loglevel","",config);
+    if ( !loglevel.isEmpty())
+      LogHelper.setRootLogLevel(loglevel);
+
     hc = new HealthService();
 
     TenantStore tenantStore = null;
@@ -127,7 +131,7 @@ public class MainVerticle extends AbstractVerticle {
   
   public void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
-       
+
     //handle CORS
     router.route().handler(CorsHandler.create("*")
             .allowedMethod(HttpMethod.PUT)
