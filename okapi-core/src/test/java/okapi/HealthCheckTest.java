@@ -12,9 +12,9 @@ import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import static com.jayway.restassured.RestAssured.*;
+import com.jayway.restassured.response.Response;
+import com.jayway.restassured.response.ValidatableResponse;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -50,5 +50,26 @@ public class HealthCheckTest {
 
     given().get("/_/health").then().assertThat().statusCode(200);
     given().get("/_/health2").then().assertThat().statusCode(404);
+    
+    // Test for the log level settings - too small to have a file of its own
+    String currentLevel = given().get("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
+    System.out.println("Resp: '" + currentLevel + "'");
+
+    String trace = "{\"level\":\"TRACE\"}";
+    String post = given()
+      .header("Content-Type", "application/json")
+      .body(trace)
+      .post("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
+    System.out.println("post response " + post);
+
+    String newLevel = given().get("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
+    System.out.println("Resp: '" + newLevel + "'");
+
+    given().get("/_/health").then().assertThat().statusCode(200);
+
   }
+
 }

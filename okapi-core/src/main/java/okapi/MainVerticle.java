@@ -40,6 +40,7 @@ import okapi.util.LogHelper;
 
 public class MainVerticle extends AbstractVerticle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final LogHelper logHelper = new LogHelper();
 
   private int port;
   private int port_start;
@@ -74,7 +75,7 @@ public class MainVerticle extends AbstractVerticle {
     storage = conf("storage","inmemory",config);
     String loglevel = conf("loglevel","",config);
     if ( !loglevel.isEmpty())
-      LogHelper.setRootLogLevel(loglevel);
+      logHelper.setRootLogLevel(loglevel);
 
     hc = new HealthService();
 
@@ -168,6 +169,8 @@ public class MainVerticle extends AbstractVerticle {
     // test that verifies that changes propagate across a cluster...
     router.get("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
     router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
+    router.get("/_/test/loglevel").handler(logHelper::getRootLogLevel);
+    router.post("/_/test/loglevel").handler(logHelper::setRootLogLevel);
 
     router.route("/_*").handler(this::NotFound);
     
