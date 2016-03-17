@@ -325,144 +325,56 @@ public class DeployModuleIntegration {
             .then().statusCode(200).body(equalTo("[ \"auth\", \"sample-module\" ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    useWithoutTenant(context);
-  }
-  
-  public void useWithoutTenant(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
-      context.assertEquals(403, response.statusCode());
-      String trace = response.getHeader("X-Okapi-Trace");
-      context.assertTrue(trace == null);
-      response.endHandler(x -> {
-        useWithoutMatchingPath(context);
-      });
-    });
-    req.end();
-  }
+    given().get("/sample")
+            .then().statusCode(403);
 
-  public void useWithoutMatchingPath(TestContext context) {
-    // auth only listens on /s*
-    HttpClientRequest req = httpClient.get(port, "localhost", "/q", response -> {
-      context.assertEquals(404, response.statusCode());
-      response.endHandler(x -> {
-        useWithoutLogin(context);
-      });
-    });
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant).get("/q")
+            .then().statusCode(404);
 
-  public void useWithoutLogin(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
-      context.assertEquals(401, response.statusCode());
-      String trace = response.getHeader("X-Okapi-Trace");
-      context.assertTrue(trace != null && trace.matches(".*GET auth:401.*"));
-      response.endHandler(x -> {
-        failLogin(context);
-      });
-    });
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant).get("/sample")
+            .then().statusCode(401);
 
-  public void failLogin(TestContext context) {
-    String doc = "{"+LS
-            + "  \"tenant\" : \"t1\","+LS
-            + "  \"username\" : \"peter\","+LS
-            + "  \"password\" : \"peter37\""+LS
+    String doc10 = "{" + LS
+            + "  \"tenant\" : \"t1\"," + LS
+            + "  \"username\" : \"peter\"," + LS
+            + "  \"password\" : \"peter37\"" + LS
             + "}";
-    HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
-      context.assertEquals(401, response.statusCode());
-      response.endHandler(x -> {
-        doLogin(context);
-      });
-    });
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end(doc);
-  }
 
-  public void doLogin(TestContext context) {
-    String doc = "{"+LS
+    given().header("Content-Type", "application/json").body(doc10)
+            .header("X-Okapi-Tenant", okapiTenant).post("/login")
+            .then().statusCode(401);
+
+    String doc11 = "{"+LS
             + "  \"tenant\" : \"t1\","+LS
             + "  \"username\" : \"peter\","+LS
             + "  \"password\" : \"peter-password\""+LS
             + "}";
-    HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST auth:200.*"));
-      okapiToken = response.getHeader("X-Okapi-Token");
-      response.endHandler(x -> {
-        useItWithGet(context);
-      });
-    });
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end(doc);
-  }
+    okapiToken = given().header("Content-Type", "application/json").body(doc11)
+            .header("X-Okapi-Tenant", okapiTenant).post("/login")
+            .then().statusCode(200).extract().header("X-Okapi-Token");
 
-  public void useItWithGet(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module:200.*"));
-      response.handler(x -> {
-        context.assertEquals("It works", x.toString());
-      });
-      response.endHandler(x -> {
-        useItWithPost(context);
-      });
-    });
-    req.headers().add("X-Okapi-Token", okapiToken);
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant)
+           .header("X-Okapi-Token", okapiToken)
+           .get("/sample")
+            .then().statusCode(200).body(equalTo("It works"));
 
-  public void useItWithPost(TestContext context) {
-    Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST sample-module:200.*"));
-      response.handler(x -> {
-        body.appendBuffer(x);
-      });
-      response.endHandler(x -> {
-        context.assertEquals("Hello  (XML) Okapi", body.toString());
-        useNoPath(context);
-      });
-    });
-    req.headers().add("X-Okapi-Token", okapiToken);
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.putHeader("Content-Type", "text/xml");  
-    req.end("Okapi");
-  }
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("Content-Type", "text/xml")
+            .body("Okapi").post("/sample")
+            .then().statusCode(200).body(equalTo("Hello  (XML) Okapi"));
 
-  public void useNoPath(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/samplE", response -> {
-      context.assertEquals(202, response.statusCode());
-      response.endHandler(x -> {
-        useNoMethod(context);
-      });
-    });
-    req.headers().add("X-Okapi-Token", okapiToken);
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .get("/samplE")
+            .then().statusCode(202);
 
-  public void useNoMethod(TestContext context) {
-    HttpClientRequest req = httpClient.delete(port, "localhost", "/sample", response -> {
-      context.assertEquals(202, response.statusCode());
-      response.endHandler(x -> {
-        deploySample2(context);
-      });
-    });
-    req.headers().add("X-Okapi-Token", okapiToken);
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .delete("/sample")
+            .then().statusCode(202);
 
-  public void deploySample2(TestContext context) {
-    final String doc = "{"+LS
+    String doc12 = "{"+LS
             + "  \"id\" : \"sample-module2\","+LS
             + "  \"name\" : \"another-sample-module2\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
@@ -474,29 +386,26 @@ public class DeployModuleIntegration {
             + "    \"type\" : \"request-response\""+LS
             + "  } ]"+LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
-      context.assertEquals(201, response.statusCode());
-      locationSample2 = response.getHeader("Location");
-      response.endHandler(x -> {
-        tenantEnableModuleSample2(context);
-      });
-    }).end(doc);
-  }
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc12).post("/_/modules").then().statusCode(201)
+            .extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
+    locationSample2 = r.getHeader("Location");
 
-  public void tenantEnableModuleSample2(TestContext context) {
-    final String doc = "{"+LS
+    String doc13 = "{"+LS
             + "  \"module\" : \"sample-module2\""+LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
-      response.endHandler(x -> {
-        deploySample3(context);
-      });
-    }).end(doc);
-  }
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc13).post("/_/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(doc13));
+    Assert.assertTrue(c.getLastReport().isEmpty());
 
-  public void deploySample3(TestContext context) {
-    final String doc = "{"+LS
+    String doc14 = "{"+LS
             + "  \"id\" : \"sample-module3\","+LS
             + "  \"name\" : \"sample-module3\","+LS
             + "  \"url\" : \"http://localhost:9132\","+LS
@@ -521,45 +430,33 @@ public class DeployModuleIntegration {
             + "    \"type\" : \"request-only\""+LS
             + "  } ]"+LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
-      context.assertEquals(201, response.statusCode());
-      locationSample3 = response.getHeader("Location");
-      response.endHandler(x -> {
-        tenantEnableModuleSample3(context);
-      });
-    }).end(doc);
-  }
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc14).post("/_/modules").then().statusCode(201)
+            .extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
+    locationSample3 = r.getHeader("Location");
 
-  public void tenantEnableModuleSample3(TestContext context) {
-    final String doc = "{"+LS
+    String doc15 = "{"+LS
             + "  \"module\" : \"sample-module3\""+LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
-      response.endHandler(x -> {
-        useItWithGet2(context);
-      });
-    }).end(doc);
-  }
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc15).post("/_/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(doc15));
+    Assert.assertTrue(c.getLastReport().isEmpty());
 
-  public void useItWithGet2(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
-      context.assertEquals(200, response.statusCode());
-      String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null
-        && headers.matches(".*X-Okapi-Trace=GET sample-module2:200.*"));
-      response.handler(x -> {
-        context.assertEquals("It works", x.toString());
-      });
-      response.endHandler(x -> {
-        postMsg(context);
-      });
-    });
-    req.headers().add("X-Okapi-Token", okapiToken);
-    req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.end();
-  }
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .get("/sample")
+            .then().statusCode(200).body(equalTo("It works"));
 
+    postMsg(context);
+  }
+  
   public void postMsg(TestContext context) {
     final String msg = "OkapiX";
     Buffer body = Buffer.buffer();
