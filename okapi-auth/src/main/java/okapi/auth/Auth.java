@@ -5,6 +5,7 @@
  */
 package okapi.auth;
 
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -35,20 +36,29 @@ import java.security.NoSuchAlgorithmException;
 
 public class Auth {
 
-    static final String OKAPITOKENHEADER = "X-Okapi-Token";
+  static final String OKAPITOKENHEADER = "X-Okapi-Token";
 
-    private final Logger logger = LoggerFactory.getLogger("okapi-auth");
-    
+  private final Logger logger = LoggerFactory.getLogger("okapi-auth");
+
+  private HttpServerResponse responseText(RoutingContext ctx, int code) {
+    return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
+  }
+
+  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
+    return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
+  }
+
   /**
-   * Calculate a token from tenant and username.
-   * The token is like ttt:uuu:ccc, where ttt is the tenant, uuu is the user,
-   * and ccc is a crypto thing that depends on those two. 
+   * Calculate a token from tenant and username. The token is like ttt:uuu:ccc,
+   * where ttt is the tenant, uuu is the user, and ccc is a crypto thing that
+   * depends on those two.
+   *
    * @param tenant
    * @param user
    * @return the token
    * @throws NoSuchAlgorithmException which should never happen
    */
-  private String token (String tenant, String user ) throws NoSuchAlgorithmException {
+  private String token(String tenant, String user) throws NoSuchAlgorithmException {
     MessageDigest md = MessageDigest.getInstance("MD5");
     String salt = "salt"; // TODO - Add something from the current date
     md.update(salt.getBytes());
@@ -69,9 +79,7 @@ public class Auth {
     try {
       p = Json.decodeValue(json, LoginParameters.class);
     } catch (DecodeException ex) {
-      ctx.response()
-        .setStatusCode(400)  // Bad request
-        .end("Error in decoding parameters: " + ex); // Check symbolic name for "forbidden"
+      responseText(ctx, 400).end("Error in decoding parameters: " + ex);
       return;      
     }
     
@@ -81,9 +89,7 @@ public class Auth {
     if ( ! p.getPassword().equals(correctpw)) {
       logger.info("Bad passwd for '" + u + "'. "
         + "Got '" + p.getPassword() + "' expected '" + correctpw + "'" );
-      ctx.response()
-        .setStatusCode(401)  // Forbidden
-        .end("Wrong username or password"); 
+      responseText(ctx, 401).end("Wrong username or password");
       return;
       
     }
@@ -91,25 +97,19 @@ public class Auth {
     try {
       tok = token(p.getTenant(), p.getUsername());
     } catch (NoSuchAlgorithmException ex) {
-      ctx.response()
-        .setStatusCode(500)  // Internal error
-        .end("Error in invoking MD5sum: "+ex); 
+      responseText(ctx, 500).end("Error in invoking MD5sum: " + ex);
       return;
     }
     logger.info("Ok login for " + u + ": " + tok);
-    ctx.response()
-      .headers().add(OKAPITOKENHEADER,tok);
-    ctx.response().setStatusCode(200);
-    ctx.response().end(json);
+    responseJson(ctx, 200).putHeader(OKAPITOKENHEADER, tok).end(json);
   }
 
   public void check (RoutingContext ctx) {
     String tok = ctx.request().getHeader(OKAPITOKENHEADER);
     if ( tok == null || tok.isEmpty() ) {
       logger.info("Auth.check called without " + OKAPITOKENHEADER);
-      ctx.response()
-        .setStatusCode(401) // Check symbolic name for "forbidden"
-        .end("Auth.check called without " + OKAPITOKENHEADER ); 
+      responseText(ctx, 401)
+              .end("Auth.check called without " + OKAPITOKENHEADER );
       return;
     }
     // Do some magic
@@ -121,9 +121,7 @@ public class Auth {
       if ( ! tok.equals(properToken)) {
         logger.info("Invalid token. "
           + "Got '" + tok + "' Expected '" + properToken + "'");
-        ctx.response()
-          .setStatusCode(401) // Check symbolic name for "forbidden"
-          .end("Invalid token"); 
+        responseText(ctx, 401).end("Invalid token");
         return;          
         }
       } catch (NoSuchAlgorithmException ex) {
@@ -131,7 +129,7 @@ public class Auth {
       }
     ctx.response()
       .headers().add(OKAPITOKENHEADER,tok);
-    ctx.response().setStatusCode(202); // 202 = Accepted
+    responseText(ctx, 202);
     echo(ctx);
     // signal to the conduit that we want to continue the module chain
   }
@@ -154,7 +152,7 @@ public class Auth {
    */
   public void accept (RoutingContext ctx) {
     logger.info("Auth accept OK");
-    ctx.response().setStatusCode(202);
+    responseText(ctx, 202);
     echo(ctx);
   }  
 }
