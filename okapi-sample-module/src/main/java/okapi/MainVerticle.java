@@ -27,6 +27,7 @@ public class MainVerticle extends AbstractVerticle {
       xmlMsg = " (XML) ";
     }
     final String xmlMsg2 = xmlMsg;
+    ctx.response().putHeader("Content-Type", "text/plain");
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> {
         ctx.response().end("It works" + xmlMsg2);

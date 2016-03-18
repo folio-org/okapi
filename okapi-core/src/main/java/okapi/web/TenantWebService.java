@@ -228,7 +228,7 @@ public class TenantWebService {
         tenantStore.enableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            responseText(ctx, 200).end(); // 204 - no content??
+            responseJson(ctx, 200).end(Json.encodePrettily(td));
           } else if (res.getType() == NOT_FOUND) {
             responseError(ctx, 404, res.cause());
           } else {
@@ -288,7 +288,7 @@ public class TenantWebService {
       if (res.succeeded()) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.listModules());
-        ctx.response().setStatusCode(200).end(s);
+        responseJson(ctx, 200).end(s);
       } else if (res.getType() == NOT_FOUND) {
         responseError(ctx, 404, res.cause());
       } else {
