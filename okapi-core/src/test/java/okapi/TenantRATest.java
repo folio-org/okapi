@@ -99,11 +99,9 @@ public class TenantRATest {
             .header("Content-Type", "application/json").body(doc)
             .post("/_/tenants").then().statusCode(201)
             .body(equalTo(doc)).extract().response();
-    Assert.assertEquals(
-            "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action(POST /_/tenants) "
-            + "response(201)], validationViolations=[]}",
-                        c.getLastReport().toString());
+    if (!c.getLastReport().isEmpty()) {
+      logger.info("2:" + c.getLastReport().toString());
+    }
 
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
