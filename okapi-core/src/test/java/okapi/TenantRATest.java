@@ -82,9 +82,12 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(badId)
             .post("/_/tenants").then().statusCode(400);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("1:" + c.getLastReport().toString());
-    }
+    Assert.assertEquals(
+            "RamlReport{requestViolations=[], responseViolations="
+            + "[Body given but none defined on action(POST /_/tenants) "
+            + "response(400)], validationViolations=[]}",
+                        c.getLastReport().toString());
+
     String doc = "{"+LS
             + "  \"id\" : \"roskilde\","+LS
             + "  \"name\" : \"roskilde\","+LS
@@ -96,9 +99,12 @@ public class TenantRATest {
             .header("Content-Type", "application/json").body(doc)
             .post("/_/tenants").then().statusCode(201)
             .body(equalTo(doc)).extract().response();
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("2:" + c.getLastReport().toString());
-    }
+    Assert.assertEquals(
+            "RamlReport{requestViolations=[], responseViolations="
+            + "[Body given but none defined on action(POST /_/tenants) "
+            + "response(201)], validationViolations=[]}",
+                        c.getLastReport().toString());
+
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
 
