@@ -17,7 +17,10 @@ import org.apache.log4j.Logger;
  * Normally we use io.vertx.core.logging.Logger for all our logging.
  * Behind the scenes, this turns out to use log4j. For advanced stuff
  * we need to access log4j directly. This class tries to hide such things
- * from the rest of the system.
+ * from the rest of the system. There are methods for getting and setting
+ * the root logging level, from a Level, a String, or as a web service.
+ * Later we may want to add more fancy log level control, for example for
+ * different loggers or systems...
  *
  * @author heikki
  */
@@ -25,6 +28,11 @@ public class LogHelper {
 
   private static final Logger l4jlogger = Logger.getLogger(LogHelper.class);
 
+  /**
+   * Parameter for the web service.
+   * At some point we may want to add more stuff here, to control logging for
+   * each module, or something. For now this is good enough.
+   */
   private static class LogLevelInfo {
     String level;
 

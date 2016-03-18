@@ -49,10 +49,10 @@ public class MainVerticle extends AbstractVerticle {
 
   MongoHandle mongo = null;
 
-  HealthService hc;
-  ModuleManager ms;
+  HealthService healthService;
+  ModuleManager moduleManager;
   ModuleWebService moduleWebService;
-  ProxyService ps;
+  ProxyService proxyService;
   TenantWebService tenantWebService;
 
 
@@ -77,13 +77,13 @@ public class MainVerticle extends AbstractVerticle {
     if ( !loglevel.isEmpty())
       logHelper.setRootLogLevel(loglevel);
 
-    hc = new HealthService();
+    healthService = new HealthService();
 
     TenantStore tenantStore = null;
     TenantManager tman = new TenantManager();
 
     Modules modules = new Modules();
-    ms = new ModuleManager(vertx, modules, port_start, port_end);
+    moduleManager = new ModuleManager(vertx, modules, port_start, port_end);
     ModuleStore moduleStore = null;
     TimeStampStore timeStampStore = null;
 
@@ -104,9 +104,9 @@ public class MainVerticle extends AbstractVerticle {
         logger.fatal("Unknown storage type '" + storage + "'");
         System.exit(1);
     }
-    moduleWebService = new ModuleWebService(vertx, ms, moduleStore, timeStampStore );
+    moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore );
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
-    ps = new ProxyService(vertx, modules, tman);
+    proxyService = new ProxyService(vertx, modules, tman);
   }
 
   public void NotFound(RoutingContext ctx) {
@@ -129,23 +129,22 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  
   public void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
 
     //handle CORS
     router.route().handler(CorsHandler.create("*")
-            .allowedMethod(HttpMethod.PUT)
-            .allowedMethod(HttpMethod.DELETE)
-            .allowedMethod(HttpMethod.GET)
-            .allowedMethod(HttpMethod.POST)
-            //allow request headers
-            .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-            //expose response headers
-            .exposedHeader(HttpHeaders.LOCATION.toString())
+      .allowedMethod(HttpMethod.PUT)
+      .allowedMethod(HttpMethod.DELETE)
+      .allowedMethod(HttpMethod.GET)
+      .allowedMethod(HttpMethod.POST)
+      //allow request headers
+      .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+      //expose response headers
+      .exposedHeader(HttpHeaders.LOCATION.toString())
     );
 
-    //hijack everything to conduit to allow for configuration
+    // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
     router.post("/_/modules/").handler(moduleWebService::create);
@@ -162,7 +161,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
-    router.get("/_/health").handler(hc::get);
+    router.get("/_/health").handler(healthService::get);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
@@ -175,7 +174,7 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/_*").handler(this::NotFound);
     
     //everything else gets proxified to modules
-    router.route("/*").handler(ps::proxy);
+    router.route("/*").handler(proxyService::proxy);
 
     vertx.createHttpServer()
       .requestHandler(router::accept)
@@ -192,10 +191,6 @@ public class MainVerticle extends AbstractVerticle {
           }
         }
       );
-    
-
   }
-
-
 
 }
