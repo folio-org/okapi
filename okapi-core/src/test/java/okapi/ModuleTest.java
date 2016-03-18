@@ -31,7 +31,7 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
 
 @RunWith(VertxUnitRunner.class)
-public class DeployModuleIntegration {
+public class ModuleTest {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
@@ -47,7 +47,7 @@ public class DeployModuleIntegration {
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
 
-  public DeployModuleIntegration() {
+  public ModuleTest() {
   }
 
   @Before
