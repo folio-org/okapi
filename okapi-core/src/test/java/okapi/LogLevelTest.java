@@ -12,8 +12,6 @@ import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import static com.jayway.restassured.RestAssured.*;
-import com.jayway.restassured.response.Response;
-import com.jayway.restassured.response.ValidatableResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -21,7 +19,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class HealthCheckTest {
+public class LogLevelTest {
   Vertx vertx;
 
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -45,11 +43,23 @@ public class HealthCheckTest {
   }
 
   @Test
-  public void testHealthCheck() {
+  public void testLogLevel() {
     RestAssured.port = port;
+    
+    String currentLevel = given().get("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
 
-    given().get("/_/health").then().assertThat().statusCode(200);
-    given().get("/_/health2").then().assertThat().statusCode(404);
+    String trace = "{\"level\":\"TRACE\"}";
+    String post = given()
+      .header("Content-Type", "application/json")
+      .body(trace)
+      .post("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
+
+    String newLevel = given().get("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
+
+
   }
 
 }
