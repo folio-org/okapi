@@ -59,7 +59,7 @@ public class MongoHandle {
   }
  
   public MongoClient getClient() {
-    return null; // cli;
+    return cli;
   }
 
   public boolean isTransient() {
