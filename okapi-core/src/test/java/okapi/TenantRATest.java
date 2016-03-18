@@ -26,8 +26,6 @@ import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 
-
-
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
   private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
@@ -99,10 +97,6 @@ public class TenantRATest {
             .header("Content-Type", "application/json").body(doc)
             .post("/_/tenants").then().statusCode(201)
             .body(equalTo(doc)).extract().response();
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("2:" + c.getLastReport().toString());
-    }
-
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
 
@@ -111,43 +105,30 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc)
             .post("/_/tenants").then().statusCode(400);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("3:" + c.getLastReport().toString());
-    }
+    Assert.assertEquals(
+            "RamlReport{requestViolations=[], responseViolations="
+            + "[Body given but none defined on action(POST /_/tenants) "
+            + "response(400)], validationViolations=[]}",
+            c.getLastReport().toString());
 
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("4:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get(location + "none").then().statusCode(404);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("5:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("6:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().delete(location).then().statusCode(204);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("7:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("8:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc3 = "{"+LS
@@ -155,25 +136,17 @@ public class TenantRATest {
             + "  \"name\" : \"roskilde\","+LS
             + "  \"description\" : \"Roskilde bibliotek\""+LS
             + "}";
-
     c = api.createRestAssured();
     Response r3 = c.given()
             .header("Content-Type", "application/json").body(doc3)
             .post("/_/tenants").then().statusCode(201)
             .body(equalTo(doc3)).extract().response();
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("9:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
-
     String location3 = r3.getHeader("Location");
     logger.debug("location3 = " + location3);
 
     c = api.createRestAssured();
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("10:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc4 = "{"+LS
@@ -185,18 +158,12 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc4)
             .put(location).then().statusCode(200).body(equalTo(doc4));
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("11:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
 
     c = api.createRestAssured();
     c.given().delete(location3).then().statusCode(204);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("12:" + c.getLastReport().toString());
-    }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc5 = "{"+LS
@@ -208,8 +175,11 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc5)
             .put(location).then().statusCode(400);
-    if (!c.getLastReport().isEmpty()) {
-      logger.info("13:" + c.getLastReport().toString());
-    }
+    Assert.assertEquals(
+            "RamlReport{requestViolations=[], responseViolations="
+            + "[Body given but none defined on action"
+            + "(PUT /_/tenants/{tenant_id}) response(400)], "
+            + "validationViolations=[]}",
+            c.getLastReport().toString());
   }
 }
