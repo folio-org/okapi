@@ -3,11 +3,6 @@
   "title": "TenantModules",
   "type": "array",
   "items": {
-    "type": "object",
-    "properties": {
-      "id": {"type": "string"},
-      "name": {"type": "string"},
-      "description": {"type": "string"}
-    }
+    "type": "string"
   }
 }

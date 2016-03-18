@@ -5,12 +5,12 @@
   "properties": {
     "id": {"type": "string"},
     "name": {"type": "string"},
-    "url": {"type": "string"},
+    "url": {"type": ["string", "null"]},
     "descriptor" : {
-      "type": "object",
+      "type": ["object", "null"],
       "properties": {
         "cmdlineStart": {"type": "string"},
-        "cmdlineStop": {"type": "string"}
+        "cmdlineStop": {"type": ["string", "null"]}
       }
     },
     "routingEntries": {

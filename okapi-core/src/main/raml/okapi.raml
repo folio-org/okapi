@@ -5,7 +5,9 @@ baseUri: https://okapi.io
 ## mediaType:  application/json
 schemas:
   - ModuleDescriptor: !include ModuleDescriptor.json
+  - ModulesList: !include ModulesList.json
   - TenantDescriptor: !include TenantDescriptor.json
+  - TenantsList: !include TenantsList.json
   - TenantModuleDescriptor: !include TenantModuleDescriptor.json
   - TenantModules: !include TenantModules.json
 
@@ -31,12 +33,28 @@ schemas:
         schema: ModuleDescriptor
     responses:
       201:
+        description: Created
         headers:
           Location:
             description: URI to the created module instance
         body:
           application/json:
             schema: ModuleDescriptor
+      400:
+        description: Bad Request
+        body:
+          text/plain
+      500:
+        description: Server Error
+        body:
+          text/plain
+  get:
+    responses:
+      200:
+        description: OK
+        body:
+          application/json:
+            schema: ModulesList
   /{module_id}:
     get:
       description: Retrieve information about the module instance
@@ -84,7 +102,7 @@ schemas:
         description: list of tenant in a brief format
         body:
           application/json:
-            schema: TenantModules
+            schema: TenantsList
   /{tenant_id}:
     get:
       description: retrieve tenant
@@ -130,8 +148,11 @@ schemas:
                 schema: TenantModules
       post:
         description: Link a module instance to the specified tenant
+        body:
+          application/json:
+            schema: TenantModuleDescriptor
         responses:
-          201:
+          200:
             body:
               application/json:
                 schema: TenantModuleDescriptor
@@ -154,4 +175,4 @@ schemas:
     description: health status
     responses:
       200:
-        description: guess what
+        description: OK
