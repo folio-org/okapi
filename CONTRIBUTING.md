@@ -183,3 +183,23 @@ There are some few exceptions:
 
 Remember to set your IDE to remove trailing spaces on saving files, those produce
 unnecessary diffs in Git.
+
+
+## Tests
+
+We aim to write a lot of tests - each module should have at least some kind of
+test associated with it. These can be traditional unit tests, black-box tests
+that talk through the WS API, and/or proper integration tests.
+
+When hunting down problems, it is considered good form to write a test that
+demonstrates the problem first, then a fix that makes the test pass.
+
+We have a Jenkins test system that gets invoked when you push something to master,
+and/or make a pull request. It should flag any errors, but be nice and run a
+```mvn install``` on your own machine before every ```git commit```
+
+## RAML
+
+We keep the API specs in RAML files under okapi-core/src/main/raml/. Remember to
+update those if you ever change anything in the API. And update the documentation
+too, of course.
