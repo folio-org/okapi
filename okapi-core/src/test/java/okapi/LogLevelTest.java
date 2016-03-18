@@ -59,6 +59,11 @@ public class LogLevelTest {
     String newLevel = given().get("/_/test/loglevel").then()
       .assertThat().statusCode(200).extract().body().asString();
 
+    given() // Put the level back to what it was
+      .header("Content-Type", "application/json")
+      .body(currentLevel)
+      .post("/_/test/loglevel").then()
+      .assertThat().statusCode(200).extract().body().asString();
 
   }
 
