@@ -110,7 +110,8 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public void NotFound(RoutingContext ctx) {
-    ctx.response().setStatusCode(404).end("Okapi: unrecognized service");
+    ctx.response().putHeader("Content-Type", "text/plain")
+            .setStatusCode(404).end("Okapi: unrecognized service");
   }
 
   @Override
