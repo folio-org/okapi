@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
 import okapi.bean.RoutingEntry;
+import static okapi.util.HttpResponse.*;
 
 public class ProxyService {
 
@@ -96,16 +97,12 @@ public class ProxyService {
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(403).end("Missing Tenant");
+      responseText(ctx, 403).end("Missing Tenant");
       return;
     }
     Tenant tenant = tenantService.get(tenant_id);
     if (tenant == null) {
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(400).end("No such Tenant " + tenant_id);
+      responseText(ctx, 400).end("No such Tenant " + tenant_id);
       return;
     }
     Iterator<ModuleInstance> it = getModulesForRequest(ctx.request(), tenant);
@@ -153,9 +150,7 @@ public class ProxyService {
             });
     c_req.exceptionHandler(res -> {
       logger.debug("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + res.getMessage());
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(500)
+      responseText(ctx, 500)
               .end("connect url " + mi.getUrl() + ": " + res.getMessage());
     });
     c_req.setChunked(true);
@@ -208,9 +203,7 @@ public class ProxyService {
             });
     c_req.exceptionHandler(res -> {
       logger.debug("proxyRequestResponse failure: " + mi.getUrl() + ": " + res.getMessage());
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(500)
+      responseText(ctx, 500)
               .end("connect url " + mi.getUrl() + ": " + res.getMessage());
     });
     c_req.setChunked(true);
@@ -277,9 +270,7 @@ public class ProxyService {
             });
     c_req.exceptionHandler(res -> {
       logger.debug("proxyHeaders failure: " + mi.getUrl() + ": " + res.getMessage());
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(500)
+      responseText(ctx, 500)
               .end("connect url " + mi.getUrl() + ": " + res.getMessage());
     });
     // c_req.setChunked(true);
@@ -293,9 +284,7 @@ public class ProxyService {
     if (!it.hasNext()) {
       content.resume();
       addTraceHeaders(ctx, traceHeaders);
-      ctx.response()
-              .putHeader("Content-Type", "text/plain")
-              .setStatusCode(404).end();
+      responseText(ctx, 404).end();
     } else {
       ModuleInstance mi = it.next();
       final long startTime = System.nanoTime();

@@ -37,6 +37,7 @@ import okapi.service.impl.TenantStoreMongo;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
+import static okapi.util.HttpResponse.*;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -111,8 +112,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public void NotFound(RoutingContext ctx) {
-    ctx.response().putHeader("Content-Type", "text/plain")
-            .setStatusCode(404).end("Okapi: unrecognized service");
+    responseText(ctx, 404).end("Okapi: unrecognized service");
   }
 
   @Override

@@ -6,10 +6,12 @@
 package okapi.web;
 
 import io.vertx.ext.web.RoutingContext;
+import static okapi.util.HttpResponse.*;
+
 
 public class HealthService {
 
   public void get(RoutingContext ctx) {
-    ctx.response().putHeader("Content-Type", "text/plain").setStatusCode(200).end();
+    responseText(ctx, 200).end();
   }
 }

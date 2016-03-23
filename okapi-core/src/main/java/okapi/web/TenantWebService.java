@@ -12,7 +12,6 @@ import okapi.bean.TenantDescriptor;
 import okapi.bean.TenantModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -23,6 +22,7 @@ import okapi.service.TenantManager;
 import okapi.service.TenantStore;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
+import static okapi.util.HttpResponse.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
@@ -50,18 +50,6 @@ public class TenantWebService {
       this.timestamp = timestamp;
     }
   } // reloadSignal
-
-  private void responseError(RoutingContext ctx, int code, Throwable cause) {
-    responseText(ctx, code).end(cause.getMessage());
-  }
-
-  private HttpServerResponse responseText(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
-  }
-
-  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
-  }
 
   private void sendReloadSignal(String id, long ts) {
     ReloadSignal sig = new ReloadSignal(id, ts);

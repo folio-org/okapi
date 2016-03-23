@@ -11,6 +11,8 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import static okapi.util.HttpResponse.*;
+
 
 /**
  * Helper class to mess with logging stuff. Normally we use
@@ -68,10 +70,7 @@ public class LogHelper {
     String lev = getRootLogLevel();
     LogLevelInfo li = new LogLevelInfo(lev);
     String rj = Json.encode(li);
-    ctx.response()
-            .putHeader("Content-Type", "application/json")
-            .setStatusCode(200)
-            .end(rj);
+    responseJson(ctx, 200).end(rj);
   }
 
   public void setRootLogLevel(Level l) {
@@ -89,16 +88,10 @@ public class LogHelper {
     final LogLevelInfo inf = Json.decodeValue(ctx.getBodyAsString(),
             LogLevelInfo.class);
     if (inf == null || inf.getLevel() == null || inf.getLevel().isEmpty()) {
-      ctx.response()
-              .setStatusCode(400)
-              .putHeader("Content-Type", "text/plain")
-              .end("Invalid id");
+      responseText(ctx, 400).end("Invalid id");
     } else {
       setRootLogLevel(inf.getLevel());
-      ctx.response()
-              .setStatusCode(200)
-              .putHeader("Content-Type", "application/json")
-              .end(Json.encode(inf));
+      responseJson(ctx, 200).end(Json.encode(inf));
     }
 
   }

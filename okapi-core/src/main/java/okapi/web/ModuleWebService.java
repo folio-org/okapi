@@ -14,7 +14,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Iterator;
 import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -24,6 +23,7 @@ import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
 import okapi.service.TimeStampStore;
 import static okapi.util.ErrorType.*;
+import static okapi.util.HttpResponse.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
@@ -45,22 +45,6 @@ public class ModuleWebService {
   final private TimeStampStore timeStampStore;
   final String timestampId = "modules";
   private Long timestamp = (long) -1;
-
-  private void responseError(RoutingContext ctx, int code, Throwable cause) {
-    responseText(ctx, code).end(cause.getMessage());
-  }
-
-  private HttpServerResponse responseText(RoutingContext ctx, int code) {
-    return ctx.response()
-            .setStatusCode(code)
-            .putHeader("Content-Type", "text/plain");
-  }
-
-  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
-    return ctx.response()
-            .setStatusCode(code)
-            .putHeader("Content-Type", "application/json");
-  }
 
   public ModuleWebService(Vertx vertx,
           ModuleManager moduleService, ModuleStore moduleStore,
