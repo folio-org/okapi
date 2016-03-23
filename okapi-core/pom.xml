@@ -7,7 +7,7 @@
   <parent>
     <groupId>com.indexdata.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.2</version>
   </parent>
   <artifactId>okapi-core</artifactId>
   <dependencies>

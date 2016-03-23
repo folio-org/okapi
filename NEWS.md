@@ -1,3 +1,10 @@
+## 0.2 2016-03-23
+
+ * RAML updates and verified in many tests
+ * Persistent storage with MongoDB
+ * Event Bus in use to synchronize a set of Okapi nodes
+ * Using log4j as logger everywhere (using SLF4J to relay for all things)
+
 ## 0.1 2016-01-29
 
  * First code release
@@ -9,7 +16,6 @@
 
 ### TODO
 
- * Persistent storage (GitHub issue #2)
  * Interface with Consul for Clustering, Service Discovery, etc.
  * Header merging (#33)
 
