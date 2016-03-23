@@ -105,18 +105,14 @@ public class ModuleStoreMongo implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> resl = res.result();
-        if (resl.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, ""));
-        } else {
-          List<ModuleDescriptor> ml = new ArrayList<>(resl.size());
-          for (JsonObject jo : resl) {
-            jo.remove("_id");
-            ModuleDescriptor md = Json.decodeValue(jo.encode(),
-                    ModuleDescriptor.class);
-            ml.add(md);
-          }
-          fut.handle(new Success<>(ml));
+        List<ModuleDescriptor> ml = new ArrayList<>(resl.size());
+        for (JsonObject jo : resl) {
+          jo.remove("_id");
+          ModuleDescriptor md = Json.decodeValue(jo.encode(),
+                  ModuleDescriptor.class);
+          ml.add(md);
         }
+        fut.handle(new Success<>(ml));
       }
     });
   }
