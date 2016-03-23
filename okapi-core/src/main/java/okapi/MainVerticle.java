@@ -120,18 +120,38 @@ public class MainVerticle extends AbstractVerticle {
     if (mongo != null && mongo.isTransient()) {
       mongo.dropDatabase(res -> {
         if (res.succeeded()) {
-          startListening(fut);
+          startModules(fut);
         } else {
           logger.fatal("createHttpServer failed", res.cause());
           fut.fail(res.cause());
         }
       });
     } else {
-      startListening(fut);
+      startModules(fut);
     }
   }
 
-  public void startListening(Future<Void> fut) {
+  private void startModules(Future<Void> fut) {
+    this.moduleWebService.loadModules(res -> {
+       if (res.succeeded()) {
+         startTenants(fut);
+       } else {
+         fut.fail(res.cause());
+       }
+     });
+  }
+
+  private void startTenants(Future<Void> fut) {
+    this.tenantWebService.loadTenants(res -> {
+      if (res.succeeded()) {
+        startListening(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
+  }
+
+  private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
 
     //handle CORS

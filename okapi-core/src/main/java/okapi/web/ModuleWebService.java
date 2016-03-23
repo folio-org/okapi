@@ -106,6 +106,7 @@ public class ModuleWebService {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
             logger.error("Failed to start service, will not update the DB. " + md);
+            logger.error("Cause: " + cres.cause().getMessage());
             if (cres.getType() == INTERNAL) {
               responseError(ctx, 500, cres.cause());
             } else { // must be some kind of bad request
@@ -278,7 +279,7 @@ public class ModuleWebService {
     });
   }
 
-  private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+  public void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     //cli.find(collection, jq, res -> {
     moduleStore.getAll(res -> {
       if (res.failed()) {

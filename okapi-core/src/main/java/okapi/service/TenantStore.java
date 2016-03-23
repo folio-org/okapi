@@ -33,7 +33,7 @@ public interface TenantStore {
 
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
 
-  void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut);
+  void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
   // TODO - Add list parameters, like which fields, start, and maxrecs
 
 }

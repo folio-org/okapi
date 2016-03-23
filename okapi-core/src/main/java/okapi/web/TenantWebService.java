@@ -18,6 +18,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import static java.lang.Long.max;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;
 import okapi.util.ErrorType;
@@ -162,7 +165,12 @@ public class TenantWebService {
   public void list(RoutingContext ctx) {
     tenantStore.listTenants(res -> {
       if (res.succeeded()) {
-        String s = Json.encodePrettily(res.result());
+        List<Tenant> tl = res.result();
+        List<TenantDescriptor> tdl = new ArrayList<>();
+        for (Tenant t : tl) {
+          tdl.add(t.getDescriptor());
+        }
+        String s = Json.encodePrettily(tdl);
         responseJson(ctx, 200).end(s);
       } else {
         responseError(ctx, 400, res.cause());
@@ -315,6 +323,29 @@ public class TenantWebService {
       } else {
         logger.error("Reload tenant " + id + "Failed: " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
+      }
+    });
+  }
+
+  private void loadR(Iterator<Tenant> it,
+          Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!it.hasNext()) {
+      logger.info("All tenants deployed");
+      fut.handle(new Success<>());
+    } else {
+      Tenant t = it.next();
+      tenants.insert(t);
+      loadR(it, fut);
+    }
+  }
+
+  public void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
+    tenantStore.listTenants(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        Iterator<Tenant> it = res.result().iterator();
+        loadR(it, fut);
       }
     });
   }

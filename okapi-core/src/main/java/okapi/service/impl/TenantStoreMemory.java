@@ -67,11 +67,11 @@ public class TenantStoreMemory implements TenantStore {
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
-    List<TenantDescriptor> tl = new ArrayList<>();
+  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
+    List<Tenant> tl = new ArrayList<>();
     for (String id : tenants.keySet()) {
       Tenant t = tenants.get(id);
-      tl.add(t.getDescriptor());
+      tl.add(t);
     }
     fut.handle(new Success<>(tl));
   }
