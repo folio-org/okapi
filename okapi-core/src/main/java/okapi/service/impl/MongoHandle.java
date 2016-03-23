@@ -27,38 +27,38 @@ public class MongoHandle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final MongoClient cli;
-  private final String transientDbName = "mongo_transient_test";
   private boolean transientDb = false;
 
   // Little helper to get a config value
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  static String conf(String key, String def, JsonObject conf) {
+  static String getSysConf(String key, String def, JsonObject conf) {
     String v = System.getProperty(key, conf.getString(key, def));
     return v;
   }
 
   public MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
-    String h = conf("mongo_host", "127.0.0.1", conf);
+    String h = getSysConf("mongo_host", "127.0.0.1", conf);
     if (!h.isEmpty()) {
       opt.put("host", h);
     }
-    String p = conf("mongo_port", "27017", conf);
+    String p = getSysConf("mongo_port", "27017", conf);
     if (!p.isEmpty()) {
       opt.put("port", Integer.parseInt(p));
     }
-    String db = conf("mongo_db_name", "", conf);
-    if (!db.isEmpty()) {
-      opt.put("db_name", db);
+    String db_name = getSysConf("mongo_db_name", "", conf);
+    if (!db_name.isEmpty()) {
+      opt.put("db_name", db_name);
     }
-    logger.info("Using mongo backend at " + h + " : " + p + " / " + db);
-    this.cli = MongoClient.createShared(vertx, opt);
-    if (transientDbName.equals(db)) {
-      logger.debug("Mongohandle: Decided that this a transient backend!");
+    logger.info("Using mongo backend at " + h + " : " + p + " / " + db_name);
+
+    String db_init = getSysConf("mongo_db_init", "0", conf);
+    if ("1".equals(db_init)) {
       this.transientDb = true;
     }
+    this.cli = MongoClient.createShared(vertx, opt);
   }
 
   public MongoClient getClient() {
@@ -84,13 +84,12 @@ public class MongoHandle {
         dropCollection(it, fut);
       }
     });
-
   }
 
   private void dropCollection(Iterator<String> it,
           Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) { // all done
-      logger.info("Dropped all okapi collections from " + transientDbName);
+      logger.info("Dropped all okapi collections");
       fut.handle(new Success<>());
     } else {
       String coll = it.next();
