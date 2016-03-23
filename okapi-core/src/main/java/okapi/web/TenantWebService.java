@@ -153,7 +153,7 @@ public class TenantWebService {
       final long ts = getTimestamp();
       t.setTimestamp(ts);
       final String id = td.getId();
-      if (tenants.updateDescriptor(id,td,ts)) {
+      if (tenants.updateDescriptor(id, td, ts)) {
         tenantStore.updateDescriptor(id, td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
@@ -251,7 +251,7 @@ public class TenantWebService {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
-      logger.debug("disablemodule t=" + id + " m=" + module );
+      logger.debug("disablemodule t=" + id + " m=" + module);
       ErrorType err = tenants.disableModule(id, module);
       if (err == OK) {
         tenantStore.disableModule(id, module, ts, res -> {

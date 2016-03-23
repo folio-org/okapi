@@ -11,13 +11,13 @@ import io.vertx.core.Vertx;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Success;
 
-
 /**
  * Time stamps, as stored in the in-memory back end
- * 
+ *
  */
 public class TimeStampMemory implements TimeStampStore {
-  Long lastTs = (long)-1;
+
+  Long lastTs = (long) -1;
 
   public TimeStampMemory(Vertx vertx) {
   }
@@ -25,8 +25,10 @@ public class TimeStampMemory implements TimeStampStore {
   @Override
   public void updateTimeStamp(String stampId, long currentStamp, Handler<ExtendedAsyncResult<Long>> fut) {
     long ts = System.currentTimeMillis();
-    if ( ts < currentStamp )  // the clock jumping backwards, or something
+    if (ts < currentStamp) // the clock jumping backwards, or something
+    {
       ts = currentStamp + 1;
+    }
     lastTs = ts;
     fut.handle(new Success<>(ts));
   }

@@ -7,18 +7,19 @@ package okapi.bean;
 
 /**
  * A brief view of a ModuleDescriptor
- * 
+ *
  */
 public class ModuleDescriptorBrief {
-  private String id="";
-  private String name="";
-  private String url="";
 
- public ModuleDescriptorBrief(ModuleDescriptor m) {
-   this.id = m.getId();
-   this.name = m.getName();
-   this.url = m.getUrl();
- }
+  private String id = "";
+  private String name = "";
+  private String url = "";
+
+  public ModuleDescriptorBrief(ModuleDescriptor m) {
+    this.id = m.getId();
+    this.name = m.getName();
+    this.url = m.getUrl();
+  }
 
   public String getId() {
     return id;
@@ -31,6 +32,5 @@ public class ModuleDescriptorBrief {
   public String getUrl() {
     return url;
   }
- 
 
 }

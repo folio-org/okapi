@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class OkapiPerformance {
+
   private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
 
   Vertx vertx;
@@ -48,10 +49,10 @@ public class OkapiPerformance {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     JsonObject conf = new JsonObject()
-      .put("storage", "inmemory");
+            .put("storage", "inmemory");
 
     DeploymentOptions opt = new DeploymentOptions()
-        .setConfig(conf);
+            .setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
@@ -118,28 +119,28 @@ public class OkapiPerformance {
   }
 
   public void deployAuth(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"id\" : \"auth\","+LS
-            + "  \"name\" : \"authmodule\","+LS
-            + "  \"descriptor\" : {"+LS
+    final String doc = "{" + LS
+            + "  \"id\" : \"auth\"," + LS
+            + "  \"name\" : \"authmodule\"," + LS
+            + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"*\" ],"+LS
-            + "    \"path\" : \"/s\","+LS
-            + "    \"level\" : \"10\","+LS
-            + "    \"type\" : \"request-response\""+LS
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/s\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
             + "  }, {"
-            + "    \"methods\" : [ \"POST\" ],"+LS
-            + "    \"path\" : \"/login\","+LS
-            + "    \"level\" : \"20\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+            + "    \"methods\" : [ \"POST\" ]," + LS
+            + "    \"path\" : \"/login\"," + LS
+            + "    \"level\" : \"20\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
-      logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage() );
+      logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       context.assertNotNull(locationAuth);
@@ -150,21 +151,21 @@ public class OkapiPerformance {
   }
 
   public void deploySample(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"id\" : \"sample-module\","+LS
-            + "  \"name\" : \"sample module\","+LS
-            + "  \"url\" : null,"+LS
-            + "  \"descriptor\" : {"+LS
+    final String doc = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"30\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -180,10 +181,10 @@ public class OkapiPerformance {
   }
 
   public void createTenant(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"id\" : \"" + okapiTenant + "\","+LS
-            + "  \"name\" : \"" + okapiTenant + "\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
+    final String doc = "{" + LS
+            + "  \"id\" : \"" + okapiTenant + "\"," + LS
+            + "  \"name\" : \"" + okapiTenant + "\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants", response -> {
       context.assertEquals(201, response.statusCode());
@@ -198,8 +199,8 @@ public class OkapiPerformance {
   }
 
   public void tenantEnableModuleAuth(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"module\" : \"auth\""+LS
+    final String doc = "{" + LS
+            + "  \"module\" : \"auth\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -210,8 +211,8 @@ public class OkapiPerformance {
   }
 
   public void tenantEnableModuleSample(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"module\" : \"sample-module\""+LS
+    final String doc = "{" + LS
+            + "  \"module\" : \"sample-module\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -222,10 +223,10 @@ public class OkapiPerformance {
   }
 
   public void doLogin(TestContext context) {
-    String doc = "{"+LS
-            + "  \"tenant\" : \"t1\","+LS
-            + "  \"username\" : \"peter\","+LS
-            + "  \"password\" : \"peter-password\""+LS
+    String doc = "{" + LS
+            + "  \"tenant\" : \"t1\"," + LS
+            + "  \"username\" : \"peter\"," + LS
+            + "  \"password\" : \"peter-password\"" + LS
             + "}";
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
@@ -273,22 +274,22 @@ public class OkapiPerformance {
     });
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.putHeader("Content-Type", "text/xml");  
+    req.putHeader("Content-Type", "text/xml");
     req.end("Okapi");
   }
 
   public void deploySample2(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"id\" : \"sample-module2\","+LS
-            + "  \"name\" : \"sample2\","+LS
-            + "  \"url\" : \"http://localhost:9132\","+LS
-            + "  \"descriptor\" : null,"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"31\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+    final String doc = "{" + LS
+            + "  \"id\" : \"sample-module2\"," + LS
+            + "  \"name\" : \"sample2\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"," + LS
+            + "  \"descriptor\" : null," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"31\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -300,8 +301,8 @@ public class OkapiPerformance {
   }
 
   public void tenantEnableModuleSample2(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"module\" : \"sample-module2\""+LS
+    final String doc = "{" + LS
+            + "  \"module\" : \"sample-module2\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -312,30 +313,30 @@ public class OkapiPerformance {
   }
 
   public void deploySample3(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"id\" : \"sample-module3\","+LS
-            + "  \"name\" : \"sample3\","+LS
-            + "  \"url\" : \"http://localhost:9132\","+LS
-            + "  \"descriptor\" : {"+LS
-            + "    \"cmdlineStart\" : \"sleep 1\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"05\","+LS
-            + "    \"type\" : \"headers\""+LS
-            + "  }, {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"45\","+LS
-            + "    \"type\" : \"headers\""+LS
-            + "  }, {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"33\","+LS
-            + "    \"type\" : \"request-only\""+LS
-            + "  } ]"+LS
+    final String doc = "{" + LS
+            + "  \"id\" : \"sample-module3\"," + LS
+            + "  \"name\" : \"sample3\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : \"sleep 1\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"05\"," + LS
+            + "    \"type\" : \"headers\"" + LS
+            + "  }, {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"45\"," + LS
+            + "    \"type\" : \"headers\"" + LS
+            + "  }, {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"33\"," + LS
+            + "    \"type\" : \"request-only\"" + LS
+            + "  } ]" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/modules", response -> {
       context.assertEquals(201, response.statusCode());
@@ -347,8 +348,8 @@ public class OkapiPerformance {
   }
 
   public void tenantEnableModuleSample3(TestContext context) {
-    final String doc = "{"+LS
-            + "  \"module\" : \"sample-module3\""+LS
+    final String doc = "{" + LS
+            + "  \"module\" : \"sample-module3\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());

@@ -39,6 +39,7 @@ import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
 
 public class MainVerticle extends AbstractVerticle {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final LogHelper logHelper = new LogHelper();
 
@@ -55,13 +56,12 @@ public class MainVerticle extends AbstractVerticle {
   ProxyService proxyService;
   TenantWebService tenantWebService;
 
-
   // Little helper to get a config value
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value
   static String conf(String key, String def, JsonObject c) {
-    return System.getProperty(key, c.getString(key,def));
+    return System.getProperty(key, c.getString(key, def));
   }
 
   @Override
@@ -69,13 +69,14 @@ public class MainVerticle extends AbstractVerticle {
     super.init(vertx, context);
 
     JsonObject config = context.config();
-    port = Integer.parseInt(conf("port", "9130",config));
-    port_start = Integer.parseInt(conf("port_start", Integer.toString(port+1),config));
-    port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start+10),config));
-    storage = conf("storage","inmemory",config);
-    String loglevel = conf("loglevel","",config);
-    if ( !loglevel.isEmpty())
+    port = Integer.parseInt(conf("port", "9130", config));
+    port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
+    port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    storage = conf("storage", "inmemory", config);
+    String loglevel = conf("loglevel", "", config);
+    if (!loglevel.isEmpty()) {
       logHelper.setRootLogLevel(loglevel);
+    }
 
     healthService = new HealthService();
 
@@ -104,7 +105,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.fatal("Unknown storage type '" + storage + "'");
         System.exit(1);
     }
-    moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore );
+    moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
     proxyService = new ProxyService(vertx, modules, tman);
   }
@@ -116,12 +117,12 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
-    if ( mongo != null && mongo.isTransient() ) {
-      mongo.dropDatabase(res->{
-        if ( res.succeeded()) {
+    if (mongo != null && mongo.isTransient()) {
+      mongo.dropDatabase(res -> {
+        if (res.succeeded()) {
           startListening(fut);
         } else {
-          logger.fatal("createHttpServer failed", res.cause() );
+          logger.fatal("createHttpServer failed", res.cause());
           fut.fail(res.cause());
         }
       });
@@ -135,14 +136,14 @@ public class MainVerticle extends AbstractVerticle {
 
     //handle CORS
     router.route().handler(CorsHandler.create("*")
-      .allowedMethod(HttpMethod.PUT)
-      .allowedMethod(HttpMethod.DELETE)
-      .allowedMethod(HttpMethod.GET)
-      .allowedMethod(HttpMethod.POST)
-      //allow request headers
-      .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-      //expose response headers
-      .exposedHeader(HttpHeaders.LOCATION.toString())
+            .allowedMethod(HttpMethod.PUT)
+            .allowedMethod(HttpMethod.DELETE)
+            .allowedMethod(HttpMethod.GET)
+            .allowedMethod(HttpMethod.POST)
+            //allow request headers
+            .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+            //expose response headers
+            .exposedHeader(HttpHeaders.LOCATION.toString())
     );
 
     // Paths that start with /_/ are okapi internal configuration
@@ -173,25 +174,25 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/test/loglevel").handler(logHelper::setRootLogLevel);
 
     router.route("/_*").handler(this::NotFound);
-    
+
     //everything else gets proxified to modules
     router.route("/*").handler(proxyService::proxy);
 
     vertx.createHttpServer()
-      .requestHandler(router::accept)
-      .listen(port,
-        result -> {
-          if (result.succeeded()) {
-            logger.info("API Gateway started PID "
-              + ManagementFactory.getRuntimeMXBean().getName()
-              + ". Listening on port " + port + " using '" + storage + "' storage");
-            fut.complete();
-          } else {
-            logger.fatal("createHttpServer failed", result.cause() );
-            fut.fail(result.cause());
-          }
-        }
-      );
+            .requestHandler(router::accept)
+            .listen(port,
+                    result -> {
+                      if (result.succeeded()) {
+                        logger.info("API Gateway started PID "
+                                + ManagementFactory.getRuntimeMXBean().getName()
+                                + ". Listening on port " + port + " using '" + storage + "' storage");
+                        fut.complete();
+                      } else {
+                        logger.fatal("createHttpServer failed", result.cause());
+                        fut.fail(result.cause());
+                      }
+                    }
+            );
   }
 
 }

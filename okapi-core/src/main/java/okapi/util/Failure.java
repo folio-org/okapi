@@ -9,6 +9,7 @@ import io.vertx.core.AsyncResult;
 import static okapi.util.ErrorType.*;
 
 public class Failure<T> implements ExtendedAsyncResult<T> {
+
   final private Throwable failure;
   final private ErrorType errorType;
 
@@ -21,7 +22,7 @@ public class Failure<T> implements ExtendedAsyncResult<T> {
     this.failure = new Throwable(s);
     this.errorType = errorType;
   }
-  
+
   @Override
   public T result() {
     return null;
@@ -41,6 +42,7 @@ public class Failure<T> implements ExtendedAsyncResult<T> {
   public boolean failed() {
     return true;
   }
+
   public ErrorType getType() {
     return errorType;
   }

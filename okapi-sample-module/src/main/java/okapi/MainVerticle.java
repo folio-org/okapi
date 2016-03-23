@@ -56,18 +56,18 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/sample").handler(this::my_stream_handle);
 
     vertx.createHttpServer()
-      .requestHandler(router::accept)
-      .listen(
-        port,
-        result -> {
-          if (result.succeeded()) {
-            logger.info("listening ok");
-            fut.complete();
-          } else {
-            fut.fail(result.cause());
-            logger.error("failed: " + result.cause());
-          }
-        }
-      );
+            .requestHandler(router::accept)
+            .listen(
+                    port,
+                    result -> {
+                      if (result.succeeded()) {
+                        logger.info("listening ok");
+                        fut.complete();
+                      } else {
+                        fut.fail(result.cause());
+                        logger.error("failed: " + result.cause());
+                      }
+                    }
+            );
   }
 }

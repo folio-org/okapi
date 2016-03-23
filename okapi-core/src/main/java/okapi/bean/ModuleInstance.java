@@ -33,7 +33,7 @@ public class ModuleInstance {
   public ProcessModuleHandle getProcessModuleHandle() {
     return pmh;
   }
-  
+
   public String getUrl() {
     return url;
   }

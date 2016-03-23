@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class LogLevelTest {
+
   Vertx vertx;
 
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -33,7 +34,6 @@ public class LogLevelTest {
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
-
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
@@ -45,25 +45,25 @@ public class LogLevelTest {
   @Test
   public void testLogLevel() {
     RestAssured.port = port;
-    
+
     String currentLevel = given().get("/_/test/loglevel").then()
-      .assertThat().statusCode(200).extract().body().asString();
+            .assertThat().statusCode(200).extract().body().asString();
 
     String trace = "{\"level\":\"TRACE\"}";
     String post = given()
-      .header("Content-Type", "application/json")
-      .body(trace)
-      .post("/_/test/loglevel").then()
-      .assertThat().statusCode(200).extract().body().asString();
+            .header("Content-Type", "application/json")
+            .body(trace)
+            .post("/_/test/loglevel").then()
+            .assertThat().statusCode(200).extract().body().asString();
 
     String newLevel = given().get("/_/test/loglevel").then()
-      .assertThat().statusCode(200).extract().body().asString();
+            .assertThat().statusCode(200).extract().body().asString();
 
     given() // Put the level back to what it was
-      .header("Content-Type", "application/json")
-      .body(currentLevel)
-      .post("/_/test/loglevel").then()
-      .assertThat().statusCode(200).extract().body().asString();
+            .header("Content-Type", "application/json")
+            .body(currentLevel)
+            .post("/_/test/loglevel").then()
+            .assertThat().statusCode(200).extract().body().asString();
 
   }
 

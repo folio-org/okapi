@@ -6,6 +6,7 @@
 package okapi.bean;
 
 public class TenantDescriptor {
+
   private String id;
   private String name;
   private String description;
@@ -34,7 +35,8 @@ public class TenantDescriptor {
     this.id = id;
   }
 
-  public TenantDescriptor() {}
+  public TenantDescriptor() {
+  }
 
   public TenantDescriptor(String id, String name, String description) {
     this.id = id;
@@ -43,8 +45,8 @@ public class TenantDescriptor {
   }
 
   /**
-   * Copy constructor.
-   * Makes a separate copy of everything
+   * Copy constructor. Makes a separate copy of everything
+   *
    * @param other
    */
   public TenantDescriptor(TenantDescriptor other) {

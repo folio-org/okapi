@@ -14,8 +14,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -50,7 +48,7 @@ public class MetricsTest {
 
     // Note the setEnabled (true or false)
     DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions().
-          setEnabled(false).setRegistryName(registryName);
+            setEnabled(false).setRegistryName(registryName);
 
     vertx = Vertx.vertx(new VertxOptions().setMetricsOptions(metricsOpt));
 
@@ -103,6 +101,6 @@ public class MetricsTest {
   }
 
   public void done(TestContext context) {
-     async.complete();
+    async.complete();
   }
 }

@@ -6,6 +6,7 @@
 package okapi.bean;
 
 public class RoutingEntry {
+
   private String[] methods;
   private String path;
   private String level;
@@ -42,5 +43,5 @@ public class RoutingEntry {
   public void setPath(String path) {
     this.path = path;
   }
-  
+
 }

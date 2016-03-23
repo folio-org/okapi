@@ -12,7 +12,7 @@ import okapi.util.ExtendedAsyncResult;
 
 /**
  *
- * 
+ *
  */
 public interface ModuleStore {
 

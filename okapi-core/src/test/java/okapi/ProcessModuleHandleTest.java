@@ -22,15 +22,16 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class ProcessModuleHandleTest {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private Vertx vertx;
-  
+
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
   }
-  
-   @After
+
+  @After
   public void tearDown(TestContext context) {
     vertx.close(context.asyncAssertSuccess());
   }
@@ -42,7 +43,7 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStart("sleep 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
-  
+
     mh.start(res -> {
       if (!res.succeeded()) {
         logger.error("CAUSE: " + res.cause());
@@ -50,7 +51,7 @@ public class ProcessModuleHandleTest {
       context.assertTrue(res.succeeded());
       if (!res.succeeded()) {
         async.complete();
-        return;        
+        return;
       }
       mh.stop(res2 -> {
         context.assertTrue(res2.succeeded());
@@ -58,6 +59,7 @@ public class ProcessModuleHandleTest {
       });
     });
   }
+
   @Test
   public void test2(TestContext context) {
     final Async async = context.async();
@@ -65,7 +67,7 @@ public class ProcessModuleHandleTest {
     desc.setCmdlineStart("sleepxx 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
     ModuleHandle mh = pmh;
-  
+
     mh.start(res -> {
       context.assertFalse(res.succeeded());
       async.complete();

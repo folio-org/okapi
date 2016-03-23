@@ -22,9 +22,10 @@ import okapi.util.Success;
 
 /**
  * Module database using Mongo
- * 
+ *
  */
 public class ModuleStoreMongo implements ModuleStore {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   MongoClient cli;
@@ -33,10 +34,10 @@ public class ModuleStoreMongo implements ModuleStore {
   public ModuleStoreMongo(MongoHandle mongo) {
     this.cli = mongo.getClient();
   }
-    
+
   @Override
   public void insert(ModuleDescriptor md,
-                     Handler<ExtendedAsyncResult<String>> fut) {
+          Handler<ExtendedAsyncResult<String>> fut) {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     String id = md.getId();
@@ -46,71 +47,72 @@ public class ModuleStoreMongo implements ModuleStore {
         fut.handle(new Success<>(id));
       } else {
         logger.debug("ModuleDbMongo: Failed to insert " + id
-          + ": " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL,res.cause()));
+                + ": " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
   }
+
   @Override
   public void update(ModuleDescriptor md,
-                     Handler<ExtendedAsyncResult<String>> fut) {
+          Handler<ExtendedAsyncResult<String>> fut) {
     String id = md.getId();
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     document.put("_id", id);
-    cli.replace(collection, jq,document, res -> {
+    cli.replace(collection, jq, document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
         logger.debug("ModuleDbMongo: Failed to update" + id
                 + ": " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL,res.cause()));
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
   }
 
   @Override
   public void get(String id,
-                  Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+          Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {
-      if ( res.failed()) {
-        fut.handle(new Failure<>(INTERNAL,res.cause()));
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND,res.cause()));
+          fut.handle(new Failure<>(NOT_FOUND, res.cause()));
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
           final ModuleDescriptor md = Json.decodeValue(d.encode(),
-            ModuleDescriptor.class);
+                  ModuleDescriptor.class);
           fut.handle(new Success<>(md));
         }
       }
     });
   }
-  
+
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {
-      if ( res.failed()) {
-        fut.handle(new Failure<>(INTERNAL,res.cause()));
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> resl = res.result();
         if (resl.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND,""));
+          fut.handle(new Failure<>(NOT_FOUND, ""));
         } else {
           List<ModuleDescriptor> ml = new ArrayList<>(resl.size());
           for (JsonObject jo : resl) {
             jo.remove("_id");
             ModuleDescriptor md = Json.decodeValue(jo.encode(),
-              ModuleDescriptor.class);
+                    ModuleDescriptor.class);
             ml.add(md);
           }
           fut.handle(new Success<>(ml));
@@ -125,41 +127,39 @@ public class ModuleStoreMongo implements ModuleStore {
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {
       if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL,res.cause()));
-        } else {
-          List<String> ids = new ArrayList<>(res.result().size());
-          for (JsonObject jo : res.result()) {
-            ids.add(jo.getString("id"));
-          }
-          fut.handle(new Success<>(ids));
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        List<String> ids = new ArrayList<>(res.result().size());
+        for (JsonObject jo : res.result()) {
+          ids.add(jo.getString("id"));
+        }
+        fut.handle(new Success<>(ids));
       }
     });
   }
 
-
   @Override
-  public void delete(String id,Handler<ExtendedAsyncResult<Void>> fut ) {
+  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, fres -> {
       if (fres.failed()) {
-          fut.handle(new Failure<>(INTERNAL,fres.cause()));
+        fut.handle(new Failure<>(INTERNAL, fres.cause()));
       } else {
         List<JsonObject> l = fres.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND,fres.cause()));
+          fut.handle(new Failure<>(NOT_FOUND, fres.cause()));
         } else {
           cli.remove(collection, jq, rres -> {
             if (rres.failed()) {
-              fut.handle(new Failure<>(INTERNAL,rres.cause()));
+              fut.handle(new Failure<>(INTERNAL, rres.cause()));
             } else {
               fut.handle(new Success<>());
             }
           });
         }
       }
-    } );
+    });
   }
-
 
 }

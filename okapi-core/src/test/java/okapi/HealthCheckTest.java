@@ -12,8 +12,6 @@ import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import static com.jayway.restassured.RestAssured.*;
-import com.jayway.restassured.response.Response;
-import com.jayway.restassured.response.ValidatableResponse;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -22,6 +20,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class HealthCheckTest {
+
   Vertx vertx;
 
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -34,7 +33,6 @@ public class HealthCheckTest {
             .setConfig(new JsonObject().put("storage", "inmemory"));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
-
 
   @After
   public void tearDown(TestContext context) {

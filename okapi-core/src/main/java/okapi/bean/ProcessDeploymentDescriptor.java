@@ -6,12 +6,13 @@
 package okapi.bean;
 
 public class ProcessDeploymentDescriptor {
+
   private String cmdlineStart;
   private String cmdlineStop;
 
   public ProcessDeploymentDescriptor() {
   }
-  
+
   public String getCmdlineStart() {
     return cmdlineStart;
   }
@@ -27,5 +28,5 @@ public class ProcessDeploymentDescriptor {
   public void setCmdlineStop(String cmdlineStop) {
     this.cmdlineStop = cmdlineStop;
   }
- 
+
 }

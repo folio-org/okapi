@@ -13,20 +13,21 @@ import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 
 public class MainCluster {
+
   public static void main(String[] args) {
     System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.SLF4JLogDelegateFactory");
     Config hazelcastConfig = new Config();
     hazelcastConfig.setProperty("hazelcast.logging.type", "slf4j");
     ClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
     VertxOptions vopt = new VertxOptions().setClusterManager(mgr);
-    Vertx.clusteredVertx(vopt, res->{
-      if ( res.succeeded() ) {
+    Vertx.clusteredVertx(vopt, res -> {
+      if (res.succeeded()) {
         DeploymentOptions opt = new DeploymentOptions();
         res.result().deployVerticle(MainVerticle.class.getName(), opt);
       } else {
         System.out.println("Failed to create a clustered vert.x");
-          // We probably should not use logging here, as it depends
-          // on vert.x, which just failed to start!
+        // We probably should not use logging here, as it depends
+        // on vert.x, which just failed to start!
       }
     });
 

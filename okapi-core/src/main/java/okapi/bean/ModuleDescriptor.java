@@ -11,13 +11,14 @@ public class ModuleDescriptor {
   private String name;
   private String url;
   private ProcessDeploymentDescriptor descriptor;
-  private RoutingEntry [] routingEntries;
+  private RoutingEntry[] routingEntries;
 
   public ModuleDescriptor() {
   }
 
   /**
    * Copy constructor.
+   *
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
@@ -67,5 +68,5 @@ public class ModuleDescriptor {
   public void setDescriptor(ProcessDeploymentDescriptor descriptor) {
     this.descriptor = descriptor;
   }
-  
+
 }

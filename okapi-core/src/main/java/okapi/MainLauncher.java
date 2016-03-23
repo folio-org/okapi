@@ -8,8 +8,9 @@ package okapi;
 import io.vertx.core.Launcher;
 
 public class MainLauncher extends Launcher {
-   public static void main(String[] args) {
-     MainLauncher m = new MainLauncher();
-     m.dispatch(args);
+
+  public static void main(String[] args) {
+    MainLauncher m = new MainLauncher();
+    m.dispatch(args);
   }
 }

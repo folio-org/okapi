@@ -8,7 +8,8 @@ package okapi.web;
 import io.vertx.ext.web.RoutingContext;
 
 public class HealthService {
-    public void get(RoutingContext ctx) {
-        ctx.response().putHeader("Content-Type", "text/plain").setStatusCode(200).end();
-    }
+
+  public void get(RoutingContext ctx) {
+    ctx.response().putHeader("Content-Type", "text/plain").setStatusCode(200).end();
+  }
 }

@@ -28,6 +28,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
+
   private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
 
   Vertx vertx;
@@ -42,7 +43,7 @@ public class TenantRATest {
 
     DeploymentOptions opt = new DeploymentOptions()
             .setConfig(new JsonObject().put("storage", "inmemory"));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt,  context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
   @After
@@ -71,10 +72,10 @@ public class TenantRATest {
     }
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    String badId = "{"+LS
-            + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\","+LS
-            + "  \"name\" : \"roskilde\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
+    String badId = "{" + LS
+            + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\"," + LS
+            + "  \"name\" : \"roskilde\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -84,12 +85,12 @@ public class TenantRATest {
             "RamlReport{requestViolations=[], responseViolations="
             + "[Body given but none defined on action(POST /_/tenants) "
             + "response(400)], validationViolations=[]}",
-                        c.getLastReport().toString());
+            c.getLastReport().toString());
 
-    String doc = "{"+LS
-            + "  \"id\" : \"roskilde\","+LS
-            + "  \"name\" : \"roskilde\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
+    String doc = "{" + LS
+            + "  \"id\" : \"roskilde\"," + LS
+            + "  \"name\" : \"roskilde\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
 
     c = api.createRestAssured();
@@ -131,10 +132,10 @@ public class TenantRATest {
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    String doc3 = "{"+LS
-            + "  \"id\" : \"roskildedk\","+LS
-            + "  \"name\" : \"roskilde\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
+    String doc3 = "{" + LS
+            + "  \"id\" : \"roskildedk\"," + LS
+            + "  \"name\" : \"roskilde\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
     c = api.createRestAssured();
     Response r3 = c.given()
@@ -149,10 +150,10 @@ public class TenantRATest {
     c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    String doc4 = "{"+LS
-            + "  \"id\" : \"roskildedk\","+LS
-            + "  \"name\" : \"Roskildes Real Name\","+LS
-            + "  \"description\" : \"Roskilde bibliotek with a better description\""+LS
+    String doc4 = "{" + LS
+            + "  \"id\" : \"roskildedk\"," + LS
+            + "  \"name\" : \"Roskildes Real Name\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek with a better description\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -166,10 +167,10 @@ public class TenantRATest {
     c.given().delete(location3).then().statusCode(204);
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    String doc5 = "{"+LS
-            + "  \"id\" : \"roskildedk\","+LS
-            + "  \"name\" : \"Roskildes Real Name\","+LS
-            + "  \"description\" : \"Roskilde bibliotek with a better description\""+LS
+    String doc5 = "{" + LS
+            + "  \"id\" : \"roskildedk\"," + LS
+            + "  \"name\" : \"Roskildes Real Name\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek with a better description\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()

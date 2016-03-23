@@ -19,8 +19,9 @@ public interface TenantStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void enableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut );
-  void disableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut );
+  void enableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut);
+
+  void disableModule(String id, String module, long timestamp, Handler<ExtendedAsyncResult<Void>> fut);
 
   void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut);
 
@@ -31,8 +32,8 @@ public interface TenantStore {
   void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
 
   void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
-  
+
   void listTenants(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut);
-    // TODO - Add list parameters, like which fields, start, and maxrecs
+  // TODO - Add list parameters, like which fields, start, and maxrecs
 
 }

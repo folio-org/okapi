@@ -17,7 +17,7 @@ public class Tenant {
   final private TenantDescriptor descriptor;
 
   @JsonProperty
-  final private  TreeMap<String,Boolean> enabled;
+  final private TreeMap<String, Boolean> enabled;
   // Note that this can not just be a Map, or the order of enabled modules
   // will be undefined. That should not harm in real life, but it messes up
   // our tests!
@@ -25,14 +25,13 @@ public class Tenant {
   @JsonIgnore
   private long timestamp;
 
-  
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;
     this.enabled = new TreeMap<>();
     this.timestamp = 0;
   }
-  
-  public Tenant(TenantDescriptor descriptor, TreeMap<String,Boolean> enabled) {
+
+  public Tenant(TenantDescriptor descriptor, TreeMap<String, Boolean> enabled) {
     this.descriptor = descriptor;
     this.enabled = enabled;
     this.timestamp = 0;
@@ -45,11 +44,11 @@ public class Tenant {
   }
 
   /**
-   * Copy constructor.
-   * Makes separate copies of everything
-   * @param other 
+   * Copy constructor. Makes separate copies of everything
+   *
+   * @param other
    */
-  public Tenant( Tenant other) {
+  public Tenant(Tenant other) {
     this.descriptor = new TenantDescriptor(other.descriptor);
     this.enabled = new TreeMap<>(other.enabled);
     this.timestamp = 0;
@@ -63,10 +62,10 @@ public class Tenant {
     this.timestamp = timestamp;
   }
 
-
   /**
-   * Get the name.
-   * The JsonIgnore tells Json not to encode the name as a top-level thing
+   * Get the name. The JsonIgnore tells Json not to encode the name as a
+   * top-level thing
+   *
    * @return
    */
   @JsonIgnore
@@ -83,7 +82,7 @@ public class Tenant {
     return descriptor;
   }
 
-  public TreeMap<String,Boolean> getEnabled() {
+  public TreeMap<String, Boolean> getEnabled() {
     return enabled;
   }
 
@@ -94,12 +93,12 @@ public class Tenant {
   public void disableModule(String n) {
     enabled.remove(n, true);
   }
-  
+
   public boolean isEnabled(String m) {
     return enabled.getOrDefault(m, false);
   }
 
   public Set<String> listModules() {
-     return enabled.keySet();
+    return enabled.keySet();
   }
 }

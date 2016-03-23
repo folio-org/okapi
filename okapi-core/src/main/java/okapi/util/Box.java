@@ -6,6 +6,7 @@
 package okapi.util;
 
 public class Box<T> {
+
   private T item;
 
   public Box(T item) {
@@ -18,5 +19,5 @@ public class Box<T> {
 
   public void setItem(T item) {
     this.item = item;
-  }  
+  }
 }

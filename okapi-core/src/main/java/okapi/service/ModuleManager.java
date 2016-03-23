@@ -25,6 +25,7 @@ import okapi.util.Success;
  *
  */
 public class ModuleManager {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final Modules modules;
   private final Ports ports;
@@ -78,9 +79,10 @@ public class ModuleManager {
     }
   }
 
- /** Simplistic implementation of updating a module: Deletes it and inserts.
-  *
- */
+  /**
+   * Simplistic implementation of updating a module: Deletes it and inserts.
+   *
+   */
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
     this.delete(id, dres -> {
@@ -99,7 +101,6 @@ public class ModuleManager {
       }
     });
   }
-
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     ModuleInstance m = modules.get(id);
@@ -132,13 +133,13 @@ public class ModuleManager {
 
   public void deleteAll(Handler<ExtendedAsyncResult<Void>> fut) {
     Set<String> list = modules.list();
-    if ( list.isEmpty())
+    if (list.isEmpty()) {
       fut.handle(new Success<Void>());
-    else {
+    } else {
       String id = list.iterator().next();
       ModuleInstance mi = modules.get(id);
       ProcessModuleHandle pmh = mi.getProcessModuleHandle();
-      if ( pmh == null ) {
+      if (pmh == null) {
         modules.remove(id);
         logger.debug("Deleted module " + id);
         deleteAll(fut);
@@ -148,7 +149,7 @@ public class ModuleManager {
             ports.free(pmh.getPort());
           } else {
             logger.warn("Failed to stop module " + id + ":" + res.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL,"Failed to stop module " + id + ":" + res.cause().getMessage()));
+            fut.handle(new Failure<>(INTERNAL, "Failed to stop module " + id + ":" + res.cause().getMessage()));
             // TODO - What to do in this case? Declare the whole node dead?
           }
           modules.remove(id); // remove in any case
@@ -158,5 +159,5 @@ public class ModuleManager {
       }
     }
   }
-   
+
 } // class

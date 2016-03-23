@@ -32,6 +32,7 @@ import guru.nidi.ramltester.restassured.RestAssuredClient;
 
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
@@ -54,10 +55,10 @@ public class ModuleTest {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     JsonObject conf = new JsonObject()
-      .put("storage", "inmemory");
+            .put("storage", "inmemory");
 
     DeploymentOptions opt = new DeploymentOptions()
-        .setConfig(conf);
+            .setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
@@ -139,28 +140,28 @@ public class ModuleTest {
             c.getLastReport().toString());
 
     c = api.createRestAssured();
-    final String bad_doc = "{"+LS
-            + "  \"name\" : \"auth\","+LS  // the comma here makes it bad json!
+    final String bad_doc = "{" + LS
+            + "  \"name\" : \"auth\"," + LS // the comma here makes it bad json!
             + "}";
     c.given()
             .header("Content-Type", "application/json")
             .body(bad_doc).post("/_/modules").then().statusCode(400);
 
-    final String doc2 = "{"+LS
-            + "  \"id\" : \"auth\","+LS
-            + "  \"name\" : \"auth\","+LS
-            + "  \"descriptor\" : {"+LS
+    final String doc2 = "{" + LS
+            + "  \"id\" : \"auth\"," + LS
+            + "  \"name\" : \"auth\"," + LS
+            + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\","+LS
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\"," + LS
             // + "\"sleep %p\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"*\" ],"+LS
-            + "    \"path\" : \"/\","+LS
-            + "    \"level\" : \"10\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -171,17 +172,17 @@ public class ModuleTest {
             + "response(500)], validationViolations=[]}",
             c.getLastReport().toString());
     final String doc3 = "{" + LS
-            + "  \"name\" : \"auth\","+LS
-            + "  \"descriptor\" : {"+LS
-            + "    \"cmdlineStart\" : \"sleep %p\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"*\" ],"+LS
-            + "    \"path\" : \"/\","+LS
-            + "    \"level\" : \"10\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+            + "  \"name\" : \"auth\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : \"sleep %p\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -192,32 +193,32 @@ public class ModuleTest {
             + "response(400)], validationViolations=[]}",
             c.getLastReport().toString());
     final String doc4 = "{" + LS
-              + "  \"id\" : \"auth\"," + LS
-              + "  \"name\" : \"auth\"," + LS
-              + "  \"descriptor\" : {" + LS
-              + "    \"cmdlineStart\" : "
-              + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
-              + "    \"cmdlineStop\" : null" + LS
-              + "  }," + LS
-              + "  \"routingEntries\" : [ {" + LS
-              + "    \"methods\" : [ \"*\" ]," + LS
-              + "    \"path\" : \"/s\"," + LS
-              + "    \"level\" : \"10\"," + LS
-              + "    \"type\" : \"request-response\"" + LS
-              + "  }, {"
-              + "    \"methods\" : [ \"POST\" ]," + LS
-              + "    \"path\" : \"/login\"," + LS
-              + "    \"level\" : \"20\"," + LS
-              + "    \"type\" : \"request-response\"" + LS
-              + "  } ]" + LS
-              + "}";
-      c = api.createRestAssured();
-      r = c.given()
-              .header("Content-Type", "application/json")
-              .body(doc4).post("/_/modules").then().statusCode(201)
-              .extract().response();
-      Assert.assertTrue(c.getLastReport().isEmpty());
-      locationAuth = r.getHeader("Location");
+            + "  \"id\" : \"auth\"," + LS
+            + "  \"name\" : \"auth\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/s\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  }, {"
+            + "    \"methods\" : [ \"POST\" ]," + LS
+            + "    \"path\" : \"/login\"," + LS
+            + "    \"level\" : \"20\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4).post("/_/modules").then().statusCode(201)
+            .extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
+    locationAuth = r.getHeader("Location");
 
     final String doc5 = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
@@ -242,7 +243,7 @@ public class ModuleTest {
             .extract().response();
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationSample = r.getHeader("Location");
-    
+
     c = api.createRestAssured();
     c.given().get("/_/modules").then().statusCode(200);
     Assert.assertTrue(c.getLastReport().isEmpty());
@@ -251,7 +252,7 @@ public class ModuleTest {
     c.given()
             .get(locationSample).then().statusCode(200).body(equalTo(doc5));
     Assert.assertTrue(c.getLastReport().isEmpty());
-    
+
     final String doc6 = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
             + "  \"name\" : \"" + okapiTenant + "\"," + LS
@@ -267,8 +268,8 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationTenant = r.getHeader("Location");
 
-    final String doc7 = "{"+LS
-            + "  \"module\" : \"auth\""+LS
+    final String doc7 = "{" + LS
+            + "  \"module\" : \"auth\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -283,8 +284,8 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("[ \"auth\" ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    final String doc8 = "{"+LS
-            + "  \"module\" : \"sample-module\""+LS
+    final String doc8 = "{" + LS
+            + "  \"module\" : \"sample-module\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -307,10 +308,10 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("[ \"auth\", \"sample-module\" ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    String doc9 = "{"+LS
-            + "  \"id\" : \"" + okapiTenant + "\","+LS
-            + "  \"name\" : \"Roskilde-library\","+LS
-            + "  \"description\" : \"Roskilde bibliotek\""+LS
+    String doc9 = "{" + LS
+            + "  \"id\" : \"" + okapiTenant + "\"," + LS
+            + "  \"name\" : \"Roskilde-library\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -344,18 +345,18 @@ public class ModuleTest {
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(401);
 
-    final String doc11 = "{"+LS
-            + "  \"tenant\" : \"t1\","+LS
-            + "  \"username\" : \"peter\","+LS
-            + "  \"password\" : \"peter-password\""+LS
+    final String doc11 = "{" + LS
+            + "  \"tenant\" : \"t1\"," + LS
+            + "  \"username\" : \"peter\"," + LS
+            + "  \"password\" : \"peter-password\"" + LS
             + "}";
     okapiToken = given().header("Content-Type", "application/json").body(doc11)
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
     given().header("X-Okapi-Tenant", okapiTenant)
-           .header("X-Okapi-Token", okapiToken)
-           .get("/sample")
+            .header("X-Okapi-Token", okapiToken)
+            .get("/sample")
             .then().statusCode(200).body(equalTo("It works"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -374,17 +375,17 @@ public class ModuleTest {
             .delete("/sample")
             .then().statusCode(202);
 
-    final String doc12 = "{"+LS
-            + "  \"id\" : \"sample-module2\","+LS
-            + "  \"name\" : \"another-sample-module2\","+LS
-            + "  \"url\" : \"http://localhost:9132\","+LS
-            + "  \"descriptor\" : null,"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"31\","+LS
-            + "    \"type\" : \"request-response\""+LS
-            + "  } ]"+LS
+    final String doc12 = "{" + LS
+            + "  \"id\" : \"sample-module2\"," + LS
+            + "  \"name\" : \"another-sample-module2\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"," + LS
+            + "  \"descriptor\" : null," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"31\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
             + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -394,8 +395,8 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationSample2 = r.getHeader("Location");
 
-    final String doc13 = "{"+LS
-            + "  \"module\" : \"sample-module2\""+LS
+    final String doc13 = "{" + LS
+            + "  \"module\" : \"sample-module2\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -405,30 +406,30 @@ public class ModuleTest {
             .body(equalTo(doc13));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    final String doc14 = "{"+LS
-            + "  \"id\" : \"sample-module3\","+LS
-            + "  \"name\" : \"sample-module3\","+LS
-            + "  \"url\" : \"http://localhost:9132\","+LS
-            + "  \"descriptor\" : {"+LS
-            + "    \"cmdlineStart\" : \"sleep 1\","+LS
-            + "    \"cmdlineStop\" : null"+LS
-            + "  },"+LS
-            + "  \"routingEntries\" : [ {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"05\","+LS
-            + "    \"type\" : \"headers\""+LS
-            + "  }, {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"45\","+LS
-            + "    \"type\" : \"headers\""+LS
-            + "  }, {"+LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ],"+LS
-            + "    \"path\" : \"/sample\","+LS
-            + "    \"level\" : \"33\","+LS
-            + "    \"type\" : \"request-only\""+LS
-            + "  } ]"+LS
+    final String doc14 = "{" + LS
+            + "  \"id\" : \"sample-module3\"," + LS
+            + "  \"name\" : \"sample-module3\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : \"sleep 1\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"05\"," + LS
+            + "    \"type\" : \"headers\"" + LS
+            + "  }, {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"45\"," + LS
+            + "    \"type\" : \"headers\"" + LS
+            + "  }, {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"33\"," + LS
+            + "    \"type\" : \"request-only\"" + LS
+            + "  } ]" + LS
             + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -438,8 +439,8 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationSample3 = r.getHeader("Location");
 
-    final String doc15 = "{"+LS
-            + "  \"module\" : \"sample-module3\""+LS
+    final String doc15 = "{" + LS
+            + "  \"module\" : \"sample-module3\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()

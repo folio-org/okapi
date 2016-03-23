@@ -24,6 +24,7 @@ import java.util.Iterator;
 import okapi.bean.RoutingEntry;
 
 public class ProxyService {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private Modules modules;
@@ -39,12 +40,12 @@ public class ProxyService {
     this.tenantService = tm;
     this.httpClient = vertx.createHttpClient();
   }
-  
-  /** 
-   * Add the trace headers to the response 
+
+  /**
+   * Add the trace headers to the response
    */
   private void addTraceHeaders(RoutingContext ctx, List<String> traceHeaders) {
-    for ( String th : traceHeaders ) {
+    for (String th : traceHeaders) {
       ctx.response().headers().add("X-Okapi-Trace", th);
     }
   }
@@ -53,7 +54,7 @@ public class ProxyService {
     long timeDiff = (System.nanoTime() - startTime) / 1000;
     traceHeaders.add(ctx.request().method() + " "
             + mi.getModuleDescriptor().getId() + ":"
-            + statusCode+ " " + timeDiff + "us");
+            + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, traceHeaders);
   }
 
@@ -105,7 +106,7 @@ public class ProxyService {
       ctx.response()
               .putHeader("Content-Type", "text/plain")
               .setStatusCode(400).end("No such Tenant " + tenant_id);
-      return;     
+      return;
     }
     Iterator<ModuleInstance> it = getModulesForRequest(ctx.request(), tenant);
     List<String> traceHeaders = new ArrayList<>();
@@ -117,8 +118,7 @@ public class ProxyService {
   private void proxyRequestHttpClient(RoutingContext ctx,
           Iterator<ModuleInstance> it,
           List<String> traceHeaders, Buffer bcontent,
-          ModuleInstance mi, long startTime)
-  {
+          ModuleInstance mi, long startTime) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
@@ -152,7 +152,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
-      logger.debug("proxyRequestHttpClient failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + res.getMessage());
       ctx.response()
               .putHeader("Content-Type", "text/plain")
               .setStatusCode(500)
@@ -165,8 +165,7 @@ public class ProxyService {
 
   private void proxyRequestOnly(RoutingContext ctx,
           Iterator<ModuleInstance> it, List<String> traceHeaders,
-          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime)
-  {
+          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime) {
     if (bcontent != null) {
       proxyRequestHttpClient(ctx, it, traceHeaders, bcontent, mi, startTime);
     } else {
@@ -183,8 +182,7 @@ public class ProxyService {
 
   private void proxyRequestResponse(RoutingContext ctx,
           Iterator<ModuleInstance> it, List<String> traceHeaders,
-          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime)
-  {
+          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, long startTime) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
@@ -209,7 +207,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
-      logger.debug("proxyRequestResponse failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyRequestResponse failure: " + mi.getUrl() + ": " + res.getMessage());
       ctx.response()
               .putHeader("Content-Type", "text/plain")
               .setStatusCode(500)
@@ -278,7 +276,7 @@ public class ProxyService {
               }
             });
     c_req.exceptionHandler(res -> {
-      logger.debug("proxyHeaders failure: "+ mi.getUrl() + ": " + res.getMessage() );
+      logger.debug("proxyHeaders failure: " + mi.getUrl() + ": " + res.getMessage());
       ctx.response()
               .putHeader("Content-Type", "text/plain")
               .setStatusCode(500)

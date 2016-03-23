@@ -4,10 +4,12 @@
  * See the file LICENSE for details.
  */
 package okapi.util;
+
 import io.vertx.core.AsyncResult;
 import static okapi.util.ErrorType.*;
 
 public class Success<T> implements ExtendedAsyncResult<T> {
+
   private T item;
 
   public Success() {
@@ -34,7 +36,7 @@ public class Success<T> implements ExtendedAsyncResult<T> {
 
   @Override
   public boolean failed() {
-    return false; 
+    return false;
   }
 
   @Override
@@ -42,4 +44,3 @@ public class Success<T> implements ExtendedAsyncResult<T> {
     return ANY;
   }
 }
-

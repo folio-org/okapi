@@ -17,6 +17,7 @@ import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 
 public class ProcessModuleHandle implements ModuleHandle {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
