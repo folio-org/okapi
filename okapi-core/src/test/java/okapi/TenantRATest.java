@@ -61,7 +61,7 @@ public class TenantRATest {
     RestAssured.port = port;
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-            .assumingBaseUri("https://okapi.io");
+            .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
 
