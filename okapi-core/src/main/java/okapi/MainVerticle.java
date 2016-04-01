@@ -169,10 +169,10 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
-    router.post("/_/modules/").handler(moduleWebService::create);
+    router.post("/_/modules").handler(moduleWebService::create);
     router.delete("/_/modules/:id").handler(moduleWebService::delete);
     router.get("/_/modules/:id").handler(moduleWebService::get);
-    router.get("/_/modules/").handler(moduleWebService::list);
+    router.get("/_/modules").handler(moduleWebService::list);
     router.put("/_/modules/:id").handler(moduleWebService::update);
 
     router.post("/_/tenants").handler(tenantWebService::create);
