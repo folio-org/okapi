@@ -169,29 +169,29 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
-    router.post("/_/modules").handler(moduleWebService::create);
+    router.postWithRegex("/_/modules").handler(moduleWebService::create);
     router.delete("/_/modules/:id").handler(moduleWebService::delete);
     router.get("/_/modules/:id").handler(moduleWebService::get);
-    router.get("/_/modules").handler(moduleWebService::list);
+    router.getWithRegex("/_/modules").handler(moduleWebService::list);
     router.put("/_/modules/:id").handler(moduleWebService::update);
 
-    router.post("/_/tenants").handler(tenantWebService::create);
-    router.get("/_/tenants/").handler(tenantWebService::list);
+    router.postWithRegex("/_/tenants").handler(tenantWebService::create);
+    router.getWithRegex("/_/tenants").handler(tenantWebService::list);
     router.get("/_/tenants/:id").handler(tenantWebService::get);
     router.put("/_/tenants/:id").handler(tenantWebService::update);
     router.delete("/_/tenants/:id").handler(tenantWebService::delete);
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
-    router.get("/_/health").handler(healthService::get);
+    router.getWithRegex("/_/health").handler(healthService::get);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
     // test that verifies that changes propagate across a cluster...
-    router.get("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
+    router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
     router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
-    router.get("/_/test/loglevel").handler(logHelper::getRootLogLevel);
-    router.post("/_/test/loglevel").handler(logHelper::setRootLogLevel);
+    router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
+    router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
 
     router.route("/_*").handler(this::NotFound);
 

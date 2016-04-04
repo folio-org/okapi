@@ -7,9 +7,7 @@ package okapi;
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -23,7 +21,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import com.jayway.restassured.RestAssured;
 import static com.jayway.restassured.RestAssured.*;
-import com.jayway.restassured.http.ContentType;
 import static org.hamcrest.Matchers.*;
 import com.jayway.restassured.response.Response;
 import guru.nidi.ramltester.RamlDefinition;
@@ -213,6 +210,14 @@ public class ModuleTest {
             + "  } ]" + LS
             + "}";
     c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4).post("/_/modules/").then().statusCode(404);
+    Assert.assertEquals("RamlReport{requestViolations=[Resource '/_/modules/' is not defined], "
+            + "responseViolations=[], validationViolations=[]}",
+            c.getLastReport().toString());
+
+    c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(doc4).post("/_/modules").then().statusCode(201)
@@ -245,6 +250,12 @@ public class ModuleTest {
     locationSample = r.getHeader("Location");
 
     c = api.createRestAssured();
+    c.given().get("/_/modules/").then().statusCode(404);
+    Assert.assertEquals("RamlReport{requestViolations=[Resource '/_/modules/' is not defined], "
+            + "responseViolations=[], validationViolations=[]}",
+            c.getLastReport().toString());
+
+    c = api.createRestAssured();
     c.given().get("/_/modules").then().statusCode(200);
     Assert.assertTrue(c.getLastReport().isEmpty());
 
@@ -258,6 +269,15 @@ public class ModuleTest {
             + "  \"name\" : \"" + okapiTenant + "\"," + LS
             + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc6).post("/_/tenants/")
+            .then().statusCode(404);
+    Assert.assertEquals("RamlReport{requestViolations=[Resource '/_/tenants/' is not defined], "
+            + "responseViolations=[], validationViolations=[]}",
+            c.getLastReport().toString());
+
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
@@ -274,10 +294,20 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
+            .body(doc7).post("/_/tenants/" + okapiTenant + "/modules/")
+            .then().statusCode(404);
+
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
             .body(doc7).post("/_/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
             .body(equalTo(doc7));
     Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/tenants/" + okapiTenant + "/modules/")
+            .then().statusCode(404);
 
     c = api.createRestAssured();
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
@@ -294,6 +324,10 @@ public class ModuleTest {
             .then().statusCode(200)
             .body(equalTo(doc8));
     Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/tenants/" + okapiTenant + "/modules/")
+            .then().statusCode(404);
 
     c = api.createRestAssured();
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
