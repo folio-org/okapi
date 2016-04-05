@@ -21,6 +21,7 @@ import static java.lang.Long.max;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;
 import okapi.util.ErrorType;
@@ -216,7 +217,7 @@ public class TenantWebService {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantModuleDescriptor.class);
-      final String module = td.getModule();
+      final String module = td.getId();
       // TODO - Validate we know about that module!
       final long ts = getTimestamp();
       ErrorType err = tenants.enableModule(id, module);
@@ -283,8 +284,38 @@ public class TenantWebService {
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();
-        String s = Json.encodePrettily(t.listModules());
+        Set<String> ml = t.listModules();  // Convert the list of module names
+        Iterator<String> mli = ml.iterator();  // into a list of objects
+        ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
+        while ( mli.hasNext()) {
+          TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+          tmd.setId(mli.next());
+          ta.add(tmd);
+        }
+        String s = Json.encodePrettily(ta);
         responseJson(ctx, 200).end(s);
+      } else if (res.getType() == NOT_FOUND) {
+        responseError(ctx, 404, res.cause());
+      } else {
+        responseError(ctx, 500, res.cause());
+      }
+    });
+  }
+  public void getModule(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+    final String mod = ctx.request().getParam("mod");
+    tenantStore.get(id, res -> {
+      if (res.succeeded()) {
+        Tenant t = res.result();
+        Set<String> ml = t.listModules();  // Convert the list of module names
+        if ( ml.contains(mod)) {
+          TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+          tmd.setId(mod);
+          String s = Json.encodePrettily(tmd);
+          responseJson(ctx, 200).end(s);
+        } else {
+          responseError(ctx, 404, res.cause());
+        }
       } else if (res.getType() == NOT_FOUND) {
         responseError(ctx, 404, res.cause());
       } else {

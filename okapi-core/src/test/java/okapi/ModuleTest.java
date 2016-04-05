@@ -289,7 +289,7 @@ public class ModuleTest {
     locationTenant = r.getHeader("Location");
 
     final String doc7 = "{" + LS
-            + "  \"module\" : \"auth\"" + LS
+            + "  \"id\" : \"auth\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -310,12 +310,26 @@ public class ModuleTest {
             .then().statusCode(404);
 
     c = api.createRestAssured();
+    final String exp1 = "[ {" + LS
+            + "  \"id\" : \"auth\"" + LS
+            + "} ]";
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo("[ \"auth\" ]"));
+            .then().statusCode(200).body(equalTo(exp1));
+    System.out.println(c.getLastReport());
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    final String exp2 = "{" + LS
+            + "  \"id\" : \"auth\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    c.given().get("/_/tenants/" + okapiTenant + "/modules/auth")
+            .then().statusCode(200).body(equalTo(exp2));
+    System.out.println(c.getLastReport());
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+
     final String doc8 = "{" + LS
-            + "  \"module\" : \"sample-module\"" + LS
+            + "  \"id\" : \"sample-module\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -330,8 +344,13 @@ public class ModuleTest {
             .then().statusCode(404);
 
     c = api.createRestAssured();
+    final String exp3 = "[ {" + LS
+            + "  \"id\" : \"auth\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "} ]";
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo("[ \"auth\", \"sample-module\" ]"));
+            .then().statusCode(200).body(equalTo(exp3));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().get("/_/test/reloadtenant/" + okapiTenant)
@@ -339,7 +358,7 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo("[ \"auth\", \"sample-module\" ]"));
+            .then().statusCode(200).body(equalTo(exp3));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc9 = "{" + LS
@@ -357,7 +376,7 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo("[ \"auth\", \"sample-module\" ]"));
+            .then().statusCode(200).body(equalTo(exp3));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().get("/sample")
@@ -430,7 +449,7 @@ public class ModuleTest {
     locationSample2 = r.getHeader("Location");
 
     final String doc13 = "{" + LS
-            + "  \"module\" : \"sample-module2\"" + LS
+            + "  \"id\" : \"sample-module2\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -474,7 +493,7 @@ public class ModuleTest {
     locationSample3 = r.getHeader("Location");
 
     final String doc15 = "{" + LS
-            + "  \"module\" : \"sample-module3\"" + LS
+            + "  \"id\" : \"sample-module3\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
@@ -504,9 +523,18 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("It works (XML) "));
 
     c = api.createRestAssured();
+    final String exp4 = "[ {" + LS
+            + "  \"id\" : \"auth\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module2\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module3\"" + LS
+            + "} ]";
     c.given().get(locationTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo("[ \"auth\", \"sample-module\", \"sample-module2\", \"sample-module3\" ]"));
+            .body(equalTo(exp4));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
@@ -515,9 +543,16 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
+    final String exp5 = "[ {" + LS
+            + "  \"id\" : \"auth\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"sample-module2\"" + LS
+            + "} ]";
     c.given().get(locationTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo("[ \"auth\", \"sample-module\", \"sample-module2\" ]"));
+            .body(equalTo(exp5));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();

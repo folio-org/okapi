@@ -183,6 +183,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
     router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
+    router.get("/_/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
     router.getWithRegex("/_/health").handler(healthService::get);
 
     // Endpoints for internal testing only.

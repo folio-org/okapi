@@ -3,6 +3,6 @@
   "title": "TenantModuleDescriptor",
   "type": "object",
   "properties": {
-    "module": {"type": "string"}
+    "id": {"type": "string"}
   }
 }

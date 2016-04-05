@@ -738,7 +738,7 @@ module, without enabling the auth module.
 ```
 cat > /tmp/enabletenant1.json <<END
 {
-  "module" : "sample-module"
+  "id" : "sample-module"
 }
 END
 
@@ -785,7 +785,7 @@ to be allowed to do that. So we need to enable both sample-module and auth for i
 ```
 cat > /tmp/enabletenant2a.json <<END
 {
-  "module" : "sample-module"
+  "id" : "sample-module"
 }
 END
 
@@ -796,7 +796,7 @@ curl -w '\n' -X POST -D - \
 
 cat > /tmp/enabletenant2b.json <<END
 {
-  "module" : "auth"
+  "id" : "auth"
 }
 END
 
