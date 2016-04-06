@@ -84,6 +84,18 @@ core endpoints are:
 The special prefix `/_` is used to to distinguish the routing for Okapi
 internal web services from the extension points provided by modules.
 
+#### API guidelines
+Okapi's own web services must, and other modules should adhere to these
+guidelines as far as practically possible.
+
+ * No trailing slashes
+ * Always expect and return proper Json objects, or lists of such
+ * The primary key should always be called 'id'
+
+We try to make the Okapi code exemplary, so that it would serve well as
+an example for other module developers to emulate. Not saying that we always
+succeed...
+
 #### Core Okapi Web Service Authentication and Authorization
 
 Access to the core services (all resources under the `/_/` path) is
