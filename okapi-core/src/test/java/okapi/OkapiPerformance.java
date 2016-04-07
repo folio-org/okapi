@@ -200,7 +200,7 @@ public class OkapiPerformance {
 
   public void tenantEnableModuleAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"module\" : \"auth\"" + LS
+            + "  \"id\" : \"auth\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -212,7 +212,7 @@ public class OkapiPerformance {
 
   public void tenantEnableModuleSample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"module\" : \"sample-module\"" + LS
+            + "  \"id\" : \"sample-module\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -302,7 +302,7 @@ public class OkapiPerformance {
 
   public void tenantEnableModuleSample2(TestContext context) {
     final String doc = "{" + LS
-            + "  \"module\" : \"sample-module2\"" + LS
+            + "  \"id\" : \"sample-module2\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
@@ -349,7 +349,7 @@ public class OkapiPerformance {
 
   public void tenantEnableModuleSample3(TestContext context) {
     final String doc = "{" + LS
-            + "  \"module\" : \"sample-module3\"" + LS
+            + "  \"id\" : \"sample-module3\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
