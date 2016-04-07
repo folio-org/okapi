@@ -21,6 +21,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.lang.management.ManagementFactory;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import okapi.bean.Modules;
 import okapi.web.HealthService;
 import okapi.service.ModuleStore;
@@ -109,6 +111,22 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
     proxyService = new ProxyService(vertx, modules, tman);
+
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      public void run() {
+        CountDownLatch latch = new CountDownLatch(1);
+        moduleManager.deleteAll(ar -> {
+          latch.countDown();
+        });
+        try {
+          if (!latch.await(2, TimeUnit.MINUTES)) {
+            logger.error("Timed out waiting to undeploy all");
+          }
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    });
   }
 
   public void NotFound(RoutingContext ctx) {
