@@ -5,7 +5,7 @@
   "items": {
     "type": "object",
     "properties": {
-      "id2": {"type": "string"},
+      "id": {"type": "string"},
       "name": {"type": "string"},
       "description": {"type": "string"}
     }
