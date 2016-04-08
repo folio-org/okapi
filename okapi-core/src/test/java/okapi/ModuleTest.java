@@ -225,6 +225,38 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationAuth = r.getHeader("Location");
 
+    c = api.createRestAssured();
+    c.given().get(locationAuth)
+            .then().statusCode(200);
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/health/modules/auth")
+            .then().statusCode(200).body(equalTo(
+                    "[ {" + LS
+                    + "  \"id\" : \"auth\"," + LS
+                    + "  \"status\" : \"OK\"" + LS
+                    + "} ]"));
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/health/modules")
+            .then().statusCode(200).body(equalTo(
+                    "[ {" + LS
+                    + "  \"id\" : \"auth\"," + LS
+                    + "  \"status\" : \"OK\"" + LS
+                    + "} ]"));
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/health/modules/unknown")
+            .then().statusCode(200).body(equalTo(
+                    "[ {" + LS
+                    + "  \"id\" : \"unknown\"," + LS
+                    + "  \"status\" : \"Not Found\"" + LS
+                    + "} ]"));
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
     final String doc5 = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS

@@ -18,6 +18,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
+import okapi.bean.HealthModule;
 import okapi.bean.ModuleDescriptorBrief;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
@@ -195,6 +196,27 @@ public class ModuleWebService {
       } else if (res.getType() == NOT_FOUND) {
         responseError(ctx, 404, res.cause());
       } else { // must be internal error then
+        responseError(ctx, 500, res.cause());
+      }
+    });
+  }
+
+  public void health(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+    moduleManager.health(id, res -> {
+      if (res.succeeded()) {
+        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
+      } else {
+        responseError(ctx, 500, res.cause());
+      }
+    });
+  }
+  
+  public void healthAll(RoutingContext ctx) {
+    moduleManager.health(res -> {
+      if (res.succeeded()) {
+        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
+      } else {
         responseError(ctx, 500, res.cause());
       }
     });

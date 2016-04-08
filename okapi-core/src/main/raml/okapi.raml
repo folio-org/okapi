@@ -10,6 +10,7 @@ schemas:
   - TenantsList: !include TenantsList.json
   - TenantModuleDescriptor: !include TenantModuleDescriptor.json
   - TenantModules: !include TenantModules.json
+  - HealthModules: !include HealthModules.json
 
 #resourceTypes:
 #traits:
@@ -176,3 +177,25 @@ schemas:
     responses:
       200:
         description: OK
+  /modules:
+    get:
+      description: Check health of all modules
+      responses:
+        200:
+          description: OK
+          body:
+            application/json:
+              schema: HealthModules
+        500:
+          description: Server Error
+    /{module_id}:
+      get:
+        description: Check health of a module
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: HealthModules
+          500:
+            description: Server Error

@@ -5,6 +5,7 @@
  */
 package okapi.service;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
 import okapi.bean.ModuleInstance;
@@ -12,9 +13,17 @@ import okapi.bean.Modules;
 import okapi.bean.Ports;
 import okapi.bean.ProcessModuleHandle;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
+import okapi.bean.HealthModule;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -100,6 +109,53 @@ public class ModuleManager {
         });
       }
     });
+  }
+
+  public void healthR(Iterator<String> it, List<HealthModule> ml, Handler<AsyncResult<List<HealthModule>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success(ml));
+    } else {
+      String id = it.next();
+      HealthModule hm = new HealthModule();
+      hm.setId(id);
+      ml.add(hm);
+
+      ModuleInstance m = modules.get(id);
+      if (m == null) {
+        hm.setStatus("Not Found");
+        healthR(it, ml, fut);
+      } else {
+        HttpClient c = vertx.createHttpClient();
+        HttpClientRequest c_req = c.getAbs(m.getUrl(), res -> {
+          res.endHandler(x -> {
+            hm.setStatus("OK");
+            healthR(it, ml, fut);
+          });
+          res.exceptionHandler(x -> {
+            hm.setStatus("FAIL");
+            healthR(it, ml, fut);
+          });
+        });
+        c_req.exceptionHandler(x -> {
+          hm.setStatus("FAIL");
+          healthR(it, ml, fut);
+        });
+        c_req.end();
+      }
+    }
+  }
+
+  public void health(Handler<AsyncResult<List<HealthModule>>> fut) {
+    Iterator<String> it = modules.list().iterator();
+    List<HealthModule> ml = new ArrayList<>();
+    healthR(it, ml, fut);
+  }
+
+  public void health(String id, Handler<AsyncResult<List<HealthModule>>> fut) {
+    Set<String> list = new HashSet<String>();
+    list.add(id);
+    List<HealthModule> ml = new ArrayList<>();
+    healthR(list.iterator(), ml, fut);
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {

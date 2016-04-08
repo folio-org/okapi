@@ -203,6 +203,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
     router.getWithRegex("/_/health").handler(healthService::get);
+    router.get("/_/health/modules/:id").handler(moduleWebService::health);
+    router.getWithRegex("/_/health/modules").handler(moduleWebService::healthAll);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
