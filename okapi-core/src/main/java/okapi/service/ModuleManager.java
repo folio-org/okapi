@@ -113,7 +113,7 @@ public class ModuleManager {
 
   public void healthR(Iterator<String> it, List<HealthModule> ml, Handler<AsyncResult<List<HealthModule>>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Success(ml));
+      fut.handle(new Success<>(ml));
     } else {
       String id = it.next();
       HealthModule hm = new HealthModule();
