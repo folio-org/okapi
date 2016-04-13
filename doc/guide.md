@@ -350,11 +350,17 @@ cd okapi-auth
 java -Dport=8600 -jar target/okapi-auth-fat.jar
 ```
 
-In the same way, to run the okapi-core, use:
+In the same way, to run the okapi-core, supply its jar file. We must also
+add a command as argument which tells what okapi-core must do. When playing
+with okapi on a single node, we use the `dev` mode.
+
 ```
 cd okapi-core
-java -Dport=8600 -jar target/okapi-core-fat.jar
+java -Dport=8600 -jar target/okapi-core-fat.jar dev
 ```
+
+There are other commands available. Supply `help` to get a description of
+these.
 
 A Maven rule to run the gateway is part of the `pom.xml`, in the
 main directory.
@@ -473,7 +479,7 @@ Note: for this example to work it is important that the current directory
 of the Okapi is the top-level directory `.../okapi`.
 
 ```
-java -jar okapi-core/target/okapi-core-fat.jar
+java -jar okapi-core/target/okapi-core-fat.jar dev
 ```
 
 It lists its PID (process ID) and says it `succeeded deploying verticle`.
@@ -907,6 +913,23 @@ Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
 
 ## Reference
 
+### Okapi program
+
+The Okapi program is shipped as a bundled jar (okapi-core-fat.jar). The
+general invocation is:
+
+  `java` [*java-options*] `-jar patho/okapi-core-fat.jar` *command* [*options*]
+
+This is really just java(1) material. Of particular interest is java-option `-D`
+which may set properties for the program. Okapi parses *command* and *options*
+that follow.
+
+Okapi require exactly one command to be given. These are `dev` (for running in
+development, single-node mode).. `cluster` (for running in clustered
+mode/production), `help` and others. Use `help` command to get the latest
+commands and options.
+
+### Web Service
 The Okapi service requests (all those prefixed with /_/) are specified
 in the [RAML](http://raml.org/) syntax.
 

@@ -53,6 +53,7 @@
                     <arguments>
                         <argument>-jar</argument>
                         <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                        <argument>dev</argument>
                     </arguments>
                 </configuration>
             </execution>
