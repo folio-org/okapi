@@ -924,8 +924,8 @@ This is really just java(1) material. Of particular interest is java-option `-D`
 which may set properties for the program. Okapi parses *command* and *options*
 that follow.
 
-Okapi require exactly one command to be given. These are `dev` (for running in
-development, single-node mode).. `cluster` (for running in clustered
+Okapi requires exactly one command to be given. These are `dev` (for running in
+development, single-node mode), `cluster` (for running in clustered
 mode/production), `help` and others. Use `help` command to get the latest
 commands and options.
 
