@@ -192,6 +192,11 @@ public class ModuleTest {
     final String doc4 = "{" + LS
             + "  \"id\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : null," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
@@ -261,6 +266,11 @@ public class ModuleTest {
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : null," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
