@@ -69,6 +69,7 @@
                         <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
                         <argument>-jar</argument>
                         <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                        <argument>dev</argument>
                     </arguments>
                 </configuration>
             </execution>
