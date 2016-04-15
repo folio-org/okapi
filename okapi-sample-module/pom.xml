@@ -79,7 +79,8 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>okapi.MainSample</Main-Class>
+                    <Main-Class>okapi.sample.MainLauncher</Main-Class>
+                    <Main-Verticle>okapi.sample.MainVerticle</Main-Verticle>
                   </manifestEntries>
                 </transformer>
               </transformers>
