@@ -39,6 +39,7 @@ public class ModuleTest {
   private String locationSample;
   private String locationSample2;
   private String locationSample3;
+  private String locationSample4;
   private String locationAuth = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
@@ -103,6 +104,16 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSample3 = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationSample4 != null) {
+      httpClient.delete(port, "localhost", locationSample4, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSample4 = null;
           td(context);
         });
       }).end();
@@ -592,6 +603,39 @@ public class ModuleTest {
             .then().statusCode(204);
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    final String doc16 = "{" + LS
+            + "  \"id\" : \"sample-module4\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc16).post("/_/modules").then().statusCode(201)
+            .extract().response();
+    locationSample4 = r.getHeader("Location");
+
+    final String doc17 = "{" + LS
+            + "  \"id\" : \"sample-module4\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc17).put(locationSample4).then().statusCode(200);
     async.complete();
   }
 }

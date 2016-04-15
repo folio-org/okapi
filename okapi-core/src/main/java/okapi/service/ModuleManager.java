@@ -101,8 +101,8 @@ public class ModuleManager {
       } else {
         this.create(md, cres -> {
           if (cres.failed()) {
-            logger.warn("Update: create failed: " + dres.cause());
-            fut.handle(new Failure<>(dres.getType(), dres.cause()));
+            logger.warn("Update: create failed: " + cres.cause());
+            fut.handle(new Failure<>(dres.getType(), cres.cause()));
           } else {
             fut.handle(new Success<>());
           }
