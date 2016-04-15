@@ -6,6 +6,26 @@
     "id": {"type": "string"},
     "name": {"type": "string"},
     "url": {"type": ["string", "null"]},
+    "provides" : {
+      "type": ["array", "null"],
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {"type": "string"},
+          "version" : {"type": "string"}
+        }
+      }
+    },
+    "requires" : {
+      "type": ["array", "null"],
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {"type": "string"},
+          "version" : {"type": "string"}
+        }
+      }
+    },
     "descriptor" : {
       "type": ["object", "null"],
       "properties": {
@@ -30,5 +50,6 @@
         }
       }
     }
-  }
+  },
+  "required": ["id", "name", "routingEntries"]
 }
