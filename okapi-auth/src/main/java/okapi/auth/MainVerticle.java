@@ -36,7 +36,7 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "9020"));
 
-    logger.info("Starting " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
+    logger.info("Starting auth " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
 
     router.post("/login").handler(BodyHandler.create());
     router.post("/login").handler(auth::login);
@@ -50,9 +50,8 @@ public class MainVerticle extends AbstractVerticle {
                     result -> {
                       if (result.succeeded()) {
                         fut.complete();
-                        logger.info("listening ok");
                       } else {
-                        logger.fatal("failed: " + result.cause());
+                        logger.fatal("auth failed: " + result.cause());
                         fut.fail(result.cause());
                       }
                     }

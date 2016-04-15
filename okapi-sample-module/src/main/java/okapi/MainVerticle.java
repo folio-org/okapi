@@ -49,7 +49,7 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
+    logger.info("Starting sample " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
     //enable reading body to string
 
     router.get("/sample").handler(this::my_stream_handle);
@@ -61,11 +61,10 @@ public class MainVerticle extends AbstractVerticle {
                     port,
                     result -> {
                       if (result.succeeded()) {
-                        logger.info("listening ok");
                         fut.complete();
                       } else {
                         fut.fail(result.cause());
-                        logger.error("failed: " + result.cause());
+                        logger.error("sample failed: " + result.cause());
                       }
                     }
             );
