@@ -61,7 +61,6 @@ public class ModuleManager {
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
               use_port);
       ModuleInstance mi = new ModuleInstance(md, pmh, url, use_port);
-
       pmh.start(future -> {
         if (future.succeeded()) {
           fut.handle(new Success<>(mi));
@@ -79,7 +78,7 @@ public class ModuleManager {
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
     if (modules.get(id) != null) {
-      fut.handle(new Failure<>(USER, "Already deployed"));
+      fut.handle(new Failure<>(USER, "create: module already exist"));
       return;
     }
     spawn(md, res -> {
@@ -93,21 +92,21 @@ public class ModuleManager {
     });
   }
 
-  /**
-   * Simplistic implementation of updating a module: Deletes it and inserts.
-   *
-   */
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
-    this.delete(id, dres -> {
-      if (dres.failed()) {
-        logger.warn("Update: Delete failed: " + dres.cause());
-        fut.handle(new Failure<>(dres.getType(), dres.cause()));
+    ModuleInstance prev_m = modules.get(id);
+    if (prev_m == null) {
+      fut.handle(new Failure<>(USER, "update: module does not exist"));
+      return;
+    }
+    spawn(md, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        this.create(md, cres -> {
-          if (cres.failed()) {
-            logger.warn("Update: create failed: " + cres.cause());
-            fut.handle(new Failure<>(cres.getType(), cres.cause()));
+        modules.put(id, res.result());
+        delete(prev_m, dres -> {
+          if (dres.failed()) {
+            fut.handle(new Failure(dres.getType(), "Update: " + dres.cause().getMessage()));
           } else {
             fut.handle(new Success<>());
           }
