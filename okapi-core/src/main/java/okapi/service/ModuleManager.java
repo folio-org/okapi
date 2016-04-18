@@ -60,6 +60,7 @@ public class ModuleManager {
       if (use_port == -1) {
         fut.handle(new Failure<>(USER, "module " + id
                 + " can not be deployed: all ports in use"));
+        return;
       }
       spawn_port = use_port;
       url = "http://localhost:" + use_port;
