@@ -46,46 +46,51 @@ public class ModuleManager {
     this.modules = modules;
   }
 
-  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
-    final String id = md.getId();
-    String url;
-    final int use_port = ports.get();
-    int spawn_port = -1;
-    ModuleInstance m = modules.get(id);
-    if (m != null) {
-      fut.handle(new Failure<>(USER, "Already deployed"));
-      return;
-    }
-    if (md.getUrl() == null) {
+  private void spawn(ModuleDescriptor md, Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
+    int use_port = -1;
+    String url = md.getUrl();
+    if (url == null) {
+      use_port = ports.get();
       if (use_port == -1) {
-        fut.handle(new Failure<>(USER, "module " + id
-                + " can not be deployed: all ports in use"));
+        fut.handle(new Failure<>(INTERNAL, "all ports in use"));
+        return;
       }
-      spawn_port = use_port;
       url = "http://localhost:" + use_port;
-    } else {
-      ports.free(use_port);
-      url = md.getUrl();
     }
     if (md.getDescriptor() != null) {
-      // enable it now so that activation for 2nd one will fail
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-              spawn_port);
-      modules.put(id, new ModuleInstance(md, pmh, url));
+              use_port);
+      ModuleInstance mi = new ModuleInstance(md, pmh, url, use_port);
 
       pmh.start(future -> {
         if (future.succeeded()) {
-          fut.handle(new Success<>(id));
+          fut.handle(new Success<>(mi));
         } else {
-          modules.remove(md.getId());
-          ports.free(use_port);
+          ports.free(mi.getPort());
           fut.handle(new Failure<>(INTERNAL, future.cause()));
         }
       });
     } else {
-      modules.put(id, new ModuleInstance(md, null, url));
-      fut.handle(new Success<>(id));
+      ModuleInstance mi = new ModuleInstance(md, null, url, use_port);
+      fut.handle(new Success<>(mi));
     }
+  }
+
+  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
+    final String id = md.getId();
+    if (modules.get(id) != null) {
+      fut.handle(new Failure<>(USER, "Already deployed"));
+      return;
+    }
+    spawn(md, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), "module " + id + ":" + res.cause().toString()));
+      } else {
+        ModuleInstance mi = res.result();
+        modules.put(id, mi);
+        fut.handle(new Success<>(id));
+      }
+    });
   }
 
   /**
@@ -101,8 +106,8 @@ public class ModuleManager {
       } else {
         this.create(md, cres -> {
           if (cres.failed()) {
-            logger.warn("Update: create failed: " + dres.cause());
-            fut.handle(new Failure<>(dres.getType(), dres.cause()));
+            logger.warn("Update: create failed: " + cres.cause());
+            fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
             fut.handle(new Success<>());
           }
@@ -158,32 +163,40 @@ public class ModuleManager {
     healthR(list.iterator(), ml, fut);
   }
 
+  private void delete(ModuleInstance m, Handler<ExtendedAsyncResult<Void>> fut) {
+    ProcessModuleHandle pmh = m.getProcessModuleHandle();
+    if (pmh == null) {
+      logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
+      ports.free(m.getPort());
+      fut.handle(new Success<>());
+    } else {
+      logger.debug("About to stop " + m.getModuleDescriptor().getId());
+      pmh.stop(future -> {
+        if (future.succeeded()) {
+          logger.debug("Did stop " + m.getModuleDescriptor().getId());
+          ports.free(m.getPort());
+          fut.handle(new Success<>());
+        } else {
+          fut.handle(new Failure<>(INTERNAL, future.cause()));
+          logger.warn("FAILED to stop " + m.getModuleDescriptor().getId());
+        }
+      });
+    }
+  }
+
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     ModuleInstance m = modules.get(id);
     if (m == null) {
       fut.handle(new Failure<>(NOT_FOUND, "Can not delete " + id + ". Not found"));
     } else {
-      ProcessModuleHandle pmh = m.getProcessModuleHandle();
-      if (pmh == null) {
-        logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
-        modules.remove(id); // nothing running, just remove it from our list
-        fut.handle(new Success<>());
-      } else {
-        logger.debug("About to stop " + m.getModuleDescriptor().getId());
-        pmh.stop(future -> {
-          if (future.succeeded()) {
-            logger.debug("Did stop " + m.getModuleDescriptor().getId());
-            modules.remove(id);
-            ports.free(pmh.getPort());
-            fut.handle(new Success<>());
-          } else {
-            fut.handle(new Failure<>(INTERNAL, future.cause()));
-            logger.warn("FAILED to stop " + m.getModuleDescriptor().getId());
-            // TODO - What to do in case it was already dead? Probably safe to ignore
-            // TODO - What to do in case stopping failed, and it still runs. That is bad!
-          }
-        });
-      }
+      delete(m, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          modules.remove(id);
+          fut.handle(new Success<>());
+        }
+      });
     }
   }
 
@@ -194,25 +207,15 @@ public class ModuleManager {
     } else {
       String id = list.iterator().next();
       ModuleInstance mi = modules.get(id);
-      ProcessModuleHandle pmh = mi.getProcessModuleHandle();
-      if (pmh == null) {
-        modules.remove(id);
-        logger.debug("Deleted module " + id);
-        deleteAll(fut);
-      } else {
-        pmh.stop(res -> {
-          if (res.succeeded()) {
-            ports.free(pmh.getPort());
-          } else {
-            logger.warn("Failed to stop module " + id + ":" + res.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL, "Failed to stop module " + id + ":" + res.cause().getMessage()));
-            // TODO - What to do in this case? Declare the whole node dead?
-          }
-          modules.remove(id); // remove in any case
-          logger.debug("Stopped and deleted module " + id);
+
+      delete(mi, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL, "Failed to stop module " + id + ":" + res.cause().getMessage()));
+        } else {
+          modules.remove(id);
           deleteAll(fut);
-        });
-      }
+        }
+      });
     }
   }
 
