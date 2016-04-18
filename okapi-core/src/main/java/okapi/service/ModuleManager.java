@@ -49,13 +49,13 @@ public class ModuleManager {
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
     String url;
-    final int use_port = ports.get();
-    int spawn_port = -1;
     ModuleInstance m = modules.get(id);
     if (m != null) {
       fut.handle(new Failure<>(USER, "Already deployed"));
       return;
     }
+    final int use_port = ports.get();
+    int spawn_port = -1;
     if (md.getUrl() == null) {
       if (use_port == -1) {
         fut.handle(new Failure<>(USER, "module " + id
