@@ -25,6 +25,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <vertx-version>3.2.1</vertx-version>
+    <docker.registry>docker.indexdata.com:5000</docker.registry>
   </properties>
 
   <build>
@@ -74,6 +75,55 @@
                 </configuration>
             </execution>
         </executions>
+      </plugin>
+     <plugin>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>2.2.1</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
+          <!-- <dateFormatTimeZone>${user.timezone}</dateFormatTimeZone> -->
+          <dateFormatTimeZone>UTC</dateFormatTimeZone> -->
+          <verbose>false</verbose>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+          <injectAllReactorProjects>true</injectAllReactorProjects>
+          <skip>false</skip>
+          <runOnlyOnce>false</runOnlyOnce>
+        </configuration>
+      </plugin>
+     <plugin>
+        <groupId>com.spotify</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <version>0.4.5</version>
+        <configuration>
+          <skipDockerBuild>true</skipDockerBuild>
+          <skipDockerTag>true</skipDockerTag>
+          <dockerDirectory>${basedir}</dockerDirectory>
+          <serverId>docker_registry</serverId>
+          <registryUrl>https://${docker.registry}/v2/</registryUrl>
+          <imageName>${project.artifactId}</imageName>
+          <imageTags>
+            <imageTag>${git.commit.id.abbrev}</imageTag>
+            <imageTag>latest</imageTag>
+          </imageTags>
+          <image>${project.artifactId}:${git.commit.id.abbrev}</image>
+          <newName>${docker.registry}/${project.artifactId}:${git.commit.id.abbrev}</newName>
+          <resources>
+            <resource>
+              <targetPath>/</targetPath>
+              <directory>${project.build.directory}</directory>
+              <include>${project.outputFile}</include>
+            </resource>
+          </resources>
+        </configuration>
       </plugin>
     </plugins>
   </build>
