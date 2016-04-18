@@ -48,43 +48,41 @@ public class ModuleManager {
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
-    String url;
     ModuleInstance m = modules.get(id);
     if (m != null) {
       fut.handle(new Failure<>(USER, "Already deployed"));
       return;
     }
-    final int use_port = ports.get();
-    int spawn_port = -1;
-    if (md.getUrl() == null) {
+    int use_port = -1;
+    String url = md.getUrl();
+    if (url == null) {
+      use_port = ports.get();
       if (use_port == -1) {
         fut.handle(new Failure<>(USER, "module " + id
                 + " can not be deployed: all ports in use"));
         return;
       }
-      spawn_port = use_port;
       url = "http://localhost:" + use_port;
-    } else {
-      ports.free(use_port);
-      url = md.getUrl();
     }
     if (md.getDescriptor() != null) {
       // enable it now so that activation for 2nd one will fail
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-              spawn_port);
-      modules.put(id, new ModuleInstance(md, pmh, url));
+              use_port);
+      ModuleInstance mi = new ModuleInstance(md, pmh, url, use_port);
+      modules.put(id, mi);
 
       pmh.start(future -> {
         if (future.succeeded()) {
           fut.handle(new Success<>(id));
         } else {
           modules.remove(md.getId());
-          ports.free(use_port);
+          ports.free(mi.getPort());
           fut.handle(new Failure<>(INTERNAL, future.cause()));
         }
       });
     } else {
-      modules.put(id, new ModuleInstance(md, null, url));
+      ModuleInstance mi = new ModuleInstance(md, null, url, use_port);
+      modules.put(id, mi);
       fut.handle(new Success<>(id));
     }
   }
@@ -165,6 +163,7 @@ public class ModuleManager {
       fut.handle(new Failure<>(NOT_FOUND, "Can not delete " + id + ". Not found"));
     } else {
       ProcessModuleHandle pmh = m.getProcessModuleHandle();
+      ports.free(m.getPort());
       if (pmh == null) {
         logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
         modules.remove(id); // nothing running, just remove it from our list
@@ -175,7 +174,6 @@ public class ModuleManager {
           if (future.succeeded()) {
             logger.debug("Did stop " + m.getModuleDescriptor().getId());
             modules.remove(id);
-            ports.free(pmh.getPort());
             fut.handle(new Success<>());
           } else {
             fut.handle(new Failure<>(INTERNAL, future.cause()));
@@ -196,6 +194,7 @@ public class ModuleManager {
       String id = list.iterator().next();
       ModuleInstance mi = modules.get(id);
       ProcessModuleHandle pmh = mi.getProcessModuleHandle();
+      ports.free(mi.getPort());
       if (pmh == null) {
         modules.remove(id);
         logger.debug("Deleted module " + id);
@@ -203,7 +202,6 @@ public class ModuleManager {
       } else {
         pmh.stop(res -> {
           if (res.succeeded()) {
-            ports.free(pmh.getPort());
           } else {
             logger.warn("Failed to stop module " + id + ":" + res.cause().getMessage());
             fut.handle(new Failure<>(INTERNAL, "Failed to stop module " + id + ":" + res.cause().getMessage()));

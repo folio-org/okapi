@@ -121,8 +121,4 @@ public class ProcessModuleHandle implements ModuleHandle {
       }
     });
   }
-
-  public int getPort() {
-    return port;
-  }
 }
