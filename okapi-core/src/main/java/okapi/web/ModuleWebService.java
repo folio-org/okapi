@@ -100,7 +100,7 @@ public class ModuleWebService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       if (md.getId() == null || md.getId().isEmpty()) {
-        responseText(ctx, 400).end("No Id in tenant");
+        responseText(ctx, 400).end("No Id in module");
       } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
         responseText(ctx, 400).end("Invalid id");
       } else {
