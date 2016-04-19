@@ -15,6 +15,8 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
@@ -64,6 +66,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
+          logger.error("Failed to start service on port " + port + " : already in use");
           startFuture.handle(Future.failedFuture("port " + port + " already in use"));
         } else {
           start2(startFuture);
@@ -75,12 +78,12 @@ public class ProcessModuleHandle implements ModuleHandle {
   }
 
   private void start2(Handler<AsyncResult<Void>> startFuture) {
-    final String cmdline = desc.getCmdlineStart().replace("%p", Integer.toString(port));
+    final String cmdline = desc.getCmdlineStart();
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          // TODO: handle quoted strings / backslashes
-          ProcessBuilder pb = new ProcessBuilder(cmdline.split(" "));
+          String c = cmdline.replace("%p", Integer.toString(port));
+          ProcessBuilder pb = new ProcessBuilder(c.split(" "));
           pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
@@ -102,23 +105,49 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    vertx.executeBlocking(future -> {
-      if (p != null) {
-        p.destroy();
-        while (p.isAlive()) {
-          try {
-            int x = p.waitFor();
-          } catch (InterruptedException ex) {
+    final String cmdline = desc.getCmdlineStop();
+    if (cmdline == null) {
+      vertx.executeBlocking(future -> {
+        if (p != null) {
+          p.destroy();
+          while (p.isAlive()) {
+            try {
+              int x = p.waitFor();
+            } catch (InterruptedException ex) {
+            }
           }
         }
-      }
-      future.complete();
-    }, false, result -> {
-      if (result.failed()) {
-        stopFuture.handle(Future.failedFuture(result.cause()));
-      } else {
-        stopFuture.handle(Future.succeededFuture());
-      }
-    });
+        future.complete();
+      }, false, result -> {
+        if (result.failed()) {
+          stopFuture.handle(Future.failedFuture(result.cause()));
+        } else {
+          stopFuture.handle(Future.succeededFuture());
+        }
+      });
+    } else {
+      vertx.executeBlocking(future -> {
+        try {
+          String c = cmdline.replace("%p", Integer.toString(port));
+          List<String> l = new LinkedList<>();
+          l.add("sh");
+          l.add("-c");
+          l.add(c);
+          ProcessBuilder pb = new ProcessBuilder(l);
+          pb.inheritIO();
+          p = pb.start();
+        } catch (IOException ex) {
+          future.fail(ex);
+          return;
+        }
+        future.complete();
+      }, false, result -> {
+        if (result.failed()) {
+          stopFuture.handle(Future.failedFuture(result.cause()));
+        } else {
+          stopFuture.handle(Future.succeededFuture());
+        }
+      });
+    }
   }
 }
