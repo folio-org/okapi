@@ -116,7 +116,7 @@ public class ModuleInterface {
   /**
    * Check if this ModuleInterface is compatible with the required one.
    * @param required
-   * @return 
+   * @return
    */
   public boolean isCompatible(ModuleInterface required){
     if ( !this.getId().equals(required.getId()))

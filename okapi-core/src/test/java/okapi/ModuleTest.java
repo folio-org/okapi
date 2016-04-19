@@ -193,7 +193,7 @@ public class ModuleTest {
             + "  \"name\" : \"auth\"," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"auth\"," + LS
-            + "    \"version\" : \"1.0.0\"" + LS
+            + "    \"version\" : \"1.2.3\"" + LS
             + "  } ]," + LS
             + "  \"requires\" : null," + LS
             + "  \"descriptor\" : {" + LS
@@ -261,6 +261,56 @@ public class ModuleTest {
                     + "} ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    final String doc4b = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null, " + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ ] " + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4b).post("/_/modules").then().statusCode(400)
+            .extract().response();
+
+    final String doc4c = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"9.9.3\"" + LS  // We only have 1.2.3
+            + "  } ]," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null, " + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ ] " + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4c).post("/_/modules").then().statusCode(400)
+            .extract().response();
+
     final String doc5 = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
@@ -269,7 +319,10 @@ public class ModuleTest {
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  } ]," + LS
-            + "  \"requires\" : null," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
