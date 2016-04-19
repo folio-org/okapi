@@ -54,7 +54,7 @@ Web service endpoints in Okapi can be, roughly, divided into two
 parts: (1) general modules and tenant management APIs, sometimes
 referred to as 'core' - initially part of Okapi itself but potentially
 separable into their own modules - and (2) endpoints for accessing
-module­provided, business-logic specific interfaces, e.g. Patron
+module-provided, business-logic specific interfaces, e.g. Patron
 management or Circulation. This document will discuss the former in
 detail and offer a general overview of allowed formats and styles for
 the latter.
