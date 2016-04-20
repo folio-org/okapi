@@ -143,7 +143,7 @@ public class ModuleManager {
     
     spawn(md, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), "module " + id + ":" + res.cause().toString()));
+        fut.handle(new Failure<>(res.getType(), "module " + id + ":" + res.cause().getMessage()));
       } else {
         ModuleInstance mi = res.result();
         modules.put(id, mi);
