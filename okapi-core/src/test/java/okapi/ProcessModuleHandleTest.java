@@ -16,6 +16,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import okapi.bean.Ports;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -25,6 +26,7 @@ public class ProcessModuleHandleTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private Vertx vertx;
+  private Ports ports = new Ports(0, 10);
 
   @Before
   public void setUp(TestContext context) {
@@ -41,7 +43,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
     desc.setCmdlineStart("sleep 10");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
 
     mh.start(res -> {
@@ -65,7 +67,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
     desc.setCmdlineStart("sleepxx 10");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, 0);
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
 
     mh.start(res -> {

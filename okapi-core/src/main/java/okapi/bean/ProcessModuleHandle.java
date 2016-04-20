@@ -26,12 +26,14 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final ProcessDeploymentDescriptor desc;
   private Process p;
   private final int port;
+  private Ports ports;
 
   public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
-          int port) {
+          Ports ports, int port) {
     this.vertx = vertx;
     this.desc = desc;
     this.port = port;
+    this.ports = ports;
   }
 
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
@@ -105,16 +107,19 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
+    if (p == null) {
+      ports.free(port);
+      stopFuture.handle(Future.succeededFuture());
+      return;
+    }
     final String cmdline = desc.getCmdlineStop();
     if (cmdline == null) {
       vertx.executeBlocking(future -> {
-        if (p != null) {
-          p.destroy();
-          while (p.isAlive()) {
-            try {
-              int x = p.waitFor();
-            } catch (InterruptedException ex) {
-            }
+        p.destroy();
+        while (p.isAlive()) {
+          try {
+            int x = p.waitFor();
+          } catch (InterruptedException ex) {
           }
         }
         future.complete();
@@ -122,6 +127,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (result.failed()) {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
+          ports.free(port);
           stopFuture.handle(Future.succeededFuture());
         }
       });
@@ -135,7 +141,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           l.add(c);
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
-          p = pb.start();
+          pb.start();
         } catch (IOException ex) {
           future.fail(ex);
           return;
@@ -145,6 +151,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (result.failed()) {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
+          ports.free(port);
           stopFuture.handle(Future.succeededFuture());
         }
       });

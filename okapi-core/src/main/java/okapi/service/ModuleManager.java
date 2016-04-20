@@ -60,7 +60,7 @@ public class ModuleManager {
     }
     if (md.getDescriptor() != null) {
       ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md.getDescriptor(),
-              use_port);
+              ports, use_port);
       ModuleInstance mi = new ModuleInstance(md, pmh, url, use_port);
       pmh.start(future -> {
         if (future.succeeded()) {
@@ -226,14 +226,12 @@ public class ModuleManager {
     ProcessModuleHandle pmh = m.getProcessModuleHandle();
     if (pmh == null) {
       logger.debug("Not running, just deleting " + m.getModuleDescriptor().getId());
-      ports.free(m.getPort());
       fut.handle(new Success<>());
     } else {
       logger.debug("About to stop " + m.getModuleDescriptor().getId());
       pmh.stop(future -> {
         if (future.succeeded()) {
           logger.debug("Did stop " + m.getModuleDescriptor().getId());
-          ports.free(m.getPort());
           fut.handle(new Success<>());
         } else {
           fut.handle(new Failure<>(INTERNAL, future.cause()));
