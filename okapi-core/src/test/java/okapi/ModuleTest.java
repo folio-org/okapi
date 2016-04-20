@@ -179,6 +179,8 @@ public class ModuleTest {
             + "responseViolations=[Body given but none defined on action(POST /_/modules) "
             + "response(500)], validationViolations=[]}",
             c.getLastReport().toString());
+
+    // post a module with missing "id":
     final String doc3 = "{" + LS
             + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
@@ -196,13 +198,15 @@ public class ModuleTest {
     c.given()
             .header("Content-Type", "application/json")
             .body(doc3).post("/_/modules").then().statusCode(400);
-    Assert.assertEquals("RamlReport{requestViolations=[], "
-            + "responseViolations=[Body given but none defined on action(POST /_/modules) "
-            + "response(400)], validationViolations=[]}",
-            c.getLastReport().toString());
+    // Will not be according to RAML.. So no Assert on it.
     final String doc4 = "{" + LS
             + "  \"id\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : null," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
@@ -268,10 +272,68 @@ public class ModuleTest {
                     + "} ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    final String doc4b = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null, " + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ ] " + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4b).post("/_/modules").then().statusCode(400)
+            .extract().response();
+
+    final String doc4c = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"9.9.3\"" + LS  // We only have 1.2.3
+            + "  } ]," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null, " + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }," + LS
+            + "  \"routingEntries\" : [ ] " + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc4c).post("/_/modules").then().statusCode(400)
+            .extract().response();
+
     final String doc5 = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"url\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ {" + LS
+            + "    \"id\" : \"auth\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
@@ -358,7 +420,6 @@ public class ModuleTest {
             + "} ]";
     c.given().get("/_/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200).body(equalTo(exp1));
-    System.out.println(c.getLastReport());
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     final String exp2 = "{" + LS
@@ -367,7 +428,6 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/tenants/" + okapiTenant + "/modules/auth")
             .then().statusCode(200).body(equalTo(exp2));
-    System.out.println(c.getLastReport());
     Assert.assertTrue(c.getLastReport().isEmpty());
 
 

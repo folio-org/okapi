@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import okapi.bean.HealthModule;
+import okapi.bean.ModuleInterface;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -72,7 +73,63 @@ public class ModuleManager {
     } else {
       ModuleInstance mi = new ModuleInstance(md, null, url, use_port);
       fut.handle(new Success<>(mi));
+    } 
+  }
+
+
+  private boolean checkOneDependency(ModuleDescriptor md, ModuleInterface req,
+      Handler<ExtendedAsyncResult<String>> fut){
+    ModuleInterface seenversion = null;
+    for ( String runningmodule : modules.list() ) {
+      ModuleInstance rm = modules.get(runningmodule);
+      ModuleInterface[] provides = rm.getModuleDescriptor().getProvides();
+      if ( provides != null ) {
+        for ( ModuleInterface pi: provides ) {
+          logger.debug("Checking dependency of " + md.getId() + ": "
+              + req.getId() + " " + req.getVersion()
+              + " against " + pi.getId() + " " + pi.getVersion() );
+          if ( req.getId().equals(pi.getId())) {
+            if ( seenversion == null || pi.compare(req) > 0)
+              seenversion = pi;
+            if ( pi.isCompatible(req))
+              return true;
+          }
+        }
+      }
     }
+    if (  seenversion == null ) {
+      logger.debug("Can not create module '" + md.getId() + "'"
+        +", missing dependency " + req.getId() + ": " + req.getVersion() );
+      fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'. "
+        + "Missing dependency: " +  req.getId() + ": " + req.getVersion()));
+    } else {
+      logger.debug("Can not create module '" + md.getId() + "'"
+        + "Insufficient version for " + req.getId() + ". "
+        + "Need " + req.getVersion() + ". have " + seenversion.getVersion() );
+      fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'"
+        + "Insufficient version for " + req.getId() + ". "
+        + "Need " + req.getVersion() + ". have " + seenversion.getVersion()));
+    }
+    return false;
+  }
+
+  /**
+   * Check that the dependencies are satisfied.
+   * @param md Module to be created
+   * @param fut to be called in case of failure
+   * @return true if no problems
+   */
+  private boolean checkDependencies(ModuleDescriptor md,
+        Handler<ExtendedAsyncResult<String>> fut) {
+    ModuleInterface[] requires = md.getRequires();
+    if (requires != null) {
+      for (ModuleInterface req : requires) {
+        if ( ! checkOneDependency(md, req, fut)) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
@@ -81,6 +138,9 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "create: module already exist"));
       return;
     }
+    if ( !checkDependencies(md, fut))
+      return; // The fail has already been fired into fut.
+    
     spawn(md, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), "module " + id + ":" + res.cause().toString()));
