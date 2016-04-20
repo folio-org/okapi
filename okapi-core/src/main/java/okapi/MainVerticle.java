@@ -83,11 +83,11 @@ public class MainVerticle extends AbstractVerticle {
 
     healthService = new HealthService();
 
-    TenantStore tenantStore = null;
-    TenantManager tman = new TenantManager();
 
     Modules modules = new Modules();
     moduleManager = new ModuleManager(vertx, modules, port_start, port_end);
+    TenantStore tenantStore = null;
+    TenantManager tman = new TenantManager(moduleManager);
     ModuleStore moduleStore = null;
     TimeStampStore timeStampStore = null;
 

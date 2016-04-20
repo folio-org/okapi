@@ -11,10 +11,15 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import okapi.bean.ModuleDescriptor;
+import okapi.bean.ModuleInstance;
+import okapi.bean.ModuleInterface;
+import okapi.bean.Modules;
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
 import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
+import okapi.util.Failure;
 
 /**
  * Manages the tenants in the run-time system. These will be modified by the web
@@ -24,9 +29,12 @@ import static okapi.util.ErrorType.*;
 public class TenantManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  // TODO Pass a ModuleManager, and validate the modules we try to enable etc. Or do that in the web service?
+  private ModuleManager moduleManager = null;
   Map<String, Tenant> tenants = new HashMap<>();
+
+  public TenantManager(ModuleManager moduleManager) {
+    this.moduleManager = moduleManager;
+  }
 
   public boolean insert(Tenant t) {
     String id = t.getId();
@@ -84,21 +92,72 @@ public class TenantManager {
     return true;
   }
 
+  private String checkOneDependency(Tenant tenant, Modules modules, ModuleDescriptor md, ModuleInterface req) {
+    ModuleInterface seenversion = null;
+    for ( String enabledmodule : tenant.listModules()) {
+      ModuleInstance rm = modules.get(enabledmodule);
+      ModuleInterface[] provides = rm.getModuleDescriptor().getProvides();
+      if ( provides != null ) {
+        for ( ModuleInterface pi: provides ) {
+          logger.debug("Checking dependency of " + md.getId() + ": "
+              + req.getId() + " " + req.getVersion()
+              + " against " + pi.getId() + " " + pi.getVersion() );
+          if ( req.getId().equals(pi.getId())) {
+            if ( seenversion == null || pi.compare(req) > 0)
+              seenversion = pi;
+            if ( pi.isCompatible(req))
+              return "";
+          }
+        }
+      }
+    }
+    String msg;
+    if (  seenversion == null ) {
+      msg = "Can not enable module '" + md.getId() + "'"
+        +", missing dependency " + req.getId() + ": " + req.getVersion();
+    } else {
+      msg = "Can not enable module '" + md.getId() + "'"
+        + "Insufficient version for " + req.getId() + ". "
+        + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
+    }
+    logger.debug(msg);
+    return msg;
+
+  }
+
+  private String checkDependencies(Tenant tenant, Modules modules, ModuleDescriptor md) {
+    ModuleInterface[] requires = md.getRequires();
+    if (requires != null) {
+      for (ModuleInterface req : requires) {
+        String one =  checkOneDependency(tenant, modules, md, req);
+        if ( !one.isEmpty())
+          return one;
+        }
+      }
+    return "";
+  }
+
   /**
    * Enable a module for a given tenant.
    *
    * @param id
    * @param module
-   * @return
+   * @return error message, or "" if all is ok
    */
-  public ErrorType enableModule(String id, String module) {
+  public String enableModule(String id, String module) {
     Tenant tenant = tenants.get(id);
     if (tenant == null) {
-      return NOT_FOUND;
+      return "tenant " + id + " not found";
     }
-    // TODO - Check if we know about the module. 
+    Modules modules = moduleManager.getModules();
+    ModuleInstance mod = modules.get(module);
+    if (mod == null)
+      return "module " + module + " not found";
+    String deperr = checkDependencies(tenant, modules, mod.getModuleDescriptor());
+    if ( ! deperr.isEmpty())
+      return deperr;
     tenant.enableModule(module);
-    return OK;
+    return "";
   }
 
   /**
@@ -134,5 +193,6 @@ public class TenantManager {
     }
     return tenant.listModules();
   }
+
 
 } // class

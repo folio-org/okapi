@@ -220,8 +220,8 @@ public class TenantWebService {
       final String module = td.getId();
       // TODO - Validate we know about that module!
       final long ts = getTimestamp();
-      ErrorType err = tenants.enableModule(id, module);
-      if (err == OK) {
+      String err = tenants.enableModule(id, module);
+      if (err == "") {
         tenantStore.enableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
@@ -233,11 +233,11 @@ public class TenantWebService {
           }
         });
 
-      } else if (err == NOT_FOUND) {
-        responseText(ctx, 404).end("Tenant " + id + " not found (enableModule)");
-      } else {
-        responseText(ctx, 500).end();
-      }
+      } else if (err.contains("not found")) {
+        responseText(ctx, 404).end(err);
+      } else { // TODO - handle this right 
+        responseText(ctx, 400).end(err);
+      } // Missing dependencies are bad requests...
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
     }

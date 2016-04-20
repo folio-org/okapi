@@ -393,13 +393,24 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     locationTenant = r.getHeader("Location");
 
+    
+    // Try to enable sample without the auth that it requires
+    final String doc7a = "{" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "}";
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc7a).post("/_/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(400);
+
+
     final String doc7 = "{" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc7).post("/_/tenants/" + okapiTenant + "/modules/")
+            .body(doc7).post("/_/tenants/" + okapiTenant + "/modules/") // trailing slash not good
             .then().statusCode(404);
 
     c = api.createRestAssured();
@@ -430,10 +441,24 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo(exp2));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    final String doc8a = "{" + LS
+            + "  \"id\" : \"UNKNOWN-module\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc8a).post("/_/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(404);
 
     final String doc8 = "{" + LS
             + "  \"id\" : \"sample-module\"" + LS
             + "}";
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(doc8a).post("/_/tenants/" + okapiTenant + "-UNKNOWN" + "/modules")
+            .then().statusCode(404);
+
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
