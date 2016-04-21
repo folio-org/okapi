@@ -26,7 +26,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final ProcessDeploymentDescriptor desc;
   private Process p;
   private final int port;
-  private Ports ports;
+  private final Ports ports;
 
   public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
           Ports ports, int port) {
@@ -34,6 +34,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.desc = desc;
     this.port = port;
     this.ports = ports;
+    this.p = null;
   }
 
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {

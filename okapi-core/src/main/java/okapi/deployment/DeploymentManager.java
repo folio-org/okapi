@@ -11,6 +11,7 @@ import java.util.LinkedHashMap;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.ModuleHandle;
 import okapi.bean.Ports;
+import okapi.bean.ProcessDeploymentDescriptor;
 import okapi.bean.ProcessModuleHandle;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -21,9 +22,11 @@ public class DeploymentManager {
   LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
   Vertx vertx;
   Ports ports;
+  String host;
 
-  public DeploymentManager(Vertx vertx, int port_start, int port_end) {
+  public DeploymentManager(Vertx vertx, String host, int port_start, int port_end) {
     this.vertx = vertx;
+    this.host = host;
     this.ports = new Ports(port_start, port_end);
   }
 
@@ -38,10 +41,14 @@ public class DeploymentManager {
       fut.handle(new Failure<>(INTERNAL, "all ports in use"));
       return;
     }
-    String url = "http://localhost:" + use_port;
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, md1.getDescriptor(), ports, use_port);
+    String url = "http://" + host + ":" + use_port;
+    ProcessDeploymentDescriptor descriptor = md1.getDescriptor();
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
+            ports, use_port);
     ModuleHandle mh = pmh;
+    System.out.println("DeploymentManager:deploy1");
     mh.start(future -> {
+      System.out.println("DeploymentManager:deploy2");
       if (future.succeeded()) {
         DeploymentDescriptor md2 = new DeploymentDescriptor(id, url,
                 md1.getDescriptor(), mh);

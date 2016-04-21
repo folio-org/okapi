@@ -25,6 +25,14 @@ public class DeploymentDescriptor {
     this.moduleHandle = moduleHandle;
   }
 
+  public DeploymentDescriptor(String id,
+          ProcessDeploymentDescriptor descriptor) {
+    this.id = id;
+    this.url = null;
+    this.descriptor = descriptor;
+    this.moduleHandle = null;
+  }
+
   public String getId() {
     return id;
   }

@@ -5,7 +5,6 @@
  */
 package okapi.web;
 
-import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -20,12 +19,10 @@ import static okapi.util.HttpResponse.responseText;
 
 public class DeploymentWebService {
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private final Vertx vertx;
   private final DeploymentManager md;
 
-  public DeploymentWebService(Vertx vertx, int port_start, int port_end) {
-    this.vertx = vertx;
-    this.md = new DeploymentManager(vertx, port_start, port_end);
+  public DeploymentWebService(DeploymentManager md) {
+    this.md = md;
   }
 
   public void create(RoutingContext ctx) {
