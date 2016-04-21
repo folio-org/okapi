@@ -285,7 +285,7 @@ public class ModuleTest {
             + "    \"version\" : \"1.2.3\"" + LS
             + "  } ]," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : null, " + LS
+            + "    \"cmdlineStart\" : null, " + LS 
             + "    \"cmdlineStop\" : null" + LS
             + "  }," + LS
             + "  \"routingEntries\" : [ ] " + LS
@@ -684,9 +684,18 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
+    c.given().delete(locationTenant+"/modules/sample-module999") // non-existing
+            .then().statusCode(404);
+
+    c = api.createRestAssured();
+    c.given().delete(locationTenant+"/modules/auth") // dependency of sample-module
+            .then().statusCode(400);
+    
+    c = api.createRestAssured();
     c.given().delete(locationTenant)
             .then().statusCode(204);
     Assert.assertTrue(c.getLastReport().isEmpty());
+
 
     final String doc16 = "{" + LS
             + "  \"id\" : \"sample-module4\"," + LS

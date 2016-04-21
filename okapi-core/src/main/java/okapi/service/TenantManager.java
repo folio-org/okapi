@@ -160,23 +160,63 @@ public class TenantManager {
     return "";
   }
 
+  /** 
+   * Check that no enabled moduyle depends any service provided by this module.
+   * 
+   * @param tenant
+   * @param module
+   * @return true if it is ok to delete the module
+   */
+  public boolean checkNoDependency(Tenant tenant, String module){
+    Modules modules = moduleManager.getModules();
+    ModuleInstance mod = modules.get(module);
+    if ( mod == null ) { // should not happen
+      logger.warn("Module " + module + " not found when checking delete dependencies!");
+      return true;
+    }
+    logger.warn("Checking that we can delete " + module);
+    ModuleInterface[] provides = mod.getModuleDescriptor().getProvides();
+    if ( provides == null )
+      return true; // nothing can depend on this one
+    for ( ModuleInterface prov: provides ){
+      logger.info("Checking provided service " + prov.getId() );
+      for ( String enabledmodule : tenant.listModules()) {
+        ModuleInstance em = modules.get(enabledmodule);
+        ModuleInterface[] req = em.getModuleDescriptor().getRequires();
+        logger.info("Checking provided service " + prov.getId() + " against " + enabledmodule );
+        if (req != null ) {
+          for ( ModuleInterface ri : req ) {
+            if (prov.getId().equals(ri.getId())) {
+              logger.warn("checkNoDependency: " + module + " " + prov.getId() + " is used by " + enabledmodule);
+              return false;
+            }
+          }
+        }
+      }
+
+    }
+    return true;
+  }
+
   /**
    * Disable a module for a given tenant.
    *
    * @param id
    * @param module
-   * @return
+   * @return "" if ok, or an error message
    */
-  public ErrorType disableModule(String id, String module) {
+  public String disableModule(String id, String module) {
     Tenant tenant = tenants.get(id);
     if (tenant == null) {
-      return USER; // Indicates tenant not found
+      return "Tenant " + id + " not found";
     }
-    if (tenant.isEnabled(module)) {
-      tenant.disableModule(module);
-      return OK;
+    if (!tenant.isEnabled(module)) {
+      return "Module " + module + " not found for tenant " + id ;
+    } else if ( !checkNoDependency(tenant, module)) {
+      return "Can not delete module " + module + " is in use";
     } else {
-      return NOT_FOUND; // tenant ok, but no such module
+      tenant.disableModule(module);
+      return "";
     }
   }
 

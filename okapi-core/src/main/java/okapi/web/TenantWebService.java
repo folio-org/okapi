@@ -249,13 +249,13 @@ public class TenantWebService {
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
       logger.debug("disablemodule t=" + id + " m=" + module);
-      ErrorType err = tenants.disableModule(id, module);
-      if (err == OK) {
+      String err = tenants.disableModule(id, module);
+      if (err.equals("")) {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
             responseText(ctx, 204).end();
-          } else if (res.getType() == NOT_FOUND) {
+          } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
             logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
             responseError(ctx, 404, res.cause());
           } else {
@@ -264,15 +264,12 @@ public class TenantWebService {
           }
         });
 
-      } else if (err == USER) {
-        logger.error("disableModule: tenantManager: USER");
-        responseText(ctx, 404).end("Tenant " + id + " not found (disableModule)");
-      } else if (err == NOT_FOUND) {
-        logger.error("disableModule: tenantManager: NOT_FOUND");
-        responseText(ctx, 404).end("Tenant " + id + " has no module " + module + " (disableModule)");
+      } else if (err.contains("not found")) {
+        logger.error("disableModule: " + err);
+        responseText(ctx, 404).end(err);
       } else {
-        logger.error("disableModule: tenantManager: Other error");
-        responseText(ctx, 500).end();
+        logger.error("disableModule: " + err);
+        responseText(ctx, 400).end(err);
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
