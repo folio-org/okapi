@@ -89,7 +89,7 @@ Okapi's own web services must, and other modules should adhere to these
 guidelines as far as practically possible.
 
  * No trailing slashes
- * Always expect and return proper Json objects, or lists of such
+ * Always expect and return proper JSON objects, or lists of such
  * The primary key should always be called 'id'
 
 We try to make the Okapi code exemplary, so that it would serve well as
