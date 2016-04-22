@@ -161,7 +161,7 @@ public class TenantManager {
   }
 
   /** 
-   * Check that no enabled moduyle depends any service provided by this module.
+   * Check that no enabled module depends on any service provided by this module.
    * 
    * @param tenant
    * @param module
