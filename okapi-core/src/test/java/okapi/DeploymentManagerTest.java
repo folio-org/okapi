@@ -10,6 +10,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import okapi.bean.DeploymentDescriptor;
+import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
 import okapi.deployment.DeploymentManager;
 import org.junit.After;
@@ -24,10 +25,12 @@ public class DeploymentManagerTest {
   
   Vertx vertx;
   Async async;
+  Ports ports;
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+    ports = new Ports(9131, 9140);
   }
 
   @After
@@ -42,12 +45,12 @@ public class DeploymentManagerTest {
   public void test1(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", 9131, 9140);
+    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setCmdlineStart(
             "java -Dport=%p -jar "
                     +"../okapi-sample-module/target/okapi-sample-module-fat.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", "sample", descriptor);
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
@@ -66,12 +69,12 @@ public class DeploymentManagerTest {
   public void test2(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", 9131, 9140);
+    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setCmdlineStart(
             "java -Dport=%p -jar "
                     +"../okapi-sample-module/target/unknown.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", "unknown", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());
       if (res1.failed()) {

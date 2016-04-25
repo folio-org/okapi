@@ -38,7 +38,9 @@ public class DeploymentWebService {
           }
         } else {
           final String s = Json.encodePrettily(res.result());
-          responseJson(ctx, 201).end(s);
+          responseJson(ctx, 201)
+                  .putHeader("Location", ctx.request().uri() + "/" + res.result().getId())
+                  .end(s);
         }
       });
     } catch (DecodeException ex) {
@@ -57,6 +59,33 @@ public class DeploymentWebService {
         }
       } else {
         responseText(ctx, 204).end();
+      }
+    });
+  }
+
+  public void list(RoutingContext ctx) {
+    md.list(res -> {
+      if (res.failed()) {
+        responseError(ctx, 500, res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseText(ctx, 200).end(s);
+      }
+    });
+  }
+
+  public void get(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+    md.get(id, res -> {
+      if (res.failed()) {
+        if (res.getType() == NOT_FOUND) {
+          responseError(ctx, 404, res.cause());
+        } else {
+          responseError(ctx, 500, res.cause());
+        }
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseText(ctx, 200).end(s);
       }
     });
   }

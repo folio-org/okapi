@@ -40,11 +40,14 @@ public class ModuleTest {
   private String locationSample2;
   private String locationSample3;
   private String locationSample4;
+  private String locationSample5;
   private String locationAuth = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private int port = Integer.parseInt(System.getProperty("port", "9130"));
+
 
   public ModuleTest() {
   }
@@ -60,6 +63,7 @@ public class ModuleTest {
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
+    RestAssured.port = port;
   }
 
   @After
@@ -119,18 +123,24 @@ public class ModuleTest {
       }).end();
       return;
     }
+    if (locationSample5 != null) {
+      httpClient.delete(port, "localhost", locationSample5, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSample5 = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
     vertx.close(x -> {
       async.complete();
     });
   }
 
-  private int port = Integer.parseInt(System.getProperty("port", "9130"));
-
   @Test
   public void test_sample(TestContext context) {
     async = context.async();
-
-    RestAssured.port = port;
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
             .assumingBaseUri("https://okapi.cloud");
@@ -696,6 +706,64 @@ public class ModuleTest {
     c.given()
             .header("Content-Type", "application/json")
             .body(doc17).put(locationSample4).then().statusCode(200);
+    async.complete();
+  }
+
+  @Test
+  public void testDeploy(TestContext context) {
+    async = context.async();
+
+    Response r;
+
+    given().get("/_/deploy/module")
+           .then().statusCode(200)
+           .body(equalTo("[ ]"));
+
+    given().get("/_/deploy/module/not_found")
+           .then().statusCode(404);
+
+    final String doc1 = "{" + LS
+            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }" + LS
+            + "}";
+    final String doc2 = "{" + LS
+            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"url\" : \"http://myhost.index:9131\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }" + LS
+            + "}";
+
+    r = given().header("Content-Type", "application/json")
+           .body(doc1).post("/_/deploy/module")
+           .then().statusCode(201)
+           .body(equalTo(doc2))
+           .extract().response();
+    locationSample5 = r.getHeader("Location");
+
+    given().get(locationSample5)
+         .then().statusCode(200)
+         .body(equalTo(doc2));
+
+    given().get("/_/deploy/module")
+         .then().statusCode(200)
+         .body(equalTo("[ " + doc2 + " ]"));
+
+    given().delete(locationSample5).then().statusCode(204);
+    locationSample5 = null;
+
+    given().get("/_/deploy/module")
+           .then().statusCode(200)
+           .body(equalTo("[ ]"));
+
     async.complete();
   }
 }

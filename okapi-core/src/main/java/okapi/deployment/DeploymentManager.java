@@ -7,7 +7,9 @@ package okapi.deployment;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.ModuleHandle;
 import okapi.bean.Ports;
@@ -24,10 +26,10 @@ public class DeploymentManager {
   Ports ports;
   String host;
 
-  public DeploymentManager(Vertx vertx, String host, int port_start, int port_end) {
+  public DeploymentManager(Vertx vertx, String host, Ports ports) {
     this.vertx = vertx;
     this.host = host;
-    this.ports = new Ports(port_start, port_end);
+    this.ports = ports;
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
@@ -50,8 +52,8 @@ public class DeploymentManager {
     mh.start(future -> {
       System.out.println("DeploymentManager:deploy2");
       if (future.succeeded()) {
-        DeploymentDescriptor md2 = new DeploymentDescriptor(id, url,
-                md1.getDescriptor(), mh);
+        DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
+                url, md1.getDescriptor(), mh);
         list.put(id, md2);
         fut.handle(new Success<>(md2));
       } else {
@@ -75,6 +77,22 @@ public class DeploymentManager {
           fut.handle(new Failure<>(INTERNAL, future.cause()));
         }
       });
+    }
+  }
+
+  public void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    List<DeploymentDescriptor> ml = new ArrayList<>();
+    for (String id : list.keySet()) {
+      ml.add(list.get(id));
+    }
+    fut.handle(new Success<>(ml));
+  }
+
+  public void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    if (!list.containsKey(id)) {
+      fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
+    } else {
+      fut.handle(new Success<>(list.get(id)));
     }
   }
 }

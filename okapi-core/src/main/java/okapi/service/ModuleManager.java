@@ -41,9 +41,9 @@ public class ModuleManager {
   private final Ports ports;
   final private Vertx vertx;
 
-  public ModuleManager(Vertx vertx, Modules modules, int port_start, int port_end) {
+  public ModuleManager(Vertx vertx, Modules modules, Ports ports) {
     this.vertx = vertx;
-    this.ports = new Ports(port_start, port_end);
+    this.ports = ports;
     this.modules = modules;
   }
 

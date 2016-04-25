@@ -24,6 +24,8 @@ import java.lang.management.ManagementFactory;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import okapi.bean.Modules;
+import okapi.bean.Ports;
+import okapi.deployment.DeploymentManager;
 import okapi.web.HealthService;
 import okapi.service.ModuleStore;
 import okapi.web.ModuleWebService;
@@ -40,6 +42,7 @@ import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
 import static okapi.util.HttpResponse.*;
+import okapi.web.DeploymentWebService;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -58,6 +61,8 @@ public class MainVerticle extends AbstractVerticle {
   ModuleWebService moduleWebService;
   ProxyService proxyService;
   TenantWebService tenantWebService;
+  DeploymentWebService deploymentWebService;
+  Ports ports;
 
   // Little helper to get a config value
   // First from System (-D on command line),
@@ -75,6 +80,7 @@ public class MainVerticle extends AbstractVerticle {
     port = Integer.parseInt(conf("port", "9130", config));
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    ports = new Ports(port_start, port_end);
     storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
@@ -87,7 +93,7 @@ public class MainVerticle extends AbstractVerticle {
     TenantManager tman = new TenantManager();
 
     Modules modules = new Modules();
-    moduleManager = new ModuleManager(vertx, modules, port_start, port_end);
+    moduleManager = new ModuleManager(vertx, modules, ports);
     ModuleStore moduleStore = null;
     TimeStampStore timeStampStore = null;
 
@@ -111,6 +117,9 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
     proxyService = new ProxyService(vertx, modules, tman);
+
+    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
+    deploymentWebService = new DeploymentWebService(dm);
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
@@ -213,6 +222,11 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
     router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
     router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
+
+    router.postWithRegex("/_/deploy/module").handler(deploymentWebService::create);
+    router.delete("/_/deploy/module/:id").handler(deploymentWebService::delete);
+    router.getWithRegex("/_/deploy/module").handler(deploymentWebService::list);
+    router.get("/_/deploy/module/:id").handler(deploymentWebService::get);
 
     router.route("/_*").handler(this::NotFound);
 
