@@ -7,8 +7,8 @@ package okapi.deployment;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.util.ModuleHandle;
@@ -52,6 +52,7 @@ public class DeploymentManager {
       if (future.succeeded()) {
         DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
                 url, md1.getDescriptor(), mh);
+        md2.setNodeId(host);
         list.put(id, md2);
         fut.handle(new Success<>(md2));
       } else {
@@ -79,7 +80,7 @@ public class DeploymentManager {
   }
 
   public void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    List<DeploymentDescriptor> ml = new ArrayList<>();
+    List<DeploymentDescriptor> ml = new LinkedList<>();
     for (String id : list.keySet()) {
       ml.add(list.get(id));
     }
@@ -115,6 +116,7 @@ public class DeploymentManager {
       if (future.succeeded()) {
         DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
                 url, md1.getDescriptor(), mh);
+        md2.setNodeId(host);
         ModuleHandle mh0 = md0.getModuleHandle();
         mh0.stop(future0 -> {
           if (future0.succeeded()) {

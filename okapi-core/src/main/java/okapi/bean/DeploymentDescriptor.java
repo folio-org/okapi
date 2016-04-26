@@ -12,6 +12,7 @@ public class DeploymentDescriptor {
 
   private String id;
   private String name;
+  private String nodeId;
   private String url;
   private ProcessDeploymentDescriptor descriptor;
 
@@ -55,6 +56,14 @@ public class DeploymentDescriptor {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String getNodeId() {
+    return nodeId;
+  }
+
+  public void setNodeId(String nodeId) {
+    this.nodeId = nodeId;
   }
 
   public String getUrl() {

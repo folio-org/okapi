@@ -734,6 +734,7 @@ public class ModuleTest {
     final String doc2 = "{" + LS
             + "  \"id\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module\"," + LS
+            + "  \"nodeId\" : \"myhost.index\"," + LS
             + "  \"url\" : \"http://myhost.index:9131\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
@@ -770,6 +771,7 @@ public class ModuleTest {
     final String doc4 = "{" + LS
             + "  \"id\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module3\"," + LS
+            + "  \"nodeId\" : \"myhost.index\"," + LS
             + "  \"url\" : \"http://myhost.index:9132\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "

@@ -43,6 +43,8 @@ import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
 import static okapi.util.HttpResponse.*;
 import okapi.deployment.DeploymentWebService;
+import okapi.discovery.DiscoveryManager;
+import okapi.discovery.DiscoveryService;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -62,6 +64,7 @@ public class MainVerticle extends AbstractVerticle {
   ProxyService proxyService;
   TenantWebService tenantWebService;
   DeploymentWebService deploymentWebService;
+  DiscoveryService discoveryService;
   Ports ports;
 
   // Little helper to get a config value
@@ -120,6 +123,9 @@ public class MainVerticle extends AbstractVerticle {
 
     DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
     deploymentWebService = new DeploymentWebService(dm);
+
+    DiscoveryManager discoveryManager = new DiscoveryManager();
+    discoveryService = new DiscoveryService(discoveryManager);
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
@@ -228,6 +234,12 @@ public class MainVerticle extends AbstractVerticle {
     router.getWithRegex("/_/deploy/module").handler(deploymentWebService::list);
     router.get("/_/deploy/module/:id").handler(deploymentWebService::get);
     router.put("/_/deploy/module/:id").handler(deploymentWebService::update);
+
+    router.postWithRegex("/_/discovery/module").handler(discoveryService::create);
+    router.delete("/_/deploy/discovery/:id/:nodeid").handler(discoveryService::delete);
+    router.get("/_/discovery/module/:id/:nodeid").handler(discoveryService::get);
+    router.get("/_/discovery/module/:id").handler(discoveryService::getId);
+    router.getWithRegex("/_/discovery/module").handler(discoveryService::getAll);
 
     router.route("/_*").handler(this::NotFound);
 
