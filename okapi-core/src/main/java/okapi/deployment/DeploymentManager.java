@@ -48,9 +48,7 @@ public class DeploymentManager {
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
             ports, use_port);
     ModuleHandle mh = pmh;
-    System.out.println("DeploymentManager:deploy1");
     mh.start(future -> {
-      System.out.println("DeploymentManager:deploy2");
       if (future.succeeded()) {
         DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
                 url, md1.getDescriptor(), mh);
@@ -95,4 +93,46 @@ public class DeploymentManager {
       fut.handle(new Success<>(list.get(id)));
     }
   }
+
+  public void update(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    String id = md1.getId();
+    if (!list.containsKey(id)) {
+      fut.handle(new Failure<>(USER, "not found: " + id));
+      return;
+    }
+    DeploymentDescriptor md0 = list.get(id);
+    int use_port = ports.get();
+    if (use_port == -1) {
+      fut.handle(new Failure<>(INTERNAL, "all ports in use"));
+      return;
+    }
+    String url = "http://" + host + ":" + use_port;
+    ProcessDeploymentDescriptor descriptor = md1.getDescriptor();
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
+            ports, use_port);
+    ModuleHandle mh = pmh;
+    mh.start(future -> {
+      if (future.succeeded()) {
+        DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
+                url, md1.getDescriptor(), mh);
+        ModuleHandle mh0 = md0.getModuleHandle();
+        mh0.stop(future0 -> {
+          if (future0.succeeded()) {
+            list.replace(id, md2);
+            fut.handle(new Success<>(md2));
+          } else {
+            // could not stop existing module. Return cause of it
+            mh.stop(future1 -> {
+              // we don't care whether stop of new module fails
+              fut.handle(new Failure<>(INTERNAL, future0.cause()));
+            });
+          }
+        });
+      } else {
+        ports.free(use_port);
+        fut.handle(new Failure<>(INTERNAL, future.cause()));
+      }
+    });
+  }
+
 }

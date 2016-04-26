@@ -757,6 +757,40 @@ public class ModuleTest {
          .then().statusCode(200)
          .body(equalTo("[ " + doc2 + " ]"));
 
+    final String doc3 = "{" + LS
+          + "  \"id\" : \"sample-module5\"," + LS
+          + "  \"name\" : \"sample module3\"," + LS
+          + "  \"descriptor\" : {" + LS
+          + "    \"cmdlineStart\" : "
+          + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+          + "    \"cmdlineStop\" : null" + LS
+          + "  }" + LS
+          + "}";
+
+    final String doc4 = "{" + LS
+            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"name\" : \"sample module3\"," + LS
+            + "  \"url\" : \"http://myhost.index:9132\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }" + LS
+            + "}";
+
+    given().header("Content-Type", "application/json")
+           .body(doc3).put(locationSample5)
+           .then().statusCode(200)
+           .body(equalTo(doc4));
+
+    given().get(locationSample5)
+         .then().statusCode(200)
+         .body(equalTo(doc4));
+
+    given().get("/_/deploy/module")
+         .then().statusCode(200)
+         .body(equalTo("[ " + doc4 + " ]"));
+
     given().delete(locationSample5).then().statusCode(204);
     locationSample5 = null;
 
