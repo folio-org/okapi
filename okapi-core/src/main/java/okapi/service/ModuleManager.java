@@ -11,7 +11,7 @@ import okapi.bean.ModuleDescriptor;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Modules;
 import okapi.bean.Ports;
-import okapi.bean.ProcessModuleHandle;
+import okapi.util.ProcessModuleHandle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;

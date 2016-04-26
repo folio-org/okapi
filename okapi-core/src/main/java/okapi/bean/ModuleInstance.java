@@ -5,6 +5,8 @@
  */
 package okapi.bean;
 
+import okapi.util.ProcessModuleHandle;
+
 public class ModuleInstance {
 
   ModuleDescriptor md;

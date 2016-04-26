@@ -3,8 +3,9 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.bean;
+package okapi.util;
 
+import okapi.util.ModuleHandle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -17,6 +18,8 @@ import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import okapi.bean.Ports;
+import okapi.bean.ProcessDeploymentDescriptor;
 
 public class ProcessModuleHandle implements ModuleHandle {
 

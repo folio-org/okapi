@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.web;
+package okapi.deployment;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;

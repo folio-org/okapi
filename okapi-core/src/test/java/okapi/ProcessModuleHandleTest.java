@@ -5,9 +5,9 @@
  */
 package okapi;
 
-import okapi.bean.ModuleHandle;
+import okapi.util.ModuleHandle;
 import okapi.bean.ProcessDeploymentDescriptor;
-import okapi.bean.ProcessModuleHandle;
+import okapi.util.ProcessModuleHandle;
 import org.junit.Test;
 
 import io.vertx.core.Vertx;

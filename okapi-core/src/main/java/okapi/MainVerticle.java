@@ -42,7 +42,7 @@ import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
 import static okapi.util.HttpResponse.*;
-import okapi.web.DeploymentWebService;
+import okapi.deployment.DeploymentWebService;
 
 public class MainVerticle extends AbstractVerticle {
 

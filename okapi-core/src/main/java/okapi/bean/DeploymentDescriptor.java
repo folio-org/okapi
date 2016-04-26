@@ -5,6 +5,7 @@
  */
 package okapi.bean;
 
+import okapi.util.ModuleHandle;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class DeploymentDescriptor {
