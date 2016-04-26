@@ -203,6 +203,53 @@ body is merged to the final response header set.
 other headers that should be visible in the final response is merged
 into the final response header set.
 
+### Versioning and Dependencies
+
+Modules can provide one or more interfaces, and can consume interfaces
+provided by other modules. The interfaces have versions, and dependencies
+can require given versions. Okapi will check dependencies and versions when
+ever a module is deployed, and also when a module is enabled for a tenant.
+
+Note that we can have multiple modules providing the same interface. These
+can be deployed in Okapi all right, but only one such module can be enabled
+for any given tenant at a given time. For example, we can have two ways to
+manage our patrons, one based on a local database, one talking to an external
+system. The installation can know both, but each tenant must choose one or
+the other.
+
+
+#### Version numbers
+
+We use a 3-part versioning scheme, like 3.1.41
+
+The first number is the major version of the interface. It needs to be
+incremented when ever making a change that is not strictly backwards
+compatible, for example removing functionality or changing semantics.
+Okapi will require that the major version number matches exactly what
+is required.
+
+The second number is the minor version of the interface. It needs to be
+incremented with compatible changes are made, for example adding new
+functionality or optional fields.  Okapi will check that the module
+providing the service provides at least the required minor number.
+
+The third number is the software version. It should be incremented on changes
+that do not affect the interface, for example fixing bugs.
+
+If a module requires an interface 3.1.41, it will accept
+* 3.1.41  - same version
+* 3.1.68  - same interface, later software version
+* 3.2.8   - Higher minor version, compatible interfaces.
+
+But it will reject
+* 2.2.2   - Different major version
+* 4.4.4   - Different major version
+* 3.0.99  - Lesser minor version
+* 3.1.27  - Too small software version
+
+
+
+
 ### Open Issues
 
 #### Security
@@ -517,6 +564,11 @@ cat > /tmp/samplemodule.json <<END
 {
   "id" : "sample-module",
   "name" : "okapi sample module",
+  "provides" : [ {
+    "id" : "sample",
+    "version" : "1.2.3"
+   } ],
+  "requires" : null,
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
     "cmdlineStop" : null
@@ -531,10 +583,12 @@ cat > /tmp/samplemodule.json <<END
 END
 
 ```
+
+
 The module descriptor tells Okapi that it needs to start the given
 process to deploy the module. If we wanted to access a process that is 
-already running, we could pass a null descriptor, and add a `url` after
-the name.
+already running, we could pass a null descriptor, and add a field called `url`
+after the name.
 
 The routingEntries tell that the module
 is interested in GET and POST requests to the /sample path and nothing
@@ -556,7 +610,7 @@ be helpful and say something about it being url-encoded, which will confuse
 the Java libraries and result in a "500 - Internal Error".
 
 We also added the "-D -" option to make curl display all response
-headers.
+headers, and a -w '\n' to output an extra newline for readability.
 
 You should see something like this
 ```
@@ -568,6 +622,11 @@ Content-Length: 369
   "id" : "sample-module",
   "name" : "okapi sample module",
   "url" : null,
+  "provides" : [ {
+    "id" : "sample",
+    "version" : "1.2.3"
+  } ],
+  "requires" : null,
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
     "cmdlineStop" : null
@@ -612,6 +671,14 @@ cat > /tmp/authmodule.json <<END
 {
   "id" : "auth",
   "name" : "auth",
+  "provides" : [ {
+    "id" : "auth",
+    "version" : "3.4.5"
+  } ],
+  "requires" : [ {
+    "id" : "sample",
+    "version" : "1.2.0"
+  } ],
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
     "cmdlineStop" : null
@@ -630,6 +697,11 @@ cat > /tmp/authmodule.json <<END
 }
 END
 ```
+
+For the sake of an example, we specify that the auth module requires
+the sample module to be available, and at least version 1.2.0. You can
+try to see what happens if you require different versions, like 0.9.9,
+1.1.0, 1.3.9, or 2.0.1.
 
 Here we have two routing entries. The second says that this module is
 interested in POST requests to the /login path. This is what we use for
@@ -661,6 +733,14 @@ Content-Length: 421
   "id" : "auth",
   "name" : "auth",
   "url" : null,
+  "provides" : [ {
+    "id" : "auth",
+    "version" : "3.4.5"
+  } ],
+  "requires" : [ {
+    "id" : "sample",
+    "version" : "1.2.0"
+  } ],
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
     "cmdlineStop" : null
