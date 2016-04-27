@@ -38,7 +38,7 @@ public class DiscoveryManager {
       SharedData shared = vertx.sharedData();
       shared.<String, String>getClusterWideMap("discoveryList", res -> {
         if (res.succeeded()) {
-          AsyncMap<String, String> map = res.result();
+          this.list = res.result();
           fut.handle(new Success<>());
         } else {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
@@ -54,20 +54,25 @@ public class DiscoveryManager {
     final String id = md.getId();
     DeploymentList dpl = new DeploymentList();
     list.get(id, resGet -> {
-      if (resGet.succeeded()) {
+      if (resGet.failed()) {
+        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+      } else {
         String val = resGet.result();
-        dpl.mdlist.addAll(Json.decodeValue(val, DeploymentList.class ).mdlist);
-      } // else... Presumably not found. We keep adding to the empty list
-      dpl.mdlist.add(md);
-      String newVal = Json.encodePrettily(dpl);
-      System.out.println("add: NewVal=" + newVal);
-      list.put(id, newVal, resPut-> {
-        if (resPut.succeeded()) {
-          fut.handle(new Success<>(md));
-        } else {
-          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+        if (val != null) {
+          dpl.mdlist.addAll(Json.decodeValue(val, DeploymentList.class).mdlist);
         }
-      });
+
+        dpl.mdlist.add(md);
+        String newVal = Json.encodePrettily(dpl);
+        System.out.println("add: NewVal=" + newVal);
+        list.put(id, newVal, resPut -> {
+          if (resPut.succeeded()) {
+            fut.handle(new Success<>(md));
+          } else {
+            fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+          }
+        });
+      }
     });
   }
 
@@ -125,12 +130,16 @@ public class DiscoveryManager {
   void get(String id, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.get(id, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
+        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        System.out.println("get: found " + val);
-        DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
-        fut.handle(new Success<>(dpl.mdlist));
+        if ( val == null ) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+        } else {
+          System.out.println("get: found " + val);
+          DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
+          fut.handle(new Success<>(dpl.mdlist));
+        }
       }
     });
   }

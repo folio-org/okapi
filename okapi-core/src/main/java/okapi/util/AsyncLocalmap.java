@@ -26,24 +26,20 @@ public class AsyncLocalmap<K,V> implements AsyncMap<K,V> {
 
   @Override
   public void get(K k, Handler<AsyncResult<V>> resultHandler) {
-    V v = map.get(k);
-    if ( v == null ) {
-      resultHandler.handle(new Failure<>(NOT_FOUND,""));
-    } else {
-      resultHandler.handle(new Success<>(v));
-    }
+    V v = map.get(k); // null if not found
+    resultHandler.handle(new Success<>(v));
   }
 
   @Override
   public void put(K k, V v, Handler<AsyncResult<Void>> completionHandler) {
     map.put(k, v);
-      completionHandler.handle(new Success<>());
+    completionHandler.handle(new Success<>());
   }
 
   @Override
   public void put(K k, V v, long ttl, Handler<AsyncResult<Void>> completionHandler) {
     map.put(k, v);
-      completionHandler.handle(new Success<>());
+    completionHandler.handle(new Success<>());
   }
 
   @Override
