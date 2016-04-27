@@ -23,6 +23,7 @@ import com.jayway.restassured.RestAssured;
 import static com.jayway.restassured.RestAssured.*;
 import static org.hamcrest.Matchers.*;
 import com.jayway.restassured.response.Response;
+import com.jayway.restassured.response.ValidatableResponse;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
@@ -41,6 +42,7 @@ public class ModuleTest {
   private String locationSample3;
   private String locationSample4;
   private String locationSample5;
+  private String locationDiscovery1;
   private String locationAuth = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
@@ -133,6 +135,17 @@ public class ModuleTest {
       }).end();
       return;
     }
+    if (locationDiscovery1 != null) {
+      httpClient.delete(port, "localhost", locationDiscovery1, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationDiscovery1 = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+
     vertx.close(x -> {
       async.complete();
     });
@@ -792,6 +805,17 @@ public class ModuleTest {
     given().get("/_/deploy/module")
          .then().statusCode(200)
          .body(equalTo("[ " + doc4 + " ]"));
+
+    ValidatableResponse then = given().header("Content-Type", "application/json")
+            .body(doc4).post("/_/discovery/module")
+            .then();
+    then.statusCode(201);
+    then.body(equalTo(doc4));
+    locationDiscovery1 = then.extract().header("Location");
+
+    then = given().delete(locationDiscovery1).then();
+    then.statusCode(204);
+    locationDiscovery1 = null;
 
     given().delete(locationSample5).then().statusCode(204);
     locationSample5 = null;

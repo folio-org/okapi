@@ -34,7 +34,8 @@ public class DiscoveryService {
         } else {
           final String s = Json.encodePrettily(res.result());
           responseJson(ctx, 201)
-                  .putHeader("Location", ctx.request().uri() + "/" + res.result().getId())
+                  .putHeader("Location", ctx.request().uri()
+                          + "/" + res.result().getId() + "/" + pmd.getNodeId())
                   .end(s);
         }
       });
