@@ -207,8 +207,8 @@ into the final response header set.
 
 Modules can provide one or more interfaces, and can consume interfaces
 provided by other modules. The interfaces have versions, and dependencies
-can require given versions. Okapi will check dependencies and versions when
-ever a module is deployed, and also when a module is enabled for a tenant.
+can require given versions. Okapi will check dependencies and versions
+whenever a module is deployed, and also when a module is enabled for a tenant.
 
 Note that we can have multiple modules providing the same interface. These
 can be deployed in Okapi all right, but only one such module can be enabled
@@ -223,25 +223,25 @@ the other.
 We use a 3-part versioning scheme, like 3.1.41
 
 The first number is the major version of the interface. It needs to be
-incremented when ever making a change that is not strictly backwards
+incremented whenever making a change that is not strictly backwards
 compatible, for example removing functionality or changing semantics.
 Okapi will require that the major version number matches exactly what
 is required.
 
 The second number is the minor version of the interface. It needs to be
-incremented with compatible changes are made, for example adding new
+incremented whenever compatible changes are made, for example adding new
 functionality or optional fields.  Okapi will check that the module
-providing the service provides at least the required minor number.
+providing the service does provide at least the required minor number.
 
 The third number is the software version. It should be incremented on changes
 that do not affect the interface, for example fixing bugs.
 
-If a module requires an interface 3.1.41, it will accept
+If a module requires an interface 3.1.41, it will accept:
 * 3.1.41  - same version
 * 3.1.68  - same interface, later software version
 * 3.2.8   - Higher minor version, compatible interfaces.
 
-But it will reject
+But it will reject:
 * 2.2.2   - Different major version
 * 4.4.4   - Different major version
 * 3.0.99  - Lesser minor version
@@ -448,7 +448,7 @@ It comes with two dummy modules that demonstrate different things.
 
 This is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
-what ever you posted.
+whatever you posted.
 
 Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
