@@ -61,7 +61,14 @@ public class DiscoveryManager {
         if (val != null) {
           dpl.mdlist.addAll(Json.decodeValue(val, DeploymentList.class).mdlist);
         }
-
+        Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
+        while (it.hasNext()) {
+          DeploymentDescriptor mdi = it.next();
+          if (mdi.getNodeId().equals(md.getNodeId())) {
+            fut.handle(new Failure<>(USER, "Duplicate node " +md.getNodeId()));
+            return;
+          }
+        }
         dpl.mdlist.add(md);
         String newVal = Json.encodePrettily(dpl);
         System.out.println("add: NewVal=" + newVal);
