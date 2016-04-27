@@ -812,6 +812,9 @@ public class ModuleTest {
     then.statusCode(201);
     then.body(equalTo(doc4));
     locationDiscovery1 = then.extract().header("Location");
+    given().header("Content-Type", "application/json")
+            .body(doc4).post("/_/discovery/module")
+            .then().statusCode(400);
 
     given().get(locationDiscovery1)
          .then().statusCode(200)
@@ -825,8 +828,15 @@ public class ModuleTest {
          .then().statusCode(500);
     // TODO - Can not list them yet
 
-    then = given().delete(locationDiscovery1).then();
-    then.statusCode(204);
+    given().delete(locationDiscovery1)
+      .then().statusCode(204);
+
+    given().delete(locationDiscovery1)
+      .then().statusCode(404);
+
+    given().get("/_/discovery/module/sample-module5")
+         .then().statusCode(404);
+
     locationDiscovery1 = null;
 
     given().delete(locationSample5).then().statusCode(204);

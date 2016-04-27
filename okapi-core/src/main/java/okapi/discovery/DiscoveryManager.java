@@ -71,7 +71,6 @@ public class DiscoveryManager {
         }
         dpl.mdlist.add(md);
         String newVal = Json.encodePrettily(dpl);
-        System.out.println("add: NewVal=" + newVal);
         list.put(id, newVal, resPut -> {
           if (resPut.succeeded()) {
             fut.handle(new Success<>(md));
@@ -89,7 +88,6 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        System.out.println("remove: found " + val);
         if ( val == null ) {
           fut.handle(new Failure<>(NOT_FOUND, id));
           return;
@@ -111,7 +109,6 @@ public class DiscoveryManager {
              });
             } else {
               String newVal = Json.encodePrettily(dpl);
-              System.out.println("remove: new " + newVal );
               list.put(id, newVal, resPut -> {
                 if (resPut.succeeded()) {
                   fut.handle(new Success<>());
@@ -134,7 +131,6 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(NOT_FOUND, id));
       } else {
         String val = resGet.result();
-        System.out.println("get: found " + val);
         DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
@@ -158,7 +154,6 @@ public class DiscoveryManager {
         if ( val == null ) {
           fut.handle(new Failure<>(NOT_FOUND, id));
         } else {
-          System.out.println("get: found " + val);
           DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
           fut.handle(new Success<>(dpl.mdlist));
         }
