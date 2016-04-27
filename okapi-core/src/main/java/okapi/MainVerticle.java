@@ -65,6 +65,7 @@ public class MainVerticle extends AbstractVerticle {
   TenantWebService tenantWebService;
   DeploymentWebService deploymentWebService;
   DiscoveryService discoveryService;
+  DiscoveryManager discoveryManager;
   Ports ports;
 
   // Little helper to get a config value
@@ -124,7 +125,7 @@ public class MainVerticle extends AbstractVerticle {
     DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
     deploymentWebService = new DeploymentWebService(dm);
 
-    DiscoveryManager discoveryManager = new DiscoveryManager();
+    discoveryManager = new DiscoveryManager();
     discoveryService = new DiscoveryService(discoveryManager);
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -177,11 +178,21 @@ public class MainVerticle extends AbstractVerticle {
   private void startTenants(Future<Void> fut) {
     this.tenantWebService.loadTenants(res -> {
       if (res.succeeded()) {
+        startDiscovery(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
+  }
+  private void startDiscovery(Future<Void> fut) {
+    this.discoveryManager.init(vertx, res -> {
+      if (res.succeeded()) {
         startListening(fut);
       } else {
         fut.fail(res.cause());
       }
     });
+
   }
 
   private void startListening(Future<Void> fut) {

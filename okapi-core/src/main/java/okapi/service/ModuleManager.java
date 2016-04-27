@@ -166,7 +166,7 @@ public class ModuleManager {
         modules.put(id, res.result());
         delete(prev_m, dres -> {
           if (dres.failed()) {
-            fut.handle(new Failure(dres.getType(), "Update: " + dres.cause().getMessage()));
+            fut.handle(new Failure<>(dres.getType(), "Update: " + dres.cause().getMessage()));
           } else {
             fut.handle(new Success<>());
           }

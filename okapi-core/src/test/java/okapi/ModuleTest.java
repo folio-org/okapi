@@ -813,6 +813,18 @@ public class ModuleTest {
     then.body(equalTo(doc4));
     locationDiscovery1 = then.extract().header("Location");
 
+    given().get(locationDiscovery1)
+         .then().statusCode(200)
+         .body(equalTo(doc4));
+
+    given().get("/_/discovery/module/sample-module5")
+         .then().statusCode(200)
+         .body(equalTo("[ " + doc4 + " ]"));
+
+    given().get("/_/discovery/module")
+         .then().statusCode(500);
+    // TODO - Can not list them yet
+
     then = given().delete(locationDiscovery1).then();
     then.statusCode(204);
     locationDiscovery1 = null;
