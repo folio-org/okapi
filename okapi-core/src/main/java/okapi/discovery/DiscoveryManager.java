@@ -79,25 +79,40 @@ public class DiscoveryManager {
   void remove(String id, String nodeId, Handler<ExtendedAsyncResult<Void>> fut) {
     list.get(id, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
+        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         System.out.println("remove: found " + val);
+        if ( val == null ) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+          return;
+        }
         DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
-        // TODO - If list gets empty, remove the whole thing
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
           if (md.getNodeId().equals(nodeId)) {
             it.remove();
-            String newVal = Json.encodePrettily(dpl.mdlist);
-            list.put(id, newVal, resPut -> {
-              if (resPut.succeeded()) {
-                fut.handle(new Success<>());
-              } else {
-                fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-              }
-            });
+            if (dpl.mdlist.isEmpty()) {
+             list.remove(id, resDel->{
+                if (resDel.succeeded()) {
+                  fut.handle(new Success<>());
+                } else {
+                  fut.handle(new Failure<>(INTERNAL, resDel.cause()));
+                }
+
+             });
+            } else {
+              String newVal = Json.encodePrettily(dpl);
+              System.out.println("remove: new " + newVal );
+              list.put(id, newVal, resPut -> {
+                if (resPut.succeeded()) {
+                  fut.handle(new Success<>());
+                } else {
+                  fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+                }
+              });
+            }
             return;
           }
         }

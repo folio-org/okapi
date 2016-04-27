@@ -54,7 +54,8 @@ public class AsyncLocalmap<K,V> implements AsyncMap<K,V> {
 
   @Override
   public void remove(K k, Handler<AsyncResult<V>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    map.remove(k);
+    resultHandler.handle(new Success<>());
   }
 
   @Override
