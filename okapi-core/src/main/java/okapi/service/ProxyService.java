@@ -24,6 +24,7 @@ import java.util.Iterator;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
+import static okapi.util.ErrorType.NOT_FOUND;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import static okapi.util.HttpResponse.*;
@@ -110,13 +111,16 @@ public class ProxyService {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           List<DeploymentDescriptor> l = res.result();
+          if (l.size() < 1) {
+            fut.handle(new Failure<>(NOT_FOUND,mi.getModuleDescriptor().getId()));
+            return;
+          }
           mi.setUrl(l.get(0).getUrl());
           resolveUrls(it, fut);
         }
       });
     }
   }
-
 
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
