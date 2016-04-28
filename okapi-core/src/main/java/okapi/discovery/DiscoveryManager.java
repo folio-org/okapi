@@ -31,7 +31,6 @@ public class DiscoveryManager {
     List<DeploymentDescriptor> mdlist = new ArrayList<>();
   }
 
-  LinkedHashMap<String, List<DeploymentDescriptor>> oldlist = new LinkedHashMap<>();
   AsyncMap<String, String> list = null;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
