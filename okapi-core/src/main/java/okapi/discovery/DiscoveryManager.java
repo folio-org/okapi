@@ -30,7 +30,7 @@ public class DiscoveryManager {
   AsyncMap<String, String> list = null;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
-    AsyncMapFactory.<String, String>create(vertx, res -> {
+    AsyncMapFactory.<String, String>create(vertx, "discoveryList", res -> {
       if (res.succeeded()) {
         this.list = res.result();
         fut.handle(new Success<>());

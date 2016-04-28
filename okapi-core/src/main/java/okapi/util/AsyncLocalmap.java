@@ -19,9 +19,9 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   LocalMap<K, V> map = null;
 
-  public AsyncLocalmap(Vertx vertx) {
+  public AsyncLocalmap(Vertx vertx, String mapName) {
     SharedData sd = vertx.sharedData();
-    this.map = sd.getLocalMap("mymap1");
+    this.map = sd.getLocalMap(mapName);
   }
 
   @Override

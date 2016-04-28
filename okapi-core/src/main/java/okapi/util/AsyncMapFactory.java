@@ -13,10 +13,11 @@ import static okapi.util.ErrorType.*;
 
 public class AsyncMapFactory {
 
-  public static <K, V> void create(Vertx vertx, Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
+  public static <K, V> void create(Vertx vertx, String mapName,
+          Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
     if (vertx.isClustered()) {
       SharedData shared = vertx.sharedData();
-      shared.<K, V>getClusterWideMap("discoveryList", res -> {
+      shared.<K, V>getClusterWideMap(mapName, res -> {
         if (res.succeeded()) {
           fut.handle(new Success<>(res.result()));
         } else {
@@ -24,7 +25,7 @@ public class AsyncMapFactory {
         }
       });
     } else {
-      AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx);
+      AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx, mapName);
       fut.handle(new Success(l));
     }
   }
