@@ -11,13 +11,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
-import static okapi.util.ErrorType.NOT_FOUND;
 
 /**
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap
  */
-public class AsyncLocalmap<K,V> implements AsyncMap<K,V> {
-  LocalMap<K,V> map = null;
+public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
+
+  LocalMap<K, V> map = null;
 
   public AsyncLocalmap(Vertx vertx) {
     SharedData sd = vertx.sharedData();

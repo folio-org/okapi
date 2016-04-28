@@ -10,14 +10,10 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.shareddata.AsyncMap;
-import io.vertx.core.shareddata.SharedData;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
-import okapi.util.AsyncLocalmap;
 import okapi.util.AsyncMapFactory;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -59,7 +55,7 @@ public class DiscoveryManager {
         while (it.hasNext()) {
           DeploymentDescriptor mdi = it.next();
           if (mdi.getNodeId().equals(md.getNodeId())) {
-            fut.handle(new Failure<>(USER, "Duplicate node " +md.getNodeId()));
+            fut.handle(new Failure<>(USER, "Duplicate node " + md.getNodeId()));
             return;
           }
         }
@@ -82,25 +78,25 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        if ( val == null ) {
+        if (val == null) {
           fut.handle(new Failure<>(NOT_FOUND, id));
           return;
         }
-        DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
+        DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
           if (md.getNodeId().equals(nodeId)) {
             it.remove();
             if (dpl.mdlist.isEmpty()) {
-             list.remove(id, resDel->{
+              list.remove(id, resDel -> {
                 if (resDel.succeeded()) {
                   fut.handle(new Success<>());
                 } else {
                   fut.handle(new Failure<>(INTERNAL, resDel.cause()));
                 }
 
-             });
+              });
             } else {
               String newVal = Json.encodePrettily(dpl);
               list.put(id, newVal, resPut -> {
@@ -125,7 +121,7 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(NOT_FOUND, id));
       } else {
         String val = resGet.result();
-        DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
+        DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
@@ -145,10 +141,10 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        if ( val == null ) {
+        if (val == null) {
           fut.handle(new Failure<>(NOT_FOUND, id));
         } else {
-          DeploymentList dpl = Json.decodeValue(val, DeploymentList.class );
+          DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
           fut.handle(new Success<>(dpl.mdlist));
         }
       }
