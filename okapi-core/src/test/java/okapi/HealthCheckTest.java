@@ -46,8 +46,8 @@ public class HealthCheckTest {
   public void testHealthCheck() {
     RestAssured.port = port;
 
-    given().get("/_/health").then().assertThat().statusCode(200);
-    given().get("/_/health2").then().assertThat().statusCode(404);
+    given().get("/_/proxy/health").then().assertThat().statusCode(200);
+    given().get("/_/proxy/health2").then().assertThat().statusCode(404);
   }
 
 }

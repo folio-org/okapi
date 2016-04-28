@@ -213,22 +213,23 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
-    router.postWithRegex("/_/modules").handler(moduleWebService::create);
-    router.delete("/_/modules/:id").handler(moduleWebService::delete);
-    router.get("/_/modules/:id").handler(moduleWebService::get);
-    router.getWithRegex("/_/modules").handler(moduleWebService::list);
-    router.put("/_/modules/:id").handler(moduleWebService::update);
 
-    router.postWithRegex("/_/tenants").handler(tenantWebService::create);
-    router.getWithRegex("/_/tenants").handler(tenantWebService::list);
-    router.get("/_/tenants/:id").handler(tenantWebService::get);
-    router.put("/_/tenants/:id").handler(tenantWebService::update);
-    router.delete("/_/tenants/:id").handler(tenantWebService::delete);
-    router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
-    router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-    router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
-    router.get("/_/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
-    router.getWithRegex("/_/health").handler(healthService::get);
+    router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
+    router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
+    router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
+    router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
+    router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
+
+    router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
+    router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
+    router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
+    router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
+    router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
+    router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
+    router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
+    router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
+    router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
+    router.getWithRegex("/_/proxy/health").handler(healthService::get);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
