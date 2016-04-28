@@ -18,6 +18,7 @@ import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.util.AsyncLocalmap;
+import okapi.util.AsyncMapFactory;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -34,20 +35,14 @@ public class DiscoveryManager {
   AsyncMap<String, String> list = null;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (vertx.isClustered()) {
-      SharedData shared = vertx.sharedData();
-      shared.<String, String>getClusterWideMap("discoveryList", res -> {
-        if (res.succeeded()) {
-          this.list = res.result();
-          fut.handle(new Success<>());
-        } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        }
-      });
-    } else {
-      this.list = new AsyncLocalmap<>(vertx);
-      fut.handle(new Success<>());
-    }
+    AsyncMapFactory.<String, String>create(vertx, res -> {
+      if (res.succeeded()) {
+        this.list = res.result();
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      }
+    });
   }
 
   void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
