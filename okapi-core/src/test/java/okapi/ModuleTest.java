@@ -523,12 +523,14 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"second sample module\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSample2Deployment).post("/_/discovery/modules")
             .then().log().ifError().statusCode(201).extract().response();
+    final String locationSample2Discovery = r.header("Location");
 
     final String docSample2Module = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
@@ -572,7 +574,7 @@ public class ModuleTest {
             .body(docSample3Deployment).post("/_/discovery/modules")
             .then().log().ifError().statusCode(201).extract().response();
 
-    final String doc14 = "{" + LS
+    final String docSample3Module = "{" + LS
             + "  \"id\" : \"sample-module3\"," + LS
             + "  \"name\" : \"sample-module3\"," + LS
             + "  \"routingEntries\" : [ {" + LS
@@ -595,7 +597,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
-            .body(doc14).post("/_/proxy/modules").then().statusCode(201)
+            .body(docSample3Module).post("/_/proxy/modules").then().statusCode(201)
             .extract().response();
     Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSample3Module = r.getHeader("Location");
@@ -662,6 +664,18 @@ public class ModuleTest {
             .then().statusCode(200)
             .body(equalTo(exp5));
     Assert.assertTrue(c.getLastReport().isEmpty());
+
+    // make sample 2 disappear from discovery!
+    System.out.println("About to delete " + locationSample2Discovery);
+    c = api.createRestAssured();
+    c.given().delete(locationSample2Discovery)
+            .then().statusCode(204);
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("Content-Type", "text/xml")
+            .get("/sample")
+            .then().statusCode(404); // because sample2 was removed
 
     c = api.createRestAssured();
     c.given().delete(locationTenantRoskilde)
