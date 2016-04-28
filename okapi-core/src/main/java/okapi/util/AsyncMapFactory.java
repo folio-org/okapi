@@ -26,7 +26,7 @@ public class AsyncMapFactory {
       });
     } else {
       AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx, mapName);
-      fut.handle(new Success(l));
+      fut.handle(new Success<>(l));
     }
   }
 }

@@ -201,27 +201,6 @@ public class ModuleWebService {
     });
   }
 
-  public void health(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-    moduleManager.health(id, res -> {
-      if (res.succeeded()) {
-        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
-      } else {
-        responseError(ctx, 500, res.cause());
-      }
-    });
-  }
-  
-  public void healthAll(RoutingContext ctx) {
-    moduleManager.health(res -> {
-      if (res.succeeded()) {
-        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
-      } else {
-        responseError(ctx, 500, res.cause());
-      }
-    });
-  }
-
   public void list(RoutingContext ctx) {
     moduleStore.getAll(res -> {
       if (res.succeeded()) {

@@ -34,6 +34,10 @@ public class DeploymentManager {
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getId();
+    if (id == null) {
+      fut.handle(new Failure<>(USER, "missing id"));
+      return;
+    }
     if (list.containsKey(id)) {
       fut.handle(new Failure<>(USER, "already deployed: " + id));
       return;

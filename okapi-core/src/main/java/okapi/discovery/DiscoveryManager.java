@@ -135,7 +135,7 @@ public class DiscoveryManager {
     });
   }
 
-  void get(String id, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  public void get(String id, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.get(id, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
@@ -154,4 +154,5 @@ public class DiscoveryManager {
   void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     fut.handle(new Failure<>(INTERNAL, "get not implemented"));
   }
+
 }

@@ -23,7 +23,6 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import okapi.bean.Modules;
 import okapi.bean.Ports;
 import okapi.deployment.DeploymentManager;
 import okapi.web.HealthService;
@@ -84,6 +83,7 @@ public class MainVerticle extends AbstractVerticle {
     port = Integer.parseInt(conf("port", "9130", config));
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    String nodeId = conf("nodeId", "localhost", config);
     ports = new Ports(port_start, port_end);
     storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
@@ -96,8 +96,7 @@ public class MainVerticle extends AbstractVerticle {
     TenantStore tenantStore = null;
     TenantManager tman = new TenantManager();
 
-    Modules modules = new Modules();
-    moduleManager = new ModuleManager(vertx, modules, ports);
+    moduleManager = new ModuleManager(vertx);
     ModuleStore moduleStore = null;
     TimeStampStore timeStampStore = null;
 
@@ -120,13 +119,14 @@ public class MainVerticle extends AbstractVerticle {
     }
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
-    proxyService = new ProxyService(vertx, modules, tman);
 
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
+    DeploymentManager dm = new DeploymentManager(vertx, nodeId, ports);
     deploymentWebService = new DeploymentWebService(dm);
 
     discoveryManager = new DiscoveryManager();
     discoveryService = new DiscoveryService(discoveryManager);
+
+    proxyService = new ProxyService(vertx, moduleManager, tman, discoveryManager);
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
@@ -229,8 +229,6 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
     router.get("/_/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
     router.getWithRegex("/_/health").handler(healthService::get);
-    router.get("/_/health/modules/:id").handler(moduleWebService::health);
-    router.getWithRegex("/_/health/modules").handler(moduleWebService::healthAll);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
@@ -240,17 +238,17 @@ public class MainVerticle extends AbstractVerticle {
     router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
     router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
 
-    router.postWithRegex("/_/deploy/module").handler(deploymentWebService::create);
-    router.delete("/_/deploy/module/:id").handler(deploymentWebService::delete);
-    router.getWithRegex("/_/deploy/module").handler(deploymentWebService::list);
-    router.get("/_/deploy/module/:id").handler(deploymentWebService::get);
-    router.put("/_/deploy/module/:id").handler(deploymentWebService::update);
+    router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
+    router.delete("/_/deployment/modules/:id").handler(deploymentWebService::delete);
+    router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
+    router.get("/_/deployment/modules/:id").handler(deploymentWebService::get);
+    router.put("/_/deployment/modules/:id").handler(deploymentWebService::update);
 
-    router.postWithRegex("/_/discovery/module").handler(discoveryService::create);
-    router.delete("/_/discovery/module/:id/:nodeid").handler(discoveryService::delete);
-    router.get("/_/discovery/module/:id/:nodeid").handler(discoveryService::get);
-    router.get("/_/discovery/module/:id").handler(discoveryService::getId);
-    router.getWithRegex("/_/discovery/module").handler(discoveryService::getAll);
+    router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
+    router.delete("/_/discovery/modules/:id/:nodeid").handler(discoveryService::delete);
+    router.get("/_/discovery/modules/:id/:nodeid").handler(discoveryService::get);
+    router.get("/_/discovery/modules/:id").handler(discoveryService::getId);
+    router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
 
     router.route("/_*").handler(this::NotFound);
 

@@ -6,9 +6,13 @@
 package okapi.util;
 
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
 public class HttpResponse {
+  private static Logger logger = LoggerFactory.getLogger("okapi");
+
   static public void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
     int code = 500;
     switch (t) {
@@ -22,6 +26,9 @@ public class HttpResponse {
   }
 
   static public void responseError(RoutingContext ctx, int code, Throwable cause) {
+    if (code < 200 || code >= 300) {
+      logger.error("HTTP response code=" + code + " cause=" + cause.getMessage());
+    }
     responseText(ctx, code).end(cause.getMessage());
   }
 
