@@ -108,7 +108,7 @@ Okapi's own web services must, and other modules should adhere to these
 guidelines as far as practically possible.
 
  * No trailing slashes
- * Always expect and return proper Json objects, or lists of such
+ * Always expect and return proper JSON objects, or lists of such
  * The primary key should always be called 'id'
 
 We try to make the Okapi code exemplary, so that it would serve well as
@@ -137,10 +137,10 @@ Okapi can find out where the service is running.
 can know where to route incoming requests
  * The service ID is enabled for some tenants.
 
-We assume some external management program will be making these requests. For
-testing, see the curl command-line examples later in this document. It can
-not be a proper Okapi module itself, because it needs to be running before
-any modules have been deployed.
+We assume some external management program will be making these requests.  It
+can not be a proper Okapi module itself, because it needs to be running before
+any modules have been deployed. For testing, see the curl command-line examples
+later in this document.
 
 ### Request Processing
 
@@ -238,6 +238,51 @@ body is merged to the final response header set.
  * An additional set of special headers (debug, monitoring) or any
 other headers that should be visible in the final response is merged
 into the final response header set.
+
+### Versioning and Dependencies
+
+Modules can provide one or more interfaces, and can consume interfaces
+provided by other modules. The interfaces have versions, and dependencies
+can require given versions. Okapi will check dependencies and versions
+whenever a module is deployed, and also when a module is enabled for a tenant.
+
+Note that we can have multiple modules providing the same interface. These
+can be deployed in Okapi all right, but only one such module can be enabled
+for any given tenant at a given time. For example, we can have two ways to
+manage our patrons, one based on a local database, one talking to an external
+system. The installation can know both, but each tenant must choose one or
+the other.
+
+
+#### Version numbers
+
+We use a 3-part versioning scheme, like 3.1.41
+
+The first number is the major version of the interface. It needs to be
+incremented whenever making a change that is not strictly backwards
+compatible, for example removing functionality or changing semantics.
+Okapi will require that the major version number matches exactly what
+is required.
+
+The second number is the minor version of the interface. It needs to be
+incremented whenever compatible changes are made, for example adding new
+functionality or optional fields.  Okapi will check that the module
+providing the service does provide at least the required minor number.
+
+The third number is the software version. It should be incremented on changes
+that do not affect the interface, for example fixing bugs.
+
+If a module requires an interface 3.1.41, it will accept:
+* 3.1.41  - same version
+* 3.1.68  - same interface, later software version
+* 3.2.8   - Higher minor version, compatible interfaces.
+
+But it will reject:
+* 2.2.2   - Different major version
+* 4.4.4   - Different major version
+* 3.0.99  - Lesser minor version
+* 3.1.27  - Too small software version
+
 
 ### Open Issues
 
@@ -438,7 +483,7 @@ It comes with two dummy modules that demonstrate different things.
 
 This is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
-what ever you posted.
+whatever you posted.
 
 Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
@@ -526,7 +571,7 @@ Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using the 'inmemory' storage. For MongoDB
 storage, add `-Dstorage=mongo` to the command-line.
-
+(TODO - Drop the mongo stuff?)
 
 At the moment Okapi does not know of any module or tenant. But it does
 have its own web services enabled. We can verify both by asking Okapi
@@ -570,8 +615,8 @@ END
 
 The module descriptor tells Okapi that it needs to start the given
 process to deploy the module. If we wanted to access a process that is 
-already running, we could pass a null descriptor, and add a `url` after
-the name.
+already running, we could pass a null descriptor, and add a field called `url`
+after the name.
 
 
 Now we will deploy the module:
@@ -626,6 +671,10 @@ okapi-sample-module, and that it has been assigned port 9131.
 You can ask Okapi to list deployed modules:
 ```
 curl -D -  -w '\n'  http://localhost:9130/_/deployment/modules
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 275
 
 [ {
   "id" : "sample-module",
@@ -698,9 +747,13 @@ be enabled for tenants.
 ```
 cat > /tmp/sampleproxy.json <<END
   {
-  "id" : "sample-module",
-  "name" : "okapi sample module",
-   "routingEntries" : [ {
+    "id" : "sample-module",
+    "name" : "okapi sample module",
+    "provides" : [ {
+      "id" : "sample",
+      "version" : "1.2.3"
+    } ],
+    "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
       "path" : "/sample",
       "level" : "30",
@@ -717,12 +770,15 @@ curl -w '\n' -X POST -D -   \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/sample-module
-Content-Length: 247
+Content-Length: 297
 
 {
   "id" : "sample-module",
   "name" : "okapi sample module",
-  "provides" : null,
+    "provides" : [ {
+      "id" : "sample",
+      "version" : "1.2.3"
+    } ],
   "requires" : null,
   "routingEntries" : [ {
     "methods" : [ "GET", "POST" ],
@@ -748,7 +804,7 @@ module, then we tell the discovery where it lives:
 cat > /tmp/authdeploy.json <<END
 {
   "id" : "auth",
-  "name" : "okapi auth module",
+  "name" : "auth",
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
     "cmdlineStop" : null
@@ -774,13 +830,20 @@ curl -w '\n' -D -  \
 ```
 
 Finally we tell the proxying module about it. This is a bit different, we add
-more routing info:
-
+version dependencies and more routing info:
 ```
 cat > /tmp/authmodule.json <<END
 {
   "id" : "auth",
   "name" : "auth",
+  "provides" : [ {
+    "id" : "auth",
+    "version" : "3.4.5"
+  } ],
+  "requires" : [ {
+    "id" : "sample",
+    "version" : "1.2.0"
+  } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
     "path" : "/",
@@ -795,6 +858,11 @@ cat > /tmp/authmodule.json <<END
 }
 END
 ```
+
+For the sake of an example, we specify that the auth module requires
+the sample module to be available, and at least version 1.2.0. You can
+try to see what happens if you require different versions, like 0.9.9,
+1.1.0, 1.3.9, or 2.0.1.
 
 Here we have two routing entries. The second says that this module is
 interested in POST requests to the /login path. This is what we use for
@@ -820,13 +888,20 @@ And should see
 ```
 HTTP/1.1 201 Created
 Location: /_/proxy/modules/auth
-Content-Length: 317
+Content-Length: 415
 
 {
  "id" : "auth",
   "name" : "auth",
-  "provides" : null,
-  "requires" : null,
+  "url" : null,
+  "provides" : [ {
+    "id" : "auth",
+    "version" : "3.4.5"
+  } ],
+  "requires" : [ {
+    "id" : "sample",
+    "version" : "1.2.0"
+  } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
     "path" : "/",

@@ -366,21 +366,32 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
 
-    final String doc7 = "{" + LS
+    
+    // Try to enable sample without the auth that it requires
+    final String docEnableWithoutDep = "{" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "}";
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docEnableWithoutDep).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(400);
+
+
+    final String docEnableAuth = "{" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc7).post("/_/proxy/tenants/" + okapiTenant + "/modules/")
-            .then().statusCode(404);
+            .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules/")
+            .then().statusCode(404);  // trailing slash is no good
 
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc7).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo(doc7));
+            .body(equalTo(docEnableAuth));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
@@ -395,48 +406,41 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo(exp1));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    final String exp2 = "{" + LS
+    final String expAuthEnabled = "{" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
-            .then().statusCode(200).body(equalTo(exp2));
+            .then().statusCode(200).body(equalTo(expAuthEnabled));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    final String doc8 = "{" + LS
+    final String docEnableSample = "{" + LS
             + "  \"id\" : \"sample-module\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc8).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo(doc8));
+            .body(equalTo(docEnableSample));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
-            .then().statusCode(404);
+            .then().statusCode(404); // trailing slash
 
     c = api.createRestAssured();
-    final String exp3 = "[ {" + LS
+    final String expEnabledBoth = "[ {" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}, {" + LS
             + "  \"id\" : \"sample-module\"" + LS
             + "} ]";
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo(exp3));
+            .then().statusCode(200).body(equalTo(expEnabledBoth));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    given().get("/_/test/reloadtenant/" + okapiTenant)
-            .then().statusCode(204);
 
-    c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo(exp3));
-    Assert.assertTrue(c.getLastReport().isEmpty());
-
-    String doc9 = "{" + LS
+    String docTenant = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
             + "  \"name\" : \"Roskilde-library\"," + LS
             + "  \"description\" : \"Roskilde bibliotek\"" + LS
@@ -444,14 +448,14 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc9).put("/_/proxy/tenants/" + okapiTenant)
+            .body(docTenant).put("/_/proxy/tenants/" + okapiTenant)
             .then().statusCode(200)
-            .body(equalTo(doc9));
+            .body(equalTo(docTenant));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200).body(equalTo(exp3));
+            .then().statusCode(200).body(equalTo(expEnabledBoth));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().get("/sample")
@@ -463,22 +467,22 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant).get("/sample")
             .then().statusCode(401);
 
-    final String doc10 = "{" + LS
+    final String docWrongLogin = "{" + LS
             + "  \"tenant\" : \"t1\"," + LS
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter37\"" + LS
             + "}";
 
-    given().header("Content-Type", "application/json").body(doc10)
+    given().header("Content-Type", "application/json").body(docWrongLogin)
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(401);
 
-    final String doc11 = "{" + LS
+    final String docLogin = "{" + LS
             + "  \"tenant\" : \"t1\"," + LS
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-    okapiToken = given().header("Content-Type", "application/json").body(doc11)
+    okapiToken = given().header("Content-Type", "application/json").body(docLogin)
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
@@ -537,15 +541,15 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSample2Module = r.getHeader("Location");
 
-    final String doc13 = "{" + LS
+    final String docEnableSample2 = "{" + LS
             + "  \"id\" : \"sample-module2\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc13).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo(doc13));
+            .body(equalTo(docEnableSample2));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     // 3rd sample module.. We only create it in discovery and give it same URL as
@@ -590,15 +594,15 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSample3Module = r.getHeader("Location");
 
-    final String doc15 = "{" + LS
+    final String docEnableSample3 = "{" + LS
             + "  \"id\" : \"sample-module3\"" + LS
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
-            .body(doc15).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
-            .body(equalTo(doc15));
+            .body(equalTo(docEnableSample3));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -621,7 +625,7 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("It works (XML) "));
 
     c = api.createRestAssured();
-    final String exp4 = "[ {" + LS
+    final String exp4Modules = "[ {" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}, {" + LS
             + "  \"id\" : \"sample-module\"" + LS
@@ -632,7 +636,7 @@ public class ModuleTest {
             + "} ]";
     c.given().get(locationTenantRoskilde + "/modules")
             .then().statusCode(200)
-            .body(equalTo(exp4));
+            .body(equalTo(exp4Modules));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
@@ -641,7 +645,7 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    final String exp5 = "[ {" + LS
+    final String exp3Modules = "[ {" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}, {" + LS
             + "  \"id\" : \"sample-module\"" + LS
@@ -650,7 +654,7 @@ public class ModuleTest {
             + "} ]";
     c.given().get(locationTenantRoskilde + "/modules")
             .then().statusCode(200)
-            .body(equalTo(exp5));
+            .body(equalTo(exp3Modules));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     // make sample 2 disappear from discovery!
@@ -695,9 +699,9 @@ public class ModuleTest {
             + "    \"cmdlineStop\" : null" + LS
             + "  }" + LS
             + "}";
-    // extra slash !
+
     given().header("Content-Type", "application/json")
-           .body(doc1).post("/_/deployment/modules/")
+           .body(doc1).post("/_/deployment/modules/")     // extra slash !
            .then().statusCode(404);
 
     final String doc2 = "{" + LS

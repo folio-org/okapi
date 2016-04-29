@@ -218,8 +218,8 @@ public class TenantWebService {
       final String module = td.getId();
       // TODO - Validate we know about that module!
       final long ts = getTimestamp();
-      ErrorType err = tenants.enableModule(id, module);
-      if (err == OK) {
+      String err = tenants.enableModule(id, module);
+      if (err == "") {
         tenantStore.enableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
@@ -229,11 +229,11 @@ public class TenantWebService {
           }
         });
 
-      } else if (err == NOT_FOUND) {
-        responseError(ctx, 404, "Tenant " + id + " not found (enableModule)");
-      } else {
-        responseError(ctx, 500, "Tenant " + id + " can not be enabled");
-      }
+      } else if (err.contains("not found")) {
+        responseText(ctx, 404).end(err);
+      } else { // TODO - handle this right 
+        responseText(ctx, 400).end(err);
+      } // Missing dependencies are bad requests...
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
     }
@@ -245,23 +245,25 @@ public class TenantWebService {
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
       logger.debug("disablemodule t=" + id + " m=" + module);
-      ErrorType err = tenants.disableModule(id, module);
-      if (err == OK) {
+      String err = tenants.disableModule(id, module);
+      if (err.equals("")) {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
             responseText(ctx, 204).end();
+          } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
+            logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
+            responseError(ctx, 404, res.cause());
           } else {
             responseError(ctx, res.getType(), res.cause());
           }
         });
-
-      } else if (err == USER) {
-        responseError(ctx, 404, "Tenant " + id + " not found (disableModule)");
-      } else if (err == NOT_FOUND) {
-        responseError(ctx, 404, "Tenant " + id + " has no module " + module + " (disableModule)");
+      } else if (err.contains("not found")) {
+        logger.error("disableModule: " + err);
+        responseText(ctx, 404).end(err);
       } else {
-        responseError(ctx, 500, "disableModule: tenantManager: Other error");
+        logger.error("disableModule: " + err);
+        responseText(ctx, 400).end(err);
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
