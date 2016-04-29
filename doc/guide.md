@@ -125,7 +125,7 @@ are to be defined at a later stage and will most likely be provided by
 an external module that can hook into a specific Service Provider
 authn/authz system.
 
-### Deployment and discovery
+### Deployment and Discovery
 
 Getting a service available for a tenant is a multi-step process:
 
@@ -603,7 +603,7 @@ structure of module metadata and POST it to Okapi
 ```
 cat > /tmp/sampledeploy.json <<END
 {
-  "id" : "sample-module",
+  "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
@@ -614,10 +614,7 @@ END
 ```
 
 The module descriptor tells Okapi that it needs to start the given
-process to deploy the module. If we wanted to access a process that is 
-already running, we could pass a null descriptor, and add a field called `url`
-after the name.
-
+process to deploy the module.
 
 Now we will deploy the module:
 
@@ -639,11 +636,13 @@ an extra newline after the response.
 You should see something like this
 ```
 HTTP/1.1 201 Created
-Location: /_/modules/sample-module
-Content-Length: 271
+Content-Type: application/json
+Location: /_/deployment/modules/localhost-9131
+Content-Length: 306
 
 {
-  "id" : "sample-module",
+  "instId" : "localhost-9131",
+  "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
@@ -652,16 +651,11 @@ Content-Length: 271
     "cmdlineStop" : null
   }
 }
-
 ```
 
-If you repeat the same request, you should now get an error
-```
-HTTP/1.1 400 Bad Request
-Content-Length: 31
-
-Already deployed: sample-module
-```
+Okapi has started the process and have given it an instance ID (instId) which is
+part of the Location header. Like other RESTful services the Location header can
+be used to identify the resource later.
 
 If you look at the output of
     ps axf | grep okapi
@@ -674,10 +668,11 @@ curl -D -  -w '\n'  http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 275
+Content-Length: 310
 
 [ {
-  "id" : "sample-module",
+  "instId" : "localhost-9131",
+  "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
@@ -687,9 +682,8 @@ Content-Length: 275
   }
 } ]
 ```
-(TODO - We will get a DeploymentId or something for this instance)
 
-Note that Okapi has added a nodeId and a url. You can check that the URL points
+Note that Okapi has added an instId and a url. You can check that the URL points
 to the running module:
 ```
 curl -D -  -w '\n' http://localhost:9131/sample
@@ -701,26 +695,25 @@ Content-Length: 8
 It works
 ```
 
-
 If we were running in a clustered environment, this step should be repeated
 for each node that should run the sample module. But we run these examples on
 a single machine setup, so it does not matter.
 
-You can access the sample module directly if you like, just as before.
-
 #### Adding the sample module to the discovery
 next we need to POST information about the sample module to the discovery service.
 The structure we post is actually the same as for the deployment, but now
-the important fields are the url and the id.  We could have saved the result of
+the important fields are the url and both instId and srvcId.
+We could have saved the result of
 the deployment POST, but we can also ask Okapi to repeat it for us:
 ```
 curl -s -o /tmp/samplediscovery.json \
-  http://localhost:9130/_/deployment/modules/sample-module
+  http://localhost:9130/_/deployment/modules/localhost-9131
 
 cat /tmp/samplediscovery.json
 
 {
-  "id" : "sample-module",
+  "instId" : "localhost-9131",
+  "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
@@ -742,7 +735,8 @@ curl -w '\n' -X POST -D - \
 
 #### Telling the proxy about the module
 Finally we need to inform the proxy module that we have a sample module that can
-be enabled for tenants. 
+be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
+we pass "sample-module" to it.
 
 ```
 cat > /tmp/sampleproxy.json <<END
@@ -803,7 +797,7 @@ module, then we tell the discovery where it lives:
 ```
 cat > /tmp/authdeploy.json <<END
 {
-  "id" : "auth",
+  "srvcId" : "auth",
   "name" : "auth",
   "descriptor" : {
     "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
@@ -1140,10 +1134,10 @@ curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample-module
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample-module/localhost
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/auth
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/sample-module
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample-module/localhost-9131
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9132
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9131
 
 ```
 Okapi responds to each of these with a simple
