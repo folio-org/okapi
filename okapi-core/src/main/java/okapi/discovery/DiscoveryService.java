@@ -47,12 +47,12 @@ public class DiscoveryService {
   public void delete(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     if (id == null) {
-      responseText(ctx, 400).end("id missing");
+      responseError(ctx, 400, "id missing");
       return;
     }
     final String nodeId = ctx.request().getParam("nodeid");
     if (nodeId == null) {
-      responseText(ctx, 400).end("nodeId missing");
+      responseError(ctx, 400, "nodeId missing");
       return;
     }
     dm.remove(id, nodeId, res -> {
@@ -67,12 +67,12 @@ public class DiscoveryService {
   public void get(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     if (id == null) {
-      responseText(ctx, 400).end("id missing");
+      responseError(ctx, 400, "id missing");
       return;
     }
     final String nodeId = ctx.request().getParam("nodeid");
     if (nodeId == null) {
-      responseText(ctx, 400).end("nodeId missing");
+      responseError(ctx, 400, "nodeId missing");
       return;
     }
     dm.get(id, nodeId, res -> {
@@ -88,7 +88,7 @@ public class DiscoveryService {
   public void getId(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     if (id == null) {
-      responseText(ctx, 400).end("id missing");
+      responseError(ctx, 400, "id missing");
       return;
     }
     dm.get(id, res -> {

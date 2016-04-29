@@ -26,10 +26,14 @@ public class HttpResponse {
   }
 
   static public void responseError(RoutingContext ctx, int code, Throwable cause) {
+    responseError(ctx, code, cause.getMessage());
+  }
+
+  static public void responseError(RoutingContext ctx, int code, String msg) {
     if (code < 200 || code >= 300) {
-      logger.error("HTTP response code=" + code + " cause=" + cause.getMessage());
+      logger.error("HTTP response code=" + code + " msg=" + msg);
     }
-    responseText(ctx, code).end(cause.getMessage());
+    responseText(ctx, code).end(msg);
   }
 
   static public HttpServerResponse responseText(RoutingContext ctx, int code) {

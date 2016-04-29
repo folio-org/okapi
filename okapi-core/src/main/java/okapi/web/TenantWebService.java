@@ -104,9 +104,9 @@ public class TenantWebService {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
-        responseText(ctx, 400).end("No Id in tenant");
+        responseError(ctx, 400, "No Id in tenant");
       } else if (!td.getId().matches("^[a-z0-9._-]+$")) {
-        responseText(ctx, 400).end("Invalid id");
+        responseError(ctx, 400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
@@ -129,7 +129,7 @@ public class TenantWebService {
             }
           });
         } else {
-          responseText(ctx, 400).end("Duplicate id " + id);
+          responseError(ctx, 400, "Duplicate id " + id);
         }
       }
     } catch (DecodeException ex) {
@@ -156,7 +156,7 @@ public class TenantWebService {
           }
         });
       } else {
-        responseText(ctx, 400).end("Failed to update descriptor " + id);
+        responseError(ctx, 400, "Failed to update descriptor " + id);
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
@@ -187,10 +187,8 @@ public class TenantWebService {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
         responseJson(ctx, 200).end(s);
-      } else if (res.getType() == NOT_FOUND) {
-        responseError(ctx, 404, res.cause());
       } else {
-        responseError(ctx, 500, res.cause());
+        responseError(ctx, res.getType(), res.cause());
       }
     });
   }
@@ -204,11 +202,11 @@ public class TenantWebService {
           sendReloadSignal(id, ts);
           responseText(ctx, 204).end();
         } else {
-          responseError(ctx, 500, res.cause());
+          responseError(ctx, res.getType(), res.cause());
         }
       });
     } else {
-      responseText(ctx, 404).end(id);
+      responseError(ctx, 404, id);
     }
   }
 
@@ -226,17 +224,15 @@ public class TenantWebService {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
             responseJson(ctx, 200).end(Json.encodePrettily(td));
-          } else if (res.getType() == NOT_FOUND) {
-            responseError(ctx, 404, res.cause());
           } else {
-            responseError(ctx, 500, res.cause());
+            responseError(ctx, res.getType(), res.cause());
           }
         });
 
       } else if (err == NOT_FOUND) {
-        responseText(ctx, 404).end("Tenant " + id + " not found (enableModule)");
+        responseError(ctx, 404, "Tenant " + id + " not found (enableModule)");
       } else {
-        responseText(ctx, 500).end();
+        responseError(ctx, 500, "Tenant " + id + " can not be enabled");
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
@@ -255,24 +251,17 @@ public class TenantWebService {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
             responseText(ctx, 204).end();
-          } else if (res.getType() == NOT_FOUND) {
-            logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
-            responseError(ctx, 404, res.cause());
           } else {
-            logger.error("disablemodule: storage other " + res.cause().getMessage());
-            responseError(ctx, 500, res.cause());
+            responseError(ctx, res.getType(), res.cause());
           }
         });
 
       } else if (err == USER) {
-        logger.error("disableModule: tenantManager: USER");
-        responseText(ctx, 404).end("Tenant " + id + " not found (disableModule)");
+        responseError(ctx, 404, "Tenant " + id + " not found (disableModule)");
       } else if (err == NOT_FOUND) {
-        logger.error("disableModule: tenantManager: NOT_FOUND");
-        responseText(ctx, 404).end("Tenant " + id + " has no module " + module + " (disableModule)");
+        responseError(ctx, 404, "Tenant " + id + " has no module " + module + " (disableModule)");
       } else {
-        logger.error("disableModule: tenantManager: Other error");
-        responseText(ctx, 500).end();
+        responseError(ctx, 500, "disableModule: tenantManager: Other error");
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
@@ -294,10 +283,8 @@ public class TenantWebService {
         }
         String s = Json.encodePrettily(ta);
         responseJson(ctx, 200).end(s);
-      } else if (res.getType() == NOT_FOUND) {
-        responseError(ctx, 404, res.cause());
       } else {
-        responseError(ctx, 500, res.cause());
+        responseError(ctx, res.getType(), res.cause());
       }
     });
   }
@@ -316,10 +303,8 @@ public class TenantWebService {
         } else {
           responseError(ctx, 404, res.cause());
         }
-      } else if (res.getType() == NOT_FOUND) {
-        responseError(ctx, 404, res.cause());
       } else {
-        responseError(ctx, 500, res.cause());
+        responseError(ctx, res.getType(), res.cause());
       }
     });
   }

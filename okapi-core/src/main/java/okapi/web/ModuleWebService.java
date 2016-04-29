@@ -18,7 +18,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
-import okapi.bean.HealthModule;
 import okapi.bean.ModuleDescriptorBrief;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
@@ -100,19 +99,15 @@ public class ModuleWebService {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       if (md.getId() == null || md.getId().isEmpty()) {
-        responseText(ctx, 400).end("No Id in module");
+        responseError(ctx, 400, "No Id in module");
       } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
-        responseText(ctx, 400).end("Invalid id");
+        responseError(ctx, 400, "Invalid id");
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
             logger.error("Failed to start service, will not update the DB. " + md);
             logger.error("Cause: " + cres.cause().getMessage());
-            if (cres.getType() == INTERNAL) {
-              responseError(ctx, 500, cres.cause());
-            } else { // must be some kind of bad request
-              responseError(ctx, 400, cres.cause());
-            }
+            responseError(ctx, cres.getType(), cres.cause());
           } else {
             moduleStore.insert(md, ires -> {
               if (ires.succeeded()) {
@@ -123,7 +118,7 @@ public class ModuleWebService {
                             .putHeader("Location", ctx.request().uri() + "/" + ires.result())
                             .end(s);
                   } else { // TODO - What to if this fails ??
-                    responseError(ctx, 500, sres.cause());
+                    responseError(ctx, sres.getType(), sres.cause());
                   }
                 });
               } else {
@@ -157,11 +152,7 @@ public class ModuleWebService {
       moduleManager.update(md, cres -> {
         if (cres.failed()) {
           logger.warn("Failed to update service, will not update the DB. " + md);
-          if (cres.getType() == NOT_FOUND) {
-            responseError(ctx, 404, cres.cause());
-          } else {
-            responseError(ctx, 500, cres.cause());
-          }
+          responseError(ctx, cres.getType(), cres.cause());
         } else {
           moduleStore.update(md, ires -> {
             if (ires.succeeded()) {
@@ -170,12 +161,11 @@ public class ModuleWebService {
                   final String s = Json.encodePrettily(md);
                   responseJson(ctx, 200).end(s);
                 } else { // TODO - What to do if this fails ??
-                  responseError(ctx, 500, sres.cause());
+                  responseError(ctx, sres.getType(), sres.cause());
                 }
               });
             } else {
-              logger.error("Module db update failed " + ires.cause().getMessage());
-              responseError(ctx, 500, ires.cause());
+              responseError(ctx, ires.getType(), ires.cause());
             }
           });
         }
@@ -193,10 +183,8 @@ public class ModuleWebService {
     moduleStore.get(id, res -> {
       if (res.succeeded()) {
         responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
-      } else if (res.getType() == NOT_FOUND) {
-        responseError(ctx, 404, res.cause());
-      } else { // must be internal error then
-        responseError(ctx, 500, res.cause());
+      } else {
+        responseError(ctx, res.getType(), res.cause());
       }
     });
   }
@@ -210,7 +198,7 @@ public class ModuleWebService {
         }
         responseJson(ctx, 200).end(Json.encodePrettily(ml));
       } else {
-        responseError(ctx, 500, res.cause());
+        responseError(ctx, res.getType(), res.cause());
       }
     });
     // moduleManager.listIds(ctx);
@@ -229,11 +217,7 @@ public class ModuleWebService {
       if (sres.failed()) {
         logger.error("delete (runtime) failed: " + sres.getType()
                 + ":" + sres.cause().getMessage());
-        if (sres.getType() == NOT_FOUND) {
-          responseError(ctx, 404, sres.cause());
-        } else {
-          responseError(ctx, 500, sres.cause());
-        }
+        responseError(ctx, sres.getType(), sres.cause());
       } else {
         moduleStore.delete(id, rres -> {
           if (rres.succeeded()) {
@@ -246,10 +230,8 @@ public class ModuleWebService {
                 responseError(ctx, 500, res.cause());
               }
             });
-          } else if (rres.getType() == NOT_FOUND) {
-            responseError(ctx, 404, rres.cause());
           } else {
-            responseError(ctx, 500, rres.cause());
+            responseError(ctx, rres.getType(), rres.cause());
           }
         });
       }
@@ -263,7 +245,7 @@ public class ModuleWebService {
       if (res.succeeded()) {
         responseText(ctx, 204).end();
       } else {
-        responseError(ctx, 500, res.cause());
+        responseError(ctx, res.getType(), res.cause());
       }
     });
   }
