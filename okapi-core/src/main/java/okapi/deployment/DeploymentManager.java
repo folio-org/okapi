@@ -33,14 +33,19 @@ public class DeploymentManager {
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    String id = md1.getId();
-    if (id == null) {
-      fut.handle(new Failure<>(USER, "missing id"));
+    /*
+    final String srvcId = md1.getSrvcId();
+    if (srvcId == null) {
+      fut.handle(new Failure<>(USER, "missing srvcId"));
       return;
     }
-    if (list.containsKey(id)) {
-      fut.handle(new Failure<>(USER, "already deployed: " + id));
-      return;
+*/
+    String id = md1.getInstId();
+    if (id != null) {
+      if (list.containsKey(id)) {
+        fut.handle(new Failure<>(USER, "already deployed: " + id));
+        return;
+      }
     }
     int use_port = ports.get();
     if (use_port == -1) {
@@ -48,16 +53,22 @@ public class DeploymentManager {
       return;
     }
     String url = "http://" + host + ":" + use_port;
+
+    if (id == null) {
+      id = host + "-" + use_port;
+      md1.setInstId(id);
+    }
     ProcessDeploymentDescriptor descriptor = md1.getDescriptor();
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
             ports, use_port);
     ModuleHandle mh = pmh;
     mh.start(future -> {
       if (future.succeeded()) {
-        DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
-                url, md1.getDescriptor(), mh);
+        DeploymentDescriptor md2
+                = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(), md1.getName(),
+                        url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
-        list.put(id, md2);
+        list.put(md2.getInstId(), md2);
         fut.handle(new Success<>(md2));
       } else {
         ports.free(use_port);
@@ -100,7 +111,7 @@ public class DeploymentManager {
   }
 
   public void update(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    String id = md1.getId();
+    String id = md1.getInstId();
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(USER, "not found: " + id));
       return;
@@ -118,8 +129,8 @@ public class DeploymentManager {
     ModuleHandle mh = pmh;
     mh.start(future -> {
       if (future.succeeded()) {
-        DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getName(),
-                url, md1.getDescriptor(), mh);
+        DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getSrvcId(),
+                md1.getName(), url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
         ModuleHandle mh0 = md0.getModuleHandle();
         mh0.stop(future0 -> {

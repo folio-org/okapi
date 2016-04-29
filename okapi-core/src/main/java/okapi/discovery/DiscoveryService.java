@@ -14,11 +14,17 @@ import okapi.bean.DeploymentDescriptor;
 import static okapi.util.HttpResponse.responseError;
 import static okapi.util.HttpResponse.responseJson;
 import static okapi.util.HttpResponse.responseText;
+import static okapi.util.HttpResponse.responseError;
+
+
 
 public class DiscoveryService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final DiscoveryManager dm;
+
+  private static final String INST_ID = "instid";
+  private static final String SRVC_ID = "srvcid";
 
   public DiscoveryService(DiscoveryManager dm) {
     this.dm = dm;
@@ -35,7 +41,8 @@ public class DiscoveryService {
           final String s = Json.encodePrettily(res.result());
           responseJson(ctx, 201)
                   .putHeader("Location", ctx.request().uri()
-                          + "/" + res.result().getId() + "/" + pmd.getNodeId())
+                          + "/" + res.result().getSrvcId()
+                          + "/" + res.result().getInstId())
                   .end(s);
         }
       });
@@ -45,17 +52,17 @@ public class DiscoveryService {
   }
 
   public void delete(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-    if (id == null) {
-      responseError(ctx, 400, "id missing");
+    final String instId = ctx.request().getParam(INST_ID);
+    if (instId == null) {
+      responseError(ctx, 400, "instId missing");
       return;
     }
-    final String nodeId = ctx.request().getParam("nodeid");
-    if (nodeId == null) {
-      responseError(ctx, 400, "nodeId missing");
+    final String srvcId = ctx.request().getParam(SRVC_ID);
+    if (srvcId == null) {
+      responseError(ctx, 400, "srvcId missing");
       return;
     }
-    dm.remove(id, nodeId, res -> {
+    dm.remove(srvcId, instId, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {
@@ -65,17 +72,17 @@ public class DiscoveryService {
   }
 
   public void get(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-    if (id == null) {
-      responseError(ctx, 400, "id missing");
+    final String instId = ctx.request().getParam(INST_ID);
+    if (instId == null) {
+      responseError(ctx, 400, "instId missing");
       return;
     }
-    final String nodeId = ctx.request().getParam("nodeid");
-    if (nodeId == null) {
-      responseError(ctx, 400, "nodeId missing");
+    final String srvcId = ctx.request().getParam(SRVC_ID);
+    if (srvcId == null) {
+      responseError(ctx, 400, "srvcId missing");
       return;
     }
-    dm.get(id, nodeId, res -> {
+    dm.get(srvcId, instId, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {
@@ -85,13 +92,13 @@ public class DiscoveryService {
     });
   }
 
-  public void getId(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
-    if (id == null) {
-      responseError(ctx, 400, "id missing");
+  public void getSrvcId(RoutingContext ctx) {
+    final String srvcId = ctx.request().getParam(SRVC_ID);
+    if (srvcId == null) {
+      responseError(ctx, 400, "instId missing");
       return;
     }
-    dm.get(id, res -> {
+    dm.get(srvcId, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {

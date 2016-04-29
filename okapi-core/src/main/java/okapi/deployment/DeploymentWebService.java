@@ -18,6 +18,7 @@ import static okapi.util.HttpResponse.responseText;
 public class DeploymentWebService {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final DeploymentManager md;
+  private final static String INST_ID = "instid";
 
   public DeploymentWebService(DeploymentManager md) {
     this.md = md;
@@ -33,7 +34,7 @@ public class DeploymentWebService {
         } else {
           final String s = Json.encodePrettily(res.result());
           responseJson(ctx, 201)
-                  .putHeader("Location", ctx.request().uri() + "/" + res.result().getId())
+                  .putHeader("Location", ctx.request().uri() + "/" + res.result().getInstId())
                   .end(s);
         }
       });
@@ -43,7 +44,7 @@ public class DeploymentWebService {
   }
 
   public void delete(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
+    final String id = ctx.request().getParam(INST_ID);
     md.undeploy(id, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
@@ -65,7 +66,7 @@ public class DeploymentWebService {
   }
 
   public void get(RoutingContext ctx) {
-    final String id = ctx.request().getParam("id");
+    final String id = ctx.request().getParam(INST_ID);
     md.get(id, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
@@ -80,9 +81,9 @@ public class DeploymentWebService {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
-      final String id = ctx.request().getParam("id");
-      if (!id.equals(pmd.getId())) {
-        responseError(ctx, 404, "id parameter does not match payload");
+      final String id = ctx.request().getParam(INST_ID);
+      if (!id.equals(pmd.getInstId())) {
+        responseError(ctx, 404, "instId parameter does not match payload");
         return;
       }
       md.update(pmd, res -> {

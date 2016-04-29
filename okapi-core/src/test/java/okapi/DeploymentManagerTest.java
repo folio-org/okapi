@@ -57,7 +57,7 @@ public class DeploymentManagerTest {
         async.complete();
       } else {
         assertEquals("http://myhost.index:9131", res1.result().getUrl());
-        dm.undeploy(res1.result().getId(), res2 -> {
+        dm.undeploy(res1.result().getInstId(), res2 -> {
           assertTrue(res2.succeeded());
           async.complete();
         });
@@ -80,7 +80,7 @@ public class DeploymentManagerTest {
       if (res1.failed()) {
         async.complete();
       } else {
-        dm.undeploy(res1.result().getId(), res2 -> {
+        dm.undeploy(res1.result().getInstId(), res2 -> {
           async.complete();
         });
       }

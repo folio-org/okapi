@@ -10,7 +10,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class DeploymentDescriptor {
 
-  private String id;
+  private String instId;
+  private String srvcId;
   private String name;
   private String nodeId;
   private String url;
@@ -22,32 +23,41 @@ public class DeploymentDescriptor {
   public DeploymentDescriptor() {
   }
 
-  public DeploymentDescriptor(String id, String name,
+  public DeploymentDescriptor(String instId, String srvcId, String name,
           String url,
           ProcessDeploymentDescriptor descriptor,
           ModuleHandle moduleHandle) {
-    this.id = id;
+    this.instId = instId;
+    this.srvcId = srvcId;
     this.name = name;
     this.url = url;
     this.descriptor = descriptor;
     this.moduleHandle = moduleHandle;
   }
 
-  public DeploymentDescriptor(String id, String name,
+  public DeploymentDescriptor(String instId, String name,
           ProcessDeploymentDescriptor descriptor) {
-    this.id = id;
+    this.instId = instId;
     this.name = name;
     this.url = null;
     this.descriptor = descriptor;
     this.moduleHandle = null;
   }
 
-  public String getId() {
-    return id;
+  public String getInstId() {
+    return instId;
   }
 
-  public void setId(String id) {
-    this.id = id;
+  public void setInstId(String id) {
+    this.instId = id;
+  }
+
+  public String getSrvcId() {
+    return srvcId;
+  }
+
+  public void setSrvcId(String srvcId) {
+    this.srvcId = srvcId;
   }
 
   public String getName() {

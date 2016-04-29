@@ -41,9 +41,19 @@ public class DiscoveryManager {
   }
 
   void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    final String id = md.getId();
+    final String srvcId = md.getSrvcId();
+    if (srvcId == null) {
+      fut.handle(new Failure<>(USER, "Needs srvc"));
+      return;
+
+    }
+    final String instId = md.getInstId();
+    if (instId == null) {
+      fut.handle(new Failure<>(USER, "Needs instId"));
+      return;
+    }
     DeploymentList dpl = new DeploymentList();
-    list.get(id, resGet -> {
+    list.get(srvcId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
@@ -54,14 +64,14 @@ public class DiscoveryManager {
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor mdi = it.next();
-          if (mdi.getNodeId().equals(md.getNodeId())) {
-            fut.handle(new Failure<>(USER, "Duplicate node " + md.getNodeId()));
+          if (mdi.getInstId().equals(instId)) {
+            fut.handle(new Failure<>(USER, "Duplicate instance " + instId));
             return;
           }
         }
         dpl.mdlist.add(md);
         String newVal = Json.encodePrettily(dpl);
-        list.put(id, newVal, resPut -> {
+        list.put(srvcId, newVal, resPut -> {
           if (resPut.succeeded()) {
             fut.handle(new Success<>(md));
           } else {
@@ -72,24 +82,24 @@ public class DiscoveryManager {
     });
   }
 
-  void remove(String id, String nodeId, Handler<ExtendedAsyncResult<Void>> fut) {
-    list.get(id, resGet -> {
+  void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
+    list.get(srvcId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         if (val == null) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
+          fut.handle(new Failure<>(NOT_FOUND, srvcId));
           return;
         }
         DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (md.getNodeId().equals(nodeId)) {
+          if (md.getInstId().equals(instId)) {
             it.remove();
             if (dpl.mdlist.isEmpty()) {
-              list.remove(id, resDel -> {
+              list.remove(srvcId, resDel -> {
                 if (resDel.succeeded()) {
                   fut.handle(new Success<>());
                 } else {
@@ -99,7 +109,7 @@ public class DiscoveryManager {
               });
             } else {
               String newVal = Json.encodePrettily(dpl);
-              list.put(id, newVal, resPut -> {
+              list.put(srvcId, newVal, resPut -> {
                 if (resPut.succeeded()) {
                   fut.handle(new Success<>());
                 } else {
@@ -110,39 +120,39 @@ public class DiscoveryManager {
             return;
           }
         }
-        fut.handle(new Failure<>(NOT_FOUND, nodeId));
+        fut.handle(new Failure<>(NOT_FOUND, instId));
       }
     });
   }
 
-  void get(String id, String nodeId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    list.get(id, resGet -> {
+  void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    list.get(srvcId, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
+        fut.handle(new Failure<>(NOT_FOUND, srvcId));
       } else {
         String val = resGet.result();
         DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
         Iterator<DeploymentDescriptor> it = dpl.mdlist.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (md.getNodeId().equals(nodeId)) {
+          if (md.getInstId().equals(instId)) {
             fut.handle(new Success<>(md));
             return;
           }
         }
-        fut.handle(new Failure<>(NOT_FOUND, nodeId));
+        fut.handle(new Failure<>(NOT_FOUND, instId));
       }
     });
   }
 
-  public void get(String id, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.get(id, resGet -> {
+  public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    list.get(srvcId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         if (val == null) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
+          fut.handle(new Failure<>(NOT_FOUND, srvcId));
         } else {
           DeploymentList dpl = Json.decodeValue(val, DeploymentList.class);
           fut.handle(new Success<>(dpl.mdlist));
@@ -154,5 +164,4 @@ public class DiscoveryManager {
   void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     fut.handle(new Failure<>(INTERNAL, "get not implemented"));
   }
-
 }

@@ -146,7 +146,7 @@ public class ModuleTest {
             .then().statusCode(400);
 
     final String docUnknownJar = "{" + LS
-            + "  \"id\" : \"auth\"," + LS
+            + "  \"srvcId\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
@@ -168,23 +168,9 @@ public class ModuleTest {
             + "response(500)], validationViolations=[]}",
             c.getLastReport().toString());
 */
-    // post a module with missing "id":
-    final String docMissingId = "{" + LS
-            + "  \"name\" : \"auth\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : \"sleep %p\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
-            + "  }" + LS
-            + "}";
-    c = api.createRestAssured();
-    c.given()
-            .header("Content-Type", "application/json")
-            .body(docMissingId).post("/_/deployment/modules")
-            .then().log().all().statusCode(400);
-    // Will not be according to RAML.. So no Assert on it.
 
     final String docAuthDeployment = "{" + LS
-            + "  \"id\" : \"auth\"," + LS
+            + "  \"srvcId\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
@@ -214,7 +200,7 @@ public class ModuleTest {
     // Assert.assertTrue(c.getLastReport().isEmpty());
     String locationAuthDiscovery = r.getHeader("Location");
     Assert.assertEquals("bad location from discovery",
-            "/_/discovery/modules/auth/localhost",
+            "/_/discovery/modules/auth/localhost-9131",
             locationAuthDiscovery);
 
     final String docAuthModule = "{" + LS
@@ -244,7 +230,7 @@ public class ModuleTest {
             .extract().response();
 
     final String docSampleDeployment = "{" + LS
-            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
@@ -274,11 +260,11 @@ public class ModuleTest {
     // Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSampleDiscovery = r.getHeader("Location");
     Assert.assertEquals("bad location from discovery",
-            "/_/discovery/modules/sample-module/localhost",
+            "/_/discovery/modules/sample-module/localhost-9132",
             locationSampleDiscovery);
     
     final String docSampleModuleBadRequire = "{" + LS
-            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"requires\" : [ {" + LS
             + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
@@ -294,7 +280,7 @@ public class ModuleTest {
             .extract().response();
 
     final String docSampleModuleBadVersion = "{" + LS
-            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
@@ -521,7 +507,8 @@ public class ModuleTest {
     // for sample-module (first one)
     c = api.createRestAssured();
     final String docSample2Deployment = "{" + LS
-            + "  \"id\" : \"sample-module2\"," + LS
+            + "  \"instId\" : \"sample2-inst\"," + LS
+            + "  \"srvcId\" : \"sample-module2\"," + LS
             + "  \"name\" : \"second sample module\"," + LS
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
@@ -565,7 +552,8 @@ public class ModuleTest {
     // for sample-module (first one)
     c = api.createRestAssured();
     final String docSample3Deployment = "{" + LS
-            + "  \"id\" : \"sample-module3\"," + LS
+            + "  \"instId\" : \"sample3-instance\"," + LS
+            + "  \"srvcId\" : \"sample-module3\"," + LS
             + "  \"name\" : \"second sample module\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
@@ -699,7 +687,7 @@ public class ModuleTest {
            .then().statusCode(404);
 
     final String doc1 = "{" + LS
-            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"srvcId\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
@@ -713,7 +701,8 @@ public class ModuleTest {
            .then().statusCode(404);
 
     final String doc2 = "{" + LS
-            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"instId\" : \"localhost-9131\"," + LS
+            + "  \"srvcId\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
@@ -730,7 +719,7 @@ public class ModuleTest {
            .body(equalTo(doc2))
            .extract().response();
     locationSample5Deployment = r.getHeader("Location");
-
+    
     given().get(locationSample5Deployment)
          .then().statusCode(200)
          .body(equalTo(doc2));
@@ -739,58 +728,23 @@ public class ModuleTest {
          .then().statusCode(200)
          .body(equalTo("[ " + doc2 + " ]"));
 
-    final String doc3 = "{" + LS
-          + "  \"id\" : \"sample-module5\"," + LS
-          + "  \"name\" : \"sample module3\"," + LS
-          + "  \"descriptor\" : {" + LS
-          + "    \"cmdlineStart\" : "
-          + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-          + "    \"cmdlineStop\" : null" + LS
-          + "  }" + LS
-          + "}";
-
-    final String doc4 = "{" + LS
-            + "  \"id\" : \"sample-module5\"," + LS
-            + "  \"name\" : \"sample module3\"," + LS
-            + "  \"nodeId\" : \"localhost\"," + LS
-            + "  \"url\" : \"http://localhost:9132\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
-            + "  }" + LS
-            + "}";
-
-    given().header("Content-Type", "application/json")
-           .body(doc3).put(locationSample5Deployment)
-           .then().statusCode(200)
-           .body(equalTo(doc4));
-
-    given().get(locationSample5Deployment)
-         .then().statusCode(200)
-         .body(equalTo(doc4));
-
-    given().get("/_/deployment/modules")
-         .then().statusCode(200)
-         .body(equalTo("[ " + doc4 + " ]"));
-
     ValidatableResponse then = given().header("Content-Type", "application/json")
-            .body(doc4).post("/_/discovery/modules")
+            .body(doc2).post("/_/discovery/modules")
             .then();
     then.statusCode(201);
-    then.body(equalTo(doc4));
+    then.body(equalTo(doc2));
     final String locationDiscovery1 = then.extract().header("Location");
     given().header("Content-Type", "application/json")
-            .body(doc4).post("/_/discovery/modules")
+            .body(doc2).post("/_/discovery/modules")
             .then().statusCode(400);
 
     given().get(locationDiscovery1)
          .then().statusCode(200)
-         .body(equalTo(doc4));
+         .body(equalTo(doc2));
 
     given().get("/_/discovery/modules/sample-module5")
          .then().statusCode(200)
-         .body(equalTo("[ " + doc4 + " ]"));
+         .body(equalTo("[ " + doc2 + " ]"));
 
     given().get("/_/discovery/modules")
          .then().statusCode(500);

@@ -240,15 +240,15 @@ public class MainVerticle extends AbstractVerticle {
     router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
 
     router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
-    router.delete("/_/deployment/modules/:id").handler(deploymentWebService::delete);
+    router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
     router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
-    router.get("/_/deployment/modules/:id").handler(deploymentWebService::get);
-    router.put("/_/deployment/modules/:id").handler(deploymentWebService::update);
+    router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
+    router.put("/_/deployment/modules/:instid").handler(deploymentWebService::update);
 
     router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
-    router.delete("/_/discovery/modules/:id/:nodeid").handler(discoveryService::delete);
-    router.get("/_/discovery/modules/:id/:nodeid").handler(discoveryService::get);
-    router.get("/_/discovery/modules/:id").handler(discoveryService::getId);
+    router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
+    router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
+    router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
     router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
 
     router.route("/_*").handler(this::NotFound);
