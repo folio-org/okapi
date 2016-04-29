@@ -90,7 +90,7 @@ public class MetricsTest {
   }
 
   public void checkHealth(TestContext context) {
-    httpClient.get(port, "localhost", "/_/health", response -> {
+    httpClient.get(port, "localhost", "/_/proxy/health", response -> {
       response.handler(body -> {
         context.assertEquals(200, response.statusCode());
       });

@@ -23,7 +23,7 @@ schemas:
 
 # TODO we will most likely need a web service to list and browse module types
 
-/_/modules:
+/_/proxy/modules:
   post:
     description: Creates an instance of a given module type, includes all
       necessary mechanics to put the module into operation (launching
@@ -77,7 +77,7 @@ schemas:
       responses:
         204:
 
-/_/tenants:
+/_/proxy/tenants:
   post:
     description: create a new tenant
     body:
@@ -171,7 +171,7 @@ schemas:
           responses:
             204:
 
-/_/health:
+/_/proxy/health:
   get:
     description: health status
     responses:

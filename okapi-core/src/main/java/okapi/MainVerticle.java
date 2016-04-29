@@ -23,7 +23,8 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.lang.management.ManagementFactory;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import okapi.bean.Modules;
+import okapi.bean.Ports;
+import okapi.deployment.DeploymentManager;
 import okapi.web.HealthService;
 import okapi.service.ModuleStore;
 import okapi.web.ModuleWebService;
@@ -40,6 +41,9 @@ import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
 import static okapi.util.HttpResponse.*;
+import okapi.deployment.DeploymentWebService;
+import okapi.discovery.DiscoveryManager;
+import okapi.discovery.DiscoveryService;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -58,6 +62,10 @@ public class MainVerticle extends AbstractVerticle {
   ModuleWebService moduleWebService;
   ProxyService proxyService;
   TenantWebService tenantWebService;
+  DeploymentWebService deploymentWebService;
+  DiscoveryService discoveryService;
+  DiscoveryManager discoveryManager;
+  Ports ports;
 
   // Little helper to get a config value
   // First from System (-D on command line),
@@ -75,6 +83,8 @@ public class MainVerticle extends AbstractVerticle {
     port = Integer.parseInt(conf("port", "9130", config));
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    String nodeId = conf("nodeId", "localhost", config);
+    ports = new Ports(port_start, port_end);
     storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
@@ -84,10 +94,10 @@ public class MainVerticle extends AbstractVerticle {
     healthService = new HealthService();
 
 
-    Modules modules = new Modules();
-    moduleManager = new ModuleManager(vertx, modules, port_start, port_end);
+    moduleManager = new ModuleManager(vertx);
     TenantStore tenantStore = null;
     TenantManager tman = new TenantManager(moduleManager);
+
     ModuleStore moduleStore = null;
     TimeStampStore timeStampStore = null;
 
@@ -110,7 +120,14 @@ public class MainVerticle extends AbstractVerticle {
     }
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
-    proxyService = new ProxyService(vertx, modules, tman);
+
+    DeploymentManager dm = new DeploymentManager(vertx, nodeId, ports);
+    deploymentWebService = new DeploymentWebService(dm);
+
+    discoveryManager = new DiscoveryManager();
+    discoveryService = new DiscoveryService(discoveryManager);
+
+    proxyService = new ProxyService(vertx, moduleManager, tman, discoveryManager);
 
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
@@ -162,11 +179,21 @@ public class MainVerticle extends AbstractVerticle {
   private void startTenants(Future<Void> fut) {
     this.tenantWebService.loadTenants(res -> {
       if (res.succeeded()) {
+        startDiscovery(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
+  }
+  private void startDiscovery(Future<Void> fut) {
+    this.discoveryManager.init(vertx, res -> {
+      if (res.succeeded()) {
         startListening(fut);
       } else {
         fut.fail(res.cause());
       }
     });
+
   }
 
   private void startListening(Future<Void> fut) {
@@ -187,24 +214,23 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
-    router.postWithRegex("/_/modules").handler(moduleWebService::create);
-    router.delete("/_/modules/:id").handler(moduleWebService::delete);
-    router.get("/_/modules/:id").handler(moduleWebService::get);
-    router.getWithRegex("/_/modules").handler(moduleWebService::list);
-    router.put("/_/modules/:id").handler(moduleWebService::update);
 
-    router.postWithRegex("/_/tenants").handler(tenantWebService::create);
-    router.getWithRegex("/_/tenants").handler(tenantWebService::list);
-    router.get("/_/tenants/:id").handler(tenantWebService::get);
-    router.put("/_/tenants/:id").handler(tenantWebService::update);
-    router.delete("/_/tenants/:id").handler(tenantWebService::delete);
-    router.post("/_/tenants/:id/modules").handler(tenantWebService::enableModule);
-    router.delete("/_/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-    router.get("/_/tenants/:id/modules").handler(tenantWebService::listModules);
-    router.get("/_/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
-    router.getWithRegex("/_/health").handler(healthService::get);
-    router.get("/_/health/modules/:id").handler(moduleWebService::health);
-    router.getWithRegex("/_/health/modules").handler(moduleWebService::healthAll);
+    router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
+    router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
+    router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
+    router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
+    router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
+
+    router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
+    router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
+    router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
+    router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
+    router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
+    router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
+    router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
+    router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
+    router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
+    router.getWithRegex("/_/proxy/health").handler(healthService::get);
 
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
@@ -213,6 +239,18 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
     router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
     router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
+
+    router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
+    router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
+    router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
+    router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
+    router.put("/_/deployment/modules/:instid").handler(deploymentWebService::update);
+
+    router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
+    router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
+    router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
+    router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
+    router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
 
     router.route("/_*").handler(this::NotFound);
 

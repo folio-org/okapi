@@ -5,8 +5,8 @@
  */
 package okapi.service;
 
+import io.vertx.core.Handler;
 import okapi.bean.ModuleInstance;
-import okapi.bean.Modules;
 import okapi.bean.Tenant;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -21,24 +21,32 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
+import okapi.bean.DeploymentDescriptor;
 import okapi.bean.RoutingEntry;
+import okapi.discovery.DiscoveryManager;
+import static okapi.util.ErrorType.NOT_FOUND;
+import okapi.util.ExtendedAsyncResult;
+import okapi.util.Failure;
 import static okapi.util.HttpResponse.*;
+import okapi.util.Success;
 
 public class ProxyService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private Modules modules;
+  private ModuleManager modules;
   private HttpClient httpClient;
   //private TenantWebService tenantService;
   private TenantManager tenantService;
+  private DiscoveryManager dm;
 
   final private Vertx vertx;
 
-  public ProxyService(Vertx vertx, Modules modules, TenantManager tm) {
+  public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm, DiscoveryManager dm) {
     this.vertx = vertx;
     this.modules = modules;
     this.tenantService = tm;
+    this.dm = dm;
     this.httpClient = vertx.createHttpClient();
   }
 
@@ -71,11 +79,11 @@ public class ProxyService {
     return false;
   }
 
-  public Iterator<ModuleInstance> getModulesForRequest(HttpServerRequest hreq, Tenant t) {
+  public List<ModuleInstance> getModulesForRequest(HttpServerRequest hreq, Tenant t) {
     List<ModuleInstance> r = new ArrayList<>();
     for (String s : modules.list()) {
       if (t.isEnabled(s)) {
-        RoutingEntry[] rr = modules.get(s).getModuleDescriptor().getRoutingEntries();
+        RoutingEntry[] rr = modules.get(s).getRoutingEntries();
         for (int i = 0; i < rr.length; i++) {
           if (match(rr[i], hreq)) {
             ModuleInstance mi = new ModuleInstance(modules.get(s), rr[i]);
@@ -83,15 +91,35 @@ public class ProxyService {
           }
         }
       }
-    }
-
+    } // for
     Comparator<ModuleInstance> cmp = new Comparator<ModuleInstance>() {
       public int compare(ModuleInstance a, ModuleInstance b) {
         return a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
       }
     };
     r.sort(cmp);
-    return r.iterator();
+    return r;
+  }
+
+  private void resolveUrls(Iterator<ModuleInstance> it, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>());
+    } else {
+      ModuleInstance mi = it.next();
+      dm.get(mi.getModuleDescriptor().getId(), res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          List<DeploymentDescriptor> l = res.result();
+          if (l.size() < 1) {
+            fut.handle(new Failure<>(NOT_FOUND,mi.getModuleDescriptor().getId()));
+            return;
+          }
+          mi.setUrl(l.get(0).getUrl());
+          resolveUrls(it, fut);
+        }
+      });
+    }
   }
 
   public void proxy(RoutingContext ctx) {
@@ -105,11 +133,18 @@ public class ProxyService {
       responseText(ctx, 400).end("No such Tenant " + tenant_id);
       return;
     }
-    Iterator<ModuleInstance> it = getModulesForRequest(ctx.request(), tenant);
-    List<String> traceHeaders = new ArrayList<>();
-    ReadStream<Buffer> content = ctx.request();
-    content.pause();
-    proxyR(ctx, it, traceHeaders, content, null);
+
+    List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
+    resolveUrls(l.iterator(), res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        List<String> traceHeaders = new ArrayList<>();
+        ReadStream<Buffer> content = ctx.request();
+        content.pause();
+        proxyR(ctx, l.iterator(), traceHeaders, content, null);
+      }
+    });
   }
 
   private void proxyRequestHttpClient(RoutingContext ctx,

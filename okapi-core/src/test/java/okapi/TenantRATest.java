@@ -66,7 +66,7 @@ public class TenantRATest {
     RestAssuredClient c;
 
     c = api.createRestAssured();
-    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ ]"));
     if (!c.getLastReport().isEmpty()) {
       logger.info("0:" + c.getLastReport().toString());
     }
@@ -80,10 +80,10 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(badId)
-            .post("/_/tenants").then().statusCode(400);
+            .post("/_/proxy/tenants").then().statusCode(400);
     Assert.assertEquals(
             "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action(POST /_/tenants) "
+            + "[Body given but none defined on action(POST /_/proxy/tenants) "
             + "response(400)], validationViolations=[]}",
             c.getLastReport().toString());
 
@@ -96,7 +96,7 @@ public class TenantRATest {
     c = api.createRestAssured();
     Response r = c.given()
             .header("Content-Type", "application/json").body(doc)
-            .post("/_/tenants").then().statusCode(201)
+            .post("/_/proxy/tenants").then().statusCode(201)
             .body(equalTo(doc)).extract().response();
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
@@ -105,10 +105,10 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(doc)
-            .post("/_/tenants").then().statusCode(400);
+            .post("/_/proxy/tenants").then().statusCode(400);
     Assert.assertEquals(
             "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action(POST /_/tenants) "
+            + "[Body given but none defined on action(POST /_/proxy/tenants) "
             + "response(400)], validationViolations=[]}",
             c.getLastReport().toString());
 
@@ -121,7 +121,7 @@ public class TenantRATest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
@@ -129,7 +129,7 @@ public class TenantRATest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc3 = "{" + LS
@@ -140,14 +140,14 @@ public class TenantRATest {
     c = api.createRestAssured();
     Response r3 = c.given()
             .header("Content-Type", "application/json").body(doc3)
-            .post("/_/tenants").then().statusCode(201)
+            .post("/_/proxy/tenants").then().statusCode(201)
             .body(equalTo(doc3)).extract().response();
     Assert.assertTrue(c.getLastReport().isEmpty());
     String location3 = r3.getHeader("Location");
     logger.debug("location3 = " + location3);
 
     c = api.createRestAssured();
-    c.given().get("/_/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc4 = "{" + LS
@@ -179,7 +179,7 @@ public class TenantRATest {
     Assert.assertEquals(
             "RamlReport{requestViolations=[], responseViolations="
             + "[Body given but none defined on action"
-            + "(PUT /_/tenants/{tenant_id}) response(400)], "
+            + "(PUT /_/proxy/tenants/{tenant_id}) response(400)], "
             + "validationViolations=[]}",
             c.getLastReport().toString());
   }

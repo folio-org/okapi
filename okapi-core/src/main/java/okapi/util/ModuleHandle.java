@@ -3,7 +3,7 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.bean;
+package okapi.util;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;

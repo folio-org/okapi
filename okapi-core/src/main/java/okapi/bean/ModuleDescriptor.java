@@ -13,7 +13,6 @@ public class ModuleDescriptor {
   private ModuleInterface[] provides;
   private ModuleInterface[] requires;
 
-  private ProcessDeploymentDescriptor descriptor;
   private RoutingEntry[] routingEntries;
 
   public ModuleDescriptor() {
@@ -27,19 +26,9 @@ public class ModuleDescriptor {
   public ModuleDescriptor(ModuleDescriptor other) {
     this.id = other.id;
     this.name = other.name;
-    this.url = other.url;
-    this.descriptor = other.descriptor;
     this.routingEntries = other.routingEntries;
     this.provides = other.provides;
     this.requires = other.requires;
-  }
-
-  public String getUrl() {
-    return url;
-  }
-
-  public void setUrl(String url) {
-    this.url = url;
   }
 
   public String getId() {
@@ -81,13 +70,5 @@ public class ModuleDescriptor {
   public void setName(String name) {
     this.name = name;
   }
-
-  public ProcessDeploymentDescriptor getDescriptor() {
-    return descriptor;
-  }
-
-  public void setDescriptor(ProcessDeploymentDescriptor descriptor) {
-    this.descriptor = descriptor;
-  }
-
+ 
 }

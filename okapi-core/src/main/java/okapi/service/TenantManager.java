@@ -14,7 +14,6 @@ import java.util.Set;
 import okapi.bean.ModuleDescriptor;
 import okapi.bean.ModuleInstance;
 import okapi.bean.ModuleInterface;
-import okapi.bean.Modules;
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
 import okapi.util.ErrorType;
@@ -92,11 +91,11 @@ public class TenantManager {
     return true;
   }
 
-  private String checkOneDependency(Tenant tenant, Modules modules, ModuleDescriptor md, ModuleInterface req) {
+  private String checkOneDependency(Tenant tenant, ModuleDescriptor md, ModuleInterface req) {
     ModuleInterface seenversion = null;
     for ( String enabledmodule : tenant.listModules()) {
-      ModuleInstance rm = modules.get(enabledmodule);
-      ModuleInterface[] provides = rm.getModuleDescriptor().getProvides();
+      ModuleDescriptor rm = moduleManager.get(enabledmodule);
+      ModuleInterface[] provides = rm.getProvides();
       if ( provides != null ) {
         for ( ModuleInterface pi: provides ) {
           logger.debug("Checking dependency of " + md.getId() + ": "
@@ -125,11 +124,11 @@ public class TenantManager {
 
   }
 
-  private String checkDependencies(Tenant tenant, Modules modules, ModuleDescriptor md) {
+  private String checkDependencies(Tenant tenant, ModuleDescriptor md) {
     ModuleInterface[] requires = md.getRequires();
     if (requires != null) {
       for (ModuleInterface req : requires) {
-        String one =  checkOneDependency(tenant, modules, md, req);
+        String one =  checkOneDependency(tenant, md, req);
         if ( !one.isEmpty())
           return one;
         }
@@ -149,11 +148,10 @@ public class TenantManager {
     if (tenant == null) {
       return "tenant " + id + " not found";
     }
-    Modules modules = moduleManager.getModules();
-    ModuleInstance mod = modules.get(module);
+    ModuleDescriptor mod = moduleManager.get(module);
     if (mod == null)
       return "module " + module + " not found";
-    String deperr = checkDependencies(tenant, modules, mod.getModuleDescriptor());
+    String deperr = checkDependencies(tenant, mod);
     if ( ! deperr.isEmpty())
       return deperr;
     tenant.enableModule(module);
@@ -168,21 +166,20 @@ public class TenantManager {
    * @return true if it is ok to delete the module
    */
   public boolean checkNoDependency(Tenant tenant, String module){
-    Modules modules = moduleManager.getModules();
-    ModuleInstance mod = modules.get(module);
+    ModuleDescriptor mod = moduleManager.get(module);
     if ( mod == null ) { // should not happen
       logger.warn("Module " + module + " not found when checking delete dependencies!");
       return true;
     }
     logger.warn("Checking that we can delete " + module);
-    ModuleInterface[] provides = mod.getModuleDescriptor().getProvides();
+    ModuleInterface[] provides = mod.getProvides();
     if ( provides == null )
       return true; // nothing can depend on this one
     for ( ModuleInterface prov: provides ){
       logger.info("Checking provided service " + prov.getId() );
       for ( String enabledmodule : tenant.listModules()) {
-        ModuleInstance em = modules.get(enabledmodule);
-        ModuleInterface[] req = em.getModuleDescriptor().getRequires();
+        ModuleDescriptor em = moduleManager.get(enabledmodule);
+        ModuleInterface[] req = em.getRequires();
         logger.info("Checking provided service " + prov.getId() + " against " + enabledmodule );
         if (req != null ) {
           for ( ModuleInterface ri : req ) {

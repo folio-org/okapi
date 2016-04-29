@@ -3,8 +3,9 @@
  * All rights reserved.
  * See the file LICENSE for details.
  */
-package okapi.bean;
+package okapi.util;
 
+import okapi.util.ModuleHandle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -17,6 +18,8 @@ import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
+import okapi.bean.Ports;
+import okapi.bean.ProcessDeploymentDescriptor;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
@@ -26,12 +29,15 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final ProcessDeploymentDescriptor desc;
   private Process p;
   private final int port;
+  private final Ports ports;
 
   public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
-          int port) {
+          Ports ports, int port) {
     this.vertx = vertx;
     this.desc = desc;
     this.port = port;
+    this.ports = ports;
+    this.p = null;
   }
 
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
@@ -105,16 +111,19 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
+    if (p == null) {
+      ports.free(port);
+      stopFuture.handle(Future.succeededFuture());
+      return;
+    }
     final String cmdline = desc.getCmdlineStop();
     if (cmdline == null) {
       vertx.executeBlocking(future -> {
-        if (p != null) {
-          p.destroy();
-          while (p.isAlive()) {
-            try {
-              int x = p.waitFor();
-            } catch (InterruptedException ex) {
-            }
+        p.destroy();
+        while (p.isAlive()) {
+          try {
+            int x = p.waitFor();
+          } catch (InterruptedException ex) {
           }
         }
         future.complete();
@@ -122,6 +131,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (result.failed()) {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
+          ports.free(port);
           stopFuture.handle(Future.succeededFuture());
         }
       });
@@ -135,7 +145,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           l.add(c);
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
-          p = pb.start();
+          pb.start();
         } catch (IOException ex) {
           future.fail(ex);
           return;
@@ -145,6 +155,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (result.failed()) {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
+          ports.free(port);
           stopFuture.handle(Future.succeededFuture());
         }
       });
