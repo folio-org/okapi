@@ -82,7 +82,7 @@ public class DeploymentWebService {
               DeploymentDescriptor.class);
       final String id = ctx.request().getParam("id");
       if (!id.equals(pmd.getId())) {
-        responseText(ctx, 404).end("id parameter does not match payload");
+        responseError(ctx, 404, "id parameter does not match payload");
         return;
       }
       md.update(pmd, res -> {
