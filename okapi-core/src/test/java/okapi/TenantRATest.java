@@ -81,11 +81,8 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(badId)
             .post("/_/proxy/tenants").then().statusCode(400);
-    Assert.assertEquals(
-            "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action(POST /_/proxy/tenants) "
-            + "response(400)], validationViolations=[]}",
-            c.getLastReport().toString());
+
+    Assert.assertTrue(c.getLastReport().isEmpty());
 
     String doc = "{" + LS
             + "  \"id\" : \"roskilde\"," + LS
@@ -106,12 +103,9 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc)
             .post("/_/proxy/tenants").then().statusCode(400);
-    Assert.assertEquals(
-            "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action(POST /_/proxy/tenants) "
-            + "response(400)], validationViolations=[]}",
-            c.getLastReport().toString());
 
+    Assert.assertTrue(c.getLastReport().isEmpty());
+    
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
     Assert.assertTrue(c.getLastReport().isEmpty());
@@ -176,11 +170,6 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc5)
             .put(location).then().statusCode(400);
-    Assert.assertEquals(
-            "RamlReport{requestViolations=[], responseViolations="
-            + "[Body given but none defined on action"
-            + "(PUT /_/proxy/tenants/{tenant_id}) response(400)], "
-            + "validationViolations=[]}",
-            c.getLastReport().toString());
+    Assert.assertTrue(c.getLastReport().isEmpty());
   }
 }

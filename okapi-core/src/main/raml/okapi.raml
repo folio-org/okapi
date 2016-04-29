@@ -4,15 +4,17 @@ version: 0.1
 baseUri: https://okapi.cloud
 ## mediaType:  application/json
 schemas:
+  - DeploymentDescriptor: !include DeploymentDescriptor.json
+  - DeploymentDescriptorList: !include DeploymentDescriptorList.json
   - ModuleDescriptor: !include ModuleDescriptor.json
-  - ModulesList: !include ModulesList.json
+  - ModuleList: !include ModuleList.json
   - TenantDescriptor: !include TenantDescriptor.json
-  - TenantsList: !include TenantsList.json
+  - TenantList: !include TenantList.json
   - TenantModuleDescriptor: !include TenantModuleDescriptor.json
-  - TenantModules: !include TenantModules.json
-  - HealthModules: !include HealthModules.json
+  - TenantModuleDescriptorList: !include TenantModuleDescriptorList.json
+  - HealthStatus: !include HealthStatus.json
+  - HealthStatusList: !include HealthStatusList.json
 
-#resourceTypes:
 #traits:
 
 # The following are a set of APIs that module web service must accept/consume
@@ -23,12 +25,109 @@ schemas:
 
 # TODO we will most likely need a web service to list and browse module types
 
+# DEPLOYMENT SERVICE
+
+/_/deployment/modules:
+  post:
+    description: deploy (launch process, start a container, etc) instance of a
+      particular service, according to the deployment descriptor
+    body:
+      application/json:
+        schema: DeploymentDescriptor
+    responses:
+      201:
+        description: Created
+        headers:
+          Location:
+            description: URI to the descriptor of the deployed instance
+        body:
+          application/json:
+            schema: DeploymentDescriptor
+      400:
+        description: Bad Request
+        body: 
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+  get:
+    description: list all deployed instances
+    responses:
+      200:
+        body:
+          application/json:
+            schema: DeploymentDescriptorList
+
+  /{instance_id}:
+    get:
+      description: retrieve deployment descriptor for a particular instance
+      responses:
+        200:
+          body:
+            application/json:
+              schema: DeploymentDescriptor
+    delete:
+      description: shutdown instance
+      responses:
+        204:
+
+
+# DISCOVERY SERVICE
+
+/_/discovery/modules:
+  post:
+    description: register instance under a specified service id
+    body:
+      application/json:
+        schema: DeploymentDescriptor
+    responses:
+      201:
+        description: Created
+        headers:
+          Location:
+            description: URI to the registered instance
+        body:
+          application/json:
+            schema: DeploymentDescriptor
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
+  /{service_id}:
+    get:
+      description: list all instances for a particular service
+      responses:
+        200:
+          body:
+            application/json:
+              schema: DeploymentDescriptorList
+    
+    /{instance_id}:
+      put:
+        description: update registration of a specified instance
+        responses:
+          200:
+            body:
+              application/json:
+                schema: DeploymentDescriptor
+      delete:
+        description: remove registration for a given instance
+        responses:
+          204:
+
+
+# PROXY SERVICE
+
 /_/proxy/modules:
   post:
-    description: Creates an instance of a given module type, includes all
-      necessary mechanics to put the module into operation (launching
-      a process, binding to a port, setting up routing)
-     # most likely we will want to read some initial configuration
+    description: announce new module to the proxy, once succesful a module
+      can be selected for a specific tenant
     body:
       application/json:
         schema: ModuleDescriptor
@@ -44,36 +143,37 @@ schemas:
       400:
         description: Bad Request
         body:
-          text/plain
+          text/plain:
       500:
         description: Server Error
         body:
-          text/plain
+          text/plain:
   get:
+    description: list all available modules
     responses:
       200:
-        description: OK
         body:
           application/json:
-            schema: ModulesList
+            schema: ModuleList
+
   /{module_id}:
     get:
-      description: Retrieve information about the module instance
+      description: retrieve descriptor for a particular module
       responses:
         200:
           body:
             application/json:
               schema: ModuleDescriptor
     put:
-      description: Update the module instance.
+      description: update descriptor of a particular module
       responses:
         200:
           body:
             application/json:
               schema: ModuleDescriptor
     delete:
-      description: Remove module instance from operation
-        (shutdown process etc)
+      description: remove module descriptor for a particulr module, module
+        will no longer be selectable by tenants
       responses:
         204:
 
@@ -95,7 +195,7 @@ schemas:
       400:
         description: Bad Request
         body:
-          text/plain
+          text/plain:
   get:
     description: list all tenants
     responses:
@@ -103,10 +203,10 @@ schemas:
         description: list of tenant in a brief format
         body:
           application/json:
-            schema: TenantsList
+            schema: TenantList
   /{tenant_id}:
     get:
-      description: retrieve tenant
+      description: retrieve a tenant
       responses:
         200:
           body:
@@ -117,7 +217,7 @@ schemas:
           body:
             text/plain:
     put:
-      description: update tenant
+      description: update a tenant
       body:
         application/json:
           schema: TenantDescriptor
@@ -129,26 +229,26 @@ schemas:
         400:
           description: Bad Request
           body:
-            text/plain
+            text/plain:
         404:
           description: Not Found
           body:
-            text/plain
+            text/plain:
     delete:
-      description: remove tenant
+      description: remove a tenant
       responses:
         204:
 
     /modules:
       get:
-        description: Map of module instances accessible by the tenant
+        description: selection of modules by the tenant
         responses:
           200:
             body:
               application/json:
-                schema: TenantModules
+                schema: TenantModuleDescriptorList
       post:
-        description: Link a module instance to the specified tenant
+        description: enable a module for a specified tenant
         body:
           application/json:
             schema: TenantModuleDescriptor
@@ -160,42 +260,28 @@ schemas:
 
       /{module_tenant_id}:
         get:
-          description: look up tenant-module mapping
+          description: look up particular module selection
           responses:
             200:
               body:
                 application/json:
                   schema: TenantModuleDescriptor
         delete:
-          description: remove tenant-module registration
+          description: remove particular module selection
           responses:
             204:
 
-/_/proxy/health:
+
+/_/health:
   get:
-    description: health status
+    description: Check health of all modules
     responses:
       200:
         description: OK
-  /modules:
-    get:
-      description: Check health of all modules
-      responses:
-        200:
-          description: OK
-          body:
-            application/json:
-              schema: HealthModules
-        500:
-          description: Server Error
-    /{module_id}:
-      get:
-        description: Check health of a module
-        responses:
-          200:
-            description: OK
-            body:
-              application/json:
-                schema: HealthModules
-          500:
-            description: Server Error
+        body:
+          application/json:
+            schema: HealthStatusList
+      500:
+        description: Server Error
+
+#TODO implement single module health check

@@ -1,13 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "HealthModules",
+  "title": "TenantList",
   "type": "array",
   "items": {
     "type": "object",
     "properties": {
       "id": {"type": "string"},
-      "status": {"type": "string"}
-    },
-    "required": ["id", "status"]
+      "name": {"type": "string"},
+      "description": {"type": "string"}
+    }
   }
 }
