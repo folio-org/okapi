@@ -14,7 +14,7 @@ managing and running microservices.
 ## Introduction
 
 This document aims to provide an overview of concepts that relate to Okapi and
-the entire ecosystem around it (e.g core vs modules) as well as details of the 
+the entire ecosystem around it (e.g. core vs modules) as well as details of the 
 implementation and usage of Okapi: by presenting concrete web service
 endpoints and details of request processing - handling of request and
 response entities, status codes, error conditions, etc.
@@ -41,7 +41,7 @@ available services to locate the physical instance of the service.
 Okapi is designed to be configurable and extensible - it allows one to
 expose new, or enrich existing, web service endpoints without a need
 for programmatic changes to the software itself. Registration of new
-services ('modules' as seen form Okapi) happens by making calls to the Okapi 
+services ('modules' as seen from Okapi) happens by making calls to the Okapi 
 core web services. It is envisioned that the registration, and associated core
 management tasks, will be performed by the Service Provider
 administrator. This configurability and extensibility is necessary to
@@ -107,29 +107,29 @@ system offers such.
 
 Modules in the Okapi ecosystem are defined in terms of their _behavior_ (or, in other words, _interface contract_)  rather than their _contents_, 
 meaning there is no exact definition of a module as a package or an archive, 
-e.g with the underlying file structure standardized. 
+e.g. with the underlying file structure standardized. 
 Those details are left to the particular module implementation (as noted before, Okapi server-side modules can utilize any technology stack). 
 
-As much any piece of software that manifests the following traits can become 
+Hence any piece of software that manifests the following traits can become 
 an Okapi module:
 
 * it is an HTTP network server that communicates using a REST-styled web service protocol with JSON payload
 
 * it comes with a descriptor file, namely the `ModuleDescriptor.json`, which 
-declares the basic module meta-data (id, name, etc), module's dependencies 
+declares the basic module metadata (id, name, etc.), module's dependencies 
 on other modules (interface identifiers to be precise) and reports all 
 "provided" interfaces
 
-* `ModuleDescriptor.json` has a list off all `routes` (HTTP paths and methods) 
+* `ModuleDescriptor.json` has a list of all `routes` (HTTP paths and methods) 
 that a given module handles, this gives Okapi necessary information to proxy traffic to the module (this is similar to a simplified RAML specification)
 
 * it follows versioning rules defined in the chapter _Versioning and dependencies_
 
 * WIP: it provides interfaces required for monitoring and instrumentation
 
-As you can see none of those requirements specifically state rules for 
+As you can see, none of those requirements specifically state rules for 
 deployment and, as such, it would be entirely possible to integrate 
-a third party web service (e.g a  API of a publicly accessible internet service) as an Okapi module. That is, assuming the endpoint style and versioning 
+a third party web service (e.g. API of a publicly accessible internet service) as an Okapi module. That is, assuming the endpoint style and versioning 
 semantics are a close match for what is required in Okapi.
 
 Okapi, however, includes additional services (for service deployment and  discovery) that allows to actually execute, run and monitor services natively on a cluster managed by Okapi. Those _native modules_ require an additional descriptor 
