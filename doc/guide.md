@@ -87,14 +87,14 @@ internal web services from the extension points provided by modules.
 
 The `/_/deployment` endpoint is responsible for deploying modules.
 In a clustered environment there should be one instance of it running on
-every node. It will be  responsible for starting processes on that node,
+every node. It will be responsible for starting processes on that node,
 and allocating network addresses for the various service modules.
 
 The `/_/discovery` endpoint manages the mapping from service IDs to network
 addresses on the cluster. Information is posted to it, and the proxy module
 will query it to find where the needed modules are actually available.
 
-The `/_/proxy` endpoint id for configuring the proxying module, including
+The `/_/proxy` endpoint is for configuring the proxying module, including
 which modules we know of, how their requests are to be routed, which tenants
 we know about, and which modules are enabled for which tenants.
 
@@ -653,7 +653,7 @@ Content-Length: 306
 }
 ```
 
-Okapi has started the process and have given it an instance ID (instId) which is
+Okapi has started the process and has given it an instance ID (instId) which is
 part of the Location header. Like other RESTful services the Location header can
 be used to identify the resource later.
 
@@ -784,7 +784,7 @@ Content-Length: 297
 
 ```
 
-The routingEntries tell that the moduleis interested in GET and POST
+The routingEntries tell that the module is interested in GET and POST
 requests to the /sample path and nothing else, and that the module is
 supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
