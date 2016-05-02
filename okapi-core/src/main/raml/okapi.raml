@@ -126,7 +126,7 @@ schemas:
 
 /_/proxy/modules:
   post:
-    description: announce new module to the proxy, once succesful a module
+    description: announce new module to the proxy, once successful a module
       can be selected for a specific tenant
     body:
       application/json:
@@ -172,7 +172,7 @@ schemas:
             application/json:
               schema: ModuleDescriptor
     delete:
-      description: remove module descriptor for a particulr module, module
+      description: remove module descriptor for a particular module, module
         will no longer be selectable by tenants
       responses:
         204:
@@ -200,7 +200,7 @@ schemas:
     description: list all tenants
     responses:
       200:
-        description: list of tenant in a brief format
+        description: list of tenants in a brief format
         body:
           application/json:
             schema: TenantList
