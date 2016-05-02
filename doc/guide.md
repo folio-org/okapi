@@ -472,7 +472,6 @@ course in real life we will want some of our data to persist from one invocation
 to the next. At the moment the MongoDB storage can be enabled by adding the
 option `-Dstorage=mongo` to the command-line that starts Okapi.
 
-TODO - Drop the Mongo stuff.
 
 ### Example modules
 
@@ -571,7 +570,6 @@ Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using the 'inmemory' storage. For MongoDB
 storage, add `-Dstorage=mongo` to the command-line.
-(TODO - Drop the mongo stuff?)
 
 At the moment Okapi does not know of any module or tenant. But it does
 have its own web services enabled. We can verify both by asking Okapi
