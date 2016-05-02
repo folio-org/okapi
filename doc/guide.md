@@ -14,15 +14,15 @@ managing and running microservices.
 ## Introduction
 
 This document aims to provide an overview of concepts that relate to Okapi and
-the entire ecosystem around it (e.g. core vs modules) as well as details of the 
+the entire ecosystem around it (e.g. core vs modules) as well as details of the
 implementation and usage of Okapi: by presenting concrete web service
 endpoints and details of request processing - handling of request and
 response entities, status codes, error conditions, etc.
 
 Okapi is an implementation of a couple different patterns commonly used within
 the microservice architecture. The most central of them is the so called "API
-Gateway" pattern which is implemented by the core Okapi 'proxy' service. 
-Conceptually, the API Gateway is a server that is a single entry point into 
+Gateway" pattern which is implemented by the core Okapi 'proxy' service.
+Conceptually, the API Gateway is a server that is a single entry point into
 the system. It is similar to the
 [Facade pattern](http://en.wikipedia.org/wiki/Facade_pattern)
 from object-oriented design. Per the [standard
@@ -43,7 +43,7 @@ available services to locate the physical instance of the service.
 Okapi is designed to be configurable and extensible - it allows one to
 expose new, or enrich existing, web service endpoints without a need
 for programmatic changes to the software itself. Registration of new
-services ('modules' as seen from Okapi) happens by making calls to the Okapi 
+services ('modules' as seen from Okapi) happens by making calls to the Okapi
 core web services. It is envisioned that the registration, and associated core
 management tasks, will be performed by the Service Provider
 administrator. This configurability and extensibility is necessary to
@@ -108,24 +108,24 @@ system offers such.
 #### What are 'modules'?
 
 Modules in the Okapi ecosystem are defined in terms of their _behavior_
-(or, in other words, _interface contract_)  rather than their _contents_, 
-meaning there is no exact definition of a module as a package or an archive, 
-e.g. with the underlying file structure standardized. 
+(or, in other words, _interface contract_)  rather than their _contents_,
+meaning there is no exact definition of a module as a package or an archive,
+e.g. with the underlying file structure standardized.
 Those details are left to the particular module implementation (as noted
-before, Okapi server-side modules can utilize any technology stack). 
+before, Okapi server-side modules can utilize any technology stack).
 
-Hence any piece of software that manifests the following traits can become 
+Hence any piece of software that manifests the following traits can become
 an Okapi module:
 
 * it is an HTTP network server that communicates using a REST-styled
 web service protocol with JSON payload
 
-* it comes with a descriptor file, namely the `ModuleDescriptor.json`, which 
-declares the basic module metadata (id, name, etc.), module's dependencies 
-on other modules (interface identifiers to be precise) and reports all 
+* it comes with a descriptor file, namely the `ModuleDescriptor.json`, which
+declares the basic module metadata (id, name, etc.), module's dependencies
+on other modules (interface identifiers to be precise) and reports all
 "provided" interfaces
 
-* `ModuleDescriptor.json` has a list of all `routes` (HTTP paths and methods) 
+* `ModuleDescriptor.json` has a list of all `routes` (HTTP paths and methods)
 that a given module handles, this gives Okapi necessary information to proxy
 traffic to the module (this is similar to a simplified RAML specification)
 
@@ -133,10 +133,10 @@ traffic to the module (this is similar to a simplified RAML specification)
 
 * WIP: it provides interfaces required for monitoring and instrumentation
 
-As you can see, none of those requirements specifically state rules for 
-deployment and, as such, it would be entirely possible to integrate 
+As you can see, none of those requirements specifically state rules for
+deployment and, as such, it would be entirely possible to integrate
 a third party web service (e.g. API of a publicly accessible internet service)
-as an Okapi module. That is, assuming the endpoint style and versioning 
+as an Okapi module. That is, assuming the endpoint style and versioning
 semantics are a close match for what is required in Okapi.
 
 Okapi, however, includes additional services (for service deployment and
@@ -145,8 +145,8 @@ on a cluster managed by Okapi.
 Those _native modules_ require an additional descriptor
 file, the `DeploymentDescriptor.json`, that captures all low-level information
 about how to run the module. Also, `native modules` must be packaged according
-to one of the packaging options supported by Okapi's deployment service: at 
-this point it means providing the executable (and all dependencies) on each 
+to one of the packaging options supported by Okapi's deployment service: at
+this point it means providing the executable (and all dependencies) on each
 node or using on a self-contained Docker image to distribute the executable
 from a centralized place.
 
