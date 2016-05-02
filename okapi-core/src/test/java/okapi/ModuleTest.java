@@ -404,7 +404,7 @@ public class ModuleTest {
             + "} ]";
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200).body(equalTo(exp1));
-    Assert.assertTrue(c.getLastReport().isEmpty());
+    Assert.assertTrue(c.getLastReport().toString(), c.getLastReport().isEmpty());
 
     final String expAuthEnabled = "{" + LS
             + "  \"id\" : \"auth\"" + LS

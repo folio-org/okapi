@@ -83,7 +83,7 @@ public class MainVerticle extends AbstractVerticle {
     port = Integer.parseInt(conf("port", "9130", config));
     port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
     port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
-    String nodeId = conf("nodeId", "localhost", config);
+    final String host = conf("host", "localhost", config);
     ports = new Ports(port_start, port_end);
     storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
@@ -121,7 +121,7 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
 
-    DeploymentManager dm = new DeploymentManager(vertx, nodeId, ports);
+    DeploymentManager dm = new DeploymentManager(vertx, host, ports);
     deploymentWebService = new DeploymentWebService(dm);
 
     discoveryManager = new DiscoveryManager();

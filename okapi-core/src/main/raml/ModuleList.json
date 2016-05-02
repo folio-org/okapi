@@ -1,13 +1,14 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "TenantsList",
+  "title": "ModuleList",
   "type": "array",
   "items": {
     "type": "object",
     "properties": {
       "id": {"type": "string"},
       "name": {"type": "string"},
-      "description": {"type": "string"}
-    }
+      "url": {"type": ["string", "null"]}
+    },
+    "required": ["id", "name"]
   }
 }

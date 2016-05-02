@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://okapi/TenantModuleDescriptor.json",
   "title": "TenantModuleDescriptor",
   "type": "object",
   "properties": {
