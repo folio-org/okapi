@@ -21,11 +21,6 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
-/**
- * Mock storage for tenants. All in memory, so it starts with a clean slate
- * every time the program starts.
- *
- */
 public class TenantStoreMongo implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

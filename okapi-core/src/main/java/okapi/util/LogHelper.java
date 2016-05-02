@@ -88,7 +88,7 @@ public class LogHelper {
     final LogLevelInfo inf = Json.decodeValue(ctx.getBodyAsString(),
             LogLevelInfo.class);
     if (inf == null || inf.getLevel() == null || inf.getLevel().isEmpty()) {
-      responseText(ctx, 400).end("Invalid id");
+      responseError(ctx, 400, "Invalid id");
     } else {
       setRootLogLevel(inf.getLevel());
       responseJson(ctx, 200).end(Json.encode(inf));

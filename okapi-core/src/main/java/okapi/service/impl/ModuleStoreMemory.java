@@ -8,8 +8,6 @@ package okapi.service.impl;
 import okapi.service.ModuleStore;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -20,10 +18,6 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
-/**
- * Module database using Mongo
- *
- */
 public class ModuleStoreMemory implements ModuleStore {
 
   private final Map<String, ModuleDescriptor> modules = new LinkedHashMap<>();

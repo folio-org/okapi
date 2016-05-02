@@ -33,13 +33,6 @@ public class DeploymentManager {
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    /*
-    final String srvcId = md1.getSrvcId();
-    if (srvcId == null) {
-      fut.handle(new Failure<>(USER, "missing srvcId"));
-      return;
-    }
-*/
     String id = md1.getInstId();
     if (id != null) {
       if (list.containsKey(id)) {

@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Set;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;
-import okapi.util.ErrorType;
 import static okapi.util.ErrorType.*;
 import static okapi.util.HttpResponse.*;
 import okapi.util.ExtendedAsyncResult;
@@ -219,7 +218,7 @@ public class TenantWebService {
       // TODO - Validate we know about that module!
       final long ts = getTimestamp();
       String err = tenants.enableModule(id, module);
-      if (err == "") {
+      if (err.isEmpty()) {
         tenantStore.enableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
@@ -230,9 +229,9 @@ public class TenantWebService {
         });
 
       } else if (err.contains("not found")) {
-        responseText(ctx, 404).end(err);
+        responseError(ctx, 404, err);
       } else { // TODO - handle this right 
-        responseText(ctx, 400).end(err);
+        responseError(ctx, 400, err);
       } // Missing dependencies are bad requests...
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
@@ -246,7 +245,7 @@ public class TenantWebService {
       final long ts = getTimestamp();
       logger.debug("disablemodule t=" + id + " m=" + module);
       String err = tenants.disableModule(id, module);
-      if (err.equals("")) {
+      if (err.isEmpty()) {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
@@ -260,10 +259,10 @@ public class TenantWebService {
         });
       } else if (err.contains("not found")) {
         logger.error("disableModule: " + err);
-        responseText(ctx, 404).end(err);
+        responseError(ctx, 404, err);
       } else {
         logger.error("disableModule: " + err);
-        responseText(ctx, 400).end(err);
+        responseError(ctx, 400, err);
       }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);

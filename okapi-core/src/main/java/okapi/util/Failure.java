@@ -5,9 +5,6 @@
  */
 package okapi.util;
 
-import io.vertx.core.AsyncResult;
-import static okapi.util.ErrorType.*;
-
 public class Failure<T> implements ExtendedAsyncResult<T> {
 
   final private Throwable failure;

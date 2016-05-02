@@ -11,12 +11,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import okapi.bean.DeploymentDescriptor;
-import static okapi.util.HttpResponse.responseError;
 import static okapi.util.HttpResponse.responseJson;
 import static okapi.util.HttpResponse.responseText;
 import static okapi.util.HttpResponse.responseError;
-
-
 
 public class DiscoveryService {
 

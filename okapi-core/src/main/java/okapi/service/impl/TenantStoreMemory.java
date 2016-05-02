@@ -7,7 +7,6 @@ package okapi.service.impl;
 
 import okapi.service.TenantStore;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
