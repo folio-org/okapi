@@ -16,5 +16,5 @@
       }
     }
   },
-  "required": ["srvcId", "name", "descriptor"]
+  "required": ["srvcId", "name"]
 }
