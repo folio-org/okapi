@@ -8,7 +8,7 @@
   <groupId>com.indexdata.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>0.3</version>
+  <version>0.4-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
