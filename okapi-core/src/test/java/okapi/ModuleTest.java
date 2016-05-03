@@ -160,7 +160,9 @@ public class ModuleTest {
     c.given()
             .header("Content-Type", "application/json")
             .body(docUnknownJar).post("/_/deployment/modules")
-            .then().log().all().statusCode(500);
+            .then()
+            // .log().all()
+            .statusCode(500);
 
     /*
     Assert.assertEquals("RamlReport{requestViolations=[], "
@@ -183,7 +185,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docAuthDeployment).post("/_/deployment/modules")
-            .then().log().ifError().statusCode(201)
+            .then()
+            //.log().ifError()
+            .statusCode(201)
             .extract().response();
     // Assert.assertTrue(c.getLastReport().isEmpty());
     locationAuthDeployment = r.getHeader("Location");
@@ -196,7 +200,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docAuthDiscovery).post("/_/discovery/modules")
-            .then().log().ifError().statusCode(201).extract().response();
+            .then()
+            //.log().ifError()
+            .statusCode(201).extract().response();
     // Assert.assertTrue(c.getLastReport().isEmpty());
     String locationAuthDiscovery = r.getHeader("Location");
     Assert.assertEquals("bad location from discovery",
@@ -242,7 +248,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSampleDeployment).post("/_/deployment/modules")
-            .then().log().ifError().statusCode(201)
+            .then()
+            //.log().ifError()
+            .statusCode(201)
             .extract().response();
     // Assert.assertTrue(c.getLastReport().isEmpty());
     locationSampleDeployment = r.getHeader("Location");
@@ -256,7 +264,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSampleDiscovery).post("/_/discovery/modules")
-            .then().log().ifError().statusCode(201).extract().response();
+            .then()
+            //.log().ifError()
+            .statusCode(201).extract().response();
     // Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSampleDiscovery = r.getHeader("Location");
     Assert.assertEquals("bad location from discovery",
@@ -322,7 +332,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModule).post("/_/proxy/modules")
-            .then().log().all().statusCode(201)
+            .then()
+            //.log().all()
+            .statusCode(201)
             .extract().response();
     Assert.assertTrue(c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
@@ -520,7 +532,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSample2Deployment).post("/_/discovery/modules")
-            .then().log().ifError().statusCode(201).extract().response();
+            .then()
+            //.log().ifError()
+            .statusCode(201).extract().response();
     final String locationSample2Discovery = r.header("Location");
 
     final String docSample2Module = "{" + LS
@@ -564,7 +578,9 @@ public class ModuleTest {
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSample3Deployment).post("/_/discovery/modules")
-            .then().log().ifError().statusCode(201).extract().response();
+            .then()
+            //.log().ifError()
+            .statusCode(201).extract().response();
 
     final String docSample3Module = "{" + LS
             + "  \"id\" : \"sample-module3\"," + LS
@@ -658,7 +674,6 @@ public class ModuleTest {
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     // make sample 2 disappear from discovery!
-    System.out.println("About to delete " + locationSample2Discovery);
     c = api.createRestAssured();
     c.given().delete(locationSample2Discovery)
             .then().statusCode(204);
