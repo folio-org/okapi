@@ -12,6 +12,6 @@ import static okapi.util.HttpResponse.*;
 public class HealthService {
 
   public void get(RoutingContext ctx) {
-    responseText(ctx, 200).end();
+    responseJson(ctx, 200).end("[ ]");
   }
 }
