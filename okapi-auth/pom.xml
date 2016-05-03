@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.indexdata.okapi</groupId>
     <artifactId>okapi</artifactId>
-    <version>0.4-SNAPSHOT</version>
+    <version>${okapi-version}</version>
   </parent>
   <artifactId>okapi-auth</artifactId>
   <packaging>jar</packaging>
