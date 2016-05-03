@@ -32,45 +32,64 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void put(K k, V v, Handler<AsyncResult<Void>> completionHandler) {
-    map.put(k, v);
-    completionHandler.handle(new Success<>());
+    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    //map.put(k, v);
+    //completionHandler.handle(new Success<>());
   }
 
   @Override
   public void put(K k, V v, long ttl, Handler<AsyncResult<Void>> completionHandler) {
-    map.put(k, v);
-    completionHandler.handle(new Success<>());
+    put(k,v,completionHandler);
   }
 
   @Override
   public void putIfAbsent(K k, V v, Handler<AsyncResult<V>> completionHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    V oldv = map.get(k); // null if not found
+    if ( oldv == null ) {
+      map.put(k,v);
+      completionHandler.handle(new Success<>(null));
+    } else {
+      completionHandler.handle(new Success<>(oldv));
+    }
   }
 
   @Override
   public void putIfAbsent(K k, V v, long ttl, Handler<AsyncResult<V>> completionHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    putIfAbsent(k, v, completionHandler);
   }
 
   @Override
   public void remove(K k, Handler<AsyncResult<V>> resultHandler) {
-    map.remove(k);
-    resultHandler.handle(new Success<>());
+    // This is a unsafe operation!
+    throw new UnsupportedOperationException("Not supported yet."); 
   }
 
   @Override
   public void removeIfPresent(K k, V v, Handler<AsyncResult<Boolean>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    V get = map.get(k);
+    if ( get.equals(v)) {
+      map.remove(k);
+      resultHandler.handle(new Success<>(true));
+    } else {
+      resultHandler.handle(new Success<>(false));
+    }
   }
 
   @Override
   public void replace(K k, V v, Handler<AsyncResult<V>> resultHandler) {
+    // This is a unsafe operation!
     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
   }
 
   @Override
   public void replaceIfPresent(K k, V oldValue, V newValue, Handler<AsyncResult<Boolean>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    V get = map.get(k);
+    if ( oldValue.equals(get)) {
+      map.put(k, newValue);
+      resultHandler.handle(new Success<>(true));
+    } else {
+      resultHandler.handle(new Success<>(false));
+    }
   }
 
   @Override

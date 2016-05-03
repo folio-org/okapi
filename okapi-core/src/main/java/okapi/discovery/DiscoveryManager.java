@@ -28,8 +28,12 @@ public class DiscoveryManager {
   }
 
   AsyncMap<String, String> list = null;
+  Vertx vertx;
+
+  private final int delay = 10; // ms in recursing for retry of map
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+    this.vertx = vertx;
     AsyncMapFactory.<String, String>create(vertx, "discoveryList", res -> {
       if (res.succeeded()) {
         this.list = res.result();
@@ -71,13 +75,35 @@ public class DiscoveryManager {
         }
         dpl.mdlist.add(md);
         String newVal = Json.encodePrettily(dpl);
-        list.put(srvcId, newVal, resPut -> {
-          if (resPut.succeeded()) {
-            fut.handle(new Success<>(md));
-          } else {
-            fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-          }
-        });
+        if (val == null) {
+          list.putIfAbsent(srvcId, newVal, resPut -> {
+            if (resPut.succeeded()) {
+              if (resPut.result() == null) {
+                fut.handle(new Success<>(md));
+              } else {
+                vertx.setTimer(delay, res->{
+                  add(md, fut);                  
+                });
+              }
+            } else {
+              fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+            }
+          });
+        } else {
+          list.replaceIfPresent(srvcId, val, newVal, resRepl -> {
+            if (resRepl.succeeded()) {
+              if (resRepl.result()) {
+                fut.handle(new Success<>(md));
+              } else {
+                vertx.setTimer(delay, res->{
+                  add(md, fut);
+                });
+              }
+            } else {
+              fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
+            }
+          });
+        }
       }
     });
   }
@@ -99,19 +125,30 @@ public class DiscoveryManager {
           if (md.getInstId().equals(instId)) {
             it.remove();
             if (dpl.mdlist.isEmpty()) {
-              list.remove(srvcId, resDel -> {
+              list.removeIfPresent(srvcId, val, resDel -> {
                 if (resDel.succeeded()) {
-                  fut.handle(new Success<>());
+                  if ( resDel.result()) {
+                    fut.handle(new Success<>());
+                  } else {
+                    vertx.setTimer(delay, res->{
+                      remove(srvcId, instId, fut);
+                    });
+                  }
                 } else {
                   fut.handle(new Failure<>(INTERNAL, resDel.cause()));
                 }
-
               });
-            } else {
+            } else { // list was not empty, remove value
               String newVal = Json.encodePrettily(dpl);
-              list.put(srvcId, newVal, resPut -> {
+              list.replaceIfPresent(srvcId, val, newVal, resPut -> {
                 if (resPut.succeeded()) {
-                  fut.handle(new Success<>());
+                  if ( resPut.result()) {
+                    fut.handle(new Success<>());
+                  } else {
+                    vertx.setTimer(delay, res->{
+                      remove(srvcId, instId, fut);
+                    });
+                  }
                 } else {
                   fut.handle(new Failure<>(INTERNAL, resPut.cause()));
                 }
