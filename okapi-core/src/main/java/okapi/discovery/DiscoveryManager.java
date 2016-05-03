@@ -49,7 +49,6 @@ public class DiscoveryManager {
     if (srvcId == null) {
       fut.handle(new Failure<>(USER, "Needs srvc"));
       return;
-
     }
     final String instId = md.getInstId();
     if (instId == null) {
@@ -75,21 +74,21 @@ public class DiscoveryManager {
         }
         dpl.mdlist.add(md);
         String newVal = Json.encodePrettily(dpl);
-        if (val == null) {
+        if (val == null) { // new entry
           list.putIfAbsent(srvcId, newVal, resPut -> {
             if (resPut.succeeded()) {
               if (resPut.result() == null) {
                 fut.handle(new Success<>(md));
               } else {
                 vertx.setTimer(delay, res->{
-                  add(md, fut);                  
+                  add(md, fut);
                 });
               }
             } else {
               fut.handle(new Failure<>(INTERNAL, resPut.cause()));
             }
           });
-        } else {
+        } else { // existing entry, put and retry if someone else messed with it
           list.replaceIfPresent(srvcId, val, newVal, resRepl -> {
             if (resRepl.succeeded()) {
               if (resRepl.result()) {
@@ -104,7 +103,7 @@ public class DiscoveryManager {
             }
           });
         }
-      }
+      } // get success
     });
   }
 
@@ -156,7 +155,7 @@ public class DiscoveryManager {
             }
             return;
           }
-        }
+        } // while
         fut.handle(new Failure<>(NOT_FOUND, instId));
       }
     });
