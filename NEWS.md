@@ -1,3 +1,12 @@
+## 0.3 2016-05-03
+
+ * Split of Okapi into three services: deployment, discovery and proxy
+ * Hazelcast can be configured (including work with AWS)
+ * Running mode must be given in command line: dev (for development)
+   and cluster (for clustered mode)
+ * Module version dependencies
+ * Bug fixes and more tests
+
 ## 0.2 2016-03-23
 
  * RAML updates and verified in many tests
