@@ -5,20 +5,16 @@
  */
 package okapi.discovery;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.shareddata.AsyncMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import okapi.bean.DeploymentDescriptor;
-import okapi.util.AsyncMapFactory;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -55,7 +51,7 @@ public class DiscoveryManager {
       return;
     }
     String jsonVal = Json.encodePrettily(md);
-    logger.warn("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
+    //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
 
     list.add(srvcId, instId, jsonVal, fut );
     // TODO - Add the key too
@@ -80,7 +76,7 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         String val = resGet.result();
-        logger.warn("Disc:get " + srvcId + "/" + instId + ": " + val);
+        //logger.debug("Disc:get " + srvcId + "/" + instId + ": " + val);
         DeploymentDescriptor md = Json.decodeValue(val, DeploymentDescriptor.class);
         fut.handle(new Success<>(md));
       }
@@ -100,7 +96,7 @@ public class DiscoveryManager {
         Iterator<String> it = val.iterator();
         while(it.hasNext()) {
           String t = it.next();
-          logger.warn("Disc:get " + srvcId + ":" + t);
+          //logger.debug("Disc:get " + srvcId + ":" + t);
           DeploymentDescriptor md = Json.decodeValue(t, DeploymentDescriptor.class);
           dpl.add(md);
         }

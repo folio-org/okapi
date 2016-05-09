@@ -57,14 +57,22 @@ public class LockedStringMapTest {
   public void testadd(TestContext context) {
     map.add("k1", "k2", "FOOBAR", res -> {
       assertTrue(res.succeeded());
-      testget(context);
+      testgetK12(context);
     });
   }
 
-  private void testget(TestContext context) {
+  private void testgetK12(TestContext context) {
     map.get("k1","k2",res -> {
       assertTrue(res.succeeded());
       assertEquals("FOOBAR", res.result());
+      testgetK1(context);
+    });
+  }
+
+  private void testgetK1(TestContext context) {
+    map.get("k1",res -> {
+      assertTrue(res.succeeded());
+      assertEquals("[FOOBAR]", res.result().toString());
       done(context);
     });
   }
