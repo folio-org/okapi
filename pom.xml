@@ -14,6 +14,7 @@
   <modules>
     <module>okapi-sample-module</module>
     <module>okapi-auth</module>
+    <module>okapi-header-module</module>
     <!-- core must be last because it relies on the previous two in tests -->
     <module>okapi-core</module>
   </modules>
