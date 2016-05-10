@@ -279,6 +279,12 @@ public class ProxyService {
                   logger.debug("proxyHeaders: res exception " + v.getMessage());
                 });
               } else if (it.hasNext()) {
+                for (String s : res.headers().names()) {
+                  if (s.startsWith("X-") || s.startsWith("x-")) {
+                    final String v = res.headers().get(s);
+                    ctx.request().headers().add(s, v);
+                  }
+                }
                 res.endHandler(x -> {
                   proxyR(ctx, it, traceHeaders, content, bcontent);
                 });
