@@ -104,6 +104,7 @@ These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
 system offers such.
 
+![alt text](module_management.svg "Module Management Diagram")
 
 #### What are 'modules'?
 
