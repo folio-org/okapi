@@ -26,6 +26,10 @@ public class MainVerticle extends AbstractVerticle {
     if (ctype != null && ctype.toLowerCase().contains("xml")) {
       xmlMsg = " (XML) ";
     }
+    final String hv = ctx.request().getHeader("X-my-header");
+    if (hv != null) {
+      xmlMsg += hv;
+    }
     final String xmlMsg2 = xmlMsg;
     ctx.response().putHeader("Content-Type", "text/plain");
     if (ctx.request().method().equals(HttpMethod.GET)) {

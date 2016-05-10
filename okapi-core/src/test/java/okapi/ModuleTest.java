@@ -38,6 +38,7 @@ public class ModuleTest {
 
   private String locationSampleDeployment;
   private String locationSample5Deployment;
+  private String locationHeaderDeployment;
   private String locationAuthDeployment = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
@@ -95,6 +96,16 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSample5Deployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationHeaderDeployment != null) {
+      httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationHeaderDeployment = null;
           td(context);
         });
       }).end();
@@ -803,4 +814,154 @@ public class ModuleTest {
 
     async.complete();
   }
+
+  @Test
+  public void testHeader(TestContext context) {
+    async = context.async();
+    Response r;
+    ValidatableResponse then;
+
+    final String doc1 = "{" + LS
+            + "  \"srvcId\" : \"sample-module5\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }" + LS
+            + "}";
+
+    r = given().header("Content-Type", "application/json")
+           .body(doc1).post("/_/deployment/modules")
+           .then().statusCode(201)
+           .extract().response();
+    locationSample5Deployment = r.getHeader("Location");
+    final String doc2 = r.asString();
+
+    r = given().header("Content-Type", "application/json")
+            .body(doc2).post("/_/discovery/modules")
+            .then().statusCode(201).body(equalTo(doc2))
+            .extract().response();
+    final String locationDiscovery1 = r.header("Location");
+
+        final String doc3 = "{" + LS
+            + "  \"srvcId\" : \"header-module\"," + LS
+            + "  \"name\" : \"header module\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : "
+            + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"," + LS
+            + "    \"cmdlineStop\" : null" + LS
+            + "  }" + LS
+            + "}";
+
+    r = given().header("Content-Type", "application/json")
+           .body(doc3).post("/_/deployment/modules")
+           .then().statusCode(201)
+           .extract().response();
+    locationHeaderDeployment = r.getHeader("Location");
+    final String doc4 = r.asString();
+
+    r = given().header("Content-Type", "application/json")
+            .body(doc4).post("/_/discovery/modules")
+            .then().statusCode(201).body(equalTo(doc4))
+            .extract().response();
+    final String locationDiscovery2 = r.header("Location");
+
+    final String docSampleModule = "{" + LS
+            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"20\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+    r = given()
+            .header("Content-Type", "application/json")
+            .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+            .extract().response();
+    String locationSampleModule = r.getHeader("Location");
+
+    final String docHeaderModule = "{" + LS
+            + "  \"id\" : \"header-module\"," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"headers\"" + LS
+            + "  } ]" + LS
+            + "}";
+    r = given()
+            .header("Content-Type", "application/json")
+            .body(docHeaderModule).post("/_/proxy/modules").then().statusCode(201)
+            .extract().response();
+    final String locationHeaderModule = r.getHeader("Location");
+
+    final String docTenantRoskilde = "{" + LS
+            + "  \"id\" : \"" + okapiTenant + "\"," + LS
+            + "  \"name\" : \"" + okapiTenant + "\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
+            + "}";
+    r = given()
+            .header("Content-Type", "application/json")
+            .body(docTenantRoskilde).post("/_/proxy/tenants")
+            .then().statusCode(201)
+            .body(equalTo(docTenantRoskilde))
+            .extract().response();
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+
+    final String docEnableSample = "{" + LS
+            + "  \"id\" : \"sample-module5\"" + LS
+            + "}";
+    given()
+            .header("Content-Type", "application/json")
+            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(docEnableSample));
+
+    final String docEnableHeader = "{" + LS
+            + "  \"id\" : \"header-module\"" + LS
+            + "}";
+    given()
+            .header("Content-Type", "application/json")
+            .body(docEnableHeader).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(docEnableHeader));
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .body("bar").post("/sample")
+            .then().statusCode(200).body(equalTo("Hello foobar"))
+            .extract().response();
+
+    given().delete(locationSampleModule)
+      .then().statusCode(204);
+
+    final String docSampleModule2 = "{" + LS
+            + "  \"id\" : \"sample-module5\"," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"5\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+
+    given()
+            .header("Content-Type", "application/json")
+            .body(docSampleModule2).post("/_/proxy/modules").then().statusCode(201)
+            .extract().response();
+    locationSampleModule = r.getHeader("Location");
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .body("bar").post("/sample")
+            .then().statusCode(200).body(equalTo("Hello foobar"))
+            .extract().response();
+
+    given().delete(locationSampleModule)
+            .then().statusCode(204);
+
+    async.complete();
+  }
+
 }
