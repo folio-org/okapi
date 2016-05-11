@@ -15,6 +15,8 @@ import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import static okapi.util.ErrorType.INTERNAL;
 import static okapi.util.ErrorType.NOT_FOUND;
 import static okapi.util.ErrorType.USER;
@@ -33,9 +35,15 @@ public class LockedStringMap {
     Map<String,String> strings = new LinkedHashMap<>();
   }
 
+  static class KeyList {
+    @JsonProperty
+    Set<String> keys = new TreeSet<>();
+  }
+
   AsyncMap<String, String> list = null;
   Vertx vertx = null;
   private final int delay = 10; // ms in recursing for retry of map
+  private final String allkeys = "_keys"; // keeps a list of all known keys
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -87,6 +95,56 @@ public class LockedStringMap {
     });
   }
 
+
+  private void addKey(String k,Handler<ExtendedAsyncResult<Void>> fut ) {
+    KeyList klist = new KeyList();
+    list.get(allkeys, resGet -> {
+      if (resGet.failed()) {
+        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+      } else {
+        String oldVal = resGet.result();
+        if (oldVal != null) {
+          KeyList oldlist = Json.decodeValue(oldVal, KeyList.class);
+          klist.keys.addAll(oldlist.keys);
+        }
+        if ( ! klist.keys.contains(k)) {
+          klist.keys.add(k);
+          String newVal = Json.encodePrettily(klist);
+          logger.warn("addKey '" + k + "' : " + newVal);
+          if (oldVal == null) { // new entry
+            list.putIfAbsent(allkeys, newVal, resPut -> {
+              if (resPut.succeeded()) {
+                if (resPut.result() == null) {
+                  fut.handle(new Success<>());
+                } else { // Someone messed with it, try again
+                  vertx.setTimer(delay, res->{
+                    addKey(k, fut);
+                  });
+                }
+              } else {
+                fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+              }
+            });
+          } else { // existing entry, put and retry if someone else messed with it
+            list.replaceIfPresent(allkeys, oldVal, newVal, resRepl -> {
+              if (resRepl.succeeded()) {
+                if (resRepl.result()) {
+                  fut.handle(new Success<>());
+                } else {
+                  vertx.setTimer(delay, res->{
+                    addKey(k, fut);
+                  });
+                }
+              } else {
+                fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
+              }
+            });
+          }
+        }
+      }
+    });
+  }
+
   public void add(String k, String k2, String jsonString, Handler<ExtendedAsyncResult<Void>> fut) {
     StringMap smap = new StringMap();
     list.get(k, resGet -> {
@@ -109,7 +167,7 @@ public class LockedStringMap {
           list.putIfAbsent(k, newVal, resPut -> {
             if (resPut.succeeded()) {
               if (resPut.result() == null) {
-                fut.handle(new Success<>());
+                addKey(k,fut);
               } else { // Someone messed with it, try again
                 vertx.setTimer(delay, res->{
                   add(k, k2, jsonString, fut);
@@ -123,7 +181,7 @@ public class LockedStringMap {
           list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
             if (resRepl.succeeded()) {
               if (resRepl.result()) {
-                fut.handle(new Success<>());
+                addKey(k,fut);
               } else {
                 vertx.setTimer(delay, res->{
                   add(k, k2, jsonString, fut);
@@ -158,6 +216,9 @@ public void remove(String k, String k2, Handler<ExtendedAsyncResult<Boolean>> fu
               if (resDel.succeeded()) {
                 if (resDel.result()) {
                   fut.handle(new Success<>(true));
+                  // Note that we do not remove the key from the list
+                  // That could lead to race conditions, better to have
+                  // unused entried in the key list.
                 } else {
                   vertx.setTimer(delay, res -> {
                     remove(k, k2, fut);

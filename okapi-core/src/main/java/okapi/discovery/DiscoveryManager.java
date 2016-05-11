@@ -29,7 +29,6 @@ public class DiscoveryManager {
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
-  private final String allkeys = "_keys"; // keeps a list of all known keys
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
