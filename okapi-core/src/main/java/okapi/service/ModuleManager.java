@@ -5,6 +5,8 @@
  */
 package okapi.service;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.SharedMetricRegistries;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
@@ -26,6 +28,17 @@ public class ModuleManager {
   LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
 
   public ModuleManager(Vertx vertx) {
+    try {
+      SharedMetricRegistries.getOrCreate("okapi").remove("moduleCount");
+    } catch (Exception e) {
+    }
+    SharedMetricRegistries.getOrCreate("okapi").register("moduleCount", new Gauge<Integer>() {
+      @Override
+      public Integer getValue() {
+        return modules.size();
+      }
+    });
+
     this.vertx = vertx;
   }
 
