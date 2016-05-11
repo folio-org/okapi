@@ -26,6 +26,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
+import okapi.util.DropwizardConfig;
 
 public class MainCluster {
   public static void main(String[] args) {
@@ -75,28 +76,8 @@ public class MainCluster {
                 getProperty("graphitePort", "2003"));
         final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
         final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-        String host = "localhost";
-        try {
-          host = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-          logger.warn("Can read hostname. Using localhost. " + e.getMessage());
-        }
 
-        final String registryName = "okapi";
-
-        MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
-
-        DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions();
-        metricsOpt.setEnabled(true).setRegistryName(registryName);
-        vopt.setMetricsOptions(metricsOpt);
-
-        Graphite graphite = new Graphite(new InetSocketAddress(graphiteHost, graphitePort));
-        GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
-                .prefixedWith(host + "-okapi")
-                .build(graphite);
-        logger.info("Metrics remote:" + graphiteHost + ":"
-                + graphitePort + " this:" + host + "-okapi");
-        reporter.start(reporterPeriod, tu);
+        DropwizardConfig.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt);
       } else {
         err.println("Invalid option: " + args[i]);
         exit(1);
