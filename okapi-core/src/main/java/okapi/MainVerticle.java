@@ -207,8 +207,12 @@ public class MainVerticle extends AbstractVerticle {
             .allowedMethod(HttpMethod.POST)
             //allow request headers
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+            .allowedHeader("X-Okapi-Tenant")
+            .allowedHeader("X-Okapi-Token")
             //expose response headers
             .exposedHeader(HttpHeaders.LOCATION.toString())
+            .exposedHeader("X-Okapi-Trace")
+            .exposedHeader("X-Okapi-Token")
     );
 
     // Paths that start with /_/ are okapi internal configuration
