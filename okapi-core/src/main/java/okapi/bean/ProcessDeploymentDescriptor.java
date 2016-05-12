@@ -9,6 +9,7 @@ public class ProcessDeploymentDescriptor {
 
   private String cmdlineStart;
   private String cmdlineStop;
+  private String exec;
 
   public ProcessDeploymentDescriptor() {
   }
@@ -29,4 +30,11 @@ public class ProcessDeploymentDescriptor {
     this.cmdlineStop = cmdlineStop;
   }
 
+  public String getExec() {
+    return exec;
+  }
+
+  public void setExec(String exec) {
+    this.exec = exec;
+  }
 }

@@ -160,10 +160,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\"," + LS
-            // + "\"sleep %p\","+LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -181,9 +179,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"auth\"," + LS
             + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -250,9 +247,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
     c = api.createRestAssured();
@@ -736,9 +732,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -753,9 +748,10 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"cmdlineStart\" : null," + LS
+            + "    \"cmdlineStop\" : null," + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -825,9 +821,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module5\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -848,9 +843,8 @@ public class ModuleTest {
             + "  \"srvcId\" : \"header-module\"," + LS
             + "  \"name\" : \"header module\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 

@@ -654,8 +654,7 @@ cat > /tmp/sampledeploy.json <<END
   "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
    }
 }
 END
@@ -695,8 +694,7 @@ Content-Length: 306
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 }
 ```
@@ -725,8 +723,7 @@ Content-Length: 310
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 } ]
 ```
@@ -766,8 +763,7 @@ cat /tmp/samplediscovery.json
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 }
 ```
@@ -848,8 +844,7 @@ cat > /tmp/authdeploy.json <<END
   "srvcId" : "auth",
   "name" : "auth",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
    }
 }
 END
