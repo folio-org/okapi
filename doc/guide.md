@@ -104,6 +104,7 @@ These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
 system offers such.
 
+![alt text](module_management.svg "Module Management Diagram")
 
 #### What are 'modules'?
 
@@ -653,8 +654,7 @@ cat > /tmp/sampledeploy.json <<END
   "srvcId" : "sample-module",
   "name" : "okapi sample module",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
    }
 }
 END
@@ -694,8 +694,7 @@ Content-Length: 306
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 }
 ```
@@ -724,8 +723,7 @@ Content-Length: 310
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 } ]
 ```
@@ -765,8 +763,7 @@ cat /tmp/samplediscovery.json
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 }
 ```
@@ -847,8 +844,7 @@ cat > /tmp/authdeploy.json <<END
   "srvcId" : "auth",
   "name" : "auth",
   "descriptor" : {
-    "cmdlineStart" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar",
-    "cmdlineStop" : null
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
    }
 }
 END

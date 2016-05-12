@@ -11,7 +11,8 @@
     "descriptor" : {
       "type": ["object", "null"],
       "properties": {
-        "cmdlineStart": {"type": "string"},
+        "exec": {"type": ["string", "null"]},
+        "cmdlineStart": {"type": ["string", "null"]},
         "cmdlineStop": {"type": ["string", "null"]}
       }
     }
