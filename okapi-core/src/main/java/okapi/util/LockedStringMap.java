@@ -12,8 +12,11 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -86,8 +89,8 @@ public class LockedStringMap {
         String val = resGet.result();
         //logger.debug("Get " + k + ":" + val);
         if (val != null) {
-          StringMap oldlist = Json.decodeValue(val, StringMap.class);
-          fut.handle(new Success<>(oldlist.strings.values()));
+          StringMap map = Json.decodeValue(val, StringMap.class);
+          fut.handle(new Success<>(map.strings.values()));
         } else {
           fut.handle(new Failure<>(NOT_FOUND, k));
         }
@@ -95,7 +98,24 @@ public class LockedStringMap {
     });
   }
 
+  public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+    list.get(allkeys, resGet -> {
+      if (resGet.failed()) {
+        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+      } else {
+        String val = resGet.result();
+        if (val != null && ! val.isEmpty()) {
+          KeyList keys = Json.decodeValue(val,KeyList.class);
+          fut.handle(new Success<>(keys.keys));
+        } else {
+          KeyList nokeys = new KeyList();
+          fut.handle(new Success<>(nokeys.keys));          
+        }
+      }
+    });
+  }
 
+  
   private void addKey(String k,Handler<ExtendedAsyncResult<Void>> fut ) {
     KeyList klist = new KeyList();
     list.get(allkeys, resGet -> {
@@ -107,10 +127,11 @@ public class LockedStringMap {
           KeyList oldlist = Json.decodeValue(oldVal, KeyList.class);
           klist.keys.addAll(oldlist.keys);
         }
-        if ( ! klist.keys.contains(k)) {
+        if ( klist.keys.contains(k)) {
+          fut.handle(new Success<>());
+        } else {
           klist.keys.add(k);
           String newVal = Json.encodePrettily(klist);
-          logger.warn("addKey '" + k + "' : " + newVal);
           if (oldVal == null) { // new entry
             list.putIfAbsent(allkeys, newVal, resPut -> {
               if (resPut.succeeded()) {

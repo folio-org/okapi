@@ -104,7 +104,45 @@ public class DiscoveryManager {
     });
   }
 
-  void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    fut.handle(new Failure<>(INTERNAL, "get not implemented"));
+  /**
+   * Get all known DeploymentDescriptors (all services on all nodes).
+   */
+  public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    list.getKeys(resGet -> {
+      if (resGet.failed()) {
+        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+      } else {
+        Collection<String> keys = resGet.result();
+        if ( keys == null  || keys.isEmpty() ) {
+          List<DeploymentDescriptor> empty = new ArrayList<>();
+          fut.handle(new Success<>(empty));
+        } else {
+          Iterator<String> it = keys.iterator();
+          List<DeploymentDescriptor> all = new ArrayList<>();
+          getAll_r(it, all, fut);
+        }
+
+      }
+    });
   }
+
+  void getAll_r(Iterator<String> it, List<DeploymentDescriptor> all,
+            Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      String srvcId = it.next();
+      this.get(srvcId, resGet -> {
+        if (resGet.failed()) {
+          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        } else {
+          List<DeploymentDescriptor> dpl = resGet.result();
+          all.addAll(dpl);
+          getAll_r(it, all, fut);
+        }
+      });
+    }
+  }
+
+
 }
