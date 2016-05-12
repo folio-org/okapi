@@ -35,11 +35,11 @@ public class DiscoveryService {
         if (res.failed()) {
           responseError(ctx, res.getType(), res.cause());
         } else {
-          final String s = Json.encodePrettily(res.result());
+          final String s = Json.encodePrettily(pmd);
           responseJson(ctx, 201)
                   .putHeader("Location", ctx.request().uri()
-                          + "/" + res.result().getSrvcId()
-                          + "/" + res.result().getInstId())
+                          + "/" + pmd.getSrvcId()
+                          + "/" + pmd.getInstId())
                   .end(s);
         }
       });

@@ -789,8 +789,9 @@ public class ModuleTest {
          .body(equalTo("[ " + doc2 + " ]"));
 
     given().get("/_/discovery/modules")
-         .then().statusCode(500);
-    // TODO - Can not list them yet
+         .then().statusCode(200)
+         .log().ifError()
+         .body(equalTo("[ " + doc2 + " ]"));
 
     given().delete(locationDiscovery1)
       .then().statusCode(204);
