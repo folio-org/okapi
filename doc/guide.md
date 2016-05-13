@@ -652,7 +652,6 @@ structure of module metadata and POST it to Okapi
 cat > /tmp/sampledeploy.json <<END
 {
   "srvcId" : "sample-module",
-  "name" : "okapi sample module",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
    }
@@ -685,12 +684,11 @@ You should see something like this
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/deployment/modules/localhost-9131
-Content-Length: 306
+Content-Length: 291
 
 {
   "instId" : "localhost-9131",
   "srvcId" : "sample-module",
-  "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -714,12 +712,11 @@ curl -D -  -w '\n'  http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 310
+Content-Length: 295
 
 [ {
   "instId" : "localhost-9131",
   "srvcId" : "sample-module",
-  "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -759,7 +756,6 @@ cat /tmp/samplediscovery.json
 {
   "instId" : "localhost-9131",
   "srvcId" : "sample-module",
-  "name" : "okapi sample module",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -842,7 +838,6 @@ module, then we tell the discovery where it lives:
 cat > /tmp/authdeploy.json <<END
 {
   "srvcId" : "auth",
-  "name" : "auth",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
    }

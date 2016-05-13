@@ -6,7 +6,6 @@
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},
-    "name": {"type": "string"},
     "url": {"type": ["string", "null"]},
     "descriptor" : {
       "type": ["object", "null"],
@@ -17,5 +16,5 @@
       }
     }
   },
-  "required": ["srvcId", "name"]
+  "required": ["srvcId"]
 }

@@ -158,7 +158,6 @@ public class ModuleTest {
 
     final String docUnknownJar = "{" + LS
             + "  \"srvcId\" : \"auth\"," + LS
-            + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\"" + LS
@@ -177,7 +176,6 @@ public class ModuleTest {
 
     final String docAuthDeployment = "{" + LS
             + "  \"srvcId\" : \"auth\"," + LS
-            + "  \"name\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"" + LS
@@ -245,7 +243,6 @@ public class ModuleTest {
 
     final String docSampleDeployment = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
@@ -538,7 +535,6 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"name\" : \"second sample module\"," + LS
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
@@ -588,10 +584,9 @@ public class ModuleTest {
     final String docSample3Deployment = "{" + LS
             + "  \"instId\" : \"sample3-instance\"," + LS
             + "  \"srvcId\" : \"sample-module3\"," + LS
-            + "  \"name\" : \"second sample module\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSample3Deployment).post("/_/discovery/modules")
             .then()
@@ -730,7 +725,6 @@ public class ModuleTest {
 
     final String doc1 = "{" + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
@@ -744,7 +738,6 @@ public class ModuleTest {
     final String doc2 = "{" + LS
             + "  \"instId\" : \"localhost-9131\"," + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
@@ -820,7 +813,6 @@ public class ModuleTest {
 
     final String doc1 = "{" + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
@@ -842,7 +834,6 @@ public class ModuleTest {
 
         final String doc3 = "{" + LS
             + "  \"srvcId\" : \"header-module\"," + LS
-            + "  \"name\" : \"header module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"" + LS

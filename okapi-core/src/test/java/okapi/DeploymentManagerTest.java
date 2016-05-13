@@ -50,7 +50,7 @@ public class DeploymentManagerTest {
     descriptor.setExec(
             "java -Dport=%p -jar "
                     +"../okapi-sample-module/target/okapi-sample-module-fat.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", "sample", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
@@ -74,7 +74,7 @@ public class DeploymentManagerTest {
     descriptor.setExec(
             "java -Dport=%p -jar "
                     +"../okapi-sample-module/target/unknown.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", "unknown", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());
       if (res1.failed()) {

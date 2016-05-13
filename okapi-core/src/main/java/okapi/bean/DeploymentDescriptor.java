@@ -12,7 +12,6 @@ public class DeploymentDescriptor {
 
   private String instId;
   private String srvcId;
-  private String name;
   private String nodeId;
   private String url;
   private ProcessDeploymentDescriptor descriptor;
@@ -23,22 +22,20 @@ public class DeploymentDescriptor {
   public DeploymentDescriptor() {
   }
 
-  public DeploymentDescriptor(String instId, String srvcId, String name,
+  public DeploymentDescriptor(String instId, String srvcId, 
           String url,
           ProcessDeploymentDescriptor descriptor,
           ModuleHandle moduleHandle) {
     this.instId = instId;
     this.srvcId = srvcId;
-    this.name = name;
     this.url = url;
     this.descriptor = descriptor;
     this.moduleHandle = moduleHandle;
   }
 
-  public DeploymentDescriptor(String instId, String name,
+  public DeploymentDescriptor(String instId, 
           ProcessDeploymentDescriptor descriptor) {
     this.instId = instId;
-    this.name = name;
     this.url = null;
     this.descriptor = descriptor;
     this.moduleHandle = null;
@@ -58,14 +55,6 @@ public class DeploymentDescriptor {
 
   public void setSrvcId(String srvcId) {
     this.srvcId = srvcId;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
   }
 
   public String getNodeId() {
