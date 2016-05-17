@@ -1195,13 +1195,36 @@ general invocation is:
   `java` [*java-options*] `-jar patho/okapi-core-fat.jar` *command* [*options*]
 
 This is really just java(1) material. Of particular interest is java-option `-D`
-which may set properties for the program. Okapi parses *command* and *options*
-that follow.
+which may set properties for the program, see below. Okapi itself parses
+*command* and *options* that follow.
 
-Okapi requires exactly one command to be given. These are `dev` (for running in
-development, single-node mode), `cluster` (for running in clustered
-mode/production), `help` and others. Use `help` command to get the latest
-commands and options.
+#### Command
+Okapi requires exactly one command to be given. These are:
+* `dev` for running in development, single-node mode
+* `cluster` for running in clustered mode/production
+* `help` to list command line options and commands
+
+#### Java -D Options
+The -D option can be used to set up various things in Okapi. These must be in
+the beginning of the command line, before the -jar
+
+* `port`: The port on which Okapi listens. Defaults to 9130
+* `port_start` and `port_end`: The range of ports for modules. Default to
+`port`+1 to `port`+10, normally 9131 to 9141
+* `host`: Hostname to be used in the URLs returned by the deployment service.
+Defaults to `localhost`
+* `storage`: Defines the storage back end, `mongo` or `inmemory`
+* `loglevel`: The logging level. Defaults to "INFO", useful values can be
+"DEBUG" or "TRACE".
+
+#### Command line options
+These options are at the end of the command line:
+
+* `-hazelcast-config-cp file`  Read config from class path
+* `-hazelcast-config-file file` Read config from local file
+* `-hazelcast-config-url url` Read config from URL
+* `-enable-metrics` Enables the sending of various metrics to a Carbon back
+end.
 
 ### Web Service
 The Okapi service requests (all those prefixed with /_/) are specified
