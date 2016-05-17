@@ -7,6 +7,8 @@ package okapi.deployment;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -25,11 +27,14 @@ public class DeploymentManager {
   Vertx vertx;
   Ports ports;
   String host;
+  private EventBus eb;
+  private final String eventBusName = "okapi.conf.discovery";
 
   public DeploymentManager(Vertx vertx, String host, Ports ports) {
     this.vertx = vertx;
     this.host = host;
     this.ports = ports;
+    this.eb = vertx.eventBus();
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
@@ -62,6 +67,8 @@ public class DeploymentManager {
                         url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
         list.put(md2.getInstId(), md2);
+        final String s = Json.encodePrettily(md2);
+        eb.send(eventBusName + ".deploy", s);
         fut.handle(new Success<>(md2));
       } else {
         ports.free(use_port);
@@ -75,6 +82,8 @@ public class DeploymentManager {
       fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
     } else {
       DeploymentDescriptor md = list.get(id);
+      final String s = Json.encodePrettily(md);
+      eb.send(eventBusName + ".undeploy", s);
       ModuleHandle mh = md.getModuleHandle();
       mh.stop(future -> {
         if (future.succeeded()) {
