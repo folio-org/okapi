@@ -7,6 +7,7 @@ package okapi.discovery;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -29,14 +30,34 @@ public class DiscoveryManager {
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
+  private EventBus eb;
+  private final String eventBusName = "okapi.conf.discovery";
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     list.init(vertx, "discoveryList", fut);
+    this.eb = vertx.eventBus();
+    eb.consumer(eventBusName + ".deploy", message -> {
+      final String s = (String) message.body();
+      final DeploymentDescriptor md = Json.decodeValue(s,
+              DeploymentDescriptor.class);
+      add(md, res -> {
+         if (res.failed()) {
+           message.fail(0, res.cause().getMessage());
+         }
+      });
+    });
+    eb.consumer(eventBusName + ".undeploy", message -> {
+      final String s = (String) message.body();
+      final DeploymentDescriptor md = Json.decodeValue(s,
+              DeploymentDescriptor.class);
+      remove(md.getSrvcId(), md.getInstId(), res -> {
+         if (res.failed()) {
+           message.fail(0, res.cause().getMessage());
+         }
+      });
+    });
   }
-
-
-
 
   void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String srvcId = md.getSrvcId();

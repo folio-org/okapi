@@ -742,36 +742,8 @@ for each node that should run the sample module. But we run these examples on
 a single machine setup, so it does not matter.
 
 #### Adding the sample module to the discovery
-next we need to POST information about the sample module to the discovery service.
-The structure we post is actually the same as for the deployment, but now
-the important fields are the url and both instId and srvcId.
-We could have saved the result of
-the deployment POST, but we can also ask Okapi to repeat it for us:
-```
-curl -s -o /tmp/samplediscovery.json \
-  http://localhost:9130/_/deployment/modules/localhost-9131
 
-cat /tmp/samplediscovery.json
-
-{
-  "instId" : "localhost-9131",
-  "srvcId" : "sample-module",
-  "nodeId" : "localhost",
-  "url" : "http://localhost:9131",
-  "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
-  }
-}
-```
-
-So, we go ahead and post it:
-```
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/samplediscovery.json  \
-  http://localhost:9130/_/discovery/modules
-```
-
+Okapi deployment registers the module with discovery automatically. 
 
 #### Telling the proxy about the module
 Finally we need to inform the proxy module that we have a sample module that can
@@ -852,12 +824,6 @@ curl -w '\n' -D - -s \
   http://localhost:9130/_/deployment/modules
 
 cat /tmp/authdiscovery.json
-
-curl -w '\n' -D -  \
-  -X POST \
-  -H "Content-type: application/json" \
-  -d @/tmp/authdiscovery.json  \
-  http://localhost:9130/_/discovery/modules
 
 ```
 
@@ -1172,8 +1138,6 @@ curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample-module
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample-module/localhost-9131
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9132
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9131
 
