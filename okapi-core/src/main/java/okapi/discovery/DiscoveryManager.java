@@ -16,6 +16,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
+import okapi.bean.HealthDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -165,4 +166,40 @@ public class DiscoveryManager {
     }
   }
 
+  private void health(DeploymentDescriptor md, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+    HealthDescriptor hd = new HealthDescriptor();
+    hd.setInstId(md.getInstId());
+    hd.setSrvcId(md.getSrvcId());
+    hd.setHealthStatus("OK");
+    fut.handle(new Success(hd));
+  }
+
+  private void healthR(Iterator<DeploymentDescriptor> it, List<HealthDescriptor> all,
+          Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      DeploymentDescriptor md = it.next();
+      health(md, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          all.add(res.result());
+          healthR(it, all, fut);
+        }
+      });
+    }
+  }
+
+  public void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+    get(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        Iterator<DeploymentDescriptor> it = res.result().iterator();
+        List<HealthDescriptor> all = new ArrayList<>();
+        healthR(it, all, fut);
+      }
+    });
+  }
 }
