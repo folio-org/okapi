@@ -23,7 +23,6 @@ curl -w '\n' http://localhost:9130/_/proxy/tenants
 cat > /tmp/sampledeploy.json <<END
 {
   "srvcId" : "sample-module",
-  "name" : "okapi sample module",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
    }
@@ -75,7 +74,6 @@ curl -w '\n' -X POST -D -   \
 cat > /tmp/authdeploy.json <<END
 {
   "srvcId" : "auth",
-  "name" : "auth",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
    }

@@ -58,7 +58,7 @@ public class DeploymentManager {
     mh.start(future -> {
       if (future.succeeded()) {
         DeploymentDescriptor md2
-                = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(), md1.getName(),
+                = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
                         url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
         list.put(md2.getInstId(), md2);
@@ -123,7 +123,7 @@ public class DeploymentManager {
     mh.start(future -> {
       if (future.succeeded()) {
         DeploymentDescriptor md2 = new DeploymentDescriptor(id, md1.getSrvcId(),
-                md1.getName(), url, md1.getDescriptor(), mh);
+                url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
         ModuleHandle mh0 = md0.getModuleHandle();
         mh0.stop(future0 -> {

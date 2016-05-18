@@ -16,8 +16,6 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
-import java.util.LinkedList;
-import java.util.List;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
 
@@ -84,12 +82,21 @@ public class ProcessModuleHandle implements ModuleHandle {
   }
 
   private void start2(Handler<AsyncResult<Void>> startFuture) {
-    final String cmdline = desc.getCmdlineStart();
+    final String exec = desc.getExec();
+    final String cmdlineStart = desc.getCmdlineStart();
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          String c = cmdline.replace("%p", Integer.toString(port));
-          ProcessBuilder pb = new ProcessBuilder(c.split(" "));
+          String [] l = new String[0];
+          if (exec != null) {
+            String c = exec.replace("%p", Integer.toString(port));
+            l = c.split(" ");
+          }
+          else if (cmdlineStart != null) {
+            String c = cmdlineStart.replace("%p", Integer.toString(port));
+            l = new String [] { "sh", "-c", c };
+          }
+          ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
@@ -121,6 +128,16 @@ public class ProcessModuleHandle implements ModuleHandle {
       vertx.executeBlocking(future -> {
         p.destroy();
         while (p.isAlive()) {
+          boolean exited = true;
+          try {
+            int r = p.exitValue();
+          } catch (Exception e) {
+            exited = false;
+          }
+          if (exited) {
+            future.fail("Process exited but child processes exist");
+            return;
+          }
           try {
             int x = p.waitFor();
           } catch (InterruptedException ex) {
@@ -139,10 +156,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       vertx.executeBlocking(future -> {
         try {
           String c = cmdline.replace("%p", Integer.toString(port));
-          List<String> l = new LinkedList<>();
-          l.add("sh");
-          l.add("-c");
-          l.add(c);
+          String [] l = new String [] { "sh", "-c", c };
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           pb.start();
