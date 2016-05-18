@@ -32,12 +32,17 @@ public class ModuleManager {
       SharedMetricRegistries.getOrCreate("okapi").remove("moduleCount");
     } catch (Exception e) {
     }
+    SharedMetricRegistries.getOrCreate("okapi")
+      .register("moduleCount", (Gauge<Integer>) () -> modules.size());
+/*
     SharedMetricRegistries.getOrCreate("okapi").register("moduleCount", new Gauge<Integer>() {
       @Override
       public Integer getValue() {
         return modules.size();
       }
     });
+*/
+
 
     this.vertx = vertx;
   }

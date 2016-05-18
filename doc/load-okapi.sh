@@ -15,6 +15,10 @@ do
   do
 
     curl -s -w '\n' -D -  \
+      -H "X-Okapi-Tenant: our" \
+      http://localhost:9130/sample
+
+    curl -s -w '\n' -D -  \
       -H "X-Okapi-Tenant: other" \
       -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
       http://localhost:9130/sample
@@ -31,6 +35,7 @@ do
   curl -s -w '\n' -D -  \
     -H "X-Okapi-Tenant: our" \
     http://localhost:9130/UNKNOWN-REQUEST
+
 
   curl -s -w '\n' -D -  \
     -H "X-Okapi-Tenant: other" \

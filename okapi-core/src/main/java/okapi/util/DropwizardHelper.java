@@ -5,10 +5,13 @@
  */
 package okapi.util;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
+import io.vertx.core.Handler;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -40,5 +43,12 @@ public class DropwizardHelper {
             + port + " this:" + prefix);
   }
 
+  //public static void registerGauge(String name, T metric) { }
 
+  /*
+  public static void printsquare<T>(T x) {
+    System.out.println(x*x);
+  }
+  */
+  
 }

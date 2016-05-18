@@ -5,6 +5,8 @@
  */
 package okapi.service;
 
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.SharedMetricRegistries;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Tenant;
@@ -133,6 +135,10 @@ public class ProxyService {
       responseText(ctx, 400).end("No such Tenant " + tenant_id);
       return;
     }
+
+    String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath() ;
+    //System.out.println("Trying to note an event: '" + metricKey + "'" );
+    SharedMetricRegistries.getOrCreate("okapi").meter(metricKey).mark();
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
     resolveUrls(l.iterator(), res -> {
