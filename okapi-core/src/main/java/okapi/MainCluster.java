@@ -76,8 +76,8 @@ public class MainCluster {
                 getProperty("graphitePort", "2003"));
         final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
         final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-
-        DropwizardConfig.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt);
+        final String hostName = getProperty("host", "localhost");
+        DropwizardConfig.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
         err.println("Invalid option: " + args[i]);
         exit(1);

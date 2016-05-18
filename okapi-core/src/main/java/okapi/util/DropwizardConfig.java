@@ -17,32 +17,28 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
-public class DropwizardConfig {
+public class DropwizardHelper {
 
   static Logger logger = LoggerFactory.getLogger("okapi");
 
   public static void config(String graphiteHost, int port, TimeUnit tu,
-          int period, VertxOptions vopt) {
-    String host = "localhost";
-    try {
-      host = InetAddress.getLocalHost().getHostName();
-    } catch (Exception e) {
-      logger.warn("Can read hostname. Using localhost. " + e.getMessage());
-    }
+          int period, VertxOptions vopt, String hostName) {
     final String registryName = "okapi";
-
     MetricRegistry registry = SharedMetricRegistries.getOrCreate(registryName);
 
     DropwizardMetricsOptions metricsOpt = new DropwizardMetricsOptions();
     metricsOpt.setEnabled(true).setRegistryName(registryName);
     vopt.setMetricsOptions(metricsOpt);
     Graphite graphite = new Graphite(new InetSocketAddress(graphiteHost, port));
+    final String prefix = "okapi." + hostName ;
     GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
-            .prefixedWith(host + "-okapi")
+            .prefixedWith(prefix)
             .build(graphite);
     reporter.start(period, tu);
 
     logger.info("Metrics remote:" + graphiteHost + ":"
-            + port + " this:" + host + "-okapi");
+            + port + " this:" + prefix);
   }
+
+
 }

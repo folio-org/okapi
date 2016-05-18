@@ -37,7 +37,7 @@ do
     -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
     http://localhost:9130/sample
 
-  sleep 0.01
+  sleep 0.1
 
 done
 
