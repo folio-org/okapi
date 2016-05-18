@@ -13,7 +13,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import static okapi.util.HttpResponse.*;
 
-
 /**
  * Helper class to mess with logging stuff. Normally we use
  * io.vertx.core.logging.Logger for all our logging. Behind the scenes, this

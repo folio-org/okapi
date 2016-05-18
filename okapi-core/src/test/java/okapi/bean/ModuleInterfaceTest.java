@@ -15,6 +15,7 @@ import static org.junit.Assert.*;
  * @author heikki
  */
 public class ModuleInterfaceTest {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public ModuleInterfaceTest() {
@@ -25,17 +26,17 @@ public class ModuleInterfaceTest {
     logger.debug("simpleTests()");
     ModuleInterface mi = new ModuleInterface();
     // Test defaults
-    String id = mi.getId(); 
-    assertEquals(null,id);
+    String id = mi.getId();
+    assertEquals(null, id);
     String ver = mi.getVersion();
-    assertEquals(null,ver);
+    assertEquals(null, ver);
     mi.setId("idhere");
-    assertEquals("idhere",mi.getId());
+    assertEquals("idhere", mi.getId());
     mi.setVersion("1.2.3");
-    assertEquals("1.2.3",mi.getVersion());
+    assertEquals("1.2.3", mi.getVersion());
     mi = new ModuleInterface("hello", "4.5.6");
-    assertEquals("hello",mi.getId());
-    assertEquals("4.5.6",mi.getVersion());
+    assertEquals("hello", mi.getId());
+    assertEquals("4.5.6", mi.getVersion());
     try {
       mi = new ModuleInterface("fail", "4.x");
       fail("Managed to set a bad version number 4.x");
@@ -85,38 +86,38 @@ public class ModuleInterfaceTest {
     logger.debug("splitTests() ok");
   }
 
- @Test
+  @Test
   public void compatibilityTests() {
     logger.debug("compatibilityTests()");
     ModuleInterface a = new ModuleInterface("m", "3.4.5");
-    assertFalse( a.isCompatible(new ModuleInterface("somethingelse","3.4.5")));
-    assertTrue( a.isCompatible(new ModuleInterface("m","3.4.5")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","2.1.9")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","2.1")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","9.1.9")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","9.1")));
-    assertTrue( a.isCompatible(new ModuleInterface("m","3.4")));
-    assertTrue( a.isCompatible(new ModuleInterface("m","3.3")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","3.5")));
-    assertTrue( a.isCompatible(new ModuleInterface("m","3.4.1")));
-    assertFalse( a.isCompatible(new ModuleInterface("m","3.4.6")));
+    assertFalse(a.isCompatible(new ModuleInterface("somethingelse", "3.4.5")));
+    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4.5")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "2.1.9")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "2.1")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "9.1.9")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "9.1")));
+    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4")));
+    assertTrue(a.isCompatible(new ModuleInterface("m", "3.3")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "3.5")));
+    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4.1")));
+    assertFalse(a.isCompatible(new ModuleInterface("m", "3.4.6")));
     logger.debug("compatibilityTests() ok");
   }
 
- @Test
+  @Test
   public void compareTests() {
     logger.debug("compareTests()");
     ModuleInterface mi = new ModuleInterface("m", "3.4.5");
-    assertEquals(0, mi.compare(new ModuleInterface("m","3.4.5")));
-    assertEquals(-1, mi.compare(new ModuleInterface("s","3.4.5")));
-    assertEquals( 1, mi.compare(new ModuleInterface("d","3.4.5")));
-    assertEquals(-2, mi.compare(new ModuleInterface("m","5.4.5")));
-    assertEquals( 2, mi.compare(new ModuleInterface("m","2.4.5")));
-    assertEquals(-3, mi.compare(new ModuleInterface("m","3.7.5")));
-    assertEquals( 3, mi.compare(new ModuleInterface("m","3.2.5")));
-    assertEquals(-4, mi.compare(new ModuleInterface("m","3.4.8")));
-    assertEquals( 4, mi.compare(new ModuleInterface("m","3.4.2")));
-    assertEquals( 4, mi.compare(new ModuleInterface("m","3.4")));
+    assertEquals(0, mi.compare(new ModuleInterface("m", "3.4.5")));
+    assertEquals(-1, mi.compare(new ModuleInterface("s", "3.4.5")));
+    assertEquals(1, mi.compare(new ModuleInterface("d", "3.4.5")));
+    assertEquals(-2, mi.compare(new ModuleInterface("m", "5.4.5")));
+    assertEquals(2, mi.compare(new ModuleInterface("m", "2.4.5")));
+    assertEquals(-3, mi.compare(new ModuleInterface("m", "3.7.5")));
+    assertEquals(3, mi.compare(new ModuleInterface("m", "3.2.5")));
+    assertEquals(-4, mi.compare(new ModuleInterface("m", "3.4.8")));
+    assertEquals(4, mi.compare(new ModuleInterface("m", "3.4.2")));
+    assertEquals(4, mi.compare(new ModuleInterface("m", "3.4")));
     logger.debug("compareTests() ok");
   }
 

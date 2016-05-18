@@ -7,7 +7,6 @@ package okapi.util;
 
 /**
  * Types of errors.
- *
  */
 public enum ErrorType {
   OK, // Not really an error, but a success code

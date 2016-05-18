@@ -8,7 +8,6 @@ package okapi.web;
 import io.vertx.ext.web.RoutingContext;
 import static okapi.util.HttpResponse.*;
 
-
 public class HealthService {
 
   public void get(RoutingContext ctx) {

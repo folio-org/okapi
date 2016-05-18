@@ -39,14 +39,14 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void put(K k, V v, long ttl, Handler<AsyncResult<Void>> completionHandler) {
-    put(k,v,completionHandler);
+    put(k, v, completionHandler);
   }
 
   @Override
   public void putIfAbsent(K k, V v, Handler<AsyncResult<V>> completionHandler) {
     V oldv = map.get(k); // null if not found
-    if ( oldv == null ) {
-      map.put(k,v);
+    if (oldv == null) {
+      map.put(k, v);
       completionHandler.handle(new Success<>(null));
     } else {
       completionHandler.handle(new Success<>(oldv));
@@ -61,13 +61,13 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
   @Override
   public void remove(K k, Handler<AsyncResult<V>> resultHandler) {
     // This is a unsafe operation!
-    throw new UnsupportedOperationException("Not supported yet."); 
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
   public void removeIfPresent(K k, V v, Handler<AsyncResult<Boolean>> resultHandler) {
     V get = map.get(k);
-    if ( get.equals(v)) {
+    if (get.equals(v)) {
       map.remove(k);
       resultHandler.handle(new Success<>(true));
     } else {
@@ -84,7 +84,7 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
   @Override
   public void replaceIfPresent(K k, V oldValue, V newValue, Handler<AsyncResult<Boolean>> resultHandler) {
     V get = map.get(k);
-    if ( oldValue.equals(get)) {
+    if (oldValue.equals(get)) {
       map.put(k, newValue);
       resultHandler.handle(new Success<>(true));
     } else {

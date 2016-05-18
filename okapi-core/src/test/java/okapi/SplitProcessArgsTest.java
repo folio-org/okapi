@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class SplitProcessArgsTest {
+
   @Test
   public void test() {
     {

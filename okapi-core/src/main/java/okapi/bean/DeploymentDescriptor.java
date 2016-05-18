@@ -22,7 +22,7 @@ public class DeploymentDescriptor {
   public DeploymentDescriptor() {
   }
 
-  public DeploymentDescriptor(String instId, String srvcId, 
+  public DeploymentDescriptor(String instId, String srvcId,
           String url,
           ProcessDeploymentDescriptor descriptor,
           ModuleHandle moduleHandle) {
@@ -33,7 +33,7 @@ public class DeploymentDescriptor {
     this.moduleHandle = moduleHandle;
   }
 
-  public DeploymentDescriptor(String instId, 
+  public DeploymentDescriptor(String instId,
           ProcessDeploymentDescriptor descriptor) {
     this.instId = instId;
     this.url = null;

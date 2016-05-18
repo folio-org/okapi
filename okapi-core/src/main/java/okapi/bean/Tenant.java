@@ -7,7 +7,6 @@ package okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.*;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 

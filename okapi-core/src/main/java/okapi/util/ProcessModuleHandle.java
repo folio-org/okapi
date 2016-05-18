@@ -87,14 +87,13 @@ public class ProcessModuleHandle implements ModuleHandle {
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          String [] l = new String[0];
+          String[] l = new String[0];
           if (exec != null) {
             String c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
-          }
-          else if (cmdlineStart != null) {
+          } else if (cmdlineStart != null) {
             String c = cmdlineStart.replace("%p", Integer.toString(port));
-            l = new String [] { "sh", "-c", c };
+            l = new String[]{"sh", "-c", c};
           }
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
@@ -156,7 +155,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       vertx.executeBlocking(future -> {
         try {
           String c = cmdline.replace("%p", Integer.toString(port));
-          String [] l = new String [] { "sh", "-c", c };
+          String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           pb.start();

@@ -66,5 +66,4 @@ public class LogLevelTest {
             .assertThat().statusCode(200).extract().body().asString();
 
   }
-
 }

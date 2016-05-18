@@ -70,5 +70,5 @@ public class ModuleDescriptor {
   public void setName(String name) {
     this.name = name;
   }
- 
+
 }

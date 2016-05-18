@@ -6,6 +6,7 @@
 package okapi.bean;
 
 public class HealthModule {
+
   private String id;
   private String status;
 
@@ -24,5 +25,5 @@ public class HealthModule {
   public void setStatus(String status) {
     this.status = status;
   }
-  
+
 }

@@ -5,7 +5,6 @@
  */
 package okapi.util;
 
-import io.vertx.core.AsyncResult;
 import static okapi.util.ErrorType.*;
 
 public class Success<T> implements ExtendedAsyncResult<T> {

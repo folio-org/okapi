@@ -23,8 +23,8 @@ import okapi.util.LockedStringMap;
 import okapi.util.Success;
 
 public class DiscoveryManager {
-  private final Logger logger = LoggerFactory.getLogger("okapi");
 
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   LockedStringMap list = new LockedStringMap();
   Vertx vertx;
@@ -42,9 +42,9 @@ public class DiscoveryManager {
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
       add(md, res -> {
-         if (res.failed()) {
-           message.fail(0, res.cause().getMessage());
-         }
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        }
       });
     });
     eb.consumer(eventBusName + ".undeploy", message -> {
@@ -52,9 +52,9 @@ public class DiscoveryManager {
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
       remove(md.getSrvcId(), md.getInstId(), res -> {
-         if (res.failed()) {
-           message.fail(0, res.cause().getMessage());
-         }
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        }
       });
     });
   }
@@ -73,16 +73,16 @@ public class DiscoveryManager {
     String jsonVal = Json.encodePrettily(md);
     //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
 
-    list.add(srvcId, instId, jsonVal, fut );
+    list.add(srvcId, instId, jsonVal, fut);
     // TODO - Add the key too
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
-    list.remove(srvcId, instId, res->{
-      if (res.failed())
-        fut.handle(new Failure<>(res.getType(),res.cause()));
-      else {
-        if ( res.result()) { // deleted the last one
+    list.remove(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        if (res.result()) { // deleted the last one
           // TODO - Remove the key
         }
         fut.handle(new Success<>());
@@ -114,14 +114,14 @@ public class DiscoveryManager {
         List<DeploymentDescriptor> dpl = new ArrayList<>();
         Collection<String> val = resGet.result();
         Iterator<String> it = val.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
           String t = it.next();
           //logger.debug("Disc:get " + srvcId + ":" + t);
           DeploymentDescriptor md = Json.decodeValue(t, DeploymentDescriptor.class);
           dpl.add(md);
         }
         fut.handle(new Success<>(dpl));
-        }
+      }
     });
   }
 
@@ -134,7 +134,7 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
-        if ( keys == null  || keys.isEmpty() ) {
+        if (keys == null || keys.isEmpty()) {
           List<DeploymentDescriptor> empty = new ArrayList<>();
           fut.handle(new Success<>(empty));
         } else {
@@ -148,7 +148,7 @@ public class DiscoveryManager {
   }
 
   void getAll_r(Iterator<String> it, List<DeploymentDescriptor> all,
-            Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+          Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(all));
     } else {
@@ -164,6 +164,5 @@ public class DiscoveryManager {
       });
     }
   }
-
 
 }

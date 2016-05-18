@@ -105,7 +105,7 @@ public class TenantRATest {
             .post("/_/proxy/tenants").then().statusCode(400);
 
     Assert.assertTrue(c.getLastReport().isEmpty());
-    
+
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
     Assert.assertTrue(c.getLastReport().isEmpty());
