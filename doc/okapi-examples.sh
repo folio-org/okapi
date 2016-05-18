@@ -38,12 +38,6 @@ curl -w '\n' -X POST -D - \
 curl -s -o /tmp/samplediscovery.json \
   http://localhost:9130/_/deployment/modules/localhost-9131
 
-# And post it to the discovery
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/samplediscovery.json  \
-  http://localhost:9130/_/discovery/modules
-
 # And tell the proxy about it
 cat > /tmp/sampleproxy.json <<END
   {
@@ -87,12 +81,6 @@ curl -w '\n' -D - -s \
   -d @/tmp/authdeploy.json  \
   http://localhost:9130/_/deployment/modules
 
-
-curl -w '\n' -D -  \
-  -X POST \
-  -H "Content-type: application/json" \
-  -d @/tmp/authdiscovery.json  \
-  http://localhost:9130/_/discovery/modules
 
 cat > /tmp/authmodule.json <<END
 {
