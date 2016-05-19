@@ -28,6 +28,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
+  private static final int max_iterations = 30; // x*(x+1) * 0.1 seconds..
 
   public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
           Ports ports, int port) {
@@ -49,7 +50,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         startFuture.handle(Future.failedFuture("Exit failure for service"));
-      } else if (count < 20) { // Raspberry PI takes about 10 iterations!
+      } else if (count < max_iterations) {
         vertx.setTimer((count + 1) * 200, id -> {
           tryConnect(startFuture, count + 1);
         });
