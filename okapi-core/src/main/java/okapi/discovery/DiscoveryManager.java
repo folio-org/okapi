@@ -8,6 +8,8 @@ package okapi.discovery;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -33,9 +35,11 @@ public class DiscoveryManager {
   private final int delay = 10; // ms in recursing for retry of map
   private EventBus eb;
   private final String eventBusName = "okapi.conf.discovery";
+  private HttpClient httpClient;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
+    this.httpClient = vertx.createHttpClient();
     list.init(vertx, "discoveryList", fut);
     this.eb = vertx.eventBus();
     eb.consumer(eventBusName + ".deploy", message -> {
@@ -132,6 +136,7 @@ public class DiscoveryManager {
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.getKeys(resGet -> {
       if (resGet.failed()) {
+        logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
@@ -168,10 +173,33 @@ public class DiscoveryManager {
 
   private void health(DeploymentDescriptor md, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
     HealthDescriptor hd = new HealthDescriptor();
+    String url = md.getUrl();
     hd.setInstId(md.getInstId());
     hd.setSrvcId(md.getSrvcId());
-    hd.setHealthStatus("OK");
-    fut.handle(new Success(hd));
+    if (url == null || url.length() == 0) {
+      hd.setHealthMessage("Unknown");
+      hd.setHealthStatus(false);
+      fut.handle(new Success(hd));
+    } else {
+      HttpClientRequest req = httpClient.getAbs(url, res -> {
+        res.endHandler(res1 -> {
+          hd.setHealthMessage("OK");
+          hd.setHealthStatus(true);
+          fut.handle(new Success(hd));
+        });
+        res.exceptionHandler(res1 -> {
+          hd.setHealthMessage("Fail: " + res1.getMessage());
+          hd.setHealthStatus(false);
+          fut.handle(new Success(hd));
+        });
+      });
+      req.exceptionHandler(res -> {
+        hd.setHealthMessage("Fail: " + res.getMessage());
+        hd.setHealthStatus(false);
+        fut.handle(new Success(hd));
+      });
+      req.end();
+    }
   }
 
   private void healthR(Iterator<DeploymentDescriptor> it, List<HealthDescriptor> all,

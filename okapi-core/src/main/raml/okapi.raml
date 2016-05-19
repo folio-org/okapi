@@ -14,6 +14,8 @@ schemas:
   - TenantModuleDescriptorList: !include TenantModuleDescriptorList.json
   - HealthStatus: !include HealthStatus.json
   - HealthStatusList: !include HealthStatusList.json
+  - HealthDescriptor: !include HealthDescriptor.json
+  - HealthDescriptorList: !include HealthDescriptorList.json
 
 #traits:
 
@@ -121,6 +123,22 @@ schemas:
         responses:
           204:
 
+/_/discovery/health:
+  get:
+    description: get health info for all services
+    responses:
+      200:
+        body:
+          application/json:
+            schema: HealthDescriptorList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
 
 # PROXY SERVICE
 

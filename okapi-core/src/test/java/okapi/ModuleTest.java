@@ -518,6 +518,12 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
     final String locationSample2Discovery = r.header("Location");
 
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
     final String docSample2Module = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"another-sample-module2\"," + LS

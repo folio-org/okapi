@@ -115,4 +115,16 @@ public class DiscoveryService {
       }
     });
   }
+
+  public void healthAll(RoutingContext ctx) {
+    dm.health(res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
 }

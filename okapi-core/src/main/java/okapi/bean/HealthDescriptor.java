@@ -9,7 +9,8 @@ public class HealthDescriptor {
 
   private String instId;
   private String srvcId;
-  private String healthStatus;
+  private String healthMessage;
+  private boolean healthStatus;
 
   public String getInstId() {
     return instId;
@@ -27,12 +28,19 @@ public class HealthDescriptor {
     this.srvcId = srvcId;
   }
 
-  public String getHealthStatus() {
+  public String getHealthMessage() {
+    return healthMessage;
+  }
+
+  public void setHealthMessage(String healthStatus) {
+    this.healthMessage = healthStatus;
+  }
+
+  public boolean isHealthStatus() {
     return healthStatus;
   }
 
-  public void setHealthStatus(String healthStatus) {
+  public void setHealthStatus(boolean healthStatus) {
     this.healthStatus = healthStatus;
   }
-
 }
