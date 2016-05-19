@@ -90,13 +90,13 @@ public class LockedStringMap {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        //logger.debug("Get " + k + ":" + val);
+        StringMap map;
         if (val != null) {
-          StringMap map = Json.decodeValue(val, StringMap.class);
-          fut.handle(new Success<>(map.strings.values()));
+          map = Json.decodeValue(val, StringMap.class);
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, k));
+          map = new StringMap(); // not found, just return an empty map
         }
+        fut.handle(new Success<>(map.strings.values()));
       }
     });
   }

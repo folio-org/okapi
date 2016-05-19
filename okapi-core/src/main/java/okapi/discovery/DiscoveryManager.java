@@ -100,11 +100,12 @@ public class DiscoveryManager {
   }
 
   /**
-   * Get the list for one srvid.
+   * Get the list for one srvcId.
+   * May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.get(srvcId, resGet -> {
-      if (resGet.failed()) {
+      if (resGet.failed()) { 
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         List<DeploymentDescriptor> dpl = new ArrayList<>();

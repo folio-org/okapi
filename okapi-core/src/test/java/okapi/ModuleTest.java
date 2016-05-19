@@ -659,12 +659,25 @@ public class ModuleTest {
             .body(equalTo(exp3Modules));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    // XXX
+    logger.info("Listing modules for the first time");
+    given().get("/_/discovery/modules")
+            .then().statusCode(200)
+            .log().ifError();
+
+
     // make sample 2 disappear from discovery!
     c = api.createRestAssured();
     c.given().delete(locationSample2Discovery)
             .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    // XXX
+    logger.info("Listing modules for the second time");
+    given().get("/_/discovery/modules")
+            .then().statusCode(200)
+            .log().ifError();
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -750,11 +763,17 @@ public class ModuleTest {
     given().delete(locationSample5Deployment).then().statusCode(204);
     locationSample5Deployment = null;
 
+    // Verify that the list works also after delete
     given().get("/_/deployment/modules")
             .then().statusCode(200)
             .body(equalTo("[ ]"));
 
+    // verify that module5 is no longer there
     given().get("/_/discovery/modules/sample-module5")
+            .then().statusCode(404);
+
+    // verify that a never-seen module returns the same
+    given().get("/_/discovery/modules/UNKNOWN-MODULE")
             .then().statusCode(404);
 
     async.complete();

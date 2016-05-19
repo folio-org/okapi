@@ -10,6 +10,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import static okapi.util.HttpResponse.responseJson;
 import static okapi.util.HttpResponse.responseText;
@@ -92,15 +93,20 @@ public class DiscoveryService {
   public void getSrvcId(RoutingContext ctx) {
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "instId missing");
+      responseError(ctx, 400, "srvcId missing");
       return;
     }
     dm.get(srvcId, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {
-        final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        List<DeploymentDescriptor> result = res.result();
+        if (result.isEmpty()) {
+          responseError(ctx, 404, "srvcId " + srvcId + " not found");      
+        } else {
+          final String s = Json.encodePrettily(res.result());
+          responseJson(ctx, 200).end(s);
+        }
       }
     });
   }
