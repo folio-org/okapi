@@ -79,7 +79,6 @@ public class DiscoveryManager {
     //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
 
     list.add(srvcId, instId, jsonVal, fut);
-    // TODO - Add the key too
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -87,9 +86,6 @@ public class DiscoveryManager {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        if (res.result()) { // deleted the last one
-          // TODO - Remove the key
-        }
         fut.handle(new Success<>());
       }
     });
@@ -109,11 +105,12 @@ public class DiscoveryManager {
   }
 
   /**
-   * Get the list for one srvid.
+   * Get the list for one srvcId.
+   * May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.get(srvcId, resGet -> {
-      if (resGet.failed()) {
+      if (resGet.failed()) { 
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         List<DeploymentDescriptor> dpl = new ArrayList<>();
