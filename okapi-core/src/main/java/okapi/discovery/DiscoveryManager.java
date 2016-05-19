@@ -74,7 +74,6 @@ public class DiscoveryManager {
     //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
 
     list.add(srvcId, instId, jsonVal, fut);
-    // TODO - Add the key too
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -82,9 +81,6 @@ public class DiscoveryManager {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        if (res.result()) { // deleted the last one
-          // TODO - Remove the key
-        }
         fut.handle(new Success<>());
       }
     });
