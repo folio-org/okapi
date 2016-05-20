@@ -5,8 +5,6 @@
  */
 package okapi.service;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleInstance;
@@ -24,10 +22,10 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
+import okapi.util.DropwizardHelper;
 import static okapi.util.ErrorType.NOT_FOUND;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -96,12 +94,9 @@ public class ProxyService {
           }
         }
       }
-    } // for
-    Comparator<ModuleInstance> cmp = new Comparator<ModuleInstance>() {
-      public int compare(ModuleInstance a, ModuleInstance b) {
-        return a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
-      }
-    };
+    }
+    Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b) 
+      -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
     r.sort(cmp);
     return r;
   }
@@ -140,8 +135,7 @@ public class ProxyService {
     }
 
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath() ;
-    //System.out.println("Trying to note an event: '" + metricKey + "'" );
-    SharedMetricRegistries.getOrCreate("okapi").meter(metricKey).mark();
+    DropwizardHelper.markEvent(metricKey);
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
     resolveUrls(l.iterator(), res -> {
@@ -350,8 +344,7 @@ public class ProxyService {
       if ( tenantId == null || tenantId.isEmpty())
         tenantId = "???"; // Should not happen, we have validated earlier
       String metricKey = "proxy." + tenantId + ".module." + mi.getModuleDescriptor().getId();
-      Timer timer = SharedMetricRegistries.getOrCreate("okapi").timer(metricKey);
-      Timer.Context timerContext = timer.time();
+      Timer.Context timerContext = DropwizardHelper.getTimerContext(metricKey);
 
       String rtype = mi.getRoutingEntry().getType();
       if ("request-only".equals(rtype)) {

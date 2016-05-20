@@ -5,8 +5,6 @@
  */
 package okapi.service;
 
-import com.codahale.metrics.Gauge;
-import com.codahale.metrics.SharedMetricRegistries;
 import io.vertx.core.Handler;
 import okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
@@ -15,6 +13,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import okapi.bean.ModuleInterface;
+import okapi.util.DropwizardHelper;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -27,23 +26,10 @@ public class ModuleManager {
 
   LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
 
+
   public ModuleManager(Vertx vertx) {
-    try {
-      SharedMetricRegistries.getOrCreate("okapi").remove("moduleCount");
-    } catch (Exception e) {
-    }
-    SharedMetricRegistries.getOrCreate("okapi")
-      .register("moduleCount", (Gauge<Integer>) () -> modules.size());
-/*
-    SharedMetricRegistries.getOrCreate("okapi").register("moduleCount", new Gauge<Integer>() {
-      @Override
-      public Integer getValue() {
-        return modules.size();
-      }
-    });
-*/
-
-
+    String metricKey = "modules.count";
+    DropwizardHelper.registerGauge(metricKey, () -> modules.size());
     this.vertx = vertx;
   }
 

@@ -8,6 +8,7 @@ cat > /tmp/okapi.tst <<END
 Simple POST request to the sample module
 END
 
+
 while true
 do
 
@@ -43,6 +44,7 @@ do
     http://localhost:9130/sample
 
   sleep 0.1
+  date
 
 done
 
