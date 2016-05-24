@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -7,7 +7,6 @@ package okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.*;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 

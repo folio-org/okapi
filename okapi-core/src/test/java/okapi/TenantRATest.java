@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -105,7 +105,7 @@ public class TenantRATest {
             .post("/_/proxy/tenants").then().statusCode(400);
 
     Assert.assertTrue(c.getLastReport().isEmpty());
-    
+
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));
     Assert.assertTrue(c.getLastReport().isEmpty());

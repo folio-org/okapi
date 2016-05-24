@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -12,7 +12,6 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import static okapi.util.HttpResponse.*;
-
 
 /**
  * Helper class to mess with logging stuff. Normally we use

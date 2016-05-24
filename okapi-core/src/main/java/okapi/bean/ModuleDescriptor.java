@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -70,5 +70,5 @@ public class ModuleDescriptor {
   public void setName(String name) {
     this.name = name;
   }
- 
+
 }

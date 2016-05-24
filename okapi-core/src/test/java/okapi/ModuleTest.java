@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -45,7 +45,6 @@ public class ModuleTest {
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
-
 
   public ModuleTest() {
   }
@@ -195,23 +194,9 @@ public class ModuleTest {
     locationAuthDeployment = r.getHeader("Location");
     c = api.createRestAssured();
     String docAuthDiscovery = c.given().get(locationAuthDeployment)
-            .then().statusCode(200).extract().body().asString(); 
+            .then().statusCode(200).extract().body().asString();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-
-    c = api.createRestAssured();
-    r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docAuthDiscovery).post("/_/discovery/modules")
-            .then()
-            //.log().ifError()
-            .statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
-    String locationAuthDiscovery = r.getHeader("Location");
-    Assert.assertEquals("bad location from discovery",
-            "/_/discovery/modules/auth/localhost-9131",
-            locationAuthDiscovery);
 
     final String docAuthModule = "{" + LS
             + "  \"id\" : \"auth\"," + LS
@@ -265,20 +250,6 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
-    r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docSampleDiscovery).post("/_/discovery/modules")
-            .then()
-            //.log().ifError()
-            .statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
-    final String locationSampleDiscovery = r.getHeader("Location");
-    Assert.assertEquals("bad location from discovery",
-            "/_/discovery/modules/sample-module/localhost-9132",
-            locationSampleDiscovery);
-    
     final String docSampleModuleBadRequire = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
@@ -304,7 +275,7 @@ public class ModuleTest {
             + "  } ]," + LS
             + "  \"requires\" : [ {" + LS
             + "    \"id\" : \"auth\"," + LS
-            + "    \"version\" : \"9.9.3\"" + LS  // We only have 1.2.3
+            + "    \"version\" : \"9.9.3\"" + LS // We only have 1.2.3
             + "  } ]," + LS
             + "  \"routingEntries\" : [ ] " + LS
             + "}";
@@ -383,7 +354,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
-    
+
     // Try to enable sample without the auth that it requires
     final String docEnableWithoutDep = "{" + LS
             + "  \"id\" : \"sample-module\"" + LS
@@ -688,12 +659,25 @@ public class ModuleTest {
             .body(equalTo(exp3Modules));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    // XXX
+    logger.info("Listing modules for the first time");
+    given().get("/_/discovery/modules")
+            .then().statusCode(200)
+            .log().ifError();
+
+
     // make sample 2 disappear from discovery!
     c = api.createRestAssured();
     c.given().delete(locationSample2Discovery)
             .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    // XXX
+    logger.info("Listing modules for the second time");
+    given().get("/_/discovery/modules")
+            .then().statusCode(200)
+            .log().ifError();
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -717,11 +701,11 @@ public class ModuleTest {
     Response r;
 
     given().get("/_/deployment/modules")
-           .then().statusCode(200)
-           .body(equalTo("[ ]"));
+            .then().statusCode(200)
+            .body(equalTo("[ ]"));
 
     given().get("/_/deployment/modules/not_found")
-           .then().statusCode(404);
+            .then().statusCode(404);
 
     final String doc1 = "{" + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
@@ -732,8 +716,8 @@ public class ModuleTest {
             + "}";
 
     given().header("Content-Type", "application/json")
-           .body(doc1).post("/_/deployment/modules/")     // extra slash !
-           .then().statusCode(404);
+            .body(doc1).post("/_/deployment/modules/") // extra slash !
+            .then().statusCode(404);
 
     final String doc2 = "{" + LS
             + "  \"instId\" : \"localhost-9131\"," + LS
@@ -749,58 +733,48 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-           .body(doc1).post("/_/deployment/modules")
-           .then().statusCode(201)
-           .body(equalTo(doc2))
-           .extract().response();
+            .body(doc1).post("/_/deployment/modules")
+            .then().statusCode(201)
+            .body(equalTo(doc2))
+            .extract().response();
     locationSample5Deployment = r.getHeader("Location");
-    
+
     given().get(locationSample5Deployment)
-         .then().statusCode(200)
-         .body(equalTo(doc2));
+            .then().statusCode(200)
+            .body(equalTo(doc2));
 
     given().get("/_/deployment/modules")
-         .then().statusCode(200)
-         .body(equalTo("[ " + doc2 + " ]"));
+            .then().statusCode(200)
+            .body(equalTo("[ " + doc2 + " ]"));
 
-    ValidatableResponse then = given().header("Content-Type", "application/json")
-            .body(doc2).post("/_/discovery/modules")
-            .then();
-    then.statusCode(201);
-    then.body(equalTo(doc2));
-    final String locationDiscovery1 = then.extract().header("Location");
     given().header("Content-Type", "application/json")
             .body(doc2).post("/_/discovery/modules")
             .then().statusCode(400);
 
-    given().get(locationDiscovery1)
-         .then().statusCode(200)
-         .body(equalTo(doc2));
-
     given().get("/_/discovery/modules/sample-module5")
-         .then().statusCode(200)
-         .body(equalTo("[ " + doc2 + " ]"));
+            .then().statusCode(200)
+            .body(equalTo("[ " + doc2 + " ]"));
 
     given().get("/_/discovery/modules")
-         .then().statusCode(200)
-         .log().ifError()
-         .body(equalTo("[ " + doc2 + " ]"));
-
-    given().delete(locationDiscovery1)
-      .then().statusCode(204);
-
-    given().delete(locationDiscovery1)
-      .then().statusCode(404);
-
-    given().get("/_/discovery/modules/sample-module5")
-         .then().statusCode(404);
+            .then().statusCode(200)
+            .log().ifError()
+            .body(equalTo("[ " + doc2 + " ]"));
 
     given().delete(locationSample5Deployment).then().statusCode(204);
     locationSample5Deployment = null;
 
+    // Verify that the list works also after delete
     given().get("/_/deployment/modules")
-           .then().statusCode(200)
-           .body(equalTo("[ ]"));
+            .then().statusCode(200)
+            .body(equalTo("[ ]"));
+
+    // verify that module5 is no longer there
+    given().get("/_/discovery/modules/sample-module5")
+            .then().statusCode(404);
+
+    // verify that a never-seen module returns the same
+    given().get("/_/discovery/modules/UNKNOWN-MODULE")
+            .then().statusCode(404);
 
     async.complete();
   }
@@ -820,19 +794,13 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-           .body(doc1).post("/_/deployment/modules")
-           .then().statusCode(201)
-           .extract().response();
+            .body(doc1).post("/_/deployment/modules")
+            .then().statusCode(201)
+            .extract().response();
     locationSample5Deployment = r.getHeader("Location");
     final String doc2 = r.asString();
 
-    r = given().header("Content-Type", "application/json")
-            .body(doc2).post("/_/discovery/modules")
-            .then().statusCode(201).body(equalTo(doc2))
-            .extract().response();
-    final String locationDiscovery1 = r.header("Location");
-
-        final String doc3 = "{" + LS
+    final String doc3 = "{" + LS
             + "  \"srvcId\" : \"header-module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
@@ -841,17 +809,10 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-           .body(doc3).post("/_/deployment/modules")
-           .then().statusCode(201)
-           .extract().response();
-    locationHeaderDeployment = r.getHeader("Location");
-    final String doc4 = r.asString();
-
-    r = given().header("Content-Type", "application/json")
-            .body(doc4).post("/_/discovery/modules")
-            .then().statusCode(201).body(equalTo(doc4))
+            .body(doc3).post("/_/deployment/modules")
+            .then().statusCode(201)
             .extract().response();
-    final String locationDiscovery2 = r.header("Location");
+    locationHeaderDeployment = r.getHeader("Location");
 
     final String docSampleModule = "{" + LS
             + "  \"id\" : \"sample-module5\"," + LS
@@ -896,7 +857,6 @@ public class ModuleTest {
             .extract().response();
     final String locationTenantRoskilde = r.getHeader("Location");
 
-
     final String docEnableSample = "{" + LS
             + "  \"id\" : \"sample-module5\"" + LS
             + "}";
@@ -921,7 +881,7 @@ public class ModuleTest {
             .extract().response();
 
     given().delete(locationSampleModule)
-      .then().statusCode(204);
+            .then().statusCode(204);
 
     final String docSampleModule2 = "{" + LS
             + "  \"id\" : \"sample-module5\"," + LS

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -19,10 +19,9 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 
-
 @RunWith(VertxUnitRunner.class)
 public class DeploymentManagerTest {
-  
+
   Vertx vertx;
   Async async;
   Ports ports;
@@ -49,7 +48,7 @@ public class DeploymentManagerTest {
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
-                    +"../okapi-sample-module/target/okapi-sample-module-fat.jar");
+            + "../okapi-sample-module/target/okapi-sample-module-fat.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
@@ -73,7 +72,7 @@ public class DeploymentManagerTest {
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
-                    +"../okapi-sample-module/target/unknown.jar");
+            + "../okapi-sample-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());

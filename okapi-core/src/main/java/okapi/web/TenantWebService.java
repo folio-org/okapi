@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -119,7 +119,7 @@ public class TenantWebService {
               responseJson(ctx, 201).putHeader("Location", uri).end(s);
               sendReloadSignal(id, ts);
             } else {
-              // This should never happen in a well behaving system. It is 
+              // This should never happen in a well behaving system. It is
               // possible with some race conditions etc. Hard to test...
               // TODO - Check what errors the mongo store can return
               logger.error("create: Db layer error " + res.cause().getMessage());
@@ -230,7 +230,7 @@ public class TenantWebService {
 
       } else if (err.contains("not found")) {
         responseError(ctx, 404, err);
-      } else { // TODO - handle this right 
+      } else { // TODO - handle this right
         responseError(ctx, 400, err);
       } // Missing dependencies are bad requests...
     } catch (DecodeException ex) {
@@ -277,7 +277,7 @@ public class TenantWebService {
         Set<String> ml = t.listModules();  // Convert the list of module names
         Iterator<String> mli = ml.iterator();  // into a list of objects
         ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
-        while ( mli.hasNext()) {
+        while (mli.hasNext()) {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setId(mli.next());
           ta.add(tmd);
@@ -289,6 +289,7 @@ public class TenantWebService {
       }
     });
   }
+
   public void getModule(RoutingContext ctx) {
     final String id = ctx.request().getParam("id");
     final String mod = ctx.request().getParam("mod");
@@ -296,7 +297,7 @@ public class TenantWebService {
       if (res.succeeded()) {
         Tenant t = res.result();
         Set<String> ml = t.listModules();  // Convert the list of module names
-        if ( ml.contains(mod)) {
+        if (ml.contains(mod)) {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setId(mod);
           String s = Json.encodePrettily(tmd);

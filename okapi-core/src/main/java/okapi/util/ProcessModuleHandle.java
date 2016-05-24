@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -28,6 +28,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
+  private static final int max_iterations = 30; // x*(x+1) * 0.1 seconds..
 
   public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
           Ports ports, int port) {
@@ -49,7 +50,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         startFuture.handle(Future.failedFuture("Exit failure for service"));
-      } else if (count < 20) { // Raspberry PI takes about 10 iterations!
+      } else if (count < max_iterations) {
         vertx.setTimer((count + 1) * 200, id -> {
           tryConnect(startFuture, count + 1);
         });
@@ -87,14 +88,13 @@ public class ProcessModuleHandle implements ModuleHandle {
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          String [] l = new String[0];
+          String[] l = new String[0];
           if (exec != null) {
             String c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
-          }
-          else if (cmdlineStart != null) {
+          } else if (cmdlineStart != null) {
             String c = cmdlineStart.replace("%p", Integer.toString(port));
-            l = new String [] { "sh", "-c", c };
+            l = new String[]{"sh", "-c", c};
           }
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
@@ -156,7 +156,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       vertx.executeBlocking(future -> {
         try {
           String c = cmdline.replace("%p", Integer.toString(port));
-          String [] l = new String [] { "sh", "-c", c };
+          String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           pb.start();

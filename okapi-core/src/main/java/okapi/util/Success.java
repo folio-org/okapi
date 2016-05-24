@@ -1,11 +1,10 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
 package okapi.util;
 
-import io.vertx.core.AsyncResult;
 import static okapi.util.ErrorType.*;
 
 public class Success<T> implements ExtendedAsyncResult<T> {

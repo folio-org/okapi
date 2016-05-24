@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2016, Index Data
+ * Copyright (c) 2015, Index Data
  * All rights reserved.
  * See the file LICENSE for details.
  */
@@ -25,20 +25,23 @@ import static okapi.util.ErrorType.NOT_FOUND;
 import static okapi.util.ErrorType.USER;
 
 /**
- * A shared map with extra features like locking and listing of keys.
- * Two level keys.
+ * A shared map with extra features like locking and listing of keys. Two level
+ * keys.
+ *
  * @author heikki
  */
-
 public class LockedStringMap {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  static class StringMap{
+  static class StringMap {
+
     @JsonProperty
-    Map<String,String> strings = new LinkedHashMap<>();
+    Map<String, String> strings = new LinkedHashMap<>();
   }
 
   static class KeyList {
+
     @JsonProperty
     Set<String> keys = new TreeSet<>();
   }
@@ -71,7 +74,7 @@ public class LockedStringMap {
         if (val != null) {
           StringMap oldlist = Json.decodeValue(val, StringMap.class);
           smap.strings.putAll(oldlist.strings);
-          if (smap.strings.containsKey(k2) ) {
+          if (smap.strings.containsKey(k2)) {
             fut.handle(new Success<>(smap.strings.get(k2)));
             return;
           }
@@ -87,13 +90,13 @@ public class LockedStringMap {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        //logger.debug("Get " + k + ":" + val);
+        StringMap map;
         if (val != null) {
-          StringMap map = Json.decodeValue(val, StringMap.class);
-          fut.handle(new Success<>(map.strings.values()));
+          map = Json.decodeValue(val, StringMap.class);
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, k));
+          map = new StringMap(); // not found, just return an empty map
         }
+        fut.handle(new Success<>(map.strings.values()));
       }
     });
   }
@@ -104,19 +107,18 @@ public class LockedStringMap {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        if (val != null && ! val.isEmpty()) {
-          KeyList keys = Json.decodeValue(val,KeyList.class);
+        if (val != null && !val.isEmpty()) {
+          KeyList keys = Json.decodeValue(val, KeyList.class);
           fut.handle(new Success<>(keys.keys));
         } else {
           KeyList nokeys = new KeyList();
-          fut.handle(new Success<>(nokeys.keys));          
+          fut.handle(new Success<>(nokeys.keys));
         }
       }
     });
   }
 
-  
-  private void addKey(String k,Handler<ExtendedAsyncResult<Void>> fut ) {
+  private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
     KeyList klist = new KeyList();
     list.get(allkeys, resGet -> {
       if (resGet.failed()) {
@@ -127,7 +129,7 @@ public class LockedStringMap {
           KeyList oldlist = Json.decodeValue(oldVal, KeyList.class);
           klist.keys.addAll(oldlist.keys);
         }
-        if ( klist.keys.contains(k)) {
+        if (klist.keys.contains(k)) {
           fut.handle(new Success<>());
         } else {
           klist.keys.add(k);
@@ -138,7 +140,7 @@ public class LockedStringMap {
                 if (resPut.result() == null) {
                   fut.handle(new Success<>());
                 } else { // Someone messed with it, try again
-                  vertx.setTimer(delay, res->{
+                  vertx.setTimer(delay, res -> {
                     addKey(k, fut);
                   });
                 }
@@ -152,7 +154,7 @@ public class LockedStringMap {
                 if (resRepl.result()) {
                   fut.handle(new Success<>());
                 } else {
-                  vertx.setTimer(delay, res->{
+                  vertx.setTimer(delay, res -> {
                     addKey(k, fut);
                   });
                 }
@@ -177,20 +179,20 @@ public class LockedStringMap {
           StringMap oldlist = Json.decodeValue(oldVal, StringMap.class);
           smap.strings.putAll(oldlist.strings);
         }
-        if (smap.strings.containsKey(k2) ) {
+        if (smap.strings.containsKey(k2)) {
           fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
           return; // TODO - is this an error at all? Probably yes, should not happen with Discovery
         }
-        smap.strings.put(k2,jsonString);
+        smap.strings.put(k2, jsonString);
         String newVal = Json.encodePrettily(smap);
         //logger.debug("Add: to " + k + ":" + newVal);
         if (oldVal == null) { // new entry
           list.putIfAbsent(k, newVal, resPut -> {
             if (resPut.succeeded()) {
               if (resPut.result() == null) {
-                addKey(k,fut);
+                addKey(k, fut);
               } else { // Someone messed with it, try again
-                vertx.setTimer(delay, res->{
+                vertx.setTimer(delay, res -> {
                   add(k, k2, jsonString, fut);
                 });
               }
@@ -202,9 +204,9 @@ public class LockedStringMap {
           list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
             if (resRepl.succeeded()) {
               if (resRepl.result()) {
-                addKey(k,fut);
+                addKey(k, fut);
               } else {
-                vertx.setTimer(delay, res->{
+                vertx.setTimer(delay, res -> {
                   add(k, k2, jsonString, fut);
                 });
               }
@@ -217,7 +219,7 @@ public class LockedStringMap {
     });
   }
 
-public void remove(String k, String k2, Handler<ExtendedAsyncResult<Boolean>> fut) {
+  public void remove(String k, String k2, Handler<ExtendedAsyncResult<Boolean>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
