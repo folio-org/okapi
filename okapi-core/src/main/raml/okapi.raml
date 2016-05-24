@@ -100,7 +100,25 @@ schemas:
         description: Server Error
         body:
           text/plain:
-
+  get:
+    description: return all instances
+    responses:
+      200:
+        description: Created
+        headers:
+          Location:
+            description: URI to the registered instance
+        body:
+          application/json:
+            schema: DeploymentDescriptorList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   /{service_id}:
     get:
       description: list all instances for a particular service
@@ -109,8 +127,22 @@ schemas:
           body:
             application/json:
               schema: DeploymentDescriptorList
-    
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+        500:
+          description: Server Error
+          body:
+            text/plain:
     /{instance_id}:
+      get:
+        description: update registration of a specified instance
+        responses:
+          200:
+            body:
+              application/json:
+                schema: DeploymentDescriptor
       put:
         description: update registration of a specified instance
         responses:
