@@ -5,6 +5,7 @@
  */
 package okapi.service;
 
+import com.codahale.metrics.Timer;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -12,13 +13,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import okapi.bean.ModuleDescriptor;
-import okapi.bean.ModuleInstance;
 import okapi.bean.ModuleInterface;
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
-import okapi.util.ErrorType;
-import static okapi.util.ErrorType.*;
-import okapi.util.Failure;
+import okapi.util.DropwizardHelper;
 
 /**
  * Manages the tenants in the run-time system. These will be modified by the web
@@ -32,16 +30,20 @@ public class TenantManager {
   Map<String, Tenant> tenants = new HashMap<>();
 
   public TenantManager(ModuleManager moduleManager) {
+    String metricKey = "tenants.count";
     this.moduleManager = moduleManager;
+    DropwizardHelper.registerGauge(metricKey, () -> tenants.size());
   }
 
   public boolean insert(Tenant t) {
     String id = t.getId();
+    Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".create");
     if (tenants.containsKey(id)) {
       logger.debug("Not inserting duplicate '" + id + "':" + Json.encode(t));
       return false;
     }
     tenants.put(id, t);
+    tim.close();
     return true;
   }
 
@@ -51,7 +53,9 @@ public class TenantManager {
       logger.debug("Tenant '" + id + "' not found, can not update");
       return false;
     }
+    Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".update");
     tenants.put(id, t);
+    tim.close();
     return true;
   }
 
@@ -87,7 +91,9 @@ public class TenantManager {
       logger.debug("TenantManager: Tenant '" + id + "' not found, can not delete");
       return false;
     }
+    Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".delete");
     tenants.remove(id);
+    tim.close();
     return true;
   }
 

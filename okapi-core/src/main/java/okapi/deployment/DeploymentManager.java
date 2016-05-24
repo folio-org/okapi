@@ -5,6 +5,7 @@
  */
 package okapi.deployment;
 
+import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
@@ -16,6 +17,7 @@ import okapi.bean.DeploymentDescriptor;
 import okapi.util.ModuleHandle;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.util.DropwizardHelper;
 import okapi.util.ProcessModuleHandle;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -45,6 +47,9 @@ public class DeploymentManager {
         return;
       }
     }
+    String srvc = md1.getSrvcId();
+    Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
+
     int use_port = ports.get();
     if (use_port == -1) {
       fut.handle(new Failure<>(INTERNAL, "all ports in use"));
@@ -67,6 +72,7 @@ public class DeploymentManager {
                         url, md1.getDescriptor(), mh);
         md2.setNodeId(host);
         list.put(md2.getInstId(), md2);
+        tim.stop();
         final String s = Json.encodePrettily(md2);
         eb.send(eventBusName + ".deploy", s);
         fut.handle(new Success<>(md2));
@@ -81,6 +87,7 @@ public class DeploymentManager {
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
     } else {
+      Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
       final String s = Json.encodePrettily(md);
       eb.send(eventBusName + ".undeploy", s);
@@ -88,6 +95,7 @@ public class DeploymentManager {
       mh.stop(future -> {
         if (future.succeeded()) {
           fut.handle(new Success<>());
+          tim.close();
           list.remove(id);
         } else {
           fut.handle(new Failure<>(INTERNAL, future.cause()));
@@ -124,6 +132,7 @@ public class DeploymentManager {
       fut.handle(new Failure<>(INTERNAL, "all ports in use"));
       return;
     }
+    Timer.Context tim = DropwizardHelper.getTimerContext("DeploymentManager." + id + ".update");
     String url = "http://" + host + ":" + use_port;
     ProcessDeploymentDescriptor descriptor = md1.getDescriptor();
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
@@ -138,6 +147,7 @@ public class DeploymentManager {
         mh0.stop(future0 -> {
           if (future0.succeeded()) {
             list.replace(id, md2);
+            tim.close();
             fut.handle(new Success<>(md2));
           } else {
             // could not stop existing module. Return cause of it
