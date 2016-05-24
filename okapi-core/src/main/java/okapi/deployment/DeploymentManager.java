@@ -43,7 +43,7 @@ public class DeploymentManager {
       }
     }
     String srvc = md1.getSrvcId();
-    Timer.Context tim = DropwizardHelper.getTimerContext("DeploymentManager." + srvc + ".deploy");
+    Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
     int use_port = ports.get();
     if (use_port == -1) {
@@ -80,7 +80,7 @@ public class DeploymentManager {
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
     } else {
-      Timer.Context tim = DropwizardHelper.getTimerContext("DeploymentManager." + id + ".undeploy");
+      Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
       ModuleHandle mh = md.getModuleHandle();
       mh.stop(future -> {

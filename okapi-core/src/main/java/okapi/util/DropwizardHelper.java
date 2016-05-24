@@ -33,7 +33,7 @@ public class DropwizardHelper {
     metricsOpt.setEnabled(true).setRegistryName(registryName);
     vopt.setMetricsOptions(metricsOpt);
     Graphite graphite = new Graphite(new InetSocketAddress(graphiteHost, port));
-    final String prefix = "okapi." + hostName ;
+    final String prefix = "folio.okapi." + hostName ;
     GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
             .prefixedWith(prefix)
             .build(graphite);
