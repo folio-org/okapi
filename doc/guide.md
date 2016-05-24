@@ -1233,3 +1233,29 @@ in the [RAML](http://raml.org/) syntax.
   * [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [RAML and included files](../okapi-core/src/main/raml)
 
+### Instrumentation
+Okapi pushes instrumentation numbers to a Carbon/Graphite backend, from which
+they can be shown with something like Grafena. Vert.x pushes some numbers
+automatically, but various parts of Okapi push their own numbers explicitly,
+so we can split them by tenant or module or something. It is expected that
+modules may push their own numbers as well, as needed. It is hoped that they
+will use a key naming scheme that is close to what we do in Okapi.
+
+  * `folio.okapi.$HOST.proxy.$TENANT.$HTTPMETHOD.$PATH` Time for the whole
+request, including all modules that it ended up invoking.
+  * `folio.okapi.$HOST.proxy.$TENANT.module.$SRVCID` Time for one module
+invocation.
+  * `folio.okapi.$HOST.tenants.count` Number of tenants known to the system
+  * `folio.okapi.$HOST.tenants.$TENANT.create` Timer on the creation of tenants
+  * `folio.okapi.$HOST.tenants.$TENANT.update` Timer on the updating of tenants
+  * `folio.okapi.$HOST.tenants.$TENANT.delete` Timer on deleting tenants
+  * `folio.okapi.$HOST.modules.count` Number of modules known to the system
+  * `folio.okapi.$HOST.deploy.$SRVCID.deploy` Timer for deploying a module
+  * `folio.okapi.$HOST.deploy.$SRVCID.undeploy` Timer for undeploying a module
+  * `folio.okapi.$HOST.deploy.$SRVCID.update` Timer for updating a module
+
+The `$-variables` will of course get the actual values.
+
+There is an example of a Grafena dashboard definition in grafana-dashboard.json,
+under the doc directory.
+
