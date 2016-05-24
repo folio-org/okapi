@@ -105,12 +105,11 @@ public class DiscoveryManager {
   }
 
   /**
-   * Get the list for one srvcId.
-   * May return an empty list
+   * Get the list for one srvcId. May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     list.get(srvcId, resGet -> {
-      if (resGet.failed()) { 
+      if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         List<DeploymentDescriptor> dpl = new ArrayList<>();
@@ -227,4 +226,27 @@ public class DiscoveryManager {
       }
     });
   }
+
+  public void health(String srvcId, String instId, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+    get(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        health(res.result(), fut);
+      }
+    });
+  }
+
+  public void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+    get(srvcId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        Iterator<DeploymentDescriptor> it = res.result().iterator();
+        List<HealthDescriptor> all = new ArrayList<>();
+        healthR(it, all, fut);
+      }
+    });
+  }
+
 }

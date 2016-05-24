@@ -524,6 +524,18 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health/sample-module2")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health/sample-module2/sample2-inst")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
     final String docSample2Module = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"another-sample-module2\"," + LS
@@ -670,7 +682,6 @@ public class ModuleTest {
     given().get("/_/discovery/modules")
             .then().statusCode(200)
             .log().ifError();
-
 
     // make sample 2 disappear from discovery!
     c = api.createRestAssured();

@@ -254,6 +254,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
     router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
     router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
+    router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
+    router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
     router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
 
     router.route("/_*").handler(this::NotFound);

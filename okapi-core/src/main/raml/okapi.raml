@@ -139,6 +139,22 @@ schemas:
         description: Server Error
         body:
           text/plain:
+  /{service_id}:
+    get:
+      description: health for all instances for a particular service
+      responses:
+        200:
+          body:
+            application/json:
+              schema: HealthDescriptorList
+    /{instance_id}:
+      get:
+        description: get health for a particular instance
+        responses:
+          200:
+            body:
+              application/json:
+                schema: HealthDescriptor
 
 # PROXY SERVICE
 
