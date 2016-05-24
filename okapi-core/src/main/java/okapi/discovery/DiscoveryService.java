@@ -102,7 +102,7 @@ public class DiscoveryService {
       } else {
         List<DeploymentDescriptor> result = res.result();
         if (result.isEmpty()) {
-          responseError(ctx, 404, "srvcId " + srvcId + " not found");      
+          responseError(ctx, 404, "srvcId " + srvcId + " not found");
         } else {
           final String s = Json.encodePrettily(res.result());
           responseJson(ctx, 200).end(s);
@@ -121,4 +121,53 @@ public class DiscoveryService {
       }
     });
   }
+
+  public void health(RoutingContext ctx) {
+    final String instId = ctx.request().getParam(INST_ID);
+    if (instId == null) {
+      responseError(ctx, 400, "instId missing");
+      return;
+    }
+    final String srvcId = ctx.request().getParam(SRVC_ID);
+    if (srvcId == null) {
+      responseError(ctx, 400, "srvcId missing");
+      return;
+    }
+    dm.health(srvcId, instId, res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
+  public void healthSrvcId(RoutingContext ctx) {
+    final String srvcId = ctx.request().getParam(SRVC_ID);
+    if (srvcId == null) {
+      responseError(ctx, 400, "srvcId missing");
+      return;
+    }
+    dm.health(srvcId, res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
+  public void healthAll(RoutingContext ctx) {
+    dm.health(res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
 }

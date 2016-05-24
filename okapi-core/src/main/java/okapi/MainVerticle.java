@@ -93,7 +93,6 @@ public class MainVerticle extends AbstractVerticle {
 
     healthService = new HealthService();
 
-
     moduleManager = new ModuleManager(vertx);
     TenantStore tenantStore = null;
     TenantManager tman = new TenantManager(moduleManager);
@@ -168,12 +167,12 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startModules(Future<Void> fut) {
     this.moduleWebService.loadModules(res -> {
-       if (res.succeeded()) {
-         startTenants(fut);
-       } else {
-         fut.fail(res.cause());
-       }
-     });
+      if (res.succeeded()) {
+        startTenants(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
   }
 
   private void startTenants(Future<Void> fut) {
@@ -185,6 +184,7 @@ public class MainVerticle extends AbstractVerticle {
       }
     });
   }
+
   private void startDiscovery(Future<Void> fut) {
     this.discoveryManager.init(vertx, res -> {
       if (res.succeeded()) {
@@ -217,7 +217,6 @@ public class MainVerticle extends AbstractVerticle {
 
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
-
 
     router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
     router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
@@ -255,6 +254,9 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
     router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
     router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
+    router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
+    router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
+    router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
 
     router.route("/_*").handler(this::NotFound);
 
