@@ -1259,3 +1259,14 @@ The `$-variables` will of course get the actual values.
 There is an example of a Grafena dashboard definition in grafana-dashboard.json,
 under the doc directory.
 
+Some examples of useful graphs in Grafgena. These can be pasted direcly under the
+metric, once you change edit mode (the tool menu at the end of the line) to text
+mode.
+  * Activity by tenant:
+      `aliasByNode(sumSeriesWithWildcards(stacked(folio.okapi.localhost.proxy.*.*.*.m1_rate, 'stacked'), 5, 6), 4)`
+  * HTTP requests per minute (also for PUT, POST, DELETE, etc)
+      `alias(folio.okapi.*.vertx.http.servers.*.*.*.*.get-requests.m1_rate, 'GET')`
+  * HTTP return codes (also for 4XX and 5XX codes)
+      `alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-2xx.m1_rate, '2XX OK')`
+  * Modules invoked by a given tenant
+      `aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.SOMETENANT.other.*.*.m1_rate, 5),5)`
