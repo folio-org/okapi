@@ -528,6 +528,38 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
     final String locationSample2Discovery = r.header("Location");
 
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/sample-module2")
+            .then().statusCode(200)
+            .log().ifError();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/sample-module2/sample2-inst")
+            .then().statusCode(200)
+            .log().ifError();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health/sample-module2")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/health/sample-module2/sample2-inst")
+            .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
     final String docSample2Module = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"another-sample-module2\"," + LS
@@ -669,12 +701,12 @@ public class ModuleTest {
             .body(equalTo(exp3Modules));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    // XXX
-    logger.info("Listing modules for the first time");
-    given().get("/_/discovery/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules")
             .then().statusCode(200)
             .log().ifError();
-
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
 
     // make sample 2 disappear from discovery!
     c = api.createRestAssured();
@@ -683,11 +715,12 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    // XXX
-    logger.info("Listing modules for the second time");
-    given().get("/_/discovery/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules")
             .then().statusCode(200)
             .log().ifError();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)

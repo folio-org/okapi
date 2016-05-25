@@ -36,7 +36,7 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
-import okapi.util.DropwizardConfig;
+import okapi.util.DropwizardHelper;
 
 public class MainCluster {
   public static void main(String[] args) {
@@ -86,8 +86,8 @@ public class MainCluster {
                 getProperty("graphitePort", "2003"));
         final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
         final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-
-        DropwizardConfig.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt);
+        final String hostName = getProperty("host", "localhost");
+        DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
         err.println("Invalid option: " + args[i]);
         exit(1);

@@ -23,6 +23,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import okapi.bean.ModuleInterface;
+import okapi.util.DropwizardHelper;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -35,7 +36,10 @@ public class ModuleManager {
 
   LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
 
+
   public ModuleManager(Vertx vertx) {
+    String metricKey = "modules.count";
+    DropwizardHelper.registerGauge(metricKey, () -> modules.size());
     this.vertx = vertx;
   }
 
