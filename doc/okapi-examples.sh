@@ -9,6 +9,7 @@
 #########
 # Okapi itself
 
+OKAPI="http://localhost:9130"  # The usual place it runs on a single-machine setup
 
 # Start up Okapi itself - in a different console window:
 # java -jar okapi-core/target/okapi-core-fat.jar dev
@@ -32,11 +33,11 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/sampledeploy.json  \
-  http://localhost:9130/_/deployment/modules
+  $OKAPI/_/deployment/modules
 
 # Get deployment details for the sample
 curl -s -o /tmp/samplediscovery.json \
-  http://localhost:9130/_/deployment/modules/localhost-9131
+  $OKAPI/_/deployment/modules/localhost-9131
 
 # And tell the proxy about it
 cat > /tmp/sampleproxy.json <<END
@@ -59,7 +60,7 @@ END
 curl -w '\n' -X POST -D -   \
     -H "Content-type: application/json"   \
     -d @/tmp/sampleproxy.json \
-   http://localhost:9130/_/proxy/modules
+   $OKAPI/_/proxy/modules
 
 
 #########
@@ -79,7 +80,7 @@ curl -w '\n' -D - -s \
   -o /tmp/authdiscovery.json \
   -H "Content-type: application/json" \
   -d @/tmp/authdeploy.json  \
-  http://localhost:9130/_/deployment/modules
+  $OKAPI/_/deployment/modules
 
 
 cat > /tmp/authmodule.json <<END
@@ -111,7 +112,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/authmodule.json  \
-  http://localhost:9130/_/proxy/modules
+  $OKAPI/_/proxy/modules
 
 
 #############
@@ -128,7 +129,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/tenant1.json  \
-  http://localhost:9130/_/proxy/tenants
+  $OKAPI/_/proxy/tenants
 
 cat > /tmp/tenant2.json <<END
 {
@@ -141,7 +142,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/tenant2.json  \
-  http://localhost:9130/_/proxy/tenants
+  $OKAPI/_/proxy/tenants
 
 ###########
 # Enabling the sample for tenant1
@@ -155,11 +156,11 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant1.json  \
-  http://localhost:9130/_/proxy/tenants/our/modules
+  $OKAPI/_/proxy/tenants/our/modules
 
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: our" \
-  http://localhost:9130/sample
+  $OKAPI/sample
 
 
 ################
@@ -174,7 +175,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant2a.json  \
-  http://localhost:9130/_/proxy/tenants/other/modules
+  $OKAPI/_/proxy/tenants/other/modules
 
 cat > /tmp/enabletenant2b.json <<END
 {
@@ -185,7 +186,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/enabletenant2b.json  \
-  http://localhost:9130/_/proxy/tenants/other/modules
+  $OKAPI/_/proxy/tenants/other/modules
 
 # Logging in as tenant2
 cat > /tmp/login.json <<END
@@ -200,10 +201,10 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: other" \
   -d @/tmp/login.json  \
-  http://localhost:9130/login
+  $OKAPI/login
 
 
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: other" \
   -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-  http://localhost:9130/sample
+  $OKAPI/sample

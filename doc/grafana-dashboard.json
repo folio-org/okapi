@@ -1,5 +1,5 @@
 {
-  "id": 3,
+  "id": 1,
   "title": "Okapi summary",
   "originalTitle": "Okapi summary",
   "tags": [],
@@ -12,7 +12,7 @@
     {
       "collapse": false,
       "editable": true,
-      "height": "250px",
+      "height": "150px",
       "panels": [
         {
           "aliasColors": {},
@@ -51,34 +51,33 @@
           "seriesOverrides": [
             {}
           ],
-          "span": 6,
+          "span": 4,
           "stack": true,
           "steppedLine": false,
           "targets": [
             {
-              "hide": false,
-              "refId": "A",
-              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.get-requests.m1_rate, 'GET')",
-              "textEditor": false
+              "refId": "D",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.get-requests.m1_rate, 2, 3, 4, 5), 'GET')"
             },
             {
-              "hide": false,
-              "refId": "B",
-              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.post-requests.m15_rate, 'POST')",
-              "textEditor": false
+              "refId": "E",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.post-requests.m1_rate, 2, 3, 4, 5), 'POST')"
             },
             {
-              "hide": false,
-              "refId": "C",
-              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.delete-requests.m1_rate, 'DELETE')",
+              "refId": "F",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.put-requests.m1_rate, 2, 3, 4, 5), 'PUT')"
+            },
+            {
+              "refId": "G",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.delete-requests.m1_rate, 2, 3, 4, 5), 'DELETE')",
               "textEditor": false
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "HTTP requests per minute",
+          "title": "Total HTTP requests per minute",
           "tooltip": {
-            "msResolution": false,
+            "msResolution": true,
             "shared": true,
             "value_type": "cumulative"
           },
@@ -108,7 +107,7 @@
         {
           "aliasColors": {},
           "bars": true,
-          "datasource": null,
+          "datasource": "graphite",
           "editable": true,
           "error": false,
           "fill": 1,
@@ -147,33 +146,121 @@
               "color": "#508642"
             },
             {
-              "alias": "4xx bad requests",
+              "alias": "4xx Bad Request",
               "color": "#CCA300"
             }
           ],
-          "span": 6,
+          "span": 4,
           "stack": true,
           "steppedLine": false,
           "targets": [
             {
               "refId": "D",
-              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-2xx.m5_rate, '2XX OK')",
+              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-2xx.m1_rate, '2XX OK')",
               "textEditor": false
             },
             {
               "refId": "E",
-              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-4xx.m1_rate, '4xx Bad Requests')",
-              "textEditor": false
+              "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-4xx.select metric, '4xx Bad Request')",
+              "textEditor": true
             },
             {
               "refId": "F",
               "target": "alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-5xx.m1_rate, '5XX Error')",
+              "textEditor": false
+            },
+            {
+              "refId": "A",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.responses-2xx.m1_rate, 2, 3, 4, 5), '2XX OK')",
+              "textEditor": true
+            },
+            {
+              "refId": "B",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.responses-4xx.m1_rate, 2, 3, 4, 5), '4XX Bad Request')",
+              "textEditor": false
+            },
+            {
+              "refId": "C",
+              "target": "alias(sumSeriesWithWildcards(folio.okapi.*.*.*.*.vertx.http.servers.*.*.*.*.responses-5xx.m1_rate, 2, 3, 4, 5), '5XX Error')",
               "textEditor": false
             }
           ],
           "timeFrom": null,
           "timeShift": null,
           "title": "HTTP Responses",
+          "tooltip": {
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": false,
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 17,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 4,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "refId": "A",
+              "target": "folio.okapi.10.36.1.*.modules.count"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Modules on nodes",
           "tooltip": {
             "msResolution": false,
             "shared": true,
@@ -208,12 +295,11 @@
     {
       "collapse": false,
       "editable": true,
-      "height": "250px",
+      "height": "150px",
       "panels": [
         {
           "aliasColors": {},
           "bars": true,
-          "cacheTimeout": "10",
           "datasource": null,
           "editable": true,
           "error": false,
@@ -222,10 +308,9 @@
             "threshold1": null,
             "threshold1Color": "rgba(216, 200, 27, 0.27)",
             "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)",
-            "thresholdLine": false
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "id": 3,
+          "id": 23,
           "isNew": true,
           "legend": {
             "avg": false,
@@ -239,257 +324,27 @@
           "lines": false,
           "linewidth": 2,
           "links": [],
-          "maxDataPoints": "",
-          "nullPointMode": "null as zero",
+          "nullPointMode": "connected",
           "percentage": false,
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
           "seriesOverrides": [],
-          "span": 6,
+          "span": 4,
           "stack": true,
           "steppedLine": false,
           "targets": [
             {
               "refId": "B",
-              "target": "alias(folio.okapi.localhost.modules.count, 'Modules')",
-              "textEditor": false
-            },
-            {
-              "refId": "A",
-              "target": "alias(folio.okapi.localhost.tenants.count, 'Tenants')",
+              "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.GET.*.m1_rate, 7, 8, 9), 5)",
               "textEditor": false
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Total modules and tenants",
+          "title": "Activity by Node",
           "tooltip": {
-            "msResolution": false,
-            "shared": true,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "datasource": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 4,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": false,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 6,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Panel Title",
-          "tooltip": {
-            "msResolution": false,
-            "shared": true,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "title": "New row"
-    },
-    {
-      "collapse": false,
-      "editable": true,
-      "height": "250px",
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": true,
-          "datasource": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 5,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": false,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 4,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "refId": "A",
-              "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.proxy.our.*.*.m1_rate, 4), 5)",
-              "textEditor": false
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "\"Our\" tenant",
-          "tooltip": {
-            "msResolution": false,
-            "shared": true,
-            "value_type": "cumulative"
-          },
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": true,
-          "datasource": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 7,
-          "isNew": true,
-          "legend": {
-            "avg": false,
-            "current": false,
-            "max": false,
-            "min": false,
-            "show": true,
-            "total": false,
-            "values": false
-          },
-          "lines": false,
-          "linewidth": 2,
-          "links": [],
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "span": 4,
-          "stack": true,
-          "steppedLine": false,
-          "targets": [
-            {
-              "refId": "A",
-              "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.proxy.other.*.*.m1_rate, 5),5)",
-              "textEditor": false
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "\"Other\" tenant",
-          "tooltip": {
-            "msResolution": false,
+            "msResolution": true,
             "shared": true,
             "value_type": "cumulative"
           },
@@ -554,8 +409,8 @@
           "steppedLine": false,
           "targets": [
             {
-              "refId": "A",
-              "target": "aliasByNode(sumSeriesWithWildcards(stacked(folio.okapi.localhost.proxy.*.*.*.m1_rate, 'stacked'), 5, 6), 4)",
+              "refId": "B",
+              "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.GET.*.m1_rate, 5, 8, 9), 6)",
               "textEditor": false
             }
           ],
@@ -563,7 +418,81 @@
           "timeShift": null,
           "title": "Activity by Tenant",
           "tooltip": {
-            "msResolution": false,
+            "msResolution": true,
+            "shared": true,
+            "value_type": "cumulative"
+          },
+          "type": "graph",
+          "xaxis": {
+            "show": true
+          },
+          "yaxes": [
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            },
+            {
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": null,
+              "show": true
+            }
+          ]
+        },
+        {
+          "aliasColors": {},
+          "bars": true,
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
+          "id": 28,
+          "isNew": true,
+          "legend": {
+            "avg": false,
+            "current": false,
+            "max": false,
+            "min": false,
+            "show": true,
+            "total": false,
+            "values": false
+          },
+          "lines": false,
+          "linewidth": 2,
+          "links": [],
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "seriesOverrides": [],
+          "span": 4,
+          "stack": true,
+          "steppedLine": false,
+          "targets": [
+            {
+              "refId": "B",
+              "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.GET.*.m1_rate, 5, 7, 8), 6)",
+              "textEditor": false
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Activity by Module",
+          "tooltip": {
+            "msResolution": true,
             "shared": true,
             "value_type": "cumulative"
           },
@@ -595,6 +524,488 @@
     },
     {
       "collapse": false,
+      "editable": true,
+      "height": "150px",
+      "panels": [
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgb(40, 103, 21)",
+            "rgba(224, 221, 27, 0.89)",
+            "rgba(201, 33, 70, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 10,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": true,
+            "thresholdMarkers": true
+          },
+          "height": "40px",
+          "id": 11,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/node-summary",
+              "dashboard": "Node summary",
+              "params": "var-node=$node",
+              "title": "Node summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 2,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": "node",
+          "scopedVars": {
+            "node": {
+              "selected": false,
+              "text": "144",
+              "value": "144"
+            }
+          },
+          "span": 4,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "folio.okapi.10.36.1.$node.vertx.http.servers.*.*.*.*.requests.m1_rate"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Node \"$node\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "current"
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgb(40, 103, 21)",
+            "rgba(224, 221, 27, 0.89)",
+            "rgba(201, 33, 70, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 10,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": true,
+            "thresholdMarkers": true
+          },
+          "height": "40px",
+          "id": 25,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/node-summary",
+              "dashboard": "Node summary",
+              "params": "var-node=$node",
+              "title": "Node summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 2,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": null,
+          "scopedVars": {
+            "node": {
+              "selected": false,
+              "text": "149",
+              "value": "149"
+            }
+          },
+          "span": 4,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "folio.okapi.10.36.1.$node.vertx.http.servers.*.*.*.*.requests.m1_rate"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Node \"$node\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "current",
+          "repeatIteration": 1464189264332,
+          "repeatPanelId": 11
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgb(40, 103, 21)",
+            "rgba(224, 221, 27, 0.89)",
+            "rgba(201, 33, 70, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 10,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": true,
+            "thresholdMarkers": true
+          },
+          "height": "40px",
+          "id": 26,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/node-summary",
+              "dashboard": "Node summary",
+              "params": "var-node=$node",
+              "title": "Node summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 2,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": null,
+          "scopedVars": {
+            "node": {
+              "selected": false,
+              "text": "181",
+              "value": "181"
+            }
+          },
+          "span": 4,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "folio.okapi.10.36.1.$node.vertx.http.servers.*.*.*.*.requests.m1_rate"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Node \"$node\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "current",
+          "repeatIteration": 1464189264332,
+          "repeatPanelId": 11
+        }
+      ],
+      "repeat": "nodes",
+      "showTitle": true,
+      "title": "Http Requests/min"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "150px",
+      "panels": [
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgba(21, 121, 16, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "40px",
+          "id": 24,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/module-summary",
+              "dashboard": "Module summary",
+              "params": "var-module=$module",
+              "title": "Module summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 3,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": "module",
+          "scopedVars": {
+            "module": {
+              "selected": false,
+              "text": "sample",
+              "value": "sample"
+            }
+          },
+          "span": 12,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.GET.$module.m1_rate, 5, 7, 8)"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Module \"$module\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg"
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": false,
+      "editable": true,
+      "height": "150px",
+      "panels": [
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgba(34, 100, 32, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "50px",
+          "id": 18,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/tenant-summary",
+              "dashboard": "Tenant summary",
+              "params": "var-tenant?$tenant",
+              "title": "Tenant summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 4,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": "tenant",
+          "scopedVars": {
+            "tenant": {
+              "selected": false,
+              "text": "other",
+              "value": "other"
+            }
+          },
+          "span": 6,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(13, 61, 197)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.*.*.m1_rate, 5, 8, 9)"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Tenant \"$tenant\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg"
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": true,
+          "colorValue": false,
+          "colors": [
+            "rgba(34, 100, 32, 0.97)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(245, 54, 54, 0.9)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "50px",
+          "id": 27,
+          "interval": null,
+          "isNew": true,
+          "links": [
+            {
+              "dashUri": "db/tenant-summary",
+              "dashboard": "Tenant summary",
+              "params": "var-tenant?$tenant",
+              "title": "Tenant summary",
+              "type": "dashboard"
+            }
+          ],
+          "maxDataPoints": 100,
+          "minSpan": 4,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "repeat": null,
+          "scopedVars": {
+            "tenant": {
+              "selected": false,
+              "text": "our",
+              "value": "our"
+            }
+          },
+          "span": 6,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(13, 61, 197)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "sumSeriesWithWildcards(folio.okapi.10.36.1.$node.proxy.$tenant.*.*.m1_rate, 5, 8, 9)"
+            }
+          ],
+          "thresholds": "3,7",
+          "title": "Tenant \"$tenant\"",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg",
+          "repeatIteration": 1464189264332,
+          "repeatPanelId": 18
+        }
+      ],
+      "title": "HTTP requests/min for each tenant"
+    },
+    {
+      "collapse": true,
       "editable": true,
       "height": "250px",
       "panels": [
@@ -639,13 +1050,17 @@
               "refId": "A",
               "target": "aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.proxy.*.module.*.p50, 4), 5)",
               "textEditor": false
+            },
+            {
+              "refId": "B",
+              "target": "folio.okapi.10.36.1.181.modules.count"
             }
           ],
           "timeFrom": null,
           "timeShift": null,
           "title": "Module times (ms)",
           "tooltip": {
-            "msResolution": false,
+            "msResolution": true,
             "shared": true,
             "value_type": "cumulative"
           },
@@ -719,7 +1134,7 @@
           "timeShift": null,
           "title": "Module Deployment times (sec)",
           "tooltip": {
-            "msResolution": false,
+            "msResolution": true,
             "shared": true,
             "value_type": "cumulative"
           },
@@ -745,6 +1160,188 @@
               "show": true
             }
           ]
+        }
+      ],
+      "title": "New row"
+    },
+    {
+      "collapse": true,
+      "editable": true,
+      "height": "150px",
+      "panels": [
+        {
+          "cacheTimeout": null,
+          "colorBackground": false,
+          "colorValue": false,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "50px",
+          "id": 16,
+          "interval": null,
+          "isNew": true,
+          "links": [],
+          "maxDataPoints": 100,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "span": 3,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": true,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "B",
+              "target": "sumSeriesWithWildcards(folio.okapi.10.36.1.*.vertx.verticles.count, 5)"
+            }
+          ],
+          "thresholds": "",
+          "title": "Total Nodes",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg"
+        },
+        {
+          "cacheTimeout": "10",
+          "colorBackground": false,
+          "colorValue": false,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "50px",
+          "id": 14,
+          "interval": null,
+          "isNew": true,
+          "links": [],
+          "maxDataPoints": 100,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "span": 3,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": false,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "sumSeriesWithWildcards(folio.okapi.10.36.1.$node.modules.count, 5)"
+            }
+          ],
+          "thresholds": "",
+          "title": "Total modules",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg"
+        },
+        {
+          "cacheTimeout": null,
+          "colorBackground": false,
+          "colorValue": false,
+          "colors": [
+            "rgba(245, 54, 54, 0.9)",
+            "rgba(237, 129, 40, 0.89)",
+            "rgba(50, 172, 45, 0.97)"
+          ],
+          "datasource": null,
+          "editable": true,
+          "error": false,
+          "format": "none",
+          "gauge": {
+            "maxValue": 100,
+            "minValue": 0,
+            "show": false,
+            "thresholdLabels": false,
+            "thresholdMarkers": true
+          },
+          "height": "50px",
+          "id": 15,
+          "interval": null,
+          "isNew": true,
+          "links": [],
+          "maxDataPoints": 100,
+          "nullPointMode": "connected",
+          "nullText": null,
+          "postfix": "",
+          "postfixFontSize": "50%",
+          "prefix": "",
+          "prefixFontSize": "50%",
+          "span": 3,
+          "sparkline": {
+            "fillColor": "rgba(31, 118, 189, 0.18)",
+            "full": false,
+            "lineColor": "rgb(31, 120, 193)",
+            "show": true
+          },
+          "targets": [
+            {
+              "refId": "A",
+              "target": "averageSeriesWithWildcards(folio.okapi.10.36.1.*.tenants.count, 5)"
+            }
+          ],
+          "thresholds": "",
+          "title": "Total tenants",
+          "type": "singlestat",
+          "valueFontSize": "80%",
+          "valueMaps": [
+            {
+              "op": "=",
+              "text": "N/A",
+              "value": "null"
+            }
+          ],
+          "valueName": "avg"
         }
       ],
       "title": "New row"
@@ -780,13 +1377,118 @@
     ]
   },
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "tags": [],
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": null,
+        "hide": 0,
+        "includeAll": true,
+        "label": "",
+        "multi": true,
+        "name": "node",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "144",
+            "value": "144"
+          },
+          {
+            "selected": false,
+            "text": "149",
+            "value": "149"
+          },
+          {
+            "selected": false,
+            "text": "181",
+            "value": "181"
+          }
+        ],
+        "query": "folio.okapi.*.*.*.*",
+        "refresh": 0,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "current": {
+          "tags": [],
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": null,
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "module",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "sample",
+            "value": "sample"
+          }
+        ],
+        "query": "folio.okapi.10.36.1.$node.proxy.$tenant.*.*",
+        "refresh": 0,
+        "type": "query"
+      },
+      {
+        "current": {
+          "tags": [],
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": null,
+        "hide": 0,
+        "includeAll": true,
+        "multi": true,
+        "name": "tenant",
+        "options": [
+          {
+            "selected": true,
+            "text": "All",
+            "value": "$__all"
+          },
+          {
+            "selected": false,
+            "text": "other",
+            "value": "other"
+          },
+          {
+            "selected": false,
+            "text": "our",
+            "value": "our"
+          }
+        ],
+        "query": "folio.okapi.*.*.*.*.proxy.*",
+        "refresh": 0,
+        "type": "query"
+      }
+    ]
   },
   "annotations": {
     "list": []
   },
   "refresh": "10s",
   "schemaVersion": 12,
-  "version": 33,
+  "version": 62,
   "links": []
 }
