@@ -1199,7 +1199,7 @@ in the [RAML](http://raml.org/) syntax.
 
 ### Instrumentation
 Okapi pushes instrumentation numbers to a Carbon/Graphite backend, from which
-they can be shown with something like Grafena. Vert.x pushes some numbers
+they can be shown with something like Grafana. Vert.x pushes some numbers
 automatically, but various parts of Okapi push their own numbers explicitly,
 so we can split them by tenant or module or something. It is expected that
 modules may push their own numbers as well, as needed. It is hoped that they
@@ -1220,10 +1220,10 @@ invocation.
 
 The `$-variables` will of course get the actual values.
 
-There is an example of a Grafena dashboard definition in grafana-dashboard.json,
+There is an example of a Grafana dashboard definition in grafana-dashboard.json,
 under the doc directory.
 
-Some examples of useful graphs in Grafgena. These can be pasted direcly under the
+Some examples of useful graphs in Grafana. These can be pasted direcly under the
 metric, once you change edit mode (the tool menu at the end of the line) to text
 mode.
   * Activity by tenant:
