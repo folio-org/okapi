@@ -22,11 +22,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -178,7 +175,7 @@ public class LockedStringMap {
     });
   }
 
-  public void add(String k, String k2, String jsonString, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void add(String k, String k2, String value, Handler<ExtendedAsyncResult<Void>> fut) {
     StringMap smap = new StringMap();
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -193,7 +190,7 @@ public class LockedStringMap {
           fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
           return; // TODO - is this an error at all? Probably yes, should not happen with Discovery
         }
-        smap.strings.put(k2, jsonString);
+        smap.strings.put(k2, value);
         String newVal = Json.encodePrettily(smap);
         //logger.debug("Add: to " + k + ":" + newVal);
         if (oldVal == null) { // new entry
@@ -203,7 +200,7 @@ public class LockedStringMap {
                 addKey(k, fut);
               } else { // Someone messed with it, try again
                 vertx.setTimer(delay, res -> {
-                  add(k, k2, jsonString, fut);
+                  add(k, k2, value, fut);
                 });
               }
             } else {
@@ -217,7 +214,7 @@ public class LockedStringMap {
                 addKey(k, fut);
               } else {
                 vertx.setTimer(delay, res -> {
-                  add(k, k2, jsonString, fut);
+                  add(k, k2, value, fut);
                 });
               }
             } else {
