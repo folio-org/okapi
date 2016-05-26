@@ -77,9 +77,10 @@ public class DiscoveryManager {
     });
     eb.consumer(DEPLOYMENT_NODE_START.toString(), message -> {
       final String s = (String) message.body();
+      logger.info("node start: " + s);
       final NodeDescriptor nd = Json.decodeValue(s,
               NodeDescriptor.class);
-      nodes.add(nd.getNodeId(), "a", nd, res -> {
+      nodes.put(nd.getNodeId(), "a", nd, res -> {
         if (res.failed()) {
           message.fail(0, res.cause().getMessage());
         } else {
@@ -89,6 +90,7 @@ public class DiscoveryManager {
     });
     eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
       final String s = (String) message.body();
+      logger.info("node stop: " + s);
       final NodeDescriptor nd = Json.decodeValue(s,
               NodeDescriptor.class);
       nodes.remove(nd.getNodeId(), "a", res -> {

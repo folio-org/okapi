@@ -30,7 +30,12 @@ public class LockedTypedMap<T> extends LockedStringMap {
 
   public void add(String k, String k2, T value, Handler<ExtendedAsyncResult<Void>> fut) {
     String json = Json.encode(value);
-    add(k, k2, json, fut);
+    addOrReplace(false, k, k2, json, fut);
+  }
+
+  public void put(String k, String k2, T value, Handler<ExtendedAsyncResult<Void>> fut) {
+    String json = Json.encode(value);
+    addOrReplace(true, k, k2, json, fut);
   }
 
   public void get(String k, String k2, Handler<ExtendedAsyncResult<T>> fut) {

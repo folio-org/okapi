@@ -73,7 +73,7 @@ public class LockedStringMapTest {
   }
 
   public void testadd(TestContext context) {
-    map.add("k1", "k2", "FOOBAR", res -> {
+    map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
       assertTrue(res.succeeded());
       testgetK12(context);
     });
@@ -99,7 +99,7 @@ public class LockedStringMapTest {
 
   public void addAnother(TestContext context) {
     //System.out.println("addAnother");
-    map.add("k1", "k2.2", "SecondFoo", res -> {
+    map.addOrReplace(false, "k1", "k2.2", "SecondFoo", res -> {
       assertTrue(res.succeeded());
       addSecondK1(context);
     });
@@ -107,7 +107,7 @@ public class LockedStringMapTest {
 
   public void addSecondK1(TestContext context) {
     //System.out.println("Adding second K1");
-    map.add("k1.1", "x", "SecondKey", res -> {
+    map.addOrReplace(false, "k1.1", "x", "SecondKey", res -> {
       assertTrue(res.succeeded());
       testgetK1Again(context);
     });

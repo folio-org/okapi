@@ -175,7 +175,7 @@ public class LockedStringMap {
     });
   }
 
-  public void add(String k, String k2, String value, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void addOrReplace(boolean allowReplace, String k, String k2, String value, Handler<ExtendedAsyncResult<Void>> fut) {
     StringMap smap = new StringMap();
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -186,9 +186,9 @@ public class LockedStringMap {
           StringMap oldlist = Json.decodeValue(oldVal, StringMap.class);
           smap.strings.putAll(oldlist.strings);
         }
-        if (smap.strings.containsKey(k2)) {
+        if (!allowReplace && smap.strings.containsKey(k2)) {
           fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
-          return; // TODO - is this an error at all? Probably yes, should not happen with Discovery
+          return;
         }
         smap.strings.put(k2, value);
         String newVal = Json.encodePrettily(smap);
@@ -200,7 +200,7 @@ public class LockedStringMap {
                 addKey(k, fut);
               } else { // Someone messed with it, try again
                 vertx.setTimer(delay, res -> {
-                  add(k, k2, value, fut);
+                  addOrReplace(allowReplace, k, k2, value, fut);
                 });
               }
             } else {
@@ -214,7 +214,7 @@ public class LockedStringMap {
                 addKey(k, fut);
               } else {
                 vertx.setTimer(delay, res -> {
-                  add(k, k2, value, fut);
+                  addOrReplace(allowReplace, k, k2, value, fut);
                 });
               }
             } else {
