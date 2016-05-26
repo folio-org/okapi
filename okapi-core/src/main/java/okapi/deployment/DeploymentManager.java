@@ -78,12 +78,11 @@ public class DeploymentManager {
     nd.setNodeId(host);
     final String s = Json.encodePrettily(nd);
     eb.send(DEPLOYMENT_NODE_STOP.toString(), s);
-
-    Iterator<String> iterator = list.keySet().iterator();
-    shutdown(iterator, fut);
+    shutdownR(fut);
   }
 
-  private void shutdown(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void shutdownR(Handler<ExtendedAsyncResult<Void>> fut) {
+    Iterator<String> it = list.keySet().iterator();
     if (!it.hasNext()) {
       fut.handle(new Success<>());
     } else {
@@ -91,7 +90,7 @@ public class DeploymentManager {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          shutdown(it, fut);
+          shutdownR(fut);
         }
       });
     }
