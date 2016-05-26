@@ -73,6 +73,7 @@ public class MainVerticle extends AbstractVerticle {
   ProxyService proxyService;
   TenantWebService tenantWebService;
   DeploymentWebService deploymentWebService;
+  DeploymentManager deploymentManager;
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   Ports ports;
@@ -130,8 +131,8 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
 
-    DeploymentManager dm = new DeploymentManager(vertx, host, ports);
-    deploymentWebService = new DeploymentWebService(dm);
+    deploymentManager = new DeploymentManager(vertx, host, ports);
+    deploymentWebService = new DeploymentWebService(deploymentManager);
 
     discoveryManager = new DiscoveryManager();
     discoveryService = new DiscoveryService(discoveryManager);
@@ -198,12 +199,21 @@ public class MainVerticle extends AbstractVerticle {
   private void startDiscovery(Future<Void> fut) {
     this.discoveryManager.init(vertx, res -> {
       if (res.succeeded()) {
+        startDeployment(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
+  }
+
+  public void startDeployment(Future<Void> fut) {
+    this.deploymentManager.init(res -> {
+      if (res.succeeded()) {
         startListening(fut);
       } else {
         fut.fail(res.cause());
       }
     });
-
   }
 
   private void startListening(Future<Void> fut) {

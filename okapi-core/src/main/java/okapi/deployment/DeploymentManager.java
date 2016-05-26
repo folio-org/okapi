@@ -20,6 +20,8 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -33,20 +35,32 @@ import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
+import static okapi.util.OkapiEvents.*;
 
 public class DeploymentManager {
+
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
   Vertx vertx;
   Ports ports;
   String host;
   private EventBus eb;
-  private final String eventBusName = "okapi.conf.discovery";
 
   public DeploymentManager(Vertx vertx, String host, Ports ports) {
     this.vertx = vertx;
     this.host = host;
     this.ports = ports;
     this.eb = vertx.eventBus();
+  }
+
+  public void init(Handler<ExtendedAsyncResult<Void>> fut) {
+    eb.send(DEPLOYMENT_NODE_START.toString(), this.host, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
@@ -84,7 +98,7 @@ public class DeploymentManager {
         list.put(md2.getInstId(), md2);
         tim.stop();
         final String s = Json.encodePrettily(md2);
-        eb.send(eventBusName + ".deploy", s);
+        eb.send(DEPLOYMENT_DEPLOY.toString(), s);
         fut.handle(new Success<>(md2));
       } else {
         ports.free(use_port);
@@ -100,7 +114,7 @@ public class DeploymentManager {
       Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
       final String s = Json.encodePrettily(md);
-      eb.send(eventBusName + ".undeploy", s);
+      eb.send(DEPLOYMENT_UNDEPLOY.toString(), s);
       ModuleHandle mh = md.getModuleHandle();
       mh.stop(future -> {
         if (future.succeeded()) {

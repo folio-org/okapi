@@ -29,30 +29,31 @@ import java.util.Iterator;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.HealthDescriptor;
+import okapi.bean.NodeDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.LockedStringMap;
 import okapi.util.Success;
+import static okapi.util.OkapiEvents.*;
 
 public class DiscoveryManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   LockedStringMap list = new LockedStringMap();
+  LockedStringMap nodes = new LockedStringMap();
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
   private EventBus eb;
-  private final String eventBusName = "okapi.conf.discovery";
   private HttpClient httpClient;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
-    list.init(vertx, "discoveryList", fut);
     this.eb = vertx.eventBus();
-    eb.consumer(eventBusName + ".deploy", message -> {
+    eb.consumer(DEPLOYMENT_DEPLOY.toString(), message -> {
       final String s = (String) message.body();
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
@@ -62,7 +63,7 @@ public class DiscoveryManager {
         }
       });
     });
-    eb.consumer(eventBusName + ".undeploy", message -> {
+    eb.consumer(DEPLOYMENT_UNDEPLOY.toString(), message -> {
       final String s = (String) message.body();
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
@@ -71,6 +72,31 @@ public class DiscoveryManager {
           message.fail(0, res.cause().getMessage());
         }
       });
+    });
+    eb.consumer(DEPLOYMENT_NODE_START.toString(), message -> {
+      final String host = (String) message.body();
+      nodes.add(host, "x", "x", res -> {
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        } else {
+          message.reply("OK");
+        }
+      });
+    });
+    eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
+      final String host = (String) message.body();
+      nodes.remove(host, "x", res -> {
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        }
+      });
+    });
+    list.init(vertx, "discoveryList", res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        nodes.init(vertx, "discoveryNodes", fut);
+      }
     });
   }
 
@@ -258,5 +284,4 @@ public class DiscoveryManager {
       }
     });
   }
-
 }
