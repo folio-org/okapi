@@ -26,6 +26,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.HealthDescriptor;
@@ -34,6 +35,7 @@ import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.LockedStringMap;
+import okapi.util.LockedTypedMap;
 import okapi.util.Success;
 import static okapi.util.OkapiEvents.*;
 
@@ -41,7 +43,7 @@ public class DiscoveryManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  LockedStringMap list = new LockedStringMap();
+  LockedTypedMap<DeploymentDescriptor> list = new LockedTypedMap(DeploymentDescriptor.class);
   LockedStringMap nodes = new LockedStringMap();
   Vertx vertx;
 
@@ -111,10 +113,7 @@ public class DiscoveryManager {
       fut.handle(new Failure<>(USER, "Needs instId"));
       return;
     }
-    String jsonVal = Json.encodePrettily(md);
-    //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
-
-    list.add(srvcId, instId, jsonVal, fut);
+    list.add(srvcId, instId, md, fut);
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -132,10 +131,7 @@ public class DiscoveryManager {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
-        String val = resGet.result();
-        //logger.debug("Disc:get " + srvcId + "/" + instId + ": " + val);
-        DeploymentDescriptor md = Json.decodeValue(val, DeploymentDescriptor.class);
-        fut.handle(new Success<>(md));
+        fut.handle(new Success<>(resGet.result()));
       }
     });
   }
@@ -144,22 +140,7 @@ public class DiscoveryManager {
    * Get the list for one srvcId. May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.get(srvcId, resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-      } else {
-        List<DeploymentDescriptor> dpl = new ArrayList<>();
-        Collection<String> val = resGet.result();
-        Iterator<String> it = val.iterator();
-        while (it.hasNext()) {
-          String t = it.next();
-          //logger.debug("Disc:get " + srvcId + ":" + t);
-          DeploymentDescriptor md = Json.decodeValue(t, DeploymentDescriptor.class);
-          dpl.add(md);
-        }
-        fut.handle(new Success<>(dpl));
-      }
-    });
+    list.get(srvcId, fut);
   }
 
   /**
@@ -172,15 +153,13 @@ public class DiscoveryManager {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
+        List<DeploymentDescriptor> all = new LinkedList<>();
         if (keys == null || keys.isEmpty()) {
-          List<DeploymentDescriptor> empty = new ArrayList<>();
-          fut.handle(new Success<>(empty));
+          fut.handle(new Success<>(all));
         } else {
           Iterator<String> it = keys.iterator();
-          List<DeploymentDescriptor> all = new ArrayList<>();
           getAll_r(it, all, fut);
         }
-
       }
     });
   }

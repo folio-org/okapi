@@ -70,7 +70,7 @@ public class LockedStringMap {
     });
   }
 
-  public void get(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
+  public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
     StringMap smap = new StringMap();
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -91,7 +91,7 @@ public class LockedStringMap {
     });
   }
 
-  public void get(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+  public void getString(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
