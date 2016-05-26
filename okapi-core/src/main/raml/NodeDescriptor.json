@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "NodeDescriptor",
+  "type": "object",
+  "properties": {
+    "nodeId": {"type": "string"},
+    "url": {"type": "string"}
+  },
+  "required": ["nodeId", "url"]
+}

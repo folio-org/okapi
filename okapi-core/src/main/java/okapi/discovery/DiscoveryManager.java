@@ -26,33 +26,36 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.HealthDescriptor;
+import okapi.bean.NodeDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.LockedStringMap;
+import okapi.util.LockedTypedMap;
 import okapi.util.Success;
+import static okapi.util.OkapiEvents.*;
 
 public class DiscoveryManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  LockedStringMap list = new LockedStringMap();
+  LockedTypedMap<DeploymentDescriptor> deployments = new LockedTypedMap(DeploymentDescriptor.class);
+  LockedTypedMap<NodeDescriptor> nodes = new LockedTypedMap(NodeDescriptor.class);
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
   private EventBus eb;
-  private final String eventBusName = "okapi.conf.discovery";
   private HttpClient httpClient;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
-    list.init(vertx, "discoveryList", fut);
     this.eb = vertx.eventBus();
-    eb.consumer(eventBusName + ".deploy", message -> {
+    eb.consumer(DEPLOYMENT_DEPLOY.toString(), message -> {
       final String s = (String) message.body();
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
@@ -62,7 +65,7 @@ public class DiscoveryManager {
         }
       });
     });
-    eb.consumer(eventBusName + ".undeploy", message -> {
+    eb.consumer(DEPLOYMENT_UNDEPLOY.toString(), message -> {
       final String s = (String) message.body();
       final DeploymentDescriptor md = Json.decodeValue(s,
               DeploymentDescriptor.class);
@@ -71,6 +74,35 @@ public class DiscoveryManager {
           message.fail(0, res.cause().getMessage());
         }
       });
+    });
+    eb.consumer(DEPLOYMENT_NODE_START.toString(), message -> {
+      final String s = (String) message.body();
+      final NodeDescriptor nd = Json.decodeValue(s,
+              NodeDescriptor.class);
+      nodes.add(nd.getNodeId(), "a", nd, res -> {
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        } else {
+          message.reply("OK");
+        }
+      });
+    });
+    eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
+      final String s = (String) message.body();
+      final NodeDescriptor nd = Json.decodeValue(s,
+              NodeDescriptor.class);
+      nodes.remove(nd.getNodeId(), "a", res -> {
+        if (res.failed()) {
+          message.fail(0, res.cause().getMessage());
+        }
+      });
+    });
+    deployments.init(vertx, "discoveryList", res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        nodes.init(vertx, "discoveryNodes", fut);
+      }
     });
   }
 
@@ -85,14 +117,11 @@ public class DiscoveryManager {
       fut.handle(new Failure<>(USER, "Needs instId"));
       return;
     }
-    String jsonVal = Json.encodePrettily(md);
-    //logger.debug("Disc:add " + srvcId + "/" + instId + ": " + jsonVal);
-
-    list.add(srvcId, instId, jsonVal, fut);
+    deployments.add(srvcId, instId, md, fut);
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
-    list.remove(srvcId, instId, res -> {
+    deployments.remove(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -102,14 +131,11 @@ public class DiscoveryManager {
   }
 
   void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    list.get(srvcId, instId, resGet -> {
+    deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
-        String val = resGet.result();
-        //logger.debug("Disc:get " + srvcId + "/" + instId + ": " + val);
-        DeploymentDescriptor md = Json.decodeValue(val, DeploymentDescriptor.class);
-        fut.handle(new Success<>(md));
+        fut.handle(new Success<>(resGet.result()));
       }
     });
   }
@@ -118,43 +144,26 @@ public class DiscoveryManager {
    * Get the list for one srvcId. May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.get(srvcId, resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-      } else {
-        List<DeploymentDescriptor> dpl = new ArrayList<>();
-        Collection<String> val = resGet.result();
-        Iterator<String> it = val.iterator();
-        while (it.hasNext()) {
-          String t = it.next();
-          //logger.debug("Disc:get " + srvcId + ":" + t);
-          DeploymentDescriptor md = Json.decodeValue(t, DeploymentDescriptor.class);
-          dpl.add(md);
-        }
-        fut.handle(new Success<>(dpl));
-      }
-    });
+    deployments.get(srvcId, fut);
   }
 
   /**
    * Get all known DeploymentDescriptors (all services on all nodes).
    */
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.getKeys(resGet -> {
+    deployments.getKeys(resGet -> {
       if (resGet.failed()) {
         logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
+        List<DeploymentDescriptor> all = new LinkedList<>();
         if (keys == null || keys.isEmpty()) {
-          List<DeploymentDescriptor> empty = new ArrayList<>();
-          fut.handle(new Success<>(empty));
+          fut.handle(new Success<>(all));
         } else {
           Iterator<String> it = keys.iterator();
-          List<DeploymentDescriptor> all = new ArrayList<>();
           getAll_r(it, all, fut);
         }
-
       }
     });
   }
@@ -259,4 +268,42 @@ public class DiscoveryManager {
     });
   }
 
+  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
+          Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      String srvcId = it.next();
+      getNode(srvcId, resGet -> {
+        if (resGet.failed()) {
+          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        } else {
+          NodeDescriptor dpl = resGet.result();
+          all.add(dpl);
+          getNodes_r(it, all, fut);
+        }
+      });
+    }
+  }
+
+  public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    nodes.get(nodeId, "a", fut);
+  }
+
+  public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    nodes.getKeys(resGet -> {
+      if (resGet.failed()) {
+        logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
+        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+      } else {
+        Collection<String> keys = resGet.result();
+        List<NodeDescriptor> all = new LinkedList<>();
+        if (keys == null || keys.isEmpty()) {
+          fut.handle(new Success<>(all));
+        } else {
+          getNodes_r(keys.iterator(), all, fut);
+        }
+      }
+    });
+  }
 }

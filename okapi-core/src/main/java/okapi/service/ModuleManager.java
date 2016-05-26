@@ -36,7 +36,6 @@ public class ModuleManager {
 
   LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
 
-
   public ModuleManager(Vertx vertx) {
     String metricKey = "modules.count";
     DropwizardHelper.registerGauge(metricKey, () -> modules.size());
@@ -44,53 +43,56 @@ public class ModuleManager {
   }
 
   private boolean checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-      Handler<ExtendedAsyncResult<String>> fut){
+          Handler<ExtendedAsyncResult<String>> fut) {
     ModuleInterface seenversion = null;
     for (String runningmodule : modules.keySet()) {
       ModuleDescriptor rm = modules.get(runningmodule);
       ModuleInterface[] provides = rm.getProvides();
-      if ( provides != null ) {
-        for ( ModuleInterface pi: provides ) {
+      if (provides != null) {
+        for (ModuleInterface pi : provides) {
           logger.debug("Checking dependency of " + md.getId() + ": "
-              + req.getId() + " " + req.getVersion()
-              + " against " + pi.getId() + " " + pi.getVersion() );
-          if ( req.getId().equals(pi.getId())) {
-            if ( seenversion == null || pi.compare(req) > 0)
+                  + req.getId() + " " + req.getVersion()
+                  + " against " + pi.getId() + " " + pi.getVersion());
+          if (req.getId().equals(pi.getId())) {
+            if (seenversion == null || pi.compare(req) > 0) {
               seenversion = pi;
-            if ( pi.isCompatible(req))
+            }
+            if (pi.isCompatible(req)) {
               return true;
+            }
           }
         }
       }
     }
-    if (  seenversion == null ) {
+    if (seenversion == null) {
       logger.debug("Can not create module '" + md.getId() + "'"
-        +", missing dependency " + req.getId() + ": " + req.getVersion() );
+              + ", missing dependency " + req.getId() + ": " + req.getVersion());
       fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'. "
-        + "Missing dependency: " +  req.getId() + ": " + req.getVersion()));
+              + "Missing dependency: " + req.getId() + ": " + req.getVersion()));
     } else {
       logger.debug("Can not create module '" + md.getId() + "'"
-        + "Insufficient version for " + req.getId() + ". "
-        + "Need " + req.getVersion() + ". have " + seenversion.getVersion() );
+              + "Insufficient version for " + req.getId() + ". "
+              + "Need " + req.getVersion() + ". have " + seenversion.getVersion());
       fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'"
-        + "Insufficient version for " + req.getId() + ". "
-        + "Need " + req.getVersion() + ". have " + seenversion.getVersion()));
+              + "Insufficient version for " + req.getId() + ". "
+              + "Need " + req.getVersion() + ". have " + seenversion.getVersion()));
     }
     return false;
   }
 
   /**
    * Check that the dependencies are satisfied.
+   *
    * @param md Module to be created
    * @param fut to be called in case of failure
    * @return true if no problems
    */
   private boolean checkDependencies(ModuleDescriptor md,
-        Handler<ExtendedAsyncResult<String>> fut) {
+          Handler<ExtendedAsyncResult<String>> fut) {
     ModuleInterface[] requires = md.getRequires();
     if (requires != null) {
       for (ModuleInterface req : requires) {
-        if ( ! checkOneDependency(md, req, fut)) {
+        if (!checkOneDependency(md, req, fut)) {
           return false;
         }
       }
@@ -142,6 +144,5 @@ public class ModuleManager {
   public Set<String> list() {
     return modules.keySet();
   }
-
 
 } // class

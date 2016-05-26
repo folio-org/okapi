@@ -73,6 +73,7 @@ public class MainVerticle extends AbstractVerticle {
   ProxyService proxyService;
   TenantWebService tenantWebService;
   DeploymentWebService deploymentWebService;
+  DeploymentManager deploymentManager;
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   Ports ports;
@@ -130,8 +131,8 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
 
-    DeploymentManager dm = new DeploymentManager(vertx, host, ports);
-    deploymentWebService = new DeploymentWebService(dm);
+    deploymentManager = new DeploymentManager(vertx, host, ports, port);
+    deploymentWebService = new DeploymentWebService(deploymentManager);
 
     discoveryManager = new DiscoveryManager();
     discoveryService = new DiscoveryService(discoveryManager);
@@ -141,7 +142,7 @@ public class MainVerticle extends AbstractVerticle {
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
         CountDownLatch latch = new CountDownLatch(1);
-        moduleManager.deleteAll(ar -> {
+        deploymentManager.shutdown(ar -> {
           latch.countDown();
         });
         try {
@@ -153,6 +154,7 @@ public class MainVerticle extends AbstractVerticle {
         }
       }
     });
+
   }
 
   public void NotFound(RoutingContext ctx) {
@@ -198,12 +200,21 @@ public class MainVerticle extends AbstractVerticle {
   private void startDiscovery(Future<Void> fut) {
     this.discoveryManager.init(vertx, res -> {
       if (res.succeeded()) {
+        startDeployment(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
+  }
+
+  public void startDeployment(Future<Void> fut) {
+    this.deploymentManager.init(res -> {
+      if (res.succeeded()) {
         startListening(fut);
       } else {
         fut.fail(res.cause());
       }
     });
-
   }
 
   private void startListening(Future<Void> fut) {
@@ -267,6 +278,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
     router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
     router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
+    router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
+    router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
 
     router.route("/_*").handler(this::NotFound);
 

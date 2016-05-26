@@ -81,7 +81,7 @@ public class LockedStringMapTest {
 
   private void testgetK12(TestContext context) {
     //System.out.println("testgetK12");
-    map.get("k1", "k2", res -> {
+    map.getString("k1", "k2", res -> {
       assertTrue(res.succeeded());
       assertEquals("FOOBAR", res.result());
       testgetK1(context);
@@ -90,7 +90,7 @@ public class LockedStringMapTest {
 
   private void testgetK1(TestContext context) {
     //System.out.println("testgetK1");
-    map.get("k1", res -> {
+    map.getString("k1", res -> {
       assertTrue(res.succeeded());
       assertEquals("[FOOBAR]", res.result().toString());
       addAnother(context);
@@ -114,7 +114,7 @@ public class LockedStringMapTest {
   }
 
   private void testgetK1Again(TestContext context) {
-    map.get("k1", res -> {
+    map.getString("k1", res -> {
       assertTrue(res.succeeded());
       //System.out.println("K1Again: '"+res.result().toString()+"'");
       assertEquals("[FOOBAR, SecondFoo]", res.result().toString());

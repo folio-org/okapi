@@ -136,6 +136,27 @@ public class ModuleTest {
     RestAssuredClient c;
     Response r;
 
+    String nodeListDoc = "[ {" + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"url\" : \"http://localhost:9130\"" + LS
+            + "} ]";
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes").then().statusCode(200)
+            .body(equalTo(nodeListDoc));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes/gyf").then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes/localhost").then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
