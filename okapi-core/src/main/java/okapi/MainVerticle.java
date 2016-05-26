@@ -142,7 +142,7 @@ public class MainVerticle extends AbstractVerticle {
     Runtime.getRuntime().addShutdownHook(new Thread() {
       public void run() {
         CountDownLatch latch = new CountDownLatch(1);
-        moduleManager.deleteAll(ar -> {
+        deploymentManager.shutdown(ar -> {
           latch.countDown();
         });
         try {
@@ -154,6 +154,7 @@ public class MainVerticle extends AbstractVerticle {
         }
       }
     });
+
   }
 
   public void NotFound(RoutingContext ctx) {
