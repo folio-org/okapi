@@ -54,7 +54,7 @@ public class DeploymentManagerTest {
   public void test1(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
+    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports, 9130);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
@@ -78,7 +78,7 @@ public class DeploymentManagerTest {
   public void test2(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports);
+    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports, 9130);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "

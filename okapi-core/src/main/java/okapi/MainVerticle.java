@@ -131,7 +131,7 @@ public class MainVerticle extends AbstractVerticle {
     moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
     tenantWebService = new TenantWebService(vertx, tman, tenantStore);
 
-    deploymentManager = new DeploymentManager(vertx, host, ports);
+    deploymentManager = new DeploymentManager(vertx, host, ports, port);
     deploymentWebService = new DeploymentWebService(deploymentManager);
 
     discoveryManager = new DiscoveryManager();
@@ -277,6 +277,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
     router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
     router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
+    router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
+    router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
 
     router.route("/_*").handler(this::NotFound);
 

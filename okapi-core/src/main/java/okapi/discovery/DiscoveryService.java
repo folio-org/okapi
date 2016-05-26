@@ -180,4 +180,31 @@ public class DiscoveryService {
     });
   }
 
+  public void getNodes(RoutingContext ctx) {
+    dm.getNodes(res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
+  public void getNode(RoutingContext ctx) {
+    final String id = ctx.request().getParam("id");
+    if (id == null) {
+      responseError(ctx, 400, "id missing");
+      return;
+    }
+    dm.getNode(id, res -> {
+      if (res.failed()) {
+        responseError(ctx, res.getType(), res.cause());
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        responseJson(ctx, 200).end(s);
+      }
+    });
+  }
+
 }

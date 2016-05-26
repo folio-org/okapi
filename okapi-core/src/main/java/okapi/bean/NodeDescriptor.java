@@ -17,15 +17,15 @@ package okapi.bean;
 
 public class NodeDescriptor {
 
-  private String name;
+  private String nodeId;
   private String url;
 
-  public String getName() {
-    return name;
+  public String getNodeId() {
+    return nodeId;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public void setNodeId(String name) {
+    this.nodeId = name;
   }
 
   public String getUrl() {
@@ -35,4 +35,5 @@ public class NodeDescriptor {
   public void setUrl(String url) {
     this.url = url;
   }
+
 }

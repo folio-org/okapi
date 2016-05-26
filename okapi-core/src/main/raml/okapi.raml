@@ -16,6 +16,8 @@ schemas:
   - HealthStatusList: !include HealthStatusList.json
   - HealthDescriptor: !include HealthDescriptor.json
   - HealthDescriptorList: !include HealthDescriptorList.json
+  - NodeDescriptor: !include NodeDescriptor.json
+  - NodeDescriptorList: !include NodeDescriptorList.json
 
 #traits:
 
@@ -187,6 +189,42 @@ schemas:
             body:
               application/json:
                 schema: HealthDescriptor
+/_/discovery/nodes:
+  get:
+    description: get list of all nodes
+    responses:
+      200:
+        body:
+          application/json:
+            schema: NodeDescriptorList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+  /{node_id}:
+    get:
+      description: get info for one node
+      responses:
+        200:
+          body:
+            application/json:
+              schema: NodeDescriptor
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+        404:
+          description: Not Found
+          body:
+            text/plain:
+        500:
+          description: Server Error
+          body:
+            text/plain:
 
 # PROXY SERVICE
 

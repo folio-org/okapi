@@ -43,8 +43,8 @@ public class DiscoveryManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  LockedTypedMap<DeploymentDescriptor> list = new LockedTypedMap(DeploymentDescriptor.class);
-  LockedStringMap nodes = new LockedStringMap();
+  LockedTypedMap<DeploymentDescriptor> deployments = new LockedTypedMap(DeploymentDescriptor.class);
+  LockedTypedMap<NodeDescriptor> nodes = new LockedTypedMap(NodeDescriptor.class);
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
@@ -76,8 +76,10 @@ public class DiscoveryManager {
       });
     });
     eb.consumer(DEPLOYMENT_NODE_START.toString(), message -> {
-      final String host = (String) message.body();
-      nodes.add(host, "x", "x", res -> {
+      final String s = (String) message.body();
+      final NodeDescriptor nd = Json.decodeValue(s,
+              NodeDescriptor.class);
+      nodes.add(nd.getNodeId(), "a", nd, res -> {
         if (res.failed()) {
           message.fail(0, res.cause().getMessage());
         } else {
@@ -86,14 +88,16 @@ public class DiscoveryManager {
       });
     });
     eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
-      final String host = (String) message.body();
-      nodes.remove(host, "x", res -> {
+      final String s = (String) message.body();
+      final NodeDescriptor nd = Json.decodeValue(s,
+              NodeDescriptor.class);
+      nodes.remove(nd.getNodeId(), "a", res -> {
         if (res.failed()) {
           message.fail(0, res.cause().getMessage());
         }
       });
     });
-    list.init(vertx, "discoveryList", res -> {
+    deployments.init(vertx, "discoveryList", res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -113,11 +117,11 @@ public class DiscoveryManager {
       fut.handle(new Failure<>(USER, "Needs instId"));
       return;
     }
-    list.add(srvcId, instId, md, fut);
+    deployments.add(srvcId, instId, md, fut);
   }
 
   void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
-    list.remove(srvcId, instId, res -> {
+    deployments.remove(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -127,7 +131,7 @@ public class DiscoveryManager {
   }
 
   void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    list.get(srvcId, instId, resGet -> {
+    deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
@@ -140,14 +144,14 @@ public class DiscoveryManager {
    * Get the list for one srvcId. May return an empty list
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.get(srvcId, fut);
+    deployments.get(srvcId, fut);
   }
 
   /**
    * Get all known DeploymentDescriptors (all services on all nodes).
    */
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    list.getKeys(resGet -> {
+    deployments.getKeys(resGet -> {
       if (resGet.failed()) {
         logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
@@ -260,6 +264,45 @@ public class DiscoveryManager {
         Iterator<DeploymentDescriptor> it = res.result().iterator();
         List<HealthDescriptor> all = new ArrayList<>();
         healthR(it, all, fut);
+      }
+    });
+  }
+
+  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
+          Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      String srvcId = it.next();
+      getNode(srvcId, resGet -> {
+        if (resGet.failed()) {
+          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        } else {
+          NodeDescriptor dpl = resGet.result();
+          all.add(dpl);
+          getNodes_r(it, all, fut);
+        }
+      });
+    }
+  }
+
+  public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    nodes.get(nodeId, "a", fut);
+  }
+
+  public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    nodes.getKeys(resGet -> {
+      if (resGet.failed()) {
+        logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
+        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+      } else {
+        Collection<String> keys = resGet.result();
+        List<NodeDescriptor> all = new LinkedList<>();
+        if (keys == null || keys.isEmpty()) {
+          fut.handle(new Success<>(all));
+        } else {
+          getNodes_r(keys.iterator(), all, fut);
+        }
       }
     });
   }

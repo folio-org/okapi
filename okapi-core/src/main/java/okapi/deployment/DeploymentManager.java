@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
+import okapi.bean.NodeDescriptor;
 import okapi.util.ModuleHandle;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
@@ -44,17 +45,23 @@ public class DeploymentManager {
   Vertx vertx;
   Ports ports;
   String host;
+  private final int listenPort;
   private EventBus eb;
 
-  public DeploymentManager(Vertx vertx, String host, Ports ports) {
+  public DeploymentManager(Vertx vertx, String host, Ports ports, int listenPort) {
     this.vertx = vertx;
     this.host = host;
+    this.listenPort = listenPort;
     this.ports = ports;
     this.eb = vertx.eventBus();
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
-    eb.send(DEPLOYMENT_NODE_START.toString(), this.host, res -> {
+    NodeDescriptor nd = new NodeDescriptor();
+    nd.setUrl("http://" + host + ":" + listenPort);
+    nd.setNodeId(host);
+    final String s = Json.encodePrettily(nd);
+    eb.send(DEPLOYMENT_NODE_START.toString(), s, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
