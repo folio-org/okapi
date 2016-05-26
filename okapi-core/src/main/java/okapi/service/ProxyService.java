@@ -71,8 +71,8 @@ public class ProxyService {
     }
   }
 
-  private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode, 
-      Timer.Context timer, List<String> traceHeaders) {
+  private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
+          Timer.Context timer, List<String> traceHeaders) {
     //long timeDiff = (System.nanoTime() - timer) / 1000;
     long timeDiff = timer.stop() / 1000;
     traceHeaders.add(ctx.request().method() + " "
@@ -80,6 +80,7 @@ public class ProxyService {
             + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, traceHeaders);
   }
+
   private boolean match(RoutingEntry e, HttpServerRequest req) {
     if (req.uri().startsWith(e.getPath())) {
       String[] methods = e.getMethods();
@@ -105,8 +106,8 @@ public class ProxyService {
         }
       }
     }
-    Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b) 
-      -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
+    Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
+            -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
     r.sort(cmp);
     return r;
   }
@@ -122,7 +123,7 @@ public class ProxyService {
         } else {
           List<DeploymentDescriptor> l = res.result();
           if (l.size() < 1) {
-            fut.handle(new Failure<>(NOT_FOUND,mi.getModuleDescriptor().getId()));
+            fut.handle(new Failure<>(NOT_FOUND, mi.getModuleDescriptor().getId()));
             return;
           }
           mi.setUrl(l.get(0).getUrl());
@@ -144,7 +145,7 @@ public class ProxyService {
       return;
     }
 
-    String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath() ;
+    String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
@@ -212,7 +213,7 @@ public class ProxyService {
 
   private void proxyRequestOnly(RoutingContext ctx,
           Iterator<ModuleInstance> it, List<String> traceHeaders,
-          ReadStream<Buffer> content, Buffer bcontent, 
+          ReadStream<Buffer> content, Buffer bcontent,
           ModuleInstance mi, Timer.Context timer) {
     if (bcontent != null) {
       proxyRequestHttpClient(ctx, it, traceHeaders, bcontent, mi, timer);
@@ -351,8 +352,9 @@ public class ProxyService {
       ModuleInstance mi = it.next();
       final long timer2 = System.nanoTime();
       String tenantId = ctx.request().getHeader("X-Okapi-Tenant");
-      if ( tenantId == null || tenantId.isEmpty())
+      if (tenantId == null || tenantId.isEmpty()) {
         tenantId = "???"; // Should not happen, we have validated earlier
+      }
       String metricKey = "proxy." + tenantId + ".module." + mi.getModuleDescriptor().getId();
       Timer.Context timerContext = DropwizardHelper.getTimerContext(metricKey);
 
