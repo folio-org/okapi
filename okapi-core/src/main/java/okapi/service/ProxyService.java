@@ -171,7 +171,7 @@ public class ProxyService {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().setAll(res.headers());
+                ctx.response().headers().addAll(res.headers());
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -190,7 +190,7 @@ public class ProxyService {
               } else {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().setAll(res.headers());
+                ctx.response().headers().addAll(res.headers());
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.endHandler(x -> {
                   timer.close();
@@ -243,7 +243,7 @@ public class ProxyService {
               } else {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().setAll(res.headers());
+                ctx.response().headers().addAll(res.headers());
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -289,7 +289,7 @@ public class ProxyService {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().setAll(res.headers());
+                ctx.response().headers().addAll(res.headers());
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -313,7 +313,7 @@ public class ProxyService {
               } else {
                 ctx.response().setChunked(true);
                 ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().setAll(res.headers());
+                ctx.response().headers().addAll(res.headers());
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 if (bcontent == null) {
                   content.handler(data -> {
