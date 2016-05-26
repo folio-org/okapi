@@ -15,7 +15,7 @@ OKAPI="http://localhost:9130"  # The usual place it runs on a single-machine set
 # java -jar okapi-core/target/okapi-core-fat.jar dev
 
 # See that Okapi is running
-curl -w '\n' http://localhost:9130/_/proxy/tenants
+curl -w '\n' $OKAPI/_/proxy/tenants
 
 
 ########
