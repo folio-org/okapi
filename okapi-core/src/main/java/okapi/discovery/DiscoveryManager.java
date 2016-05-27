@@ -55,6 +55,23 @@ public class DiscoveryManager {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     this.eb = vertx.eventBus();
+    deployments.init(vertx, "discoveryList", res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      } else {
+        nodes.init(vertx, "discoveryNodes", res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(res2.getType(), res2.cause()));
+          } else {
+            startConsumers(fut);
+          }
+        });
+      }
+    });
+  }
+
+  private void startConsumers(Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.info("DiscoveryManager: startConsumers");
     eb.consumer(DEPLOYMENT_DEPLOY.toString(), message -> {
       final String s = (String) message.body();
       final DeploymentDescriptor md = Json.decodeValue(s,
@@ -62,6 +79,8 @@ public class DiscoveryManager {
       add(md, res -> {
         if (res.failed()) {
           message.fail(0, res.cause().getMessage());
+        } else {
+          message.reply("OK");
         }
       });
     });
@@ -72,6 +91,8 @@ public class DiscoveryManager {
       remove(md.getSrvcId(), md.getInstId(), res -> {
         if (res.failed()) {
           message.fail(0, res.cause().getMessage());
+        } else {
+          message.reply("OK");
         }
       });
     });
@@ -82,11 +103,10 @@ public class DiscoveryManager {
               NodeDescriptor.class);
       nodes.put(nd.getNodeId(), "a", nd, res -> {
         if (res.failed()) {
-          message.fail(0, res.cause().getMessage());
-        } else {
-          message.reply("OK");
+          logger.error("deployment_node_start: " + res.cause().getMessage());
         }
       });
+      message.reply("OK");
     });
     eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
       final String s = (String) message.body();
@@ -95,17 +115,12 @@ public class DiscoveryManager {
               NodeDescriptor.class);
       nodes.remove(nd.getNodeId(), "a", res -> {
         if (res.failed()) {
-          message.fail(0, res.cause().getMessage());
+          logger.error("deployment_node_stop: " + res.cause().getMessage());
         }
       });
+      message.reply("OK");
     });
-    deployments.init(vertx, "discoveryList", res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        nodes.init(vertx, "discoveryNodes", fut);
-      }
-    });
+    fut.handle(new Success<>());
   }
 
   void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
