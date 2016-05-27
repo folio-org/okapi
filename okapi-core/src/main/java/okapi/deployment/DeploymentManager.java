@@ -18,6 +18,7 @@ package okapi.deployment;
 import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -63,21 +64,28 @@ public class DeploymentManager {
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
     final String s = Json.encodePrettily(nd);
-    eb.send(DEPLOYMENT_NODE_START.toString(), s, res -> {
+    logger.info("DeploymentManager: send node_start: " + DEPLOYMENT_NODE_START.toString());
+    DeliveryOptions dopt = new DeliveryOptions().setSendTimeout(2000);
+    eb.send(DEPLOYMENT_NODE_START.toString(), s, dopt, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        logger.error("DeploymentManager: send node_start response ERROR:" + res.cause().getMessage());
       } else {
-        fut.handle(new Success<>());
+        logger.info("DeploymentManager: send node_start complete");
       }
+      fut.handle(new Success<>());
     });
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    NodeDescriptor nd = new NodeDescriptor();
-    nd.setUrl("http://" + host + ":" + listenPort);
-    nd.setNodeId(host);
-    final String s = Json.encodePrettily(nd);
-    eb.send(DEPLOYMENT_NODE_STOP.toString(), s);
+    try {
+      NodeDescriptor nd = new NodeDescriptor();
+      nd.setUrl("http://" + host + ":" + listenPort);
+      nd.setNodeId(host);
+      final String s = Json.encodePrettily(nd);
+      eb.send(DEPLOYMENT_NODE_STOP.toString(), s);
+    } catch (Exception e) {
+      logger.warn("shutdown: " + e.getMessage());
+    }
     shutdownR(fut);
   }
 
