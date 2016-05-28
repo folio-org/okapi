@@ -23,6 +23,7 @@ import okapi.bean.DeploymentDescriptor;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
 import okapi.deployment.DeploymentManager;
+import okapi.discovery.DiscoveryManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,11 +36,19 @@ public class DeploymentManagerTest {
   Vertx vertx;
   Async async;
   Ports ports;
+  DiscoveryManager dis;
 
   @Before
   public void setUp(TestContext context) {
+    async = context.async();
     vertx = Vertx.vertx();
     ports = new Ports(9131, 9140);
+    dis = new DiscoveryManager();
+    System.out.println("DiscoveryManager1");
+    dis.init(vertx, res -> {
+      System.out.println("DiscoveryManager2");
+      async.complete();
+    });
   }
 
   @After
@@ -54,12 +63,12 @@ public class DeploymentManagerTest {
   public void test1(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports, 9130);
+    DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
             + "../okapi-sample-module/target/okapi-sample-module-fat.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
@@ -78,12 +87,12 @@ public class DeploymentManagerTest {
   public void test2(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, "myhost.index", ports, 9130);
+    DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
     ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
             + "../okapi-sample-module/target/unknown.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());
       if (res1.failed()) {

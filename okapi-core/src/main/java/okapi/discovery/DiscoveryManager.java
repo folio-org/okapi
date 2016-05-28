@@ -17,10 +17,8 @@ package okapi.discovery;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -34,10 +32,8 @@ import okapi.bean.NodeDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
-import okapi.util.LockedStringMap;
 import okapi.util.LockedTypedMap;
 import okapi.util.Success;
-import static okapi.util.OkapiEvents.*;
 
 public class DiscoveryManager {
 
@@ -48,13 +44,11 @@ public class DiscoveryManager {
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
-  private EventBus eb;
   private HttpClient httpClient;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
-    this.eb = vertx.eventBus();
     deployments.init(vertx, "discoveryList", res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -63,67 +57,14 @@ public class DiscoveryManager {
           if (res2.failed()) {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            startConsumers(fut);
+            fut.handle(new Success<>());
           }
         });
       }
     });
   }
 
-  private void startConsumers(Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("DiscoveryManager: startConsumers");
-    eb.consumer(DEPLOYMENT_DEPLOY.toString(), message -> {
-      final String s = (String) message.body();
-      final DeploymentDescriptor md = Json.decodeValue(s,
-              DeploymentDescriptor.class);
-      add(md, res -> {
-        if (res.failed()) {
-          message.fail(0, res.cause().getMessage());
-        } else {
-          message.reply("OK");
-        }
-      });
-    });
-    eb.consumer(DEPLOYMENT_UNDEPLOY.toString(), message -> {
-      final String s = (String) message.body();
-      final DeploymentDescriptor md = Json.decodeValue(s,
-              DeploymentDescriptor.class);
-      remove(md.getSrvcId(), md.getInstId(), res -> {
-        if (res.failed()) {
-          message.fail(0, res.cause().getMessage());
-        } else {
-          message.reply("OK");
-        }
-      });
-    });
-    eb.consumer(DEPLOYMENT_NODE_START.toString(), message -> {
-      final String s = (String) message.body();
-      logger.info("node start: " + s);
-      final NodeDescriptor nd = Json.decodeValue(s,
-              NodeDescriptor.class);
-      nodes.put(nd.getNodeId(), "a", nd, res -> {
-        if (res.failed()) {
-          logger.error("deployment_node_start: " + res.cause().getMessage());
-        }
-      });
-      message.reply("OK");
-    });
-    eb.consumer(DEPLOYMENT_NODE_STOP.toString(), message -> {
-      final String s = (String) message.body();
-      logger.info("node stop: " + s);
-      final NodeDescriptor nd = Json.decodeValue(s,
-              NodeDescriptor.class);
-      nodes.remove(nd.getNodeId(), "a", res -> {
-        if (res.failed()) {
-          logger.error("deployment_node_stop: " + res.cause().getMessage());
-        }
-      });
-      message.reply("OK");
-    });
-    fut.handle(new Success<>());
-  }
-
-  void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String srvcId = md.getSrvcId();
     if (srvcId == null) {
       fut.handle(new Failure<>(USER, "Needs srvc"));
@@ -137,7 +78,7 @@ public class DiscoveryManager {
     deployments.add(srvcId, instId, md, fut);
   }
 
-  void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
     deployments.remove(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -283,6 +224,17 @@ public class DiscoveryManager {
         healthR(it, all, fut);
       }
     });
+  }
+
+
+  public void addNode(NodeDescriptor nd,  Handler<ExtendedAsyncResult<Void>> fut)
+  {
+    nodes.put(nd.getNodeId(), "a", nd,  fut);
+  }
+
+  public void removeNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Boolean>> fut)
+  {
+    nodes.remove(nd.getNodeId(), "a", fut);
   }
 
   void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
