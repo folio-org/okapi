@@ -44,9 +44,7 @@ public class DeploymentManagerTest {
     vertx = Vertx.vertx();
     ports = new Ports(9131, 9140);
     dis = new DiscoveryManager();
-    System.out.println("DiscoveryManager1");
     dis.init(vertx, res -> {
-      System.out.println("DiscoveryManager2");
       async.complete();
     });
   }
