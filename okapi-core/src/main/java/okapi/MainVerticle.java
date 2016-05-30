@@ -60,11 +60,6 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final LogHelper logHelper = new LogHelper();
 
-  private int port;
-  private int port_start;
-  private int port_end;
-  private String storage;
-
   MongoHandle mongo = null;
 
   HealthService healthService;
@@ -76,7 +71,7 @@ public class MainVerticle extends AbstractVerticle {
   DeploymentManager deploymentManager;
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
-  Ports ports;
+  private int port;
 
   // Little helper to get a config value
   // First from System (-D on command line),
@@ -88,73 +83,94 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
+    boolean enableProxy = false;
+    boolean enableDeployment = false;
+
     super.init(vertx, context);
 
     JsonObject config = context.config();
     port = Integer.parseInt(conf("port", "9130", config));
-    port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
-    port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    int port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
+    int port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
     final String host = conf("host", "localhost", config);
-    ports = new Ports(port_start, port_end);
-    storage = conf("storage", "inmemory", config);
+
+    String storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
       logHelper.setRootLogLevel(loglevel);
     }
 
-    healthService = new HealthService();
-
-    moduleManager = new ModuleManager(vertx);
-    TenantStore tenantStore = null;
-    TenantManager tman = new TenantManager(moduleManager);
-
-    ModuleStore moduleStore = null;
-    TimeStampStore timeStampStore = null;
-
-    switch (storage) {
-
-      case "mongo":
-        mongo = new MongoHandle(vertx, config);
-        moduleStore = new ModuleStoreMongo(mongo);
-        timeStampStore = new TimeStampMongo(mongo);
-        tenantStore = new TenantStoreMongo(mongo);
+    String mode = config.getString("mode", "cluster");
+    switch (mode) {
+      case "cluster":
+      case "dev":
+        enableDeployment = true;
+        enableProxy = true;
         break;
-      case "inmemory":
-        moduleStore = new ModuleStoreMemory(vertx);
-        timeStampStore = new TimeStampMemory(vertx);
-        tenantStore = new TenantStoreMemory();
+      case "deployment":
+        enableDeployment = true;
+        break;
+      case "proxy":
+        enableProxy = true;
         break;
       default:
-        logger.fatal("Unknown storage type '" + storage + "'");
+        logger.fatal("Unknown role '" + mode + "'");
         System.exit(1);
     }
-    moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
-    tenantWebService = new TenantWebService(vertx, tman, tenantStore);
-
-    deploymentManager = new DeploymentManager(vertx, host, ports, port);
-    deploymentWebService = new DeploymentWebService(deploymentManager);
 
     discoveryManager = new DiscoveryManager();
-    discoveryService = new DiscoveryService(discoveryManager);
-
-    proxyService = new ProxyService(vertx, moduleManager, tman, discoveryManager);
-
-    Runtime.getRuntime().addShutdownHook(new Thread() {
-      public void run() {
-        CountDownLatch latch = new CountDownLatch(1);
-        deploymentManager.shutdown(ar -> {
-          latch.countDown();
-        });
-        try {
-          if (!latch.await(2, TimeUnit.MINUTES)) {
-            logger.error("Timed out waiting to undeploy all");
+    if (enableDeployment) {
+      Ports ports = new Ports(port_start, port_end);
+      deploymentManager = new DeploymentManager(vertx, discoveryManager, host, ports, port);
+      deploymentWebService = new DeploymentWebService(deploymentManager);
+      Runtime.getRuntime().addShutdownHook(new Thread() {
+        public void run() {
+          CountDownLatch latch = new CountDownLatch(1);
+          deploymentManager.shutdown(ar -> {
+            latch.countDown();
+          });
+          try {
+            if (!latch.await(2, TimeUnit.MINUTES)) {
+              logger.error("Timed out waiting to undeploy all");
+            }
+          } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
           }
-        } catch (InterruptedException e) {
-          throw new IllegalStateException(e);
         }
-      }
-    });
+      });
+    }
+    if (enableProxy) {
+      discoveryService = new DiscoveryService(discoveryManager);
+      healthService = new HealthService();
+      moduleManager = new ModuleManager(vertx);
+      TenantStore tenantStore = null;
+      TenantManager tman = new TenantManager(moduleManager);
 
+      ModuleStore moduleStore = null;
+      TimeStampStore timeStampStore = null;
+
+      switch (storage) {
+        case "mongo":
+          mongo = new MongoHandle(vertx, config);
+          moduleStore = new ModuleStoreMongo(mongo);
+          timeStampStore = new TimeStampMongo(mongo);
+          tenantStore = new TenantStoreMongo(mongo);
+          break;
+        case "inmemory":
+          moduleStore = new ModuleStoreMemory(vertx);
+          timeStampStore = new TimeStampMemory(vertx);
+          tenantStore = new TenantStoreMemory();
+          break;
+        default:
+          logger.fatal("Unknown storage type '" + storage + "'");
+          System.exit(1);
+      }
+      logger.info("Proxy using " + storage + " storage");
+      moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
+      tenantWebService = new TenantWebService(vertx, tman, tenantStore);
+
+      proxyService = new ProxyService(vertx, moduleManager, tman, discoveryManager);
+    }
   }
 
   public void NotFound(RoutingContext ctx) {
@@ -178,43 +194,59 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void startModules(Future<Void> fut) {
-    this.moduleWebService.loadModules(res -> {
-      if (res.succeeded()) {
-        startTenants(fut);
-      } else {
-        fut.fail(res.cause());
-      }
-    });
+    if (moduleWebService == null) {
+      startTenants(fut);
+    } else {
+      moduleWebService.loadModules(res -> {
+        if (res.succeeded()) {
+          startTenants(fut);
+        } else {
+          fut.fail(res.cause());
+        }
+      });
+    }
   }
 
   private void startTenants(Future<Void> fut) {
-    this.tenantWebService.loadTenants(res -> {
-      if (res.succeeded()) {
-        startDiscovery(fut);
-      } else {
-        fut.fail(res.cause());
-      }
-    });
+    if (tenantWebService == null) {
+      startDiscovery(fut);
+    } else {
+      tenantWebService.loadTenants(res -> {
+        if (res.succeeded()) {
+          startDiscovery(fut);
+        } else {
+          fut.fail(res.cause());
+        }
+      });
+    }
   }
 
   private void startDiscovery(Future<Void> fut) {
-    this.discoveryManager.init(vertx, res -> {
-      if (res.succeeded()) {
-        startDeployment(fut);
-      } else {
-        fut.fail(res.cause());
-      }
-    });
+    if (discoveryManager == null) {
+      startDeployment(fut);
+    } else {
+      discoveryManager.init(vertx, res -> {
+        if (res.succeeded()) {
+          startDeployment(fut);
+        } else {
+          fut.fail(res.cause());
+        }
+      });
+    }
   }
 
   public void startDeployment(Future<Void> fut) {
-    this.deploymentManager.init(res -> {
-      if (res.succeeded()) {
-        startListening(fut);
-      } else {
-        fut.fail(res.cause());
-      }
-    });
+    if (deploymentManager == null) {
+      startListening(fut);
+    } else {
+      deploymentManager.init(res -> {
+        if (res.succeeded()) {
+          startListening(fut);
+        } else {
+          fut.fail(res.cause());
+        }
+      });
+    }
   }
 
   private void startListening(Future<Void> fut) {
@@ -239,53 +271,60 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
-    router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
-    router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
-    router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
-    router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
-    router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
-
-    router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
-    router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
-    router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
-    router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
-    router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
-    router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
-    router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-    router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
-    router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
-    router.getWithRegex("/_/proxy/health").handler(healthService::get);
-
+    if (moduleWebService != null) {
+      router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
+      router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
+      router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
+      router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
+      router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
+    }
+    if (tenantWebService != null) {
+      router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
+      router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
+      router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
+      router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
+      router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
+      router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
+      router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
+      router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
+      router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
+      router.getWithRegex("/_/proxy/health").handler(healthService::get);
+    }
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
     // test that verifies that changes propagate across a cluster...
-    router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
-    router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
-    router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
-    router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
+    if (moduleWebService != null) {
+      router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
+      router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
+      router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
+      router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
+    }
 
-    router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
-    router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
-    router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
-    router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
-    router.put("/_/deployment/modules/:instid").handler(deploymentWebService::update);
-
-    router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
-    router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
-    router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
-    router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
-    router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
-    router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
-    router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
-    router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
-    router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
-    router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
-
+    if (deploymentWebService != null) {
+      router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
+      router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
+      router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
+      router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
+      router.put("/_/deployment/modules/:instid").handler(deploymentWebService::update);
+    }
+    if (discoveryService != null) {
+      router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
+      router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
+      router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
+      router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
+      router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
+      router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
+      router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
+      router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
+      router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
+      router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
+    }
     router.route("/_*").handler(this::NotFound);
 
     //everything else gets proxified to modules
-    router.route("/*").handler(proxyService::proxy);
-
+    if (proxyService != null) {
+      router.route("/*").handler(proxyService::proxy);
+    }
     vertx.createHttpServer()
             .requestHandler(router::accept)
             .listen(port,
@@ -293,7 +332,7 @@ public class MainVerticle extends AbstractVerticle {
                       if (result.succeeded()) {
                         logger.info("API Gateway started PID "
                                 + ManagementFactory.getRuntimeMXBean().getName()
-                                + ". Listening on port " + port + " using '" + storage + "' storage");
+                                + ". Listening on port " + port);
                         fut.complete();
                       } else {
                         logger.fatal("createHttpServer failed", result.cause());

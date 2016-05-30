@@ -43,9 +43,10 @@ public class DeploymentDescriptor {
     this.moduleHandle = moduleHandle;
   }
 
-  public DeploymentDescriptor(String instId,
+  public DeploymentDescriptor(String instId, String srvcId,
           ProcessDeploymentDescriptor descriptor) {
     this.instId = instId;
+    this.srvcId = srvcId;
     this.url = null;
     this.descriptor = descriptor;
     this.moduleHandle = null;

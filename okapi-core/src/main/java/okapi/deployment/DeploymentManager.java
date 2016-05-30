@@ -18,20 +18,18 @@ package okapi.deployment;
 import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.NodeDescriptor;
 import okapi.util.ModuleHandle;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.discovery.DiscoveryManager;
 import okapi.util.DropwizardHelper;
 import okapi.util.ProcessModuleHandle;
 import static okapi.util.ErrorType.*;
@@ -47,38 +45,37 @@ public class DeploymentManager {
   Vertx vertx;
   Ports ports;
   String host;
+  DiscoveryManager dm;
   private final int listenPort;
-  private EventBus eb;
 
-  public DeploymentManager(Vertx vertx, String host, Ports ports, int listenPort) {
+  public DeploymentManager(Vertx vertx, DiscoveryManager dm,
+          String host, Ports ports, int listenPort) {
+    this.dm = dm;
     this.vertx = vertx;
     this.host = host;
     this.listenPort = listenPort;
     this.ports = ports;
-    this.eb = vertx.eventBus();
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
     NodeDescriptor nd = new NodeDescriptor();
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
-    final String s = Json.encodePrettily(nd);
-    eb.send(DEPLOYMENT_NODE_START.toString(), s, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        fut.handle(new Success<>());
-      }
-    });
+    dm.addNode(nd, fut);
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
     NodeDescriptor nd = new NodeDescriptor();
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
-    final String s = Json.encodePrettily(nd);
-    eb.send(DEPLOYMENT_NODE_STOP.toString(), s);
-    shutdownR(fut);
+    dm.removeNode(nd, res -> {
+      if (res.failed()) {
+        logger.warn("shutdown: " + res.cause().getMessage());
+      } else {
+        logger.info("shutdown in progress");
+      }
+      shutdownR(fut);
+    });
   }
 
   private void shutdownR(Handler<ExtendedAsyncResult<Void>> fut) {
@@ -130,10 +127,11 @@ public class DeploymentManager {
         md2.setNodeId(host);
         list.put(md2.getInstId(), md2);
         tim.stop();
-        final String s = Json.encodePrettily(md2);
-        eb.send(DEPLOYMENT_DEPLOY.toString(), s);
-        fut.handle(new Success<>(md2));
+        dm.add(md2, res -> {
+          fut.handle(new Success<>(md2));
+        });
       } else {
+        tim.stop();
         ports.free(use_port);
         fut.handle(new Failure<>(INTERNAL, future.cause()));
       }
@@ -146,16 +144,21 @@ public class DeploymentManager {
     } else {
       Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
-      final String s = Json.encodePrettily(md);
-      eb.send(DEPLOYMENT_UNDEPLOY.toString(), s);
-      ModuleHandle mh = md.getModuleHandle();
-      mh.stop(future -> {
-        if (future.succeeded()) {
-          fut.handle(new Success<>());
+      dm.remove(md.getSrvcId(), md.getInstId(), res -> {
+        if (res.failed()) {
           tim.close();
-          list.remove(id);
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          fut.handle(new Failure<>(INTERNAL, future.cause()));
+          ModuleHandle mh = md.getModuleHandle();
+          mh.stop(future -> {
+            if (future.failed()) {
+              fut.handle(new Failure<>(INTERNAL, future.cause()));
+            } else {
+              fut.handle(new Success<>());
+              tim.close();
+              list.remove(id);
+            }
+          });
         }
       });
     }
