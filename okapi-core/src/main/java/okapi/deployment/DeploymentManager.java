@@ -144,7 +144,6 @@ public class DeploymentManager {
     } else {
       Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
-      logger.info("md.getSrvcId=" + md.getSrvcId() + " md.getInstId=" + md.getInstId());
       dm.remove(md.getSrvcId(), md.getInstId(), res -> {
         if (res.failed()) {
           tim.close();
