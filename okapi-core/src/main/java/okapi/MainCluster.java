@@ -26,6 +26,7 @@ import com.hazelcast.config.UrlXmlConfig;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
@@ -39,6 +40,7 @@ import static java.lang.Integer.*;
 import okapi.util.DropwizardHelper;
 
 public class MainCluster {
+
   public static void main(String[] args) {
     setProperty("vertx.logger-delegate-factory-class-name",
             "io.vertx.core.logging.SLF4JLogDelegateFactory");
@@ -51,8 +53,28 @@ public class MainCluster {
     }
     VertxOptions vopt = new VertxOptions();
     Config hConfig = null;
-    for (int i = 1; i < args.length; i++) {
-      if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
+    JsonObject conf = new JsonObject();
+
+    for (int i = 0; i < args.length; i++) {
+      if (!args[i].startsWith("-")) {
+        if ("help".equals(args[i])) {
+          out.println("Usage: command [options]\n"
+                  + "Commands:\n"
+                  + "  help         Display help\n"
+                  + "  cluster      Run in clustered mode\n"
+                  + "  dev          Development mode\n"
+                  + "  deployment   Deployment only. Clustered mode\n"
+                  + "  proxy        Proxy + discovery. Clustered mode\n"
+                  + "Options:\n"
+                  + "  -hazelcast-config-cp file     Read config from class path\n"
+                  + "  -hazelcast-config-file file   Read config from local file\n"
+                  + "  -hazelcast-config-url url     Read config from URL\n"
+                  + "  -enable-metrics\n"
+          );
+          exit(0);
+        }
+        conf.put("mode", args[i]);
+      } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
         i++;
         String resource = args[i];
         try {
@@ -74,7 +96,7 @@ public class MainCluster {
         i++;
         String resource = args[i];
         try {
-        hConfig = new UrlXmlConfig(resource);
+          hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
           err.println("Cannot load " + resource + ": " + e.getMessage());
           exit(1);
@@ -93,24 +115,15 @@ public class MainCluster {
         exit(1);
       }
     }
-    if ("help".equals(args[0])) {
-      out.println("Usage: command [options]\n" +
-              "Commands:\n" +
-               "  help      Display help\n" +
-               "  cluster   Run in clustered mode\n" +
-               "  dev       Dev mode\n" +
-               "Options:\n" +
-               "  -hazelcast-config-cp file     Read config from class path\n" +
-               "  -hazelcast-config-file file   Read config from local file\n" +
-               "  -hazelcast-config-url url     Read config from URL\n" +
-               "  -enable-metrics\n"
-              );
-      exit(0);
-    } else if ("dev".equals(args[0])) {
+    if (conf.getString("mode", "dev").equals("dev")) {
       Vertx vertx = Vertx.vertx(vopt);
-      DeploymentOptions opt = new DeploymentOptions();
-      vertx.deployVerticle(MainVerticle.class.getName(), opt);
-    } else if ("cluster".equals(args[0])) {
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
+        if (dep.failed()) {
+          exit(1);
+        }
+      });
+    } else {
       if (hConfig == null) {
         hConfig = new Config();
       }
@@ -121,17 +134,18 @@ public class MainCluster {
       Vertx.clusteredVertx(vopt, res -> {
         if (res.succeeded()) {
           Vertx vertx = res.result();
-          DeploymentOptions opt = new DeploymentOptions();
-          vertx.deployVerticle(MainVerticle.class.getName(), opt);
+          DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+          vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
+            if (dep.failed()) {
+              exit(1);
+            }
+          });
         } else {
           err.println("Failed to create a clustered vert.x");
           // We probably should not use logging here, as it depends
           // on vert.x, which just failed to start!
         }
       });
-    } else {
-      err.println("Unknown command / option" + args[0]);
-      exit(1);
     }
   }
 }

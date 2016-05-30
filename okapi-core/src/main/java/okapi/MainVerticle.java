@@ -100,9 +100,10 @@ public class MainVerticle extends AbstractVerticle {
       logHelper.setRootLogLevel(loglevel);
     }
 
-    String role = conf("role", "all", config);
-    switch (role) {
-      case "all":
+    String mode = config.getString("mode", "cluster");
+    switch (mode) {
+      case "cluster":
+      case "dev":
         enableDeployment = true;
         enableProxy = true;
         break;
@@ -113,7 +114,7 @@ public class MainVerticle extends AbstractVerticle {
         enableProxy = true;
         break;
       default:
-        logger.fatal("Unknown role '" + role + "'");
+        logger.fatal("Unknown role '" + mode + "'");
         System.exit(1);
     }
 
