@@ -394,8 +394,8 @@
       {
         "current": {
           "selected": false,
-          "text": "144",
-          "value": "144"
+          "text": "114",
+          "value": "114"
         },
         "datasource": null,
         "hide": 2,
@@ -405,18 +405,18 @@
         "options": [
           {
             "selected": true,
-            "text": "144",
-            "value": "144"
+            "text": "114",
+            "value": "114"
           },
           {
             "selected": false,
-            "text": "149",
-            "value": "149"
+            "text": "102",
+            "value": "102"
           },
           {
             "selected": false,
-            "text": "181",
-            "value": "181"
+            "text": "25",
+            "value": "25"
           }
         ],
         "query": "folio.okapi.*.*.*.*",

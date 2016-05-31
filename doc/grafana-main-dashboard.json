@@ -572,8 +572,8 @@
           "scopedVars": {
             "node": {
               "selected": false,
-              "text": "144",
-              "value": "144"
+              "text": "114",
+              "value": "114"
             }
           },
           "span": 4,
@@ -647,8 +647,8 @@
           "scopedVars": {
             "node": {
               "selected": false,
-              "text": "149",
-              "value": "149"
+              "text": "102",
+              "value": "102"
             }
           },
           "span": 4,
@@ -724,8 +724,8 @@
           "scopedVars": {
             "node": {
               "selected": false,
-              "text": "181",
-              "value": "181"
+              "text": "25",
+              "value": "25"
             }
           },
           "span": 4,
@@ -1053,7 +1053,7 @@
             },
             {
               "refId": "B",
-              "target": "folio.okapi.10.36.1.181.modules.count"
+              "target": "folio.okapi.10.36.1.114.modules.count"
             }
           ],
           "timeFrom": null,
@@ -1400,18 +1400,18 @@
           },
           {
             "selected": false,
-            "text": "144",
-            "value": "144"
+            "text": "114",
+            "value": "114"
           },
           {
             "selected": false,
-            "text": "149",
-            "value": "149"
+            "text": "102",
+            "value": "102"
           },
           {
             "selected": false,
-            "text": "181",
-            "value": "181"
+            "text": "25",
+            "value": "25"
           }
         ],
         "query": "folio.okapi.*.*.*.*",
