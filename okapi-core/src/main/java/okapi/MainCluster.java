@@ -56,6 +56,7 @@ public class MainCluster {
     VertxOptions vopt = new VertxOptions();
     Config hConfig = null;
     JsonObject conf = new JsonObject();
+    String clusterHost = null;
 
     for (int i = 0; i < args.length; i++) {
       if (!args[i].startsWith("-")) {
@@ -71,7 +72,7 @@ public class MainCluster {
                   + "  -hazelcast-config-cp file     Read config from class path\n"
                   + "  -hazelcast-config-file file   Read config from local file\n"
                   + "  -hazelcast-config-url url     Read config from URL\n"
-                  + "  -hazelcast-interface ip       Bind to interface at ip\n"
+                  + "  -cluster-host ip              Vertx cluster host\n"
                   + "  -enable-metrics\n"
           );
           exit(0);
@@ -104,14 +105,9 @@ public class MainCluster {
           err.println("Cannot load " + resource + ": " + e.getMessage());
           exit(1);
         }
-      } else if ("-hazelcast-interface".equals(args[i]) && i < args.length - 1) {
+      } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
         i++;
-        if (hConfig == null) {
-          hConfig = new Config();
-        }
-        NetworkConfig network = hConfig.getNetworkConfig();
-        InterfacesConfig iFace = network.getInterfaces();
-        iFace.setEnabled(true).addInterface(args[i]);
+        clusterHost = args[i];
       } else if ("-enable-metrics".equals(args[i])) {
         i++;
         final String graphiteHost = getProperty("graphiteHost", "localhost");
@@ -137,11 +133,23 @@ public class MainCluster {
     } else {
       if (hConfig == null) {
         hConfig = new Config();
+        if (clusterHost != null) {
+          NetworkConfig network = hConfig.getNetworkConfig();
+          InterfacesConfig iFace = network.getInterfaces();
+          iFace.setEnabled(true).addInterface(clusterHost);
+        }
       }
       hConfig.setProperty("hazelcast.logging.type", "slf4j");
 
       ClusterManager mgr = new HazelcastClusterManager(hConfig);
       vopt.setClusterManager(mgr);
+      if (clusterHost != null) {
+        logger.info("clusterHost=" + clusterHost);
+        vopt.setClusterHost(clusterHost);
+      } else {
+        logger.warn("clusterHost not set");
+      }
+      vopt.setClustered(true);
       Vertx.clusteredVertx(vopt, res -> {
         if (res.succeeded()) {
           Vertx vertx = res.result();
