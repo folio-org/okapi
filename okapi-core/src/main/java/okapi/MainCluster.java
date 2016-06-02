@@ -22,6 +22,8 @@ import com.codahale.metrics.graphite.GraphiteReporter;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.config.FileSystemXmlConfig;
+import com.hazelcast.config.InterfacesConfig;
+import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -69,6 +71,7 @@ public class MainCluster {
                   + "  -hazelcast-config-cp file     Read config from class path\n"
                   + "  -hazelcast-config-file file   Read config from local file\n"
                   + "  -hazelcast-config-url url     Read config from URL\n"
+                  + "  -hazelcast-interface ip       Bind to interface at ip\n"
                   + "  -enable-metrics\n"
           );
           exit(0);
@@ -101,6 +104,14 @@ public class MainCluster {
           err.println("Cannot load " + resource + ": " + e.getMessage());
           exit(1);
         }
+      } else if ("-hazelcast-interface".equals(args[i]) && i < args.length - 1) {
+        i++;
+        if (hConfig == null) {
+          hConfig = new Config();
+        }
+        NetworkConfig network = hConfig.getNetworkConfig();
+        InterfacesConfig iFace = network.getInterfaces();
+        iFace.setEnabled(true).addInterface(args[i]);
       } else if ("-enable-metrics".equals(args[i])) {
         i++;
         final String graphiteHost = getProperty("graphiteHost", "localhost");
