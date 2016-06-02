@@ -42,7 +42,7 @@ public class DiscoveryService {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
-      dm.add(pmd, res -> {
+      dm.addAndDeploy(pmd, res -> {
         if (res.failed()) {
           responseError(ctx, res.getType(), res.cause());
         } else {

@@ -19,6 +19,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.HealthDescriptor;
 import okapi.bean.NodeDescriptor;
+import okapi.bean.ProcessDeploymentDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -76,6 +78,49 @@ public class DiscoveryManager {
       return;
     }
     deployments.add(srvcId, instId, md, fut);
+  }
+
+  public void addAndDeploy(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String srvcId = md.getSrvcId();
+    if (srvcId == null) {
+      fut.handle(new Failure<>(USER, "Needs srvc"));
+      return;
+    }
+    final String instId = md.getInstId();
+    if (instId == null) {
+      fut.handle(new Failure<>(USER, "Needs instId"));
+      return;
+    }
+    ProcessDeploymentDescriptor descriptor = md.getDescriptor();
+    final String nodeId = md.getNodeId();
+    logger.info("addAndDeploy ...");
+    if (descriptor == null) {
+      deployments.add(srvcId, instId, md, fut);
+    } else {
+      logger.info("getNode: " + nodeId);
+      logger.info(Json.encodePrettily(md));
+      getNode(nodeId, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          String url = res.result().getUrl();
+          HttpClientRequest req = httpClient.postAbs(url + "/_/deployment/modules", res2 -> {
+            if (res2.statusCode() == 201) {
+              fut.handle(new Success<>());
+            } else if (res2.statusCode() == 404) {
+              fut.handle(new Failure<>(NOT_FOUND, res2.statusMessage()));
+            } else {
+              logger.warn("/deployment/modules FAILURE!! : " + res2.statusCode());
+              fut.handle(new Failure<>(INTERNAL, res2.statusMessage()));
+            }
+          });
+          req.exceptionHandler(x -> {
+            fut.handle(new Failure<>(INTERNAL, x.getMessage()));
+          });
+          req.end(Json.encode(md));
+        }
+      });
+    }
   }
 
   public void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -226,14 +271,11 @@ public class DiscoveryManager {
     });
   }
 
-
-  public void addNode(NodeDescriptor nd,  Handler<ExtendedAsyncResult<Void>> fut)
-  {
-    nodes.put(nd.getNodeId(), "a", nd,  fut);
+  public void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
+    nodes.put(nd.getNodeId(), "a", nd, fut);
   }
 
-  public void removeNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Boolean>> fut)
-  {
+  public void removeNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Boolean>> fut) {
     nodes.remove(nd.getNodeId(), "a", fut);
   }
 

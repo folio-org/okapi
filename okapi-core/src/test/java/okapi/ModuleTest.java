@@ -813,7 +813,7 @@ public class ModuleTest {
 
     given().header("Content-Type", "application/json")
             .body(doc2).post("/_/discovery/modules")
-            .then().statusCode(400);
+            .then().statusCode(500);
 
     given().get("/_/discovery/modules/sample-module5")
             .then().statusCode(200)
