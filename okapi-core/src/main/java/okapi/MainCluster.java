@@ -142,6 +142,7 @@ public class MainCluster {
 
       ClusterManager mgr = new HazelcastClusterManager(hConfig);
       vopt.setClusterManager(mgr);
+      vopt.setClustered(true);
       Vertx.clusteredVertx(vopt, res -> {
         if (res.succeeded()) {
           Vertx vertx = res.result();
