@@ -139,12 +139,15 @@ public class ProxyService {
       responseText(ctx, 403).end("Missing Tenant");
       return;
     }
+    // Pause the request data stream before doing any slow ops, otherwise
+    // it will get read into a buffer somewhere...
+    ReadStream<Buffer> content = ctx.request();
+    content.pause();
     Tenant tenant = tenantService.get(tenant_id);
     if (tenant == null) {
       responseText(ctx, 400).end("No such Tenant " + tenant_id);
       return;
     }
-
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);
 
@@ -154,8 +157,6 @@ public class ProxyService {
         responseError(ctx, res.getType(), res.cause());
       } else {
         List<String> traceHeaders = new ArrayList<>();
-        ReadStream<Buffer> content = ctx.request();
-        content.pause();
         proxyR(ctx, l.iterator(), traceHeaders, content, null);
       }
     });
