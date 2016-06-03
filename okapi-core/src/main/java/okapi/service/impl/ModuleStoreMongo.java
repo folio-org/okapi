@@ -90,7 +90,7 @@ public class ModuleStoreMongo implements ModuleStore {
       } else {
         List<JsonObject> l = res.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, res.cause()));
+          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
