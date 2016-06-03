@@ -57,6 +57,7 @@ public class MainCluster {
     Config hConfig = null;
     JsonObject conf = new JsonObject();
     String clusterHost = null;
+    int clusterPort = -1;
 
     for (int i = 0; i < args.length; i++) {
       if (!args[i].startsWith("-")) {
@@ -108,6 +109,9 @@ public class MainCluster {
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
         i++;
         clusterHost = args[i];
+      } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
+        i++;
+        clusterPort = Integer.parseInt(args[i]);
       } else if ("-enable-metrics".equals(args[i])) {
         i++;
         final String graphiteHost = getProperty("graphiteHost", "localhost");
@@ -148,6 +152,12 @@ public class MainCluster {
         vopt.setClusterHost(clusterHost);
       } else {
         logger.warn("clusterHost not set");
+      }
+      if (clusterPort != -1) {
+        logger.info("clusterPort=" + clusterPort);
+        vopt.setClusterPort(clusterPort);
+      } else {
+        logger.warn("clusterPort not set");
       }
       vopt.setClustered(true);
       Vertx.clusteredVertx(vopt, res -> {
