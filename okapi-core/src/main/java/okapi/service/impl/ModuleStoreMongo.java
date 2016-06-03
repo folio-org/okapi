@@ -150,7 +150,7 @@ public class ModuleStoreMongo implements ModuleStore {
       } else {
         List<JsonObject> l = fres.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, fres.cause()));
+          fut.handle(new Failure<>(NOT_FOUND, id));
         } else {
           cli.remove(collection, jq, rres -> {
             if (rres.failed()) {
