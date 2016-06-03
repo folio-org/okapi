@@ -74,6 +74,7 @@ public class MainCluster {
                   + "  -hazelcast-config-file file   Read config from local file\n"
                   + "  -hazelcast-config-url url     Read config from URL\n"
                   + "  -cluster-host ip              Vertx cluster host\n"
+                  + "  -cluster-port port            Vertx cluster port\n"
                   + "  -enable-metrics\n"
           );
           exit(0);
