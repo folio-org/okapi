@@ -23,6 +23,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -133,6 +134,13 @@ public class ProxyService {
     }
   }
 
+  static void relayHeaders(RoutingContext ctx, HttpClientResponse res) {
+    ctx.response().setChunked(true);
+    ctx.response().setStatusCode(res.statusCode());
+    ctx.response().headers().addAll(res.headers());
+    ctx.response().headers().remove("Content-Length");
+  }
+
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
@@ -170,9 +178,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                ctx.response().setChunked(true);
-                ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().addAll(res.headers());
+                relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -189,9 +195,7 @@ public class ProxyService {
                 timer.close();
                 proxyR(ctx, it, traceHeaders, null, bcontent);
               } else {
-                ctx.response().setChunked(true);
-                ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().addAll(res.headers());
+                relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.endHandler(x -> {
                   timer.close();
@@ -242,9 +246,7 @@ public class ProxyService {
                 res.pause();
                 proxyR(ctx, it, traceHeaders, res, null);
               } else {
-                ctx.response().setChunked(true);
-                ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().addAll(res.headers());
+                relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -288,9 +290,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                ctx.response().setChunked(true);
-                ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().addAll(res.headers());
+                relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -312,9 +312,7 @@ public class ProxyService {
                   proxyR(ctx, it, traceHeaders, content, bcontent);
                 });
               } else {
-                ctx.response().setChunked(true);
-                ctx.response().setStatusCode(res.statusCode());
-                ctx.response().headers().addAll(res.headers());
+                relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 if (bcontent == null) {
                   content.handler(data -> {
