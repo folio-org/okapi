@@ -138,6 +138,7 @@ public class ProxyService {
     ctx.response().setChunked(true);
     ctx.response().setStatusCode(res.statusCode());
     ctx.response().headers().addAll(res.headers());
+    ctx.response().headers().remove("Content-Length");
   }
 
   public void proxy(RoutingContext ctx) {
