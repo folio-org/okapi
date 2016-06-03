@@ -3,6 +3,7 @@
 # A simple script to put some load on Okapi
 # Assumes we have set things up as in the guide, or via okapi-examples.sh
 #
+OKAPI=${1:-"http://localhost:9130"}
 
 cat > /tmp/okapi.tst <<END
 Simple POST request to the sample module
@@ -17,31 +18,31 @@ do
 
     curl -s -w '\n' -D -  \
       -H "X-Okapi-Tenant: our" \
-      http://localhost:9130/sample
+      $OKAPI/sample
 
     curl -s -w '\n' -D -  \
       -H "X-Okapi-Tenant: other" \
       -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-      http://localhost:9130/sample
+      $OKAPI/sample
 
     curl -s -w '\n' -D -  \
       -H "Content-type: application/json" \
       -H "X-Okapi-Tenant: other" \
       -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
       -X POST -d @/tmp/okapi.tst \
-      http://localhost:9130/sample
+      $OKAPI/sample
 
   done
 
   curl -s -w '\n' -D -  \
     -H "X-Okapi-Tenant: our" \
-    http://localhost:9130/UNKNOWN-REQUEST
+    $OKAPI/UNKNOWN-REQUEST
 
 
   curl -s -w '\n' -D -  \
     -H "X-Okapi-Tenant: other" \
     -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
-    http://localhost:9130/sample
+    $OKAPI/sample
 
   sleep 0.1
   date

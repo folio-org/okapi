@@ -9,7 +9,8 @@
 #########
 # Okapi itself
 
-OKAPI="http://localhost:9130"  # The usual place it runs on a single-machine setup
+OKAPI=${1:-"http://localhost:9130"}
+# The usual place it runs on a single-machine setup
 
 # Start up Okapi itself - in a different console window:
 # java -jar okapi-core/target/okapi-core-fat.jar dev
