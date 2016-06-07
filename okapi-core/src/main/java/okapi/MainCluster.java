@@ -15,10 +15,6 @@
  */
 package okapi;
 
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.SharedMetricRegistries;
-import com.codahale.metrics.graphite.Graphite;
-import com.codahale.metrics.graphite.GraphiteReporter;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.config.FileSystemXmlConfig;
@@ -32,10 +28,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
-import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
