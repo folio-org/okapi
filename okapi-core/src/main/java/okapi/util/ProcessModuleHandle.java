@@ -26,6 +26,8 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ProcessBuilder.Redirect;
 import okapi.bean.Ports;
 import okapi.bean.ProcessDeploymentDescriptor;
 
@@ -59,7 +61,11 @@ public class ProcessModuleHandle implements ModuleHandle {
         socket.close();
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
-        startFuture.handle(Future.failedFuture("Exit failure for service"));
+
+        InputStream inputStream = p.getErrorStream();
+        startFuture.handle(Future.failedFuture("Service returned with exit code"
+                + " " + p.exitValue() + ". Standard error:\n"
+                + OkapiStream.toString(inputStream)));
       } else if (count < max_iterations) {
         vertx.setTimer((count + 1) * 200, id -> {
           tryConnect(startFuture, count + 1);
@@ -107,7 +113,8 @@ public class ProcessModuleHandle implements ModuleHandle {
             l = new String[]{"sh", "-c", c};
           }
           ProcessBuilder pb = new ProcessBuilder(l);
-          pb.inheritIO();
+          pb.redirectInput(Redirect.INHERIT)
+                  .redirectOutput(Redirect.INHERIT);
           p = pb.start();
         } catch (IOException ex) {
           future.fail(ex);
