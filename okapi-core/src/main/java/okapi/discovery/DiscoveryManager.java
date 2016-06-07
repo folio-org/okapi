@@ -39,8 +39,8 @@ public class DiscoveryManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  LockedTypedMap<DeploymentDescriptor> deployments = new LockedTypedMap(DeploymentDescriptor.class);
-  LockedTypedMap<NodeDescriptor> nodes = new LockedTypedMap(NodeDescriptor.class);
+  LockedTypedMap<DeploymentDescriptor> deployments = new LockedTypedMap<>(DeploymentDescriptor.class);
+  LockedTypedMap<NodeDescriptor> nodes = new LockedTypedMap<>(NodeDescriptor.class);
   Vertx vertx;
 
   private final int delay = 10; // ms in recursing for retry of map
@@ -152,24 +152,24 @@ public class DiscoveryManager {
     if (url == null || url.length() == 0) {
       hd.setHealthMessage("Unknown");
       hd.setHealthStatus(false);
-      fut.handle(new Success(hd));
+      fut.handle(new Success<>(hd));
     } else {
       HttpClientRequest req = httpClient.getAbs(url, res -> {
         res.endHandler(res1 -> {
           hd.setHealthMessage("OK");
           hd.setHealthStatus(true);
-          fut.handle(new Success(hd));
+          fut.handle(new Success<>(hd));
         });
         res.exceptionHandler(res1 -> {
           hd.setHealthMessage("Fail: " + res1.getMessage());
           hd.setHealthStatus(false);
-          fut.handle(new Success(hd));
+          fut.handle(new Success<>(hd));
         });
       });
       req.exceptionHandler(res -> {
         hd.setHealthMessage("Fail: " + res.getMessage());
         hd.setHealthStatus(false);
-        fut.handle(new Success(hd));
+        fut.handle(new Success<>(hd));
       });
       req.end();
     }
