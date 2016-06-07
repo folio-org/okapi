@@ -782,8 +782,16 @@ public class ModuleTest {
     given().get("/_/deployment/modules/not_found")
             .then().statusCode(404);
 
+    given().get("/_/discovery/modules")
+            .then().statusCode(200)
+            .body(equalTo("[ ]"));
+
+    given().get("/_/discovery/modules/not_found")
+            .then().statusCode(404);
+
     final String doc1 = "{" + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
@@ -791,7 +799,7 @@ public class ModuleTest {
             + "}";
 
     given().header("Content-Type", "application/json")
-            .body(doc1).post("/_/deployment/modules/") // extra slash !
+            .body(doc1).post("/_/discovery/modules/") // extra slash !
             .then().statusCode(404);
 
     final String doc2 = "{" + LS
@@ -808,7 +816,7 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-            .body(doc1).post("/_/deployment/modules")
+            .body(doc1).post("/_/discovery/modules")
             .then().statusCode(201)
             .body(equalTo(doc2))
             .extract().response();
@@ -835,6 +843,7 @@ public class ModuleTest {
             .log().ifError()
             .body(equalTo("[ " + doc2 + " ]"));
 
+    System.out.println("delete: " + locationSample5Deployment);
     given().delete(locationSample5Deployment).then().statusCode(204);
     locationSample5Deployment = null;
 
@@ -862,6 +871,7 @@ public class ModuleTest {
 
     final String doc1 = "{" + LS
             + "  \"srvcId\" : \"sample-module5\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
@@ -869,7 +879,7 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-            .body(doc1).post("/_/deployment/modules")
+            .body(doc1).post("/_/discovery/modules")
             .then().statusCode(201)
             .extract().response();
     locationSample5Deployment = r.getHeader("Location");
@@ -877,6 +887,7 @@ public class ModuleTest {
 
     final String doc3 = "{" + LS
             + "  \"srvcId\" : \"header-module\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"" + LS
@@ -884,7 +895,7 @@ public class ModuleTest {
             + "}";
 
     r = given().header("Content-Type", "application/json")
-            .body(doc3).post("/_/deployment/modules")
+            .body(doc3).post("/_/discovery/modules")
             .then().statusCode(201)
             .extract().response();
     locationHeaderDeployment = r.getHeader("Location");

@@ -42,15 +42,16 @@ public class DiscoveryService {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
-      dm.add(pmd, res -> {
+      dm.addAndDeploy(pmd, res -> {
         if (res.failed()) {
           responseError(ctx, res.getType(), res.cause());
         } else {
-          final String s = Json.encodePrettily(pmd);
+          DeploymentDescriptor md = res.result();
+          final String s = Json.encodePrettily(md);
           responseJson(ctx, 201)
                   .putHeader("Location", ctx.request().uri()
-                          + "/" + pmd.getSrvcId()
-                          + "/" + pmd.getInstId())
+                          + "/" + md.getSrvcId()
+                          + "/" + md.getInstId())
                   .end(s);
         }
       });
@@ -70,7 +71,7 @@ public class DiscoveryService {
       responseError(ctx, 400, "srvcId missing");
       return;
     }
-    dm.remove(srvcId, instId, res -> {
+    dm.removeAndUndeploy(srvcId, instId, res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {

@@ -115,6 +115,7 @@ public class DeploymentManager {
       id = host + "-" + use_port;
       md1.setInstId(id);
     }
+    logger.info("deploy instId " + id);
     ProcessDeploymentDescriptor descriptor = md1.getDescriptor();
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
             ports, use_port);
@@ -139,6 +140,7 @@ public class DeploymentManager {
   }
 
   public void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.info("undeploy instId " + id);
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
     } else {
