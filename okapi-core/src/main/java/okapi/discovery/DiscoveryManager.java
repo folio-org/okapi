@@ -17,6 +17,7 @@ package okapi.discovery;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
@@ -80,39 +81,54 @@ public class DiscoveryManager {
     deployments.add(srvcId, instId, md, fut);
   }
 
-  public void addAndDeploy(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void addAndDeploy(DeploymentDescriptor md, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    logger.info("addAndDeploy: " + Json.encodePrettily(md));
     final String srvcId = md.getSrvcId();
     if (srvcId == null) {
-      fut.handle(new Failure<>(USER, "Needs srvc"));
+      fut.handle(new Failure<>(USER, "Needs srvcId"));
       return;
     }
-    final String instId = md.getInstId();
-    if (instId == null) {
-      fut.handle(new Failure<>(USER, "Needs instId"));
-      return;
-    }
-    ProcessDeploymentDescriptor descriptor = md.getDescriptor();
+    final ProcessDeploymentDescriptor descriptor = md.getDescriptor();
     final String nodeId = md.getNodeId();
-    logger.info("addAndDeploy ...");
-    if (descriptor == null) {
-      deployments.add(srvcId, instId, md, fut);
+    if (descriptor == null) { // already deployed
+      final String instId = md.getInstId();
+      if (instId == null) {
+        fut.handle(new Failure<>(USER, "Needs instId"));
+        return;
+      }
+      deployments.add(srvcId, instId, md, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          fut.handle(new Success<>(md));
+        }
+      });
+    } else if (nodeId == null) {
+      fut.handle(new Failure<>(USER, "missing nodeId"));
     } else {
-      logger.info("getNode: " + nodeId);
-      logger.info(Json.encodePrettily(md));
       getNode(nodeId, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          String url = res.result().getUrl();
-          HttpClientRequest req = httpClient.postAbs(url + "/_/deployment/modules", res2 -> {
-            if (res2.statusCode() == 201) {
-              fut.handle(new Success<>());
-            } else if (res2.statusCode() == 404) {
-              fut.handle(new Failure<>(NOT_FOUND, res2.statusMessage()));
-            } else {
-              logger.warn("/deployment/modules FAILURE!! : " + res2.statusCode());
-              fut.handle(new Failure<>(INTERNAL, res2.statusMessage()));
-            }
+          String url = res.result().getUrl() + "/_/deployment/modules";
+          HttpClientRequest req = httpClient.postAbs(url, res2 -> {
+            final Buffer buf = Buffer.buffer();
+            res2.handler(b -> {
+              buf.appendBuffer(b);
+            });
+            res2.endHandler(e -> {
+              if (res2.statusCode() == 201) {
+                DeploymentDescriptor pmd = Json.decodeValue(buf.toString(),
+                        DeploymentDescriptor.class);
+                fut.handle(new Success<>(pmd));
+              } else if (res2.statusCode() == 404) {
+                fut.handle(new Failure<>(NOT_FOUND, res2.statusMessage()));
+              } else if (res2.statusCode() == 400) {
+                fut.handle(new Failure<>(USER, res2.statusMessage()));
+              } else {
+                fut.handle(new Failure<>(INTERNAL, res2.statusMessage()));
+              }
+            });
           });
           req.exceptionHandler(x -> {
             fut.handle(new Failure<>(INTERNAL, x.getMessage()));
@@ -121,6 +137,45 @@ public class DiscoveryManager {
         }
       });
     }
+  }
+
+  public void removeAndUndeploy(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
+    deployments.get(srvcId, instId, res -> {
+      if (res.failed()) {
+        logger.warn("deployment.get failed");
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        DeploymentDescriptor md = res.result();
+        if (md.getDescriptor() == null) {
+          remove(srvcId, instId, fut);
+        } else {
+          final String nodeId = md.getNodeId();
+          getNode(nodeId, res1 -> {
+            if (res1.failed()) {
+              fut.handle(new Failure<>(res1.getType(), res1.cause()));
+            } else {
+              String url = res1.result().getUrl() + "/_/deployment/modules/" + instId;
+              HttpClientRequest req = httpClient.deleteAbs(url, res2 -> {
+                res2.endHandler(x -> {
+                  if (res2.statusCode() == 204) {
+                    fut.handle(new Success<>());
+                  } else if (res2.statusCode() == 404) {
+                    fut.handle(new Failure<>(NOT_FOUND, url));
+                  } else {
+                    fut.handle(new Failure<>(INTERNAL, url));
+                  }
+                });
+              });
+              req.exceptionHandler(x -> {
+                fut.handle(new Failure<>(INTERNAL, x.getMessage()));
+              });
+              req.end();
+            }
+          });
+        }
+      }
+    });
   }
 
   public void remove(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
