@@ -366,6 +366,7 @@ public class ProxyService {
         proxyHeaders(ctx, it, traceHeaders, content, bcontent, mi, timerContext);
       } else {
         logger.warn("proxyR: bad rtype: " + rtype);
+        responseText(ctx, 500).end(); // Should not happen
       }
     }
   }

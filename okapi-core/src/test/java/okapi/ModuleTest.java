@@ -249,6 +249,17 @@ public class ModuleTest {
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
             + "}";
+
+    
+    // Check that we fail on unknown route types
+    final String docBadTypeModule =
+      docAuthModule.replaceAll("request-response", "UNKNOWN-ROUTE-TYPE");
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docBadTypeModule).post("/_/proxy/modules")
+            .then().statusCode(400);
+
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")

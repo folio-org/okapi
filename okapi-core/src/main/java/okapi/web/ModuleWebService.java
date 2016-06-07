@@ -29,6 +29,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import okapi.bean.ModuleDescriptorBrief;
+import okapi.bean.RoutingEntry;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
 import okapi.service.TimeStampStore;
@@ -104,14 +105,34 @@ public class ModuleWebService {
     });
   }
 
+  // Helper to validate some features of a md
+  // Returns "" if ok, otherwise an informative error message
+  private String validate(ModuleDescriptor md) {
+    if (md.getId() == null || md.getId().isEmpty()) {
+      return "No Id in module";
+    }
+    if (!md.getId().matches("^[a-z0-9._-]+$")) {
+      return "Invalid id";
+    }
+    for (RoutingEntry e : md.getRoutingEntries()) {
+      String t = e.getType();
+      if (!(t.equals("request-only")
+        || (t.equals("request-response"))
+        || (t.equals("headers")))) {
+        return "Bad routing entry type: '" + t + "'";
+      }
+    }
+    return "";
+  }
+
+
   public void create(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
-      if (md.getId() == null || md.getId().isEmpty()) {
-        responseError(ctx, 400, "No Id in module");
-      } else if (!md.getId().matches("^[a-z0-9._-]+$")) {
-        responseError(ctx, 400, "Invalid id");
+      String validerr = validate(md);
+      if (!validerr.isEmpty()) {
+        responseError(ctx, 400, validerr);
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
@@ -158,28 +179,33 @@ public class ModuleWebService {
   public void update(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-              ModuleDescriptor.class);
-      moduleManager.update(md, cres -> {
-        if (cres.failed()) {
-          logger.warn("Failed to update service, will not update the DB. " + md);
-          responseError(ctx, cres.getType(), cres.cause());
-        } else {
-          moduleStore.update(md, ires -> {
-            if (ires.succeeded()) {
-              sendReloadSignal(sres -> {
-                if (sres.succeeded()) {
-                  final String s = Json.encodePrettily(md);
-                  responseJson(ctx, 200).end(s);
-                } else { // TODO - What to do if this fails ??
-                  responseError(ctx, sres.getType(), sres.cause());
-                }
-              });
-            } else {
-              responseError(ctx, ires.getType(), ires.cause());
-            }
-          });
-        }
-      });
+        ModuleDescriptor.class);
+      String validerr = validate(md);
+      if (!validerr.isEmpty()) {
+        responseError(ctx, 400, validerr);
+      } else {
+        moduleManager.update(md, cres -> {
+          if (cres.failed()) {
+            logger.warn("Failed to update service, will not update the DB. " + md);
+            responseError(ctx, cres.getType(), cres.cause());
+          } else {
+            moduleStore.update(md, ires -> {
+              if (ires.succeeded()) {
+                sendReloadSignal(sres -> {
+                  if (sres.succeeded()) {
+                    final String s = Json.encodePrettily(md);
+                    responseJson(ctx, 200).end(s);
+                  } else { // TODO - What to do if this fails ??
+                    responseError(ctx, sres.getType(), sres.cause());
+                  }
+                });
+              } else {
+                responseError(ctx, ires.getType(), ires.cause());
+              }
+            });
+          }
+        });
+      }
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
     }

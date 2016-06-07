@@ -23,6 +23,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import okapi.bean.ModuleInterface;
+import okapi.bean.RoutingEntry;
 import okapi.util.DropwizardHelper;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -99,6 +100,7 @@ public class ModuleManager {
     }
     return true;
   }
+
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
