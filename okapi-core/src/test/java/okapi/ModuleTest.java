@@ -294,7 +294,7 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
 
     final String docSampleModuleBadRequire = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"requires\" : [ {" + LS
             + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
@@ -310,7 +310,7 @@ public class ModuleTest {
             .extract().response();
 
     final String docSampleModuleBadVersion = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
