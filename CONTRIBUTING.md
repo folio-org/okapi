@@ -180,6 +180,7 @@ Basically we try to adhere to Sun Java coding conventions, as in
 There are some few exceptions:
 
 * We indent with two spaces only, because vert.x uses deeply nested callbacks.
+* We DON'T use tab characters for indents, only spaces
 
 Remember to set your IDE to remove trailing spaces on saving files, those produce
 unnecessary diffs in Git.
