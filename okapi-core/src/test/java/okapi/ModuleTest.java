@@ -166,24 +166,12 @@ public class ModuleTest {
             c.getLastReport().toString());
 
     final String badDoc = "{" + LS
-            + "  \"name\" : \"BAD\"," + LS // the comma here makes it bad json!
+            + "  \"instId\" : \"BAD\"," + LS // the comma here makes it bad json!
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
             .body(badDoc).post("/_/deployment/modules")
-            .then().statusCode(400);
-
-    c = api.createRestAssured();
-    c.given()
-            .header("Content-Type", "application/json")
-            .body(badDoc).post("/_/discovery/modules")
-            .then().statusCode(400);
-
-    c = api.createRestAssured();
-    c.given()
-            .header("Content-Type", "application/json")
-            .body(badDoc).post("/_/proxy/modules")
             .then().statusCode(400);
 
     final String docUnknownJar = "{" + LS
