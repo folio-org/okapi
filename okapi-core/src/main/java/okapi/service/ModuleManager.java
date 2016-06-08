@@ -20,10 +20,10 @@ import okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Set;
 import okapi.bean.ModuleInterface;
-import okapi.bean.RoutingEntry;
 import okapi.util.DropwizardHelper;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
@@ -34,6 +34,11 @@ public class ModuleManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   final private Vertx vertx;
+  private TenantManager tenantManager = null;
+
+  public void setTenantManager(TenantManager tenantManager) {
+    this.tenantManager = tenantManager;
+  }
 
   LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
 
@@ -43,6 +48,7 @@ public class ModuleManager {
     this.vertx = vertx;
   }
 
+
   /**
    * Check one dependency.
    * @param md module to check
@@ -51,7 +57,7 @@ public class ModuleManager {
    * @return "" if ok, or error message
    */
   private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-       LinkedHashMap<String, ModuleDescriptor> modlist) {
+       HashMap<String, ModuleDescriptor> modlist) {
     ModuleInterface seenversion = null;
     for (String runningmodule : modlist.keySet()) {
       ModuleDescriptor rm = modlist.get(runningmodule);
@@ -89,7 +95,7 @@ public class ModuleManager {
    * @return "" if no problems, or an erro rmessage
    */
   private String checkDependencies(ModuleDescriptor md,
-        LinkedHashMap<String, ModuleDescriptor> modlist) {
+        HashMap<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
     ModuleInterface[] requires = md.getRequires();
     if (requires != null) {
@@ -108,7 +114,7 @@ public class ModuleManager {
    * @param modlist list to check
    * @return true if no problems
    */
-  private String checkAllDependencies(LinkedHashMap<String, ModuleDescriptor> modlist){
+  private String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist){
     for ( ModuleDescriptor md : modlist.values() ) {
       String res = checkDependencies(md, modlist);
       if ( !res.isEmpty())
@@ -123,7 +129,7 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
       return;
     }
-    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    HashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
     tempList.put(id, md);
 
     String res = checkAllDependencies(tempList);
@@ -165,7 +171,12 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return;
     }
-
+    String ten = tenantManager.getModuleUser(id);
+    if ( ! ten.isEmpty()) {
+      fut.handle(new Failure<>(USER, "delete: module " + id
+        + " is used by tenant " + ten ));
+      return;
+    }
     modules.remove(id);
     fut.handle(new Success<>());
   }

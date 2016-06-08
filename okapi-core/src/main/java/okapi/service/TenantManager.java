@@ -247,5 +247,22 @@ public class TenantManager {
     return tenant.listModules();
   }
 
+  /**
+   * Get the (first) tenant that uses the given module.
+   * Used to check if a module may be deleted.
+   * @param mod id of the module in question.
+   * @return The id of the (first) tenant that uses the module
+   */
+  public String getModuleUser(String mod) {
+
+    Set<String> tkeys = tenants.keySet();
+
+    for ( String tk : tkeys ) {
+      Tenant t = tenants.get(tk);
+      if ( t.isEnabled(mod))
+        return tk;
+    }
+    return "";
+  }
 
 } // class

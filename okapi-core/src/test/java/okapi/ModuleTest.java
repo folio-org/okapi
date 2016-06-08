@@ -478,6 +478,12 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
+    // Try to disable the auth module for the tenant.
+    // Ought to fail, because it is needed by sample module
+    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
+      .then().statusCode(400);
+
+
     String docTenant = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
             + "  \"name\" : \"Roskilde-library\"," + LS
@@ -971,6 +977,9 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("Hello foobar"))
             .extract().response();
 
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module5")
+      .then().statusCode(204);
+
     given().delete(locationSampleModule)
             .then().statusCode(204);
 
@@ -989,6 +998,13 @@ public class ModuleTest {
             .body(docSampleModule2).post("/_/proxy/modules").then().statusCode(201)
             .extract().response();
     locationSampleModule = r.getHeader("Location");
+
+    given()
+            .header("Content-Type", "application/json")
+            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(docEnableSample));
+
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .body("bar").post("/sample")

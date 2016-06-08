@@ -146,7 +146,8 @@ public class MainVerticle extends AbstractVerticle {
       healthService = new HealthService();
       moduleManager = new ModuleManager(vertx);
       TenantStore tenantStore = null;
-      TenantManager tman = new TenantManager(moduleManager);
+      TenantManager tenantManager = new TenantManager(moduleManager);
+      moduleManager.setTenantManager(tenantManager);
 
       ModuleStore moduleStore = null;
       TimeStampStore timeStampStore = null;
@@ -169,9 +170,9 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.info("Proxy using " + storage + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
-      tenantWebService = new TenantWebService(vertx, tman, tenantStore);
+      tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore);
 
-      proxyService = new ProxyService(vertx, moduleManager, tman, discoveryManager);
+      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager);
     }
   }
 
