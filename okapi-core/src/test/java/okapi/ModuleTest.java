@@ -267,6 +267,7 @@ public class ModuleTest {
             .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+    final String locationAuthModule = r.getHeader("Location");
 
     final String docSampleDeployment = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS
@@ -368,9 +369,16 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given()
-            .get(locationSampleModule).then().statusCode(200).body(equalTo(docSampleModule));
+      .get(locationSampleModule)
+      .then().statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    // Try to delete the auth module that our sample depends on
+    c.given()
+      .delete(locationAuthModule).then()
+      .log().all()
+      .statusCode(400);
 
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS

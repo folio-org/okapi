@@ -43,11 +43,18 @@ public class ModuleManager {
     this.vertx = vertx;
   }
 
-  private boolean checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-          Handler<ExtendedAsyncResult<String>> fut) {
+  /**
+   * Check one dependency.
+   * @param md module to check
+   * @param req required dependency
+   * @param modlist the list to check against
+   * @return "" if ok, or error message
+   */
+  private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
+       LinkedHashMap<String, ModuleDescriptor> modlist) {
     ModuleInterface seenversion = null;
-    for (String runningmodule : modules.keySet()) {
-      ModuleDescriptor rm = modules.get(runningmodule);
+    for (String runningmodule : modlist.keySet()) {
+      ModuleDescriptor rm = modlist.get(runningmodule);
       ModuleInterface[] provides = rm.getProvides();
       if (provides != null) {
         for (ModuleInterface pi : provides) {
@@ -59,7 +66,8 @@ public class ModuleManager {
               seenversion = pi;
             }
             if (pi.isCompatible(req)) {
-              return true;
+              logger.debug("Dependency OK");
+              return "";  // ok
             }
           }
         }
@@ -68,48 +76,67 @@ public class ModuleManager {
     if (seenversion == null) {
       logger.debug("Can not create module '" + md.getId() + "'"
               + ", missing dependency " + req.getId() + ": " + req.getVersion());
-      fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'. "
-              + "Missing dependency: " + req.getId() + ": " + req.getVersion()));
+      //fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'. "
+      return "Missing dependency: " + md.getId()
+        + " requires " + req.getId() + ": " + req.getVersion();
     } else {
       logger.debug("Can not create module '" + md.getId() + "'"
               + "Insufficient version for " + req.getId() + ". "
               + "Need " + req.getVersion() + ". have " + seenversion.getVersion());
-      fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'"
-              + "Insufficient version for " + req.getId() + ". "
-              + "Need " + req.getVersion() + ". have " + seenversion.getVersion()));
+      return "Insufficient version for " + req.getId() + ". "
+        + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
-    return false;
   }
 
   /**
    * Check that the dependencies are satisfied.
    *
-   * @param md Module to be created
-   * @param fut to be called in case of failure
-   * @return true if no problems
+   * @param md Module to be checked
+   * @return "" if no problems, or an erro rmessage
    */
-  private boolean checkDependencies(ModuleDescriptor md,
-          Handler<ExtendedAsyncResult<String>> fut) {
+  private String checkDependencies(ModuleDescriptor md,
+        LinkedHashMap<String, ModuleDescriptor> modlist) {
+    logger.debug("Checking dependencies of " + md.getId());
     ModuleInterface[] requires = md.getRequires();
     if (requires != null) {
       for (ModuleInterface req : requires) {
-        if (!checkOneDependency(md, req, fut)) {
-          return false;
-        }
+        String res = checkOneDependency(md, req, modlist);
+        if ( !res.isEmpty())
+          return res;
       }
     }
-    return true;
+    return "";  // ok
   }
 
+  /**
+   * Check that all dependencies are satisfied.
+   * Usually called with a copy of the modules list, after making some change.
+   * @param modlist list to check
+   * @return true if no problems
+   */
+  private String checkAllDependencies(LinkedHashMap<String, ModuleDescriptor> modlist){
+    for ( ModuleDescriptor md : modlist.values() ) {
+      String res = checkDependencies(md, modlist);
+      if ( !res.isEmpty())
+        return res;
+    }
+    return "";
+  }
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
+    logger.debug("Creating module " + id);
     if (modules.containsKey(id)) {
-      fut.handle(new Failure<>(USER, "create: module already exist"));
+      fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
       return;
     }
-    if (!checkDependencies(md, fut)) {
-      return; // The fail has already been fired into fut.
+    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    tempList.put(id, md);
+
+    String res = checkAllDependencies(tempList);
+    if ( ! res.isEmpty()) {
+      fut.handle(new Failure<>(USER, "create: module " + id + ": " + res));
+      return;
     }
     modules.put(id, md);
     fut.handle(new Success<>(id));
@@ -126,10 +153,22 @@ public class ModuleManager {
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("Deleting module " + id);
+
     if (!modules.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
       return;
     }
+
+    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    tempList.remove(id);
+    logger.debug("delete: templist: " + tempList.keySet());
+    String res = checkAllDependencies(tempList);
+    if ( ! res.isEmpty()) {
+      fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
+      return;
+    }
+
     modules.remove(id);
     fut.handle(new Success<>());
   }
