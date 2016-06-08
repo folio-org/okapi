@@ -74,15 +74,9 @@ public class ModuleManager {
       }
     }
     if (seenversion == null) {
-      logger.debug("Can not create module '" + md.getId() + "'"
-              + ", missing dependency " + req.getId() + ": " + req.getVersion());
-      //fut.handle(new Failure<>(USER, "Can not create module '" + md.getId() + "'. "
       return "Missing dependency: " + md.getId()
         + " requires " + req.getId() + ": " + req.getVersion();
     } else {
-      logger.debug("Can not create module '" + md.getId() + "'"
-              + "Insufficient version for " + req.getId() + ". "
-              + "Need " + req.getVersion() + ". have " + seenversion.getVersion());
       return "Insufficient version for " + req.getId() + ". "
         + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
@@ -125,7 +119,6 @@ public class ModuleManager {
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
     final String id = md.getId();
-    logger.debug("Creating module " + id);
     if (modules.containsKey(id)) {
       fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
       return;
@@ -148,13 +141,18 @@ public class ModuleManager {
       fut.handle(new Failure<>(NOT_FOUND, "update: module does not exist"));
       return;
     }
+    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    tempList.replace(id,md);
+    String res = checkAllDependencies(tempList);
+    if ( ! res.isEmpty()) {
+      fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
+      return;
+    }
     modules.replace(id, md);
     fut.handle(new Success<>());
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.debug("Deleting module " + id);
-
     if (!modules.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
       return;
@@ -162,7 +160,6 @@ public class ModuleManager {
 
     LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
     tempList.remove(id);
-    logger.debug("delete: templist: " + tempList.keySet());
     String res = checkAllDependencies(tempList);
     if ( ! res.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));

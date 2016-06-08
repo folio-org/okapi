@@ -368,6 +368,15 @@ public class ModuleTest {
       .log().all()
       .statusCode(400);
 
+    // Try to update the auth module to a lower version, would break
+    // sample dependency
+    final String docAuthLowerVersion = docAuthModule.replace("1.2.3", "1.1.1");
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthLowerVersion)
+      .put(locationAuthModule)
+      .then().statusCode(400);
+
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
             + "  \"name\" : \"" + okapiTenant + "\"," + LS
