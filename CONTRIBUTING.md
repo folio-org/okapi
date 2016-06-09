@@ -117,11 +117,11 @@ The API versions are the most important. They are two-part numbers, as in 3.14.
 The rules are simple:
 
 * If you only add things to the interface, you increment the minor number,
-  because the API is backwards compatible. 
+  because the API is backwards compatible.
 * If you remove or change anything, you must increment the major number, because
   now your API is no longer backwards compatible.
 
-For example, you can add a new function to 3.14, and call it 3.15. Any module 
+For example, you can add a new function to 3.14, and call it 3.15. Any module
 that requires 3.14 can also use 3.15. But if you remove anything from the API,
 or change the meaning of a parameter, you need to bump the API version to 4.1.
 

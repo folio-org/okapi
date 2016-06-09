@@ -321,22 +321,22 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
       router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
     }
-    
+
     if (System.getProperty("toys.sender") != null) {
       Sender sender = new Sender(vertx);
       router.get("/_/sender/:message").handler(sender::send);
     }
-    
+
     if (System.getProperty("toys.receiver") != null) {
       Receiver receiver = new Receiver(vertx);
     }
-    
+
     router.route("/_*").handler(this::NotFound);
-    
-    
-    
-    
-    
+
+
+
+
+
     //everything else gets proxified to modules
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);

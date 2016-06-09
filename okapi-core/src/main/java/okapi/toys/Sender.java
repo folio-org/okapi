@@ -28,13 +28,13 @@ public class Sender {
   public Sender(Vertx vertx) {
     System.out.println("Enabling sender on okapi.toys.message");
     this.vertx = vertx;
-  }  
-  
+  }
+
   public void send(RoutingContext ctx) {
     String message = ctx.request().getParam("message");
     EventBus eventBus = vertx.eventBus();
     eventBus.publish("okapi.toys.messaging", message);
     ctx.response().end("Accepted message "+message);
   }
-  
+
 }

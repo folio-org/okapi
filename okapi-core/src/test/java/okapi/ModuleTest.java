@@ -250,7 +250,7 @@ public class ModuleTest {
             + "  } ]" + LS
             + "}";
 
-    
+
     // Check that we fail on unknown route types
     final String docBadTypeModule =
       docAuthModule.replaceAll("request-response", "UNKNOWN-ROUTE-TYPE");

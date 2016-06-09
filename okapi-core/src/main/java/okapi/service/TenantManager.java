@@ -174,9 +174,9 @@ public class TenantManager {
     return "";
   }
 
-  /** 
+  /**
    * Check that no enabled module depends on any service provided by this module.
-   * 
+   *
    * @param tenant
    * @param module
    * @return true if it is ok to delete the module

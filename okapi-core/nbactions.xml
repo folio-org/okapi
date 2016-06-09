@@ -11,7 +11,7 @@
             </goals>
             <properties>
                 <exec.args>run com.indexdata.okapi.MainVerticle</exec.args>
-                <exec.mainClass>io.vertx.core.Starter</exec.mainClass>                
+                <exec.mainClass>io.vertx.core.Starter</exec.mainClass>
             </properties>
         </action>
         <action>

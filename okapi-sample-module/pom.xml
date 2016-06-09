@@ -9,9 +9,9 @@
     <artifactId>okapi</artifactId>
     <version>0.4-SNAPSHOT</version>
   </parent>
-  
+
   <artifactId>okapi-sample-module</artifactId>
-  
+
   <dependencies>
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->
@@ -61,7 +61,7 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+
   <build>
     <plugins>
       <plugin>

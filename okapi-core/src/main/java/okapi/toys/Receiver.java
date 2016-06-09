@@ -32,6 +32,6 @@ public class Receiver {
       System.out.println("I have received a message: " + message.body());
     });
   }
-  
-  
+
+
 }

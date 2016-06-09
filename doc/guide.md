@@ -746,7 +746,7 @@ a single machine setup, so it does not matter.
 
 #### Adding the sample module to the discovery
 
-Okapi deployment registers the module with discovery automatically. 
+Okapi deployment registers the module with discovery automatically.
 
 #### Telling the proxy about the module
 Finally we need to inform the proxy module that we have a sample module that can
