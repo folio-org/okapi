@@ -166,24 +166,12 @@ public class ModuleTest {
             c.getLastReport().toString());
 
     final String badDoc = "{" + LS
-            + "  \"name\" : \"BAD\"," + LS // the comma here makes it bad json!
+            + "  \"instId\" : \"BAD\"," + LS // the comma here makes it bad json!
             + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
             .body(badDoc).post("/_/deployment/modules")
-            .then().statusCode(400);
-
-    c = api.createRestAssured();
-    c.given()
-            .header("Content-Type", "application/json")
-            .body(badDoc).post("/_/discovery/modules")
-            .then().statusCode(400);
-
-    c = api.createRestAssured();
-    c.given()
-            .header("Content-Type", "application/json")
-            .body(badDoc).post("/_/proxy/modules")
             .then().statusCode(400);
 
     final String docUnknownJar = "{" + LS
@@ -267,6 +255,7 @@ public class ModuleTest {
             .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+    final String locationAuthModule = r.getHeader("Location");
 
     final String docSampleDeployment = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS
@@ -293,7 +282,7 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
 
     final String docSampleModuleBadRequire = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"requires\" : [ {" + LS
             + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
@@ -309,7 +298,7 @@ public class ModuleTest {
             .extract().response();
 
     final String docSampleModuleBadVersion = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
@@ -368,9 +357,25 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given()
-            .get(locationSampleModule).then().statusCode(200).body(equalTo(docSampleModule));
+      .get(locationSampleModule)
+      .then().statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    // Try to delete the auth module that our sample depends on
+    c.given()
+      .delete(locationAuthModule).then()
+      .log().all()
+      .statusCode(400);
+
+    // Try to update the auth module to a lower version, would break
+    // sample dependency
+    final String docAuthLowerVersion = docAuthModule.replace("1.2.3", "1.1.1");
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthLowerVersion)
+      .put(locationAuthModule)
+      .then().statusCode(400);
 
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -472,6 +477,12 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo(expEnabledBoth));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    // Try to disable the auth module for the tenant.
+    // Ought to fail, because it is needed by sample module
+    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
+      .then().statusCode(400);
+
 
     String docTenant = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -966,6 +977,9 @@ public class ModuleTest {
             .then().statusCode(200).body(equalTo("Hello foobar"))
             .extract().response();
 
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module5")
+      .then().statusCode(204);
+
     given().delete(locationSampleModule)
             .then().statusCode(204);
 
@@ -984,6 +998,13 @@ public class ModuleTest {
             .body(docSampleModule2).post("/_/proxy/modules").then().statusCode(201)
             .extract().response();
     locationSampleModule = r.getHeader("Location");
+
+    given()
+            .header("Content-Type", "application/json")
+            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(docEnableSample));
+
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .body("bar").post("/sample")
