@@ -251,7 +251,7 @@ public class TenantManager {
    * Get the (first) tenant that uses the given module.
    * Used to check if a module may be deleted.
    * @param mod id of the module in question.
-   * @return The id of the (first) tenant that uses the module
+   * @return The id of the (first) tenant that uses the module, or "" if none
    */
   public String getModuleUser(String mod) {
 
