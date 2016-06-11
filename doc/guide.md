@@ -309,6 +309,10 @@ the other.
 
 #### Version numbers
 
+> COMMENT: this seems very close to [Semantic
+> Versioning](http://semver.org/). Shouldn't we just say that we
+> implement that?
+
 We use a 3-part versioning scheme, like 3.1.41
 
 The first number is the major version of the interface. It needs to be
@@ -336,6 +340,9 @@ But it will reject:
 * 3.0.99  - Lesser minor version
 * 3.1.27  - Too small software version
 
+> COMMENT: it seems unnecessary to reject v3.1.27, since the interface
+> that version provides is exactly the same as the one we want. It
+> also seems that this will be a pretty common scenario.
 
 ### Open Issues
 
