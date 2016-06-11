@@ -349,7 +349,7 @@ But it will reject:
 #### Security
 
 There is extensive work going on in parallel to Okapi development, to
-establish and define security requirements for the entire SLING
+establish and define security requirements for the entire Folio
 platform.
 
 Generally, within a microservice architecture, each module can decide
@@ -370,7 +370,7 @@ specific module – but what they can actually do within the module
 responsibility of the gateway would probably result in a system that
 is difficult to manage.
 
-Even though within the SLING perimeter we can assume a certain level
+Even though within the Folio perimeter we can assume a certain level
 of trust between modules, for module-to-module authentication and
 authorization, we will still want Okapi to serve as a watchdog to
 prevent the services from escalating their privileges or engaging in
