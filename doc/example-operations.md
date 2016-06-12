@@ -6,6 +6,7 @@
     * [Phase 1: reading the patron record](#phase-1-reading-the-patron-record)
     * [Phase 2: reading the list of patron-types](#phase-2-reading-the-list-of-patron-types)
     * [Phase 3: updating the record](#phase-3-updating-the-record)
+    * [Note: client-side validation](#note-client-side-validation)
 * [Complex operation: acquisitions](#complex-operation-acquisitions)
 
 
@@ -31,7 +32,8 @@ identified patron record that he is interested. Then what happens?
 * Okapi analyses which registered modules subscribe to that operation:
   The Auth and Patron modules will respond.
 * Okapi determines from module metadata what permissions are required
-  for the operation: the Patron module requires `viewPatrons`.
+  for the operation: `GET /patrons/:id` in the Patron module requires
+  `viewPatrons`.
 * Okapi now invokes the request on each appropriate module in turn: in
   this case, just Auth and Patron. First, authentication:
     * Okapi issues a request `GET /patrons/23` to Auth.
@@ -77,7 +79,49 @@ returns it to the UI.
 
 ### Phase 3: updating the record
 
-XXX to be completed
+* UI issues a request `PATCH /patrons/23` to Okapi. (We use PATCH
+  rather then PUT because in general we won't be sending the whole
+  record: for example, we may be missing the date-of-birth field
+  because the user was not authorised to see it.)
+* As before, Okapi analyses which registered modules subscribe to that
+  operation, and determines from module metadata what permissions are
+  required for the operation: `PATCH /patrons/:id` in the Patron
+  module requires `maintainPatrons`.
+* Authentication takes place as for viewing, but using the
+  `maintainPatrons` permission.
+* If all is well, Okapi continues to the Patron module:
+    * Okapi issues a request `PATCH /patrons/23` to Patron.
+    * The Patron module performs "semantic validation" -- enforcing
+      requirements that cannot be expressed declaratively but must be
+      embodied in code. For example, it might allow a "child"
+      pantron-type to be upgraded to "adult", but not allow the
+      reverse operation.
+    * Assuming semantic validaton is passed, the Patron module sends
+      the patch request to its storage module.
+    * The storage module performs mechanical validation of the
+      submitted data by reference to the JSON Schema defined by the
+      domain model. For example, this might enforce the requirement
+      that the SSN field match the regexp `/[0-9-]+/`.
+    * If this validation is passed, the storage module updates the
+      specified fields in the patron record.
+* The Patron module returns an OK status to Okapi, which returns it to
+      the UI.
+
+### Note: client-side validation
+
+It is pleasant to avoid a server round-trip when validating user
+input, so that the response to bad data is instantaneous. This can be
+done to some degree by allowing the UI access to the JSON Schema, and
+having it use the validation specifications on the client side. (It
+can obtain the JSON Schema by asking the Patron module for it, or
+perhaps from a a separate Schema module.)
+
+However, this can only be used to impose mechanical validation on the
+client side. Semantic validations (such as the impossibility of
+changing an adult patron to a child) can only be imposed by
+Patron-specific business logic in the Patron module: so changes made
+in the UI that pass mechanical validation but not semantic validation
+will still require a server round-trip.
 
 
 ## Complex operation: acquisitions
@@ -86,7 +130,8 @@ XXX to be completed
 width="400" height="510"
 alt="photo of the completed acquisitions whiteboard"/>
 
-XXX to be completed
+XXX to be described, but in much less detail than the simple
+operation.
 
 
 &nbsp;
