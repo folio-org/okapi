@@ -74,7 +74,7 @@ information.
 
 To summarise: the UI issues a request `GET /patrons/types` to Okapi;
 Okapi checks that the request is authorised; the Patron module
-recieves the request and returns the list of types to Okapi, which
+receives the request and returns the list of types to Okapi, which
 returns it to the UI.
 
 ### Phase 3: updating the record
@@ -94,9 +94,9 @@ returns it to the UI.
     * The Patron module performs "semantic validation" -- enforcing
       requirements that cannot be expressed declaratively but must be
       embodied in code. For example, it might allow a "child"
-      pantron-type to be upgraded to "adult", but not allow the
+      patron-type to be upgraded to "adult", but not allow the
       reverse operation.
-    * Assuming semantic validaton is passed, the Patron module sends
+    * Assuming semantic validation is passed, the Patron module sends
       the patch request to its storage module.
     * The storage module performs mechanical validation of the
       submitted data by reference to the JSON Schema defined by the
@@ -114,7 +114,7 @@ input, so that the response to bad data is instantaneous. This can be
 done to some degree by allowing the UI access to the JSON Schema, and
 having it use the validation specifications on the client side. (It
 can obtain the JSON Schema by asking the Patron module for it, or
-perhaps from a a separate Schema module.)
+perhaps from a separate Schema module.)
 
 However, this can only be used to impose mechanical validation on the
 client side. Semantic validations (such as the impossibility of
