@@ -313,7 +313,8 @@ the other.
 > Versioning](http://semver.org/). Shouldn't we just say that we
 > implement that?
 
-We use a 3-part versioning scheme, like 3.1.41
+We use a 3-part versioning scheme, like 3.1.41, very much like [Semantic
+Versioning](http://semver.org/)
 
 The first number is the major version of the interface. It needs to be
 incremented whenever making a change that is not strictly backwards
@@ -343,6 +344,11 @@ But it will reject:
 > COMMENT: it seems unnecessary to reject v3.1.27, since the interface
 > that version provides is exactly the same as the one we want. It
 > also seems that this will be a pretty common scenario.
+
+> REPLY: No, if we require .41, we do so for a reason. Most likely because
+> that version fixes a bug or implements functionality that we need.
+> Of course, if you do not need .41, you do not specify it.  (-Heikki)
+
 
 ### Open Issues
 
