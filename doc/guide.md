@@ -309,10 +309,6 @@ the other.
 
 #### Version numbers
 
-> COMMENT: this seems very close to [Semantic
-> Versioning](http://semver.org/). Shouldn't we just say that we
-> implement that?
-
 We use a 3-part versioning scheme, like 3.1.41, very much like [Semantic
 Versioning](http://semver.org/)
 
@@ -340,14 +336,6 @@ But it will reject:
 * 4.4.4   - Different major version
 * 3.0.99  - Lesser minor version
 * 3.1.27  - Too small software version
-
-> COMMENT: it seems unnecessary to reject v3.1.27, since the interface
-> that version provides is exactly the same as the one we want. It
-> also seems that this will be a pretty common scenario.
-
-> REPLY: No, if we require .41, we do so for a reason. Most likely because
-> that version fixes a bug or implements functionality that we need.
-> Of course, if you do not need .41, you do not specify it.  (-Heikki)
 
 
 ### Open Issues
