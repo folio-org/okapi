@@ -141,6 +141,15 @@ public class ProxyService {
     ctx.response().headers().remove("Content-Length");
   }
 
+  static void relayToRequest(RoutingContext ctx, HttpClientResponse res) {
+    for (String s : res.headers().names()) {
+      if (s.startsWith("X-") || s.startsWith("x-")) {
+        final String v = res.headers().get(s);
+        ctx.request().headers().add(s, v);
+      }
+    }
+  }
+
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
@@ -193,6 +202,7 @@ public class ProxyService {
               } else if (it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 timer.close();
+                relayToRequest(ctx, res);
                 proxyR(ctx, it, traceHeaders, null, bcontent);
               } else {
                 relayHeaders(ctx, res);
@@ -241,8 +251,10 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
+              && res.getHeader("X-Okapi-stop") == null
               && it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
+                relayToRequest(ctx, res);
                 res.pause();
                 proxyR(ctx, it, traceHeaders, res, null);
               } else {
@@ -302,12 +314,7 @@ public class ProxyService {
                   logger.debug("proxyHeaders: res exception " + v.getMessage());
                 });
               } else if (it.hasNext()) {
-                for (String s : res.headers().names()) {
-                  if (s.startsWith("X-") || s.startsWith("x-")) {
-                    final String v = res.headers().get(s);
-                    ctx.request().headers().add(s, v);
-                  }
-                }
+                relayToRequest(ctx, res);
                 res.endHandler(x -> {
                   proxyR(ctx, it, traceHeaders, content, bcontent);
                 });
