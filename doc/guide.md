@@ -147,7 +147,7 @@ Hence any piece of software that manifests the following traits can become
 an Okapi module:
 
 * it is an HTTP network server that communicates using a REST-styled
-web service protocol with JSON payload
+web service protocol -- typically, but not necessarily, with a JSON payload
 
 * it comes with a descriptor file, namely the `ModuleDescriptor.json`, which
 declares the basic module metadata (id, name, etc.), module's dependencies
