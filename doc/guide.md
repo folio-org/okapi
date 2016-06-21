@@ -276,6 +276,17 @@ is controlled via the response status codes, and the response headers
 are merged back into the complete response using the rules described
 below.
 
+Most requests will likely be of type `request-response`, which is the
+most powerful but potentially also most inefficient type, since it
+requires content to be streamed to and from the module. Where more
+efficient types can be used, they should be. For example, the
+Authentication module's permission checking consults only the headers
+of the request, and returns no body, so it is of type
+`headers`. However, the same module's intitial login request consults
+the request body to determine the login parameters, and it also
+returns a message; so it must be of type `request-response`.
+
+
 ### Status Codes
 
 Continuation or termination of the pipeline is controlled by a status
@@ -893,7 +904,7 @@ cat > /tmp/authmodule.json <<END
     "methods" : [ "*" ],
     "path" : "/",
     "level" : "10",
-    "type" : "request-response"
+    "type" : "headers"
   }, {
     "methods" : [ "POST" ],
     "path" : "/login",
