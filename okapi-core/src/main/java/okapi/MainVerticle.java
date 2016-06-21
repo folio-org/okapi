@@ -132,6 +132,9 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     discoveryManager = new DiscoveryManager();
+    if (clusterManager != null) {
+      discoveryManager.set(clusterManager);
+    }
     if (enableDeployment) {
       Ports ports = new Ports(port_start, port_end);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, host, ports, port);

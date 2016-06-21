@@ -65,30 +65,17 @@ public class DeploymentManager {
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    NodeDescriptor nd = new NodeDescriptor();
-    nd.setUrl("http://" + host + ":" + listenPort);
-    nd.setNodeId(host);
-    dm.removeNode(nd, res -> {
-      if (res.failed()) {
-        logger.warn("shutdown: " + res.cause().getMessage());
-      } else {
-        logger.info("shutdown in progress");
-      }
-      shutdownR(fut);
-    });
+    shutdownR(list.keySet().iterator(), fut);
   }
 
-  private void shutdownR(Handler<ExtendedAsyncResult<Void>> fut) {
-    Iterator<String> it = list.keySet().iterator();
+  private void shutdownR(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>());
     } else {
-      undeploy(it.next(), res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          shutdownR(fut);
-        }
+      DeploymentDescriptor md = list.get(it.next());
+      ModuleHandle mh = md.getModuleHandle();
+      mh.stop(future -> {
+        shutdownR(it, fut);
       });
     }
   }
@@ -125,7 +112,7 @@ public class DeploymentManager {
         DeploymentDescriptor md2
                 = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
                         url, md1.getDescriptor(), mh);
-        md2.setNodeId(host);
+        md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
         tim.stop();
         dm.add(md2, res -> {
