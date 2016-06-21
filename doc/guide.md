@@ -166,7 +166,7 @@ traffic to the module (this is similar to a simplified RAML specification).
 
 As you can see, none of those requirements specifically state rules for
 deployment and, as such, it would be entirely possible to integrate
-a third party web service (e.g. API of a publicly accessible internet service)
+a third party web service (e.g. the API of a publicly accessible Internet server)
 as an Okapi module. That is, assuming the endpoint style and versioning
 semantics are a close match for what is required in Okapi.
 
