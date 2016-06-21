@@ -7,8 +7,10 @@ managing and running microservices.
 
 * [Introduction](#introduction)
 * [Architecture](#architecture)
+* [Implementation](#implementation)
 * [Compiling and Running](#compiling-and-running)
 * [Using Okapi](#using-okapi)
+* [Storage](#storage)
 * [Reference](#reference)
 
 ## Introduction
