@@ -229,7 +229,7 @@ any modules have been deployed. For testing, see
 
 Any number of modules can request registration on a single URI
 path. Okapi will then forward the requests to those modules in an
-order controlled by the integer _level_ setting in the module
+order controlled by the integer-valued `level` setting in the module
 registration configuration: modules with lower levels are processed
 before those with higher levels.
 
@@ -242,9 +242,9 @@ possible priority, next the actual business logic processing unit,
 followed by metrics, statistics, monitoring, logging, etc.
 
 The module metadata also controls how the request is forwarded to
-consecutive modules in a pipeline and how the responses are being
+consecutive modules in a pipeline and how the responses are
 processed. Currently, we have three kinds of request processing by
-modules (controlled by the type parameter in the module registration
+modules (controlled by the `type` parameter in the module registration
 configuration). The possible values are:
 
  * `headers` - the module is interested in headers/parameters only,
