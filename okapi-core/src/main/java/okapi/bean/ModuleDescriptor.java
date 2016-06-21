@@ -22,7 +22,6 @@ public class ModuleDescriptor {
   private String url;
   private ModuleInterface[] provides;
   private ModuleInterface[] requires;
-
   private RoutingEntry[] routingEntries;
 
   public ModuleDescriptor() {
