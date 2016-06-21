@@ -210,11 +210,11 @@ authentication system.
 
 ### Deployment and Discovery
 
-Getting a service available for a tenant is a multi-step process:
+Making a module available to a tenant is a multi-step process:
 
- * The module gets deployed. That means, a process is started on some nodes
-that offers a web service on some network address.
- * The service id and network address are POSTed to the discovery module, so
+ * The module gets deployed. That means a process is started on some nodes,
+offering a web service on some network address.
+ * The service ID and network address are POSTed to the discovery module, so
 Okapi can find out where the service is running.
  * The service ID and routing entries are posted to the proxy module, so Okapi
 can know where to route incoming requests
@@ -222,8 +222,8 @@ can know where to route incoming requests
 
 We assume some external management program will be making these requests.  It
 can not be a proper Okapi module itself, because it needs to be running before
-any modules have been deployed. For testing, see the curl command-line examples
-later in this document.
+any modules have been deployed. For testing, see
+[the curl command-line examples later in this document](#using-okapi).
 
 ### Request Processing
 
