@@ -172,13 +172,15 @@ semantics are a close match for what is required in Okapi, and a
 suitable module descriptor can be written to describe it.
 
 Okapi, however, includes additional services (for service deployment and
-discovery) that allows to actually execute, run and monitor services natively
-on a cluster managed by Okapi.
+discovery) that allows it to execute, run and monitor services natively
+on a cluster that it manages.
 Those _native modules_ require an additional descriptor
-file, the `DeploymentDescriptor.json`, that captures all low-level information
+file, the
+[`DeploymentDescriptor.json`](../okapi-core/src/main/raml/DeploymentDescriptor.json),
+which specifies the low-level information
 about how to run the module. Also, `native modules` must be packaged according
 to one of the packaging options supported by Okapi's deployment service: at
-this point it means providing the executable (and all dependencies) on each
+this point that means providing the executable (and all dependencies) on each
 node or using on a self-contained Docker image to distribute the executable
 from a centralized place.
 
