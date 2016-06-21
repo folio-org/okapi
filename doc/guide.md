@@ -146,22 +146,22 @@ before, Okapi server-side modules can utilize any technology stack).
 Hence any piece of software that manifests the following traits can become
 an Okapi module:
 
-* it is an HTTP network server that communicates using a REST-styled
-web service protocol -- typically, but not necessarily, with a JSON payload
+* It is an HTTP network server that communicates using a REST-styled
+web service protocol -- typically, but not necessarily, with a JSON payload.
 
-* it comes with a descriptor file, namely the
+* It comes with a descriptor file, namely the
 [`ModuleDescriptor.json`](../okapi-core/src/main/raml/ModuleDescriptor.json), which
-declares the basic module metadata (id, name, etc.), module's dependencies
-on other modules (interface identifiers to be precise) and reports all
-"provided" interfaces
+declares the basic module metadata (id, name, etc.), specifies the module's dependencies
+on other modules (interface identifiers to be precise), and reports all
+"provided" interfaces.
 
 * `ModuleDescriptor.json` has a list of all `routes` (HTTP paths and methods)
 that a given module handles, this gives Okapi necessary information to proxy
-traffic to the module (this is similar to a simplified RAML specification)
+traffic to the module (this is similar to a simplified RAML specification).
 
-* it follows versioning rules defined in the chapter _Versioning and Dependencies_
+* It follows versioning rules defined in the chapter _Versioning and Dependencies_.
 
-* WIP: it provides interfaces required for monitoring and instrumentation
+* WIP: it provides interfaces required for monitoring and instrumentation.
 
 As you can see, none of those requirements specifically state rules for
 deployment and, as such, it would be entirely possible to integrate
