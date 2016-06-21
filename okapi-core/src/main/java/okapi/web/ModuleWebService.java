@@ -155,7 +155,7 @@ public class ModuleWebService {
                 });
               } else {
                 // This can only happen in some kind of race condition, we should
-                // have detected duplicates when creating in the manager. This
+                // have detected duplicates when creating in the manager. 
                 // TODO - How to test these cases?
                 logger.warn("create failed " + ires.cause().getMessage());
                 moduleManager.delete(md.getId(), dres -> { // remove from runtime too

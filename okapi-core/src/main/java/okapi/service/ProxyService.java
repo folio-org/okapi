@@ -17,7 +17,6 @@ package okapi.service;
 
 import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Tenant;
 import io.vertx.core.Vertx;
@@ -54,19 +53,19 @@ public class ProxyService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private ModuleManager modules;
-  private HttpClient httpClient;
+  private final ModuleManager modules;
+  private final HttpClient httpClient;
   //private TenantWebService tenantService;
-  private TenantManager tenantService;
-  private DiscoveryManager dm;
+  private final TenantManager tenantManager;
+  private final DiscoveryManager discoveryManager;
 
   final private Vertx vertx;
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm, DiscoveryManager dm) {
     this.vertx = vertx;
     this.modules = modules;
-    this.tenantService = tm;
-    this.dm = dm;
+    this.tenantManager = tm;
+    this.discoveryManager = dm;
     this.httpClient = vertx.createHttpClient();
   }
 
@@ -92,8 +91,8 @@ public class ProxyService {
   private boolean match(RoutingEntry e, HttpServerRequest req) {
     if (req.uri().startsWith(e.getPath())) {
       String[] methods = e.getMethods();
-      for (int j = 0; j < methods.length; j++) {
-        if (methods[j].equals("*") || methods[j].equals(req.method().name())) {
+      for (String method : methods) {
+        if (method.equals("*") || method.equals(req.method().name())) {
           return true;
         }
       }
@@ -106,9 +105,9 @@ public class ProxyService {
     for (String s : modules.list()) {
       if (t.isEnabled(s)) {
         RoutingEntry[] rr = modules.get(s).getRoutingEntries();
-        for (int i = 0; i < rr.length; i++) {
-          if (match(rr[i], hreq)) {
-            ModuleInstance mi = new ModuleInstance(modules.get(s), rr[i]);
+        for (RoutingEntry rr1 : rr) {
+          if (match(rr1, hreq)) {
+            ModuleInstance mi = new ModuleInstance(modules.get(s), rr1);
             r.add(mi);
           }
         }
@@ -151,7 +150,7 @@ public class ProxyService {
       fut.handle(new Success<>());
     } else {
       ModuleInstance mi = it.next();
-      dm.get(mi.getModuleDescriptor().getId(), res -> {
+      discoveryManager.get(mi.getModuleDescriptor().getId(), res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
@@ -199,7 +198,7 @@ public class ProxyService {
       return;
     }
     ReadStream<Buffer> content = ctx.request();
-    Tenant tenant = tenantService.get(tenant_id);
+    Tenant tenant = tenantManager.get(tenant_id);
     if (tenant == null) {
       responseText(ctx, 400).end("No such Tenant " + tenant_id);
       return;

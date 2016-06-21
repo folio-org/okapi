@@ -38,7 +38,19 @@
           },
           "path": {"type": "string"},
           "level": {"type": "string"},
-          "type": {"type": "string"}
+          "type": {"type": "string"},
+          "requiredPermissions": {
+            "type": ["array","null"],
+            "items": {
+              "type": "string"
+            }
+          },
+          "wantedPermissions": {
+            "type": ["array","null"],
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     }
