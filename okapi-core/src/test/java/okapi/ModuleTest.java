@@ -229,7 +229,8 @@ public class ModuleTest {
             + "    \"methods\" : [ \"*\" ]," + LS
             + "    \"path\" : \"/s\"," + LS
             + "    \"level\" : \"10\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
+            + "    \"type\" : \"request-response\"," + LS
+            + "    \"wantedPermissions\" : [ \"auth.extra\" ]" + LS
             + "  }, {"
             + "    \"methods\" : [ \"POST\" ]," + LS
             + "    \"path\" : \"/login\"," + LS
@@ -333,7 +334,7 @@ public class ModuleTest {
             + "    \"path\" : \"/sample\"," + LS
             + "    \"level\" : \"30\"," + LS
             + "    \"type\" : \"request-response\"," + LS
-            + "    \"requiredPermissions\" : [ \"sample.any\" ]," + LS
+            + "    \"requiredPermissions\" : [ \"sample.needed\" ]," + LS
             + "    \"wantedPermissions\" : [ \"sample.extra\" ]" + LS
             + "  } ]" + LS
             + "}";
@@ -537,7 +538,12 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .get("/sample")
-            .then().statusCode(200).body(equalTo("It works"));
+            .then().statusCode(200)
+            .header("X-Okapi-Auth-Required", "sample.needed")
+            .body(equalTo("It works"));
+            // Check only the required bit, since there is only one. 
+            // There are wanted bits too, two of them, but their order is not
+            // well defined...
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
