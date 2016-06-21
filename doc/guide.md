@@ -159,7 +159,8 @@ on other modules (interface identifiers to be precise), and reports all
 that a given module handles, this gives Okapi necessary information to proxy
 traffic to the module (this is similar to a simplified RAML specification).
 
-* It follows versioning rules defined in the chapter _Versioning and Dependencies_.
+* It follows versioning rules defined in the chapter
+[_Versioning and Dependencies_](#versioning-and-dependencies).
 
 * WIP: it provides interfaces required for monitoring and instrumentation.
 
