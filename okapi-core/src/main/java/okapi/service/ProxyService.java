@@ -30,9 +30,14 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
@@ -113,6 +118,32 @@ public class ProxyService {
     return r;
   }
 
+  // Get the auth bits from the module list into
+  // X-Okapi-Auth-Required and X-Okapi-Auth-Wanted headers
+  private void authHeaders(List<ModuleInstance> modlist, Map<String, String> extraReqHeaders) {
+    Set<String> req = new HashSet<>();
+    Set<String> want = new HashSet<>();
+    for (ModuleInstance mod : modlist) {
+      RoutingEntry re = mod.getRoutingEntry();
+      String[] reqp = re.getRequiredPermissions();
+      if (reqp != null) {
+        req.addAll(Arrays.asList(reqp));
+      }
+      String[] wap = re.getWantedPermissions();
+      if (wap != null) {
+        want.addAll(Arrays.asList(wap));
+      }
+    }
+    if (!req.isEmpty()) {
+      logger.debug("authHeaders:X-Okapi-Auth-Required: " + String.join(",", req));
+      extraReqHeaders.put("X-Okapi-Auth-Required", String.join(",", req));
+    }
+    if (!want.isEmpty()) {
+      logger.debug("authHeaders:X-Okapi-Auth-Wanted: " + String.join(",", want));
+      extraReqHeaders.put("X-Okapi-Auth-Wanted", String.join(",", want));
+    }
+  }
+
   private void resolveUrls(Iterator<ModuleInstance> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>());
@@ -169,21 +200,23 @@ public class ProxyService {
     DropwizardHelper.markEvent(metricKey);
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
+    Map<String,String> extraReqHeaders = new HashMap<>() ;
+    authHeaders(l,extraReqHeaders);
+
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
         responseError(ctx, res.getType(), res.cause());
       } else {
         List<String> traceHeaders = new ArrayList<>();
-        proxyR(ctx, l.iterator(), traceHeaders, content, null);
+        proxyR(ctx, l.iterator(), traceHeaders, extraReqHeaders, content, null);
       }
     });
   }
 
   private void proxyRequestHttpClient(RoutingContext ctx,
           Iterator<ModuleInstance> it,
-          List<String> traceHeaders, Buffer bcontent,
-          ModuleInstance mi, Timer.Context timer) {
-
+          List<String> traceHeaders, Map<String,String> extraReqHeaders,
+          Buffer bcontent,   ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
@@ -203,7 +236,7 @@ public class ProxyService {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 timer.close();
                 relayToRequest(ctx, res);
-                proxyR(ctx, it, traceHeaders, null, bcontent);
+                proxyR(ctx, it, traceHeaders, extraReqHeaders, null, bcontent);
               } else {
                 relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
@@ -223,22 +256,25 @@ public class ProxyService {
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
+    c_req.headers().setAll(extraReqHeaders);
     c_req.end(bcontent);
   }
 
-  private void proxyRequestOnly(RoutingContext ctx,
-          Iterator<ModuleInstance> it, List<String> traceHeaders,
+  private void proxyRequestOnly(RoutingContext ctx, Iterator<ModuleInstance> it, 
+          List<String> traceHeaders, Map<String,String> extraReqHeaders,
           ReadStream<Buffer> content, Buffer bcontent,
           ModuleInstance mi, Timer.Context timer) {
     if (bcontent != null) {
-      proxyRequestHttpClient(ctx, it, traceHeaders, bcontent, mi, timer);
+      proxyRequestHttpClient(ctx, it, traceHeaders, extraReqHeaders,
+        bcontent, mi, timer);
     } else {
       final Buffer incoming = Buffer.buffer();
       content.handler(data -> {
         incoming.appendBuffer(data);
       });
       content.endHandler(v -> {
-        proxyRequestHttpClient(ctx, it, traceHeaders, incoming, mi, timer);
+        proxyRequestHttpClient(ctx, it, traceHeaders, extraReqHeaders,
+          incoming, mi, timer);
         timer.close();
       });
       content.resume();
@@ -246,8 +282,10 @@ public class ProxyService {
   }
 
   private void proxyRequestResponse(RoutingContext ctx,
-          Iterator<ModuleInstance> it, List<String> traceHeaders,
-          ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
+          Iterator<ModuleInstance> it,
+          List<String> traceHeaders, Map<String,String> extraReqHeaders,
+          ReadStream<Buffer> content, Buffer bcontent,
+          ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
@@ -256,7 +294,7 @@ public class ProxyService {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 relayToRequest(ctx, res);
                 res.pause();
-                proxyR(ctx, it, traceHeaders, res, null);
+                proxyR(ctx, it, traceHeaders, extraReqHeaders, res, null);
               } else {
                 relayHeaders(ctx, res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
@@ -280,6 +318,7 @@ public class ProxyService {
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
+    c_req.headers().setAll(extraReqHeaders);
     if (bcontent != null) {
       c_req.end(bcontent);
     } else {
@@ -296,8 +335,8 @@ public class ProxyService {
     }
   }
 
-  private void proxyHeaders(RoutingContext ctx,
-          Iterator<ModuleInstance> it, List<String> traceHeaders,
+  private void proxyHeaders(RoutingContext ctx,   Iterator<ModuleInstance> it, 
+          List<String> traceHeaders, Map<String,String> extraReqHeaders,  // TODO extras!
           ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
@@ -316,7 +355,7 @@ public class ProxyService {
               } else if (it.hasNext()) {
                 relayToRequest(ctx, res);
                 res.endHandler(x -> {
-                  proxyR(ctx, it, traceHeaders, content, bcontent);
+                  proxyR(ctx, it, traceHeaders,extraReqHeaders, content, bcontent);
                 });
               } else {
                 relayHeaders(ctx, res);
@@ -344,11 +383,13 @@ public class ProxyService {
     });
     // c_req.setChunked(true);
     // c_req.headers().setAll(ctx.request().headers());
+    c_req.headers().setAll(extraReqHeaders);
     c_req.end();
   }
 
   private void proxyR(RoutingContext ctx,
-          Iterator<ModuleInstance> it, List<String> traceHeaders,
+          Iterator<ModuleInstance> it, 
+          List<String> traceHeaders, Map<String,String> extraReqHeaders,
           ReadStream<Buffer> content, Buffer bcontent) {
     if (!it.hasNext()) {
       content.resume();
@@ -356,7 +397,6 @@ public class ProxyService {
       responseText(ctx, 404).end();
     } else {
       ModuleInstance mi = it.next();
-      final long timer2 = System.nanoTime();
       String tenantId = ctx.request().getHeader("X-Okapi-Tenant");
       if (tenantId == null || tenantId.isEmpty()) {
         tenantId = "???"; // Should not happen, we have validated earlier
@@ -366,15 +406,19 @@ public class ProxyService {
 
       String rtype = mi.getRoutingEntry().getType();
       if ("request-only".equals(rtype)) {
-        proxyRequestOnly(ctx, it, traceHeaders, content, bcontent, mi, timerContext);
+        proxyRequestOnly(ctx, it, traceHeaders, extraReqHeaders,
+          content, bcontent, mi, timerContext);
       } else if ("request-response".equals(rtype)) {
-        proxyRequestResponse(ctx, it, traceHeaders, content, bcontent, mi, timerContext);
+        proxyRequestResponse(ctx, it, traceHeaders, extraReqHeaders,
+          content, bcontent, mi, timerContext);
       } else if ("headers".equals(rtype)) {
-        proxyHeaders(ctx, it, traceHeaders, content, bcontent, mi, timerContext);
+        proxyHeaders(ctx, it, traceHeaders, extraReqHeaders,
+          content, bcontent, mi, timerContext);
       } else {
         logger.warn("proxyR: bad rtype: " + rtype);
         responseText(ctx, 500).end(); // Should not happen
       }
     }
   }
+
 } // class

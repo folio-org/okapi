@@ -332,7 +332,9 @@ public class ModuleTest {
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/sample\"," + LS
             + "    \"level\" : \"30\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
+            + "    \"type\" : \"request-response\"," + LS
+            + "    \"requiredPermissions\" : [ \"sample.any\" ]," + LS
+            + "    \"wantedPermissions\" : [ \"sample.extra\" ]" + LS
             + "  } ]" + LS
             + "}";
 

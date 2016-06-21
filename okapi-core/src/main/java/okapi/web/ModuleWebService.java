@@ -128,6 +128,7 @@ public class ModuleWebService {
 
   public void create(RoutingContext ctx) {
     try {
+      logger.debug("Trying to decode md: " + ctx.getBodyAsString() );  // !!!
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       String validerr = validate(md);
@@ -172,6 +173,7 @@ public class ModuleWebService {
         });
       }
     } catch (DecodeException ex) {
+      logger.debug("Failed to decode md: " + ctx.getBodyAsString() );
       responseError(ctx, 400, ex);
     }
   }

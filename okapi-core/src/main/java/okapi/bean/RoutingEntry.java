@@ -15,12 +15,34 @@
  */
 package okapi.bean;
 
+import java.util.Set;
+import java.util.TreeSet;
+
 public class RoutingEntry {
 
   private String[] methods;
   private String path;
   private String level;
   private String type;
+  private String[] requiredPermissions;
+
+  public String[] getRequiredPermissions() {
+    return requiredPermissions;
+  }
+
+  public void setRequiredPermissions(String[] requiredPermissions) {
+    this.requiredPermissions = requiredPermissions;
+  }
+
+  public String[] getWantedPermissions() {
+    return wantedPermissions;
+  }
+
+  public void setWantedPermissions(String[] wantedPermissions) {
+    this.wantedPermissions = wantedPermissions;
+  }
+  private String[] wantedPermissions;
+
 
   public String getType() {
     return type;
