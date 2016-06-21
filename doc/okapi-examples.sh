@@ -53,7 +53,9 @@ cat > /tmp/sampleproxy.json <<END
       "methods" : [ "GET", "POST" ],
       "path" : "/sample",
       "level" : "30",
-      "type" : "request-response"
+      "type" : "request-response",
+      "requiredPermissions" : [ "sample.needed" ],
+      "wantedPermissions" : [ "sample.extra" ]
     } ]
   }
 END

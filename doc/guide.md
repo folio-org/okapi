@@ -792,7 +792,9 @@ cat > /tmp/sampleproxy.json <<END
       "methods" : [ "GET", "POST" ],
       "path" : "/sample",
       "level" : "30",
-      "type" : "request-response"
+      "type" : "request-response",
+      "requiredPermissions" : [ "sample.needed" ],
+      "wantedPermissions" : [ "sample.extra" ]
     } ]
   }
 END
@@ -805,7 +807,7 @@ curl -w '\n' -X POST -D -   \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/sample-module
-Content-Length: 297
+Content-Length: 392
 
 {
   "id" : "sample-module",
@@ -819,7 +821,9 @@ Content-Length: 297
     "methods" : [ "GET", "POST" ],
     "path" : "/sample",
     "level" : "30",
-    "type" : "request-response"
+    "type" : "request-response",
+    "requiredPermissions" : [ "sample.needed" ],
+    "wantedPermissions" : [ "sample.extra" ]
   } ]
 }
 
@@ -830,6 +834,14 @@ requests to the /sample path and nothing else, and that the module is
 supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
 be seen later.
+
+The permission bits are arrays of permission bits that are strictly needed
+for calling /sample, or that the sample module wants to know about, for
+example to enable some extra functionality. Okapi will collect these into
+X-Okapi-Auth-Required and -Wanted headers, and pass them on. Presumably
+some real-life auth module will check if the user actually has the required
+permissions, and refuse the request if not. The simple auth module does not
+do this kind of checks, as it has no user database to work with.
 
 
 #### Deploying the auth module
@@ -915,7 +927,7 @@ And should see
 ```
 HTTP/1.1 201 Created
 Location: /_/proxy/modules/auth
-Content-Length: 415
+Content-Length: 547
 
 {
  "id" : "auth",
@@ -933,12 +945,16 @@ Content-Length: 415
     "methods" : [ "*" ],
     "path" : "/",
     "level" : "10",
-    "type" : "request-response"
+    "type" : "request-response",
+    "requiredPermissions" : null,
+    "wantedPermissions" : null
   }, {
     "methods" : [ "POST" ],
     "path" : "/login",
     "level" : "20",
-    "type" : "request-response"
+    "type" : "request-response",
+    "requiredPermissions" : null,
+    "wantedPermissions" : null
   } ]
 }
 ```
