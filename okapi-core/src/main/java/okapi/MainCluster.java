@@ -22,6 +22,7 @@ import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -139,7 +140,7 @@ public class MainCluster {
       }
       hConfig.setProperty("hazelcast.logging.type", "slf4j");
 
-      ClusterManager mgr = new HazelcastClusterManager(hConfig);
+      HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
       vopt.setClusterManager(mgr);
       if (clusterHost != null) {
         logger.info("clusterHost=" + clusterHost);
@@ -154,11 +155,14 @@ public class MainCluster {
         logger.warn("clusterPort not set");
       }
       vopt.setClustered(true);
+
       Vertx.clusteredVertx(vopt, res -> {
         if (res.succeeded()) {
           Vertx vertx = res.result();
           DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-          vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
+          MainVerticle v = new MainVerticle();
+          v.setClusterManager(mgr);
+          vertx.deployVerticle(v, opt, dep -> {
             if (dep.failed()) {
               exit(1);
             }
