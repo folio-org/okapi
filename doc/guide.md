@@ -190,8 +190,8 @@ from a centralized place.
 Okapi's own web services must, and other modules should, adhere to these
 guidelines as far as practically possible.
 
- * No trailing slashes
- * Always expect and return proper JSON objects, or lists of such
+ * No trailing slashes in paths
+ * Always expect and return proper JSON
  * The primary key should always be called 'id'
 
 We try to make the Okapi code exemplary, so that it would serve well as
@@ -206,7 +206,7 @@ functionality provided by those services spans multiple tenants. The
 details of authentication and authorization of the SP administrators
 are to be defined at a later stage and will most likely be provided by
 an external module that can hook into a specific Service Provider
-authn/authz system.
+authentication system.
 
 ### Deployment and Discovery
 
