@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w
+
+# Create linked table of contents from a Markdown file.
+# Usage: md2toc <FILE.md> > <FILE-toc.md>
+# Then include the generated file inside the original <FILE.md>
+
+use strict;
+use warnings;
+
+while (my $line = <>) {
+    chomp $line;
+    if ($line =~ s/^(#+) *//) {
+	my $level = length($1);
+	my $link = lc($line);
+	$link =~ s/ /-/g;
+	$link =~ s/[^a-z0-9-]//g;
+	print '    ' x ($level-1), "* [$line](#$link)\n";
+    }
+}
