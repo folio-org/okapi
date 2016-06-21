@@ -229,8 +229,9 @@ any modules have been deployed. For testing, see
 
 Any number of modules can request registration on a single URI
 path. Okapi will then forward the requests to those modules in an
-order controlled by the level integer setting in the module
-registration configuration.
+order controlled by the integer _level_ setting in the module
+registration configuration: modules with lower levels are processed
+before those with higher levels.
 
 Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
 chunked encoding to make the connections to the modules.
