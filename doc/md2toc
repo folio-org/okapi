@@ -1,19 +1,36 @@
 #!/usr/bin/perl -w
 
 # Create linked table of contents from a Markdown file.
-# Usage: md2toc <FILE.md> > <FILE-toc.md>
-# Then include the generated file inside the original <FILE.md>
+# Then include the output inside the original <FILE.md>
 
 use strict;
 use warnings;
+
+my $lowest = 1;
+my $highest = 99;
+while (@ARGV > 2) {
+    if ($ARGV[0] eq '-l') {
+	$lowest = $ARGV[1]; shift; shift;
+    } elsif ($ARGV[0] eq '-h') {
+	$highest = $ARGV[1]; shift; shift;
+    } elsif ($ARGV[0] =~ /^-/) {
+	print STDERR "Usage: md2toc [-l <lowest>] [-h <highest>] <FILE.md>\
+	-l <lowest> specified lowest heading level to include.\
+	-h <highest> specified lowest heading level to include.\n";
+	exit 1;
+    } else {
+	last;
+    }
+}
 
 while (my $line = <>) {
     chomp $line;
     if ($line =~ s/^(#+) *//) {
 	my $level = length($1);
+	next if $level < $lowest || $level > $highest;
 	my $link = lc($line);
 	$link =~ s/ /-/g;
 	$link =~ s/[^a-z0-9-]//g;
-	print '    ' x ($level-1), "* [$line](#$link)\n";
+	print '    ' x ($level-$lowest), "* [$line](#$link)\n";
     }
 }
