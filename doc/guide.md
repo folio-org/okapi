@@ -168,7 +168,8 @@ As you can see, none of those requirements specifically state rules for
 deployment and, as such, it would be entirely possible to integrate
 a third party web service (e.g. the API of a publicly accessible Internet server)
 as an Okapi module. That is, assuming the endpoint style and versioning
-semantics are a close match for what is required in Okapi.
+semantics are a close match for what is required in Okapi, and a
+suitable module descriptor can be written to describe it.
 
 Okapi, however, includes additional services (for service deployment and
 discovery) that allows to actually execute, run and monitor services natively
