@@ -11,7 +11,7 @@ from master passes all tests, and can be deployed. That is not to say that it
 will be free of bugs, we are not superhuman.
 
 All real work should be done in feature branches. It is still OK to make a
-small trivial change directly in the master. Stuff like editing the readme.
+small trivial change directly in the master. Stuff like editing the README.
 
 
 ### Feature branches
@@ -39,9 +39,9 @@ do, namely
 Once you have done that, a simple `git push` will be sufficient.
 
 While developing your own branch, pull in the master every now and then, and
-resolve any conflicts that may be there. If you don't, your branch diverges
-further from master, and the final merge will have even more conflicts to
-resolve.
+resolve any conflicts that may be there. If you don't, your branch
+will diverge further from master, and the final merge of your work
+back into master will be difficult to resolve.
 
 When you are all done, pull master in again, to make sure your branch merges
 cleanly and passes all tests. Commit the merge, and push to your branch
@@ -63,7 +63,7 @@ to someone else.
 ### Merging pull requests
 
 When someone has assigned a pull request to you, check out the branch, and
-look at the git log, and the code, and convince yourself that all is good.
+look at the git log, and the code, and decide whether all is good.
 You can also look at the commit messages and code changes in GitHub.
 
 If there are small details, you can fix them yourself, commit and push to the
@@ -160,8 +160,8 @@ API version 1.4 and the checkin API version 2.7. The rules are still the same:
 
 The most common case is probably when we need to add a new, incompatible API
 to a module, but want to keep the old one too. In such cases we only increment
-the module version to 3.15.1, but mark that it provides the API versions 3.14.1
-and 4.1.1.
+the module version to 3.15.1, but mark that it provides the API versions 3.14
+and 4.1.
 
 ### Dot one, not zero
 The version numbers that end in zero are special, they are reserved for filing
@@ -170,20 +170,23 @@ time we change the minor version, label the issue with something like v3.15.0
 or even v4.0.0 if the change is not backwards compatible. When the change gets
 implemented, we bump the version number to 3.15.1 or 4.1.1.
 
+Do not release modules with a version number ending in `.0`.
+
 
 ## Coding style
 
-Basically we try to adhere to Sun Java coding conventions, as in
-  http://www.oracle.com/technetwork/java/codeconvtoc-136057.html
+For Java code, we basically try to adhere to Sun Java coding
+conventions, as in
+http://www.oracle.com/technetwork/java/codeconvtoc-136057.html
 (That document is old and unmaintained, but seems to be good enough as it is)
 
-There are some few exceptions:
+There are a few exceptions:
 
 * We indent with two spaces only, because vert.x uses deeply nested callbacks.
-* We DON'T use tab characters for indents, only spaces
+* We _don't_ use tab characters for indents, only spaces
 
-Remember to set your IDE to remove trailing spaces on saving files, those produce
-unnecessary diffs in Git.
+Remember to set your IDE to remove trailing spaces on saving files,
+since those produce unnecessary diffs in Git.
 
 ## License
 

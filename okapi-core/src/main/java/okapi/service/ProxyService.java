@@ -17,6 +17,7 @@ package okapi.service;
 
 import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import okapi.bean.ModuleInstance;
 import okapi.bean.Tenant;
 import io.vertx.core.Vertx;
@@ -25,6 +26,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
@@ -165,19 +167,28 @@ public class ProxyService {
     }
   }
 
-  static void relayHeaders(RoutingContext ctx, HttpClientResponse res) {
-    ctx.response().setChunked(true);
-    ctx.response().setStatusCode(res.statusCode());
-    ctx.response().headers().addAll(res.headers());
-    ctx.response().headers().remove("Content-Length");
+  static void relayToResponse(HttpServerResponse hres, HttpClientResponse res) {
+    hres.setChunked(true);
+    hres.setStatusCode(res.statusCode());
+    hres.headers().setAll(res.headers());
+    hres.headers().remove("Content-Length");
   }
 
   static void relayToRequest(RoutingContext ctx, HttpClientResponse res) {
     for (String s : res.headers().names()) {
       if (s.startsWith("X-") || s.startsWith("x-")) {
         final String v = res.headers().get(s);
-        ctx.request().headers().add(s, v);
+        ctx.request().headers().set(s, v);
       }
+    }
+  }
+
+  private void log(HttpClientRequest creq) {
+    logger.debug(creq.method().name() + " " + creq.uri());
+    Iterator<Map.Entry<String, String>> iterator = creq.headers().iterator();
+    while (iterator.hasNext()) {
+      Map.Entry<String, String> next = iterator.next();
+      logger.debug(" " + next.getKey() + ":" + next.getValue());
     }
   }
 
@@ -220,7 +231,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                relayHeaders(ctx, res);
+                relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -238,7 +249,7 @@ public class ProxyService {
                 relayToRequest(ctx, res);
                 proxyR(ctx, it, traceHeaders, extraReqHeaders, null, bcontent);
               } else {
-                relayHeaders(ctx, res);
+                relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.endHandler(x -> {
                   timer.close();
@@ -258,6 +269,7 @@ public class ProxyService {
     c_req.headers().setAll(ctx.request().headers());
     c_req.headers().setAll(extraReqHeaders);
     c_req.end(bcontent);
+    log(c_req);
   }
 
   private void proxyRequestOnly(RoutingContext ctx, Iterator<ModuleInstance> it, 
@@ -296,7 +308,7 @@ public class ProxyService {
                 res.pause();
                 proxyR(ctx, it, traceHeaders, extraReqHeaders, res, null);
               } else {
-                relayHeaders(ctx, res);
+                relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -333,6 +345,7 @@ public class ProxyService {
       });
       content.resume();
     }
+    log(c_req);
   }
 
   private void proxyHeaders(RoutingContext ctx,   Iterator<ModuleInstance> it, 
@@ -341,7 +354,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
-                relayHeaders(ctx, res);
+                relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 res.handler(data -> {
                   ctx.response().write(data);
@@ -358,7 +371,7 @@ public class ProxyService {
                   proxyR(ctx, it, traceHeaders,extraReqHeaders, content, bcontent);
                 });
               } else {
-                relayHeaders(ctx, res);
+                relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, traceHeaders);
                 if (bcontent == null) {
                   content.handler(data -> {
@@ -384,7 +397,10 @@ public class ProxyService {
     // c_req.setChunked(true);
     // c_req.headers().setAll(ctx.request().headers());
     c_req.headers().setAll(extraReqHeaders);
+    c_req.headers().setAll(ctx.request().headers());
+    c_req.headers().remove("Content-Length");
     c_req.end();
+    log(c_req);
   }
 
   private void proxyR(RoutingContext ctx,
@@ -405,6 +421,10 @@ public class ProxyService {
       Timer.Context timerContext = DropwizardHelper.getTimerContext(metricKey);
 
       String rtype = mi.getRoutingEntry().getType();
+      logger.debug("Invoking module " + mi.getModuleDescriptor().getName()
+              + " type " + rtype
+              + " level " + mi.getRoutingEntry().getLevel()
+              + " path " + mi.getRoutingEntry().getPath());
       if ("request-only".equals(rtype)) {
         proxyRequestOnly(ctx, it, traceHeaders, extraReqHeaders,
           content, bcontent, mi, timerContext);

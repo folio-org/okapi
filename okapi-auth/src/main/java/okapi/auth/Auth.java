@@ -83,6 +83,11 @@ public class Auth {
 
   public void login(RoutingContext ctx) {
     final String json = ctx.getBodyAsString();
+    if (json.length() == 0) {
+      logger.info("Auth accept OK in login");
+      responseText(ctx, 202).end("Auth accept in /login");
+      return;
+    }
     LoginParameters p;
     try {
       p = Json.decodeValue(json, LoginParameters.class);

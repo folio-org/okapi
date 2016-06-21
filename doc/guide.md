@@ -5,11 +5,36 @@ managing and running microservices.
 
 ## Table of Contents
 
+<!-- Regenerate this as needed by running `./md2toc -l 2 -h 3 guide.md` and including its output here -->
+* [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Architecture](#architecture)
+    * [Okapi's own Web Services](#okapis-own-web-services)
+    * [Deployment and Discovery](#deployment-and-discovery)
+    * [Request Processing](#request-processing)
+    * [Status Codes](#status-codes)
+    * [Header Merging Rules](#header-merging-rules)
+    * [Versioning and Dependencies](#versioning-and-dependencies)
+    * [Open Issues](#open-issues)
+    * [Instrumentation and Analytics](#instrumentation-and-analytics)
+* [Implementation](#implementation)
+    * [Missing features](#missing-features)
 * [Compiling and Running](#compiling-and-running)
 * [Using Okapi](#using-okapi)
+* [Storage](#storage)
+    * [Example modules](#example-modules)
+    * [Running Okapi itself](#running-okapi-itself)
+    * [Deploying Modules](#deploying-modules)
+    * [Creating tenants](#creating-tenants)
+    * [Enabling a module for a tenant](#enabling-a-module-for-a-tenant)
+    * [Using a module](#using-a-module)
+    * [Enabling both modules for the other tenant](#enabling-both-modules-for-the-other-tenant)
+    * [Authentication problems](#authentication-problems)
+    * [Cleaning up](#cleaning-up)
 * [Reference](#reference)
+    * [Okapi program](#okapi-program)
+    * [Web Service](#web-service)
+    * [Instrumentation](#instrumentation)
 
 ## Introduction
 
