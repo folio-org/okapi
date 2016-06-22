@@ -433,10 +433,10 @@ implementation details will be established within the coming months.
 
 In a microservices architecture, monitoring is key to ensure robustness
 and health of the entire system. The way to provide useful monitoring
-is to include well defined instrumentation points (“hooks”) before and
+is to include well defined instrumentation points ("hooks") before and
 after each step of execution of the request processing
 pipeline. Besides monitoring, instrumentation is crucial for the
-ability to quickly diagnose issues in the running system (“hot”
+ability to quickly diagnose issues in the running system ("hot"
 debugging) and discovering performance bottlenecks (profiling). We are
 looking at established solutions in this regard: e.g. JMX,
 Dropwizard Metrics, Graphite, etc.
