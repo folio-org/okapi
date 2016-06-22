@@ -340,11 +340,11 @@ into the final response header set.
 
 Modules can provide one or more interfaces, and can consume interfaces
 provided by other modules. The interfaces have versions, and dependencies
-can require given versions. Okapi will check dependencies and versions
+can require given versions of an interface. Okapi will check dependencies and versions
 whenever a module is deployed, and also when a module is enabled for a tenant.
 
 Note that we can have multiple modules providing the same interface. These
-can be deployed in Okapi all right, but only one such module can be enabled
+can be deployed in Okapi simultaneously, but only one such module can be enabled
 for any given tenant at a given time. For example, we can have two ways to
 manage our patrons, one based on a local database, one talking to an external
 system. The installation can know both, but each tenant must choose one or
