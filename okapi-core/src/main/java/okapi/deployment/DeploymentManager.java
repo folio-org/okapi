@@ -36,7 +36,6 @@ import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
-import static okapi.util.OkapiEvents.*;
 
 public class DeploymentManager {
 

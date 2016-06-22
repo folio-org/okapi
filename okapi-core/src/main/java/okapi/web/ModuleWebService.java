@@ -276,8 +276,6 @@ public class ModuleWebService {
     });
   }
 
-  // TODO - Refactor this so that this part generates a listIds of modules,
-  // and the module manager restarts and stops what is needed. Later.
   public void reloadModules(RoutingContext ctx) {
     reloadModules(res -> {
       if (res.succeeded()) {
@@ -288,7 +286,7 @@ public class ModuleWebService {
     });
   }
 
-  public void reloadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+  public final void reloadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     moduleManager.deleteAll(res -> {
       if (res.failed()) {
         logger.error("ReloadModules: Failed to delete all");
