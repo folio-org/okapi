@@ -297,7 +297,8 @@ are accepted in Okapi:
  * 2xx range: OK return codes; if a code in this range is
 returned by a module, Okapi continues execution of the pipeline and
 forwards information to the consecutive modules according to the rules
-described above.
+described above. At the end of the chain, the status returned by the
+last module invoked is the one returned to the caller.
 
  * 3xx range: Redirect codes. The pipeline is terminated, and the
 response (including any `Location` header) is immediately returned
