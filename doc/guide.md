@@ -528,12 +528,12 @@ the end:
 The okapi directory contains a few sub modules. These are
 
  * `okapi-core`: the gateway server itself
+ * `doc`: documentation, including the guide
  * `okapi-auth`: a simple module demonstrating authentication
  * `okapi-sample-module`: a module mangling HTTP content
- * `okapi-header-module`: TODO
- * `doc`: documentation, including the guide
+ * `okapi-header-module`: a module to test headers-only mode
 
-These two modules are used in tests for okapi-core so they must be built
+These three modules are used in tests for okapi-core so they must be built
 before okapi-core tests are performed.
 
 The result for each module and okapi-core is a combined jar file
