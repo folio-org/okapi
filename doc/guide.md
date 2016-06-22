@@ -772,13 +772,13 @@ part of the Location header. Like other RESTful services the Location header can
 be used to identify the resource later.
 
 If you look at the output of
-    ps axf | grep okapi
+`ps axf | grep okapi`
 you should see that okapi-core has spawned a new process for the
 okapi-sample-module, and that it has been assigned port 9131.
 
 You can ask Okapi to list deployed modules:
 ```
-curl -D -  -w '\n'  http://localhost:9130/_/deployment/modules
+curl -D - -w '\n' http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
@@ -790,6 +790,8 @@ Content-Length: 295
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 } ]
