@@ -584,11 +584,12 @@ command-line from this document.
 The exact definition of the services is in the RAML files listed in
 the [Reference](#reference) section.
 
-## Storage
-The Okapi defaults to an internal in-memory mock storage, so it can run without
+### Storage
+
+Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment the MongoDB storage can be enabled by adding the
+to the next. At the moment, MongoDB storage can be enabled by adding the
 option `-Dstorage=mongo` to the command-line that starts Okapi.
 
 
