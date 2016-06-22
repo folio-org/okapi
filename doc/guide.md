@@ -310,16 +310,16 @@ terminates the entire chain and returns the code back to the caller.
 ### Header Merging Rules
 
 Since Okapi forwards the response from a previous module on to the
-next module (e.g.  for additional filtering/processing) in the
-pipeline, certain initial request headers become invalid - e.g. when a
+next module in the pipeline (e.g. for additional filtering/processing),
+certain initial request headers become invalid - e.g. when a 
 module converts the entity to a different content type or changes its
-size. Invalid headers need to be updated, based on the module’s
+size. Invalid headers need to be updated, based on the module's
 response header values, before the request can be forwarded to the
-next module. At the same time Okapi collects response headers in order
-to produce a final response that is sent back to the original client
-when the processing pipeline completes.
+next module. At the same time Okapi also collects a set of response
+headers in order to produce a final response that is sent back to the
+original client when the processing pipeline completes.
 
-Both sets are modified according to the following rules:
+Both sets of headers are modified according to the following rules:
 
  * Any headers that provide metadata about the request entity body
 (e.g.  Content-Type, Content-Length, etc.) are merged from the last
