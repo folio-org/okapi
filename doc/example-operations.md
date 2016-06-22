@@ -133,8 +133,3 @@ alt="photo of the completed acquisitions whiteboard"/>
 This is described separately, in the **RPC Model** section of the
 Google Doc _Acquisitions Hypothetical Event Flow_: https://docs.google.com/document/d/1j4S5yuK7et6NtE_noeEm7cAOkk-_WY6iXI6J7f3-BkM/edit#heading=h.rnu567237w3r
 
-
-&nbsp;
-
-&nbsp;
-
