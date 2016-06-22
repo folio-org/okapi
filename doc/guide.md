@@ -858,7 +858,7 @@ example to enable some extra functionality. Okapi will collect these into
 X-Okapi-Auth-Required and -Wanted headers, and pass them on. Presumably
 some real-life auth module will check if the user actually has the required
 permissions, and refuse the request if not. The simple auth module does not
-do this kind of checks, as it has no user database to work with.
+do this kind of check, as it has no user database to work with.
 
 
 #### Deploying the auth module
