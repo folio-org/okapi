@@ -154,7 +154,7 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
       return;
     }
-    
+
     String ten = tenantManager.getModuleUser(id);
     if ( ! ten.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id

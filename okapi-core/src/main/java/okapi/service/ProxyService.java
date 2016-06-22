@@ -271,7 +271,7 @@ public class ProxyService {
     log(c_req);
   }
 
-  private void proxyRequestOnly(RoutingContext ctx, Iterator<ModuleInstance> it, 
+  private void proxyRequestOnly(RoutingContext ctx, Iterator<ModuleInstance> it,
           List<String> traceHeaders, Map<String,String> extraReqHeaders,
           ReadStream<Buffer> content, Buffer bcontent,
           ModuleInstance mi, Timer.Context timer) {
@@ -347,7 +347,7 @@ public class ProxyService {
     log(c_req);
   }
 
-  private void proxyHeaders(RoutingContext ctx,   Iterator<ModuleInstance> it, 
+  private void proxyHeaders(RoutingContext ctx,   Iterator<ModuleInstance> it,
           List<String> traceHeaders, Map<String,String> extraReqHeaders,  // TODO extras!
           ReadStream<Buffer> content, Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
@@ -403,7 +403,7 @@ public class ProxyService {
   }
 
   private void proxyR(RoutingContext ctx,
-          Iterator<ModuleInstance> it, 
+          Iterator<ModuleInstance> it,
           List<String> traceHeaders, Map<String,String> extraReqHeaders,
           ReadStream<Buffer> content, Buffer bcontent) {
     if (!it.hasNext()) {
