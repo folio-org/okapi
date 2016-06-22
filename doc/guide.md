@@ -744,11 +744,8 @@ curl -w '\n' -X POST -D - \
 
 Note that we need to add the Content-Type header, otherwise curl will try to
 be helpful and say something about it being url-encoded, which will confuse
-the Java libraries and result in a "500 - Internal Error".
-
-We also added the "-D -" option to make curl display all response
-headers, and a "-w '\n'" option for visual clarity, it makes curl output
-an extra newline after the response.
+the Java libraries and result in a "500 - Internal Error". We also
+added the "-D -" option to make curl display all response headers.
 
 You should see something like this
 ```
@@ -763,6 +760,8 @@ Content-Length: 291
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
   }
 }
