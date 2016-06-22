@@ -659,11 +659,11 @@ TODO
 #### Okapi-auth-module
 
 Okapi itself does not do authentication: it delegates that to a
-module.  We do not have a functional authentication module yet, but we
-have a trivial dummy module that can be used to demonstrate how it
+module.  We do not have a fully functional authentication module yet,
+but we have a dummy module that can be used to demonstrate how it
 works.
 
-The dummy module supports two functions: /login is, as its name implies,
+The dummy module supports two functions: `/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
@@ -689,8 +689,8 @@ with a known clean state without any modules or tenants defined.
 
 Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
-which happens to be 9130, and using the 'inmemory' storage. For MongoDB
-storage, add `-Dstorage=mongo` to the command-line.
+which happens to be 9130, and using in-memory storage. (To use MongoDB
+storage instead, add `-Dstorage=mongo` to the command-line.)
 
 At the moment Okapi does not know of any module or tenant. But it does
 have its own web services enabled. We can verify both by asking Okapi
