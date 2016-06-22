@@ -299,7 +299,9 @@ returned by a module, Okapi continues execution of the pipeline and
 forwards information to the consecutive modules according to the rules
 described above.
 
- * 3xx range: Redirect codes. The pipeline is terminated.
+ * 3xx range: Redirect codes. The pipeline is terminated, and the
+response (including any `Location` header) is immediately returned
+to the caller.
 
  * 4xx-5xx range: user request errors or internal system errors; if a
 code in this range is returned by a module, Okapi immediately
