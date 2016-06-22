@@ -390,6 +390,8 @@ But it will reject:
 
 #### Security
 
+TODO -- This needs updating in light of FOLIO-160.
+
 There is extensive work going on in parallel to Okapi development, to
 establish and define security requirements for the entire Folio
 platform.
@@ -398,10 +400,10 @@ Generally, within a microservice architecture, each module can decide
 to handle authentication and authorization separately. Obviously, this
 means a lot of duplication, and so a better option is to use Okapi to
 serve as a protection between the modules and the outside world, as
-well as between the modules themselves, and to provide a Single Sign
+well as between the modules themselves, and to provide Single Sign
 On (SSO) facilities. As such, Okapi may be able to provide fairly
 effective coarse-grained authentication, e.g. it may prevent access to
-modules from non- authenticated users.
+modules from non-authenticated users.
 
 For authorization, it is common to place users in groups or assign
 them roles. Okapi may, optionally, be used to allow/disallow access to
