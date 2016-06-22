@@ -351,7 +351,7 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
-    c = api.createRestAssured();
+    c = api.createRestAssured(); // trailing slash is no good
     c.given().get("/_/proxy/modules/").then().statusCode(404);
 
     c = api.createRestAssured();
@@ -379,6 +379,14 @@ public class ModuleTest {
       .body(docAuthLowerVersion)
       .put(locationAuthModule)
       .then().statusCode(400);
+
+    // Update the auth module to a bit higher version
+    final String docAuthhigherVersion = docAuthModule.replace("1.2.3", "1.2.4");
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthhigherVersion)
+      .put(locationAuthModule)
+      .then().statusCode(200);
 
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS

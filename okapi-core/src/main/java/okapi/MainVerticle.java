@@ -322,7 +322,6 @@ public class MainVerticle extends AbstractVerticle {
       router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
       router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
       router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
-      router.put("/_/deployment/modules/:instid").handler(deploymentWebService::update);
     }
     if (discoveryService != null) {
       router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);

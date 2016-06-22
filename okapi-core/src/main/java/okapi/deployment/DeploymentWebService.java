@@ -87,25 +87,4 @@ public class DeploymentWebService {
     });
   }
 
-  public void update(RoutingContext ctx) {
-    try {
-      final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
-              DeploymentDescriptor.class);
-      final String id = ctx.request().getParam(INST_ID);
-      if (!id.equals(pmd.getInstId())) {
-        responseError(ctx, 404, "instId parameter does not match payload");
-        return;
-      }
-      md.update(pmd, res -> {
-        if (res.failed()) {
-          responseError(ctx, res.getType(), res.cause());
-        } else {
-          final String s = Json.encodePrettily(res.result());
-          responseJson(ctx, 200).end(s);
-        }
-      });
-    } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
-    }
-  }
 }
