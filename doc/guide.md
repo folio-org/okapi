@@ -547,9 +547,10 @@ cd okapi-auth
 java -Dport=8600 -jar target/okapi-auth-fat.jar
 ```
 
-In the same way, to run the okapi-core, supply its jar file. We must also
-add a command as argument which tells what okapi-core must do. When playing
-with okapi on a single node, we use the `dev` mode.
+In the same way, to run the okapi-core, specify its jar file. It is
+also necessary to provde a further command-line argumenet: a command
+telling okapi-core what mode to run in. When playing with okapi on a
+single node, we use the `dev` mode.
 
 ```
 cd okapi-core
@@ -559,8 +560,8 @@ java -Dport=8600 -jar target/okapi-core-fat.jar dev
 There are other commands available. Supply `help` to get a description of
 these.
 
-A Maven rule to run the gateway is part of the `pom.xml`, in the
-main directory.
+A Maven rule to run the gateway is porovided as part of the `pom.xml`,
+in the main directory.
 
 ```
 mvn exec:exec
@@ -571,7 +572,8 @@ For remote debugging you can use
 ```
 mvn exec:exec@debug
 ```
-This command format requires Maven >= 3.3.1. Will listen for debugging client at port 5005.
+This command format requires Maven >= 3.3.1. Will listen for a
+debugging client at port 5005.
 
 ## Using Okapi
 
