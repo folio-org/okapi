@@ -392,6 +392,16 @@ But it will reject:
 
 TODO -- This needs updating in light of FOLIO-160.
 
+<!--
+How "desired" permissions are handled. The set of permissions which a route specifies as "required" will cause the auth module to reject the request outright if they are missing from a user who tries to invoke that route; but when a permission is only desired, the auth module will include the user's value of that permission in a new header that it adds for the benefit of downstream modules. Then those modules can use the presence or absence of the permission to implement finer-grained control.
+
+Example: a Patron module has a GET /patron/{id} route. The metadata for this route includes:
+    requred-permissions: [ "patron.read" ],
+    desired-permissions: [ "patron.read.sensitive" ]
+
+A user invokes this route. If he does not have the "patron.read" permission, the auth modules rejects the request. Otherwise, the user's value for the "patron.read.sensitive" permission is stashed in a header. When the downstream Patron module sees the request, it can use the presence or absence of the desired permission to decide whether or not to include the patron's date of birth in the response data.
+-->
+
 There is extensive work going on in parallel to Okapi development, to
 establish and define security requirements for the entire Folio
 platform.
@@ -519,6 +529,8 @@ The okapi directory contains a few sub modules. These are
  * `okapi-core`: the gateway server itself
  * `okapi-auth`: a simple module demonstrating authentication
  * `okapi-sample-module`: a module mangling HTTP content
+ * `okapi-header-module`: TODO
+ * `doc`: documentation, including the guide
 
 These two modules are used in tests for okapi-core so they must be built
 before okapi-core tests are performed.
