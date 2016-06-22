@@ -353,8 +353,9 @@ the other.
 
 #### Version numbers
 
-We use a 3-part versioning scheme, like 3.1.41, very much like [Semantic
-Versioning](http://semver.org/)
+We use a 3-part versioning scheme for module software versions, like
+3.1.41 -- very much like [Semantic Versioning](http://semver.org/).
+Interface versions consist only of the first two parts.
 
 The first number is the major version of the interface. It needs to be
 incremented whenever making a change that is not strictly backwards
@@ -362,24 +363,26 @@ compatible, for example removing functionality or changing semantics.
 Okapi will require that the major version number matches exactly what
 is required.
 
-The second number is the minor version of the interface. It needs to be
-incremented whenever compatible changes are made, for example adding new
-functionality or optional fields.  Okapi will check that the module
-providing the service does provide at least the required minor number.
+The second number is the minor version of the interface. It needs to
+be incremented whenever backwards-compatible changes are made, for
+example adding new functionality or optional fields.  Okapi will check
+that the module implementing a service provides at least the required
+minor version.
 
 The third number is the software version. It should be incremented on changes
-that do not affect the interface, for example fixing bugs.
+that do not affect the interface, for example fixing bugs or improving
+efficiency.
 
-If a module requires an interface 3.1.41, it will accept:
-* 3.1.41  - same version
-* 3.1.68  - same interface, later software version
-* 3.2.8   - Higher minor version, compatible interfaces.
+If a module requires an interface 3.2.41, it will accept:
+* 3.2.41  - same version
+* 3.2.68  - same interface, later software version
+* 3.3.8   - Higher minor version, compatible interfaces
 
 But it will reject:
-* 2.2.2   - Different major version
-* 4.4.4   - Different major version
-* 3.0.99  - Lesser minor version
-* 3.1.27  - Too small software version
+* 2.2.2   - Lower major version
+* 4.4.4   - Higher major version
+* 3.1.9   - Lesser minor version
+* 3.2.27  - Too small software version, may not contain crucial bug-fixes
 
 
 ### Open Issues
