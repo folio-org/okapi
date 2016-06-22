@@ -595,7 +595,7 @@ option `-Dstorage=mongo` to the command-line that starts Okapi.
 ### Example modules
 
 Okapi is all about invoking modules, so we need to have a few to play with.
-It comes with two dummy modules that demonstrate different things.
+It comes with three dummy modules that demonstrate different things.
 
 #### Okapi-sample-module
 
@@ -652,7 +652,9 @@ That is enough about the sample module. Go back to the window where you
 left it running, and kill it with a Ctrl-C. It should not have produced
 any output after the initial messages.
 
+#### Okapi-header-module
 
+TODO
 
 #### Okapi-auth-module
 
