@@ -392,7 +392,7 @@ But it will reject:
 
 <!--
 
-TODO -- This needs updating in light of FOLIO-160.
+TODO: This needs updating in light of FOLIO-160.
 
 How "desired" permissions are handled. The set of permissions which a route specifies as "required" will cause the auth module to reject the request outright if they are missing from a user who tries to invoke that route; but when a permission is only desired, the auth module will include the user's value of that permission in a new header that it adds for the benefit of downstream modules. Then those modules can use the presence or absence of the permission to implement finer-grained control.
 
