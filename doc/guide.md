@@ -429,7 +429,7 @@ especially in busy, read-heavy, multi-module pipelines. We plan to
 follow standard HTTP mechanisms and semantics in this respect, and
 implementation details will be established within the coming months.
 
-### Instrumentation and Analytics
+#### Instrumentation and Analytics
 
 In a microservices architecture, monitoring is key to ensure robustness
 and health of the entire system. The way to provide useful monitoring
@@ -453,7 +453,7 @@ Okapi.
 
 There is no direct support for response aggregation in Okapi at the
 moment, as Okapi assumes sequential execution of the pipeline and
-forwards the last response to the next module in the pipeline. In this
+forwards each response to the next module in the pipeline. In this
 mode, it is entirely possible to implement an aggregation module that
 will communicate with multiple modules (via Okapi, to retain the
 provided authentication and service discovery) and combine the
