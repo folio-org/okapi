@@ -797,10 +797,10 @@ Content-Length: 295
 } ]
 ```
 
-Note that Okapi has added an instId and a url. You can check that the URL points
-to the running module:
+Note that Okapi has added an `instId` and a `url`. You can check that
+the URL points to the running module:
 ```
-curl -D -  -w '\n' http://localhost:9131/sample
+curl -D - -w '\n' http://localhost:9131/sample
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -810,8 +810,7 @@ It works
 ```
 
 If we were running in a clustered environment, this step should be repeated
-for each node that should run the sample module. But we run these examples on
-a single machine setup, so it does not matter.
+for each node that should run the sample module.
 
 #### Adding the sample module to the discovery
 
