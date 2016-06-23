@@ -1285,18 +1285,19 @@ java-option `-D` which may set properties for the program: see below
 for relevant properties. Okapi itself parses *command* and any
 *options* that follow.
 
-#### Java -D Options
-The -D option can be used to set up various things in Okapi. These must be in
-the beginning of the command line, before the -jar
+#### Java -D options
+The -D option can be used to specify various run-time parameters in
+Okapi. These must be at the beginning of the command line, before the
+`-jar`.
 
 * `port`: The port on which Okapi listens. Defaults to 9130
 * `port_start` and `port_end`: The range of ports for modules. Default to
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
 Defaults to `localhost`
-* `storage`: Defines the storage back end, `mongo` or `inmemory`
-* `loglevel`: The logging level. Defaults to "INFO", useful values can be
-"DEBUG" or "TRACE".
+* `storage`: Defines the storage back end, `mongo` or (the default) `inmemory`
+* `loglevel`: The logging level. Defaults to `INFO`; other useful values are
+`DEBUG`, `TRACE`, `WARN` and `ERROR`.
 
 #### Command
 Okapi requires exactly one command to be given. These are:
