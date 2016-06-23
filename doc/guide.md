@@ -1316,6 +1316,8 @@ These options are at the end of the command line:
 * `-hazelcast-config-url url` Read config from URL
 * `-enable-metrics` Enables the sending of various metrics to a Carbon back
 end.
+* `-cluster-host ip` Vertx cluster host
+* `-cluster-port port` Vertx cluster port
 
 ### Web Service
 The Okapi service requests (all those prefixed with /_/) are specified
