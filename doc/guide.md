@@ -817,7 +817,7 @@ for each node that should run the sample module.
 Okapi deployment registers the module with discovery automatically.
 
 #### Telling the proxy about the module
-Finally we need to inform the proxy module that we have a sample module that can
+Finally we need to inform the proxy that we have a sample module that can
 be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
 we pass "sample-module" to it.
 
@@ -871,19 +871,24 @@ Content-Length: 392
 
 ```
 
-The routingEntries tell that the module is interested in GET and POST
-requests to the /sample path and nothing else, and that the module is
+The `routingEntries` indicate that the module is interested in GET and POST
+requests to the `/sample` path and nothing else, and that the module is
 supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
 be seen later.
 
-The permission bits are arrays of permission bits that are strictly needed
-for calling /sample, or that the sample module wants to know about, for
-example to enable some extra functionality. Okapi will collect these into
-X-Okapi-Auth-Required and -Wanted headers, and pass them on. Presumably
-some real-life auth module will check if the user actually has the required
-permissions, and refuse the request if not. The simple auth module does not
-do this kind of check, as it has no user database to work with.
+`requredPermission` and `wantedPermissions` are arrays of permission
+bits that are strictly needed for calling `/sample`, or that the
+sample module wants to know about, for example to enable some extra
+functionality. Each permission bit is expressed as an opaque string,
+but some convention may be used to organise them semantically into a
+hierarchy. Okapi collect these permissions into the
+`X-Okapi-Auth-Required` and `X-Okapi-Auth-Wanted` headers, and passes
+them on as part of each request that it makes to a module. The
+authentication module checks whether the actually has the required
+permissions, and refuses the request if not. (The present dummy
+authentication module does not do this kind of check, as it has no
+user database to work with.)
 
 
 #### Deploying the auth module
