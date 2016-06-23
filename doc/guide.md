@@ -906,13 +906,26 @@ END
 
 curl -w '\n' -D - -s \
   -X POST \
-  -o /tmp/authdiscovery.json \
   -H "Content-type: application/json" \
   -d @/tmp/authdeploy.json  \
   http://localhost:9130/_/deployment/modules
 
-cat /tmp/authdiscovery.json
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/deployment/modules/localhost-9132
+Content-Length: 264
 
+{
+  "instId" : "localhost-9134",
+  "srvcId" : "auth",
+  "nodeId" : "localhost",
+  "url" : "http://localhost:9134",
+  "descriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+  }
+}
 ```
 
 Finally we tell the proxying module about it. This is a bit different, we add
