@@ -1305,10 +1305,10 @@ Okapi requires exactly one command to be given. These are:
 * `dev` for running in development, single-node mode
 * `deployment` for deployment only. Clustered mode
 * `proxy` for proxy + discovery. Clustered mode
-* `help` to list command line options and commands
+* `help` to list command-line options and commands
 
 
-#### Command line options
+#### Command line-options
 These options are at the end of the command line:
 
 * `-hazelcast-config-cp file`  Read config from class path
