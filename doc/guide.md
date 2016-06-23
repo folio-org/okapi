@@ -1285,15 +1285,6 @@ java-option `-D` which may set properties for the program: see below
 for relevant properties. Okapi itself parses *command* and any
 *options* that follow.
 
-#### Command
-Okapi requires exactly one command to be given. These are:
-* `cluster` for running in clustered mode/production
-* `dev` for running in development, single-node mode
-* `deployment` for deployment only. Clustered mode
-* `proxy` for proxy + discovery. Clustered mode
-* `help` to list command line options and commands
-
-
 #### Java -D Options
 The -D option can be used to set up various things in Okapi. These must be in
 the beginning of the command line, before the -jar
@@ -1306,6 +1297,15 @@ Defaults to `localhost`
 * `storage`: Defines the storage back end, `mongo` or `inmemory`
 * `loglevel`: The logging level. Defaults to "INFO", useful values can be
 "DEBUG" or "TRACE".
+
+#### Command
+Okapi requires exactly one command to be given. These are:
+* `cluster` for running in clustered mode/production
+* `dev` for running in development, single-node mode
+* `deployment` for deployment only. Clustered mode
+* `proxy` for proxy + discovery. Clustered mode
+* `help` to list command line options and commands
+
 
 #### Command line options
 These options are at the end of the command line:
