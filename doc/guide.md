@@ -1311,13 +1311,13 @@ Okapi requires exactly one command to be given. These are:
 #### Command line-options
 These options are at the end of the command line:
 
-* `-hazelcast-config-cp file`  Read config from class path
-* `-hazelcast-config-file file` Read config from local file
-* `-hazelcast-config-url url` Read config from URL
-* `-enable-metrics` Enables the sending of various metrics to a Carbon back
+* `-hazelcast-config-cp` _file_ -- Read config from class path
+* `-hazelcast-config-file` _file_ -- Read config from local file
+* `-hazelcast-config-url` _url_ -- Read config from URL
+* `-enable-metrics` -- Enables the sending of various metrics to a Carbon back
 end.
-* `-cluster-host ip` Vertx cluster host
-* `-cluster-port port` Vertx cluster port
+* `-cluster-host` _ip_ -- Vertx cluster host
+* `-cluster-port` _port_ -- Vertx cluster port
 
 ### Web Service
 The Okapi service requests (all those prefixed with /_/) are specified
