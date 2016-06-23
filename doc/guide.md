@@ -1278,17 +1278,21 @@ Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
 The Okapi program is shipped as a bundled jar (okapi-core-fat.jar). The
 general invocation is:
 
-  `java` [*java-options*] `-jar patho/okapi-core-fat.jar` *command* [*options*]
+  `java` [*java-options*] `-jar path/okapi-core-fat.jar` *command* [*options*]
 
-This is really just java(1) material. Of particular interest is java-option `-D`
-which may set properties for the program, see below. Okapi itself parses
-*command* and *options* that follow.
+This is a standard Java command-line. Of particular interest is
+java-option `-D` which may set properties for the program: see below
+for relevant properties. Okapi itself parses *command* and any
+*options* that follow.
 
 #### Command
 Okapi requires exactly one command to be given. These are:
-* `dev` for running in development, single-node mode
 * `cluster` for running in clustered mode/production
+* `dev` for running in development, single-node mode
+* `deployment` for deployment only. Clustered mode
+* `proxy` for proxy + discovery. Clustered mode
 * `help` to list command line options and commands
+
 
 #### Java -D Options
 The -D option can be used to set up various things in Okapi. These must be in
