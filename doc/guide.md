@@ -547,7 +547,7 @@ java -Dport=8600 -jar target/okapi-auth-fat.jar
 ```
 
 In the same way, to run the okapi-core, specify its jar file. It is
-also necessary to provde a further command-line argumenet: a command
+also necessary to provde a further command-line argument: a command
 telling okapi-core what mode to run in. When playing with okapi on a
 single node, we use the `dev` mode.
 
@@ -559,7 +559,7 @@ java -Dport=8600 -jar target/okapi-core-fat.jar dev
 There are other commands available. Supply `help` to get a description of
 these.
 
-A Maven rule to run the gateway is porovided as part of the `pom.xml`,
+A Maven rule to run the gateway is provided as part of the `pom.xml`,
 in the main directory.
 
 ```
