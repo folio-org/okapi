@@ -1354,7 +1354,7 @@ the `doc` directory:
 * [`grafana-node-dashboard.json`](grafana-node-dashboard.json)
 * [`grafana-tenant-dashboard.json`](grafana-tenant-dashboard.json)
 
-Some examples of useful graphs in Grafana. These can be pasted direcly under the
+Here are some examples of useful graphs in Grafana. These can be pasted direcly under the
 metric, once you change edit mode (the tool menu at the end of the line) to text
 mode.
   * Activity by tenant:
