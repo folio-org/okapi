@@ -37,7 +37,7 @@ identified patron record that he is interested. Then what happens?
 * Okapi now invokes the request on each appropriate module in turn: in
   this case, just Auth and Patron. First, authentication:
     * Okapi issues a request `GET /patrons/23` to Auth.
-    * Auth determines who the logged-in user is, and what his
+    * Auth determines who the logged-in user is, and what their
       permissions are.
     * If the user's permissions do not include `viewPatrons`, Auth
       returns 403 forbidden, and Okapi breaks off, returning the 403
