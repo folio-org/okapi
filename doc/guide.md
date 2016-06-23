@@ -817,7 +817,8 @@ for each node that should run the sample module.
 Okapi deployment registers the module with discovery automatically.
 
 #### Telling the proxy about the module
-Finally we need to inform the proxy that we have a sample module that can
+
+Now we need to inform the proxy that we have a sample module that can
 be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
 we pass "sample-module" to it.
 
@@ -828,7 +829,7 @@ cat > /tmp/sampleproxy.json <<END
     "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
-      "version" : "1.2.3"
+      "version" : "2.2.3"
     } ],
     "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
@@ -856,7 +857,7 @@ Content-Length: 392
   "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
-      "version" : "1.2.3"
+      "version" : "2.2.3"
     } ],
   "requires" : null,
   "routingEntries" : [ {
@@ -891,9 +892,11 @@ authentication module does not do this kind of check, as it has no
 user database to work with.)
 
 
-#### Deploying the auth module
+#### Deploying and proxying the auth module
+
 The first steps are very similar to the sample module. First we deploy the
-module, then we tell the discovery where it lives:
+module:
+
 ```
 cat > /tmp/authdeploy.json <<END
 {
@@ -928,8 +931,10 @@ Content-Length: 264
 }
 ```
 
-Finally we tell the proxying module about it. This is a bit different, we add
-version dependencies and more routing info:
+Finally we tell the proxy about it. This is a bit different from the
+same operation for the sample module: we add version dependencies and
+more routing info:
+
 ```
 cat > /tmp/authmodule.json <<END
 {
@@ -941,7 +946,7 @@ cat > /tmp/authmodule.json <<END
   } ],
   "requires" : [ {
     "id" : "sample",
-    "version" : "1.2.0"
+    "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
@@ -958,10 +963,10 @@ cat > /tmp/authmodule.json <<END
 END
 ```
 
-For the sake of an example, we specify that the auth module requires
-the sample module to be available, and at least version 1.2.0. You can
-try to see what happens if you require different versions, like 0.9.9,
-1.1.0, 1.3.9, or 2.0.1.
+For the purposes of this example, we specify that the `auth` module requires
+the `sample` module to be available, and at least version 2.2.1. You can
+try to see what happens if you require different versions, like 1.9.9,
+2.1.1, or 2.3.9.
 
 Here we have two routing entries. The second says that this module is
 interested in POST requests to the /login path. This is what we use for
@@ -999,7 +1004,7 @@ Content-Length: 547
   } ],
   "requires" : [ {
     "id" : "sample",
-    "version" : "1.2.0"
+    "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
@@ -1075,6 +1080,17 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/tenant2.json  \
   http://localhost:9130/_/proxy/tenants
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/proxy/tenants/other
+Content-Length: 86
+
+{
+  "id" : "other",
+  "name" : "otherlibrary",
+  "description" : "The Other Library"
+}
 ```
 
 Again, we can list them with
@@ -1127,7 +1143,7 @@ curl -w '\n' -D -  http://localhost:9130/sample
 But of course Okapi can not know which tenant it is that is wanting to use our
 sample module, so it can not allow such, and returns a 403 forbidden.
 
-We need to pass the tenant in our request:
+We need to pass the tenant in the `X-Okapi-Tenant` header of our request:
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: our" \
@@ -1137,8 +1153,9 @@ and indeed the sample module says that _it works_.
 
 ### Enabling both modules for the other tenant
 
-Our other tenant needs to use /sample as well, but it needs to be authenticated
-to be allowed to do that. So we need to enable both sample-module and auth for it:
+For the other tenant, we want to require that only authenticated users
+can access the `sample` module. So we need to enable both
+`sample-module` and `auth` for it:
 
 ```
 cat > /tmp/enabletenant2a.json <<END
@@ -1188,12 +1205,12 @@ Auth.check called without X-Okapi-Token
 
 Why does this happen? The other library has the auth module enabled,
 and that module intercepts _all_ requests (by means of the
-routingEntry whose path is `/` and whose level is 10). As a result,
+`routingEntry` whose path is `/` and whose `level` is 10). As a result,
 the auth module is invoked before the sample module. And the auth
 module causes the request to be rejected unless it contains a suitable
 `X-Okapi-Token`.
 
-In order to get that token, we need to invoke the /login service
+In order to get that token, we need to invoke the `/login` service
 first.
 
 ```
@@ -1213,10 +1230,10 @@ curl -w '\n' -X POST -D - \
 ```
 
 At present, any username is accepted so long as the password is that
-username with "-password" appended. Obviously a real authentication
+username with "`-password`" appended. Obviously a real authentication
 module would look up the username/password pair in a user register.
 
-When successful, /login echoes the login parameters as its response;
+When successful, `/login` echoes the login parameters as its response;
 but more importantly, it also returns a header containing an
 authentication token:
 
