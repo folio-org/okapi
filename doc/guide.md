@@ -671,11 +671,11 @@ Start with:
 java -jar okapi-header-module/target/okapi-header-module-fat.jar
 ```
 
-The module reads X-my-header from leading path /sample. If that header is
-present, it will take its value and append ",foo".
-If no such header is present, it will use the value "foo".
+The module reads `X-my-header` from leading path `/sample`. If that header is
+present, it will take its value and append `,foo`.
+If no such header is present, it will use the value `foo`.
 
-These two cases can be demonstrates with:
+These two cases can be demonstrated with:
 
 ```
 curl -w '\n' -D- http://localhost:8080/sample
