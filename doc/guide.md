@@ -825,7 +825,8 @@ for each node that should run the sample module.
 Okapi deployment registers the module with discovery automatically.
 
 #### Telling the proxy about the module
-Finally we need to inform the proxy module that we have a sample module that can
+
+Now we need to inform the proxy that we have a sample module that can
 be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
 we pass "sample-module" to it.
 
@@ -836,7 +837,7 @@ cat > /tmp/sampleproxy.json <<END
     "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
-      "version" : "1.2.3"
+      "version" : "2.2.3"
     } ],
     "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
@@ -864,7 +865,7 @@ Content-Length: 392
   "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
-      "version" : "1.2.3"
+      "version" : "2.2.3"
     } ],
   "requires" : null,
   "routingEntries" : [ {
@@ -879,24 +880,31 @@ Content-Length: 392
 
 ```
 
-The routingEntries tell that the module is interested in GET and POST
-requests to the /sample path and nothing else, and that the module is
+The `routingEntries` indicate that the module is interested in GET and POST
+requests to the `/sample` path and nothing else, and that the module is
 supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
 be seen later.
 
-The permission bits are arrays of permission bits that are strictly needed
-for calling /sample, or that the sample module wants to know about, for
-example to enable some extra functionality. Okapi will collect these into
-X-Okapi-Auth-Required and -Wanted headers, and pass them on. Presumably
-some real-life auth module will check if the user actually has the required
-permissions, and refuse the request if not. The simple auth module does not
-do this kind of check, as it has no user database to work with.
+`requredPermission` and `wantedPermissions` are arrays of permission
+bits that are strictly needed for calling `/sample`, or that the
+sample module wants to know about, for example to enable some extra
+functionality. Each permission bit is expressed as an opaque string,
+but some convention may be used to organise them semantically into a
+hierarchy. Okapi collects these permissions into the
+`X-Okapi-Auth-Required` and `X-Okapi-Auth-Wanted` headers, and passes
+them on as part of each request that it makes to a module. The
+authentication module checks whether the user actually has the required
+permissions, and refuses the request if not. (The present dummy
+authentication module does not do this kind of check, as it has no
+user database to work with.)
 
 
-#### Deploying the auth module
+#### Deploying and proxying the auth module
+
 The first steps are very similar to the sample module. First we deploy the
-module, then we tell the discovery where it lives:
+module:
+
 ```
 cat > /tmp/authdeploy.json <<END
 {
@@ -909,17 +917,32 @@ END
 
 curl -w '\n' -D - -s \
   -X POST \
-  -o /tmp/authdiscovery.json \
   -H "Content-type: application/json" \
   -d @/tmp/authdeploy.json  \
   http://localhost:9130/_/deployment/modules
 
-cat /tmp/authdiscovery.json
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/deployment/modules/localhost-9132
+Content-Length: 264
 
+{
+  "instId" : "localhost-9134",
+  "srvcId" : "auth",
+  "nodeId" : "localhost",
+  "url" : "http://localhost:9134",
+  "descriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+  }
+}
 ```
 
-Finally we tell the proxying module about it. This is a bit different, we add
-version dependencies and more routing info:
+Finally we tell the proxy about it. This is a bit different from the
+same operation for the sample module: we add version dependencies and
+more routing info:
+
 ```
 cat > /tmp/authmodule.json <<END
 {
@@ -931,7 +954,7 @@ cat > /tmp/authmodule.json <<END
   } ],
   "requires" : [ {
     "id" : "sample",
-    "version" : "1.2.0"
+    "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
@@ -948,10 +971,10 @@ cat > /tmp/authmodule.json <<END
 END
 ```
 
-For the sake of an example, we specify that the auth module requires
-the sample module to be available, and at least version 1.2.0. You can
-try to see what happens if you require different versions, like 0.9.9,
-1.1.0, 1.3.9, or 2.0.1.
+For the purposes of this example, we specify that the `auth` module requires
+the `sample` module to be available, and at least version 2.2.1. You can
+try to see what happens if you require different versions, like 1.9.9,
+2.1.1, or 2.3.9.
 
 Here we have two routing entries. The second says that this module is
 interested in POST requests to the /login path. This is what we use for
@@ -989,7 +1012,7 @@ Content-Length: 547
   } ],
   "requires" : [ {
     "id" : "sample",
-    "version" : "1.2.0"
+    "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
@@ -1065,6 +1088,17 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/tenant2.json  \
   http://localhost:9130/_/proxy/tenants
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/proxy/tenants/other
+Content-Length: 86
+
+{
+  "id" : "other",
+  "name" : "otherlibrary",
+  "description" : "The Other Library"
+}
 ```
 
 Again, we can list them with
@@ -1117,7 +1151,7 @@ curl -w '\n' -D -  http://localhost:9130/sample
 But of course Okapi can not know which tenant it is that is wanting to use our
 sample module, so it can not allow such, and returns a 403 forbidden.
 
-We need to pass the tenant in our request:
+We need to pass the tenant in the `X-Okapi-Tenant` header of our request:
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: our" \
@@ -1127,8 +1161,9 @@ and indeed the sample module says that _it works_.
 
 ### Enabling both modules for the other tenant
 
-Our other tenant needs to use /sample as well, but it needs to be authenticated
-to be allowed to do that. So we need to enable both sample-module and auth for it:
+For the other tenant, we want to require that only authenticated users
+can access the `sample` module. So we need to enable both
+`sample-module` and `auth` for it:
 
 ```
 cat > /tmp/enabletenant2a.json <<END
@@ -1178,12 +1213,12 @@ Auth.check called without X-Okapi-Token
 
 Why does this happen? The other library has the auth module enabled,
 and that module intercepts _all_ requests (by means of the
-routingEntry whose path is `/` and whose level is 10). As a result,
+`routingEntry` whose path is `/` and whose `level` is 10). As a result,
 the auth module is invoked before the sample module. And the auth
 module causes the request to be rejected unless it contains a suitable
 `X-Okapi-Token`.
 
-In order to get that token, we need to invoke the /login service
+In order to get that token, we need to invoke the `/login` service
 first.
 
 ```
@@ -1203,10 +1238,10 @@ curl -w '\n' -X POST -D - \
 ```
 
 At present, any username is accepted so long as the password is that
-username with "-password" appended. Obviously a real authentication
+username with "`-password`" appended. Obviously a real authentication
 module would look up the username/password pair in a user register.
 
-When successful, /login echoes the login parameters as its response;
+When successful, `/login` echoes the login parameters as its response;
 but more importantly, it also returns a header containing an
 authentication token:
 
@@ -1251,74 +1286,83 @@ Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
 The Okapi program is shipped as a bundled jar (okapi-core-fat.jar). The
 general invocation is:
 
-  `java` [*java-options*] `-jar patho/okapi-core-fat.jar` *command* [*options*]
+  `java` [*java-options*] `-jar path/okapi-core-fat.jar` *command* [*options*]
 
-This is really just java(1) material. Of particular interest is java-option `-D`
-which may set properties for the program, see below. Okapi itself parses
-*command* and *options* that follow.
+This is a standard Java command-line. Of particular interest is
+java-option `-D` which may set properties for the program: see below
+for relevant properties. Okapi itself parses *command* and any
+*options* that follow.
 
-#### Command
-Okapi requires exactly one command to be given. These are:
-* `dev` for running in development, single-node mode
-* `cluster` for running in clustered mode/production
-* `help` to list command line options and commands
-
-#### Java -D Options
-The -D option can be used to set up various things in Okapi. These must be in
-the beginning of the command line, before the -jar
+#### Java -D options
+The -D option can be used to specify various run-time parameters in
+Okapi. These must be at the beginning of the command line, before the
+`-jar`.
 
 * `port`: The port on which Okapi listens. Defaults to 9130
 * `port_start` and `port_end`: The range of ports for modules. Default to
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
 Defaults to `localhost`
-* `storage`: Defines the storage back end, `mongo` or `inmemory`
-* `loglevel`: The logging level. Defaults to "INFO", useful values can be
-"DEBUG" or "TRACE".
+* `storage`: Defines the storage back end, `mongo` or (the default) `inmemory`
+* `loglevel`: The logging level. Defaults to `INFO`; other useful values are
+`DEBUG`, `TRACE`, `WARN` and `ERROR`.
 
-#### Command line options
+#### Command
+Okapi requires exactly one command to be given. These are:
+* `cluster` for running in clustered mode/production
+* `dev` for running in development, single-node mode
+* `deployment` for deployment only. Clustered mode
+* `proxy` for proxy + discovery. Clustered mode
+* `help` to list command-line options and commands
+
+
+#### Command line-options
 These options are at the end of the command line:
 
-* `-hazelcast-config-cp file`  Read config from class path
-* `-hazelcast-config-file file` Read config from local file
-* `-hazelcast-config-url url` Read config from URL
-* `-enable-metrics` Enables the sending of various metrics to a Carbon back
+* `-hazelcast-config-cp` _file_ -- Read config from class path
+* `-hazelcast-config-file` _file_ -- Read config from local file
+* `-hazelcast-config-url` _url_ -- Read config from URL
+* `-enable-metrics` -- Enables the sending of various metrics to a Carbon back
 end.
+* `-cluster-host` _ip_ -- Vertx cluster host
+* `-cluster-port` _port_ -- Vertx cluster port
 
 ### Web Service
-The Okapi service requests (all those prefixed with /_/) are specified
+The Okapi service requests (all those prefixed with `/_/`) are specified
 in the [RAML](http://raml.org/) syntax.
 
-  * [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
-  * [RAML and included files](../okapi-core/src/main/raml)
+  * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
+  * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
 
 ### Instrumentation
-Okapi pushes instrumentation numbers to a Carbon/Graphite backend, from which
+Okapi pushes instrumentation data to a Carbon/Graphite backend, from which
 they can be shown with something like Grafana. Vert.x pushes some numbers
 automatically, but various parts of Okapi push their own numbers explicitly,
-so we can split them by tenant or module or something. It is expected that
+so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-  * `folio.okapi.$HOST.proxy.$TENANT.$HTTPMETHOD.$PATH` Time for the whole
-request, including all modules that it ended up invoking.
-  * `folio.okapi.$HOST.proxy.$TENANT.module.$SRVCID` Time for one module
-invocation.
-  * `folio.okapi.$HOST.tenants.count` Number of tenants known to the system
-  * `folio.okapi.$HOST.tenants.$TENANT.create` Timer on the creation of tenants
-  * `folio.okapi.$HOST.tenants.$TENANT.update` Timer on the updating of tenants
-  * `folio.okapi.$HOST.tenants.$TENANT.delete` Timer on deleting tenants
-  * `folio.okapi.$HOST.modules.count` Number of modules known to the system
-  * `folio.okapi.$HOST.deploy.$SRVCID.deploy` Timer for deploying a module
-  * `folio.okapi.$HOST.deploy.$SRVCID.undeploy` Timer for undeploying a module
-  * `folio.okapi.$HOST.deploy.$SRVCID.update` Timer for updating a module
+  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.`_$HTTPMETHOD_`.`_$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
+  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.module.`_$SRVCID`_ -- Time for one module invocation.
+  * `folio.okapi.`_$HOST_`.tenants.count` -- Number of tenants known to the system
+  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.create` -- Timer on the creation of tenants
+  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.update` -- Timer on the updating of tenants
+  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.delete` -- Timer on deleting tenants
+  * `folio.okapi.`_$HOST_`.modules.count` -- Number of modules known to the system
+  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.deploy` -- Timer for deploying a module
+  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.undeploy` -- Timer for undeploying a module
+  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.update` -- Timer for updating a module
 
-The `$-variables` will of course get the actual values.
+The `$`_NAME_ variables will of course get the actual values.
 
-There is an example of a Grafana dashboard definition in grafana-dashboard.json,
-under the doc directory.
+There are some examples of Grafana dashboard definitions in
+the `doc` directory:
+* [`grafana-main-dashboard.json`](grafana-main-dashboard.json)
+* [`grafana-module-dashboard.json`](grafana-module-dashboard.json)
+* [`grafana-node-dashboard.json`](grafana-node-dashboard.json)
+* [`grafana-tenant-dashboard.json`](grafana-tenant-dashboard.json)
 
-Some examples of useful graphs in Grafana. These can be pasted direcly under the
+Here are some examples of useful graphs in Grafana. These can be pasted direcly under the
 metric, once you change edit mode (the tool menu at the end of the line) to text
 mode.
   * Activity by tenant:
