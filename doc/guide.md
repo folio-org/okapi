@@ -883,10 +883,10 @@ bits that are strictly needed for calling `/sample`, or that the
 sample module wants to know about, for example to enable some extra
 functionality. Each permission bit is expressed as an opaque string,
 but some convention may be used to organise them semantically into a
-hierarchy. Okapi collect these permissions into the
+hierarchy. Okapi collects these permissions into the
 `X-Okapi-Auth-Required` and `X-Okapi-Auth-Wanted` headers, and passes
 them on as part of each request that it makes to a module. The
-authentication module checks whether the actually has the required
+authentication module checks whether the user actually has the required
 permissions, and refuses the request if not. (The present dummy
 authentication module does not do this kind of check, as it has no
 user database to work with.)
