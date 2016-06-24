@@ -120,7 +120,7 @@ public class ProxyService {
   }
 
   // Get the auth bits from the module list into
-  // X-Okapi-Auth-Required and X-Okapi-Auth-Wanted headers
+  // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
   private void authHeaders(List<ModuleInstance> modlist, Map<String, String> extraReqHeaders) {
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
@@ -136,12 +136,12 @@ public class ProxyService {
       }
     }
     if (!req.isEmpty()) {
-      logger.debug("authHeaders:X-Okapi-Auth-Required: " + String.join(",", req));
-      extraReqHeaders.put("X-Okapi-Auth-Required", String.join(",", req));
+      logger.debug("authHeaders:X-Okapi-Permissions-Required: " + String.join(",", req));
+      extraReqHeaders.put("X-Okapi-Permissions-Required", String.join(",", req));
     }
     if (!want.isEmpty()) {
-      logger.debug("authHeaders:X-Okapi-Auth-Wanted: " + String.join(",", want));
-      extraReqHeaders.put("X-Okapi-Auth-Wanted", String.join(",", want));
+      logger.debug("authHeaders:X-Okapi-Permissions-Desired: " + String.join(",", want));
+      extraReqHeaders.put("X-Okapi-Permissions-Desired", String.join(",", want));
     }
   }
 

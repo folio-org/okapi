@@ -43,12 +43,12 @@ public class MainVerticle extends AbstractVerticle {
     final String xmlMsg2 = xmlMsg; // it needs to be final, in the callbacks
     ctx.response().putHeader("Content-Type", "text/plain");
     // Copy the auth bit headers in the response, so we can test them.
-    hv = ctx.request().getHeader("X-Okapi-Auth-Required");
+    hv = ctx.request().getHeader("X-Okapi-Permissions-Required");
     if (hv != null)
-      ctx.response().putHeader("X-Okapi-Auth-Required",hv);
-    hv = ctx.request().getHeader("X-Okapi-Auth-Wanted");
+      ctx.response().putHeader("X-Okapi-Permissions-Required",hv);
+    hv = ctx.request().getHeader("X-Okapi-Permissions-Desired");
     if (hv != null)
-      ctx.response().putHeader("X-Okapi-Auth-Wanted",hv);
+      ctx.response().putHeader("X-Okapi-Permissions-Desired",hv);
 
 
     if (ctx.request().method().equals(HttpMethod.GET)) {

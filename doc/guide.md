@@ -662,7 +662,28 @@ any output after the initial messages.
 
 #### Okapi-header-module
 
-TODO
+The header module demonstrates the use of a type=headers module; that is
+a module which inspects HTTP headers and produces a new set of HTTP headers.
+The response body is ignored and should be empty.
+
+Start with:
+```
+java -jar okapi-header-module/target/okapi-header-module-fat.jar
+```
+
+The module reads `X-my-header` from leading path `/sample`. If that header is
+present, it will take its value and append `,foo`.
+If no such header is present, it will use the value `foo`.
+
+These two cases can be demonstrated with:
+
+```
+curl -w '\n' -D- http://localhost:8080/sample
+```
+and
+```
+curl -w '\n' -H "X-my-header:hey" -D- http://localhost:8080/sample
+```
 
 #### Okapi-auth-module
 
@@ -892,7 +913,7 @@ sample module wants to know about, for example to enable some extra
 functionality. Each permission bit is expressed as an opaque string,
 but some convention may be used to organise them semantically into a
 hierarchy. Okapi collects these permissions into the
-`X-Okapi-Auth-Required` and `X-Okapi-Auth-Wanted` headers, and passes
+`X-Okapi-Permissions-Required` and `X-Okapi-Permissions-Desired` headers, and passes
 them on as part of each request that it makes to a module. The
 authentication module checks whether the user actually has the required
 permissions, and refuses the request if not. (The present dummy
