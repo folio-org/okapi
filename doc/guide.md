@@ -892,7 +892,7 @@ sample module wants to know about, for example to enable some extra
 functionality. Each permission bit is expressed as an opaque string,
 but some convention may be used to organise them semantically into a
 hierarchy. Okapi collects these permissions into the
-`X-Okapi-Auth-Required` and `X-Okapi-Auth-Wanted` headers, and passes
+`X-Okapi-Permissions-Required` and `X-Okapi-Permissions-Desired` headers, and passes
 them on as part of each request that it makes to a module. The
 authentication module checks whether the user actually has the required
 permissions, and refuses the request if not. (The present dummy

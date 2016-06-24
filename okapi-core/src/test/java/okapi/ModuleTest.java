@@ -547,7 +547,7 @@ public class ModuleTest {
             .header("X-Okapi-Token", okapiToken)
             .get("/sample")
             .then().statusCode(200)
-            .header("X-Okapi-Auth-Required", "sample.needed")
+            .header("X-Okapi-Permissions-Required", "sample.needed")
             .body(equalTo("It works"));
             // Check only the required bit, since there is only one.
             // There are wanted bits too, two of them, but their order is not
