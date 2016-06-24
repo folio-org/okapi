@@ -385,52 +385,60 @@ But it will reject:
 * 3.2.27  - Too small software version, may not contain crucial bug-fixes
 
 
+### Security
+
+The security model consists of two parts: User authentication and authorization.
+Most of the work is left for separate modules, but Okapi has some facilities to
+support these.
+
+#### Authentication
+
+The actual authentication is delegated to some external module, as it may be
+based on several different external systems. In any case, the auth module will
+provide a cryptiographically signed token, that the client will include in any
+request to Okapi, and that the auth module can verify.
+
+#### Authorization
+
+Okapi itself does not really enforce user permissions, but it has some facilities
+to help a module check those. On a coarse level, the auth module can refuse any
+access to some given module, if the user does not have permission for it. It can
+also supply information on a finer level, but will be up to the modules themselves
+to decide how that affects their behavior.
+
+The RoutingEntries in the ModuleDescriptor have two fields, `required-permissions`
+and `wanted-permissions`. The first contains names of permission bits that are
+strictly required for calling this service. We assume that a separate auth module
+will check if the logged-in user has all these permissions, and will reject the
+request if some are found missing. This decision does not happen inside Okapi,
+as Okapi does not have any database of users etc. It happens in a separate
+module that typically gets invoked early in the chain.
+
+The `wanted-permissions` list contains names of permission bits that the module
+has expressed interest in. The auth module is supposed to check these permissions
+too, and report back (via some headers) which permissions the current user actually
+has. It is up to the actual module to look at those headers and adjust its
+behavior accordingly.
+
+For example, a patron module could have permissions like
+    required-permissions: [ "patron.read" ],
+    wanted-permissions: [ "patron.read.sensitive" ]
+This states that if the user does not have the "patron.read" permission, the
+auth module should reject the request immediately. If the user has that permission,
+the "patron.read.sensitive" bit gets passed on to the patron module, and it can
+decide to show some sensitive information about the patron, or refuse to do so,
+depending on the bit.
+
+Obviously there will have to be a module to administer these permission bits.
+That is outside the scope of the Okapi core, but generally such are done by assigning
+various roles to the different users, and mapping such roles to collections of
+these permission bits, perhaps in a recursive way...
+
+The trivial okapi-auth module included in the Okapi source tree does not implement
+much of this scheme. It is there just to provide an example of some kind of
+authentication mechanisms and its interfaces.
+
 ### Open Issues
-
-#### Security
-
-<!--
-
-TODO: This needs updating in light of FOLIO-160.
-
-How "desired" permissions are handled. The set of permissions which a route specifies as "required" will cause the auth module to reject the request outright if they are missing from a user who tries to invoke that route; but when a permission is only desired, the auth module will include the user's value of that permission in a new header that it adds for the benefit of downstream modules. Then those modules can use the presence or absence of the permission to implement finer-grained control.
-
-Example: a Patron module has a GET /patron/{id} route. The metadata for this route includes:
-    requred-permissions: [ "patron.read" ],
-    desired-permissions: [ "patron.read.sensitive" ]
-
-A user invokes this route. If he does not have the "patron.read" permission, the auth modules rejects the request. Otherwise, the user's value for the "patron.read.sensitive" permission is stashed in a header. When the downstream Patron module sees the request, it can use the presence or absence of the desired permission to decide whether or not to include the patron's date of birth in the response data.
--->
-
-There is extensive work going on in parallel to Okapi development, to
-establish and define security requirements for the entire Folio
-platform.
-
-Generally, within a microservice architecture, each module can decide
-to handle authentication and authorization separately. Obviously, this
-means a lot of duplication, and so a better option is to use Okapi to
-serve as a protection between the modules and the outside world, as
-well as between the modules themselves, and to provide Single Sign
-On (SSO) facilities. As such, Okapi may be able to provide fairly
-effective coarse-grained authentication, e.g. it may prevent access to
-modules from non-authenticated users.
-
-For authorization, it is common to place users in groups or assign
-them roles. Okapi may, optionally, be used to allow/disallow access to
-a module based on a role, but finer grained permissions may be left to
-the module itself. For example a staff member may be able to access a
-specific module – but what they can actually do within the module
-(their specific role) is up to the module.  Making that the
-responsibility of the gateway would probably result in a system that
-is difficult to manage.
-
-Even though within the Folio perimeter we can assume a certain level
-of trust between modules, for module-to-module authentication and
-authorization, we will still want Okapi to serve as a watchdog to
-prevent the services from escalating their privileges or engaging in
-malicious behavior. We are investigating various
-authentication/authorization mechanisms as potential candidates to
-include in Okapi, such as OpenID Connect, SAML and HMAC-over-HTTP.
 
 #### Caching
 
