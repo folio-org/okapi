@@ -388,8 +388,8 @@ But it will reject:
 ### Security
 
 The security model consists of two parts: User authentication and authorization.
-Most of the work is left for separate modules, but Okapi has some facilities to
-support these.
+Most of the work is left for separate modules, but the Okapi core has some
+facilities to support these.
 
 #### Authentication
 
@@ -406,28 +406,28 @@ access to some given module, if the user does not have permission for it. It can
 also supply information on a finer level, but will be up to the modules themselves
 to decide how that affects their behavior.
 
-The RoutingEntries in the ModuleDescriptor have two fields, `required-permissions`
-and `wanted-permissions`. The first contains names of permission bits that are
+The RoutingEntries in the ModuleDescriptor have two fields, `permissionsRequired`
+and `permissionsDesired`. The first contains names of permission bits that are
 strictly required for calling this service. We assume that a separate auth module
 will check if the logged-in user has all these permissions, and will reject the
 request if some are found missing. This decision does not happen inside Okapi,
 as Okapi does not have any database of users etc. It happens in a separate
 module that typically gets invoked early in the chain.
 
-The `wanted-permissions` list contains names of permission bits that the module
+The `permissionsDesired` list contains names of permission bits that the module
 has expressed interest in. The auth module is supposed to check these permissions
 too, and report back (via some headers) which permissions the current user actually
 has. It is up to the actual module to look at those headers and adjust its
 behavior accordingly.
 
 For example, a patron module could have permissions like
-    required-permissions: [ "patron.read" ],
-    wanted-permissions: [ "patron.read.sensitive" ]
+    permissionsRequired: [ "patron.read" ],
+    permissionsDesired: [ "patron.read.sensitive" ]
 This states that if the user does not have the "patron.read" permission, the
-auth module should reject the request immediately. If the user has that permission,
-the "patron.read.sensitive" bit gets passed on to the patron module, and it can
-decide to show some sensitive information about the patron, or refuse to do so,
-depending on the bit.
+auth module should reject the request immediately. If that test passes, the auth 
+module will check the "patron.read.sensitive" permission, and set up a response
+header to indicate if the user has that permission or not. This gets passed to
+the patron module, which can then decide what fields it wants to show or hide.
 
 Obviously there will have to be a module to administer these permission bits.
 That is outside the scope of the Okapi core, but generally such are done by assigning
@@ -844,8 +844,8 @@ cat > /tmp/sampleproxy.json <<END
       "path" : "/sample",
       "level" : "30",
       "type" : "request-response",
-      "requiredPermissions" : [ "sample.needed" ],
-      "wantedPermissions" : [ "sample.extra" ]
+      "permissionsRequired" : [ "sample.needed" ],
+      "permissionsDesired" : [ "sample.extra" ]
     } ]
   }
 END
@@ -873,8 +873,8 @@ Content-Length: 392
     "path" : "/sample",
     "level" : "30",
     "type" : "request-response",
-    "requiredPermissions" : [ "sample.needed" ],
-    "wantedPermissions" : [ "sample.extra" ]
+    "permissionsRequired" : [ "sample.needed" ],
+    "permissionsDesired" : [ "sample.extra" ]
   } ]
 }
 
@@ -886,7 +886,7 @@ supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
 be seen later.
 
-`requredPermission` and `wantedPermissions` are arrays of permission
+`permissionsRequired` and `permissionsDesired` are arrays of permission
 bits that are strictly needed for calling `/sample`, or that the
 sample module wants to know about, for example to enable some extra
 functionality. Each permission bit is expressed as an opaque string,
@@ -1019,15 +1019,15 @@ Content-Length: 547
     "path" : "/",
     "level" : "10",
     "type" : "request-response",
-    "requiredPermissions" : null,
-    "wantedPermissions" : null
+    "permissionsRequired" : null,
+    "permissionsDesired" : null
   }, {
     "methods" : [ "POST" ],
     "path" : "/login",
     "level" : "20",
     "type" : "request-response",
-    "requiredPermissions" : null,
-    "wantedPermissions" : null
+    "permissionsRequired" : null,
+    "permissionsDesired" : null
   } ]
 }
 ```
