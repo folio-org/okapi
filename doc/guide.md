@@ -1342,21 +1342,22 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.`_$HTTPMETHOD_`.`_$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
-  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.module.`_$SRVCID`_ -- Time for one module invocation.
-  * `folio.okapi.`_$HOST_`.tenants.count` -- Number of tenants known to the system
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.create` -- Timer on the creation of tenants
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.update` -- Timer on the updating of tenants
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.delete` -- Timer on deleting tenants
-  * `folio.okapi.`_$HOST_`.modules.count` -- Number of modules known to the system
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.deploy` -- Timer for deploying a module
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.undeploy` -- Timer for undeploying a module
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.update` -- Timer for updating a module
+  * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.`_\$HTTPMETHOD_`.`_\$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
+  * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.module.`_\$SRVCID`_ -- Time for one module invocation.
+  * `folio.okapi.`_\$HOST_`.tenants.count` -- Number of tenants known to the system
+  * `folio.okapi.`_\$HOST_`.tenants.`_\$TENANT_`.create` -- Timer on the creation of tenants
+  * `folio.okapi.`_\$HOST_`.tenants.`_\$TENANT_`.update` -- Timer on the updating of tenants
+  * `folio.okapi.`_\$HOST_`.tenants.`_\$TENANT_`.delete` -- Timer on deleting tenants
+  * `folio.okapi.`_\$HOST_`.modules.count` -- Number of modules known to the system
+  * `folio.okapi.`_\$HOST_`.deploy.`_\$SRVCID_`.deploy` -- Timer for deploying a module
+  * `folio.okapi.`_\$HOST_`.deploy.`_\$SRVCID_`.undeploy` -- Timer for undeploying a module
+  * `folio.okapi.`_\$HOST_`.deploy.`_\$SRVCID_`.update` -- Timer for updating a module
 
 The `$`_NAME_ variables will of course get the actual values.
 
 There are some examples of Grafana dashboard definitions in
 the `doc` directory:
+
 * [`grafana-main-dashboard.json`](grafana-main-dashboard.json)
 * [`grafana-module-dashboard.json`](grafana-module-dashboard.json)
 * [`grafana-node-dashboard.json`](grafana-node-dashboard.json)
@@ -1365,11 +1366,16 @@ the `doc` directory:
 Here are some examples of useful graphs in Grafana. These can be pasted direcly under the
 metric, once you change edit mode (the tool menu at the end of the line) to text
 mode.
+
   * Activity by tenant:
+
       `aliasByNode(sumSeriesWithWildcards(stacked(folio.okapi.localhost.proxy.*.*.*.m1_rate, 'stacked'), 5, 6), 4)`
   * HTTP requests per minute (also for PUT, POST, DELETE, etc)
+
       `alias(folio.okapi.*.vertx.http.servers.*.*.*.*.get-requests.m1_rate, 'GET')`
   * HTTP return codes (also for 4XX and 5XX codes)
+
       `alias(folio.okapi.*.vertx.http.servers.*.*.*.*.responses-2xx.m1_rate, '2XX OK')`
   * Modules invoked by a given tenant
+
       `aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.SOMETENANT.other.*.*.m1_rate, 5),5)`
