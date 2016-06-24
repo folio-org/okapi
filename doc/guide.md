@@ -1334,18 +1334,18 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.`_$HTTPMETHOD_`.`_$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
-  * `folio.okapi.`_$HOST_`.proxy.`_$TENANT_`.module.`_$SRVCID`_ -- Time for one module invocation.
-  * `folio.okapi.`_$HOST_`.tenants.count` -- Number of tenants known to the system
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.create` -- Timer on the creation of tenants
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.update` -- Timer on the updating of tenants
-  * `folio.okapi.`_$HOST_`.tenants.`_$TENANT_`.delete` -- Timer on deleting tenants
-  * `folio.okapi.`_$HOST_`.modules.count` -- Number of modules known to the system
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.deploy` -- Timer for deploying a module
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.undeploy` -- Timer for undeploying a module
-  * `folio.okapi.`_$HOST_`.deploy.`_$SRVCID_`.update` -- Timer for updating a module
+  * `folio.okapi.`$HOST`.proxy.`$TENANT`.`$HTTPMETHOD`.`$PATH` -- Time for the whole request, including all modules that it ended up invoking.
+  * `folio.okapi.`$HOST`.proxy.`$TENANT`.module.`$SRVCID` -- Time for one module invocation.
+  * `folio.okapi.`$HOST`.tenants.count` -- Number of tenants known to the system
+  * `folio.okapi.`$HOST`.tenants.`$TENANT`.create` -- Timer on the creation of tenants
+  * `folio.okapi.`$HOST`.tenants.`$TENANT`.update` -- Timer on the updating of tenants
+  * `folio.okapi.`$HOST`.tenants.`$TENANT`.delete` -- Timer on deleting tenants
+  * `folio.okapi.`$HOST`.modules.count` -- Number of modules known to the system
+  * `folio.okapi.`$HOST`.deploy.`$SRVCID`.deploy` -- Timer for deploying a module
+  * `folio.okapi.`$HOST`.deploy.`$SRVCID`.undeploy` -- Timer for undeploying a module
+  * `folio.okapi.`$HOST`.deploy.`$SRVCID`.update` -- Timer for updating a module
 
-The `$`_NAME_ variables will of course get the actual values.
+The `$`NAME variables will of course get the actual values.
 
 There are some examples of Grafana dashboard definitions in
 the `doc` directory:
