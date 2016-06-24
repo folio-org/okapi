@@ -128,10 +128,7 @@ These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
 system offers such.
 
-<object type="image/svg+xml" data="module_management.svg">
-  <img src="module_management.png" alt="Module Management Diagram">
-</object>
-*Module Management Diagram*
+![Module Management Diagram](module_management.png "Module Management Diagram")
 
 #### What are 'modules'?
 
