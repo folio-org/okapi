@@ -132,7 +132,7 @@ public class TenantManager {
         +", missing dependency " + req.getId() + ": " + req.getVersion();
     } else {
       msg = "Can not enable module '" + md.getId() + "'"
-        + "Insufficient version for " + req.getId() + ". "
+        + "Incompatible version for " + req.getId() + ". "
         + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
     logger.debug(msg);

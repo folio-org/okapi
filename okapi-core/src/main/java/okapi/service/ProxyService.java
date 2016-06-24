@@ -126,11 +126,11 @@ public class ProxyService {
     Set<String> want = new HashSet<>();
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
-      String[] reqp = re.getRequiredPermissions();
+      String[] reqp = re.getPermissionsRequired();
       if (reqp != null) {
         req.addAll(Arrays.asList(reqp));
       }
-      String[] wap = re.getWantedPermissions();
+      String[] wap = re.getPermissionsDesired();
       if (wap != null) {
         want.addAll(Arrays.asList(wap));
       }

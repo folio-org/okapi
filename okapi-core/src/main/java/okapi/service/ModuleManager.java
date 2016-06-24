@@ -83,7 +83,7 @@ public class ModuleManager {
       return "Missing dependency: " + md.getId()
         + " requires " + req.getId() + ": " + req.getVersion();
     } else {
-      return "Insufficient version for " + req.getId() + ". "
+      return "Incompatible version for " + req.getId() + ". "
         + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
   }
