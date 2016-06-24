@@ -230,7 +230,7 @@ public class ModuleTest {
             + "    \"path\" : \"/s\"," + LS
             + "    \"level\" : \"10\"," + LS
             + "    \"type\" : \"request-response\"," + LS
-            + "    \"wantedPermissions\" : [ \"auth.extra\" ]" + LS
+            + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
             + "  }, {"
             + "    \"methods\" : [ \"POST\" ]," + LS
             + "    \"path\" : \"/login\"," + LS
@@ -334,8 +334,8 @@ public class ModuleTest {
             + "    \"path\" : \"/sample\"," + LS
             + "    \"level\" : \"30\"," + LS
             + "    \"type\" : \"request-response\"," + LS
-            + "    \"requiredPermissions\" : [ \"sample.needed\" ]," + LS
-            + "    \"wantedPermissions\" : [ \"sample.extra\" ]" + LS
+            + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+            + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]" + LS
             + "}";
 

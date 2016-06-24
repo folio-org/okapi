@@ -21,23 +21,23 @@ public class RoutingEntry {
   private String path;
   private String level;
   private String type;
-  private String[] requiredPermissions;
-  private String[] wantedPermissions;
+  private String[] permissionsRequired;
+  private String[] permissionsDesired;
 
-  public String[] getRequiredPermissions() {
-    return requiredPermissions;
+  public String[] getPermissionsRequired() {
+    return permissionsRequired;
   }
 
-  public void setRequiredPermissions(String[] requiredPermissions) {
-    this.requiredPermissions = requiredPermissions;
+  public void setPermissionsRequired(String[] permissionsRequired) {
+    this.permissionsRequired = permissionsRequired;
   }
 
-  public String[] getWantedPermissions() {
-    return wantedPermissions;
+  public String[] getPermissionsDesired() {
+    return permissionsDesired;
   }
 
-  public void setWantedPermissions(String[] wantedPermissions) {
-    this.wantedPermissions = wantedPermissions;
+  public void setPermissionsDesired(String[] permissionsDesired) {
+    this.permissionsDesired = permissionsDesired;
   }
 
   public String getType() {

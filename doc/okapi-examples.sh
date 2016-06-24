@@ -54,8 +54,8 @@ cat > /tmp/sampleproxy.json <<END
       "path" : "/sample",
       "level" : "30",
       "type" : "request-response",
-      "requiredPermissions" : [ "sample.needed" ],
-      "wantedPermissions" : [ "sample.extra" ]
+      "permissionsRequired" : [ "sample.needed" ],
+      "permissionsDesired" : [ "sample.extra" ]
     } ]
   }
 END

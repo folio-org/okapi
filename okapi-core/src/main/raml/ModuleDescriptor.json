@@ -39,13 +39,13 @@
           "path": {"type": "string"},
           "level": {"type": "string"},
           "type": {"type": "string"},
-          "requiredPermissions": {
+          "permissionsRequired": {
             "type": ["array","null"],
             "items": {
               "type": "string"
             }
           },
-          "wantedPermissions": {
+          "permissionsDesired": {
             "type": ["array","null"],
             "items": {
               "type": "string"
