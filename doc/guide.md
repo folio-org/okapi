@@ -662,7 +662,28 @@ any output after the initial messages.
 
 #### Okapi-header-module
 
-TODO
+The header module demonstrates the use of a type=headers module; that is
+a module which inspects HTTP headers and produces a new set of HTTP headers.
+The response body is ignored and should be empty.
+
+Start with:
+```
+java -jar okapi-header-module/target/okapi-header-module-fat.jar
+```
+
+The module reads X-my-header from leading path /sample. If that header is
+present, it will take its value and append ",foo".
+If no such header is present, it will use the value "foo".
+
+These two cases can be demonstrates with:
+
+```
+curl -w '\n' -D- http://localhost:8080/sample
+```
+and
+```
+curl -w '\n' -H "X-my-header:hey" -D- http://localhost:8080/sample
+```
 
 #### Okapi-auth-module
 
