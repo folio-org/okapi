@@ -392,7 +392,7 @@ facilities to support these.
 
 The actual authentication is delegated to some external module, as it may be
 based on several different external systems. In any case, the auth module will
-provide a cryptiographically signed token, that the client will include in any
+provide a cryptographically signed token, that the client will include in any
 request to Okapi, and that the auth module can verify.
 
 #### Authorization
@@ -429,7 +429,7 @@ the patron module, which can then decide what fields it wants to show or hide.
 Obviously there will have to be a module to administer these permission bits.
 That is outside the scope of the Okapi core, but generally such are done by assigning
 various roles to the different users, and mapping such roles to collections of
-these permission bits, perhaps in a recursive way...
+these permission bits, perhaps in a recursive way.
 
 The trivial okapi-auth module included in the Okapi source tree does not implement
 much of this scheme. It is there just to provide an example of some kind of
