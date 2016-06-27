@@ -17,7 +17,6 @@ package okapi.header;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
@@ -26,10 +25,10 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
+
   private final Logger logger = LoggerFactory.getLogger("okapi-header");
 
   public void my_header_handle(RoutingContext ctx) {
-    logger.info("header_handle");
     String h = ctx.request().getHeader("X-my-header");
     if (h == null) {
       h = "foo";
@@ -49,7 +48,6 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting header " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
-    //enable reading body to string
 
     router.get("/sample").handler(this::my_header_handle);
     router.post("/sample").handler(this::my_header_handle);
