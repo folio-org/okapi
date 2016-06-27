@@ -15,6 +15,12 @@
  */
 package okapi.bean;
 
+/**
+ * Description of a Tenant.
+ * This is what gets POSTed to /_/proxy/tenants to create new tenants, etc.
+ * Carries an id, and some human-readable info about the tenant.
+ *
+ */
 public class TenantDescriptor {
 
   private String id;

@@ -40,6 +40,12 @@ import okapi.util.Failure;
 import okapi.util.LockedTypedMap;
 import okapi.util.Success;
 
+/**
+ * Keeps track of which modules are running where.
+ * Uses a shared map to list running modules on the different nodes.
+ * Maps a SrvcId to a DeploymentDescpriptor. Can also invoke deployment
+ * and record the result in its map.
+ */
 public class DiscoveryManager implements NodeListener {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

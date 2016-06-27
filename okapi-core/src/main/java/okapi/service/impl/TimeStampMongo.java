@@ -27,7 +27,6 @@ import okapi.util.Success;
 
 /**
  * Time stamps, as stored in Mongo
- *
  */
 public class TimeStampMongo implements TimeStampStore {
 

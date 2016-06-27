@@ -37,6 +37,11 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Manages deployment of modules.
+ * This actually spawns processes and allocates ports for modules that are
+ * to be run. 
+ */
 public class DeploymentManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

@@ -25,6 +25,9 @@ import static okapi.util.HttpResponse.responseError;
 import static okapi.util.HttpResponse.responseJson;
 import static okapi.util.HttpResponse.responseText;
 
+/**
+ * Web service to manage deployments. 
+ */
 public class DeploymentWebService {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final DeploymentManager md;

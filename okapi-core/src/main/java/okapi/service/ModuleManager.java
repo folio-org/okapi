@@ -30,6 +30,10 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Manages a list of modules known to Okapi's /_/proxy.
+ * Maintains consistency checks on module versions, etc.
+ */
 public class ModuleManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

@@ -20,10 +20,17 @@ import com.fasterxml.jackson.annotation.*;
 import java.util.Set;
 import java.util.TreeMap;
 
+/**
+ * Internal representation of a Tenant.
+ * Includes stuff like what modules have been enabled for this tenant, etc.
+ * This is what gets stored in the database.
+ *
+ */
 public class Tenant {
 
   @JsonProperty
   final private TenantDescriptor descriptor;
+  // id and name, and that kind of stuff
 
   @JsonProperty
   final private TreeMap<String, Boolean> enabled;

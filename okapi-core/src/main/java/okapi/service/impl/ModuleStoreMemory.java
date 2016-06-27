@@ -28,6 +28,9 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Implements a mock in-memory storage for the modules.
+ */
 public class ModuleStoreMemory implements ModuleStore {
 
   private final Map<String, ModuleDescriptor> modules = new LinkedHashMap<>();

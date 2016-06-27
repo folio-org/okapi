@@ -17,7 +17,6 @@ package okapi.util;
 
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
@@ -30,6 +29,9 @@ import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Helpers for the DropWizard instrumentation.
+ */
 public class DropwizardHelper {
 
   static Logger logger = LoggerFactory.getLogger("okapi");

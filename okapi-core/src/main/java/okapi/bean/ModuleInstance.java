@@ -15,6 +15,10 @@
  */
 package okapi.bean;
 
+/**
+ * An Instance of a Module that has been enabled for a given tenant.
+ * Used in the proxy for deciding the routing of requests.
+ */
 public class ModuleInstance {
 
   ModuleDescriptor md;

@@ -26,6 +26,9 @@ import static okapi.util.HttpResponse.responseJson;
 import static okapi.util.HttpResponse.responseText;
 import static okapi.util.HttpResponse.responseError;
 
+/**
+ * Web service functions for /_/discovery
+ */
 public class DiscoveryService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

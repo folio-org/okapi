@@ -15,6 +15,9 @@
  */
 package okapi.bean;
 
+/**
+ * Health status for one deployed instance of a module.
+ */
 public class HealthDescriptor {
 
   private String instId;

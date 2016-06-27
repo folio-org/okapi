@@ -23,7 +23,6 @@ import okapi.util.Success;
 
 /**
  * Time stamps, as stored in the in-memory back end
- *
  */
 public class TimeStampMemory implements TimeStampStore {
 

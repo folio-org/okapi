@@ -21,6 +21,10 @@ import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
 import static okapi.util.ErrorType.*;
 
+/**
+ * Factory to create either a vert.x ClusterWideMap or a
+ * AsyncLocalmap, if not running in a clustered mode.
+ */
 public class AsyncMapFactory {
 
   public static <K, V> void create(Vertx vertx, String mapName,

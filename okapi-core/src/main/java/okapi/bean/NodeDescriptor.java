@@ -15,6 +15,10 @@
  */
 package okapi.bean;
 
+/**
+ * Description of a node in the Okapi cluster.
+ * 
+ */
 public class NodeDescriptor {
 
   private String nodeId;

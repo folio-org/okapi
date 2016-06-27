@@ -18,6 +18,10 @@ package okapi.bean;
 import okapi.util.ModuleHandle;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+/**
+ * Description of one deployed module.
+ * Refers to one running instance of a module on a node in the cluster.
+ */
 public class DeploymentDescriptor {
 
   private String instId;

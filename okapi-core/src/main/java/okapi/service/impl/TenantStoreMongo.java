@@ -31,6 +31,9 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Stores Tenants in a Mongo database.
+ */
 public class TenantStoreMongo implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

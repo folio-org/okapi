@@ -18,6 +18,11 @@ package okapi.bean;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+/**
+ * Manages a list of available ports.
+ * When a module is deployed, a new port may be allocated for it from this list.
+ *
+ */
 public class Ports {
 
   private final int port_start;
@@ -35,6 +40,10 @@ public class Ports {
     }
   }
 
+  /**
+   * Allocate a port.
+   * @return the newly allocated port number, of -1 if none available
+   */
   public int get() {
     for (int i = 0; i < ports.length; i++) {
       if (ports[i] == false) {
@@ -47,6 +56,10 @@ public class Ports {
     return -1;
   }
 
+  /**
+   * Release a previously allocated port.
+   * @param p The port to release.
+   */
   public void free(int p) {
     if (p > 0) {
       logger.debug("free port " + p);

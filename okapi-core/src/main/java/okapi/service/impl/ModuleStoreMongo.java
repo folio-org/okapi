@@ -30,6 +30,9 @@ import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
 import okapi.util.Success;
 
+/**
+ * Stores ModuleDescriptors in a Mongo datbase.
+ */
 public class ModuleStoreMongo implements ModuleStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

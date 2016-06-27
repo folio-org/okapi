@@ -49,6 +49,11 @@ import okapi.util.Failure;
 import static okapi.util.HttpResponse.*;
 import okapi.util.Success;
 
+/**
+ * Okapi's proxy service.
+ * Routes incoming requests to relevant modules, as enabled for the current
+ * tenant.
+ */
 public class ProxyService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");

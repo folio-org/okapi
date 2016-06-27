@@ -15,6 +15,9 @@
  */
 package okapi.bean;
 
+/**
+ * Health status for one module.
+ */
 public class HealthModule {
 
   private String id;
