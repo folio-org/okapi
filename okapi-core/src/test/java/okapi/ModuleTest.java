@@ -239,10 +239,9 @@ public class ModuleTest {
             + "  } ]" + LS
             + "}";
 
-
     // Check that we fail on unknown route types
-    final String docBadTypeModule =
-      docAuthModule.replaceAll("request-response", "UNKNOWN-ROUTE-TYPE");
+    final String docBadTypeModule
+            = docAuthModule.replaceAll("request-response", "UNKNOWN-ROUTE-TYPE");
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
@@ -321,6 +320,7 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
+            + "  \"tags\" : null," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
@@ -336,7 +336,8 @@ public class ModuleTest {
             + "    \"type\" : \"request-response\"," + LS
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
-            + "  } ]" + LS
+            + "  } ]," + LS
+            + "  \"uiDescriptor\" : null" + LS
             + "}";
 
     c = api.createRestAssured();
@@ -360,33 +361,33 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given()
-      .get(locationSampleModule)
-      .then().statusCode(200).body(equalTo(docSampleModule));
+            .get(locationSampleModule)
+            .then().statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
     // Try to delete the auth module that our sample depends on
     c.given()
-      .delete(locationAuthModule).then()
-      .log().all()
-      .statusCode(400);
+            .delete(locationAuthModule).then()
+            .log().all()
+            .statusCode(400);
 
     // Try to update the auth module to a lower version, would break
     // sample dependency
     final String docAuthLowerVersion = docAuthModule.replace("1.2.3", "1.1.1");
     c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthLowerVersion)
-      .put(locationAuthModule)
-      .then().statusCode(400);
+            .header("Content-Type", "application/json")
+            .body(docAuthLowerVersion)
+            .put(locationAuthModule)
+            .then().statusCode(400);
 
     // Update the auth module to a bit higher version
     final String docAuthhigherVersion = docAuthModule.replace("1.2.3", "1.2.4");
     c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthhigherVersion)
-      .put(locationAuthModule)
-      .then().statusCode(200);
+            .header("Content-Type", "application/json")
+            .body(docAuthhigherVersion)
+            .put(locationAuthModule)
+            .then().statusCode(200);
 
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -492,8 +493,7 @@ public class ModuleTest {
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
     c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
-      .then().statusCode(400);
-
+            .then().statusCode(400);
 
     String docTenant = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -549,9 +549,9 @@ public class ModuleTest {
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .body(equalTo("It works"));
-            // Check only the required bit, since there is only one.
-            // There are wanted bits too, two of them, but their order is not
-            // well defined...
+    // Check only the required bit, since there is only one.
+    // There are wanted bits too, two of them, but their order is not
+    // well defined...
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -994,7 +994,7 @@ public class ModuleTest {
             .extract().response();
 
     given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module5")
-      .then().statusCode(204);
+            .then().statusCode(204);
 
     given().delete(locationSampleModule)
             .then().statusCode(204);
@@ -1021,7 +1021,6 @@ public class ModuleTest {
             .then().statusCode(200)
             .body(equalTo(docEnableSample));
 
-
     given().header("X-Okapi-Tenant", okapiTenant)
             .body("bar").post("/sample")
             .then().statusCode(200).body(equalTo("Hello foobar"))
@@ -1033,4 +1032,58 @@ public class ModuleTest {
     async.complete();
   }
 
+  @Test
+  public void testUiModule(TestContext context) {
+    async = context.async();
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.cloud");
+
+    final String docUiModuleInput = "{" + LS
+            + "  \"id\" : \"11-22-11-22-11\"," + LS
+            + "  \"name\" : \"sample-ui\"," + LS
+            + "  \"routingEntries\" : [ ]," + LS
+            + "  \"uiDescriptor\" : {" + LS
+            + "    \"npm\" : \"name-of-module-in-npm\"" + LS
+            + "  }" + LS
+            + "}";
+
+    final String docUiModuleOutput = "{" + LS
+            + "  \"id\" : \"11-22-11-22-11\"," + LS
+            + "  \"name\" : \"sample-ui\"," + LS
+            + "  \"tags\" : null," + LS
+            + "  \"provides\" : null," + LS
+            + "  \"requires\" : null," + LS
+            + "  \"routingEntries\" : [ ]," + LS
+            + "  \"uiDescriptor\" : {" + LS
+            + "    \"npm\" : \"name-of-module-in-npm\"," + LS
+            + "    \"args\" : null" + LS
+            + "  }" + LS
+            + "}";
+
+    RestAssuredClient c;
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docUiModuleInput).post("/_/proxy/modules").then().statusCode(201)
+            .body(equalTo(docUiModuleOutput)).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    String location = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    c.given()
+            .get(location)
+            .then().statusCode(200).body(equalTo(docUiModuleOutput));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    given().delete(location)
+            .then().statusCode(204);
+
+    async.complete();
+  }
 }

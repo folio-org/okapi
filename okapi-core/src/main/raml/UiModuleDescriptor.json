@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "UiModuleDescriptor",
+  "type": ["object", "null"],
+  "properties": {
+    "npm": {"type": "string"},
+    "args" : {"type" : ["string", "null"]}
+  },
+  "required": ["npm"]
+}
