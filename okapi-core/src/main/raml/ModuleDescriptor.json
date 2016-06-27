@@ -5,6 +5,9 @@
   "properties": {
     "id": {"type": "string"},
     "name": {"type": "string"},
+    "tags" : {"type" : ["array", "null"],
+      "items" : {"type": "string"}
+    },
     "provides" : {
       "type": ["array", "null"],
       "items" : {
@@ -53,6 +56,9 @@
           }
         }
       }
+    },
+    "uiDescriptor": {
+      "$ref": "UiModuleDescriptor.json"
     }
   },
   "required": ["id", "name", "routingEntries"]

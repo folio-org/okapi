@@ -19,10 +19,12 @@ public class ModuleDescriptor {
 
   private String id;
   private String name;
-  private String url;
+
+  private String[] tags;
   private ModuleInterface[] provides;
   private ModuleInterface[] requires;
   private RoutingEntry[] routingEntries;
+  private UiModuleDescriptor uiDescriptor;
 
   public ModuleDescriptor() {
   }
@@ -35,9 +37,11 @@ public class ModuleDescriptor {
   public ModuleDescriptor(ModuleDescriptor other) {
     this.id = other.id;
     this.name = other.name;
+    this.tags = other.tags;
     this.routingEntries = other.routingEntries;
     this.provides = other.provides;
     this.requires = other.requires;
+    this.uiDescriptor = other.uiDescriptor;
   }
 
   public String getId() {
@@ -46,6 +50,14 @@ public class ModuleDescriptor {
 
   public void setId(String id) {
     this.id = id;
+  }
+
+  public String[] getTags() {
+    return tags;
+  }
+
+  public void setTags(String[] tags) {
+    this.tags = tags;
   }
 
   public ModuleInterface[] getProvides() {
@@ -80,4 +92,11 @@ public class ModuleDescriptor {
     this.name = name;
   }
 
+  public UiModuleDescriptor getUiDescriptor() {
+    return uiDescriptor;
+  }
+
+  public void setUiDescriptor(UiModuleDescriptor uiDescriptor) {
+    this.uiDescriptor = uiDescriptor;
+  }
 }
