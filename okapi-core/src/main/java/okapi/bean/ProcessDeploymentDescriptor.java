@@ -16,7 +16,7 @@
 package okapi.bean;
 
 /**
- * Tells how a module is to be deployed. Either my exec'ing a command (and
+ * Tells how a module is to be deployed. Either by exec'ing a command (and
  * killing the process afterwards), or by using command lines to start and
  * stop it.
  */
