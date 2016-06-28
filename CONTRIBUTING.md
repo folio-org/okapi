@@ -190,7 +190,7 @@ since those produce unnecessary diffs in Git.
 
 ## License
 
-We use the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
+Licensed under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
 See [background](http://www.apache.org/licenses/) information.
 
 ## Tests
