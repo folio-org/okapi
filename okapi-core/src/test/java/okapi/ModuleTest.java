@@ -544,6 +544,7 @@ public class ModuleTest {
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Check that okapi sets up the permission headers
+    // Check also the X-Okapi-Url header in the same go
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("X-all-headers", "H")  // ask sample to report all headers
@@ -555,7 +556,17 @@ public class ModuleTest {
     // Check only the required bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
-    // Check also the X-Okapi-Url header in the same go
+
+    // Check the CORS headers
+    // The presense of the Origin header should provoke the two extra headers
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("Origin", "http://foobar.com" )
+            .get("/sample")
+            .then().statusCode(200)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
+            .body( equalTo("It works"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
