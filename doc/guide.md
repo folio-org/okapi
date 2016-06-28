@@ -333,6 +333,12 @@ body is merged to the final response header set.
 other headers that should be visible in the final response is merged
 into the final response header set.
 
+Okapi always adds a X-Okapi-Url header to the request to any modules.
+This tells the modules how they can make further calls to Okapi, should
+they need to. This Url can be specified on the command line when starting
+Okapi, and it can well point to some load balancer in front of multiple
+Okapi instances.
+
 ### Versioning and Dependencies
 
 Modules can provide one or more interfaces, and can consume interfaces
