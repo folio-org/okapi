@@ -176,7 +176,7 @@ public class ProxyService {
   static void relayToResponse(HttpServerResponse hres, HttpClientResponse res) {
     hres.setChunked(true);
     hres.setStatusCode(res.statusCode());
-    hres.headers().setAll(res.headers());
+    hres.headers().addAll(res.headers());
     hres.headers().remove("Content-Length");
   }
 
