@@ -21,7 +21,6 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
@@ -108,6 +107,7 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("clusterManager not in use");
     }
     final String host = conf("host", "localhost", config);
+    final String okapiUrl = conf("okapiurl", "http://localhost:" + port + "/", config);
     String storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
@@ -186,7 +186,7 @@ public class MainVerticle extends AbstractVerticle {
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
       tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore);
 
-      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager);
+      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
     }
   }
 

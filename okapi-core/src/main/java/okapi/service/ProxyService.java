@@ -63,14 +63,16 @@ public class ProxyService {
   //private TenantWebService tenantService;
   private final TenantManager tenantManager;
   private final DiscoveryManager discoveryManager;
-
+  private final String okapiUrl;
   final private Vertx vertx;
 
-  public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm, DiscoveryManager dm) {
+  public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm, 
+          DiscoveryManager dm, String okapiUrl) {
     this.vertx = vertx;
     this.modules = modules;
     this.tenantManager = tm;
     this.discoveryManager = dm;
+    this.okapiUrl = okapiUrl;
     this.httpClient = vertx.createHttpClient();
   }
 
@@ -216,6 +218,7 @@ public class ProxyService {
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
     Map<String,String> extraReqHeaders = new HashMap<>() ;
+    extraReqHeaders.put("X-Okapi-Url", okapiUrl); // Tell the modules how to talk back to Okapi
     authHeaders(l,extraReqHeaders);
 
     resolveUrls(l.iterator(), res -> {

@@ -1324,6 +1324,9 @@ Defaults to `localhost`
 * `storage`: Defines the storage back end, `mongo` or (the default) `inmemory`
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
+* `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
+as X-Okapi-Url header, and the modules can use this to make further requests
+to Okapi. Defaults to http://localhost:9130/ or what ever port specified.
 
 #### Command
 Okapi requires exactly one command to be given. These are:

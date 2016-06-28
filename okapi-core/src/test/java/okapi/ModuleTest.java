@@ -543,15 +543,19 @@ public class ModuleTest {
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
+    // Check that okapi sets up the permission headers
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
+            .header("X-all-headers", "H")  // ask sample to report all headers
             .get("/sample")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
-            .body(equalTo("It works"));
+            .header("X-Okapi-Url", "http://localhost:9130/")
+            .body( equalTo("It works"));
     // Check only the required bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
+    // Check also the X-Okapi-Url header in the same go
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
