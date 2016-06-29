@@ -558,7 +558,7 @@ public class ModuleTest {
     // well defined...
 
     // Check the CORS headers
-    // The presense of the Origin header should provoke the two extra headers
+    // The presence of the Origin header should provoke the two extra headers
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Origin", "http://foobar.com" )
