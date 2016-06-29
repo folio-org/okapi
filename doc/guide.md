@@ -335,7 +335,7 @@ into the final response header set.
 
 Okapi always adds a X-Okapi-Url header to the request to any modules.
 This tells the modules how they can make further calls to Okapi, should
-they need to. This Url can be specified on the command-line when starting
+they need to. This Url can be specified on the command line when starting
 Okapi, and it can well point to some load balancer in front of multiple
 Okapi instances.
 
@@ -587,9 +587,9 @@ debugging client at port 5005.
 
 ## Using Okapi
 
-These examples show how to use Okapi from the command-line, using the `curl`
+These examples show how to use Okapi from the command line, using the `curl`
 http client. You should be able to copy and paste the commands to your
-command-line from this document.
+command line from this document.
 
 The exact definition of the services is in the RAML files listed in
 the [Reference](#reference) section.
@@ -600,7 +600,7 @@ Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
 to the next. At the moment, MongoDB storage can be enabled by adding the
-option `-Dstorage=mongo` to the command-line that starts Okapi.
+option `-Dstorage=mongo` to the command line that starts Okapi.
 
 
 ### Example modules
@@ -722,7 +722,7 @@ with a known clean state without any modules or tenants defined.
 Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using in-memory storage. (To use MongoDB
-storage instead, add `-Dstorage=mongo` to the command-line.)
+storage instead, add `-Dstorage=mongo` to the command line.)
 
 At the moment Okapi does not know of any module or tenant. But it does
 have its own web services enabled. We can verify both by asking Okapi
@@ -1312,14 +1312,14 @@ general invocation is:
 
   `java` [*java-options*] `-jar path/okapi-core-fat.jar` *command* [*options*]
 
-This is a standard Java command-line. Of particular interest is
+This is a standard Java command line. Of particular interest is
 java-option `-D` which may set properties for the program: see below
 for relevant properties. Okapi itself parses *command* and any
 *options* that follow.
 
 #### Java -D options
 The -D option can be used to specify various run-time parameters in
-Okapi. These must be at the beginning of the command-line, before the
+Okapi. These must be at the beginning of the command line, before the
 `-jar`.
 
 * `port`: The port on which Okapi listens. Defaults to 9130
@@ -1344,7 +1344,7 @@ Okapi requires exactly one command to be given. These are:
 
 
 #### Command-line options
-These options are at the end of the command-line:
+These options are at the end of the command line:
 
 * `-hazelcast-config-cp` _file_ -- Read config from class path
 * `-hazelcast-config-file` _file_ -- Read config from local file
