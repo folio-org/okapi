@@ -87,7 +87,7 @@ the latter.
 
 The specification of the core Okapi web services, in its current form,
 is captured in [RAML](http://raml.org/) (RESTful API Modeling
-Language). See the [Reference](#Reference) section.  The
+Language). See the [Reference](#reference) section.  The
 specification, however, aims to make very few assumptions about the
 actual API endpoints exposed by specific modules, which are basically
 left undefined.  The goal is to allow for different styles and formats
