@@ -161,7 +161,7 @@ public class ModuleManager {
 
     String ten = tenantManager.getModuleUser(id);
     if ( ! ten.isEmpty()) {
-      fut.handle(new Failure<>(USER, "delete: module " + id
+      fut.handle(new Failure<>(USER, "update: module " + id
         + " is used by tenant " + ten ));
       return;
     }
