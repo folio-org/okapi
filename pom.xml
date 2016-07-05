@@ -32,7 +32,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>3.2.1</vertx-version>
+    <vertx-version>3.3.0</vertx-version>
     <docker.registry>docker.indexdata.com:5000</docker.registry>
   </properties>
 
