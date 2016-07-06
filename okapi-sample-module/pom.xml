@@ -90,6 +90,14 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>com.spotify</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <configuration>
+          <skipDockerBuild>false</skipDockerBuild>
+          <skipDockerTag>false</skipDockerTag>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 
