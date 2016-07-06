@@ -337,7 +337,8 @@ public class ModuleTest {
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
-            + "  \"uiDescriptor\" : null" + LS
+            + "  \"uiDescriptor\" : null," + LS
+            + "  \"deploymentDescriptor\" : null" + LS
             + "}";
 
     c = api.createRestAssured();
@@ -1074,7 +1075,8 @@ public class ModuleTest {
             + "  \"uiDescriptor\" : {" + LS
             + "    \"npm\" : \"name-of-module-in-npm\"," + LS
             + "    \"args\" : null" + LS
-            + "  }" + LS
+            + "  }," + LS
+            + "  \"deploymentDescriptor\" : null" + LS
             + "}";
 
     RestAssuredClient c;

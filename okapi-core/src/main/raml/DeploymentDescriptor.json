@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "id": "http://okapi/deployment_descriptor#",
   "title": "DeploymentDescriptor",
-  "type": "object",
+  "type": [ "object", "null" ],
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},

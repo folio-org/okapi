@@ -59,6 +59,9 @@
     },
     "uiDescriptor": {
       "$ref": "UiModuleDescriptor.json"
+    },
+    "deploymentDescriptor": {
+      "$ref": "DeploymentDescriptor.json"
     }
   },
   "required": ["id", "name", "routingEntries"]
