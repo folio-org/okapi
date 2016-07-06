@@ -117,18 +117,17 @@ public class ModuleWebService {
     for (RoutingEntry e : md.getRoutingEntries()) {
       String t = e.getType();
       if (!(t.equals("request-only")
-        || (t.equals("request-response"))
-        || (t.equals("headers")))) {
+              || (t.equals("request-response"))
+              || (t.equals("headers")))) {
         return "Bad routing entry type: '" + t + "'";
       }
     }
     return "";
   }
 
-
   public void create(RoutingContext ctx) {
     try {
-      logger.debug("Trying to decode md: " + ctx.getBodyAsString() );  // !!!
+      logger.debug("Trying to decode md: " + ctx.getBodyAsString());  // !!!
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       String validerr = validate(md);
@@ -137,8 +136,6 @@ public class ModuleWebService {
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
-            logger.error("Failed to start service, will not update the DB. " + md);
-            logger.error("Cause: " + cres.cause().getMessage());
             responseError(ctx, cres.getType(), cres.cause());
           } else {
             moduleStore.insert(md, ires -> {
@@ -173,7 +170,7 @@ public class ModuleWebService {
         });
       }
     } catch (DecodeException ex) {
-      logger.debug("Failed to decode md: " + ctx.getBodyAsString() );
+      logger.debug("Failed to decode md: " + ctx.getBodyAsString());
       responseError(ctx, 400, ex);
     }
   }
@@ -181,14 +178,13 @@ public class ModuleWebService {
   public void update(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
-        ModuleDescriptor.class);
+              ModuleDescriptor.class);
       String validerr = validate(md);
       if (!validerr.isEmpty()) {
         responseError(ctx, 400, validerr);
       } else {
         moduleManager.update(md, cres -> {
           if (cres.failed()) {
-            logger.warn("Failed to update service, will not update the DB. " + md);
             responseError(ctx, cres.getType(), cres.cause());
           } else {
             moduleStore.update(md, ires -> {
