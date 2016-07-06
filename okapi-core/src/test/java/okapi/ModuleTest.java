@@ -54,7 +54,7 @@ public class ModuleTest {
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   public ModuleTest() {
   }
@@ -292,7 +292,7 @@ public class ModuleTest {
             + "}";
 
     c = api.createRestAssured();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModuleBadRequire).post("/_/proxy/modules").then().statusCode(400)
             .extract().response();
@@ -312,7 +312,7 @@ public class ModuleTest {
             + "}";
 
     c = api.createRestAssured();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModuleBadVersion).post("/_/proxy/modules").then().statusCode(400)
             .extract().response();
