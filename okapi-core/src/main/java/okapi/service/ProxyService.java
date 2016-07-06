@@ -59,7 +59,6 @@ public class ProxyService {
 
   private final ModuleManager modules;
   private final HttpClient httpClient;
-  //private TenantWebService tenantService;
   private final TenantManager tenantManager;
   private final DiscoveryManager discoveryManager;
   private final String okapiUrl;
