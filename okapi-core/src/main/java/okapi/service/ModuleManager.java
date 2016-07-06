@@ -31,8 +31,8 @@ import okapi.util.Failure;
 import okapi.util.Success;
 
 /**
- * Manages a list of modules known to Okapi's /_/proxy.
- * Maintains consistency checks on module versions, etc.
+ * Manages a list of modules known to Okapi's /_/proxy. Maintains consistency
+ * checks on module versions, etc.
  */
 public class ModuleManager {
 
@@ -52,16 +52,16 @@ public class ModuleManager {
     this.vertx = vertx;
   }
 
-
   /**
    * Check one dependency.
+   *
    * @param md module to check
    * @param req required dependency
    * @param modlist the list to check against
    * @return "" if ok, or error message
    */
   private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-       HashMap<String, ModuleDescriptor> modlist) {
+          HashMap<String, ModuleDescriptor> modlist) {
     ModuleInterface seenversion = null;
     for (String runningmodule : modlist.keySet()) {
       ModuleDescriptor rm = modlist.get(runningmodule);
@@ -85,10 +85,10 @@ public class ModuleManager {
     }
     if (seenversion == null) {
       return "Missing dependency: " + md.getId()
-        + " requires " + req.getId() + ": " + req.getVersion();
+              + " requires " + req.getId() + ": " + req.getVersion();
     } else {
       return "Incompatible version for " + req.getId() + ". "
-        + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
+              + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
   }
 
@@ -99,30 +99,33 @@ public class ModuleManager {
    * @return "" if no problems, or an erro rmessage
    */
   private String checkDependencies(ModuleDescriptor md,
-        HashMap<String, ModuleDescriptor> modlist) {
+          HashMap<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
     ModuleInterface[] requires = md.getRequires();
     if (requires != null) {
       for (ModuleInterface req : requires) {
         String res = checkOneDependency(md, req, modlist);
-        if ( !res.isEmpty())
+        if (!res.isEmpty()) {
           return res;
+        }
       }
     }
     return "";  // ok
   }
 
   /**
-   * Check that all dependencies are satisfied.
-   * Usually called with a copy of the modules list, after making some change.
+   * Check that all dependencies are satisfied. Usually called with a copy of
+   * the modules list, after making some change.
+   *
    * @param modlist list to check
    * @return true if no problems
    */
-  private String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist){
-    for ( ModuleDescriptor md : modlist.values() ) {
+  private String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist) {
+    for (ModuleDescriptor md : modlist.values()) {
       String res = checkDependencies(md, modlist);
-      if ( !res.isEmpty())
+      if (!res.isEmpty()) {
         return res;
+      }
     }
     return "";
   }
@@ -137,7 +140,7 @@ public class ModuleManager {
     tempList.put(id, md);
 
     String res = checkAllDependencies(tempList);
-    if ( ! res.isEmpty()) {
+    if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "create: module " + id + ": " + res));
       return;
     }
@@ -152,17 +155,17 @@ public class ModuleManager {
       return;
     }
     LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.replace(id,md);
+    tempList.replace(id, md);
     String res = checkAllDependencies(tempList);
-    if ( ! res.isEmpty()) {
+    if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
       return;
     }
 
     String ten = tenantManager.getModuleUser(id);
-    if ( ! ten.isEmpty()) {
+    if (!ten.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id
-        + " is used by tenant " + ten ));
+              + " is used by tenant " + ten));
       return;
     }
 
@@ -179,14 +182,14 @@ public class ModuleManager {
     LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
     tempList.remove(id);
     String res = checkAllDependencies(tempList);
-    if ( ! res.isEmpty()) {
+    if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return;
     }
     String ten = tenantManager.getModuleUser(id);
-    if ( ! ten.isEmpty()) {
+    if (!ten.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id
-        + " is used by tenant " + ten ));
+              + " is used by tenant " + ten));
       return;
     }
     modules.remove(id);

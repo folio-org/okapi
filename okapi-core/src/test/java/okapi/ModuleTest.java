@@ -345,7 +345,6 @@ public class ModuleTest {
             .header("Content-Type", "application/json")
             .body(docSampleModule).post("/_/proxy/modules")
             .then()
-            //.log().all()
             .statusCode(201)
             .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -367,10 +366,7 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
 
     // Try to delete the auth module that our sample depends on
-    c.given()
-            .delete(locationAuthModule).then()
-            .log().all()
-            .statusCode(400);
+    c.given().delete(locationAuthModule).then().statusCode(400);
 
     // Try to update the auth module to a lower version, would break
     // sample dependency
@@ -547,12 +543,12 @@ public class ModuleTest {
     // Check also the X-Okapi-Url header in the same go
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .header("X-all-headers", "H")  // ask sample to report all headers
+            .header("X-all-headers", "H") // ask sample to report all headers
             .get("/sample")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Url", "http://localhost:9130/")
-            .body( equalTo("It works"));
+            .body(equalTo("It works"));
     // Check only the required bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
@@ -561,12 +557,12 @@ public class ModuleTest {
     // The presence of the Origin header should provoke the two extra headers
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .header("Origin", "http://foobar.com" )
+            .header("Origin", "http://foobar.com")
             .get("/sample")
             .then().statusCode(200)
             .header("Access-Control-Allow-Origin", "*")
             .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
-            .body( equalTo("It works"));
+            .body(equalTo("It works"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
