@@ -20,13 +20,13 @@ package okapi.bean;
  * killing the process afterwards), or by using command lines to start and
  * stop it.
  */
-public class ProcessDeploymentDescriptor {
+public class LaunchDescriptor {
 
   private String cmdlineStart;
   private String cmdlineStop;
   private String exec;
 
-  public ProcessDeploymentDescriptor() {
+  public LaunchDescriptor() {
   }
 
   public String getCmdlineStart() {

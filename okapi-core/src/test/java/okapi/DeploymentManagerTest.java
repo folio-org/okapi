@@ -21,7 +21,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.Ports;
-import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.bean.LaunchDescriptor;
 import okapi.deployment.DeploymentManager;
 import okapi.discovery.DiscoveryManager;
 import org.junit.After;
@@ -62,7 +62,7 @@ public class DeploymentManagerTest {
     async = context.async();
     assertNotNull(vertx);
     DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
-    ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
+    LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
             + "../okapi-sample-module/target/okapi-sample-module-fat.jar");
@@ -86,7 +86,7 @@ public class DeploymentManagerTest {
     async = context.async();
     assertNotNull(vertx);
     DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
-    ProcessDeploymentDescriptor descriptor = new ProcessDeploymentDescriptor();
+    LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
             + "../okapi-sample-module/target/unknown.jar");

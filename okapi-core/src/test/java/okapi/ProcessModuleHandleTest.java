@@ -16,7 +16,7 @@
 package okapi;
 
 import okapi.util.ModuleHandle;
-import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.bean.LaunchDescriptor;
 import okapi.util.ProcessModuleHandle;
 import org.junit.Test;
 
@@ -51,7 +51,7 @@ public class ProcessModuleHandleTest {
   @Test
   public void test1(TestContext context) {
     final Async async = context.async();
-    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
+    LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("sleep 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
@@ -75,7 +75,7 @@ public class ProcessModuleHandleTest {
   @Test
   public void test2(TestContext context) {
     final Async async = context.async();
-    ProcessDeploymentDescriptor desc = new ProcessDeploymentDescriptor();
+    LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("sleepxx 10");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;

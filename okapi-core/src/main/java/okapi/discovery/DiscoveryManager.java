@@ -33,7 +33,7 @@ import java.util.List;
 import okapi.bean.DeploymentDescriptor;
 import okapi.bean.HealthDescriptor;
 import okapi.bean.NodeDescriptor;
-import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.bean.LaunchDescriptor;
 import static okapi.util.ErrorType.*;
 import okapi.util.ExtendedAsyncResult;
 import okapi.util.Failure;
@@ -102,7 +102,7 @@ public class DiscoveryManager implements NodeListener {
       fut.handle(new Failure<>(USER, "Needs srvcId"));
       return;
     }
-    final ProcessDeploymentDescriptor descriptor = md.getDescriptor();
+    final LaunchDescriptor descriptor = md.getDescriptor();
     final String nodeId = md.getNodeId();
     if (descriptor == null) { // already deployed
       final String instId = md.getInstId();

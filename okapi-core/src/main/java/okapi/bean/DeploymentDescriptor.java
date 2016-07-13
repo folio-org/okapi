@@ -28,7 +28,7 @@ public class DeploymentDescriptor {
   private String srvcId;
   private String nodeId;
   private String url;
-  private ProcessDeploymentDescriptor descriptor;
+  private LaunchDescriptor descriptor;
 
   @JsonIgnore
   private ModuleHandle moduleHandle;
@@ -38,7 +38,7 @@ public class DeploymentDescriptor {
 
   public DeploymentDescriptor(String instId, String srvcId,
           String url,
-          ProcessDeploymentDescriptor descriptor,
+          LaunchDescriptor descriptor,
           ModuleHandle moduleHandle) {
     this.instId = instId;
     this.srvcId = srvcId;
@@ -48,7 +48,7 @@ public class DeploymentDescriptor {
   }
 
   public DeploymentDescriptor(String instId, String srvcId,
-          ProcessDeploymentDescriptor descriptor) {
+          LaunchDescriptor descriptor) {
     this.instId = instId;
     this.srvcId = srvcId;
     this.url = null;
@@ -88,11 +88,11 @@ public class DeploymentDescriptor {
     this.url = url;
   }
 
-  public ProcessDeploymentDescriptor getDescriptor() {
+  public LaunchDescriptor getDescriptor() {
     return descriptor;
   }
 
-  public void setDescriptor(ProcessDeploymentDescriptor descriptor) {
+  public void setDescriptor(LaunchDescriptor descriptor) {
     this.descriptor = descriptor;
   }
 
