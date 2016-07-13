@@ -61,7 +61,7 @@
       "$ref": "UiModuleDescriptor.json"
     },
     "deploymentDescriptor": {
-      "$ref": "DeploymentDescriptor.json"
+      "$ref": "LaunchDescriptor.json"
     }
   },
   "required": ["id", "name", "routingEntries"]

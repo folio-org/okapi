@@ -30,7 +30,7 @@ public class ModuleDescriptor {
   private ModuleInterface[] requires;
   private RoutingEntry[] routingEntries;
   private UiModuleDescriptor uiDescriptor;
-  private DeploymentDescriptor deploymentDescriptor;
+  private LaunchDescriptor launchDescriptor;
 
 
   public ModuleDescriptor() {
@@ -49,7 +49,7 @@ public class ModuleDescriptor {
     this.provides = other.provides;
     this.requires = other.requires;
     this.uiDescriptor = other.uiDescriptor;
-    this.deploymentDescriptor = other.deploymentDescriptor;
+    this.launchDescriptor = other.launchDescriptor;
   }
 
   public String getId() {
@@ -108,12 +108,12 @@ public class ModuleDescriptor {
     this.uiDescriptor = uiDescriptor;
   }
 
-  public DeploymentDescriptor getDeploymentDescriptor() {
-    return deploymentDescriptor;
+  public LaunchDescriptor getLaunchDescriptor() {
+    return launchDescriptor;
   }
 
-  public void setDeploymentDescriptor(DeploymentDescriptor deploymentDescriptor) {
-    this.deploymentDescriptor = deploymentDescriptor;
+  public void setLaunchDescriptor(LaunchDescriptor launchDescriptor) {
+    this.launchDescriptor = launchDescriptor;
   }
 
 }

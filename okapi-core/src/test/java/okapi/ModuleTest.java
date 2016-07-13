@@ -338,9 +338,13 @@ public class ModuleTest {
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
             + "  \"uiDescriptor\" : null," + LS
-            + "  \"deploymentDescriptor\" : null" + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null," + LS
+            + "    \"cmdlineStop\" : null," + LS
+            + "    \"exec\" : \"/usr/bin/false\"" + LS
+            + "  }" + LS
             + "}";
-
+    logger.debug(docSampleModule);
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
@@ -1076,7 +1080,7 @@ public class ModuleTest {
             + "    \"npm\" : \"name-of-module-in-npm\"," + LS
             + "    \"args\" : null" + LS
             + "  }," + LS
-            + "  \"deploymentDescriptor\" : null" + LS
+            + "  \"launchDescriptor\" : null" + LS
             + "}";
 
     RestAssuredClient c;
