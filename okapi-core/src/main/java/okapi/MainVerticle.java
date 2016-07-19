@@ -134,7 +134,7 @@ public class MainVerticle extends AbstractVerticle {
 
     discoveryManager = new DiscoveryManager();
     if (clusterManager != null) {
-      discoveryManager.set(clusterManager);
+      discoveryManager.setClusterManager(clusterManager);
     }
     if (enableDeployment) {
       Ports ports = new Ports(port_start, port_end);
@@ -164,6 +164,9 @@ public class MainVerticle extends AbstractVerticle {
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
 
+      if (discoveryManager != null && moduleManager != null) {
+        discoveryManager.setModuleManager(moduleManager);
+      }
       ModuleStore moduleStore = null;
       TimeStampStore timeStampStore = null;
 

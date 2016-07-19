@@ -357,6 +357,7 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
+
     c = api.createRestAssured(); // trailing slash is no good
     c.given().get("/_/proxy/modules/").then().statusCode(404);
 
@@ -595,7 +596,7 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"nodeId\" : null," + LS  // no nodeId, we aren't deploying on any node
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     r = c.given()
@@ -906,6 +907,71 @@ public class ModuleTest {
     // verify that a never-seen module returns the same
     given().get("/_/discovery/modules/UNKNOWN-MODULE")
             .then().statusCode(404);
+
+    // Deploy a module via its own LaunchDescriptor
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"tags\" : null," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0.0\"" + LS
+      + "  } ]," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/sample\"," + LS
+      + "    \"level\" : \"30\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"uiDescriptor\" : null," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"cmdlineStart\" : null," + LS
+      + "    \"cmdlineStop\" : null," + LS
+      + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).post("/_/proxy/modules")
+      .then()
+      //.log().all()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
+    final String docDeploy = "{" + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"descriptor\" : null" + LS
+            + "}";
+    final String DeployResp = "{" + LS
+    +"  \"instId\" : \"localhost-9131\"," + LS
+    +"  \"srvcId\" : \"sample-module\"," + LS
+    +"  \"nodeId\" : \"localhost\"," + LS
+    +"  \"url\" : \"http://localhost:9131\"," + LS
+    +"  \"descriptor\" : {" + LS
+    +"    \"cmdlineStart\" : null," + LS
+    +"    \"cmdlineStop\" : null," + LS
+    +"    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+    +"  }" + LS
+    +"}";
+
+    r = given().header("Content-Type", "application/json")
+            .body(docDeploy).post("/_/discovery/modules")
+            .then().statusCode(201)
+            .body(equalTo(DeployResp))
+            .extract().response();
+    locationSample5Deployment = r.getHeader("Location");
+    
 
     async.complete();
   }
