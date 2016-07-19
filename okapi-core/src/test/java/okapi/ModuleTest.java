@@ -978,6 +978,9 @@ public class ModuleTest {
     // Undeploy
     given().delete(locationSample5Deployment)
       .then().statusCode(204);
+    // Undeploy again, to see it is gone
+    given().delete(locationSample5Deployment)
+      .then().statusCode(404);
     locationSample5Deployment = null;
     
     // and delete from the proxy
