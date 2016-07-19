@@ -60,7 +60,7 @@
     "uiDescriptor": {
       "$ref": "UiModuleDescriptor.json"
     },
-    "deploymentDescriptor": {
+    "launchDescriptor": {
       "$ref": "LaunchDescriptor.json"
     }
   },
