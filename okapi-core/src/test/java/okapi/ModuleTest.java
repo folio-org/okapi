@@ -971,7 +971,18 @@ public class ModuleTest {
             .body(equalTo(DeployResp))
             .extract().response();
     locationSample5Deployment = r.getHeader("Location");
+
+    // Would be nice to verify that the module works, but too much hazzle with
+    // tenants etc
+
+    // Undeploy
+    given().delete(locationSample5Deployment)
+      .then().statusCode(204);
+    locationSample5Deployment = null;
     
+    // and delete from the proxy
+    given().delete(locationSampleModule)
+      .then().statusCode(204);
 
     async.complete();
   }
