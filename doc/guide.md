@@ -611,6 +611,23 @@ course in real life we will want some of our data to persist from one invocation
 to the next. At the moment, MongoDB storage can be enabled by adding the
 option `-Dstorage=mongo` to the command line that starts Okapi.
 
+### Curl examples
+
+The following examples can be pasted into a command line console. It is also
+possible to extract all the example records with a perl one-liner, assuming you
+have this guide in the current directory, as guide.md, as it is in the source
+tree.
+```
+perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
+```
+It is also possible to run all the examples with a bit more complex command:
+```
+perl -n -e  'print if /^curl /../http/; ' guide.md |
+  grep -v 8080 | grep -v DELETE |
+  sh -x
+```
+This explicitly omits the cleaning up DELETE commands, so it leaves Okapi in a
+well defined state with a few modules enabled for a few known tenants.
 
 ### Example modules
 
@@ -827,7 +844,7 @@ Content-Length: 295
 
 [ {
   "instId" : "localhost-9131",
-  "srvcId" : "sample-module",
+  "srvcId" : "sample",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -861,12 +878,12 @@ Okapi deployment registers the module with discovery automatically.
 
 Now we need to inform the proxy that we have a sample module that can
 be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
-we pass "sample-module" to it.
+we pass "sample" to it.
 
 ```
 cat > /tmp/sampleproxy.json <<END
   {
-    "id" : "sample-module",
+    "id" : "sample",
     "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
@@ -890,11 +907,11 @@ curl -w '\n' -X POST -D -   \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/sample-module
+Location: /_/proxy/modules/module
 Content-Length: 464
 
 {
-  "id" : "sample-module",
+  "id" : "sample",
   "name" : "okapi sample module",
     "provides" : [ {
       "id" : "sample",
@@ -1179,7 +1196,7 @@ module, without enabling the auth module.
 ```
 cat > /tmp/enabletenant1.json <<END
 {
-  "id" : "sample-module"
+  "id" : "sample"
 }
 END
 
@@ -1222,12 +1239,12 @@ and indeed the sample module says that _it works_.
 
 For the other tenant, we want to require that only authenticated users
 can access the `sample` module. So we need to enable both
-`sample-module` and `auth` for it:
+`sample` and `auth` for it:
 
 ```
 cat > /tmp/enabletenant2a.json <<END
 {
-  "id" : "sample-module"
+  "id" : "sample"
 }
 END
 
@@ -1322,10 +1339,11 @@ These are left as an exercise for the reader.
 
 ### Cleaning up
 Now we can clean up some things
+
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample-module
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample/localhost-9131
