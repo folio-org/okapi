@@ -906,8 +906,8 @@ public class ModuleTest {
 
     // Deploy a module via its own LaunchDescriptor
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
-      + "  \"name\" : \"sample module\"," + LS
+      + "  \"id\" : \"sample-module-depl\"," + LS
+      + "  \"name\" : \"sample module for deoployment test\"," + LS
       + "  \"tags\" : null," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
@@ -945,13 +945,13 @@ public class ModuleTest {
     final String locationSampleModule = r.getHeader("Location");
 
     final String docDeploy = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"srvcId\" : \"sample-module-depl\"," + LS
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : null" + LS
             + "}";
     final String DeployResp = "{" + LS
     +"  \"instId\" : \"localhost-9131\"," + LS
-    +"  \"srvcId\" : \"sample-module\"," + LS
+    +"  \"srvcId\" : \"sample-module-depl\"," + LS
     +"  \"nodeId\" : \"localhost\"," + LS
     +"  \"url\" : \"http://localhost:9131\"," + LS
     +"  \"descriptor\" : {" + LS
