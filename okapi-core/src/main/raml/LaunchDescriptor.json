@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://okapi/launch_descriptor#",
+  "title": "LaunchDescriptor",
+  "type": [ "object", "null" ],
+  "properties": {
+    "exec": {"type": ["string", "null"]},
+    "cmdlineStart": {"type": ["string", "null"]},
+    "cmdlineStop": {"type": ["string", "null"]}
+  },
+  "required": ["exec"]
+}

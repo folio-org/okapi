@@ -1,19 +1,13 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://okapi/deployment_descriptor#",
   "title": "DeploymentDescriptor",
-  "type": "object",
+  "type": [ "object", "null" ],
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},
     "url": {"type": ["string", "null"]},
-    "descriptor" : {
-      "type": ["object", "null"],
-      "properties": {
-        "exec": {"type": ["string", "null"]},
-        "cmdlineStart": {"type": ["string", "null"]},
-        "cmdlineStop": {"type": ["string", "null"]}
-      }
+    "descriptor" : { 
+      "$ref": "LaunchDescriptor.json" 
     }
   },
   "required": ["srvcId"]

@@ -29,20 +29,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessBuilder.Redirect;
 import okapi.bean.Ports;
-import okapi.bean.ProcessDeploymentDescriptor;
+import okapi.bean.LaunchDescriptor;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
-  private final ProcessDeploymentDescriptor desc;
+  private final LaunchDescriptor desc;
   private Process p;
   private final int port;
   private final Ports ports;
   private static final int max_iterations = 30; // x*(x+1) * 0.1 seconds..
 
-  public ProcessModuleHandle(Vertx vertx, ProcessDeploymentDescriptor desc,
+  public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
     this.vertx = vertx;
     this.desc = desc;
@@ -79,6 +79,10 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
+    if (desc == null ) {
+      startFuture.handle(Future.failedFuture("No launchDescriptor"));
+      return;
+    }
     if (port > 0) {
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);

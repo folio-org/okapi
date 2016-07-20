@@ -54,7 +54,7 @@ public class ModuleTest {
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   public ModuleTest() {
   }
@@ -292,7 +292,7 @@ public class ModuleTest {
             + "}";
 
     c = api.createRestAssured();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModuleBadRequire).post("/_/proxy/modules").then().statusCode(400)
             .extract().response();
@@ -312,7 +312,7 @@ public class ModuleTest {
             + "}";
 
     c = api.createRestAssured();
-    r = c.given()
+    c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModuleBadVersion).post("/_/proxy/modules").then().statusCode(400)
             .extract().response();
@@ -337,9 +337,14 @@ public class ModuleTest {
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
-            + "  \"uiDescriptor\" : null" + LS
+            + "  \"uiDescriptor\" : null," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null," + LS
+            + "    \"cmdlineStop\" : null," + LS
+            + "    \"exec\" : \"/usr/bin/false\"" + LS
+            + "  }" + LS
             + "}";
-
+    logger.debug(docSampleModule);
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
@@ -350,6 +355,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
+
 
     c = api.createRestAssured(); // trailing slash is no good
     c.given().get("/_/proxy/modules/").then().statusCode(404);
@@ -586,7 +592,7 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"nodeId\" : null," + LS  // no nodeId, we aren't deploying on any node
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     r = c.given()
@@ -898,6 +904,85 @@ public class ModuleTest {
     given().get("/_/discovery/modules/UNKNOWN-MODULE")
             .then().statusCode(404);
 
+    // Deploy a module via its own LaunchDescriptor
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"tags\" : null," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0.0\"" + LS
+      + "  } ]," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/sample\"," + LS
+      + "    \"level\" : \"30\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"uiDescriptor\" : null," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"cmdlineStart\" : null," + LS
+      + "    \"cmdlineStop\" : null," + LS
+      + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).post("/_/proxy/modules")
+      .then()
+      //.log().all()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
+    final String docDeploy = "{" + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"descriptor\" : null" + LS
+            + "}";
+    final String DeployResp = "{" + LS
+    +"  \"instId\" : \"localhost-9131\"," + LS
+    +"  \"srvcId\" : \"sample-module\"," + LS
+    +"  \"nodeId\" : \"localhost\"," + LS
+    +"  \"url\" : \"http://localhost:9131\"," + LS
+    +"  \"descriptor\" : {" + LS
+    +"    \"cmdlineStart\" : null," + LS
+    +"    \"cmdlineStop\" : null," + LS
+    +"    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+    +"  }" + LS
+    +"}";
+
+    r = given().header("Content-Type", "application/json")
+            .body(docDeploy).post("/_/discovery/modules")
+            .then().statusCode(201)
+            .body(equalTo(DeployResp))
+            .extract().response();
+    locationSample5Deployment = r.getHeader("Location");
+
+    // Would be nice to verify that the module works, but too much hazzle with
+    // tenants etc
+
+    // Undeploy
+    given().delete(locationSample5Deployment)
+      .then().statusCode(204);
+    // Undeploy again, to see it is gone
+    given().delete(locationSample5Deployment)
+      .then().statusCode(404);
+    locationSample5Deployment = null;
+    
+    // and delete from the proxy
+    given().delete(locationSampleModule)
+      .then().statusCode(204);
+
     async.complete();
   }
 
@@ -1070,7 +1155,8 @@ public class ModuleTest {
             + "  \"uiDescriptor\" : {" + LS
             + "    \"npm\" : \"name-of-module-in-npm\"," + LS
             + "    \"args\" : null" + LS
-            + "  }" + LS
+            + "  }," + LS
+            + "  \"launchDescriptor\" : null" + LS
             + "}";
 
     RestAssuredClient c;
