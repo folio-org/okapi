@@ -118,7 +118,8 @@ and allocating network addresses for the various service modules.
 
 The `/_/discovery` endpoint manages the mapping from service IDs to network
 addresses on the cluster. Information is posted to it, and the proxy service
-will query it to find where the needed modules are actually available.
+will query it to find where the needed modules are actually available. It also
+offers shortcuts for deploying and registering a module in one go.
 
 The `/_/proxy` endpoint is for configuring the proxying service, including
 which modules we know of, how their requests are to be routed, which tenants
@@ -220,6 +221,14 @@ We assume some external management program will be making these requests.  It
 can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
 [the curl command-line examples later in this document](#using-okapi).
+
+The /_/discovery endpoint offers a shortcut to deploy a module at the same time
+as registering it. If the DeploymentDescriptor contains both a nodeId, we assume
+that the module is to be deployed on that node. If the DeploymentDescriptor
+contains a LaunchDescriptor, this is used for starting the process. If not,
+the Okapi fetches the ModuleDescriptor from the proxy/registry, and if that
+contains a LaunchDescriptor, it will be used. This way, we can adapt to what
+ever deployment needs the installation will have.
 
 ### Request Processing
 
@@ -754,7 +763,7 @@ structure of module metadata and POST it to Okapi
 ```
 cat > /tmp/sampledeploy.json <<END
 {
-  "srvcId" : "sample-module",
+  "srvcId" : "sample",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
    }
@@ -882,7 +891,7 @@ curl -w '\n' -X POST -D -   \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/sample-module
-Content-Length: 392
+Content-Length: 464
 
 {
   "id" : "sample-module",
@@ -898,7 +907,9 @@ Content-Length: 392
     "level" : "30",
     "type" : "request-response",
     "permissionsRequired" : [ "sample.needed" ],
-    "permissionsDesired" : [ "sample.extra" ]
+    "permissionsDesired" : [ "sample.extra" ],
+    "uiDescriptor" : null,
+    "launchDescriptor" : null
   } ]
 }
 
@@ -923,49 +934,17 @@ permissions, and refuses the request if not. (The present dummy
 authentication module does not do this kind of check, as it has no
 user database to work with.)
 
+Since this is an Okapi module, not a UI module, we don't need any UI descriptors.
+
+The launchDescriptor could be used for an easier way to deploy the module. More
+about that below.
 
 #### Deploying and proxying the auth module
 
-The first steps are very similar to the sample module. First we deploy the
-module:
-
-```
-cat > /tmp/authdeploy.json <<END
-{
-  "srvcId" : "auth",
-  "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
-   }
-}
-END
-
-curl -w '\n' -D - -s \
-  -X POST \
-  -H "Content-type: application/json" \
-  -d @/tmp/authdeploy.json  \
-  http://localhost:9130/_/deployment/modules
-
-HTTP/1.1 201 Created
-Content-Type: application/json
-Location: /_/deployment/modules/localhost-9132
-Content-Length: 264
-
-{
-  "instId" : "localhost-9134",
-  "srvcId" : "auth",
-  "nodeId" : "localhost",
-  "url" : "http://localhost:9134",
-  "descriptor" : {
-    "cmdlineStart" : null,
-    "cmdlineStop" : null,
-    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
-  }
-}
-```
-
-Finally we tell the proxy about it. This is a bit different from the
-same operation for the sample module: we add version dependencies and
-more routing info:
+We could do the same thing with the auth module. But there is an easier way. We
+simply register the module to the proxy, even without having it running. Then
+we tell discovery that we want it, and it will go and deploy it for us. This is
+more like the way things will work once we have our app store implemented.
 
 ```
 cat > /tmp/authmodule.json <<END
@@ -990,11 +969,13 @@ cat > /tmp/authmodule.json <<END
     "path" : "/login",
     "level" : "20",
     "type" : "request-response"
-  } ]
+  } ],
+ "launchDescriptor" : {
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+  }
 }
 END
 ```
-
 For the purposes of this example, we specify that the `auth` module requires
 the `sample` module to be available, and at least version 2.2.1. You can
 try to see what happens if you require different versions, like 1.9.9,
@@ -1011,6 +992,9 @@ directed to a higher-level module that does the actual work. In this
 way, supporting modules like authentication or logging can be tied to
 some or all requests.
 
+Note that we specify in the launchDescriptor how this module is supposed to
+be started.
+
 Then we post it as before:
 
 ```
@@ -1024,12 +1008,12 @@ And should see
 ```
 HTTP/1.1 201 Created
 Location: /_/proxy/modules/auth
-Content-Length: 547
+Content-Length: 737
 
 {
- "id" : "auth",
+  "id" : "auth",
   "name" : "auth",
-  "url" : null,
+  "tags" : null,
   "provides" : [ {
     "id" : "auth",
     "version" : "3.4.5"
@@ -1042,7 +1026,7 @@ Content-Length: 547
     "methods" : [ "*" ],
     "path" : "/",
     "level" : "10",
-    "type" : "request-response",
+    "type" : "headers",
     "permissionsRequired" : null,
     "permissionsDesired" : null
   }, {
@@ -1052,14 +1036,65 @@ Content-Length: 547
     "type" : "request-response",
     "permissionsRequired" : null,
     "permissionsDesired" : null
-  } ]
+  } ],
+  "uiDescriptor" : null,
+  "launchDescriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+  }
 }
 ```
+
+At this point Okapi knows that we have an auth module. It has stored the info
+in its database, so in theory it is persistent. In practice we are running our
+Okapi in 'dev' mode, which uses a volatile in-memory database...
+
+Now we need to deploy the module, and tell the discovery that we have it
+running. This can be done in one request. Note that we post this to /_/discovery,
+it will talk to /_/deployment on the correct node - which in this case is
+`localhost`, the machine we are running our demo on.
+
+
+```
+cat > /tmp/authdeploy.json <<END
+{
+  "srvcId" : "auth",
+  "nodeId" : "localhost",
+  "descriptor" : null
+}
+END
+
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/authdeploy.json  \
+  http://localhost:9130/_/discovery/modules
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/discovery/modules/localhost-9132
+Content-Length: 264
+
+{
+  "instId" : "localhost-9132",
+  "srvcId" : "auth",
+  "nodeId" : "localhost",
+  "url" : "http://localhost:9132",
+  "descriptor" : {
+    "cmdlineStart" : null,
+    "cmdlineStop" : null,
+    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+  }
+}
+```
+
 
 Now we have two modules, as can be seen with
 
 ```
 curl -w '\n' http://localhost:9130/_/proxy/modules
+curl -w '\n' http://localhost:9130/_/discovery/modules
 ```
 
 but we still can not use them in the way that they would be used in a real
@@ -1288,12 +1323,12 @@ These are left as an exercise for the reader.
 ### Cleaning up
 Now we can clean up some things
 ```
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample-module
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9132
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/deployment/modules/localhost-9131
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample-module
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample/localhost-9131
 
 ```
 Okapi responds to each of these with a simple

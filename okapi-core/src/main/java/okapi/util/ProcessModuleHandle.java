@@ -79,6 +79,10 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
+    if (desc == null ) {
+      startFuture.handle(Future.failedFuture("No launchDescriptor"));
+      return;
+    }
     if (port > 0) {
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
