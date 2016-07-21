@@ -317,7 +317,7 @@ terminates the entire chain and returns the code back to the caller.
 
 Since Okapi forwards the response from a previous module on to the
 next module in the pipeline (e.g. for additional filtering/processing),
-certain initial request headers become invalid - e.g. when a 
+certain initial request headers become invalid - e.g. when a
 module converts the entity to a different content type or changes its
 size. Invalid headers need to be updated, based on the module's
 response header values, before the request can be forwarded to the
@@ -436,7 +436,7 @@ For example, a patron module could have permissions like
     permissionsRequired: [ "patron.read" ],
     permissionsDesired: [ "patron.read.sensitive" ]
 This states that if the user does not have the "patron.read" permission, the
-auth module should reject the request immediately. If that test passes, the auth 
+auth module should reject the request immediately. If that test passes, the auth
 module will check the "patron.read.sensitive" permission, and set up a response
 header to indicate if the user has that permission or not. This gets passed to
 the patron module, which can then decide what fields it wants to show or hide.

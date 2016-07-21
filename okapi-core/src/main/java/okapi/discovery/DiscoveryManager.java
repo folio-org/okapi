@@ -83,7 +83,7 @@ public class DiscoveryManager implements NodeListener {
     this.clusterManager = mgr;
     mgr.nodeListener(this);
   }
-  
+
   public void setModuleManager(ModuleManager mgr) {
     this.moduleManager = mgr;
   }
@@ -153,7 +153,7 @@ public class DiscoveryManager implements NodeListener {
         launchDesc = md.getLaunchDescriptor();
         if (launchDesc == null) {
           fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
-          return;          
+          return;
         }
         dd.setDescriptor(launchDesc);
       }

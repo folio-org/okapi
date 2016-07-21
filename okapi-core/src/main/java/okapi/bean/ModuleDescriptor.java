@@ -17,7 +17,7 @@ package okapi.bean;
 
 /**
  * Description of a module. These are used when creating modules under
- * /_/proxy/modules, etc. 
+ * /_/proxy/modules, etc.
  *
  */
 public class ModuleDescriptor {

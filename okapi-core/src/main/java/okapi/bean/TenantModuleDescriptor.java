@@ -18,7 +18,7 @@ package okapi.bean;
 /**
  * Association of a module to a tenant. This encapsulates the id of the module.
  * Each tenant has a list of such associations, listing what modules have been
- * enabled for it. 
+ * enabled for it.
  *
  */
 public class TenantModuleDescriptor {

@@ -6,8 +6,8 @@
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},
     "url": {"type": ["string", "null"]},
-    "descriptor" : { 
-      "$ref": "LaunchDescriptor.json" 
+    "descriptor" : {
+      "$ref": "LaunchDescriptor.json"
     }
   },
   "required": ["srvcId"]

@@ -978,7 +978,7 @@ public class ModuleTest {
     given().delete(locationSample5Deployment)
       .then().statusCode(404);
     locationSample5Deployment = null;
-    
+
     // and delete from the proxy
     given().delete(locationSampleModule)
       .then().statusCode(204);
