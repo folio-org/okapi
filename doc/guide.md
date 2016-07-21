@@ -518,7 +518,9 @@ The latest source of the software can be found at
 [GitHub](https://github.com/sling-incubator/okapi). At the moment the
 repository is not publicly visible.
 
-Build Requirements are
+<!-- TODO - Use the public address, when we have one -->
+
+The build requirements are:
 
  * Apache Maven 3.1.1 or later.
  * Java 8 JDK
@@ -532,19 +534,23 @@ cd okapi
 mvn install
 ```
 
+<!-- TODO - Use the public address, when we have one -->
+
 The install rule also runs a few tests. Tests should not fail.
-If they do, please report it and in the meantime fall back to
+If they do, please report it and in the meantime fall back to:
+
 ```
 mvn install -DskipTests
 ```
 
 If successful, the output of `mvn install` should have this line near
 the end:
+
 ```
 [INFO] BUILD SUCCESS
 ```
 
-The okapi directory contains a few sub modules. These are
+The okapi directory contains a few sub modules. These are:
 
  * `okapi-core`: the gateway server itself
  * `doc`: documentation, including the guide
