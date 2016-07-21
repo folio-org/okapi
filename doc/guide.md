@@ -463,7 +463,7 @@ implementation details will be established within the coming months.
 
 In a microservices architecture, monitoring is key to ensure robustness
 and health of the entire system. The way to provide useful monitoring
-is to include well defined instrumentation points ("hooks") before and
+is to include well-defined instrumentation points ("hooks") before and
 after each step of execution of the request processing
 pipeline. Besides monitoring, instrumentation is crucial for the
 ability to quickly diagnose issues in the running system ("hot"
@@ -627,7 +627,7 @@ perl -n -e  'print if /^curl /../http/; ' guide.md |
   sh -x
 ```
 This explicitly omits the cleaning up DELETE commands, so it leaves Okapi in a
-well defined state with a few modules enabled for a few known tenants.
+well-defined state with a few modules enabled for a few known tenants.
 
 ### Example modules
 
@@ -1065,7 +1065,7 @@ Content-Length: 737
 
 At this point Okapi knows that we have an auth module. It has stored the info
 in its database, so in theory it is persistent. In practice we are running our
-Okapi in 'dev' mode, which uses a volatile in-memory database...
+Okapi in 'dev' mode, which uses a volatile in-memory database.
 
 Now we need to deploy the module, and tell the discovery that we have it
 running. This can be done in one request. Note that we post this to /_/discovery,

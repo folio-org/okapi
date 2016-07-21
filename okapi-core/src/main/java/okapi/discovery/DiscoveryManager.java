@@ -107,8 +107,8 @@ public class DiscoveryManager implements NodeListener {
    * Three cases: (TODO - this is not how it is implemented yet!)
    *
    *   1: We have launchDescriptor and NodeId: Deploy on that node.
-   *   2: NodeId, but no launchDescriptor: Fetch the module, use its launchdesc, and deploy
-   *   3: No nodeId: Dot deploy at all, just record the existence (URL and instId) of the module
+   *   2: NodeId, but no launchDescriptor: Fetch the module, use its launchdesc, and deploy.
+   *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
   public void addAndDeploy(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));

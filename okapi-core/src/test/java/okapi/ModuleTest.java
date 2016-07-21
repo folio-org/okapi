@@ -907,7 +907,7 @@ public class ModuleTest {
     // Deploy a module via its own LaunchDescriptor
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-depl\"," + LS
-      + "  \"name\" : \"sample module for deoployment test\"," + LS
+      + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"tags\" : null," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
