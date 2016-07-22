@@ -622,6 +622,17 @@ public class ModuleTest {
             .delete("/sample")
             .then().statusCode(202);
 
+    // Check that we don't do prefix matching
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .get("/sampleXXX")
+            .then().statusCode(404);
+    // Check that parameters don't mess with the routing
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .get("/sample?p=parameters&q=query")
+            .then().statusCode(200);
+
     // 2nd sample module.. We only create it in discovery and give it same URL as
     // for sample-module (first one)
     c = api.createRestAssured();
