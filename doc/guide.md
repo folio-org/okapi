@@ -230,6 +230,15 @@ the Okapi fetches the ModuleDescriptor from the proxy/registry, and if that
 contains a LaunchDescriptor, it will be used. This way, we can adapt to what
 ever deployment needs the installation will have.
 
+Note that the deployment and discovery stuff is transient, Okapi does not store
+any of that in its database. If a node goes down, the processes on it will die
+too. When it gets restarted, modules need to be deployed on it again, either via
+Okapi, or through some other means.
+
+The discovery data is kept in a shared map, so as long as there is one Okapi
+running on the cluster, the map will survive. But if the whole cluster is taken
+down, the discovery data is lost. It would be fairly useless at that point anyway.
+
 ### Request Processing
 
 Any number of modules can request registration on a single URI
