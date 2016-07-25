@@ -27,6 +27,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
@@ -40,6 +41,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import okapi.bean.DeploymentDescriptor;
+import okapi.bean.ModuleDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
 import okapi.util.DropwizardHelper;
@@ -196,6 +198,24 @@ public class ProxyService {
     }
   }
 
+  /**
+   * Find the primary module. That is the first one that has something in its
+   * modulePermissions. REertu
+   * @param l
+   * @return 
+   */
+  private ModuleDescriptor primaryModule(List<ModuleInstance> ml) {
+    Iterator<ModuleInstance> it = ml.iterator();
+    while (it.hasNext()) {
+      ModuleDescriptor m = it.next().getModuleDescriptor();
+      logger.debug("primary: looking at " + m.getId() +": " + Json.encode(m.getModulePermissions()));
+      String[] perm = m.getModulePermissions();
+      if ( perm != null && perm.length > 0 )
+        return m;
+    }
+    return null;
+  }
+
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
@@ -215,6 +235,11 @@ public class ProxyService {
     DropwizardHelper.markEvent(metricKey);
 
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
+    ModuleDescriptor pmod = primaryModule(l);
+    if ( pmod != null ) {
+      logger.debug("Primary module found: " +  pmod.getId());
+      ctx.request().headers().add("X-Okapi-Calling-Module", pmod.getId());
+    }
     ctx.request().headers().add("X-Okapi-Url", okapiUrl);
     authHeaders(l, ctx.request().headers());
 

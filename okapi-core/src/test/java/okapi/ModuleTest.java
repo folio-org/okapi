@@ -373,7 +373,7 @@ public class ModuleTest {
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
-            + "  \"modulePermissions\" : null," + LS
+            + "  \"modulePermissions\" : [ \"some.permission\" ]," + LS
             + "  \"uiDescriptor\" : null," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"cmdlineStart\" : null," + LS
@@ -583,7 +583,7 @@ public class ModuleTest {
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Check that okapi sets up the permission headers
-    // Check also the X-Okapi-Url header in the same go
+    // Check also the X-Okapi-Url and calling-module headers in the same go
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("X-all-headers", "H") // ask sample to report all headers
@@ -591,6 +591,7 @@ public class ModuleTest {
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Url", "http://localhost:9130/")
+            .header("X-Okapi-Calling-Module", "sample-module")
             .body(equalTo("It works"));
     // Check only the required bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
