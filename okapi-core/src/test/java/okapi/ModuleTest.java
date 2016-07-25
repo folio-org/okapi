@@ -373,6 +373,7 @@ public class ModuleTest {
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
+            + "  \"modulePermissions\" : null," + LS
             + "  \"uiDescriptor\" : null," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"cmdlineStart\" : null," + LS
@@ -1229,6 +1230,7 @@ public class ModuleTest {
             + "  \"provides\" : null," + LS
             + "  \"requires\" : null," + LS
             + "  \"routingEntries\" : [ ]," + LS
+            + "  \"modulePermissions\" : null," + LS
             + "  \"uiDescriptor\" : {" + LS
             + "    \"npm\" : \"name-of-module-in-npm\"," + LS
             + "    \"args\" : null" + LS

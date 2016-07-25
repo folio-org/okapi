@@ -57,6 +57,12 @@
         }
       }
     },
+    "modulePermissions" : {
+      "type": ["array","null"],
+      "items": {
+        "type": "string"
+      }
+    },
     "uiDescriptor": {
       "$ref": "UiModuleDescriptor.json"
     },
