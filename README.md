@@ -27,9 +27,13 @@ To build and run:
 
 Okapi listens on port 9130.
 
-
 Documentation
 -------------
 
 * [Okapi Guide and Reference](doc/guide.md)
 * [Contributing guidelines](CONTRIBUTING.md)
+
+License
+-------
+
+Licensed under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
