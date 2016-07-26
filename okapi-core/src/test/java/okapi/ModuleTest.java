@@ -591,7 +591,7 @@ public class ModuleTest {
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Url", "http://localhost:9130/")
-            .header("X-Okapi-Calling-Module", "sample-module")
+            .header("X-Okapi-Called-Module", "sample-module")
             .body(equalTo("It works"));
     // Check only the required bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not

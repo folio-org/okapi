@@ -234,11 +234,15 @@ public class ProxyService {
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);
 
+    String caller = ctx.request().getHeader("X-Okapi-Calling-Module");
+    if ( caller != null && ! caller.isEmpty()) {
+
+    }
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
     ModuleDescriptor pmod = primaryModule(l);
     if ( pmod != null ) {
       logger.debug("Primary module found: " +  pmod.getId());
-      ctx.request().headers().add("X-Okapi-Calling-Module", pmod.getId());
+      ctx.request().headers().add("X-Okapi-Called-Module", pmod.getId());
     }
     ctx.request().headers().add("X-Okapi-Url", okapiUrl);
     authHeaders(l, ctx.request().headers());
