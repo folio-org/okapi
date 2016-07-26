@@ -283,6 +283,7 @@ public class MainVerticle extends AbstractVerticle {
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
             .allowedHeader("X-Okapi-Tenant")
             .allowedHeader("X-Okapi-Token")
+            .allowedHeader("Authorization")
             //expose response headers
             .exposedHeader(HttpHeaders.LOCATION.toString())
             .exposedHeader("X-Okapi-Trace")
