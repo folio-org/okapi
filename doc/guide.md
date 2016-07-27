@@ -113,25 +113,25 @@ endpoints are:
 The special prefix `/_` is used to to distinguish the routing for Okapi
 internal web services from the extension points provided by modules.
 
-The `/_/proxy` endpoint is used for configuring the proxying service:
-specifying which modules we know of, how their requests are to be
-routed, which tenants we know about, and which modules are enabled for
-which tenants.
+ * The `/_/proxy` endpoint is used for configuring the proxying service:
+   specifying which modules we know of, how their requests are to be
+   routed, which tenants we know about, and which modules are enabled for
+   which tenants.
 
-The `/_/deployment` endpoint is responsible for deploying modules.
-In a clustered environment there should be one instance of the
-deployment service running on
-each node. It will be responsible for starting processes on that node,
-and allocating network addresses for the various service modules.
+ * The `/_/deployment` endpoint is responsible for deploying modules.
+   In a clustered environment there should be one instance of the
+   deployment service running on
+   each node. It will be responsible for starting processes on that node,
+   and allocating network addresses for the various service modules.
 
-The `/_/discovery` endpoint manages the mapping from service IDs to network
-addresses on the cluster. Information is posted to it, and the proxy service
-will query it to find where the needed modules are actually available. It also
-offers shortcuts for deploying and registering a module in one
-go. There is only a single discovery endpoint covering all of the
-nodes in a cluster. Requests to the discovery service can also deploy
-modules on specific nodes, so it is rarely necessary to invoke
-deployment directly.
+ * The `/_/discovery` endpoint manages the mapping from service IDs to network
+   addresses on the cluster. Information is posted to it, and the proxy service
+   will query it to find where the needed modules are actually available. It also
+   offers shortcuts for deploying and registering a module in one
+   go. There is only a single discovery endpoint covering all of the
+   nodes in a cluster. Requests to the discovery service can also deploy
+   modules on specific nodes, so it is rarely necessary to invoke
+   deployment directly.
 
 These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
