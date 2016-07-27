@@ -79,7 +79,7 @@ allow for app store features in which services or groups of services
 ## Architecture
 
 Web service endpoints in Okapi can be, roughly, divided into two
-parts: (1) general modules and tenant management APIs, sometimes
+parts: (1) general module and tenant management APIs, sometimes
 referred to as 'core' - initially part of Okapi itself but potentially
 separable into their own services  - and (2) endpoints for accessing
 module-provided, business-logic specific interfaces, e.g. Patron
