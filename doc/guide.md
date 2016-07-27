@@ -113,6 +113,11 @@ endpoints are:
 The special prefix `/_` is used to to distinguish the routing for Okapi
 internal web services from the extension points provided by modules.
 
+The `/_/proxy` endpoint is used for configuring the proxying service:
+specifying which modules we know of, how their requests are to be
+routed, which tenants we know about, and which modules are enabled for
+which tenants.
+
 The `/_/deployment` endpoint is responsible for deploying modules.
 In a clustered environment there should be one instance of the
 deployment service running on
@@ -127,11 +132,6 @@ go. There is only a single discovery endpoint covering all of the
 nodes in a cluster. Requests to the discovery service can also deploy
 modules on specific nodes, so it is rarely necessary to invoke
 deployment directly.
-
-The `/_/proxy` endpoint is used for configuring the proxying service,
-including which modules we know of, how their requests are to be
-routed, which tenants we know about, and which modules are enabled for
-which tenants.
 
 These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
