@@ -183,7 +183,7 @@ Those _native modules_ require an additional descriptor
 file, the
 [`DeploymentDescriptor.json`](../okapi-core/src/main/raml/DeploymentDescriptor.json),
 which specifies the low-level information
-about how to run the module. Also, `native modules` must be packaged according
+about how to run the module. Also, native modules must be packaged according
 to one of the packaging options supported by Okapi's deployment service: at
 this point that means providing the executable (and all dependencies) on each
 node or using on a self-contained Docker image to distribute the executable
@@ -230,11 +230,12 @@ can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
 [the curl command-line examples later in this document](#using-okapi).
 
-The /_/discovery endpoint offers a shortcut to deploy a module at the same time
-as registering it. If the DeploymentDescriptor contains both a nodeId, we assume
+The `/_/discovery` endpoint offers a shortcut to deploy a module at the same time
+as registering it. If the DeploymentDescriptor contains a nodeId, we assume
 that the module is to be deployed on that node. If the DeploymentDescriptor
 contains a LaunchDescriptor, this is used for starting the process. If not,
-the Okapi fetches the ModuleDescriptor from the proxy/registry, and if that
+Okapi fetches the ModuleDescriptor that has been registred with the
+proxy module, and if that
 contains a LaunchDescriptor, it will be used. This way, we can adapt to what
 ever deployment needs the installation will have.
 
@@ -570,7 +571,7 @@ the end:
 The okapi directory contains a few sub modules. These are:
 
  * `okapi-core`: the gateway server itself
- * `doc`: documentation, including the guide
+ * `doc`: documentation, including this guide
  * `okapi-auth`: a simple module demonstrating authentication
  * `okapi-sample-module`: a module mangling HTTP content
  * `okapi-header-module`: a module to test headers-only mode
@@ -614,8 +615,8 @@ For remote debugging you can use
 ```
 mvn exec:exec@debug
 ```
-This command format requires Maven >= 3.3.1. Will listen for a
-debugging client at port 5005.
+This command requires Maven >= 3.3.1. It will listen for a
+debugging client on port 5005.
 
 ## Using Okapi
 
@@ -636,14 +637,15 @@ option `-Dstorage=mongo` to the command line that starts Okapi.
 
 ### Curl examples
 
-The following examples can be pasted into a command line console. It is also
-possible to extract all the example records with a perl one-liner, assuming you
-have this guide in the current directory, as guide.md, as it is in the source
-tree.
+The following examples can be pasted into a command line console. It
+is also possible to extract all the example records with a perl
+one-liner, assuming you have this MarkDown source of this guide in the
+current directory as _guide.md_ -- as is the case in the source tree.
+
 ```
 perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
 ```
-It is also possible to run all the examples with a bit more complex command:
+It is also possible to run all the examples with a slightly more complex command:
 ```
 perl -n -e  'print if /^curl /../http/; ' guide.md |
   grep -v 8080 | grep -v DELETE |
