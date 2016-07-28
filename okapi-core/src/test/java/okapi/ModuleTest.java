@@ -373,7 +373,7 @@ public class ModuleTest {
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
-            + "  \"modulePermissions\" : null," + LS
+            + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
             + "  \"uiDescriptor\" : null," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"cmdlineStart\" : null," + LS
@@ -590,6 +590,8 @@ public class ModuleTest {
             .get("/sample")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
+            .header("X-Okapi-Module-Permissions"
+                      ,"{\"sample-module\":[\"sample.modperm\"]}")
             .header("X-Okapi-Url", "http://localhost:9130/")
             .body(equalTo("It works"));
     // Check only the required bit, since there is only one.

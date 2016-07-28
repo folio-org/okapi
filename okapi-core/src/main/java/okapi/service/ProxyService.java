@@ -27,6 +27,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
@@ -34,12 +35,14 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import okapi.bean.DeploymentDescriptor;
+import okapi.bean.ModuleDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
 import okapi.util.DropwizardHelper;
@@ -126,9 +129,11 @@ public class ProxyService {
 
   // Get the auth bits from the module list into
   // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
+  // Also X-Okapi-Module-Permissions for each module that has such
   private void authHeaders(List<ModuleInstance> modlist, MultiMap extraReqHeaders) {
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
+    Map<String,String[]> modperms = new HashMap<>(modlist.size());
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
       String[] reqp = re.getPermissionsRequired();
@@ -139,6 +144,11 @@ public class ProxyService {
       if (wap != null) {
         want.addAll(Arrays.asList(wap));
       }
+      ModuleDescriptor md = mod.getModuleDescriptor();
+      String[] modp = md.getModulePermissions();
+      if ( modp != null && modp.length > 0) {
+        modperms.put(md.getId(), modp);
+      }
     }
     if (!req.isEmpty()) {
       logger.debug("authHeaders:X-Okapi-Permissions-Required: " + String.join(",", req));
@@ -148,6 +158,12 @@ public class ProxyService {
       logger.debug("authHeaders:X-Okapi-Permissions-Desired: " + String.join(",", want));
       extraReqHeaders.add("X-Okapi-Permissions-Desired", String.join(",", want));
     }
+    // Add the X-Module-Permissions even if empty. That causes auth to return
+    // an empty X-Module-Tokens, which will tell us that we have done the mod
+    // perms, and no other module should be allowed to do the same.
+    String mpj = Json.encode(modperms);
+    logger.debug("authHeaders:X-Okapi-Module-Permissions: " + mpj);
+    extraReqHeaders.add("X-Okapi-Module-Permissions", mpj);
   }
 
   private void resolveUrls(Iterator<ModuleInstance> it, Handler<ExtendedAsyncResult<Void>> fut) {
