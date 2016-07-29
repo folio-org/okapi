@@ -34,11 +34,11 @@ import java.util.List;
 import java.util.Set;
 import okapi.service.TenantManager;
 import okapi.service.TenantStore;
-import static okapi.util.ErrorType.*;
-import static okapi.util.HttpResponse.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import static okapi.common.HttpResponse.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 public class TenantWebService {
 

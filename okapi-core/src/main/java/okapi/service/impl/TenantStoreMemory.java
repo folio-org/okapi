@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Map;
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
-import static okapi.util.ErrorType.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Mock storage for tenants. All in memory, so it starts with a clean slate

@@ -13,21 +13,43 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.util;
+package okapi.common;
 
-public class Box<T> {
+import static okapi.common.ErrorType.*;
+
+public class Success<T> implements ExtendedAsyncResult<T> {
 
   private T item;
 
-  public Box(T item) {
+  public Success() {
+  }
+
+  public Success(T item) {
     this.item = item;
   }
 
-  public T getItem() {
+  @Override
+  public T result() {
     return item;
   }
 
-  public void setItem(T item) {
-    this.item = item;
+  @Override
+  public Throwable cause() {
+    return null;
+  }
+
+  @Override
+  public boolean succeeded() {
+    return true;
+  }
+
+  @Override
+  public boolean failed() {
+    return false;
+  }
+
+  @Override
+  public ErrorType getType() {
+    return ANY;
   }
 }

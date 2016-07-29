@@ -19,7 +19,7 @@ import io.vertx.core.Handler;
 import java.util.List;
 import okapi.bean.Tenant;
 import okapi.bean.TenantDescriptor;
-import okapi.util.ExtendedAsyncResult;
+import okapi.common.ExtendedAsyncResult;
 
 /**
  *

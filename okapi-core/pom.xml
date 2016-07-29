@@ -11,6 +11,11 @@
   </parent>
   <artifactId>okapi-core</artifactId>
   <dependencies>
+    <dependency>
+      <groupId>com.indexdata.okapi</groupId>
+      <artifactId>okapi-common</artifactId>
+      <version>0.4-SNAPSHOT</version>
+    </dependency>
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->
     <dependency>

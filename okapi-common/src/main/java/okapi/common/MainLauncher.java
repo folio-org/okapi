@@ -13,16 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.util;
+package okapi.common;
 
-/**
- * Types of errors.
- */
-public enum ErrorType {
-  OK, // Not really an error, but a success code
-  INTERNAL, // Internal errors of any kind
-  USER, // Bad requests, etc
-  NOT_FOUND, // Stuff that is not there
-  ANY;        // Anything else
+import io.vertx.core.Launcher;
 
+public class MainLauncher extends Launcher {
+  public static void main(String[] args) {
+    System.setProperty("vertx.logger-delegate-factory-class-name",
+            "io.vertx.core.logging.SLF4JLogDelegateFactory");
+    MainLauncher m = new MainLauncher();
+    m.dispatch(args);
+  }
 }

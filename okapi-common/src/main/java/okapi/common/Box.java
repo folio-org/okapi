@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Index Data
+ * Copyright (C) 2015 Index Data
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi;
+package okapi.common;
 
-import io.vertx.core.Launcher;
+public class Box<T> {
 
-public class MainLauncher extends Launcher {
+  private T item;
 
-  public static void main(String[] args) {
-    MainLauncher m = new MainLauncher();
-    m.dispatch(args);
+  public Box(T item) {
+    this.item = item;
+  }
+
+  public T getItem() {
+    return item;
+  }
+
+  public void setItem(T item) {
+    this.item = item;
   }
 }

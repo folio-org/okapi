@@ -13,15 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.sample;
+package okapi.common;
 
-import io.vertx.core.Launcher;
+import io.vertx.core.AsyncResult;
 
-public class MainLauncher extends Launcher {
-  public static void main(String[] args) {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-            "io.vertx.core.logging.SLF4JLogDelegateFactory");
-    MainLauncher m = new MainLauncher();
-    m.dispatch(args);
-  }
+/**
+ * Like vert.x' AsyncResult, but with our enum ErrorType. to distinguish between
+ * internal and user errors, etc.
+ *
+ * @author heikki
+ */
+public interface ExtendedAsyncResult<T> extends AsyncResult<T> {
+
+  ErrorType getType();
 }

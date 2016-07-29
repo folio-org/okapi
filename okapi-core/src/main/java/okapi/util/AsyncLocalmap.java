@@ -15,12 +15,14 @@
  */
 package okapi.util;
 
+import okapi.common.Success;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
+import okapi.common.Success;
 
 /**
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap

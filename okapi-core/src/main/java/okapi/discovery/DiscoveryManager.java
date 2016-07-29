@@ -36,11 +36,11 @@ import okapi.bean.NodeDescriptor;
 import okapi.bean.LaunchDescriptor;
 import okapi.bean.ModuleDescriptor;
 import okapi.service.ModuleManager;
-import static okapi.util.ErrorType.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
+import static okapi.common.ErrorType.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
 import okapi.util.LockedTypedMap;
-import okapi.util.Success;
+import okapi.common.Success;
 
 /**
  * Keeps track of which modules are running where.

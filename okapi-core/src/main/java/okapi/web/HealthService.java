@@ -16,7 +16,7 @@
 package okapi.web;
 
 import io.vertx.ext.web.RoutingContext;
-import static okapi.util.HttpResponse.*;
+import static okapi.common.HttpResponse.*;
 
 public class HealthService {
 

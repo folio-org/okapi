@@ -23,10 +23,10 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.Iterator;
 import java.util.List;
-import static okapi.util.ErrorType.INTERNAL;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.INTERNAL;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Generic handle to the Mongo database. Encapsulates the configuration and

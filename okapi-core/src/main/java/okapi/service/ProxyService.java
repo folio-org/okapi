@@ -43,11 +43,11 @@ import okapi.bean.DeploymentDescriptor;
 import okapi.bean.RoutingEntry;
 import okapi.discovery.DiscoveryManager;
 import okapi.util.DropwizardHelper;
-import static okapi.util.ErrorType.NOT_FOUND;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import static okapi.util.HttpResponse.*;
-import okapi.util.Success;
+import static okapi.common.ErrorType.NOT_FOUND;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import static okapi.common.HttpResponse.*;
+import okapi.common.Success;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as

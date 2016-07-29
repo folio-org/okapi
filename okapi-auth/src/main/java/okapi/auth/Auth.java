@@ -15,7 +15,6 @@
  */
 package okapi.auth;
 
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -23,6 +22,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import static okapi.common.HttpResponse.*;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -45,14 +45,6 @@ public class Auth {
   static final String OKAPITOKENHEADER = "X-Okapi-Token";
 
   private final Logger logger = LoggerFactory.getLogger("okapi-auth");
-
-  private HttpServerResponse responseText(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "text/plain");
-  }
-
-  private HttpServerResponse responseJson(RoutingContext ctx, int code) {
-    return ctx.response().setStatusCode(code).putHeader("Content-Type", "application/json");
-  }
 
   /**
    * Calculate a token from tenant and username. The token is like ttt:uuu:ccc,

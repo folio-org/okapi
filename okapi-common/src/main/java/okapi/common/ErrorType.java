@@ -13,17 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi;
+package okapi.common;
 
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
+/**
+ * Types of errors.
+ */
+public enum ErrorType {
+  OK, // Not really an error, but a success code
+  INTERNAL, // Internal errors of any kind
+  USER, // Bad requests, etc
+  NOT_FOUND, // Stuff that is not there
+  ANY;        // Anything else
 
-public class MainBare {
-
-  public static void main(String[] args) {
-    Vertx vertx = Vertx.vertx();
-    DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt);
-
-  }
 }

@@ -15,6 +15,9 @@
  */
 package okapi.util;
 
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -27,9 +30,9 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import static okapi.util.ErrorType.INTERNAL;
-import static okapi.util.ErrorType.NOT_FOUND;
-import static okapi.util.ErrorType.USER;
+import static okapi.common.ErrorType.INTERNAL;
+import static okapi.common.ErrorType.NOT_FOUND;
+import static okapi.common.ErrorType.USER;
 
 /**
  * A shared map with extra features like locking and listing of keys. Two level

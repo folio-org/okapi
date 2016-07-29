@@ -21,7 +21,7 @@ import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import static okapi.util.HttpResponse.*;
+import static okapi.common.HttpResponse.*;
 
 /**
  * Helper class to mess with logging stuff. Normally we use
