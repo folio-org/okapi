@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Index Data
+ * Copyright (C) 2015 Index Data
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,17 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.util;
+package okapi.common;
 
-import io.vertx.core.AsyncResult;
+public class Box<T> {
 
-/**
- * Like vert.x' AsyncResult, but with our enum ErrorType. to distinguish between
- * internal and user errors, etc.
- *
- * @author heikki
- */
-public interface ExtendedAsyncResult<T> extends AsyncResult<T> {
+  private T item;
 
-  ErrorType getType();
+  public Box(T item) {
+    this.item = item;
+  }
+
+  public T getItem() {
+    return item;
+  }
+
+  public void setItem(T item) {
+    this.item = item;
+  }
 }

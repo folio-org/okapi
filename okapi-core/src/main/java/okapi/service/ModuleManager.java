@@ -25,10 +25,10 @@ import java.util.LinkedHashMap;
 import java.util.Set;
 import okapi.bean.ModuleInterface;
 import okapi.util.DropwizardHelper;
-import static okapi.util.ErrorType.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Manages a list of modules known to Okapi's /_/proxy. Maintains consistency

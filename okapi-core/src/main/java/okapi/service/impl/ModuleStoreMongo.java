@@ -25,10 +25,10 @@ import io.vertx.ext.mongo.MongoClient;
 import java.util.ArrayList;
 import java.util.List;
 import okapi.bean.ModuleDescriptor;
-import static okapi.util.ErrorType.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Stores ModuleDescriptors in a Mongo datbase.

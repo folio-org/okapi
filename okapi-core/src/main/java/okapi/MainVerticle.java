@@ -52,7 +52,7 @@ import okapi.service.impl.TenantStoreMongo;
 import okapi.service.impl.TimeStampMemory;
 import okapi.service.impl.TimeStampMongo;
 import okapi.util.LogHelper;
-import static okapi.util.HttpResponse.*;
+import static okapi.common.HttpResponse.*;
 import okapi.deployment.DeploymentWebService;
 import okapi.discovery.DiscoveryManager;
 import okapi.discovery.DiscoveryService;

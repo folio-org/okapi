@@ -32,10 +32,10 @@ import okapi.bean.LaunchDescriptor;
 import okapi.discovery.DiscoveryManager;
 import okapi.util.DropwizardHelper;
 import okapi.util.ProcessModuleHandle;
-import static okapi.util.ErrorType.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Manages deployment of modules.

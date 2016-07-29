@@ -13,14 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.web;
+package okapi.common;
 
-import io.vertx.ext.web.RoutingContext;
-import static okapi.common.HttpResponse.*;
+import okapi.common.ErrorType;
+import io.vertx.core.AsyncResult;
 
-public class HealthService {
+/**
+ * Like vert.x' AsyncResult, but with our enum ErrorType. to distinguish between
+ * internal and user errors, etc.
+ *
+ * @author heikki
+ */
+public interface ExtendedAsyncResult<T> extends AsyncResult<T> {
 
-  public void get(RoutingContext ctx) {
-    responseJson(ctx, 200).end("[ ]");
-  }
+  ErrorType getType();
 }

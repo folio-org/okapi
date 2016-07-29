@@ -33,11 +33,11 @@ import okapi.bean.RoutingEntry;
 import okapi.service.ModuleManager;
 import okapi.service.ModuleStore;
 import okapi.service.TimeStampStore;
-import static okapi.util.ErrorType.*;
-import static okapi.util.HttpResponse.*;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.*;
+import static okapi.common.HttpResponse.*;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Services related to adding and deleting modules. All operations try to do the

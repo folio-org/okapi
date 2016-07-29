@@ -21,9 +21,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import okapi.bean.DeploymentDescriptor;
-import static okapi.util.HttpResponse.responseError;
-import static okapi.util.HttpResponse.responseJson;
-import static okapi.util.HttpResponse.responseText;
+import static okapi.common.HttpResponse.responseError;
+import static okapi.common.HttpResponse.responseJson;
+import static okapi.common.HttpResponse.responseText;
 
 /**
  * Web service to manage deployments.

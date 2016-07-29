@@ -18,7 +18,7 @@ package okapi.service;
 import io.vertx.core.Handler;
 import java.util.List;
 import okapi.bean.ModuleDescriptor;
-import okapi.util.ExtendedAsyncResult;
+import okapi.common.ExtendedAsyncResult;
 
 /**
  *

@@ -12,6 +12,7 @@
   <name>okapi</name>
 
   <modules>
+    <module>okapi-common</module>
     <module>okapi-sample-module</module>
     <module>okapi-auth</module>
     <module>okapi-header-module</module>

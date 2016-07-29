@@ -16,7 +16,7 @@
 package okapi.service;
 
 import io.vertx.core.Handler;
-import okapi.util.ExtendedAsyncResult;
+import okapi.common.ExtendedAsyncResult;
 
 /**
  *

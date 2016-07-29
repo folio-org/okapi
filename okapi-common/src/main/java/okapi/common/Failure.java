@@ -13,43 +13,44 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi.util;
+package okapi.common;
 
-import static okapi.util.ErrorType.*;
+public class Failure<T> implements ExtendedAsyncResult<T> {
 
-public class Success<T> implements ExtendedAsyncResult<T> {
+  final private Throwable failure;
+  final private ErrorType errorType;
 
-  private T item;
-
-  public Success() {
+  public Failure(ErrorType errorType, Throwable failure) {
+    this.failure = failure;
+    this.errorType = errorType;
   }
 
-  public Success(T item) {
-    this.item = item;
+  public Failure(ErrorType errorType, String s) {
+    this.failure = new Throwable(s);
+    this.errorType = errorType;
   }
 
   @Override
   public T result() {
-    return item;
-  }
-
-  @Override
-  public Throwable cause() {
     return null;
   }
 
   @Override
-  public boolean succeeded() {
-    return true;
+  public Throwable cause() {
+    return failure;
   }
 
   @Override
-  public boolean failed() {
+  public boolean succeeded() {
     return false;
   }
 
   @Override
+  public boolean failed() {
+    return true;
+  }
+
   public ErrorType getType() {
-    return ANY;
+    return errorType;
   }
 }

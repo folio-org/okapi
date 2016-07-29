@@ -15,6 +15,9 @@
  */
 package okapi.util;
 
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import java.util.LinkedList;

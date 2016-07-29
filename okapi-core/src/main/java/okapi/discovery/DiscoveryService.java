@@ -22,9 +22,9 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import okapi.bean.DeploymentDescriptor;
-import static okapi.util.HttpResponse.responseJson;
-import static okapi.util.HttpResponse.responseText;
-import static okapi.util.HttpResponse.responseError;
+import static okapi.common.HttpResponse.responseJson;
+import static okapi.common.HttpResponse.responseText;
+import static okapi.common.HttpResponse.responseError;
 
 /**
  * Web service functions for /_/discovery

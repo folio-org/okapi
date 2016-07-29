@@ -18,8 +18,8 @@ package okapi.service.impl;
 import okapi.service.TimeStampStore;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Success;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Success;
 
 /**
  * Time stamps, as stored in the in-memory back end

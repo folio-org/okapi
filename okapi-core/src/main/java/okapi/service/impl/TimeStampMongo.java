@@ -20,10 +20,10 @@ import io.vertx.core.Handler;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.core.json.JsonObject;
 import java.util.List;
-import static okapi.util.ErrorType.INTERNAL;
-import okapi.util.ExtendedAsyncResult;
-import okapi.util.Failure;
-import okapi.util.Success;
+import static okapi.common.ErrorType.INTERNAL;
+import okapi.common.ExtendedAsyncResult;
+import okapi.common.Failure;
+import okapi.common.Success;
 
 /**
  * Time stamps, as stored in Mongo
