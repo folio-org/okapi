@@ -15,23 +15,33 @@
  */
 package okapi.common;
 
-import okapi.common.ErrorType;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
 public class HttpResponse {
-  private static Logger logger = LoggerFactory.getLogger("okapi");
+
+  private final static Logger logger = LoggerFactory.getLogger("okapi");
 
   static public void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
     int code = 500;
     switch (t) {
-      case OK: code = 200; break;
-      case INTERNAL: code = 500; break;
-      case USER: code = 400; break;
-      case NOT_FOUND: code = 404; break;
-      case ANY: code = 500; break;
+      case OK:
+        code = 200;
+        break;
+      case INTERNAL:
+        code = 500;
+        break;
+      case USER:
+        code = 400;
+        break;
+      case NOT_FOUND:
+        code = 404;
+        break;
+      case ANY:
+        code = 500;
+        break;
     }
     responseError(ctx, code, cause);
   }
