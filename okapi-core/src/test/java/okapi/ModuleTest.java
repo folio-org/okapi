@@ -594,7 +594,7 @@ public class ModuleTest {
                       ,"{\"sample-module\":[\"sample.modperm\"]}")
             .header("X-Okapi-Url", "http://localhost:9130/")
             .body(equalTo("It works"));
-    // Check only the required bit, since there is only one.
+    // Check only the required permission bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
 

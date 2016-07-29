@@ -235,6 +235,10 @@ public class ProxyService {
           String tok = jo.getString(id);
           mi.setAuthToken(tok);
           logger.debug("authResponse: token for " + id + ": " + tok);
+        } else if ( jo.containsKey("_")) {
+          String tok = jo.getString("_");
+          mi.setAuthToken(tok);
+          logger.debug("authResponse: Default (_) token for " + id + ": " + tok);
         }
       }
     }
