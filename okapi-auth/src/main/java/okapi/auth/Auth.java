@@ -18,31 +18,32 @@ package okapi.auth;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
+ * Mostly for testing Okapi itself.
+ *
+ * Does generate tokens for module permissions, but otherwise does not
+ * check permissions for anything. (TODO - it could do that too)
  *
  * @author heikki
  *
- * TODO: Check the X-Okapi-Tenant header matches the tenant parameter, or use
- * that one instead of the parameter. TODO: Separate the headers so that -
- * X-Okapi-Tenant is the tenant - X-Okapi-User is the user - X-Okapi-token is
- * the crypto token OKAPI needs to get hold of the tenant already before a
- * login, so it should be separate.
  *
  *
- * TODO: Add a time stamp and some salt to the crypto.
- *
- * TODO: Accept also the previous token, so sessions don't die at turnover.
  */
 public class Auth {
 
   static final String OKAPITOKENHEADER = "X-Okapi-Token";
+  static final String OKAPIMODPERMSHEADER = "X-Okapi-Module-Permissions";
+  static final String OKAPIMODTOKENSHEADER = "X-Okapi-Module-Tokens";
 
   private final Logger logger = LoggerFactory.getLogger("okapi-auth");
 
@@ -66,7 +67,8 @@ public class Auth {
    */
   private String token(String tenant, String user) throws NoSuchAlgorithmException {
     MessageDigest md = MessageDigest.getInstance("MD5");
-    String salt = "salt"; // TODO - Add something from the current date
+    String salt = "salt"; // A real-life toke would use something from a date too.
+      // We don't, since we want our unit tests to be reproducible.
     md.update(salt.getBytes());
     md.update(tenant.getBytes());
     md.update(user.getBytes());
@@ -117,6 +119,32 @@ public class Auth {
     responseJson(ctx, 200).putHeader(OKAPITOKENHEADER, tok).end(json);
   }
 
+
+  /**
+   * Fake some module permissions.
+   */
+  private String moduleTokens(RoutingContext ctx) {
+    String modPermJson = ctx.request().getHeader(OKAPIMODPERMSHEADER);
+    logger.debug("moduleTokens: trying to decode '" + modPermJson + "'");
+    HashMap<String, String> tokens = new HashMap<>();
+    try {
+      if (modPermJson != null && !modPermJson.isEmpty()) {
+        JsonObject jo = new JsonObject(modPermJson);
+        for (String mod : jo.fieldNames()) {
+          JsonArray ja = jo.getJsonArray(mod);
+          String permstr = String.join(",", ja.getList());
+          String tok = token(mod, permstr);
+          tokens.put(mod, tok);
+        }
+      }
+    } catch (NoSuchAlgorithmException ex) {
+      logger.error("no such algorithm: " + ex.getMessage());
+    }
+    String alltokens = Json.encode(tokens);
+    logger.debug("auth: module tokens for " + modPermJson + "  :  " + alltokens);
+    return alltokens;
+  }
+
   public void check(RoutingContext ctx) {
     String tok = ctx.request().getHeader(OKAPITOKENHEADER);
     if (tok == null || tok.isEmpty()) {
@@ -140,12 +168,16 @@ public class Auth {
       }
     } catch (NoSuchAlgorithmException ex) {
       logger.error("no such algorithm: " + ex.getMessage());
+      responseText(ctx, 500).end(ex.getMessage());
+      return;
     }
-    ctx.response()
-            .headers().add(OKAPITOKENHEADER, tok);
-    responseText(ctx, 202);
+    String modTok = moduleTokens(ctx);
+    ctx.response().headers()
+      .add(OKAPITOKENHEADER, tok)
+      .add(OKAPIMODTOKENSHEADER, modTok);
+    responseText(ctx, 202); // Abusing 202 to say check OK
     echo(ctx);
-    // signal to the conduit that we want to continue the module chain
+
   }
 
   private void echo(RoutingContext ctx) {

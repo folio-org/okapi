@@ -35,6 +35,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
@@ -128,9 +129,11 @@ public class ProxyService {
 
   // Get the auth bits from the module list into
   // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
+  // Also X-Okapi-Module-Permissions for each module that has such
   private void authHeaders(List<ModuleInstance> modlist, MultiMap extraReqHeaders) {
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
+    Map<String,String[]> modperms = new HashMap<>(modlist.size());
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
       String[] reqp = re.getPermissionsRequired();
@@ -141,6 +144,11 @@ public class ProxyService {
       if (wap != null) {
         want.addAll(Arrays.asList(wap));
       }
+      ModuleDescriptor md = mod.getModuleDescriptor();
+      String[] modp = md.getModulePermissions();
+      if ( modp != null && modp.length > 0) {
+        modperms.put(md.getId(), modp);
+      }
     }
     if (!req.isEmpty()) {
       logger.debug("authHeaders:X-Okapi-Permissions-Required: " + String.join(",", req));
@@ -150,6 +158,12 @@ public class ProxyService {
       logger.debug("authHeaders:X-Okapi-Permissions-Desired: " + String.join(",", want));
       extraReqHeaders.add("X-Okapi-Permissions-Desired", String.join(",", want));
     }
+    // Add the X-Module-Permissions even if empty. That causes auth to return
+    // an empty X-Module-Tokens, which will tell us that we have done the mod
+    // perms, and no other module should be allowed to do the same.
+    String mpj = Json.encode(modperms);
+    logger.debug("authHeaders:X-Okapi-Module-Permissions: " + mpj);
+    extraReqHeaders.add("X-Okapi-Module-Permissions", mpj);
   }
 
   private void resolveUrls(Iterator<ModuleInstance> it, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -198,24 +212,6 @@ public class ProxyService {
     }
   }
 
-  /**
-   * Find the primary module. That is the first one that has something in its
-   * modulePermissions. REertu
-   * @param l
-   * @return 
-   */
-  private ModuleDescriptor primaryModule(List<ModuleInstance> ml) {
-    Iterator<ModuleInstance> it = ml.iterator();
-    while (it.hasNext()) {
-      ModuleDescriptor m = it.next().getModuleDescriptor();
-      logger.debug("primary: looking at " + m.getId() +": " + Json.encode(m.getModulePermissions()));
-      String[] perm = m.getModulePermissions();
-      if ( perm != null && perm.length > 0 )
-        return m;
-    }
-    return null;
-  }
-
   public void proxy(RoutingContext ctx) {
     String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
     if (tenant_id == null) {
@@ -234,16 +230,7 @@ public class ProxyService {
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);
 
-    String caller = ctx.request().getHeader("X-Okapi-Calling-Module");
-    if ( caller != null && ! caller.isEmpty()) {
-
-    }
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
-    ModuleDescriptor pmod = primaryModule(l);
-    if ( pmod != null ) {
-      logger.debug("Primary module found: " +  pmod.getId());
-      ctx.request().headers().add("X-Okapi-Called-Module", pmod.getId());
-    }
     ctx.request().headers().add("X-Okapi-Url", okapiUrl);
     authHeaders(l, ctx.request().headers());
 
