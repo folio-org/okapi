@@ -17,18 +17,21 @@ package okapi.bean;
 
 /**
  * An Instance of a Module that has been enabled for a given tenant.
- * Used in the proxy for deciding the routing of requests.
+ * Used internally in the proxy for deciding the routing of requests.
  */
 public class ModuleInstance {
 
   ModuleDescriptor md;
   String url;
   final RoutingEntry re;
+  String authToken;
+
 
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re) {
     this.md = md;
     this.url = null;
     this.re = re;
+    this.authToken = null;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -46,4 +49,13 @@ public class ModuleInstance {
   public RoutingEntry getRoutingEntry() {
     return re;
   }
+
+  public String getAuthToken() {
+    return authToken;
+  }
+
+  public void setAuthToken(String authToken) {
+    this.authToken = authToken;
+  }
+
 }
