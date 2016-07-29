@@ -568,6 +568,7 @@ The okapi directory contains a few sub modules. These are:
  * `okapi-auth`: a simple module demonstrating authentication
  * `okapi-sample-module`: a module mangling HTTP content
  * `okapi-header-module`: a module to test headers-only mode
+ * `okapi-common`: utilities used by both gateway and modules
 
 These three modules are used in tests for okapi-core so they must be built
 before okapi-core tests are performed.
