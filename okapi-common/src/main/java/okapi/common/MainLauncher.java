@@ -13,17 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package okapi;
+package okapi.common;
 
-import io.vertx.core.DeploymentOptions;
-import io.vertx.core.Vertx;
+import io.vertx.core.Launcher;
 
-public class MainBare {
-
+public class MainLauncher extends Launcher {
   public static void main(String[] args) {
-    Vertx vertx = Vertx.vertx();
-    DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(), opt);
-
+    System.setProperty("vertx.logger-delegate-factory-class-name",
+            "io.vertx.core.logging.SLF4JLogDelegateFactory");
+    MainLauncher m = new MainLauncher();
+    m.dispatch(args);
   }
 }

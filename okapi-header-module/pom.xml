@@ -13,6 +13,11 @@
   <artifactId>okapi-header-module</artifactId>
 
   <dependencies>
+    <dependency>
+      <groupId>com.indexdata.okapi</groupId>
+      <artifactId>okapi-common</artifactId>
+      <version>0.4-SNAPSHOT</version>
+    </dependency>
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->
     <dependency>
@@ -79,7 +84,7 @@
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
-                    <Main-Class>okapi.header.MainLauncher</Main-Class>
+                    <Main-Class>okapi.common.MainLauncher</Main-Class>
                     <Main-Verticle>okapi.header.MainVerticle</Main-Verticle>
                   </manifestEntries>
                 </transformer>
