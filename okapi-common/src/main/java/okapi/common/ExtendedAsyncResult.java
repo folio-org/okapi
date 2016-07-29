@@ -15,7 +15,6 @@
  */
 package okapi.common;
 
-import okapi.common.ErrorType;
 import io.vertx.core.AsyncResult;
 
 /**
