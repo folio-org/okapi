@@ -114,12 +114,14 @@ public class ModuleWebService {
     if (!md.getId().matches("^[a-z0-9._-]+$")) {
       return "Invalid id";
     }
-    for (RoutingEntry e : md.getRoutingEntries()) {
-      String t = e.getType();
-      if (!(t.equals("request-only")
-              || (t.equals("request-response"))
-              || (t.equals("headers")))) {
-        return "Bad routing entry type: '" + t + "'";
+    if (md.getRoutingEntries() != null) {
+      for (RoutingEntry e : md.getRoutingEntries()) {
+        String t = e.getType();
+        if (!(t.equals("request-only")
+                || (t.equals("request-response"))
+                || (t.equals("headers")))) {
+          return "Bad routing entry type: '" + t + "'";
+        }
       }
     }
     return "";
