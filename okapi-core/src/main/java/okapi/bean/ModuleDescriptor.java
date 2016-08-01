@@ -29,6 +29,7 @@ public class ModuleDescriptor {
   private ModuleInterface[] provides;
   private ModuleInterface[] requires;
   private RoutingEntry[] routingEntries;
+  private String[] modulePermissions;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
 
@@ -48,6 +49,7 @@ public class ModuleDescriptor {
     this.routingEntries = other.routingEntries;
     this.provides = other.provides;
     this.requires = other.requires;
+    this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
   }
@@ -98,6 +100,14 @@ public class ModuleDescriptor {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String[] getModulePermissions() {
+    return modulePermissions;
+  }
+
+  public void setModulePermissions(String[] modulePermissions) {
+    this.modulePermissions = modulePermissions;
   }
 
   public UiModuleDescriptor getUiDescriptor() {
