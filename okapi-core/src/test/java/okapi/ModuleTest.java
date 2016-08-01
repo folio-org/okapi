@@ -80,7 +80,6 @@ public class ModuleTest {
     td(context);
   }
 
-
   public void td(TestContext context) {
     if (locationAuthDeployment != null) {
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
@@ -127,37 +126,38 @@ public class ModuleTest {
       async.complete();
     });
   }
+
   /**
-   * Check that the tests have not left anything in the database.
-   * Since the @Tests are run in a nondeterministic order, each
-   * ought to clean up after itself. This should be called in the
-   * beginning and end of each @Test
+   * Check that the tests have not left anything in the database. Since the
+   * @Tests are run in a nondeterministic order, each ought to clean up after
+   * itself. This should be called in the beginning and end of each @Test
+   *
    * @param context
    */
   private void checkDbIsEmpty(String label, TestContext context) {
 
-    logger.debug("Db check " + label );
+    logger.debug("Db check " + label);
     // Check that we are not depending on td() to undeploy modules
     Assert.assertNull("locationAuthDeployment", locationAuthDeployment);
-    Assert.assertNull("locationSampleDeployment",locationSampleDeployment);
-    Assert.assertNull("locationSample5Deployment",locationSample5Deployment);
-    Assert.assertNull("locationHeaderDeployment",locationHeaderDeployment);
+    Assert.assertNull("locationSampleDeployment", locationSampleDeployment);
+    Assert.assertNull("locationSample5Deployment", locationSample5Deployment);
+    Assert.assertNull("locationHeaderDeployment", locationHeaderDeployment);
 
     String emptyListDoc = "[ ]";
 
     given().get("/_/deployment/modules").then()
-      .log().ifError().statusCode(200)
-      .body(equalTo(emptyListDoc));
+            .log().ifError().statusCode(200)
+            .body(equalTo(emptyListDoc));
 
     given().get("/_/discovery/nodes").then()
-      .log().ifError().statusCode(200); // we still have a node!
+            .log().ifError().statusCode(200); // we still have a node!
     given().get("/_/discovery/modules").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+            .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
 
     given().get("/_/proxy/modules").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+            .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
     given().get("/_/proxy/tenants").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+            .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
     logger.debug("Db check " + label + " done");
 
   }
@@ -393,7 +393,6 @@ public class ModuleTest {
             c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
-
     c = api.createRestAssured(); // trailing slash is no good
     c.given().get("/_/proxy/modules/").then().statusCode(404);
 
@@ -590,8 +589,7 @@ public class ModuleTest {
             .get("/sample")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
-            .header("X-Okapi-Module-Permissions"
-                      ,"{\"sample-module\":[\"sample.modperm\"]}")
+            .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
             .header("X-Okapi-Url", "http://localhost:9130/")
             .body(equalTo("It works"));
     // Check only the required permission bit, since there is only one.
@@ -642,7 +640,7 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"nodeId\" : null," + LS  // no nodeId, we aren't deploying on any node
+            + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     r = c.given()
@@ -856,7 +854,6 @@ public class ModuleTest {
             .get("/sample")
             .then().statusCode(404); // because sample2 was removed
 
-
     c = api.createRestAssured();
     c.given().delete(locationTenantRoskilde)
             .then().statusCode(204);
@@ -972,26 +969,26 @@ public class ModuleTest {
 
     // Deploy a module via its own LaunchDescriptor
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-depl\"," + LS
-      + "  \"name\" : \"sample module for deployment test\"," + LS
-      + "  \"tags\" : null," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/sample\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]," + LS
-      + "  \"uiDescriptor\" : null," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"cmdlineStart\" : null," + LS
-      + "    \"cmdlineStop\" : null," + LS
-      + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+            + "  \"id\" : \"sample-module-depl\"," + LS
+            + "  \"name\" : \"sample module for deployment test\"," + LS
+            + "  \"tags\" : null," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/sample\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]," + LS
+            + "  \"uiDescriptor\" : null," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null," + LS
+            + "    \"cmdlineStop\" : null," + LS
+            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
             .assumingBaseUri("https://okapi.cloud");
@@ -1000,12 +997,12 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule).post("/_/proxy/modules")
-      .then()
-      //.log().all()
-      .statusCode(201)
-      .extract().response();
+            .header("Content-Type", "application/json")
+            .body(docSampleModule).post("/_/proxy/modules")
+            .then()
+            //.log().all()
+            .statusCode(201)
+            .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
@@ -1016,16 +1013,16 @@ public class ModuleTest {
             + "  \"descriptor\" : null" + LS
             + "}";
     final String DeployResp = "{" + LS
-    +"  \"instId\" : \"localhost-9131\"," + LS
-    +"  \"srvcId\" : \"sample-module-depl\"," + LS
-    +"  \"nodeId\" : \"localhost\"," + LS
-    +"  \"url\" : \"http://localhost:9131\"," + LS
-    +"  \"descriptor\" : {" + LS
-    +"    \"cmdlineStart\" : null," + LS
-    +"    \"cmdlineStop\" : null," + LS
-    +"    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
-    +"  }" + LS
-    +"}";
+            + "  \"instId\" : \"localhost-9131\"," + LS
+            + "  \"srvcId\" : \"sample-module-depl\"," + LS
+            + "  \"nodeId\" : \"localhost\"," + LS
+            + "  \"url\" : \"http://localhost:9131\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"cmdlineStart\" : null," + LS
+            + "    \"cmdlineStop\" : null," + LS
+            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
 
     r = given().header("Content-Type", "application/json")
             .body(docDeploy).post("/_/discovery/modules")
@@ -1036,18 +1033,17 @@ public class ModuleTest {
 
     // Would be nice to verify that the module works, but too much hazzle with
     // tenants etc
-
     // Undeploy
     given().delete(locationSample5Deployment)
-      .then().statusCode(204);
+            .then().statusCode(204);
     // Undeploy again, to see it is gone
     given().delete(locationSample5Deployment)
-      .then().statusCode(404);
+            .then().statusCode(404);
     locationSample5Deployment = null;
 
     // and delete from the proxy
     given().delete(locationSampleModule)
-      .then().statusCode(204);
+            .then().statusCode(204);
 
     checkDbIsEmpty("testDeployment done", context);
     async.complete();
