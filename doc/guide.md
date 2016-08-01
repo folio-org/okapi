@@ -455,6 +455,13 @@ That is outside the scope of the Okapi core, but generally such are done by assi
 various roles to the different users, and mapping such roles to collections of
 these permission bits, perhaps in a recursive way.
 
+It is also possible to grant any given module some permissions. These will be
+defined in the `modulePermissions` field of the moduleDescriptor. They are passed
+on to the auth module just before calling the module itself, and the auth module
+is supposed to store the bits, probably in the JWT token it generates, so that
+when a further call comes in, it can look at the permission bits in addition to
+those of the user, and grant access as needed.
+
 The trivial okapi-auth module included in the Okapi source tree does not implement
 much of this scheme. It is there just to provide an example of some kind of
 authentication mechanisms and its interfaces.
@@ -518,7 +525,7 @@ are supposed to work with the current implementation.
 
 ### Missing features
 
- * Header merging
+ Nothing major, at this point.
 
 
 ## Compiling and Running
@@ -825,11 +832,11 @@ You should see something like this
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/deployment/modules/localhost-9131
-Content-Length: 291
+Content-Length: 284
 
 {
   "instId" : "localhost-9131",
-  "srvcId" : "sample-module",
+  "srvcId" : "sample",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -923,7 +930,7 @@ curl -w '\n' -X POST -D -   \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/module
-Content-Length: 464
+Content-Length: 487
 
 {
   "id" : "sample",
@@ -940,9 +947,10 @@ Content-Length: 464
     "type" : "request-response",
     "permissionsRequired" : [ "sample.needed" ],
     "permissionsDesired" : [ "sample.extra" ],
-    "uiDescriptor" : null,
-    "launchDescriptor" : null
-  } ]
+  } ],
+  "modulePermissions" : null,
+  "uiDescriptor" : null,
+  "launchDescriptor" : null
 }
 
 ```
@@ -965,6 +973,10 @@ authentication module checks whether the user actually has the required
 permissions, and refuses the request if not. (The present dummy
 authentication module does not do this kind of check, as it has no
 user database to work with.)
+
+The 'modulePermissions' is a list of permissions granted to this module, so it
+may do things beyond what the user has permissions for. In this simple example
+we ignore those.
 
 Since this is an Okapi module, not a UI module, we don't need any UI descriptors.
 
@@ -1040,7 +1052,7 @@ And should see
 ```
 HTTP/1.1 201 Created
 Location: /_/proxy/modules/auth
-Content-Length: 737
+Content-Length: 767
 
 {
   "id" : "auth",
@@ -1069,6 +1081,7 @@ Content-Length: 737
     "permissionsRequired" : null,
     "permissionsDesired" : null
   } ],
+  "modulePermissions" : null,
   "uiDescriptor" : null,
   "launchDescriptor" : {
     "cmdlineStart" : null,
@@ -1358,8 +1371,8 @@ Now we can clean up some things
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample/localhost-9131
 
