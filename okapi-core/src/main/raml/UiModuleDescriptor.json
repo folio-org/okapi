@@ -3,8 +3,9 @@
   "title": "UiModuleDescriptor",
   "type": ["object", "null"],
   "properties": {
-    "npm": {"type": "string"},
+    "npm" : {"type" : ["string", "null"]},
+    "url" : {"type" : ["string", "null"]},
+    "local" : {"type" : ["string", "null"]},
     "args" : {"type" : ["string", "null"]}
-  },
-  "required": ["npm"]
+  }
 }

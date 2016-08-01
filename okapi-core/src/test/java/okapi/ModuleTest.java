@@ -129,6 +129,7 @@ public class ModuleTest {
 
   /**
    * Check that the tests have not left anything in the database. Since the
+   *
    * @Tests are run in a nondeterministic order, each ought to clean up after
    * itself. This should be called in the beginning and end of each @Test
    *
@@ -1231,6 +1232,8 @@ public class ModuleTest {
             + "  \"modulePermissions\" : null," + LS
             + "  \"uiDescriptor\" : {" + LS
             + "    \"npm\" : \"name-of-module-in-npm\"," + LS
+            + "    \"url\" : null," + LS
+            + "    \"local\" : null," + LS
             + "    \"args\" : null" + LS
             + "  }," + LS
             + "  \"launchDescriptor\" : null" + LS
