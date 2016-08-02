@@ -16,7 +16,7 @@
     <module>okapi-sample-module</module>
     <module>okapi-auth</module>
     <module>okapi-header-module</module>
-    <!-- core must be last because it relies on the previous two in tests -->
+    <!-- okapi-core must be last because its tests rely on the previous ones -->
     <module>okapi-core</module>
   </modules>
 

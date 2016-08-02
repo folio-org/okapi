@@ -584,8 +584,8 @@ The okapi directory contains a few sub modules. These are:
  * `okapi-header-module`: a module to test headers-only mode
  * `okapi-common`: utilities used by both gateway and modules
 
-These three modules are used in tests for okapi-core so they must be built
-before okapi-core tests are performed.
+(Note the build order specified in the `pom.xml`:
+okapi-core must be last because its tests rely on the previous ones.)
 
 The result for each module and okapi-core is a combined jar file
 with all necessary components combined - including Vert.x. The listening
