@@ -15,11 +15,15 @@
  */
 package okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 /**
  * Tells how a module is to be deployed. Either by exec'ing a command (and
- * killing the process afterwards), or by using command lines to start and
- * stop it.
+ * killing the process afterwards), or by using command lines to start and stop
+ * it.
  */
+@JsonInclude(Include.NON_NULL)
 public class LaunchDescriptor {
 
   private String cmdlineStart;
