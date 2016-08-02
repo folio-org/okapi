@@ -234,7 +234,7 @@ The `/_/discovery` endpoint offers a shortcut to deploy a module at the same tim
 as registering it. If the DeploymentDescriptor contains a nodeId, we assume
 that the module is to be deployed on that node. If the DeploymentDescriptor
 contains a LaunchDescriptor, this is used for starting the process. If not,
-Okapi fetches the ModuleDescriptor that has been registred with the
+Okapi fetches the ModuleDescriptor that has been registered with the
 proxy module, and if that
 contains a LaunchDescriptor, it will be used. This way, we can adapt to what
 ever deployment needs the installation will have.
