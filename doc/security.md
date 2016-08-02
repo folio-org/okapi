@@ -1,0 +1,114 @@
+# Okapi Security Model
+
+(Note - We are in the process of moving the Security chapter of the guide into
+this separate document - at the moment there will be some overlap)
+
+The Okapi security model consists of two parts, authentication and authorization.
+Authentication is responsible for assuring that our user is who she claims to be,
+and authorization is responsible for checking that she is allowed do what she is
+trying to do. Related to authorization, we have a whole lot of permission bits,
+and a system to manage them. Okapi does not really care if those are handled in
+a separate module, or as part of the authorization module.
+
+The Okapi source tree contains a small module `okapi-auth` that does both parts,
+in a minimal dummy fashion, suitable for testing Okapi itself. It is not intended
+to be a real security module at all. In real life, both parts will be implemented
+in separate modules, possibly several.
+
+## Simplified Overview
+
+Skipping all messy details, this is more or less what happens when a user wants
+to make use of Okapi:
+
+* The first thing the user does is to point her browser to a login screen
+* She enters her credentials
+* The authorization module verifies these
+* It issues a token, and returns that to the user
+* The user passes this token in all requests to Okapi
+* Okapi calls the authorization module to verify that we have a valid user, and
+that this user has permission to make the request.
+
+
+## Authentication
+
+Obviously we will need different authentication mechanisms, from SAML, OAuth,
+and LDAP, to regular usernames and passwords, down to IP authentication, and
+even some pseudo-authentication that just says that this an unidentified member
+of the general public, using a site that is open for such.
+
+As far Okapi is concerned, there should be (at least) one authentication module
+enabled for each tenant. The user's first request should be to /login, which
+gets routed to the right authentication module. It will get some parameters,
+for example tenant, username, and password. It will verify these, talking to
+what ever back end is proper. When it is satisfied, it will generate the JWT
+token, either by itself, or possibly by invoking the authorization module, which
+is the module really concerned with these tokens. In any case, a token is
+returned to the client. The token will always contain the userid, and the
+tenant where the user belongs, but may contain many other things too. It is
+cryptographically signed, so its contents can not be modified without detection.
+
+The module may also receive some permission data from its back end, and issue
+an update request to the authorization module (or permissions, if that is a
+separate module).
+
+The client will pass this token in all the requests it makes, and the authorization
+module will verify it every time.
+
+
+
+
+## Authorization
+This is where Okapi gets a bit more involved, and where things get technical.
+
+When a request comes in to Okapi (excluding the /login and other requests that
+are open for anyone), Okapi looks at the tenant, and figures out the pipeline
+of modules it is going to call. This should include the authorization module at
+(or near) the beginning.
+
+At the same time, Okapi looks at the permission bits for all the modules involved,
+from their moduleDescriptors. There are three kinds of permissions:
+
+* PermissionsRequired. These are strictly necessary to call the module
+* PermissionsDesired. These are not necessary, but if present, the module may
+do some extra operations (for example, show sensitive data about a patron)
+* ModulePermissions. Unlike the two others, these are permissions granted to a
+module, which it can make use of, when making further calls to other modules.
+
+As noted before, Okapi does not check any permissions. It just collects the sum
+of PermissionsRequired and -Desired, and passes those to the authorization module
+for checking. It also collects the modulePermissions for each module in the pipeline,
+and passes these to the authorization module.
+
+The authorization module first checks that we have a valid token, and that its
+signature still matches its contents. Then it extracts the user and tenant ids
+from the token, and looks up the permissions granted to this user. It also checks
+if there are module permissions in the token, and if so, adds those to the list
+of user permissions. Next it checks that all PermissionRequired are indeed present
+in the list of permissions. If any one is missing, it fails the whole request.
+The authorization module also walks through the PermissionsDesired, and checks
+which of those are present. It reports those in a special header, so the following
+modules can look at them, and decide to modify their behavior.
+
+Finally, the authorization module looks at the modulePermissions it received.
+For each module listed there, it creates a new JWT that contains all the same
+stuff as the original, plus the permissions granted for that module. It signs
+the JWT, and returns them all in the X-Okapi-Module-Tokens header to Okapi.
+
+Okapi looks if it received any module tokens, and stores these in the pipeline
+it is executing, so it can pass such a special token to those modules that have
+special permissions. The rest of the modules get a clean token.
+
+The following modules do not know, nor care, if they receive the original token
+from the UI, or a token specially crafted for them. They just pass it on in any
+request to other modules, and Okapi will verify that.
+
+
+
+
+
+## Note about bootstrapping the system
+
+(Note about shared secrets: It may be that the security model is sufficient to
+handle the requests to token creation, permission updates, and other internal
+stuff. Need to think about that. If not, Kurt proposes a shared secret so these
+modules can interact safely)

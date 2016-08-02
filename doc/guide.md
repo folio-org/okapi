@@ -417,6 +417,9 @@ But it will reject:
 
 ### Security
 
+(Note: We are in the process of moving the security discussion into its own
+document, [Okapi Security Model](security.md). )
+
 The security model consists of two parts: User authentication and authorization.
 Most of the work is left for separate modules, but the Okapi core has some
 facilities to support these.
