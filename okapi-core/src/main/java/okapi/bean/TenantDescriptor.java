@@ -16,11 +16,15 @@
 package okapi.bean;
 
 /**
- * Description of a Tenant.
- * This is what gets POSTed to /_/proxy/tenants to create new tenants, etc.
- * Carries an id, and some human-readable info about the tenant.
+ * Description of a Tenant. This is what gets POSTed to /_/proxy/tenants to
+ * create new tenants, etc. Carries an id, and some human-readable info about
+ * the tenant.
  *
  */
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
+@JsonInclude(Include.NON_NULL)
 public class TenantDescriptor {
 
   private String id;

@@ -15,9 +15,6 @@
  */
 package okapi.util;
 
-import okapi.common.ExtendedAsyncResult;
-import okapi.common.Failure;
-import okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;

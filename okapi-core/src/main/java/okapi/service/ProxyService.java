@@ -145,10 +145,10 @@ public class ProxyService {
   // Get the auth bits from the module list into
   // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
   // Also X-Okapi-Module-Permissions for each module that has such.
-  // At the same time, sets the authToke to default for each module.
+  // At the same time, sets the authToken to default for each module.
   // Some of these will be overwritten once the auth module returns with
   // dedicated tokens, but by default we use the one given to us by the client.
-  private void authHeaders(List<ModuleInstance> modlist, 
+  private void authHeaders(List<ModuleInstance> modlist,
         MultiMap requestHeaders, String defaultToken) {
     // Samitize important headers from the incoming request
     requestHeaders.remove("X-Okapi-Permissions-Required");
