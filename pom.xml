@@ -38,6 +38,20 @@
   </properties>
 
   <build>
+
+    <extensions>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh</artifactId>
+        <version>2.10</version>
+      </extension>
+      <extension>
+        <groupId>org.apache.maven.wagon</groupId>
+        <artifactId>wagon-ssh-external</artifactId>
+        <version>2.10</version>
+      </extension>
+    </extensions>
+
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -48,6 +62,15 @@
           <compilerArgument>-Xlint:unchecked</compilerArgument>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <additionalparam>-Xdoclint:none</additionalparam>
+        </configuration>
+      </plugin>
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
@@ -134,7 +157,43 @@
           </resources>
         </configuration>
       </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <version>2.5.3</version>
+        <configuration>
+          <preparationGoals>clean verify</preparationGoals>
+          <tagNameFormat>v@{project.version}</tagNameFormat>
+          <pushChanges>false</pushChanges>
+          <localCheckout>true</localCheckout>
+        </configuration>
+      </plugin>
+
     </plugins>
   </build>
+
+  <scm>
+    <url>https://github.com/sling-incubator/okapi</url>
+    <connection>scm:git:git://github.com/sling-incubator/okapi.git</connection>
+    <developerConnection>scm:git:git@github.com:sling-incubator/okapi.git</developerConnection>
+  </scm>
+
+  <distributionManagement>
+    <repository>
+      <id>id-maven-repo</id>
+      <name>Index Data Maven Repository</name>
+      <url>scp://maven.indexdata.com:22/var/www/maven/repository</url>
+      <uniqueVersion>false</uniqueVersion>
+    </repository>
+  </distributionManagement>
+
+  <repositories>
+    <repository>
+      <id>id-maven-repo</id>
+      <name>Index Data Maven Repository</name>
+      <url>http://maven.indexdata.com/</url>
+    </repository>
+  </repositories>
 
 </project>
