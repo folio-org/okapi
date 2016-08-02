@@ -17,11 +17,14 @@ package okapi.bean;
 
 import okapi.util.ModuleHandle;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
- * Description of one deployed module.
- * Refers to one running instance of a module on a node in the cluster.
+ * Description of one deployed module. Refers to one running instance of a
+ * module on a node in the cluster.
  */
+@JsonInclude(Include.NON_NULL)
 public class DeploymentDescriptor {
 
   private String instId;

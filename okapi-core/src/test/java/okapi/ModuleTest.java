@@ -261,7 +261,6 @@ public class ModuleTest {
             + "    \"id\" : \"auth\"," + LS
             + "    \"version\" : \"1.2.3\"" + LS
             + "  } ]," + LS
-            + "  \"requires\" : null," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"*\" ]," + LS
             + "    \"path\" : \"/s\"," + LS
@@ -357,7 +356,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
             + "  \"id\" : \"sample-module\"," + LS
             + "  \"name\" : \"sample module\"," + LS
-            + "  \"tags\" : null," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
@@ -375,10 +373,7 @@ public class ModuleTest {
             + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
             + "  } ]," + LS
             + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
-            + "  \"uiDescriptor\" : null," + LS
             + "  \"launchDescriptor\" : {" + LS
-            + "    \"cmdlineStart\" : null," + LS
-            + "    \"cmdlineStop\" : null," + LS
             + "    \"exec\" : \"/usr/bin/false\"" + LS
             + "  }" + LS
             + "}";
@@ -916,8 +911,6 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : null," + LS
-            + "    \"cmdlineStop\" : null," + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
@@ -972,7 +965,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
             + "  \"id\" : \"sample-module-depl\"," + LS
             + "  \"name\" : \"sample module for deployment test\"," + LS
-            + "  \"tags\" : null," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
@@ -983,10 +975,7 @@ public class ModuleTest {
             + "    \"level\" : \"30\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
-            + "  \"uiDescriptor\" : null," + LS
             + "  \"launchDescriptor\" : {" + LS
-            + "    \"cmdlineStart\" : null," + LS
-            + "    \"cmdlineStop\" : null," + LS
             + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
@@ -1010,8 +999,7 @@ public class ModuleTest {
 
     final String docDeploy = "{" + LS
             + "  \"srvcId\" : \"sample-module-depl\"," + LS
-            + "  \"nodeId\" : \"localhost\"," + LS
-            + "  \"descriptor\" : null" + LS
+            + "  \"nodeId\" : \"localhost\"" + LS
             + "}";
     final String DeployResp = "{" + LS
             + "  \"instId\" : \"localhost-9131\"," + LS
@@ -1019,8 +1007,6 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : null," + LS
-            + "    \"cmdlineStop\" : null," + LS
             + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
@@ -1225,18 +1211,10 @@ public class ModuleTest {
     final String docUiModuleOutput = "{" + LS
             + "  \"id\" : \"11-22-11-22-11\"," + LS
             + "  \"name\" : \"sample-ui\"," + LS
-            + "  \"tags\" : null," + LS
-            + "  \"provides\" : null," + LS
-            + "  \"requires\" : null," + LS
             + "  \"routingEntries\" : [ ]," + LS
-            + "  \"modulePermissions\" : null," + LS
             + "  \"uiDescriptor\" : {" + LS
-            + "    \"npm\" : \"name-of-module-in-npm\"," + LS
-            + "    \"url\" : null," + LS
-            + "    \"local\" : null," + LS
-            + "    \"args\" : null" + LS
-            + "  }," + LS
-            + "  \"launchDescriptor\" : null" + LS
+            + "    \"npm\" : \"name-of-module-in-npm\"" + LS
+            + "  }" + LS
             + "}";
 
     RestAssuredClient c;

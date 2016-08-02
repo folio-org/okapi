@@ -15,11 +15,15 @@
  */
 package okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 /**
  * Description of a module. These are used when creating modules under
  * /_/proxy/modules, etc.
  *
  */
+@JsonInclude(Include.NON_NULL)
 public class ModuleDescriptor {
 
   private String id;
@@ -32,7 +36,6 @@ public class ModuleDescriptor {
   private String[] modulePermissions;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
-
 
   public ModuleDescriptor() {
   }
