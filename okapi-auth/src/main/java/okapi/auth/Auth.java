@@ -132,7 +132,7 @@ public class Auth {
     } catch (NoSuchAlgorithmException ex) {
       logger.error("no such algorithm: " + ex.getMessage());
     }
-    if (!tokens.isEmpty()) { // return also a 'clean' token 
+    if (!tokens.isEmpty()) { // return also a 'clean' token
       tokens.put("_", ctx.request().getHeader(OKAPITOKENHEADER));
     }
     String alltokens = Json.encode(tokens);
