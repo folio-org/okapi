@@ -3,10 +3,10 @@
 (Note - We are in the process of moving the Security chapter of the guide into
 this separate document - at the moment there will be some overlap)
 
-The Okapi security model consists of two parts, authentication and authorization.
-Authentication is responsible for assuring that our user is who she claims to be,
-and authorization is responsible for checking that she is allowed do what she is
-trying to do. Related to authorization, we have a whole lot of permission bits,
+The Okapi security model consists of two parts: authentication and authorization.
+Authentication is responsible for assuring that our user is who they claim to be.
+Authorization is responsible for checking that they are allowed do that action.
+Related to authorization, we have a whole lot of permission bits,
 and a system to manage them. Okapi does not really care if those are handled in
 a separate module, or as part of the authorization module.
 
@@ -20,11 +20,11 @@ in separate modules, possibly several.
 Skipping all messy details, this is more or less what happens when a user wants
 to make use of Okapi:
 
-* The first thing the user does is to point her browser to a login screen
-* She enters her credentials
-* The authorization module verifies these
-* It issues a token, and returns that to the user
-* The user passes this token in all requests to Okapi
+* The first thing the user does is to point their browser to a login screen.
+* They enter their credentials.
+* The authorization module verifies these.
+* It issues a token, and returns that to the user.
+* The user passes this token in all requests to Okapi.
 * Okapi calls the authorization module to verify that we have a valid user, and
 that this user has permission to make the request.
 
@@ -68,22 +68,22 @@ of modules it is going to call. This should include the authorization module at
 At the same time, Okapi looks at the permission bits for all the modules involved,
 from their moduleDescriptors. There are three kinds of permissions:
 
-* PermissionsRequired. These are strictly necessary to call the module
+* PermissionsRequired. These are strictly necessary to call the module.
 * PermissionsDesired. These are not necessary, but if present, the module may
-do some extra operations (for example, show sensitive data about a patron)
+do some extra operations (for example, show sensitive data about a patron).
 * ModulePermissions. Unlike the two others, these are permissions granted to a
 module, which it can make use of, when making further calls to other modules.
 
 As noted before, Okapi does not check any permissions. It just collects the sum
-of PermissionsRequired and -Desired, and passes those to the authorization module
-for checking. It also collects the modulePermissions for each module in the pipeline,
-and passes these to the authorization module.
+of PermissionsRequired and PermissionsDesired, and passes those to the
+authorization module for checking. It also collects the modulePermissions for
+each module in the pipeline, and passes these to the authorization module.
 
 The authorization module first checks that we have a valid token, and that its
-signature still matches its contents. Then it extracts the user and tenant ids
+signature still matches its contents. Then it extracts the user and tenant IDs
 from the token, and looks up the permissions granted to this user. It also checks
 if there are module permissions in the token, and if so, adds those to the list
-of user permissions. Next it checks that all PermissionRequired are indeed present
+of user permissions. Next it checks that all PermissionsRequired are indeed present
 in the list of permissions. If any one is missing, it fails the whole request.
 The authorization module also walks through the PermissionsDesired, and checks
 which of those are present. It reports those in a special header, so the following
@@ -94,7 +94,7 @@ For each module listed there, it creates a new JWT that contains all the same
 stuff as the original, plus the permissions granted for that module. It signs
 the JWT, and returns them all in the X-Okapi-Module-Tokens header to Okapi.
 
-Okapi looks if it received any module tokens, and stores these in the pipeline
+Okapi checks whether it received any module tokens, and stores these in the pipeline
 it is executing, so it can pass such a special token to those modules that have
 special permissions. The rest of the modules get a clean token.
 
