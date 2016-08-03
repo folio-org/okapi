@@ -6,7 +6,8 @@ Authentication is responsible for assuring that our user is who they claim to be
 Authorization is responsible for checking that they are allowed do that action.
 Related to authorization, we have a whole lot of permission bits, and a system
 to manage them. Okapi does not really care if those are handled in a separate
-module, or as part of the authorization module.
+module, or as part of the authorization module. The permissions can come from
+two sources: Either they are granted for the user, or they are granted for a module.4
 
 As far as Okapi sees the permissions, they are simple strings like "patron.read",
 or "patron.read.sensitive". Those strings have no meaning for Okapi, but we will
@@ -16,7 +17,7 @@ on the other hand, the management of these should be kept simple. This can be
 done by having the permissions module expand user roles into grouped permissions,
 and those into fine-grained permissions. For example, a 'sysadmin' role might expand
 into a list that contains 'patron.admin', which again could expand into a list
-that contains 'patron.read', 'patron.update', and 'patron.create'. But all that
+that contains 'patron.read', 'patron.update', and 'patron.create'. All that
 should happen in the permissions module.
 
 The Okapi source tree contains a small module `okapi-auth` that does both parts,
@@ -36,6 +37,10 @@ to make use of Okapi:
 * The user passes this token in all requests to Okapi.
 * Okapi calls the authorization module to verify that we have a valid user, and
 that this user has permission to make the request.
+* The modules can make further calls to other modules, via Okapi. Again they
+pass the token on, and Okapi passes it to the authorization module to validate
+it. Occasionally Okapi can pass on an improved token, if the module has special
+permissions. 
 
 
 ## Authentication
@@ -45,10 +50,10 @@ and LDAP, to regular usernames and passwords, down to IP authentication, and
 even some pseudo-authentication that just says that this is an unidentified
 member of the general public.
 
-As far Okapi is concerned, there should be (at least) one authentication module
-enabled for each tenant. The user's first request should be to /login, which
-gets routed to the right authentication module. It will get some parameters,
-for example tenant, username, and password. It will verify these, talking to
+There should usually be (at least) one authentication module enabled for each
+tenant. The user's first request should be to /login, which gets routed to the
+right authentication module. It will get some parameters, for example tenant,
+username, and password. It will verify these, talking to
 what ever backend is proper. When it is satisfied, it will generate a JWT
 token, either by itself, or possibly by invoking the authorization module, which
 is the module really concerned with these tokens. In any case, a token is
