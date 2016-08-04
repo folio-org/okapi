@@ -7,7 +7,7 @@ Authorization is responsible for checking that they are allowed do that action.
 Related to authorization, we have a whole lot of permission bits, and a system
 to manage them. Okapi does not really care if those are handled in a separate
 module, or as part of the authorization module. The permissions can come from
-two sources: Either they are granted for the user, or they are granted for a module.4
+two sources: Either they are granted for the user, or they are granted for a module.
 
 As far as Okapi sees the permissions, they are simple strings like "patron.read",
 or "patron.read.sensitive". Those strings have no meaning for Okapi, but we will
@@ -40,7 +40,7 @@ that this user has permission to make the request.
 * The modules can make further calls to other modules, via Okapi. Again they
 pass the token on, and Okapi passes it to the authorization module to validate
 it. Occasionally Okapi can pass on an improved token, if the module has special
-permissions. 
+permissions.
 
 
 ## Authentication
