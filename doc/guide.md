@@ -474,7 +474,7 @@ is supposed to store the bits, probably in the JWT token it generates, so that
 when a further call comes in, it can look at the permission bits in addition to
 those of the user, and grant access as needed.
 
-The trivial okapi-auth module included in the Okapi source tree does not implement
+The trivial okapi-test-auth-module module included in the Okapi source tree does not implement
 much of this scheme. It is there just to provide an example of some kind of
 authentication mechanisms and its interfaces.
 
@@ -581,11 +581,11 @@ the end:
 The okapi directory contains a few sub modules. These are:
 
  * `okapi-core`: the gateway server itself
- * `doc`: documentation, including this guide
- * `okapi-auth`: a simple module demonstrating authentication
- * `okapi-sample-module`: a module mangling HTTP content
- * `okapi-header-module`: a module to test headers-only mode
  * `okapi-common`: utilities used by both gateway and modules
+ * `doc`: documentation, including this guide
+ * `okapi-test-auth-module`: a simple module for testing authentication stuff
+ * `okapi-test-module`: a module mangling HTTP content for test purposes
+ * `okapi-test-header-module`: a module to test headers-only mode
 
 (Note the build order specified in the `pom.xml`:
 okapi-core must be last because its tests rely on the previous ones.)
@@ -594,15 +594,15 @@ The result for each module and okapi-core is a combined jar file
 with all necessary components combined - including Vert.x. The listening
 port is adjusted with property `port`.
 
-For example, to run the okapi-auth module and listen on port 8600, use:
+For example, to run the okapi-test-auth-module module and listen on port 8600, use:
 
 ```
-cd okapi-auth
-java -Dport=8600 -jar target/okapi-auth-fat.jar
+cd okapi-test-auth-module
+java -Dport=8600 -jar target/okapi-test-auth-module-fat.jar
 ```
 
 In the same way, to run the okapi-core, specify its jar file. It is
-also necessary to provde a further command-line argument: a command
+also necessary to provide a further command-line argument: a command
 telling okapi-core what mode to run in. When playing with okapi on a
 single node, we use the `dev` mode.
 
@@ -670,11 +670,12 @@ well-defined state with a few modules enabled for a few known tenants.
 Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with three dummy modules that demonstrate different things.
 
-#### Okapi-sample-module
+#### Okapi-test-module
 
 This is a very simple module. If you make a GET request to it, it will reply "It
 works". If you POST something to it, it will reply with "Hello" followed by
-whatever you posted.
+whatever you posted. It can do a few other tricks too, like echoing request
+headers. These are used in the tests for okapi-core.
 
 Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
@@ -683,7 +684,7 @@ command-line HTTP client that is useful for testing.
 Open a console window, navigate to the okapi project root and issue the command
 
 ```
-java -jar okapi-sample-module/target/okapi-sample-module-fat.jar
+java -jar okapi-test-module/target/okapi-test-module-fat.jar
 ```
 
 This starts the sample module listening on port 8080.
@@ -699,8 +700,6 @@ curl -w '\n' http://localhost:8080/sample
 It should tell you that it works. The option "`-w '\n'`" is just to
 make curl output an extra newline, because the responses do not necessarily
 end in newlines.
-
-
 
 Now we will try to POST something to the sample module. In real life this
 would be a JSON structure, but for now a simple text string will do.
@@ -725,7 +724,7 @@ That is enough about the sample module. Go back to the window where you
 left it running, and kill it with a Ctrl-C. It should not have produced
 any output after the initial messages.
 
-#### Okapi-header-module
+#### Okapi-test-header-module
 
 The header module demonstrates the use of a type=headers module; that is
 a module which inspects HTTP headers and produces a new set of HTTP headers.
@@ -733,7 +732,7 @@ The response body is ignored and should be empty.
 
 Start with:
 ```
-java -jar okapi-header-module/target/okapi-header-module-fat.jar
+java -jar okapi-test-header-module/target/okapi-test-header-module-fat.jar
 ```
 
 The module reads `X-my-header` from leading path `/sample`. If that header is
@@ -750,12 +749,13 @@ and
 curl -w '\n' -H "X-my-header:hey" -D- http://localhost:8080/sample
 ```
 
-#### Okapi-auth-module
+#### Okapi-test-auth-module
 
 Okapi itself does not do authentication: it delegates that to a
 module.  We do not have a fully functional authentication module yet,
 but we have a dummy module that can be used to demonstrate how it
-works.
+works. Also this one is mostly used for testing the auth mechanisms in
+Okapi itself.
 
 The dummy module supports two functions: `/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
@@ -818,7 +818,7 @@ cat > /tmp/sampledeploy.json <<END
 {
   "srvcId" : "sample",
   "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
    }
 }
 END
@@ -856,7 +856,7 @@ Content-Length: 284
   "descriptor" : {
     "cmdlineStart" : null,
     "cmdlineStop" : null,
-    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 ```
@@ -868,7 +868,7 @@ be used to identify the resource later.
 If you look at the output of
 `ps axf | grep okapi`
 you should see that okapi-core has spawned a new process for the
-okapi-sample-module, and that it has been assigned port 9131.
+okapi-test-module, and that it has been assigned port 9131.
 
 You can ask Okapi to list deployed modules:
 ```
@@ -886,7 +886,7 @@ Content-Length: 295
   "descriptor" : {
     "cmdlineStart" : null,
     "cmdlineStop" : null,
-    "exec" : "java -Dport=%p -jar okapi-sample-module/target/okapi-sample-module-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 } ]
 ```
@@ -1028,8 +1028,9 @@ cat > /tmp/authmodule.json <<END
     "level" : "20",
     "type" : "request-response"
   } ],
+
  "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
@@ -1100,7 +1101,7 @@ Content-Length: 767
   "launchDescriptor" : {
     "cmdlineStart" : null,
     "cmdlineStop" : null,
-    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 ```
@@ -1143,7 +1144,7 @@ Content-Length: 264
   "descriptor" : {
     "cmdlineStart" : null,
     "cmdlineStop" : null,
-    "exec" : "java -Dport=%p -jar okapi-auth/target/okapi-auth-fat.jar"
+    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 ```

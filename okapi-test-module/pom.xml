@@ -1,19 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+  http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.indexdata.okapi</groupId>
     <artifactId>okapi</artifactId>
     <version>0.4-SNAPSHOT</version>
   </parent>
-  <artifactId>okapi-auth</artifactId>
-  <packaging>jar</packaging>
+
+  <artifactId>okapi-test-module</artifactId>
+
   <dependencies>
     <dependency>
       <groupId>com.indexdata.okapi</groupId>
       <artifactId>okapi-common</artifactId>
       <version>0.4-SNAPSHOT</version>
     </dependency>
+
     <!-- logging see http://www.slf4j.org/legacy.html -->
     <!-- we use SLF4J for our logging interface -->
     <dependency>
@@ -43,13 +48,23 @@
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>
       <version>${vertx-version}</version>
-      <type>jar</type>
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-web</artifactId>
       <version>${vertx-version}</version>
-      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.12</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-unit</artifactId>
+      <version>${vertx-version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -71,7 +86,7 @@
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <manifestEntries>
                     <Main-Class>okapi.common.MainLauncher</Main-Class>
-                    <Main-Verticle>okapi.auth.MainVerticle</Main-Verticle>
+                    <Main-Verticle>okapi.sample.MainVerticle</Main-Verticle>
                   </manifestEntries>
                 </transformer>
               </transformers>
@@ -81,7 +96,15 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>com.spotify</groupId>
+        <artifactId>docker-maven-plugin</artifactId>
+        <configuration>
+          <skipDockerBuild>false</skipDockerBuild>
+          <skipDockerTag>false</skipDockerTag>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
-  <name>okapi-auth</name>
+    <name>okapi-test-module</name>
 </project>

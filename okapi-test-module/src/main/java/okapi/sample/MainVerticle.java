@@ -28,7 +28,7 @@ import java.lang.management.ManagementFactory;
 
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-sample");
+  private final Logger logger = LoggerFactory.getLogger("okapi-test-module");
 
   public void my_stream_handle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);

@@ -45,7 +45,7 @@ public class Auth {
   static final String OKAPIMODPERMSHEADER = "X-Okapi-Module-Permissions";
   static final String OKAPIMODTOKENSHEADER = "X-Okapi-Module-Tokens";
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-auth");
+  private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
 
   /**
    * Calculate a token from tenant and username. The token is like ttt:uuu:ccc,
@@ -114,6 +114,9 @@ public class Auth {
 
   /**
    * Fake some module permissions.
+   * Generates silly tokens with the module name as the tenant, and a list
+   * of permissions as the user. These are still valid tokens, although it is
+   * not possible to extract the user or tenant from them.
    */
   private String moduleTokens(RoutingContext ctx) {
     String modPermJson = ctx.request().getHeader(OKAPIMODPERMSHEADER);
@@ -122,9 +125,15 @@ public class Auth {
     try {
       if (modPermJson != null && !modPermJson.isEmpty()) {
         JsonObject jo = new JsonObject(modPermJson);
+        String permstr = "";
         for (String mod : jo.fieldNames()) {
           JsonArray ja = jo.getJsonArray(mod);
-          String permstr = String.join(",", ja.getList());
+          for ( int i = 0; i < ja.size(); i++) {
+            String p = ja.getString(i);
+            if (! permstr.isEmpty() )
+              permstr += ",";
+            permstr += p;
+            }
           String tok = token(mod, permstr);
           tokens.put(mod, tok);
         }

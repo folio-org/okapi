@@ -10,7 +10,7 @@
     <version>0.4-SNAPSHOT</version>
   </parent>
 
-  <artifactId>okapi-header-module</artifactId>
+  <artifactId>okapi-test-header-module</artifactId>
 
   <dependencies>
     <dependency>
@@ -97,5 +97,5 @@
       </plugin>
     </plugins>
   </build>
-
+    <name>okapi-test-header-module</name>
 </project>

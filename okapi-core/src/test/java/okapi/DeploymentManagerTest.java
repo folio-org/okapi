@@ -65,7 +65,7 @@ public class DeploymentManagerTest {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
-            + "../okapi-sample-module/target/okapi-sample-module-fat.jar");
+            + "../okapi-test-module/target/okapi-test-module-fat.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
@@ -89,7 +89,7 @@ public class DeploymentManagerTest {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
-            + "../okapi-sample-module/target/unknown.jar");
+            + "../okapi-test-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());
