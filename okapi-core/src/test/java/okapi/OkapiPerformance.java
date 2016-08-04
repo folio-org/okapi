@@ -134,7 +134,7 @@ public class OkapiPerformance {
             + "  \"name\" : \"authmodule\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"," + LS
+            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"," + LS
             + "    \"cmdlineStop\" : null" + LS
             + "  }," + LS
             + "  \"routingEntries\" : [ {" + LS
@@ -167,7 +167,7 @@ public class OkapiPerformance {
             + "  \"url\" : null," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"," + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
             + "    \"cmdlineStop\" : null" + LS
             + "  }," + LS
             + "  \"routingEntries\" : [ {" + LS

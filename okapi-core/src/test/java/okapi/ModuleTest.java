@@ -215,7 +215,7 @@ public class ModuleTest {
             + "  \"srvcId\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-unknown.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-unknown.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -233,7 +233,7 @@ public class ModuleTest {
             + "  \"srvcId\" : \"auth\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-auth/target/okapi-auth-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -297,7 +297,7 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
     c = api.createRestAssured();
@@ -897,7 +897,7 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -912,7 +912,7 @@ public class ModuleTest {
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -976,7 +976,7 @@ public class ModuleTest {
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
             + "  \"launchDescriptor\" : {" + LS
-            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -1007,7 +1007,7 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"url\" : \"http://localhost:9131\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -1048,7 +1048,7 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-sample-module/target/okapi-sample-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
@@ -1063,7 +1063,7 @@ public class ModuleTest {
             + "  \"nodeId\" : \"localhost\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-header-module/target/okapi-header-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
             + "  }" + LS
             + "}";
 
