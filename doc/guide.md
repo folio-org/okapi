@@ -5,7 +5,7 @@ managing and running microservices.
 
 ## Table of Contents
 
-<!-- Regenerate this as needed by running `./md2toc -l 2 -h 3 guide.md` and including its output here -->
+<!-- Regenerate this as needed by running `make guide-toc.md` and including its output here -->
 * [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Architecture](#architecture)
