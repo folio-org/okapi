@@ -1,15 +1,15 @@
 ###
 # vert.x docker example using a Java verticle packaged as a fatjar
 # To build:
-#  docker build -t okapi-sample-module .
+#  docker build -t okapi-test-module .
 # To run:
-#   docker run -t -i -p 8080:8080 okapi-sample-module
+#   docker run -t -i -p 8080:8080 okapi-test-module
 ###
 
 FROM alpine:latest
 RUN apk --update add openjdk8-jre && rm /var/cache/apk/*
 
-ENV VERTICLE_FILE okapi-sample-module-fat.jar
+ENV VERTICLE_FILE okapi-test-module-fat.jar
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
