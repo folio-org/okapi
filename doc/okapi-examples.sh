@@ -14,6 +14,7 @@
 
 OKAPI=${1:-"http://localhost:9130"}   # The usual place it runs on a single-machine setup
 GUIDE=${2:-"doc/guide.md"}  # Where to find the guide
+SLEEP=${3:-0}  # Seconds to sleep between curl commands
 if [ -f $GUIDE ]
 then
   echo "Extracting examples from $GUIDE"
@@ -37,6 +38,7 @@ perl -n -e  'print if /^cat /../^END/;' $GUIDE  | sh
 # the clean-up delete commands, so we leave Okapi fully loaded.
 perl -n -e  'print if /^curl /../http/; ' $GUIDE |
   grep -v 8080 | grep -v DELETE |
+  sed "s/^curl/sleep $SLEEP; curl/" |
   sh -x
 
 # The last line of output should say "It works"
