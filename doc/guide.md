@@ -690,27 +690,27 @@ Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
 command-line HTTP client that is useful for testing.
 
-Open a console window, navigate to the okapi project root and issue the command
+Open a console window, navigate to the okapi project root and issue the command:
 
 ```
 java -jar okapi-test-module/target/okapi-test-module-fat.jar
 ```
 
-This starts the sample module listening on port 8080.
-
+This starts the okapi-test-module listening on port 8080.
 
 Now open another console window, and try to access the
-sample module with
+test module with:
 
 ```
 curl -w '\n' http://localhost:8080/sample
 ```
 
-It should tell you that it works. The option "`-w '\n'`" is just to
-make curl output an extra newline, because the responses do not necessarily
-end in newlines.
+It should tell you that it works.
 
-Now we will try to POST something to the sample module. In real life this
+The option "`-w '\n'`" is just to make curl output an extra newline,
+because the responses do not necessarily end in newlines.
+
+Now we will try to POST something to the test module. In real life this
 would be a JSON structure, but for now a simple text string will do.
 
 ```
@@ -729,9 +729,9 @@ The test module should respond with
 
 which is our test data, with a "Hello" prepended to it.
 
-That is enough about the sample module. Go back to the window where you
-left it running, and kill it with a Ctrl-C. It should not have produced
-any output after the initial messages.
+That is enough about the okpai-test-module for now. Go back to the window
+where you left it running, and kill it with a `Ctrl-C` command. It should
+not have produced any output after the initial messages.
 
 #### Okapi-test-header-module
 
@@ -740,6 +740,7 @@ a module which inspects HTTP headers and produces a new set of HTTP headers.
 The response body is ignored and should be empty.
 
 Start with:
+
 ```
 java -jar okapi-test-header-module/target/okapi-test-header-module-fat.jar
 ```
@@ -775,7 +776,7 @@ tenant-id concatenated with a checksum. In a real authentication
 module it will be something opaque and difficult to fake.
 
 We will see examples of this when we get to play with Okapi itself. If
-you want, you can start the module directly as with the sample module.
+you want, you can start the module directly as with the okapi-test-module.
 
 ### Running Okapi itself
 
@@ -818,9 +819,8 @@ and configuring the proxying.
 
 #### Deploying the sample module
 
-To tell Okapi that we want to use the sample module, we create a JSON
+To tell Okapi that we want to use the `okapi-test-module`, we create a JSON
 structure of module metadata and POST it to Okapi:
-
 
 ```
 cat > /tmp/sampledeploy.json <<END
@@ -1035,13 +1035,13 @@ cat > /tmp/authmodule.json <<END
     "level" : "20",
     "type" : "request-response"
   } ],
-
- "launchDescriptor" : {
+  "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
 ```
+
 For the purposes of this example, we specify that the `auth` module requires
 the `sample` module to be available, and at least version 2.2.1. You can
 try to see what happens if you require different versions, like 1.9.9,
@@ -1416,7 +1416,8 @@ Content-Length: 0
 
 ```
 
-Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
+Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
+command.
 
 ## Reference
 
