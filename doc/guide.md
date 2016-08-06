@@ -657,14 +657,18 @@ current directory as _guide.md_ -- as is the case in the source tree.
 ```
 perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
 ```
+
 It is also possible to run all the examples with a slightly more complex command:
+
 ```
 perl -n -e  'print if /^curl /../http/; ' guide.md |
   grep -v 8080 | grep -v DELETE |
   sh -x
 ```
+
 This explicitly omits the cleaning up DELETE commands, so it leaves Okapi in a
 well-defined state with a few modules enabled for a few known tenants.
+See the script `doc/okapi-examples.sh`.
 
 ### Example modules
 
