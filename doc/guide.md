@@ -671,6 +671,14 @@ well-defined state with a few modules enabled for a few known tenants.
 Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with three dummy modules that demonstrate different things.
 
+Note that these are only intended for demonstration and test purposes.
+Do not base any real modules on these.
+
+There are additional modules in the separate repository
+[folio-sample-modules](https://github.com/sling-incubator/folio-sample-modules).
+
+<!-- TODO - Use the public address, when we have one -->
+
 #### Okapi-test-module
 
 This is a very simple module. If you make a GET request to it, it will reply "It
