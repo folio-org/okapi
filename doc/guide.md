@@ -1107,8 +1107,8 @@ in its database, so in theory it is persistent. In practice we are running our
 Okapi in 'dev' mode, which uses a volatile in-memory database.
 
 Now we need to deploy the module, and tell the discovery that we have it
-running. This can be done in one request. Note that we post this to /_/discovery,
-it will talk to /_/deployment on the correct node - which in this case is
+running. This can be done in one request. Note that we post this to `/_/discovery`,
+it will talk to `/_/deployment` on the correct node - which in this case is
 `localhost`, the machine we are running our demo on.
 
 ```
