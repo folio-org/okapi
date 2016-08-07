@@ -228,7 +228,7 @@ can know where to route incoming requests
 We assume some external management program will be making these requests.  It
 can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
-[the curl command-line examples later in this document](#using-okapi).
+the curl command-line [examples](#using-okapi) later in this document.
 
 The `/_/discovery` endpoint offers a shortcut to deploy a module at the same time
 as registering it. If the DeploymentDescriptor contains a nodeId, we assume
