@@ -420,63 +420,39 @@ But it will reject:
 (Note: We are in the process of moving the security discussion into its own
 document, [Okapi Security Model](security.md). )
 
-The security model consists of two parts: User authentication and authorization.
-Most of the work is left for separate modules, but the Okapi core has some
-facilities to support these.
+Most of the security discission has been moved into its own document,
+[Okapi Security Model](security.md).
 
-#### Authentication
+The security model is concerned about three things:
+* Authentication - that we know who the user is
+* Authorization - that the user is allowed to make this request
+* Permissions - mapping from user roles all the way down to detailed permissions
+Most of this work has been delegated to modules, so Okapi itself will not have
+to do so much work. But it still needs to orchestrate the whole operation.
 
-The actual authentication is delegated to some external module, as it may be
-based on several different external systems. In any case, the auth module will
-provide a cryptographically signed token, that the client will include in any
-request to Okapi, and that the auth module can verify.
+Ignoring all the messy details, this how it works: The client (often on a web
+browser, but can really be anything) calls the `/login` service to identify
+itself. Depending on the tenant, we may have different authorization modules
+serving the /login request, and they may take different parameters (username
+and password are the most likely, but we can have anything from simple IP
+authentication to complex interactions with LDAP, OAuth, or other systems).
 
-#### Authorization
+The authorization service returns a token to the client, and the client passes
+this token in a special header in all requests it makes to Okapi. Okapi in turn
+passes it to the authorization module, together with information of what modules
+will be called to satisfy the request, and what permissions those modules require
+and desire, and if they have special module level permissions. The authorization
+service checks the permissions. If required permissions are not there, the whole
+request is denied. If all is well, the module returns information about the
+desired permissions, and possibly special tokens to be passed to some modules.
 
-Okapi itself does not really enforce user permissions, but it has some facilities
-to help a module check those. On a coarse level, the auth module can refuse any
-access to some given module, if the user does not have permission for it. It can
-also supply information on a finer level, but will be up to the modules themselves
-to decide how that affects their behavior.
+Okapi passes the request to each module in the pipeline in turn. Each of them
+get information of the desired permissions, so they can alter the behavior as
+needed, and a token that they can use for further calls.
 
-The RoutingEntries in the ModuleDescriptor have two fields, `permissionsRequired`
-and `permissionsDesired`. The first contains names of permission bits that are
-strictly required for calling this service. We assume that a separate auth module
-will check if the logged-in user has all these permissions, and will reject the
-request if some are found missing. This decision does not happen inside Okapi,
-as Okapi does not have any database of users etc. It happens in a separate
-module that typically gets invoked early in the chain.
-
-The `permissionsDesired` list contains names of permission bits that the module
-has expressed interest in. The auth module is supposed to check these permissions
-too, and report back (via some headers) which permissions the current user actually
-has. It is up to the actual module to look at those headers and adjust its
-behavior accordingly.
-
-For example, a patron module could have permissions like
-    permissionsRequired: [ "patron.read" ],
-    permissionsDesired: [ "patron.read.sensitive" ]
-This states that if the user does not have the "patron.read" permission, the
-auth module should reject the request immediately. If that test passes, the auth
-module will check the "patron.read.sensitive" permission, and set up a response
-header to indicate if the user has that permission or not. This gets passed to
-the patron module, which can then decide what fields it wants to show or hide.
-
-Obviously there will have to be a module to administer these permission bits.
-That is outside the scope of the Okapi core, but generally such are done by assigning
-various roles to the different users, and mapping such roles to collections of
-these permission bits, perhaps in a recursive way.
-
-It is also possible to grant any given module some permissions. These will be
-defined in the `modulePermissions` field of the moduleDescriptor. They are passed
-on to the auth module just before calling the module itself, and the auth module
-is supposed to store the bits, probably in the JWT token it generates, so that
-when a further call comes in, it can look at the permission bits in addition to
-those of the user, and grant access as needed.
-
-The trivial okapi-test-auth-module module included in the Okapi source tree does not implement
-much of this scheme. It is there just to provide an example of some kind of
-authentication mechanisms and its interfaces.
+The trivial okapi-test-auth-module module included in the Okapi source tree does
+not implement much of this scheme. It is there just to provide an example of some
+kind of authentication mechanisms and its interfaces.
 
 ### Open Issues
 
