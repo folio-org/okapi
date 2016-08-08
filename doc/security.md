@@ -20,7 +20,7 @@ into a list that contains 'patron.admin', which again could expand into a list
 that contains 'patron.read', 'patron.update', and 'patron.create'. All that
 should happen in the permissions module.
 
-The Okapi source tree contains a small module `okapi-auth` that does both parts,
+The Okapi source tree contains a small module `okapi-test-auth` that does both parts,
 in a minimal dummy fashion, suitable for testing Okapi itself. It is not intended
 to be a real security module at all. In real life, the authentication and
 authorization modules will likely be implemented as multiple separate modules.

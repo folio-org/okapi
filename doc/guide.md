@@ -5,7 +5,7 @@ managing and running microservices.
 
 ## Table of Contents
 
-<!-- Regenerate this as needed by running `./md2toc -l 2 -h 3 guide.md` and including its output here -->
+<!-- Regenerate this as needed by running `make guide-toc.md` and including its output here -->
 * [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Architecture](#architecture)
@@ -228,7 +228,7 @@ can know where to route incoming requests
 We assume some external management program will be making these requests.  It
 can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
-[the curl command-line examples later in this document](#using-okapi).
+the curl command-line [examples](#using-okapi) later in this document.
 
 The `/_/discovery` endpoint offers a shortcut to deploy a module at the same time
 as registering it. If the DeploymentDescriptor contains a nodeId, we assume
@@ -648,27 +648,40 @@ option `-Dstorage=mongo` to the command line that starts Okapi.
 
 ### Curl examples
 
-The following examples can be pasted into a command line console. It
-is also possible to extract all the example records with a perl
+The examples in the following sections can be pasted into a command-line console.
+
+It is also possible to extract all the example records with a perl
 one-liner, assuming you have this MarkDown source of this guide in the
 current directory as _guide.md_ -- as is the case in the source tree.
 
 ```
 perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
 ```
+
 It is also possible to run all the examples with a slightly more complex command:
+
 ```
 perl -n -e  'print if /^curl /../http/; ' guide.md |
   grep -v 8080 | grep -v DELETE |
   sh -x
 ```
+
 This explicitly omits the cleaning up DELETE commands, so it leaves Okapi in a
 well-defined state with a few modules enabled for a few known tenants.
+See the script `doc/okapi-examples.sh`.
 
 ### Example modules
 
 Okapi is all about invoking modules, so we need to have a few to play with.
 It comes with three dummy modules that demonstrate different things.
+
+Note that these are only intended for demonstration and test purposes.
+Do not base any real modules on these.
+
+There are additional modules in the separate repository
+[folio-sample-modules](https://github.com/sling-incubator/folio-sample-modules).
+
+<!-- TODO - Use the public address, when we have one -->
 
 #### Okapi-test-module
 
@@ -681,27 +694,27 @@ Normally Okapi will be starting and stopping these modules for you, but we will
 run this one directly for now -- mostly to see how to use curl, a
 command-line HTTP client that is useful for testing.
 
-Open a console window, navigate to the okapi project root and issue the command
+Open a console window, navigate to the okapi project root and issue the command:
 
 ```
 java -jar okapi-test-module/target/okapi-test-module-fat.jar
 ```
 
-This starts the sample module listening on port 8080.
-
+This starts the okapi-test-module listening on port 8080.
 
 Now open another console window, and try to access the
-sample module with
+test module with:
 
 ```
 curl -w '\n' http://localhost:8080/sample
 ```
 
-It should tell you that it works. The option "`-w '\n'`" is just to
-make curl output an extra newline, because the responses do not necessarily
-end in newlines.
+It should tell you that it works.
 
-Now we will try to POST something to the sample module. In real life this
+The option "`-w '\n'`" is just to make curl output an extra newline,
+because the responses do not necessarily end in newlines.
+
+Now we will try to POST something to the test module. In real life this
 would be a JSON structure, but for now a simple text string will do.
 
 ```
@@ -720,9 +733,9 @@ The test module should respond with
 
 which is our test data, with a "Hello" prepended to it.
 
-That is enough about the sample module. Go back to the window where you
-left it running, and kill it with a Ctrl-C. It should not have produced
-any output after the initial messages.
+That is enough about the okpai-test-module for now. Go back to the window
+where you left it running, and kill it with a `Ctrl-C` command. It should
+not have produced any output after the initial messages.
 
 #### Okapi-test-header-module
 
@@ -731,6 +744,7 @@ a module which inspects HTTP headers and produces a new set of HTTP headers.
 The response body is ignored and should be empty.
 
 Start with:
+
 ```
 java -jar okapi-test-header-module/target/okapi-test-header-module-fat.jar
 ```
@@ -766,7 +780,7 @@ tenant-id concatenated with a checksum. In a real authentication
 module it will be something opaque and difficult to fake.
 
 We will see examples of this when we get to play with Okapi itself. If
-you want, you can start the module directly as with the sample module.
+you want, you can start the module directly as with the okapi-test-module.
 
 ### Running Okapi itself
 
@@ -809,9 +823,8 @@ and configuring the proxying.
 
 #### Deploying the sample module
 
-To tell Okapi that we want to use the sample module, we create a JSON
-structure of module metadata and POST it to Okapi
-
+To tell Okapi that we want to use the `okapi-test-module`, we create a JSON
+structure of module metadata and POST it to Okapi:
 
 ```
 cat > /tmp/sampledeploy.json <<END
@@ -841,12 +854,13 @@ be helpful and say something about it being url-encoded, which will confuse
 the Java libraries and result in a "500 - Internal Error". We also
 added the "-D -" option to make curl display all response headers.
 
-You should see something like this
+You should see something like this:
+
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/deployment/modules/localhost-9131
-Content-Length: 284
+Content-Length: 227
 
 {
   "instId" : "localhost-9131",
@@ -854,8 +868,6 @@ Content-Length: 284
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : null,
-    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
@@ -871,12 +883,13 @@ you should see that okapi-core has spawned a new process for the
 okapi-test-module, and that it has been assigned port 9131.
 
 You can ask Okapi to list deployed modules:
+
 ```
 curl -D - -w '\n' http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 295
+Content-Length: 231
 
 [ {
   "instId" : "localhost-9131",
@@ -884,8 +897,6 @@ Content-Length: 295
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
-    "cmdlineStart" : null,
-    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 } ]
@@ -893,6 +904,7 @@ Content-Length: 295
 
 Note that Okapi has added an `instId` and a `url`. You can check that
 the URL points to the running module:
+
 ```
 curl -D - -w '\n' http://localhost:9131/sample
 
@@ -966,7 +978,6 @@ Content-Length: 487
   "uiDescriptor" : null,
   "launchDescriptor" : null
 }
-
 ```
 
 The `routingEntries` indicate that the module is interested in GET and POST
@@ -1028,13 +1039,13 @@ cat > /tmp/authmodule.json <<END
     "level" : "20",
     "type" : "request-response"
   } ],
-
- "launchDescriptor" : {
+  "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
 ```
+
 For the purposes of this example, we specify that the `auth` module requires
 the `sample` module to be available, and at least version 2.2.1. You can
 try to see what happens if you require different versions, like 1.9.9,
@@ -1062,17 +1073,18 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/authmodule.json  \
   http://localhost:9130/_/proxy/modules
 ```
-And should see
+
+And should see:
 
 ```
 HTTP/1.1 201 Created
+Content-Type: application/json
 Location: /_/proxy/modules/auth
-Content-Length: 767
+Content-Length: 666
 
 {
   "id" : "auth",
   "name" : "auth",
-  "tags" : null,
   "provides" : [ {
     "id" : "auth",
     "version" : "3.4.5"
@@ -1096,11 +1108,7 @@ Content-Length: 767
     "permissionsRequired" : null,
     "permissionsDesired" : null
   } ],
-  "modulePermissions" : null,
-  "uiDescriptor" : null,
   "launchDescriptor" : {
-    "cmdlineStart" : null,
-    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
@@ -1111,10 +1119,9 @@ in its database, so in theory it is persistent. In practice we are running our
 Okapi in 'dev' mode, which uses a volatile in-memory database.
 
 Now we need to deploy the module, and tell the discovery that we have it
-running. This can be done in one request. Note that we post this to /_/discovery,
-it will talk to /_/deployment on the correct node - which in this case is
+running. This can be done in one request. Note that we post this to `/_/discovery`,
+it will talk to `/_/deployment` on the correct node - which in this case is
 `localhost`, the machine we are running our demo on.
-
 
 ```
 cat > /tmp/authdeploy.json <<END
@@ -1133,8 +1140,8 @@ curl -w '\n' -D - -s \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/localhost-9132
-Content-Length: 264
+Location: /_/discovery/modules/auth/localhost-9132
+Content-Length: 235
 
 {
   "instId" : "localhost-9132",
@@ -1142,15 +1149,12 @@ Content-Length: 264
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
-    "cmdlineStart" : null,
-    "cmdlineStop" : null,
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 ```
 
-
-Now we have two modules, as can be seen with
+Now we have two modules, as can be seen with:
 
 ```
 curl -w '\n' http://localhost:9130/_/proxy/modules
@@ -1162,7 +1166,8 @@ system. Since each invocation of a module is on behalf of a tenant,
 we need to create some tenants too.
 
 ### Creating tenants
-For this example we create two tenants. These are simple requests.
+
+For this example we create two tenants. These are simple requests:
 
 ```
 cat > /tmp/tenant1.json <<END
@@ -1179,10 +1184,12 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/_/proxy/tenants
 ```
 
-Okapi responds with
+Okapi responds with:
+
 ```
 HTTP/1.1 201 Created
-Location: /_/tenants/our
+Content-Type: application/json
+Location: /_/proxy/tenants/our
 Content-Length: 81
 
 {
@@ -1192,7 +1199,7 @@ Content-Length: 81
 }
 ```
 
-And the second tenant is similar.
+And the second tenant is similar:
 
 ```
 cat > /tmp/tenant2.json <<END
@@ -1220,12 +1227,14 @@ Content-Length: 86
 }
 ```
 
-Again, we can list them with
+Again, we can list them with:
+
 ```
 curl -w '\n' http://localhost:9130/_/proxy/tenants
 ```
 
-We can now get information for one of these again.
+We can now get information for one of these again:
+
 ```
 curl -w '\n' http://localhost:9130/_/proxy/tenants/our
 ```
@@ -1263,10 +1272,13 @@ curl -w '\n' http://localhost:9130/_/proxy/tenants/our/modules
 ````
 
 ### Using a module
-Finally we should be able to make use of the module, as a regular tenant.
+
+Finally we should be able to make use of the module, as a regular tenant:
+
 ```
 curl -w '\n' -D -  http://localhost:9130/sample
 ```
+
 But of course Okapi can not know which tenant it is that is wanting to use our
 sample module, so it can not allow such, and returns a 403 forbidden.
 
@@ -1276,7 +1288,7 @@ curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: our" \
   http://localhost:9130/sample
 ```
-and indeed the sample module says that _it works_.
+and indeed the sample module says: _It works_
 
 ### Enabling both modules for the other tenant
 
@@ -1307,7 +1319,9 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/enabletenant2b.json  \
   http://localhost:9130/_/proxy/tenants/other/modules
 ```
-You can list the enabled modules with
+
+You can list the enabled modules with:
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants/other/modules
 ```
@@ -1315,16 +1329,19 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants/other/modules
 ### Authentication problems
 
 If the other library tries to use our sample module:
+
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: other" \
   http://localhost:9130/sample
 ```
-it fails with
+
+it fails with:
+
 ```
 HTTP/1.1 401 Unauthorized
-Content-Length: 39
-X-Okapi-Trace: GET auth:401 42451us
+Content-Type: text/plain
+X-Okapi-Trace: GET auth:401 53182us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
@@ -1338,7 +1355,7 @@ module causes the request to be rejected unless it contains a suitable
 `X-Okapi-Token`.
 
 In order to get that token, we need to invoke the `/login` service
-first.
+first:
 
 ```
 cat > /tmp/login.json <<END
@@ -1375,13 +1392,14 @@ curl -w '\n' -D -  \
   http://localhost:9130/sample
 ```
 
-it works!
+It works!
 
 Okapi also supports PUT requests to modify existing modules and tenants.
 These are left as an exercise for the reader.
 
 ### Cleaning up
-Now we can clean up some things
+
+Now we can clean up some things:
 
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
@@ -1392,12 +1410,18 @@ curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/loca
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample/localhost-9131
 
 ```
-Okapi responds to each of these with a simple
+
+Okapi responds to each of these with a simple:
+
 ```
 HTTP/1.1 204 No Content
+Content-Type: text/plain
 Content-Length: 0
+
 ```
-Finally we can stop the Okapi instance we had running, with a simple Ctrl-C.
+
+Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
+command.
 
 ## Reference
 
@@ -1414,6 +1438,7 @@ for relevant properties. Okapi itself parses *command* and any
 *options* that follow.
 
 #### Java -D options
+
 The -D option can be used to specify various run-time parameters in
 Okapi. These must be at the beginning of the command line, before the
 `-jar`.
@@ -1428,9 +1453,10 @@ Defaults to `localhost`
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
 as X-Okapi-Url header, and the modules can use this to make further requests
-to Okapi. Defaults to http://localhost:9130/ or what ever port specified.
+to Okapi. Defaults to `http://localhost:9130/` or what ever port specified.
 
 #### Command
+
 Okapi requires exactly one command to be given. These are:
 * `cluster` for running in clustered mode/production
 * `dev` for running in development, single-node mode
@@ -1438,8 +1464,8 @@ Okapi requires exactly one command to be given. These are:
 * `proxy` for proxy + discovery. Clustered mode
 * `help` to list command-line options and commands
 
-
 #### Command-line options
+
 These options are at the end of the command line:
 
 * `-hazelcast-config-cp` _file_ -- Read config from class path
@@ -1451,6 +1477,7 @@ end.
 * `-cluster-port` _port_ -- Vertx cluster port
 
 ### Web Service
+
 The Okapi service requests (all those prefixed with `/_/`) are specified
 in the [RAML](http://raml.org/) syntax.
 
@@ -1458,6 +1485,7 @@ in the [RAML](http://raml.org/) syntax.
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
 
 ### Instrumentation
+
 Okapi pushes instrumentation data to a Carbon/Graphite backend, from which
 they can be shown with something like Grafana. Vert.x pushes some numbers
 automatically, but various parts of Okapi push their own numbers explicitly,
