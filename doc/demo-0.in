@@ -1,0 +1,28 @@
+#!/bin/bash
+
+tmux send-keys -t "${pane1}" "# There are four panes in this demo window:" C-m
+tmux display-panes
+sleep 2
+tmux send-keys -t "${pane1}" "# In this pane#1, will be high-level commentary." C-m
+sleep 3
+tmux select-pane -t "${pane2}"
+tmux send-keys -t "${pane2}" "# In this pane#2, okapi will be started and follow its logfile." C-m
+sleep 3
+tmux select-pane -t "${pane3}"
+tmux send-keys -t "${pane3}" "# In this pane#3, we will send requests via 'curl' to Okapi." C-m
+sleep 3
+tmux select-pane -t "${pane1}"
+sleep 3
+tmux send-keys -t "${pane1}" "# Now starting Okapi in pane#2" C-m
+sleep 2
+tmux send-keys -t "${pane2}" "java -jar okapi-core/target/okapi-core-fat.jar dev" C-m
+sleep 5
+tmux send-keys -t "${pane1}" "# Now sending some requests in pane#3" C-m
+sleep 2
+tmux send-keys -t "${pane3}" "# As okapi has just started, there are no modules or tenants." C-m
+tmux send-keys -t "${pane3}" "# Test that the server is running and show that those lists are empty ..." C-m
+sleep 2
+tmux send-keys -t "${pane3}" "curl -w '\n' http://localhost:9130/_/proxy/modules" C-m
+sleep 1
+tmux send-keys -t "${pane3}" "curl -w '\n' http://localhost:9130/_/proxy/tenants" C-m
+sleep 2
