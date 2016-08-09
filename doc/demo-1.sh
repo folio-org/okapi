@@ -18,6 +18,12 @@ if ! has_session ; then
   exit 1
 fi
 
+if ! [ -f 'doc/guide.md' ]; then
+  echo "Run this script from the top-level 'okapi' directory."
+  echo "See 'doc/demos.md' document."
+  exit 1
+fi
+
 # Set the filename for the top-level recording script to rename its output.
 tmux set-environment -t "${SESSION_NAME}" output_filename "${0%.*}.json"
 
@@ -33,5 +39,3 @@ sleep 1
 tmux send-keys -t "${pane3}" "# Now running the script 'doc/okapi-examples.sh' which extracts the example 'curl' commands from the guide.md and runs them all." C-m
 sleep 2
 tmux send-keys -t "${pane3}" "doc/okapi-examples.sh 'http://localhost:9130' 'doc/guide.md' 5" C-m
-sleep 2
-tmux send-keys -t "${pane1}" "# End of ${demo_name}" C-m
