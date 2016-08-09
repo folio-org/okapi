@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015 Index Data
+ * Copyright (C) 2015-2016 Index Data
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,8 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
-  private static final int max_iterations = 30; // x*(x+1) * 0.1 seconds..
+  private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds..
+  private static final long MILLISECONDS = 200;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
@@ -66,10 +67,8 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.failedFuture("Service returned with exit code"
                 + " " + p.exitValue() + ". Standard error:\n"
                 + OkapiStream.toString(inputStream)));
-      } else if (count < max_iterations) {
-        vertx.setTimer((count + 1) * 200, id -> {
-          tryConnect(startFuture, count + 1);
-        });
+      } else if (count < MAX_ITERATIONS) {
+        vertx.setTimer((count + 1) * MILLISECONDS, id -> tryConnect(startFuture, count + 1));
       } else {
         logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
         startFuture.handle(Future.failedFuture(res.cause()));
