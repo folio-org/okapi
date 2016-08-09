@@ -68,7 +68,7 @@ else
   tmux set -t "${SESSION_NAME}" display-time 4000
   tmux set -t "${SESSION_NAME}" display-panes-time 3000
   tmux set -t "${SESSION_NAME}" status off
-  tmux split-window -v -p 85
+  tmux split-window -v -p 90
   tmux split-window -v -p 80
   tmux split-window -v -p 15
   tmux select-pane -t "${SESSION_NAME}:1.1"
