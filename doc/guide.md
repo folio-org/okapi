@@ -840,7 +840,7 @@ You should see something like this:
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/deployment/modules/localhost-9131
-Content-Length: 227
+Content-Length: 231
 
 {
   "instId" : "localhost-9131",
@@ -869,7 +869,7 @@ curl -D - -w '\n' http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 231
+Content-Length: 235
 
 [ {
   "instId" : "localhost-9131",
@@ -935,28 +935,24 @@ curl -w '\n' -X POST -D -   \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/module
-Content-Length: 487
+Location: /_/proxy/modules/test-basic
+Content-Length: 378
 
 {
   "id" : "test-basic",
   "name" : "Okapi test module",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.2.3"
-    } ],
-  "requires" : null,
+  "provides" : [ {
+    "id" : "test-basic",
+    "version" : "2.2.3"
+  } ],
   "routingEntries" : [ {
     "methods" : [ "GET", "POST" ],
     "path" : "/testb",
     "level" : "30",
     "type" : "request-response",
     "permissionsRequired" : [ "test-basic.needed" ],
-    "permissionsDesired" : [ "test-basic.extra" ],
-  } ],
-  "modulePermissions" : null,
-  "uiDescriptor" : null,
-  "launchDescriptor" : null
+    "permissionsDesired" : [ "test-basic.extra" ]
+  } ]
 }
 ```
 
@@ -1060,7 +1056,7 @@ And should see:
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/auth
-Content-Length: 666
+Content-Length: 670
 
 {
   "id" : "auth",
@@ -1150,7 +1146,7 @@ we need to create some tenants too.
 For this example we create two tenants. These are simple requests:
 
 ```
-cat > /tmp/tenant1.json <<END
+cat > /tmp/okapi-tenant1.json <<END
 {
   "id" : "our",
   "name" : "our library",
@@ -1160,7 +1156,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/tenant1.json  \
+  -d @/tmp/okapi-tenant1.json  \
   http://localhost:9130/_/proxy/tenants
 ```
 
@@ -1182,7 +1178,7 @@ Content-Length: 81
 And the second tenant is similar:
 
 ```
-cat > /tmp/tenant2.json <<END
+cat > /tmp/okapi-tenant2.json <<END
 {
   "id" : "other",
   "name" : "otherlibrary",
@@ -1192,7 +1188,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/tenant2.json  \
+  -d @/tmp/okapi-tenant2.json  \
   http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 201 Created
