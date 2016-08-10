@@ -61,7 +61,7 @@ public class MainVerticle extends AbstractVerticle {
                       if (result.succeeded()) {
                         fut.complete();
                       } else {
-                        logger.fatal("auth failed: " + result.cause());
+                        logger.fatal("okapi-test-auth-module failed: " + result.cause());
                         fut.fail(result.cause());
                       }
                     }
