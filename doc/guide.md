@@ -984,9 +984,10 @@ Since this is an Okapi module, not a UI module, we don't need any UI descriptors
 The launchDescriptor could be used for an easier way to deploy the module. More
 about that below.
 
-#### Deploying and proxying the auth module
+#### Deploying and proxying the test-auth module
 
-We could do the same thing with the auth module. But there is an easier way. We
+We could do the same thing with the `okapi-test-auth-module` module.
+But there is an easier way. We
 simply register the module to the proxy, even without having it running. Then
 we tell discovery that we want it, and it will go and deploy it for us. This is
 more like the way things will work once we have our app store implemented.
@@ -994,10 +995,10 @@ more like the way things will work once we have our app store implemented.
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
-  "id" : "auth",
-  "name" : "auth",
+  "id" : "test-auth",
+  "name" : "Okapi test auth module",
   "provides" : [ {
-    "id" : "auth",
+    "id" : "test-auth",
     "version" : "3.4.5"
   } ],
   "requires" : [ {
@@ -1022,7 +1023,7 @@ cat > /tmp/okapi-module-auth.json <<END
 END
 ```
 
-For the purposes of this example, we specify that the `auth` module requires
+For the purposes of this example, we specify that the `test-auth` module requires
 the `test-basic` module to be available, and at least version 2.2.1. You can
 try to see what happens if you require different versions, like 1.9.9,
 2.1.1, or 2.3.9.
@@ -1033,7 +1034,7 @@ actually logging in.
 
 The first routing entry says that this module is interested in seeing
 any request at all, and on a pretty low level too (10), which means
-that any request should go through the auth module before being
+that any request should go through the `test-auth` module before being
 directed to a higher-level module that does the actual work. In this
 way, supporting modules like authentication or logging can be tied to
 some or all requests.
@@ -1055,14 +1056,14 @@ And should see:
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/auth
-Content-Length: 670
+Location: /_/proxy/modules/test-auth
+Content-Length: 698
 
 {
-  "id" : "auth",
-  "name" : "auth",
+  "id" : "test-auth",
+  "name" : "Okapi test auth module",
   "provides" : [ {
-    "id" : "auth",
+    "id" : "test-auth",
     "version" : "3.4.5"
   } ],
   "requires" : [ {
@@ -1100,9 +1101,9 @@ it will talk to `/_/deployment` on the correct node - which in this case is
 `localhost`, the machine we are running our demo on.
 
 ```
-cat > /tmp/authdeploy.json <<END
+cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId" : "auth",
+  "srvcId" : "test-auth",
   "nodeId" : "localhost",
   "descriptor" : null
 }
@@ -1111,17 +1112,17 @@ END
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/authdeploy.json  \
+  -d @/tmp/okapi-deploy-test-auth.json  \
   http://localhost:9130/_/discovery/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/auth/localhost-9132
-Content-Length: 235
+Location: /_/discovery/modules/test-auth/localhost-9132
+Content-Length: 240
 
 {
   "instId" : "localhost-9132",
-  "srvcId" : "auth",
+  "srvcId" : "test-auth",
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
@@ -1219,7 +1220,7 @@ curl -w '\n' http://localhost:9130/_/proxy/tenants/our
 
 There is still one step before we can use our modules. We need to specify which
 tenants have which modules enabled. For our own library we enable the
-`test-basic` module, without enabling the `auth` module.
+`test-basic` module, without enabling the `test-auth` module.
 
 ```
 cat > /tmp/okapi-enable-tenant1.json <<END
@@ -1272,7 +1273,7 @@ and indeed the `test-basic` module says: _It works_
 
 For the other tenant, we want to require that only authenticated users
 can access the `test-basic` module. So we need to enable both
-`test-basic` and `auth` for it:
+`test-basic` and `test-auth` for it:
 
 ```
 cat > /tmp/okapi-enable-tenant2a.json <<END
@@ -1288,7 +1289,7 @@ curl -w '\n' -X POST -D - \
 
 cat > /tmp/okapi-enable-tenant2b.json <<END
 {
-  "id" : "auth"
+  "id" : "test-auth"
 }
 END
 
@@ -1319,16 +1320,17 @@ it fails with:
 ```
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET auth:401 53182us
+X-Okapi-Trace: GET test-auth:401 52904us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
 ```
 
-Why does this happen? The other library has the auth module enabled,
+Why does this happen? The other library has the `test-auth` module enabled,
 and that module intercepts _all_ requests (by means of the
 `routingEntry` whose path is `/` and whose `level` is 10). As a result,
-the `auth` module is invoked before the `test-basic` module. And the `auth`
+the `test-auth` module is invoked before the `test-basic` module.
+And the `test-auth`
 module causes the request to be rejected unless it contains a suitable
 `X-Okapi-Token`.
 
@@ -1382,11 +1384,10 @@ Now we can clean up some things:
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-auth
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-basic
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-basic/localhost-9131
-
 ```
 
 Okapi responds to each of these with a simple:
