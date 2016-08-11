@@ -717,7 +717,7 @@ not have produced any output after the initial messages.
 
 #### Okapi-test-header-module
 
-The header module demonstrates the use of a type=headers module; that is
+The `test-header` module demonstrates the use of a type=headers module; that is
 a module which inspects HTTP headers and produces a new set of HTTP headers.
 The response body is ignored and should be empty.
 
