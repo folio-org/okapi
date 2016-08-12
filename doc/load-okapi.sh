@@ -4,11 +4,18 @@
 # Assumes we have set things up as in the guide, or via okapi-examples.sh
 #
 OKAPI=${1:-"http://localhost:9130"}
+MODULE=${2:-'testb'} # module to invoke, default: okapi-test-module (testb)
 
-cat > /tmp/okapi.tst <<END
-Simple POST request to the sample module
+temp_file='/tmp/okapi-load.txt'
+
+function cleanup {
+  rm -f $temp_file
+}
+trap cleanup EXIT
+
+cat > $temp_file <<END
+Simple POST request to the $MODULE module.
 END
-
 
 while true
 do
@@ -18,19 +25,19 @@ do
 
     curl -s -w '\n' -D -  \
       -H "X-Okapi-Tenant: our" \
-      $OKAPI/sample
+      $OKAPI/$MODULE
 
     curl -s -w '\n' -D -  \
       -H "X-Okapi-Tenant: other" \
       -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-      $OKAPI/sample
+      $OKAPI/$MODULE
 
     curl -s -w '\n' -D -  \
       -H "Content-type: application/json" \
       -H "X-Okapi-Tenant: other" \
       -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-      -X POST -d @/tmp/okapi.tst \
-      $OKAPI/sample
+      -X POST -d @$temp_file \
+      $OKAPI/$MODULE
 
   done
 
@@ -38,14 +45,12 @@ do
     -H "X-Okapi-Tenant: our" \
     $OKAPI/UNKNOWN-REQUEST
 
-
   curl -s -w '\n' -D -  \
     -H "X-Okapi-Tenant: other" \
     -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
-    $OKAPI/sample
+    $OKAPI/$MODULE
 
   sleep 0.1
   date
 
 done
-

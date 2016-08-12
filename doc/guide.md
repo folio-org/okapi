@@ -684,7 +684,7 @@ Now open another console window, and try to access the
 test module with:
 
 ```
-curl -w '\n' http://localhost:8080/sample
+curl -w '\n' http://localhost:8080/testb
 ```
 
 It should tell you that it works.
@@ -697,7 +697,7 @@ would be a JSON structure, but for now a simple text string will do.
 
 ```
 echo "Testing Okapi" > okapi.txt
-curl -w '\n' -X POST -d @okapi.txt http://localhost:8080/sample
+curl -w '\n' -X POST -d @okapi.txt http://localhost:8080/testb
 ```
 
 Again we have the -w option to get a newline in the output, and this
@@ -711,13 +711,13 @@ The test module should respond with
 
 which is our test data, with a "Hello" prepended to it.
 
-That is enough about the okpai-test-module for now. Go back to the window
+That is enough about the okapi-test-module for now. Go back to the window
 where you left it running, and kill it with a `Ctrl-C` command. It should
 not have produced any output after the initial messages.
 
 #### Okapi-test-header-module
 
-The header module demonstrates the use of a type=headers module; that is
+The `test-header` module demonstrates the use of a type=headers module; that is
 a module which inspects HTTP headers and produces a new set of HTTP headers.
 The response body is ignored and should be empty.
 
@@ -727,19 +727,21 @@ Start with:
 java -jar okapi-test-header-module/target/okapi-test-header-module-fat.jar
 ```
 
-The module reads `X-my-header` from leading path `/sample`. If that header is
+The module reads `X-my-header` from leading path `/testb`. If that header is
 present, it will take its value and append `,foo`.
 If no such header is present, it will use the value `foo`.
 
 These two cases can be demonstrated with:
 
 ```
-curl -w '\n' -D- http://localhost:8080/sample
+curl -w '\n' -D- http://localhost:8080/testb
 ```
 and
 ```
-curl -w '\n' -H "X-my-header:hey" -D- http://localhost:8080/sample
+curl -w '\n' -H "X-my-header:hey" -D- http://localhost:8080/testb
 ```
+
+As above, now stop that simple verification.
 
 #### Okapi-test-auth-module
 
@@ -758,7 +760,7 @@ tenant-id concatenated with a checksum. In a real authentication
 module it will be something opaque and difficult to fake.
 
 We will see examples of this when we get to play with Okapi itself. If
-you want, you can start the module directly as with the okapi-test-module.
+you want, you can verify the module directly as with the okapi-test-module.
 
 ### Running Okapi itself
 
@@ -799,15 +801,15 @@ these operations would be carried out by a properly authorized administrator.
 As mentioned above, the process consists of three parts: deployment, discovery,
 and configuring the proxying.
 
-#### Deploying the sample module
+#### Deploying the test-basic module
 
 To tell Okapi that we want to use the `okapi-test-module`, we create a JSON
 structure of module metadata and POST it to Okapi:
 
 ```
-cat > /tmp/sampledeploy.json <<END
+cat > /tmp/okapi-deploy-test-basic.json <<END
 {
-  "srvcId" : "sample",
+  "srvcId" : "test-basic",
   "descriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
    }
@@ -823,7 +825,7 @@ Now we will deploy the module:
 ```
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/sampledeploy.json  \
+  -d @/tmp/okapi-deploy-test-basic.json  \
   http://localhost:9130/_/deployment/modules
 ```
 
@@ -838,11 +840,11 @@ You should see something like this:
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/deployment/modules/localhost-9131
-Content-Length: 227
+Content-Length: 231
 
 {
   "instId" : "localhost-9131",
-  "srvcId" : "sample",
+  "srvcId" : "test-basic",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -867,11 +869,11 @@ curl -D - -w '\n' http://localhost:9130/_/deployment/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-Content-Length: 231
+Content-Length: 235
 
 [ {
   "instId" : "localhost-9131",
-  "srvcId" : "sample",
+  "srvcId" : "test-basic",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -884,7 +886,7 @@ Note that Okapi has added an `instId` and a `url`. You can check that
 the URL points to the running module:
 
 ```
-curl -D - -w '\n' http://localhost:9131/sample
+curl -D - -w '\n' http://localhost:9131/testb
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -894,79 +896,75 @@ It works
 ```
 
 If we were running in a clustered environment, this step should be repeated
-for each node that should run the sample module.
+for each node that should run the `test-basic` module.
 
-#### Adding the sample module to the discovery
+#### Adding the module to the discovery
 
 Okapi deployment registers the module with discovery automatically.
 
 #### Telling the proxy about the module
 
-Now we need to inform the proxy that we have a sample module that can
+Now we need to inform the proxy that we have a module that can
 be enabled for tenants. The proxy is interested in the service identifier (srvcId), so
-we pass "sample" to it.
+we pass "test-basic" to it.
 
 ```
-cat > /tmp/sampleproxy.json <<END
+cat > /tmp/okapi-proxy-test-basic.json <<END
   {
-    "id" : "sample",
-    "name" : "okapi sample module",
+    "id" : "test-basic",
+    "name" : "Okapi test module",
     "provides" : [ {
-      "id" : "sample",
+      "id" : "test-basic",
       "version" : "2.2.3"
     } ],
     "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
-      "path" : "/sample",
+      "path" : "/testb",
       "level" : "30",
       "type" : "request-response",
-      "permissionsRequired" : [ "sample.needed" ],
-      "permissionsDesired" : [ "sample.extra" ]
+      "permissionsRequired" : [ "test-basic.needed" ],
+      "permissionsDesired" : [ "test-basic.extra" ]
     } ]
   }
 END
 
 curl -w '\n' -X POST -D -   \
     -H "Content-type: application/json"   \
-    -d @/tmp/sampleproxy.json \
+    -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/module
-Content-Length: 487
+Location: /_/proxy/modules/test-basic
+Content-Length: 378
 
 {
-  "id" : "sample",
-  "name" : "okapi sample module",
-    "provides" : [ {
-      "id" : "sample",
-      "version" : "2.2.3"
-    } ],
-  "requires" : null,
+  "id" : "test-basic",
+  "name" : "Okapi test module",
+  "provides" : [ {
+    "id" : "test-basic",
+    "version" : "2.2.3"
+  } ],
   "routingEntries" : [ {
     "methods" : [ "GET", "POST" ],
-    "path" : "/sample",
+    "path" : "/testb",
     "level" : "30",
     "type" : "request-response",
-    "permissionsRequired" : [ "sample.needed" ],
-    "permissionsDesired" : [ "sample.extra" ],
-  } ],
-  "modulePermissions" : null,
-  "uiDescriptor" : null,
-  "launchDescriptor" : null
+    "permissionsRequired" : [ "test-basic.needed" ],
+    "permissionsDesired" : [ "test-basic.extra" ]
+  } ]
 }
 ```
 
 The `routingEntries` indicate that the module is interested in GET and POST
-requests to the `/sample` path and nothing else, and that the module is
+requests to the `/testb` path and nothing else, and that the module is
 supposed to provide a full response. The level is used to to specify
 the order in which the request will be sent to multiple modules, as will
 be seen later.
 
 `permissionsRequired` and `permissionsDesired` are arrays of permission
-bits that are strictly needed for calling `/sample`, or that the
-sample module wants to know about, for example to enable some extra
+bits that are strictly needed for calling `/testb`, or that the
+`test-basic` module wants to know about, for example to enable some extra
 functionality. Each permission bit is expressed as an opaque string,
 but some convention may be used to organise them semantically into a
 hierarchy. Okapi collects these permissions into the
@@ -986,24 +984,25 @@ Since this is an Okapi module, not a UI module, we don't need any UI descriptors
 The launchDescriptor could be used for an easier way to deploy the module. More
 about that below.
 
-#### Deploying and proxying the auth module
+#### Deploying and proxying the test-auth module
 
-We could do the same thing with the auth module. But there is an easier way. We
+We could do the same thing with the `okapi-test-auth-module` module.
+But there is an easier way. We
 simply register the module to the proxy, even without having it running. Then
 we tell discovery that we want it, and it will go and deploy it for us. This is
 more like the way things will work once we have our app store implemented.
 
 ```
-cat > /tmp/authmodule.json <<END
+cat > /tmp/okapi-module-auth.json <<END
 {
-  "id" : "auth",
-  "name" : "auth",
+  "id" : "test-auth",
+  "name" : "Okapi test auth module",
   "provides" : [ {
-    "id" : "auth",
+    "id" : "test-auth",
     "version" : "3.4.5"
   } ],
   "requires" : [ {
-    "id" : "sample",
+    "id" : "test-basic",
     "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
@@ -1024,8 +1023,8 @@ cat > /tmp/authmodule.json <<END
 END
 ```
 
-For the purposes of this example, we specify that the `auth` module requires
-the `sample` module to be available, and at least version 2.2.1. You can
+For the purposes of this example, we specify that the `test-auth` module requires
+the `test-basic` module to be available, and at least version 2.2.1. You can
 try to see what happens if you require different versions, like 1.9.9,
 2.1.1, or 2.3.9.
 
@@ -1035,7 +1034,7 @@ actually logging in.
 
 The first routing entry says that this module is interested in seeing
 any request at all, and on a pretty low level too (10), which means
-that any request should go through the auth module before being
+that any request should go through the `test-auth` module before being
 directed to a higher-level module that does the actual work. In this
 way, supporting modules like authentication or logging can be tied to
 some or all requests.
@@ -1048,7 +1047,7 @@ Then we post it as before:
 ```
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/authmodule.json  \
+  -d @/tmp/okapi-module-auth.json  \
   http://localhost:9130/_/proxy/modules
 ```
 
@@ -1057,18 +1056,18 @@ And should see:
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/auth
-Content-Length: 666
+Location: /_/proxy/modules/test-auth
+Content-Length: 698
 
 {
-  "id" : "auth",
-  "name" : "auth",
+  "id" : "test-auth",
+  "name" : "Okapi test auth module",
   "provides" : [ {
-    "id" : "auth",
+    "id" : "test-auth",
     "version" : "3.4.5"
   } ],
   "requires" : [ {
-    "id" : "sample",
+    "id" : "test-basic",
     "version" : "2.2.1"
   } ],
   "routingEntries" : [ {
@@ -1102,9 +1101,9 @@ it will talk to `/_/deployment` on the correct node - which in this case is
 `localhost`, the machine we are running our demo on.
 
 ```
-cat > /tmp/authdeploy.json <<END
+cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId" : "auth",
+  "srvcId" : "test-auth",
   "nodeId" : "localhost",
   "descriptor" : null
 }
@@ -1113,17 +1112,17 @@ END
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/authdeploy.json  \
+  -d @/tmp/okapi-deploy-test-auth.json  \
   http://localhost:9130/_/discovery/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/auth/localhost-9132
-Content-Length: 235
+Location: /_/discovery/modules/test-auth/localhost-9132
+Content-Length: 240
 
 {
   "instId" : "localhost-9132",
-  "srvcId" : "auth",
+  "srvcId" : "test-auth",
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
@@ -1148,7 +1147,7 @@ we need to create some tenants too.
 For this example we create two tenants. These are simple requests:
 
 ```
-cat > /tmp/tenant1.json <<END
+cat > /tmp/okapi-tenant1.json <<END
 {
   "id" : "our",
   "name" : "our library",
@@ -1158,7 +1157,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/tenant1.json  \
+  -d @/tmp/okapi-tenant1.json  \
   http://localhost:9130/_/proxy/tenants
 ```
 
@@ -1180,7 +1179,7 @@ Content-Length: 81
 And the second tenant is similar:
 
 ```
-cat > /tmp/tenant2.json <<END
+cat > /tmp/okapi-tenant2.json <<END
 {
   "id" : "other",
   "name" : "otherlibrary",
@@ -1190,7 +1189,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/tenant2.json  \
+  -d @/tmp/okapi-tenant2.json  \
   http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 201 Created
@@ -1220,19 +1219,19 @@ curl -w '\n' http://localhost:9130/_/proxy/tenants/our
 ### Enabling a module for a tenant
 
 There is still one step before we can use our modules. We need to specify which
-tenants have which modules enabled. For our own library we enable the sample
-module, without enabling the auth module.
+tenants have which modules enabled. For our own library we enable the
+`test-basic` module, without enabling the `test-auth` module.
 
 ```
-cat > /tmp/enabletenant1.json <<END
+cat > /tmp/okapi-enable-tenant1.json <<END
 {
-  "id" : "sample"
+  "id" : "test-basic"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/enabletenant1.json  \
+  -d @/tmp/okapi-enable-tenant1.json  \
   http://localhost:9130/_/proxy/tenants/our/modules
 ```
 
@@ -1254,47 +1253,49 @@ curl -w '\n' http://localhost:9130/_/proxy/tenants/our/modules
 Finally we should be able to make use of the module, as a regular tenant:
 
 ```
-curl -w '\n' -D -  http://localhost:9130/sample
+curl -w '\n' -D -  http://localhost:9130/test-basic
 ```
 
 But of course Okapi can not know which tenant it is that is wanting to use our
-sample module, so it can not allow such, and returns a 403 forbidden.
+`test-basic` module, so it can not allow such, and returns a 403 forbidden.
 
 We need to pass the tenant in the `X-Okapi-Tenant` header of our request:
+
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: our" \
-  http://localhost:9130/sample
+  http://localhost:9130/testb
 ```
-and indeed the sample module says: _It works_
+
+and indeed the `test-basic` module says: _It works_
 
 ### Enabling both modules for the other tenant
 
 For the other tenant, we want to require that only authenticated users
-can access the `sample` module. So we need to enable both
-`sample` and `auth` for it:
+can access the `test-basic` module. So we need to enable both
+`test-basic` and `test-auth` for it:
 
 ```
-cat > /tmp/enabletenant2a.json <<END
+cat > /tmp/okapi-enable-tenant2a.json <<END
 {
-  "id" : "sample"
+  "id" : "test-basic"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/enabletenant2a.json  \
+  -d @/tmp/okapi-enable-tenant2a.json  \
   http://localhost:9130/_/proxy/tenants/other/modules
 
-cat > /tmp/enabletenant2b.json <<END
+cat > /tmp/okapi-enable-tenant2b.json <<END
 {
-  "id" : "auth"
+  "id" : "test-auth"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/enabletenant2b.json  \
+  -d @/tmp/okapi-enable-tenant2b.json  \
   http://localhost:9130/_/proxy/tenants/other/modules
 ```
 
@@ -1306,12 +1307,12 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants/other/modules
 
 ### Authentication problems
 
-If the other library tries to use our sample module:
+If the other library tries to use our `test-basic` module:
 
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: other" \
-  http://localhost:9130/sample
+  http://localhost:9130/testb
 ```
 
 it fails with:
@@ -1319,16 +1320,17 @@ it fails with:
 ```
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET auth:401 53182us
+X-Okapi-Trace: GET test-auth:401 52904us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
 ```
 
-Why does this happen? The other library has the auth module enabled,
+Why does this happen? The other library has the `test-auth` module enabled,
 and that module intercepts _all_ requests (by means of the
 `routingEntry` whose path is `/` and whose `level` is 10). As a result,
-the auth module is invoked before the sample module. And the auth
+the `test-auth` module is invoked before the `test-basic` module.
+And the `test-auth`
 module causes the request to be rejected unless it contains a suitable
 `X-Okapi-Token`.
 
@@ -1336,7 +1338,7 @@ In order to get that token, we need to invoke the `/login` service
 first:
 
 ```
-cat > /tmp/login.json <<END
+cat > /tmp/okapi-login.json <<END
 {
   "tenant": "other",
   "username": "peter",
@@ -1347,7 +1349,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: other" \
-  -d @/tmp/login.json  \
+  -d @/tmp/okapi-login.json  \
   http://localhost:9130/login
 ```
 
@@ -1367,7 +1369,7 @@ Now we can add that header to the request, and see if things finally work:
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant: other" \
   -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-  http://localhost:9130/sample
+  http://localhost:9130/testb
 ```
 
 It works!
@@ -1382,11 +1384,10 @@ Now we can clean up some things:
 ```
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
 curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/auth
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/sample
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/auth/localhost-9132
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/sample/localhost-9131
-
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-auth
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-basic
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
+curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-basic/localhost-9131
 ```
 
 Okapi responds to each of these with a simple:
