@@ -435,7 +435,6 @@ permissions. In that way, those permissions do not leak to other modules.
  * Sends a request to the db module with:
      * X-Okapi-Tenant: ourlib
      * X-Okapi-Token: xx-joe-ourlib-xx
-     * X-Okapi-Module-Permissions: {}
 
 2.15: The db module receives the request:
  * It looks up the motd for staff.
@@ -474,5 +473,221 @@ for the user.
 * This JWT gets returned to the UI, and used in future calls.
 
 Note that there are no API keys, shared secrets, or anything else mysterious.
+
+In this example the login is done with a simple username and password, but other
+modules can check against a LDAP server, or any other authentication method.
+
+
+3.1: The UI starts up, and somehow displays a login screen to the user.
+ * The user enters some credentials, in this example username and password
+ * Clicks on a submit button
+
+3.2: The UI sends a request to Okapi:
+ * POST http://folio.org/okapi/login
+ * X-Okapi-Tenant: ourlib
+ * Of course we do not have any JWT yet
+Note that the URL and the tenantId must be hard coded in the UI somehow.
+
+3.3: Okapi receives the request.
+ * It checks that we know about tenant "ourlib".
+ * It builds a list of modules that serve /login, and that are enabled for "ourlib".
+ * This list will typically consist of two modules: first "auth", and then the
+actual "login" module.
+ * Okapi notes that the request contains no X-Okapi-Token header.
+ * Okapi looks at the moduleDescriptors for these modules and checks what
+permissions are required and desired. Clearly we can not require any permissions
+as this stage, the login service must be open.
+ * Okapi checks the moduleDescriptors to see if any permissions have been
+granted to any of the modules. The login module has at least the permissions
+ "db.user.read.passwd" and "auth.newtoken", perhaps some more.
+Okapi puts that in the X-Okapi-Module-Permissions header.
+ * Okapi checks where the auth module is running (which node, on which port).
+ * Okapi passes the request to the auth module with these extra headers:
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Permissions-Required: []
+     * X-Okapi-Permissions-Desired: []
+     * X-Okapi-Module-Permissions: { "login": [ "auth.newtoken", "db.user.read.passwd" }
+
+3.4: The auth module receives the request:
+ * It sees that we do not have any X-Okapi-Token
+ * So it creates one, with the tenantId from X-Okapi-Tenant, but without any
+userId. Let's call that "xx-unknown-ourlib-xx". It returns this as the general
+token, under module "_".
+ * It sees that we do not require any permissions
+ * It sees that we have module permissions.
+ * It creates a new JWT for the login module listed in X-Okapi-Module-Permissions,
+"xx-unknown-ourlib-login-xx" with the "auth.newtoken" and "db.user.read.passwd"
+permissions included in it.
+ * It sends an OK response to Okapi with the headers
+     * X-Okapi-Permissions: []
+     * X-Okapi-Module-Tokens: { "_" : "xx-unknown-ourlib-xx",
+"login" : "xx-unknown-ourlib-login-xx" }
+
+3.5: Okapi receives the OK response from auth:
+ * Sees that we have module tokens. Copies them into the list of modules it will
+be calling. The "login" module will get the "xx-unknown-ourlib-login-xx", and
+all the rest (which is the auth module it has already called) get the
+"xx-unknown-ourlib-xx.
+ * Sees that the next module is the "login"
+ * Sends a request to that one with:
+     * the request body that it received
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-login-xx
+
+3.6: The login module receives the request:
+ * It sees it has a username and password. It needs to look them up in the db.
+ * It creates a request
+     * GET http://folio.org/okapi/db/users/joe/passwd
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-login-xx
+
+
+3.7: Okapi receives the request, and processes it much like in 2.12
+ * It checks that we know about tenant "ourlib".
+ * It builds a list of modules that serve /db/users/, and that are
+enabled for "ourlib".
+ * This list will typically consist of two modules: first "auth", and then the
+actual "db" module.
+ * Okapi notes that the request contains an X-Okapi-Token. It saves the token
+for future use.
+ * Okapi checks what permissions are required and desired for these services. The
+db module requires "db.user.read.passwd"
+ * For simplicity, we assume that the db module itself does not have any specific
+permissions.
+ * Okapi passes the request to the auth module with these extra headers:
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-login-xx
+     * X-Okapi-Permissions-Required: [ "db.motd.read" ]
+     * X-Okapi-Permissions-Desired: []
+     * X-Okapi-Module-Permissions: {}
+
+3.8: The auth module receives the request:
+ * It checks that we have an X-Okapi-Token header.
+ * Verifies the signature of the token.
+ * Extracts the tenantId from it. There is no userId.
+ * Verifies that the tenantId matches the one in X-Okapi-Tenant header, as before.
+ * It sees that we require some permissions. Since we do not have any user in
+the JWT, it can not look up any permissions.
+ * It sees that the JWT has special modulePermissions in it. It adds the
+"db.user.read.passwd" and "auth.newtoken" to the (empty) permission list.
+ * It sees that we have an X-Okapi-Permissions-Required header with
+"db.user.read.passwd" in it. Checks the permission list, and finds that the
+permission is there.
+ * Does not see any desired permissions.
+ * Does not see any module permissions for the db module.
+ * Since the JWT had special module permissions in it, the auth module needs to
+create a new JWT without them, for further calls to different modules. It takes
+the modulePermissions out of the JWT, and signs that. The result is the same as
+the original JWT, "xx-unknown-ourlib-xx". It returns that in the X-Okapi-Module-Tokens
+as a token for the special module "_".
+ * Returns an OK response to Okapi with headers:
+     * X-Okapi-Permissions: []
+     * X-Okapi-Module-Tokens: { "_" : "xx-unknown-ourlib-xx" }
+
+3.9: Okapi receives the OK response from auth:
+ * Sees that there is a special module token for "_". Copies that token over to
+all modules that it intends to call, overwriting the token that had login's special
+permissions.
+ * Sees that there are no other module tokens.
+ * Sees that the next module is the db module.
+ * Sends a request to the db module with:
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-xx
+
+3.10: The db module receives the request:
+ * It looks up the hash for the password for "joe".
+ * Returns it in a OK response.
+
+3.11: Okapi receives the OK response:
+ * As there are no more modules in the list, it returns the OK response to the
+login module
+
+3.12: Login module receives the OK response with the hashed password
+ * It verifies that it matches the hash of the password the user entered
+ * At this point we have authenticated the user.
+ * Next the login module needs to create a JWT for the user. It does not do it
+by itself, it asks the auth module to make one. It creates a request to
+     * POST http://folio.org/okapi/auth/newtoken
+     * username in the payload
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-login-xx
+
+3.13: Okapi receives the request, and processes it much like in 3.7 above
+ * It checks that we know about tenant "ourlib".
+ * It builds a list of modules that serve /auth/newtoken, and that are
+enabled for "ourlib".
+ * This list will typically consist of two modules: first "auth", and then the
+"auth" module again, with the path to /newtoken
+ * Okapi notes that the request contains an X-Okapi-Token. It saves the token
+for future use.
+ * Okapi checks what permissions are required and desired for these services. The
+auth module/newtoken requires "auth.newtoken"
+ * The auth module itself does not have any specific permissions.
+ * Okapi passes the request to the auth module with these extra headers:
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-login-xx
+     * X-Okapi-Permissions-Required: [ "auth.newtoken" ]
+     * X-Okapi-Permissions-Desired: []
+     * X-Okapi-Module-Permissions: {}
+
+3.14: The auth module receives the request:
+ * It checks that we have an X-Okapi-Token header.
+ * Verifies the signature of the token.
+ * Extracts the tenantId from it. Still no userId.
+ * Verifies that the tenantId matches the one in X-Okapi-Tenant header, as before.
+ * It sees that we require and desire some permissions. Since we do not have any
+user in the JWT, it can not look up any permissions.
+ * It sees that the JWT has special modulePermissions in it. It adds the
+"db.user.read.passwd" and "auth.newtoken" to the (empty) permission list.
+ * It sees that we have an X-Okapi-Permissions-Required header with
+"auth.newtoken" in it. Checks the permission list, and finds that the
+permission is there.
+ * Does not see any desired permissions.
+ * Does not see any module permissions for the db module.
+ * Since the JWT had special module permissions in it, the auth module needs to
+create a new JWT without them, for further calls to different modules. It takes
+the modulePermissions out of the JWT, and signs that. The result is the same as
+the original JWT, "xx-unknown-ourlib-xx". It returns that in the X-Okapi-Module-Tokens
+as a token for the special module "_".
+ * Returns an OK response to Okapi with headers:
+     * X-Okapi-Permissions: []
+     * X-Okapi-Module-Tokens: { "_" : "xx-unknown-ourlib-xx" }
+
+3.15: Okapi receives the OK response from auth:
+ * Sees that there is a special module token for "_". Copies that token over to
+all modules that it intends to call, overwriting the token that had login's special
+permissions.
+ * Sees that there are no other module tokens.
+ * Sees that the next module is the auth module again, this time with the path /newtoken
+ * Sends a request to the auth module with:
+     * X-Okapi-Tenant: ourlib
+     * X-Okapi-Token: xx-unknown-ourlib-xx
+     * the original payload with the username
+
+3.16: The auth module receives the request:
+ * It generates a JWT with the username from the request, and tenant from the header.
+Let's say that is "xx-joe-ourlib-xx"
+ * Returns that in a OK response
+
+3.17: Okapi receives the OK response:
+ * As there are no more modules in the list, it returns the OK response to the
+login module
+
+3.18: At this point the login module could see if it received new permissions for
+the user, say from a LDAP backend, and in that case, make a request to the
+permission module to update some permissions. It would need to have a permission
+to do this, and the dance with Okapi would be just like the db lookup in 3.7 - 3.11
+above.
+
+3.19: The login module returns an OK response with the new JWT
+
+3.20: Okapi sees there are no further modules to be called, and returns the OK
+response to the UI
+
+3.21: The UI stores the JWT for use in further calls.
+
+
+
+
 
 
