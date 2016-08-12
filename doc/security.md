@@ -788,20 +788,20 @@ and a human (programmer) readable message showing what permission it needed.
      * For each permission mentioned in Permissions-Desired, it checks if that
 is in the list. If so, it adds that to a list of permissions it will report to
 the modules in X-Okapi-Permissions.
-* Next the auth module checks if the JWT contained any modulePermissions. If so,
+ * Next the auth module checks if the JWT contained any modulePermissions. If so,
 it creates a new JWT that is exactly like the original, but without those
 modulePermissions, signs it, and stores in the module map under the pseudomodule
 "_".
-* Then it checks if we have X-Okapi-Module-Permissions header, and for each
+ * Then it checks if we have X-Okapi-Module-Permissions header, and for each
 module mentioned there, it validates the module name (alphanumeric only, and
 that it is not "_"). Then it takes the "_" JWT, adds those permissions to it,
 signs it, and stores in the map under the module name.
-* It encodes module token map into X-Okapi-Module-Tokens header,
+ * It encodes module token map into X-Okapi-Module-Tokens header,
 as Json encoded map of strings like this: { "motd" : "xxx-motd-token-xxx",
 "db" : "xxx-db-token-xxx", "_" : "xxx-default-token-xxx" }. It will do this
 even if there is nothing in the map, to inform Okapi that the auth check has
 been done.
-* Finally it returns a OK response with the headers:
+ * Finally it returns a OK response with the headers:
      * X-Okapi-Permissions:
      * X-Okapi-Module-Tokens:
 
