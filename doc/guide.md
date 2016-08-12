@@ -526,7 +526,7 @@ repository is not publicly visible.
 
 The build requirements are:
 
- * Apache Maven 3.1.1 or later.
+ * Apache Maven 3.3.1 or later.
  * Java 8 JDK
  * [Git](https://git-scm.com)
 
