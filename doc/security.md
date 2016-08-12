@@ -139,18 +139,27 @@ logging in.
 
 ### Simple request: Date
 Assume that the UI wishes to display the current date. Our user has already
-logged in to the system, so we know the userId ("joe") and tenantId ("ourlib"). We
-also have a JWT token for authorization. The UI knows the address of the Okapi 
-server to talk to. In these examples we use http://folio.org/okapi. We know that
-a calendar module ("cal") has been enabled for this tenant, and it has a service 
-endpoint /date to return the current date. This service is open to everyone.
+logged in to the system, so we know the userId ("joe") and tenantId ("ourlib"). 
+We also have a JWT token for authorization. Its internal details are not really
+relevant, in these examples I assume it looks like "xx-joe-ourlib-xx". The UI
+knows the address of the Okapi server to talk to. In these examples we use
+http://folio.org/okapi. We know that a calendar module ("cal") has been enabled
+for this tenant, and it has a service endpoint /date to return the current date.
+This service is open to everyone.
 
-1.1) The UI makes a request to Okapi with some extra headers:
+Summary:
+1.1: The UI makes a request
+1.3: Okapi calls the auth module, which verifies the JWT
+1.5: Okapi calls the cal module to get the date
+
+And now for the details:
+
+1.1: The UI makes a request to Okapi with some extra headers:
  * GET http://folio.org/okapi/date
  * X-Okapi-Tenant: ourlib
- * X-Okapi-Token: xxxxx
+ * X-Okapi-Token: xx-joe-ourlib-xx
 
-1.2) Okapi receives the request:
+1.2: Okapi receives the request:
  * It checks that we know about tenant "ourlib".
  * It builds a list of modules that serve /date, and that are enabled for "ourlib".
  * This list will typically consist of two modules: first "auth", and then the
@@ -167,12 +176,12 @@ content.
  * Okapi checks where the auth module is running (which node, on which port).
  * Okapi passes the request to the auth module with these extra headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Permissions-Required: []
      * X-Okapi-Permissions-Desired: []
      * X-Okapi-Module-Permissions: {}
 
-1.3) The auth module receives the request:
+1.3: The auth module receives the request:
  * It checks that we have an X-Okapi-Token header.
  * Verifies the signature of the token.
  * Extracts the tenantId and userId from it.
@@ -188,7 +197,7 @@ If any of the steps would have failed, the auth module would have returned an
 error response. Okapi would then stop processing its module pipeline, and 
 return that error response to the UI.
 
-1.4) Okapi received the OK response from the auth module:
+1.4: Okapi received the OK response from the auth module:
  * It notes that it received an X-Okapi-Module-Tokens header. This indicates that
 authorization is done, so it can remove the X-Okapi-Permissions-Required and
 -Desired headers from following requests.
@@ -198,21 +207,21 @@ special.
  * It checks where the cal module is running.
  * Send the request to the cal module with these headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Permissions: []
 
-1.5) The cal module receives the request:
+1.5: The cal module receives the request:
  * It looks up the current date, and formats it in a suitable way.
  * It returns that to Okapi in a OK response. There are no special headers.
 
-1.6) Okapi receives the OK response:
+1.6: Okapi receives the OK response:
  * It sees that this is the last module in the list.
  * So it returns the response to the UI.
 
-1.7) The UI displays the date on the screen.
+1.7: The UI displays the date on the screen.
 
-This seems overly complex, but the next example(s) should show why many of the
-steps are indeed necessary.
+This may seem overly complex, but the next example(s) should show why many of
+the steps are indeed necessary.
 
 Note that there is no special reason why the request should come from the UI. It
 can come from anything that can initiate a request, a cron-like job that wakes up
@@ -231,12 +240,23 @@ The message is kept in the database. The motd module needs to make a request to
 the database module to retrieve it. In order to do that, it needs to have a
 permission to read the motd from the database.
 
-2.1) The UI makes a request to Okapi with some extra headers:
+Summary:
+ 2.1: The UI makes a request
+ 2.3: The auth module verifies the JWT, and looks up the permissions of the user
+ 2.7: The request for the permissions goes through Okapi, and to the perm module, which returns the permissions
+ 2.9: the auth module verifies the users permissions
+ 2.9: It also creates a special JWT for the motd module, with its permissions
+ 2.11: The motd module makes a request to the db module, with the special JWT
+ 2.12: The auth module verifies that JWT, sees and checks the permissions
+ 2.15: The db module looks up the message
+ 2.16: The message is passed back all the way to the UI
+
+2.1: The UI makes a request to Okapi with some extra headers:
  * GET http://folio.org/okapi/motd
  * X-Okapi-Tenant: ourlib
- * X-Okapi-Token: xxxxx
+ * X-Okapi-Token: xx-joe-ourlib-xx
 
-2.2) Okapi receives the request:
+2.2: Okapi receives the request:
  * It checks that we know about tenant "ourlib".
  * It builds a list of modules that serve /motd, and that are enabled for "ourlib".
  * This list will typically consist of two modules: first "auth", and then the
@@ -254,12 +274,12 @@ Okapi puts that in the X-Okapi-Module-Permissions header.
  * Okapi checks where the auth module is running (which node, on which port).
  * Okapi passes the request to the auth module with these extra headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Permissions-Required: ["motd.show"]
      * X-Okapi-Permissions-Desired: ["motd.staff"]
      * X-Okapi-Module-Permissions: { "motd": "db.motd.read" }
 
-2.3) The auth module receives the request:
+2.3: The auth module receives the request:
  * It checks that we have an X-Okapi-Token header.
  * Verifies the signature of the token.
  * Extracts the tenant and userId from it.
@@ -272,9 +292,9 @@ not when a user is looking up their own permissions.
 * It sends the request to Okapi:
      * GET http://folio.org/okapi/permissions/joe
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
 
-2.4) Okapi receives the request, and processes it like in 1.2:
+2.4: Okapi receives the request, and processes it like in 1.2:
  * It checks that we know about tenant "ourlib".
  * It builds a list of modules that serve /permissions/:id, and that are
 enabled for "ourlib".
@@ -291,35 +311,35 @@ are not.
  * Okapi checks where the perm module is running (which node, on which port).
  * Okapi passes the request to the auth module with these extra headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Permissions-Required: []
      * X-Okapi-Permissions-Desired: []
      * X-Okapi-Module-Permissions: {}
 
-2.5) The auth module verifies the JWT as in 1.3:
+2.5: The auth module verifies the JWT as in 1.3:
  * It sends an OK response to Okapi with the new headers:
      * X-Okapi-Permissions: []
      * X-Okapi-Module-Tokens: {}
 
-2.6) Okapi receives the OK response without any special permission things, just
+2.6: Okapi receives the OK response without any special permission things, just
 like in 1.4:
  * It sees that the next module to be called is the perm module.
  * It checks where the perm module is running.
  * It sends the request to the perm module with these headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Permissions: []
 
-2.7) The permission module gets the request:
+2.7: The permission module gets the request:
  * It finds the permissions for "joe".
  * It returns an OK response with a list of permissions like
 ["motd.show", "motd.staff", "what.ever.else"].
 
-2.8) Okapi receives the OK response:
+2.8: Okapi receives the OK response:
  * It sees there are no more modules in the list.
  * So it returns the response to the auth module.
 
-2.9) The auth module receives the response from the perm module and continues its
+2.9: The auth module receives the response from the perm module and continues its
 processing:
  * It sees that we have an X-Okapi-Permissions-Required header with "motd.show".
  * It sees that the JWT it received has no special module permissions, so it uses
@@ -333,20 +353,20 @@ so it adds an X-Okapi-Permissions header with [ "motd.staff" ].
  * Next the auth module sees that we have X-Okapi-Module-Permissions for "motd".
  * So it creates a new JWT with all the contents of the original JWT, plus a
 new field "modulePermissions" with value "motd". Let's say that token will
-look like "xxx-motd-xxx".
+look like xx-joe-ourlib-motd-xx
  * It puts this new JWT in the X-Okapi-Module-Tokens header.
  * Finally it returns an OK response with:
      * X-Okapi-Permissions: ["motd.staff"]
-     * X-Okapi-Module-Tokens: {"motd" : "xxx-motd-xxx" }
+     * X-Okapi-Module-Tokens: {"motd" : "xx-joe-ourlib-motd-xx" }
 
 Note that the module has no need to return the "motd.show" permission, since it
 was strictly required. If joe had not had this permission, the auth module would
 have failed, and the modt module would never be called.
 
-2.10) Okapi received the OK response from the auth module:
+2.10: Okapi received the OK response from the auth module:
  * It notes that it received an X-Okapi-Module-Tokens header. This indicates that
 authorization is done, so it can remove the X-Okapi-Permissions-Required and
--Desired headers from following requests.
+-Desired headers from following requests, as before.
  * It notes that there is a module token for "motd". It stores that token in its
 list of modules to be called, at the motd module.
  * It sees that the next module to be called is the motd module
@@ -354,17 +374,17 @@ list of modules to be called, at the motd module.
  * Sees that we have a module token for motd.
  * Send the request to the motd module with these headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxx-motd-xxx
+     * X-Okapi-Token: xx-joe-ourlib-motd-xx
      * X-Okapi-Permissions: ["motd.staff"]
 
-2.11) The motd module receives the request:
+2.11: The motd module receives the request:
  * It sees that X-Okapi-Permissions contains the "motd.staff" permission. So
 it decides to retrieve the staff-only motd from the database.
  * It sends a GET request to http://folio.org/okapi/db/motd/staff with headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxx-motd-xxx
+     * X-Okapi-Token: xx-joe-ourlib-motd-xx
 
-2.12) Okapi receives the request, and processes it as before:
+2.12: Okapi receives the request, and processes it as before:
  * It checks that we know about tenant "ourlib".
  * It builds a list of modules that serve /db/motd/, and that are
 enabled for "ourlib".
@@ -379,12 +399,12 @@ permissions.
  * Okapi checks where the auth module is running (which node, on which port).
  * Okapi passes the request to the auth module with these extra headers:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxx-motd-xxx
+     * X-Okapi-Token: xx-joe-ourlib-motd-xx
      * X-Okapi-Permissions-Required: [ "db.motd.read" ]
      * X-Okapi-Permissions-Desired: []
      * X-Okapi-Module-Permissions: {}
 
-2.13) The auth module receives the request:
+2.13: The auth module receives the request:
  * It checks that we have an X-Okapi-Token header.
  * Verifies the signature of the token.
  * Extracts the tenantId and userId from it.
@@ -398,15 +418,15 @@ in it. Checks the permission list, and finds that the permission is there.
  * Does not see any desired permissions.
  * Does not see any module permissions for the db module.
  * Since the JWT had special module permissions in it, the auth module needs to
-create a new JWT without them, for further calls from different modules. It takes
+create a new JWT without them, for further calls to different modules. It takes
 the modulePermissions out of the JWT, and signs that. The result is the same as
-the original JWT, "xxxxx". It returns that in the X-Okapi-Module-Tokens as a token
-for the special module "_".
+the original JWT, "xx-joe-ourlib-xx". It returns that in the X-Okapi-Module-Tokens
+as a token for the special module "_".
  * Returns an OK response to Okapi with headers:
      * X-Okapi-Permissions: []
-     * X-Okapi-Module-Tokens: { "_" : "xxxxx" }
+     * X-Okapi-Module-Tokens: { "_" : "xx-joe-ourlib-xx" }
 
-2.14) Okapi receives the OK response from auth:
+2.14: Okapi receives the OK response from auth:
  * Sees that there is a special module token for "_". Copies that token over to
 all modules that it intends to call, overwriting the token that had motd's special
 permissions. In that way, those permissions do not leak to other modules.
@@ -414,17 +434,17 @@ permissions. In that way, those permissions do not leak to other modules.
  * Sees that the next module is the db module.
  * Sends a request to the db module with:
      * X-Okapi-Tenant: ourlib
-     * X-Okapi-Token: xxxxx
+     * X-Okapi-Token: xx-joe-ourlib-xx
      * X-Okapi-Module-Permissions: {}
 
-2.15) The db module receives the request:
+2.15: The db module receives the request:
  * It looks up the motd for staff.
  * Returns it in a OK response.
 
-2.16) Okapi receives the OK response:
+2.16: Okapi receives the OK response:
  * As there are no more modules in the list, it returns the OK response.
 
-2.17) The motd module receives the OK response from the db module:
+2.17: The motd module receives the OK response from the db module:
  * It builds its own OK response, with the message it got from the DB.
  * Returns that to Okapi.
 
@@ -432,13 +452,27 @@ permissions. In that way, those permissions do not leak to other modules.
  * Since the motd module was the last one in the list, it returns the response
 to its caller.
 
-2.19) The UI displays the message of the day.
+2.19: The UI displays the message of the day.
 
 ### Login
 
-To be written.
+NOTE: I have just come up with a simplified way to do the login. What is described
+below is not exactly what has been implemented, or described elsewhere. (Remove
+this note when things are up to date!)
 
-#### Comments, Questions, and Problems
+Here is a quick outline of what happens when a user wants to log in to the system.
+The tediously detailed handshakes come later.
 
-* How are the API keys managed? The various authentication modules need to have
-access to those, but nobody else should get anywhere near.
+* The UI sends a login request to Okapi. There is no JWT yet.
+* Okapi passes the request to the auth module.
+* The auth module sees we do not have a JWT, so it creates one.
+* It also creates a JWT for the authentication module, with module-level permissions
+* Okapi calls the authentication module with its JWT that gives it permission to
+make other requests
+* The authentication module calls the authorization module to generate a real JWT
+for the user.
+* This JWT gets returned to the UI, and used in future calls.
+
+Note that there are no API keys, shared secrets, or anything else mysterious.
+
+
