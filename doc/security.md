@@ -794,7 +794,7 @@ modulePermissions, signs it, and stores in the module map under the pseudo-modul
 "_".
  * Then it checks if we have X-Okapi-Module-Permissions header, and for each
 module mentioned there, it validates the module name (alphanumeric only, and
-that it is not "_"). Then it takes the "_" JWT, adds those permissions to it,
+that it is not "\_"). Then it takes the "_" JWT, adds those permissions to it,
 signs it, and stores in the map under the module name.
  * It encodes module token map into X-Okapi-Module-Tokens header,
 as JSON encoded map of strings like this: { "motd" : "xxx-motd-token-xxx",
