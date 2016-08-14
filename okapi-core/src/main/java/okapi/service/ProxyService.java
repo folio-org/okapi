@@ -183,8 +183,8 @@ public class ProxyService {
       logger.debug("authHeaders:X-Okapi-Permissions-Desired: " + String.join(",", want));
       requestHeaders.add("X-Okapi-Permissions-Desired", String.join(",", want));
     }
-    // Add the X-Module-Permissions even if empty. That causes auth to return
-    // an empty X-Module-Tokens, which will tell us that we have done the mod
+    // Add the X-Okapi-Module-Permissions even if empty. That causes auth to return
+    // an empty X-Okapi-Module-Tokens, which will tell us that we have done the mod
     // perms, and no other module should be allowed to do the same.
     String mpj = Json.encode(modperms);
     logger.debug("authHeaders:X-Okapi-Module-Permissions: " + mpj);

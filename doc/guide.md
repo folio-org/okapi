@@ -305,7 +305,7 @@ requires content to be streamed to and from the module. Where more
 efficient types can be used, they should be. For example, the
 Authentication module's permission checking consults only the headers
 of the request, and returns no body, so it is of type
-`headers`. However, the same module's intitial login request consults
+`headers`. However, the same module's initial login request consults
 the request body to determine the login parameters, and it also
 returns a message; so it must be of type `request-response`.
 
@@ -420,7 +420,7 @@ But it will reject:
 (Note: We are in the process of moving the security discussion into its own
 document, [Okapi Security Model](security.md). )
 
-Most of the security discission has been moved into its own document,
+Most of the security discussion has been moved into its own document,
 [Okapi Security Model](security.md).
 
 The security model is concerned about three things:
@@ -791,7 +791,9 @@ Both of these return lists in the form of JSON structures. At present,
 because we have just started running, it is an empty list in both
 cases:
 
-    [ ]
+```
+[ ]
+```
 
 ### Deploying Modules
 
@@ -1493,7 +1495,7 @@ the `doc` directory:
 * [`grafana-node-dashboard.json`](grafana-node-dashboard.json)
 * [`grafana-tenant-dashboard.json`](grafana-tenant-dashboard.json)
 
-Here are some examples of useful graphs in Grafana. These can be pasted direcly under the
+Here are some examples of useful graphs in Grafana. These can be pasted directly under the
 metric, once you change edit mode (the tool menu at the end of the line) to text
 mode.
 
