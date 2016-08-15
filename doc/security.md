@@ -142,9 +142,10 @@ logging in.
 Assume that the UI wishes to display the current date. Our user has already
 logged in to the system, so we know the userId ("joe") and tenantId ("ourlib").
 We also have a JWT token for authorization. Its internal details are not really
-relevant, in these examples I assume it looks like "xx-joe-ourlib-xx". The UI
-knows the address of the Okapi server to talk to. In these examples we use
-http://folio.org/okapi. We know that a calendar module ("cal") has been enabled
+relevant, in these examples assume it looks like "xx-joe-ourlib-xx". The UI
+knows the address of the Okapi server to talk to. We use the URL
+`http://folio.org/okapi` for example purposes.
+We know that a calendar module ("cal") has been enabled
 for this tenant, and it has a service endpoint /date to return the current date.
 This service is open to everyone.
 
@@ -156,7 +157,7 @@ Summary:
 And now for the details:
 
 1.1: The UI makes a request to Okapi with some extra headers:
- * GET http://folio.org/okapi/date
+ * GET `http://folio.org/okapi/date`
  * X-Okapi-Tenant: ourlib
  * X-Okapi-Token: xx-joe-ourlib-xx
 
@@ -256,7 +257,7 @@ Summary:
 And now for the details:
 
 2.1: The UI makes a request to Okapi with some extra headers:
- * GET http://folio.org/okapi/motd
+ * GET `http://folio.org/okapi/motd`
  * X-Okapi-Tenant: ourlib
  * X-Okapi-Token: xx-joe-ourlib-xx
 
@@ -294,7 +295,7 @@ joe's permissions cached, it needs to get them from the permission module.
 itself does not require any special permissions for the read operation, at least
 not when a user is looking up their own permissions.
  * It sends the request to Okapi:
-     * GET http://folio.org/okapi/permissions/joe
+     * GET `http://folio.org/okapi/permissions/joe`
      * X-Okapi-Tenant: ourlib
      * X-Okapi-Token: xx-joe-ourlib-xx
 
@@ -384,7 +385,7 @@ list of modules to be called, at the motd module.
 2.11: The motd module receives the request:
  * It sees that X-Okapi-Permissions contains the "motd.staff" permission. So
 it decides to retrieve the staff-only motd from the database.
- * It sends a GET request to http://folio.org/okapi/db/motd/staff with headers:
+ * It sends a GET request to `http://folio.org/okapi/db/motd/staff` with headers:
      * X-Okapi-Tenant: ourlib
      * X-Okapi-Token: xx-joe-ourlib-motd-xx
 
@@ -484,7 +485,7 @@ modules can check against LDAP servers, OAuth, or any other authentication metho
  * Clicks on a submit button.
 
 3.2: The UI sends a request to Okapi:
- * POST http://folio.org/okapi/login
+ * POST `http://folio.org/okapi/login`
  * X-Okapi-Tenant: ourlib
  * Of course we do not have any JWT yet.
 
@@ -539,7 +540,7 @@ all the rest (which is the auth module it has already called) get the
 3.6: The login module receives the request:
  * It sees it has a username and password. It needs to look them up in the db.
  * It creates a request:
-     * GET http://folio.org/okapi/db/users/joe/passwd
+     * GET `http://folio.org/okapi/db/users/joe/passwd`
      * X-Okapi-Tenant: ourlib
      * X-Okapi-Token: xx-unknown-ourlib-login-xx
 
@@ -609,7 +610,7 @@ login module.
  * At this point we have authenticated the user.
  * Next the login module needs to create a JWT for the user. It does not do it
 by itself, it asks the auth module to make one. It creates a request to:
-     * POST http://folio.org/okapi/auth/newtoken
+     * POST `http://folio.org/okapi/auth/newtoken`
      * username in the payload
      * X-Okapi-Tenant: ourlib
      * X-Okapi-Token: xx-unknown-ourlib-login-xx
