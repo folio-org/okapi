@@ -366,7 +366,7 @@ public class ModuleTest {
             + "  } ]," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"30\"," + LS
             + "    \"type\" : \"request-response\"," + LS
             + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
@@ -582,7 +582,7 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("X-all-headers", "H") // ask sample to report all headers
-            .get("/sample")
+            .get("/testb")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
@@ -597,7 +597,7 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Origin", "http://foobar.com")
-            .get("/sample")
+            .get("/testb")
             .then().statusCode(200)
             .header("Access-Control-Allow-Origin", "*")
             .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
@@ -606,7 +606,7 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
-            .body("Okapi").post("/sample")
+            .body("Okapi").post("/testb")
             .then().statusCode(200).body(equalTo("Hello  (XML) Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -622,12 +622,12 @@ public class ModuleTest {
     // Check that we don't do prefix matching
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .get("/sampleXXX")
+            .get("/testbXXX")
             .then().statusCode(404);
     // Check that parameters don't mess with the routing
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .get("/sample?p=parameters&q=query")
+            .get("/testb?p=parameters&q=query")
             .then().statusCode(200);
 
     // 2nd sample module.. We only create it in discovery and give it same URL as
@@ -685,7 +685,7 @@ public class ModuleTest {
             + "  \"name\" : \"another-sample-module2\"," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"31\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
@@ -734,17 +734,17 @@ public class ModuleTest {
             + "  \"name\" : \"sample-module3\"," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"05\"," + LS
             + "    \"type\" : \"headers\"" + LS
             + "  }, {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"45\"," + LS
             + "    \"type\" : \"headers\"" + LS
             + "  }, {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"33\"," + LS
             + "    \"type\" : \"request-only\"" + LS
             + "  } ]" + LS
@@ -772,12 +772,12 @@ public class ModuleTest {
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .get("/sample")
+            .get("/testb")
             .then().statusCode(200).body(equalTo("It works"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .body("OkapiX").post("/sample")
+            .body("OkapiX").post("/testb")
             .then().statusCode(200).body(equalTo("Hello Hello OkapiX"));
 
     given().get("/_/test/reloadmodules")
@@ -786,7 +786,7 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
-            .get("/sample")
+            .get("/testb")
             .then().statusCode(200).body(equalTo("It works (XML) "));
 
     c = api.createRestAssured();
@@ -847,7 +847,7 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
-            .get("/sample")
+            .get("/testb")
             .then().statusCode(404); // because sample2 was removed
 
     c = api.createRestAssured();
@@ -971,7 +971,7 @@ public class ModuleTest {
             + "  } ]," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"30\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
@@ -1018,7 +1018,7 @@ public class ModuleTest {
             .extract().response();
     locationSample5Deployment = r.getHeader("Location");
 
-    // Would be nice to verify that the module works, but too much hazzle with
+    // Would be nice to verify that the module works, but too much hassle with
     // tenants etc
     // Undeploy
     given().delete(locationSample5Deployment)
@@ -1077,7 +1077,7 @@ public class ModuleTest {
             + "  \"id\" : \"sample-module5\"," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"20\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
@@ -1092,7 +1092,7 @@ public class ModuleTest {
             + "  \"id\" : \"header-module\"," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"10\"," + LS
             + "    \"type\" : \"headers\"" + LS
             + "  } ]" + LS
@@ -1135,7 +1135,7 @@ public class ModuleTest {
             .body(equalTo(docEnableHeader));
 
     given().header("X-Okapi-Tenant", okapiTenant)
-            .body("bar").post("/sample")
+            .body("bar").post("/testb")
             .then().statusCode(200).body(equalTo("Hello foobar"))
             .extract().response();
 
@@ -1149,7 +1149,7 @@ public class ModuleTest {
             + "  \"id\" : \"sample-module5\"," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"5\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
@@ -1168,7 +1168,7 @@ public class ModuleTest {
             .body(equalTo(docEnableSample));
 
     given().header("X-Okapi-Tenant", okapiTenant)
-            .body("bar").post("/sample")
+            .body("bar").post("/testb")
             .then().statusCode(200).body(equalTo("Hello foobar"))
             .extract().response();
 
