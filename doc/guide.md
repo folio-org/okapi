@@ -260,7 +260,7 @@ Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 wit
 chunked encoding to make the connections to the modules.
 
 We envision that different kinds of modules will carry different level
-values: e.g. authentication and authorization will have the highest
+values: e.g. authentication and authorization will have the lowest
 possible priority, next the actual business logic processing unit,
 followed by metrics, statistics, monitoring, logging, etc.
 
