@@ -32,7 +32,10 @@ import java.util.HashMap;
  * Mostly for testing Okapi itself.
  *
  * Does generate tokens for module permissions, but otherwise does not
- * check permissions for anything. (TODO - it could do that too)
+ * check permissions for anything, but does return X-Okapi-Permissions-Desired
+ * in X-Okapi-Permissions, as if all desired permissions were granted.
+ *
+ * TODO - we could do more trickery with -Required
  *
  * @author heikki
  *
@@ -44,6 +47,9 @@ public class Auth {
   static final String OKAPITOKENHEADER = "X-Okapi-Token";
   static final String OKAPIMODPERMSHEADER = "X-Okapi-Module-Permissions";
   static final String OKAPIMODTOKENSHEADER = "X-Okapi-Module-Tokens";
+  static final String OKAPIPERMISSIONSREQUIRED = "X-Okapi-Permissions-Required";
+  static final String OKAPIPERMISSIONSDESIRED = "X-Okapi-Permissions-Desired";
+  static final String OKAPIPERMISSIONSHEADER = "X-Okapi-Permissions";
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
 
@@ -175,6 +181,13 @@ public class Auth {
       responseText(ctx, 500).end(ex.getMessage());
       return;
     }
+    // Fake some desired permissions
+    String des = ctx.request().getHeader(OKAPIPERMISSIONSDESIRED);
+    if ( ! des.isEmpty()) {
+    ctx.response().headers()
+      .add(OKAPIPERMISSIONSDESIRED, des);
+    }
+    // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
       .add(OKAPITOKENHEADER, tok)
