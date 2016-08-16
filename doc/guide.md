@@ -106,9 +106,9 @@ As mentioned, Okapi's own web services provide the basic functionality
 to set up, configure and enable modules and manage tenants. The core
 endpoints are:
 
- * `/_/deployment`
- * `/_/discovery`
  * `/_/proxy`
+ * `/_/discovery`
+ * `/_/deployment`
 
 The special prefix `/_` is used to to distinguish the routing for Okapi
 internal web services from the extension points provided by modules.
@@ -118,12 +118,6 @@ internal web services from the extension points provided by modules.
    routed, which tenants we know about, and which modules are enabled for
    which tenants.
 
- * The `/_/deployment` endpoint is responsible for deploying modules.
-   In a clustered environment there should be one instance of the
-   deployment service running on
-   each node. It will be responsible for starting processes on that node,
-   and allocating network addresses for the various service modules.
-
  * The `/_/discovery` endpoint manages the mapping from service IDs to network
    addresses on the cluster. Information is posted to it, and the proxy service
    will query it to find where the needed modules are actually available. It also
@@ -132,6 +126,14 @@ internal web services from the extension points provided by modules.
    nodes in a cluster. Requests to the discovery service can also deploy
    modules on specific nodes, so it is rarely necessary to invoke
    deployment directly.
+
+ * The `/_/deployment` endpoint is responsible for deploying modules.
+   In a clustered environment there should be one instance of the
+   deployment service running on each node. It will be responsible
+   for starting processes on that node, and allocating network addresses
+   for the various service modules. It is mostly used internally, by the
+   discovery service, but is left open in case some cluster management
+   system could make use of it.
 
 These three parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
@@ -178,16 +180,14 @@ suitable module descriptor can be written to describe it.
 
 Okapi, however, includes additional services (for service deployment and
 discovery) that allows it to execute, run and monitor services natively
-on a cluster that it manages.
-Those _native modules_ require an additional descriptor
-file, the
+on a cluster that it manages. Those _native modules_ require an additional
+descriptor file, the
 [`DeploymentDescriptor.json`](../okapi-core/src/main/raml/DeploymentDescriptor.json),
-which specifies the low-level information
-about how to run the module. Also, native modules must be packaged according
-to one of the packaging options supported by Okapi's deployment service: at
-this point that means providing the executable (and all dependencies) on each
-node or using on a self-contained Docker image to distribute the executable
-from a centralized place.
+which specifies the low-level information about how to run the module. Also,
+native modules must be packaged according to one of the packaging options
+supported by Okapi's deployment service: at this point that means providing
+the executable (and all dependencies) on each node or using on a self-contained
+Docker image to distribute the executable from a centralized place.
 
 
 #### API guidelines
@@ -215,29 +215,44 @@ authentication system.
 
 ### Deployment and Discovery
 
-Making a module available to a tenant is a multi-step process:
+Making a module available to a tenant is a multi-step process. It can be done
+in a few different ways, but the most usual process is:
 
- * The module gets deployed. That means a process is started on some nodes,
-offering a web service on some network address.
- * The service ID and network address are POSTed to the discovery module, so
-Okapi can find out where the service is running.
- * The service ID and routing entries are posted to the proxy module, so Okapi
-can know where to route incoming requests
- * The service ID is enabled for some tenants.
+ * We POST a ModuleDescriptor to `/_/proxy` , telling Okapi that we know of
+such module, what services it offers, and what it depends on.
+ * We POST to `/_/discovery` that we want to have this module running on a
+given node, and it will tell the deploy service on that node to start the
+necessary processes.
+ * We enable the module for a given tenant.
 
 We assume some external management program will be making these requests.  It
 can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
 the curl command-line [examples](#using-okapi) later in this document.
 
-The `/_/discovery` endpoint offers a shortcut to deploy a module at the same time
-as registering it. If the DeploymentDescriptor contains a nodeId, we assume
-that the module is to be deployed on that node. If the DeploymentDescriptor
-contains a LaunchDescriptor, this is used for starting the process. If not,
-Okapi fetches the ModuleDescriptor that has been registered with the
-proxy module, and if that
-contains a LaunchDescriptor, it will be used. This way, we can adapt to what
-ever deployment needs the installation will have.
+An alternative way is not to pass the Module ID to the Discovery, but to pass
+a complete LaunchDescriptor. The ModuleDescriptor may not even have a
+LaunchDescriptor in this case. This can be useful if running on a cluster where
+the nodes are quite different, and you want to specify exactly where the files
+are to be found. This is not the way we imagine Okapi clusters to run, but we
+want to keep the option open.
+
+Another alternative is to go to an even lower level, and POST the
+LaunchDescriptor directly to the `/_/deployment` on any given node. This means
+that the management software has to talk directly to individual nodes, which
+raises all kind of questions about firewalls etc. But it allows full control,
+which can be useful in some unusual clustering setups. Note that you still need
+to post a ModuleDescriptor to `/_/proxy` to let Okapi know about the module, but
+that the `/_/deployment` will inform `/_/discovery` of the existence of the
+module it has deployed.
+
+Of course, you do not have to use Okapi to manage deployments at all, you can
+POST a DeploymentDescriptor to `/_/discovery` and give a URL instead of a
+LaunchDescriptor. That tells Okapi where the service runs. It still needs a
+Service ID to connect the URL to a ModuleDescriptor that you have POSTed
+earlier. This can be useful if you make use of Okapi modules that exist
+outside your cluster, or if you use some container system, perhaps a web
+server where your modules live as CGI scripts at different URLs.
 
 Note that the deployment and discovery stuff is transient, Okapi does not store
 any of that in its database. If a node goes down, the processes on it will die
@@ -247,6 +262,9 @@ Okapi, or through some other means.
 The discovery data is kept in a shared map, so as long as there is one Okapi
 running on the cluster, the map will survive. But if the whole cluster is taken
 down, the discovery data is lost. It would be fairly useless at that point anyway.
+
+In contrast, the ModuleDescriptors POSTed to `/_/proxy` are persisted in a database.
+
 
 ### Request Processing
 
@@ -417,11 +435,9 @@ But it will reject:
 
 ### Security
 
-(Note: We are in the process of moving the security discussion into its own
-document, [Okapi Security Model](security.md). )
 
 Most of the security discussion has been moved into its own document,
-[Okapi Security Model](security.md).
+[Okapi Security Model](security.md). This chapter gives just a quick overview.
 
 The security model is concerned about three things:
 * Authentication - that we know who the user is
@@ -451,8 +467,8 @@ get information of the desired permissions, so they can alter the behavior as
 needed, and a token that they can use for further calls.
 
 The trivial okapi-test-auth-module module included in the Okapi source tree does
-not implement much of this scheme. It is there just to provide an example of some
-kind of authentication mechanisms and its interfaces.
+not implement much of this scheme. It is there just to help us test the parts
+that Okapi needs to handle.
 
 ### Open Issues
 
