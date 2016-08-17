@@ -934,6 +934,7 @@ This is not surprising, we are running the whole thing on one machine, in 'dev'
 mode, so we only have one node in the cluster and by default it is called
 'localhost'.  So let's deploy it there. First we create a DeploymentDescriptor:
 
+
 ```
 cat > /tmp/okapi-deploy-test-basic.json <<END
 {
@@ -1045,7 +1046,7 @@ Content-Length: 91
 Next we need to enable the module for our tenant. This is even simpler operation:
 
 ```
-cat > /tmp/okapi-enable-tenant1.json <<END
+cat > /tmp/okapi-enable-basic.json <<END
 {
   "id" : "test-basic"
 }
@@ -1053,7 +1054,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-tenant1.json  \
+  -d @/tmp/okapi-enable-basic.json  \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 200 OK
@@ -1088,7 +1089,7 @@ Note that this works for anyone who can guess a tenant ID. That is fine for a
 small test module, but in real life modules do real work, and have to be
 restricted to privileged users.
 
-#### Auth module
+#### The Auth module
 
 Okapi is supposed to be used together with a proper authorization module, which
 in turn will depend on authentication and permission management and all that.
@@ -1096,17 +1097,7 @@ Here in this small example we only have Okapi's own test-auth-module to play
 with. It is just about sufficient to demonstrate how an authenticated request
 would look like.
 
-
-<!-- TODO - * * * The examples below are out of date - remove this comment when done reorganizing -->
-
-#### Deploying and proxying the test-auth module
-
-We could do the same thing with the `okapi-test-auth-module` module.
-But there is an easier way. We
-simply register the module to the proxy, even without having it running. Then
-we tell discovery that we want it, and it will go and deploy it for us. This is
-more like the way things will work once we have our app store implemented.
-
+As before, the first thing we create is a ModuleDescriptor:
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
@@ -1138,37 +1129,24 @@ cat > /tmp/okapi-module-auth.json <<END
 END
 ```
 
-For the purposes of this example, we specify that the `test-auth` module requires
-the `test-basic` module to be available, and at least version 2.2.1. You can
-try to see what happens if you require different versions, like 1.9.9,
-2.1.1, or 2.3.9.
+Just for the sake of an example, we have specified that the auth module
+depends on the test-basic module, version 2.2.1 or higher.  You can experiment
+with requiring version 2.4.1, that should fail since we only have 2.2.3.
 
-Here we have two routing entries. The second says that this module is
-interested in POST requests to the /login path. This is what we use for
-actually logging in.
+The module has two routing entries, a simple check that gets called before
+any real module, and a login service.
 
-The first routing entry says that this module is interested in seeing
-any request at all, and on a pretty low level too (10), which means
-that any request should go through the `test-auth` module before being
-directed to a higher-level module that does the actual work. In this
-way, supporting modules like authentication or logging can be tied to
-some or all requests.
+As before, there is a launchDescriptor that tells how the module is to
+be deployed.
 
-Note that we specify in the launchDescriptor how this module is supposed to
-be started.
-
-Then we post it as before:
+So we POST it to Okapi:
 
 ```
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/okapi-module-auth.json  \
-  http://localhost:9130/_/proxy/modules
-```
+curl -w '\n' -X POST -D -   \
+    -H "Content-type: application/json"   \
+    -d @/tmp/okapi-module-auth.json \
+   http://localhost:9130/_/proxy/modules
 
-And should see:
-
-```
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
@@ -1206,21 +1184,13 @@ Content-Length: 698
 }
 ```
 
-At this point Okapi knows that we have an auth module. It has stored the info
-in its database, so in theory it is persistent. In practice we are running our
-Okapi in 'dev' mode, which uses a volatile in-memory database.
-
-Now we need to deploy the module, and tell the discovery that we have it
-running. This can be done in one request. Note that we post this to `/_/discovery`,
-it will talk to `/_/deployment` on the correct node - which in this case is
-`localhost`, the machine we are running our demo on.
+Next we need to deploy the module.
 
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
   "srvcId" : "test-auth",
-  "nodeId" : "localhost",
-  "descriptor" : null
+  "nodeId" : "localhost"
 }
 END
 
@@ -1246,163 +1216,10 @@ Content-Length: 240
 }
 ```
 
-Now we have two modules, as can be seen with:
+And we enable the module for our tenant:
 
 ```
-curl -w '\n' http://localhost:9130/_/proxy/modules
-curl -w '\n' http://localhost:9130/_/discovery/modules
-```
-
-but we still can not use them in the way that they would be used in a real
-system. Since each invocation of a module is on behalf of a tenant,
-we need to create some tenants too.
-
-### Creating tenants
-
-For this example we create two tenants. These are simple requests:
-
-```
-cat > /tmp/okapi-tenant1.json <<END
-{
-  "id" : "our",
-  "name" : "our library",
-  "description" : "Our Own Library"
-}
-END
-
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/okapi-tenant1.json  \
-  http://localhost:9130/_/proxy/tenants
-```
-
-Okapi responds with:
-
-```
-HTTP/1.1 201 Created
-Content-Type: application/json
-Location: /_/proxy/tenants/our
-Content-Length: 81
-
-{
-  "id" : "our",
-  "name" : "our library",
-  "description" : "Our Own Library"
-}
-```
-
-And the second tenant is similar:
-
-```
-cat > /tmp/okapi-tenant2.json <<END
-{
-  "id" : "other",
-  "name" : "otherlibrary",
-  "description" : "The Other Library"
-}
-END
-
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/okapi-tenant2.json  \
-  http://localhost:9130/_/proxy/tenants
-
-HTTP/1.1 201 Created
-Content-Type: application/json
-Location: /_/proxy/tenants/other
-Content-Length: 86
-
-{
-  "id" : "other",
-  "name" : "otherlibrary",
-  "description" : "The Other Library"
-}
-```
-
-Again, we can list them with:
-
-```
-curl -w '\n' http://localhost:9130/_/proxy/tenants
-```
-
-We can now get information for one of these again:
-
-```
-curl -w '\n' http://localhost:9130/_/proxy/tenants/our
-```
-
-### Enabling a module for a tenant
-
-There is still one step before we can use our modules. We need to specify which
-tenants have which modules enabled. For our own library we enable the
-`test-basic` module, without enabling the `test-auth` module.
-
-```
-cat > /tmp/okapi-enable-tenant1.json <<END
-{
-  "id" : "test-basic"
-}
-END
-
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-tenant1.json  \
-  http://localhost:9130/_/proxy/tenants/our/modules
-```
-
-Note that we are using a RESTful approach here: the URL
-`http://localhost:9130/_/proxy/tenants/our/modules` names the set of
-modules that are enabled for our library, and we POST a deployed
-module to this set. The tenant for which to enable the module is in the URL;
-the module to be enabled is in the payload.
-
-Now we can ask Okapi which modules are enabled for our tenant, and get
-back a JSON list:
-
-````
-curl -w '\n' http://localhost:9130/_/proxy/tenants/our/modules
-````
-
-### Using a module
-
-Finally we should be able to make use of the module, as a regular tenant:
-
-```
-curl -w '\n' -D -  http://localhost:9130/test-basic
-```
-
-But of course Okapi can not know which tenant it is that is wanting to use our
-`test-basic` module, so it can not allow such, and returns a 403 forbidden.
-
-We need to pass the tenant in the `X-Okapi-Tenant` header of our request:
-
-```
-curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: our" \
-  http://localhost:9130/testb
-```
-
-and indeed the `test-basic` module says: _It works_
-
-### Enabling both modules for the other tenant
-
-For the other tenant, we want to require that only authenticated users
-can access the `test-basic` module. So we need to enable both
-`test-basic` and `test-auth` for it:
-
-```
-cat > /tmp/okapi-enable-tenant2a.json <<END
-{
-  "id" : "test-basic"
-}
-END
-
-curl -w '\n' -X POST -D - \
-  -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-tenant2a.json  \
-  http://localhost:9130/_/proxy/tenants/other/modules
-
-cat > /tmp/okapi-enable-tenant2b.json <<END
+cat > /tmp/okapi-enable-auth.json <<END
 {
   "id" : "test-auth"
 }
@@ -1410,52 +1227,45 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-tenant2b.json  \
-  http://localhost:9130/_/proxy/tenants/other/modules
+  -d @/tmp/okapi-enable-auth.json  \
+  http://localhost:9130/_/proxy/tenants/testlib/modules
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 24
+
+{
+  "id" : "test-auth"
+}
 ```
 
-You can list the enabled modules with:
+So, the auth module should now intercept every call we make to Okapi, and
+check if we are authorized for it. Let's try with the same call to the
+basic module as before:
 
 ```
-curl -w '\n' -D - http://localhost:9130/_/proxy/tenants/other/modules
-```
+curl -D - -w '\n' \
+   -H "X-Okapi-Tenant: testlib" \
+   http://localhost:9130/testb
 
-### Authentication problems
-
-If the other library tries to use our `test-basic` module:
-
-```
-curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: other" \
-  http://localhost:9130/testb
-```
-
-it fails with:
-
-```
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET test-auth:401 52904us
+X-Okapi-Trace: GET test-auth:401 43813us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
 ```
 
-Why does this happen? The other library has the `test-auth` module enabled,
-and that module intercepts _all_ requests (by means of the
-`routingEntry` whose path is `/` and whose `level` is 10). As a result,
-the `test-auth` module is invoked before the `test-basic` module.
-And the `test-auth`
-module causes the request to be rejected unless it contains a suitable
-`X-Okapi-Token`.
-
-In order to get that token, we need to invoke the `/login` service
-first:
+Indeed, we are no longer allowed to call the test module. So, how do we get
+the permission? The error message says that we need a `X-Okapi-Token`. Those
+we can get from the login service. The dummy auth module is not very clever in
+verifying passwords, it assumes that for username "peter" we have a password
+"peter-password". Not overly secure, but enough for this example.
 
 ```
 cat > /tmp/okapi-login.json <<END
 {
-  "tenant": "other",
+  "tenant": "testlib",
   "username": "peter",
   "password": "peter-password"
 }
@@ -1463,46 +1273,56 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -H "X-Okapi-Tenant: other" \
+  -H "X-Okapi-Tenant: testlib" \
   -d @/tmp/okapi-login.json  \
   http://localhost:9130/login
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8
+X-Okapi-Trace: POST test-auth:200 136641us
+Transfer-Encoding: chunked
+
+{  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
 ```
 
-At present, any username is accepted so long as the password is that
-username with "`-password`" appended. Obviously a real authentication
-module would look up the username/password pair in a user register.
-
-When successful, `/login` echoes the login parameters as its response;
-but more importantly, it also returns a header containing an
-authentication token:
-
-    X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c
-
-Now we can add that header to the request, and see if things finally work:
+The response just echoes its parameters, but notice that we get back a header
+`X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8`. We are not
+supposed to worry about what that header contains, but we can see that the
+tenant ID and the user ID are there, and that there is some kind of crypto
+stuff to ensure things are right. A real-life auth module is free to put other
+stuff in the token too. All Okapi's users need to know is how do we get a token,
+and how to pass it on in every request. Like this:
 
 ```
-curl -w '\n' -D -  \
-  -H "X-Okapi-Tenant: other" \
-  -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
-  http://localhost:9130/testb
+curl -D - -w '\n' \
+   -H "X-Okapi-Tenant: testlib" \
+   -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
+   http://localhost:9130/testb
+
+HTTP/1.1 200 OK
+Content-Type: text/plain
+X-Okapi-Trace: GET test-basic:200 1791us
+Transfer-Encoding: chunked
+
+It works
 ```
 
-It works!
+You can try to hack the system, change the user ID or the tenant ID, or mess
+with the crypto signature, and see that those requests fail.
 
-Okapi also supports PUT requests to modify existing modules and tenants.
-These are left as an exercise for the reader.
-
-### Cleaning up
-
-Now we can clean up some things:
+#### Cleaning up
+We are done with the examples. Just to be nice, we delete everything we have
+installed:
 
 ```
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/our
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/tenants/other
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-auth
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/proxy/modules/test-basic
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
-curl -X DELETE -w '\n'  -D - http://localhost:9130/_/discovery/modules/test-basic/localhost-9131
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic/localhost-9131
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic
 ```
 
 Okapi responds to each of these with a simple:
