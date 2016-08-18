@@ -230,7 +230,7 @@ can not be a proper Okapi module itself, because it needs to be running before
 any modules have been deployed. For testing, see
 the curl command-line [examples](#using-okapi) later in this document.
 
-An alternative way is not to pass the Module ID to the Discovery, but to pass
+An alternative way is to not pass the Module ID to the Discovery, but to pass
 a complete LaunchDescriptor. The ModuleDescriptor may not even have a
 LaunchDescriptor in this case. This can be useful if running on a cluster where
 the nodes are quite different, and you want to specify exactly where the files
@@ -435,9 +435,9 @@ But it will reject:
 
 ### Security
 
-
 Most of the security discussion has been moved into its own document,
-[Okapi Security Model](security.md). This chapter gives just a quick overview.
+[Okapi Security Model](security.md).
+This chapter of this Okapi Guide just provides a quick overview.
 
 The security model is concerned about three things:
 * Authentication - that we know who the user is
@@ -865,8 +865,8 @@ have options for managing Docker images directly...
 
 So, let's post it
 ```
-curl -w '\n' -X POST -D -   \
-    -H "Content-type: application/json"   \
+curl -w '\n' -X POST -D - \
+    -H "Content-type: application/json" \
     -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
@@ -895,7 +895,7 @@ Content-Length: 494
 }
 ```
 
-Okapi responds with a "201 Created", and reports back the same Json. There is
+Okapi responds with a "201 Created", and reports back the same JSON. There is
 also a Location header that shows the address of this module, if we want to
 modify or delete it, or just look at it, like this:
 
@@ -985,7 +985,7 @@ Okapi has also allocated a port for this module, 9131, and given it an instance
 ID, "localhost-9131". This is necessary, since we can have multiple instances
 of the same module running on different nodes, or even the same one.
 
-Finally Okapi also returns the URL the module is listening on. In a real life
+Finally Okapi also returns the URL that the module is listening on. In a real life
 cluster there would be a firewall preventing any direct access to the modules,
 since all traffic must go through Okapi for authorization checks, logging, etc.
 But in our simple test example, we can verify that the module is actually
@@ -1086,7 +1086,7 @@ It works
 ```
 
 Note that this works for anyone who can guess a tenant ID. That is fine for a
-small test module, but in real life modules do real work, and have to be
+small test module, but real life modules do real work, and need to be
 restricted to privileged users.
 
 #### The Auth module
@@ -1094,7 +1094,7 @@ restricted to privileged users.
 Okapi is supposed to be used together with a proper authorization module, which
 in turn will depend on authentication and permission management and all that.
 Here in this small example we only have Okapi's own test-auth-module to play
-with. It is just about sufficient to demonstrate how an authenticated request
+with. It is just about sufficient to demonstrate what an authenticated request
 would look like.
 
 As before, the first thing we create is a ModuleDescriptor:
@@ -1142,8 +1142,8 @@ be deployed.
 So we POST it to Okapi:
 
 ```
-curl -w '\n' -X POST -D -   \
-    -H "Content-type: application/json"   \
+curl -w '\n' -X POST -D - \
+    -H "Content-type: application/json" \
     -d @/tmp/okapi-module-auth.json \
    http://localhost:9130/_/proxy/modules
 
