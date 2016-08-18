@@ -15,10 +15,14 @@
  */
 package okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 /**
  * Description of a node in the Okapi cluster.
  *
  */
+@JsonInclude(Include.NON_NULL)
 public class NodeDescriptor {
 
   private String nodeId;

@@ -15,7 +15,6 @@
  */
 package okapi.util;
 
-import okapi.util.ModuleHandle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;

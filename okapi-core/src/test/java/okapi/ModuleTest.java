@@ -636,7 +636,7 @@ public class ModuleTest {
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
+            // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     r = c.given()
