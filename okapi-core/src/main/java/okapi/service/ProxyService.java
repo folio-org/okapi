@@ -377,7 +377,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
-              && res.getHeader("X-Okapi-stop") == null
+              && res.getHeader("X-Okapi-Stop") == null
               && it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
                 relayToRequest(ctx, res, pc);
