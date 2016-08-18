@@ -28,8 +28,9 @@ then
   exit 1
 fi
 
-# Check that Okapi is running
+echo "Check that Okapi is running ..."
 curl -w '\n' $OKAPI/_/proxy/tenants || exit 1
+echo "Yes."
 
 # Extract the example JSON from the guide
 perl -n -e  'print if /^cat /../^END/;' $GUIDE  | sh
