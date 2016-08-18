@@ -5,6 +5,7 @@
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},
+    "nodeId": {"type": ["string", "null"]},
     "url": {"type": ["string", "null"]},
     "descriptor" : {
       "$ref": "LaunchDescriptor.json"
