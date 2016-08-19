@@ -173,11 +173,11 @@ public class DiscoveryManager implements NodeListener {
                         DeploymentDescriptor.class);
                 fut.handle(new Success<>(pmd));
               } else if (res2.statusCode() == 404) {
-                fut.handle(new Failure<>(NOT_FOUND, res2.statusMessage()));
+                fut.handle(new Failure<>(NOT_FOUND, buf.toString()));
               } else if (res2.statusCode() == 400) {
-                fut.handle(new Failure<>(USER, res2.statusMessage()));
+                fut.handle(new Failure<>(USER, buf.toString()));
               } else {
-                fut.handle(new Failure<>(INTERNAL, res2.statusMessage()));
+                fut.handle(new Failure<>(INTERNAL, buf.toString()));
               }
             });
           });

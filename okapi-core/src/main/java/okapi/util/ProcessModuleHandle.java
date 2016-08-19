@@ -61,7 +61,6 @@ public class ProcessModuleHandle implements ModuleHandle {
         socket.close();
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
-
         InputStream inputStream = p.getErrorStream();
         startFuture.handle(Future.failedFuture("Service returned with exit code"
                 + " " + p.exitValue() + ". Standard error:\n"
@@ -70,7 +69,8 @@ public class ProcessModuleHandle implements ModuleHandle {
         vertx.setTimer((count + 1) * MILLISECONDS, id -> tryConnect(startFuture, count + 1));
       } else {
         logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
-        startFuture.handle(Future.failedFuture(res.cause()));
+        startFuture.handle(Future.failedFuture("Deployment failed. "
+          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
       }
     });
   }
@@ -108,9 +108,17 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           String[] l = new String[0];
           if (exec != null) {
+            if (! exec.contains("%p")) {
+              future.fail("Can not deploy: No %p in the exec line");
+              return;
+            }
             String c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
           } else if (cmdlineStart != null) {
+              if (! cmdlineStart.contains("%p")) {
+                future.fail("Can not deploy: No %p in the cmdlineStart");
+                return;
+              }
             String c = cmdlineStart.replace("%p", Integer.toString(port));
             l = new String[]{"sh", "-c", c};
           }
