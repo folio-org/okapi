@@ -15,6 +15,7 @@
  */
 package okapi.util;
 
+import org.folio.okapi.util.LockedStringMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;

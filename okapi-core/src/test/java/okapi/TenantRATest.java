@@ -15,6 +15,7 @@
  */
 package okapi;
 
+import org.folio.okapi.MainVerticle;
 import com.jayway.restassured.RestAssured;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
