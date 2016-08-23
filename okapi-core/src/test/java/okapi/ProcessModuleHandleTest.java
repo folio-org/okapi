@@ -15,9 +15,9 @@
  */
 package okapi;
 
-import okapi.util.ModuleHandle;
-import okapi.bean.LaunchDescriptor;
-import okapi.util.ProcessModuleHandle;
+import org.folio.okapi.util.ModuleHandle;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.util.ProcessModuleHandle;
 import org.junit.Test;
 
 import io.vertx.core.Vertx;
@@ -26,7 +26,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import okapi.bean.Ports;
+import org.folio.okapi.bean.Ports;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;

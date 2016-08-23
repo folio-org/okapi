@@ -15,6 +15,7 @@
  */
 package okapi;
 
+import org.folio.okapi.MainVerticle;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;

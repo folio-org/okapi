@@ -15,6 +15,7 @@
  */
 package okapi;
 
+import org.folio.okapi.MainVerticle;
 import com.jayway.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;

@@ -19,7 +19,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
-import okapi.util.SplitProcessArgs;
+import org.folio.okapi.util.SplitProcessArgs;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
