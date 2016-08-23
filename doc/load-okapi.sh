@@ -24,29 +24,22 @@ do
   do
 
     curl -s -w '\n' -D -  \
-      -H "X-Okapi-Tenant: our" \
-      $OKAPI/$MODULE
-
-    curl -s -w '\n' -D -  \
-      -H "X-Okapi-Tenant: other" \
-      -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
+      -H "X-Okapi-Tenant: testlib" \
+      -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
       $OKAPI/$MODULE
 
     curl -s -w '\n' -D -  \
       -H "Content-type: application/json" \
-      -H "X-Okapi-Tenant: other" \
-      -H "X-Okapi-Token: other:peter:04415268d4170e95ec497077ad4cba3c" \
+      -H "X-Okapi-Tenant: testlib" \
+      -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
       -X POST -d @$temp_file \
       $OKAPI/$MODULE
 
   done
 
-  curl -s -w '\n' -D -  \
-    -H "X-Okapi-Tenant: our" \
-    $OKAPI/UNKNOWN-REQUEST
 
   curl -s -w '\n' -D -  \
-    -H "X-Okapi-Tenant: other" \
+    -H "X-Okapi-Tenant: testlib" \
     -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
     $OKAPI/$MODULE
 

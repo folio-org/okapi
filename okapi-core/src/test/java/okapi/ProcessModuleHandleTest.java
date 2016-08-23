@@ -52,7 +52,7 @@ public class ProcessModuleHandleTest {
   public void test1(TestContext context) {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
-    desc.setExec("sleep 10");
+    desc.setExec("sleep 10 #%p");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
 
@@ -76,7 +76,7 @@ public class ProcessModuleHandleTest {
   public void test2(TestContext context) {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
-    desc.setExec("sleepxx 10");
+    desc.setExec("sleepxx 10 %p");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
 

@@ -30,7 +30,7 @@ tmux set-environment -t "${SESSION_NAME}" output_filename "${0%.*}.json"
 tmux send-keys -t "${pane1}" "# Starting the Folio Okapi ${demo_name}" C-m
 sleep 2
 tmux send-keys -t "${pane1}" "# We are following the 'Okapi Guide and Reference' [1]" C-m
-tmux send-keys -t "${pane4}" "# [1] https://github.com/sling-incubator/okapi/blob/master/doc/guide.md#running-okapi-itself" C-m
+tmux send-keys -t "${pane4}" "# [1] https://github.com/folio-org/okapi/blob/master/doc/guide.md#running-okapi-itself" C-m
 sleep 2
 
 source 'doc/demo-0.in'
