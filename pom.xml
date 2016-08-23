@@ -175,8 +175,8 @@
   </build>
 
   <scm>
-    <url>https://github.com/sling-incubator/okapi</url>
-    <connection>scm:git:git://github.com/sling-incubator/okapi.git</connection>
+    <url>https://github.com/folio-org/okapi</url>
+    <connection>scm:git:git://github.com/folio-org/okapi.git</connection>
     <developerConnection>scm:git:git@github.com:sling-incubator/okapi.git</developerConnection>
   </scm>
 

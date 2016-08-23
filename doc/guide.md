@@ -529,7 +529,7 @@ are supposed to work with the current implementation.
 ## Compiling and Running
 
 The latest source of the software can be found at
-[GitHub](https://github.com/sling-incubator/okapi). At the moment the
+[GitHub](https://github.com/folio-org/okapi). At the moment the
 repository is not publicly visible.
 
 <!-- TODO - Use the public address, when we have one -->
@@ -667,7 +667,7 @@ Note that these are only intended for demonstration and test purposes.
 Do not base any real modules on these.
 
 There are additional modules in the separate repository
-[folio-sample-modules](https://github.com/sling-incubator/folio-sample-modules).
+[folio-sample-modules](https://github.com/folio-org/folio-sample-modules).
 
 <!-- TODO - Use the public address, when we have one -->
 
