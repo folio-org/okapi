@@ -548,8 +548,6 @@ cd okapi
 mvn install
 ```
 
-<!-- TODO - Use the public address, when we have one -->
-
 The install rule also runs a few tests. Tests should not fail.
 If they do, please report it and in the meantime fall back to:
 
@@ -668,8 +666,6 @@ Do not base any real modules on these.
 
 There are additional modules in the separate repository
 [folio-sample-modules](https://github.com/folio-org/folio-sample-modules).
-
-<!-- TODO - Use the public address, when we have one -->
 
 #### Okapi-test-module
 
