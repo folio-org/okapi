@@ -17,7 +17,6 @@ package okapi.discovery;
 
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
@@ -105,7 +104,6 @@ public class DiscoveryManager implements NodeListener {
 
   /**
    * Adds a service to the discovery, and optionally deploys it too.
-   * Three cases: (TODO - this is not how it is implemented yet!)
    *
    *   1: We have launchDescriptor and NodeId: Deploy on that node.
    *   2: NodeId, but no launchDescriptor: Fetch the module, use its launchdesc, and deploy.
@@ -158,11 +156,11 @@ public class DiscoveryManager implements NodeListener {
         }
         dd.setDescriptor(launchDesc);
       }
-      getNode(nodeId, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+      getNode(nodeId, noderes -> {
+        if (noderes.failed()) {
+          fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
         } else {
-          OkapiClient ok = new OkapiClient(res.result().getUrl(), vertx, null);
+          OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, null);
           String reqdata = Json.encode(dd);
           logger.warn("Dm: about to POST " + reqdata);
           ok.post("/_/deployment/modules", reqdata, okres-> {
@@ -196,22 +194,16 @@ public class DiscoveryManager implements NodeListener {
             if (res1.failed()) {
               fut.handle(new Failure<>(res1.getType(), res1.cause()));
             } else {
-              String url = res1.result().getUrl() + "/_/deployment/modules/" + instId;
-              HttpClientRequest req = httpClient.deleteAbs(url, res2 -> {
-                res2.endHandler(x -> {
-                  if (res2.statusCode() == 204) {
+              OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
+              logger.warn("Dm: about to DELETE " + instId); 
+              ok.delete("/_/deployment/modules/" + instId, okres-> {
+                if ( okres.failed()) {
+                  logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
+                  fut.handle(new Failure<>(okres.getType(),okres.cause().getMessage()));
+                } else {
                     fut.handle(new Success<>());
-                  } else if (res2.statusCode() == 404) {
-                    fut.handle(new Failure<>(NOT_FOUND, url));
-                  } else {
-                    fut.handle(new Failure<>(INTERNAL, url));
-                  }
-                });
+                }
               });
-              req.exceptionHandler(x -> {
-                fut.handle(new Failure<>(INTERNAL, x.getMessage()));
-              });
-              req.end();
             }
           });
         }
@@ -307,7 +299,6 @@ public class DiscoveryManager implements NodeListener {
       });
     }
   }
-
   private void health(DeploymentDescriptor md, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
     HealthDescriptor hd = new HealthDescriptor();
     String url = md.getUrl();
