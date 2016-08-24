@@ -183,7 +183,7 @@ public class Auth {
     }
     // Fake some desired permissions
     String des = ctx.request().getHeader(OKAPIPERMISSIONSDESIRED);
-    if ( ! des.isEmpty()) {
+    if ( des != null && ! des.isEmpty()) {
     ctx.response().headers()
       .add(OKAPIPERMISSIONSDESIRED, des);
     }
