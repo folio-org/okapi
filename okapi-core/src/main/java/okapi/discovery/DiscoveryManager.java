@@ -39,6 +39,7 @@ import okapi.service.ModuleManager;
 import static okapi.common.ErrorType.*;
 import okapi.common.ExtendedAsyncResult;
 import okapi.common.Failure;
+import okapi.common.OkapiClient;
 import okapi.util.LockedTypedMap;
 import okapi.common.Success;
 
@@ -161,30 +162,19 @@ public class DiscoveryManager implements NodeListener {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          String url = res.result().getUrl() + "/_/deployment/modules";
-          HttpClientRequest req = httpClient.postAbs(url, res2 -> {
-            final Buffer buf = Buffer.buffer();
-            res2.handler(b -> {
-              buf.appendBuffer(b);
-            });
-            res2.endHandler(e -> {
-              if (res2.statusCode() == 201) {
-                DeploymentDescriptor pmd = Json.decodeValue(buf.toString(),
+          OkapiClient ok = new OkapiClient(res.result().getUrl(), vertx, null);
+          String reqdata = Json.encode(dd);
+          logger.warn("Dm: about to POST " + reqdata);
+          ok.post("/_/deployment/modules", reqdata, okres-> {
+            if ( okres.failed()) {
+              logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
+              fut.handle(new Failure<>(okres.getType(),okres.cause().getMessage()));
+            } else {
+                DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
                         DeploymentDescriptor.class);
                 fut.handle(new Success<>(pmd));
-              } else if (res2.statusCode() == 404) {
-                fut.handle(new Failure<>(NOT_FOUND, buf.toString()));
-              } else if (res2.statusCode() == 400) {
-                fut.handle(new Failure<>(USER, buf.toString()));
-              } else {
-                fut.handle(new Failure<>(INTERNAL, buf.toString()));
-              }
-            });
+            }
           });
-          req.exceptionHandler(x -> {
-            fut.handle(new Failure<>(INTERNAL, x.getMessage()));
-          });
-          req.end(Json.encode(dd));
         }
       });
     }
