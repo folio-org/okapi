@@ -543,7 +543,7 @@ The build requirements are:
 With these available, build with:
 
 ```
-git clone git@github.com:sling-incubator/okapi.git
+git clone git@github.com:folio-org/okapi.git
 cd okapi
 mvn install
 ```
