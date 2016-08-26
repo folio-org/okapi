@@ -195,7 +195,7 @@ public class DiscoveryManager implements NodeListener {
               fut.handle(new Failure<>(res1.getType(), res1.cause()));
             } else {
               OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
-              logger.warn("Dm: about to DELETE " + instId); 
+              logger.warn("Dm: about to DELETE " + instId);
               ok.delete("/_/deployment/modules/" + instId, okres-> {
                 if ( okres.failed()) {
                   logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
