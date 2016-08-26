@@ -33,7 +33,7 @@ import static org.folio.okapi.common.ErrorType.*;
 /**
  * Okapi client.
  * Makes requests to other Okapi modules, or Okapi itself. Handles all the
- * things we need with the headers etc. Bote that the client keeps a list
+ * things we need with the headers etc. Note that the client keeps a list
  * of necessary headers (which it can get from the RoutingContext, or
  * separately), so it is bound to one request, or at least one tenant.
  * Your module should not just keep one client around for everything it
@@ -96,8 +96,8 @@ public class OkapiClient {
    *
    * @param method GET or POST or such
    * @param path like "/foomodule/something"
-   * @param data for the request. Most likely a Json string
-   * @param fut callback when done. Most likely a Json string if all went
+   * @param data for the request. Most likely a JSON string.
+   * @param fut callback when done. Most likely a JSON string if all went
    * well, or a plain text string in case of errors.
    */
   public void request( HttpMethod method, String path, String data,
