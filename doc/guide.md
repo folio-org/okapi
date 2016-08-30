@@ -525,14 +525,10 @@ are supposed to work with the current implementation.
 
  Nothing major, at this point.
 
-
 ## Compiling and Running
 
 The latest source of the software can be found at
-[GitHub](https://github.com/folio-org/okapi). At the moment the
-repository is not publicly visible.
-
-<!-- TODO - Use the public address, when we have one -->
+[GitHub](https://github.com/folio-org/okapi).
 
 The build requirements are:
 
