@@ -24,9 +24,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import static org.folio.okapi.common.ErrorType.*;
 
@@ -103,17 +101,17 @@ public class OkapiClient {
   public void request( HttpMethod method, String path, String data,
         Handler<ExtendedAsyncResult<String>> fut) {
     String url = this.okapiUrl + path;
-    logger.warn("Ok " + method.toString() + " request to " + url);
+    logger.debug("OkapiClient: " + method.toString() + " request to " + url);
     HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
       final Buffer buf = Buffer.buffer();
       postres.handler(b -> {
-        logger.warn("Ok Buffering response " + b.toString());
+        logger.debug("OkapiClient Buffering response " + b.toString());
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
-        logger.warn("Ok endhandler " + postres.statusCode());
+        logger.debug("OkapiClient endhandler: " + postres.statusCode());
         String reply = buf.toString();
-        if (postres.statusCode() >= 201 && postres.statusCode() <= 299 ) {
+        if (postres.statusCode() >= 200 && postres.statusCode() <= 299 ) {
           fut.handle(new Success<>(reply));
         } else if (postres.statusCode() == 404) {
           fut.handle(new Failure<>(NOT_FOUND, reply));
@@ -125,9 +123,12 @@ public class OkapiClient {
       });
     });
     req.exceptionHandler(x -> {
+      logger.debug("OkapiClient exception: " + x.getMessage());
       fut.handle(new Failure<>(INTERNAL, x.getMessage()));
     });
-    logger.warn("Ok: adding headers ");
+    for ( String hdr : headers.keySet()) {
+      logger.debug("OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
+    }
     req.headers().addAll(headers);
     req.end(data);
   }
