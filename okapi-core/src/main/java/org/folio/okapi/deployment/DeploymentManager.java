@@ -109,12 +109,8 @@ public class DeploymentManager {
     logger.info("deploy instId " + id);
     LaunchDescriptor descriptor = md1.getDescriptor();
     ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
-    /*
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
-            ports, use_port);
-    ModuleHandle mh = pmh;
-      */
-            mh.start(future -> {
+
+    mh.start(future -> {
       if (future.succeeded()) {
         DeploymentDescriptor md2
                 = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),

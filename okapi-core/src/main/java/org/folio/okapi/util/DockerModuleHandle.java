@@ -34,7 +34,6 @@ public class DockerModuleHandle implements ModuleHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
-  private final LaunchDescriptor desc;
   private final int port;
   private final Ports ports;
   private final String image;
@@ -44,50 +43,170 @@ public class DockerModuleHandle implements ModuleHandle {
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
     this.vertx = vertx;
-    this.desc = desc;
     this.port = port;
     this.ports = ports;
-    this.image = "foo";
-    this.dockerUrl = "http://localhost:443";
+    this.image = desc.getDockerImage();
+    this.dockerUrl = "http://localhost:4243";
   }
 
-  private void start2(Handler<AsyncResult<Void>> startFuture) {
-    startFuture.handle(Future.failedFuture("not implemented"));
-    // start container with containerId
-  }
-
-  @Override
-  public void start(Handler<AsyncResult<Void>> startFuture) {
-    String doc = "{\n"
-            + " \"AttachStdin\":false, \n"
-            + " \"AttachStdout\":true, \n"
-            + " \"AttachStderr\":true, \n"
-            + " \"Image\":\"" + image + "\"\n"
-            + "}";
+  private void startContainer(Handler<AsyncResult<Void>> future) {
+    logger.info("startContainer");
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest req = client.postAbs(dockerUrl + "/containers/create", res -> {
+    final String url = dockerUrl + "/containers/" + containerId + "/start";
+    HttpClientRequest req = client.postAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      /*
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+       */
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        if (res.statusCode() == 204) {
+          future.handle(Future.succeededFuture());
+        } else {
+          String m = "startContainer HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  private void stopContainer(Handler<AsyncResult<Void>> future) {
+    logger.info("stopContainer");
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest req;
+    final String url = dockerUrl + "/containers/" + containerId + "/stop";
+    req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
-        startFuture.handle(Future.failedFuture(d.getCause()));
+        future.handle(Future.failedFuture(d.getCause()));
       });
       res.handler(d -> {
         body.appendBuffer(d);
       });
       res.endHandler(d -> {
-        containerId = body.toJsonObject().getString("Id");
-        if (res.statusCode() == 201) {
-          start2(startFuture);
+        if (res.statusCode() == 204) {
+          future.handle(Future.succeededFuture());
         } else {
-          startFuture.handle(Future.failedFuture("HTTP error " + Integer.toString(res.statusCode())));
+          String m = "stopContainer HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
         }
       });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  private void deleteContainer(Handler<AsyncResult<Void>> future) {
+    logger.info("deleteContainer");
+    HttpClient client = vertx.createHttpClient();
+    final String url = dockerUrl + "/containers/" + containerId;
+    HttpClientRequest req = client.deleteAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        if (res.statusCode() == 204) {
+          future.handle(Future.succeededFuture());
+        } else {
+          String m = "deleteContainer HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  private void createContainer(Handler<AsyncResult<Void>> future) {
+    String doc = "{\n"
+            + "  \"AttachStdin\":false,\n"
+            + "  \"AttachStdout\":true,\n"
+            + "  \"AttachStderr\":true,\n"
+            + "  \"Image\":\"" + image + "\",\n"
+            + "  \"StopSignal\":\"SIGTERM\",\n"
+            + "  \"HostConfig\":{\n"
+            + "    \"PortBindings\":{\"8080/tcp\":[{\"HostPort\":\""
+            + Integer.toString(port)
+            + "\"}]},\n"
+            + "    \"PublishAllPorts\":false\n"
+            + "  }\n"
+            + "}\n";
+    HttpClient client = vertx.createHttpClient();
+    logger.info("createContainer\n" + doc);
+    final String url = dockerUrl + "/containers/create";
+    HttpClientRequest req = client.postAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        if (res.statusCode() == 201) {
+          containerId = body.toJsonObject().getString("Id");
+          future.handle(Future.succeededFuture());
+        } else {
+          String m = "createContainer HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
     });
     req.putHeader("Content-Type", "application/json");
     req.end(doc);
   }
 
   @Override
+  public void start(Handler<AsyncResult<Void>> startFuture) {
+    createContainer(res -> {
+      if (res.failed()) {
+        startFuture.handle(Future.failedFuture(res.cause()));
+      } else {
+        startContainer(startFuture);
+      }
+    });
+  }
+
+  @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    stopFuture.handle(Future.failedFuture("Not implemented"));
+    stopContainer(res -> {
+      if (res.failed()) {
+        stopFuture.handle(Future.failedFuture(res.cause()));
+      } else {
+        ports.free(port);
+        deleteContainer(stopFuture);
+      }
+    });
   }
 }

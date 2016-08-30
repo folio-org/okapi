@@ -6,8 +6,7 @@
 #   docker run -t -i -p 8080:8080 okapi-test-module
 ###
 
-FROM alpine:latest
-RUN apk --update add openjdk8-jre && rm /var/cache/apk/*
+FROM java:8
 
 ENV VERTICLE_FILE okapi-test-module-fat.jar
 

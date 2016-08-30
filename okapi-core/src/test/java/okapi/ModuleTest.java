@@ -38,6 +38,13 @@ import com.jayway.restassured.response.ValidatableResponse;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonArray;
+import java.util.Iterator;
 
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
@@ -1240,6 +1247,125 @@ public class ModuleTest {
     given().delete(location)
             .then().statusCode(204);
     checkDbIsEmpty("testUiModule done", context);
+
+    async.complete();
+  }
+
+  private void checkDocker(Handler<AsyncResult<Void>> future) {
+    HttpClient client = vertx.createHttpClient();
+    final String dockerUrl = "http://localhost:4243";
+    final String url = dockerUrl + "/images/json?all=1";
+    HttpClientRequest req = client.getAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        if (res.statusCode() == 200) {
+          boolean gotIt = false;
+          logger.info("RESULT\n" + body.toString());
+          JsonArray ar = body.toJsonArray();
+          for (int i = 0; i < ar.size(); i++) {
+            JsonObject ob = ar.getJsonObject(i);
+            JsonArray ar1 = ob.getJsonArray("RepoTags");
+            for (int j = 0; j < ar1.size(); j++) {
+              String tag = ar1.getString(j);
+              if (tag != null && tag.startsWith("okapi-test-module")) {
+                gotIt = true;
+              }
+            }
+          }
+          if (gotIt) {
+            future.handle(Future.succeededFuture());
+          } else {
+            future.handle(Future.failedFuture("okapi-test-module not found"));
+          }
+        } else {
+          String m = "checkDocker HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  @Test
+  public void testDockerModule(TestContext context) {
+    async = context.async();
+    checkDocker(res -> {
+      if (res.succeeded()) {
+        dockerTests(context);
+      } else {
+        logger.info("NOT running module within Docker test");
+        async.complete();
+      }
+    });
+  }
+
+  private void dockerTests(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.cloud");
+
+    final String docSampleDockerModule = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/test\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"dockerImage\" : \"okapi-test-module\"" + LS
+            + "  }" + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docSampleDockerModule).post("/_/proxy/modules")
+            .then()
+            .statusCode(201)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
+    final String doc1 = "{" + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"nodeId\" : \"localhost\"" + LS
+            + "}";
+
+    c = api.createRestAssured();
+    r = c.given().header("Content-Type", "application/json")
+            .body(doc1).post("/_/discovery/modules")
+            .then().statusCode(201)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    locationSample5Deployment = r.getHeader("Location");
+
+    given().delete(locationSampleModule).then().statusCode(204);
+
+    given().delete(locationSample5Deployment).then().statusCode(204);
+    locationSample5Deployment = null;
+
+    checkDbIsEmpty("testDockerModule done", context);
 
     async.complete();
   }

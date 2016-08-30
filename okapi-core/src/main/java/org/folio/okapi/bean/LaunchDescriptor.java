@@ -29,6 +29,7 @@ public class LaunchDescriptor {
   private String cmdlineStart;
   private String cmdlineStop;
   private String exec;
+  private String dockerImage;
 
   public LaunchDescriptor() {
   }
@@ -56,4 +57,13 @@ public class LaunchDescriptor {
   public void setExec(String exec) {
     this.exec = exec;
   }
+
+  public String getDockerImage() {
+    return dockerImage;
+  }
+
+  public void setDockerImage(String dockerImage) {
+    this.dockerImage = dockerImage;
+  }
+
 }
