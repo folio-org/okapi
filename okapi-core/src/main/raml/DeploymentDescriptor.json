@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "DeploymentDescriptor",
-  "type": [ "object", "null" ],
+  "type": "object",
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},
