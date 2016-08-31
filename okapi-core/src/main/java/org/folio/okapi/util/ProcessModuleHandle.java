@@ -27,6 +27,7 @@ import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessBuilder.Redirect;
+import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 
@@ -186,8 +187,9 @@ public class ProcessModuleHandle implements ModuleHandle {
           String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
-          pb.start();
-        } catch (IOException ex) {
+          Process start = pb.start();
+          start.waitFor(12, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+        } catch (IOException | InterruptedException ex) {
           future.fail(ex);
           return;
         }
