@@ -31,7 +31,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
-import org.folio.okapi.util.ProcessModuleHandle;
+import org.folio.okapi.util.ModuleHandleFactory;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -108,9 +108,8 @@ public class DeploymentManager {
     }
     logger.info("deploy instId " + id);
     LaunchDescriptor descriptor = md1.getDescriptor();
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, descriptor,
-            ports, use_port);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
+
     mh.start(future -> {
       if (future.succeeded()) {
         DeploymentDescriptor md2
