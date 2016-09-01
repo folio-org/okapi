@@ -10,8 +10,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.Iterator;
+import java.util.Map;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 
@@ -19,7 +22,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
-  private final int port;
+  private final int hostPort;
   private final Ports ports;
   private final String image;
   private final String dockerUrl;
@@ -28,7 +31,7 @@ public class DockerModuleHandle implements ModuleHandle {
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
     this.vertx = vertx;
-    this.port = port;
+    this.hostPort = port;
     this.ports = ports;
     this.image = desc.getDockerImage();
     this.dockerUrl = "http://localhost:4243";
@@ -127,7 +130,37 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
-  private void createContainer(Handler<AsyncResult<Void>> future) {
+  private void getImage(Handler<AsyncResult<JsonObject>> future) {
+    HttpClient client = vertx.createHttpClient();
+    final String url = dockerUrl + "/images/" + image + "/json";
+    HttpClientRequest req = client.getAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        if (res.statusCode() == 200) {
+          JsonObject b = body.toJsonObject();
+          future.handle(Future.succeededFuture(b));
+        } else {
+          String m = "getImage HTTP error "
+                  + Integer.toString(res.statusCode()) + "\n"
+                  + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
     String doc = "{\n"
             + "  \"AttachStdin\":false,\n"
             + "  \"AttachStdout\":true,\n"
@@ -135,8 +168,10 @@ public class DockerModuleHandle implements ModuleHandle {
             + "  \"Image\":\"" + image + "\",\n"
             + "  \"StopSignal\":\"SIGTERM\",\n"
             + "  \"HostConfig\":{\n"
-            + "    \"PortBindings\":{\"8080/tcp\":[{\"HostPort\":\""
-            + Integer.toString(port)
+            + "    \"PortBindings\":{\""
+            + Integer.toString(exposedPort)
+            + "/tcp\":[{\"HostPort\":\""
+            + Integer.toString(hostPort)
             + "\"}]},\n"
             + "    \"PublishAllPorts\":false\n"
             + "  }\n"
@@ -174,11 +209,34 @@ public class DockerModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    createContainer(res -> {
-      if (res.failed()) {
-        startFuture.handle(Future.failedFuture(res.cause()));
+    getImage(res1 -> {
+      if (res1.failed()) {
+        startFuture.handle(Future.failedFuture(res1.cause()));
       } else {
-        startContainer(startFuture);
+        JsonObject b = res1.result();
+        JsonObject config = b.getJsonObject("Config");
+        JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
+        Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
+        int exposedPort = 0;
+        while (iterator.hasNext()) {
+          Map.Entry<String, Object> next = iterator.next();
+          String key = next.getKey();
+          String sPort = key.split("/")[0];
+          if (exposedPort == 0) {
+            exposedPort = Integer.valueOf(sPort);
+          }
+        }
+        if (hostPort == 0) {
+          startFuture.handle(Future.failedFuture("No exposedPorts in image"));
+        } else {
+          createContainer(exposedPort, res2 -> {
+            if (res2.failed()) {
+              startFuture.handle(Future.failedFuture(res2.cause()));
+            } else {
+              startContainer(startFuture);
+            }
+          });
+        }
       }
     });
   }
@@ -189,7 +247,7 @@ public class DockerModuleHandle implements ModuleHandle {
       if (res.failed()) {
         stopFuture.handle(Future.failedFuture(res.cause()));
       } else {
-        ports.free(port);
+        ports.free(hostPort);
         deleteContainer(stopFuture);
       }
     });
