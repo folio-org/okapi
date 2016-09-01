@@ -244,9 +244,13 @@ Of course, you do not have to use Okapi to manage deployments at all, you can
 POST a DeploymentDescriptor to `/_/discovery` and give a URL instead of a
 LaunchDescriptor. That tells Okapi where the service runs. It still needs a
 Service ID to connect the URL to a ModuleDescriptor that you have POSTed
-earlier. This can be useful if you make use of Okapi modules that exist
-outside your cluster, or if you use some container system, perhaps a web
-server where your modules live as CGI scripts at different URLs.
+earlier. Unlike the previous examples, you need to provide a unique Instance Id
+for `/_/discovery` to identify this instance of the module. This is necessary
+because you can have the same module running on different URLs, presumably on
+different nodes inside or external to your cluster. This method can be useful
+if you make use of Okapi modules that exist outside your cluster, or if you use
+some container system, perhaps a web server where your modules live as CGI
+scripts at different URLs.
 
 Note that the deployment and discovery stuff is transient, Okapi does not store
 any of that in its database. If a node goes down, the processes on it will die
@@ -984,7 +988,7 @@ curl -w '\n' http://localhost:9131/testb
 It works!
 
 #### Creating a tenant
-But, as noted above, all traffic should be going through Okapi, not directly
+As noted above, all traffic should be going through Okapi, not directly
 to the modules. But if we try Okapi's own base URL we get:
 
 ```
