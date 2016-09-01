@@ -93,6 +93,10 @@ public class DeploymentManager {
     }
     logger.info("deploy instId " + id);
     LaunchDescriptor descriptor = md1.getDescriptor();
+    if ( descriptor == null ) {
+      fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
+      return;
+    }
     ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
 
     mh.start(future -> {
