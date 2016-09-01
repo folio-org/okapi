@@ -3,7 +3,7 @@
 ## Git and branches
 
 We are trying to follow "GitHub Flow" - see
-http://scottchacon.com/2011/08/31/github-flow.html
+[http://scottchacon.com/2011/08/31/github-flow.html]()
 
 In short, the master branch is always the head of latest development. Anything
 merged into master should be of such good quality that at any time a snapshot
@@ -17,11 +17,11 @@ small trivial change directly in the master. Stuff like editing the README.
 ### Feature branches
 
 Feature branches should be branched off from the master. The naming of those
-is not strict, but if you start a branch to fix issue _#7_ in GitHub issue
-tracker, you might well call the branch _gh-7_, or if you want to be more
-descriptive, something like _gh-7-contribution-guidelines_
+is not strict, but if you start a branch to fix issue okapi-xxx filed in
+[https://issues.folio.org/]() , you might well call the
+branch _okapi-xxx_:
 
-    git checkout -b gh-7
+    git checkout -b okapi-xxx
 
 You can commit stuff as you go, but try not push obviously broken stuff into
 GitHub, not even in your development branch - that will be visible for the
@@ -31,10 +31,10 @@ code, for example for collaborating, of course you need to push it. Naturally
 you will write decent commit messages explaining what you have done.
 
 The first time you want to push your branch to GitHub, you may encounter an
-error _The current branch gh-7 has no upstream branch_. Git tells you what to
-do, namely
+error _The current branch okapi-xxx has no upstream branch_. Git tells you
+what to do, namely
 
-    git push --set-upstream origin gh-7
+    git push --set-upstream origin okapi-xxx
 
 Once you have done that, a simple `git push` will be sufficient.
 
@@ -83,7 +83,7 @@ This merging can also be done on the command line, if you prefer
 
 When done, you probably want to delete the local branch from your own machine
 
-    git branch -d gh-7
+    git branch -d okapi-xxx
 
 (TODO - Describe the automatic testing, when it is up and running)
 
@@ -176,8 +176,7 @@ Do not release modules with a version number ending in `.0`.
 ## Coding style
 
 For Java code, we basically try to adhere to Sun Java coding
-conventions, as in
-http://www.oracle.com/technetwork/java/codeconvtoc-136057.html
+[conventions](http://www.oracle.com/technetwork/java/codeconvtoc-136057.html)
 (That document is old and unmaintained, but seems to be good enough as it is)
 
 There are a few exceptions:
@@ -190,7 +189,7 @@ since those produce unnecessary diffs in Git.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
+Licensed under the Apache License, Version 2.0 (see [LICENSE]()).
 See [background](http://www.apache.org/licenses/) information.
 
 ## Tests
@@ -202,9 +201,10 @@ that talk through the WS API, and/or proper integration tests.
 When hunting down problems, it is considered good form to write a test that
 demonstrates the problem first, then a fix that makes the test pass.
 
-We have a Jenkins test system that gets invoked when you push something to master,
-and/or make a pull request. It should flag any errors, but be nice and run a
-```mvn install``` on your own machine before every ```git commit```
+We have a Jenkins test system that gets invoked when you push something
+to master, and/or make a pull request. It should flag any errors, but be
+nice and run a ```mvn install``` on your own machine before every
+```git commit```
 
 ## RAML
 
