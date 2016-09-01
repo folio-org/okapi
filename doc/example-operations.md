@@ -1,4 +1,4 @@
-# Examples of complete operations in Folio
+# Examples of complete operations in FOLIO
 
 ## Contents
 
@@ -11,7 +11,7 @@
 
 
 In the meeting of 12 June 2016, we whiteboarded some complete
-operations, to see how they would look in Folio. This document walks
+operations, to see how they would look in FOLIO. This document walks
 through the API calls involved in those operations.
 
 We may create clean diagrams at some point in the future. For now, we
