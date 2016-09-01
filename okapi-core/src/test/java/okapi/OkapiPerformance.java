@@ -111,18 +111,13 @@ public class OkapiPerformance {
   @Test(timeout = 600000)
   public void test_sample(TestContext context) {
     async = context.async();
-    deployAuth(context);
+    declareAuth(context);
   }
 
-  public void deployAuth(TestContext context) {
+  public void declareAuth(TestContext context) {
     final String doc = "{" + LS
             + "  \"id\" : \"auth\"," + LS
             + "  \"name\" : \"authmodule\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
-            + "  }," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"*\" ]," + LS
             + "    \"path\" : \"/s\"," + LS
@@ -135,11 +130,51 @@ public class OkapiPerformance {
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
+      logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
+      context.assertEquals(201, response.statusCode());
+      response.endHandler(x -> {
+        deployAuth(context);
+      });
+    }).end(doc);
+
+  }
+
+  public void deployAuth(TestContext context) {
+    final String doc = "{" + LS
+            + "  \"srvcId\" : \"auth\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/deployment/modules", response -> {
       logger.debug("deployAuth: " + response.statusCode() + " " + response.statusMessage());
       context.assertEquals(201, response.statusCode());
       locationAuth = response.getHeader("Location");
       context.assertNotNull(locationAuth);
+      response.endHandler(x -> {
+        declareSample(context);
+      });
+    }).end(doc);
+  }
+
+  public void declareSample(TestContext context) {
+    final String doc = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/testb\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      response.handler(body -> {
+        context.assertEquals(doc, body.toString());
+      });
       response.endHandler(x -> {
         deploySample(context);
       });
@@ -148,28 +183,18 @@ public class OkapiPerformance {
 
   public void deploySample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
-            + "  \"url\" : null," + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
-            + "  }," + LS
-            + "  \"routingEntries\" : [ {" + LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
-            + "    \"level\" : \"30\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "  }" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/deployment/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample = response.getHeader("Location");
-      response.handler(body -> {
-        context.assertEquals(doc, body.toString());
-      });
       Assert.assertNotNull(locationSample);
+      response.handler(body -> {
+      });
       response.endHandler(x -> {
         createTenant(context);
       });
@@ -182,7 +207,7 @@ public class OkapiPerformance {
             + "  \"name\" : \"" + okapiTenant + "\"," + LS
             + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/tenants", response -> {
       context.assertEquals(201, response.statusCode());
       locationTenant = response.getHeader("Location");
       response.handler(body -> {
@@ -198,7 +223,7 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         tenantEnableModuleSample(context);
@@ -210,7 +235,7 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"id\" : \"sample-module\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         doLogin(context);
@@ -238,7 +263,7 @@ public class OkapiPerformance {
   }
 
   public void useItWithGet(TestContext context) {
-    HttpClientRequest req = httpClient.get(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.get(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module:200.*"));
@@ -256,7 +281,7 @@ public class OkapiPerformance {
 
   public void useItWithPost(TestContext context) {
     Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST sample-module:200.*"));
@@ -265,7 +290,7 @@ public class OkapiPerformance {
       });
       response.endHandler(x -> {
         context.assertEquals("Hello  (XML) Okapi", body.toString());
-        deploySample2(context);
+        declareSample2(context);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
@@ -274,20 +299,32 @@ public class OkapiPerformance {
     req.end("Okapi");
   }
 
-  public void deploySample2(TestContext context) {
+  public void declareSample2(TestContext context) {
     final String doc = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"sample2\"," + LS
-            + "  \"url\" : \"http://localhost:9132\"," + LS
-            + "  \"descriptor\" : null," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/sample\"," + LS
+            + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"31\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      response.endHandler(x -> {
+        deploySample2(context);
+      });
+    }).end(doc);
+  }
+
+  public void deploySample2(TestContext context) {
+    final String doc = "{" + LS
+            + "  \"instId\" : \"sample2-inst\"," + LS
+            + "  \"srvcId\" : \"sample-module2\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"" + LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample2 = response.getHeader("Location");
       response.endHandler(x -> {
@@ -300,23 +337,19 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"id\" : \"sample-module2\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
-        deploySample3(context);
+        // deleteTenant(context);
+        declareSample3(context);
       });
     }).end(doc);
   }
 
-  public void deploySample3(TestContext context) {
+  public void declareSample3(TestContext context) {
     final String doc = "{" + LS
             + "  \"id\" : \"sample-module3\"," + LS
             + "  \"name\" : \"sample3\"," + LS
-            + "  \"url\" : \"http://localhost:9132\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"cmdlineStart\" : \"sleep 1\"," + LS
-            + "    \"cmdlineStop\" : null" + LS
-            + "  }," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/sample\"," + LS
@@ -334,7 +367,21 @@ public class OkapiPerformance {
             + "    \"type\" : \"request-only\"" + LS
             + "  } ]" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
+      context.assertEquals(201, response.statusCode());
+      response.endHandler(x -> {
+        deploySample3(context);
+      });
+    }).end(doc);
+  }
+
+  public void deploySample3(TestContext context) {
+    final String doc = "{" + LS
+            + "  \"instId\" : \"sample3-inst\"," + LS
+            + "  \"srvcId\" : \"sample-module3\"," + LS
+            + "  \"url\" : \"http://localhost:9132\"" + LS
+            + "}";
+    httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample3 = response.getHeader("Location");
       response.endHandler(x -> {
@@ -347,7 +394,7 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"id\" : \"sample-module3\"" + LS
             + "}";
-    httpClient.post(port, "localhost", "/_/tenants/" + okapiTenant + "/modules", response -> {
+    httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(200, response.statusCode());
       response.endHandler(x -> {
         repeatPostInit(context);
@@ -384,7 +431,7 @@ public class OkapiPerformance {
       logger.debug("repeatPost " + max + " iterations");
     }
     Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.post(port, "localhost", "/sample", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       context.assertTrue(headers.matches(".*X-Okapi-Trace=POST sample-module2:200.*"));
