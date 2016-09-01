@@ -107,12 +107,17 @@ public class ProcessModuleHandle implements ModuleHandle {
               }
             String c = cmdlineStart.replace("%p", Integer.toString(port));
             l = new String[]{"sh", "-c", c};
+          } else {
+            future.fail("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
+            return;
+
           }
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.redirectInput(Redirect.INHERIT)
                   .redirectOutput(Redirect.INHERIT);
           p = pb.start();
         } catch (IOException ex) {
+          logger.warn("Deployment failed: " + ex.getMessage());
           future.fail(ex);
           return;
         }
