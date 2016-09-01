@@ -3,7 +3,7 @@
 ## Git and branches
 
 We are trying to follow "GitHub Flow" - see
-[http://scottchacon.com/2011/08/31/github-flow.html]()
+[here](http://scottchacon.com/2011/08/31/github-flow.html)
 
 In short, the master branch is always the head of latest development. Anything
 merged into master should be of such good quality that at any time a snapshot
@@ -18,7 +18,7 @@ small trivial change directly in the master. Stuff like editing the README.
 
 Feature branches should be branched off from the master. The naming of those
 is not strict, but if you start a branch to fix issue okapi-xxx filed in
-[https://issues.folio.org/]() , you might well call the
+[issues.folio.org](https://issues.folio.org/) , you might well call the
 branch _okapi-xxx_:
 
     git checkout -b okapi-xxx
@@ -189,7 +189,7 @@ since those produce unnecessary diffs in Git.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (see [LICENSE]()).
+Licensed under the Apache License, Version 2.0 (see [LICENSE](LICENSE)).
 See [background](http://www.apache.org/licenses/) information.
 
 ## Tests
