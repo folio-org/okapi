@@ -23,9 +23,8 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
 /**
- * Manages deployment of modules.
- * This actually spawns processes and allocates ports for modules that are
- * to be run.
+ * Manages deployment of modules. This actually spawns processes and allocates
+ * ports for modules that are to be run.
  */
 public class DeploymentManager {
 
@@ -93,7 +92,7 @@ public class DeploymentManager {
     }
     logger.info("deploy instId " + id);
     LaunchDescriptor descriptor = md1.getDescriptor();
-    if ( descriptor == null ) {
+    if (descriptor == null) {
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
       return;
     }

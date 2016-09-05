@@ -56,14 +56,14 @@ public class ProcessModuleHandle implements ModuleHandle {
       } else {
         logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
         startFuture.handle(Future.failedFuture("Deployment failed. "
-          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
+                + "Could not connect to port " + port + ": " + res.cause().getMessage()));
       }
     });
   }
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    if (desc == null ) {
+    if (desc == null) {
       startFuture.handle(Future.failedFuture("No launchDescriptor"));
       return;
     }
@@ -94,17 +94,17 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           String[] l = new String[0];
           if (exec != null) {
-            if (! exec.contains("%p")) {
+            if (!exec.contains("%p")) {
               future.fail("Can not deploy: No %p in the exec line");
               return;
             }
             String c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
           } else if (cmdlineStart != null) {
-              if (! cmdlineStart.contains("%p")) {
-                future.fail("Can not deploy: No %p in the cmdlineStart");
-                return;
-              }
+            if (!cmdlineStart.contains("%p")) {
+              future.fail("Can not deploy: No %p in the cmdlineStart");
+              return;
+            }
             String c = cmdlineStart.replace("%p", Integer.toString(port));
             l = new String[]{"sh", "-c", c};
           } else {
