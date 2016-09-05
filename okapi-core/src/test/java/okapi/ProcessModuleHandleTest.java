@@ -37,7 +37,7 @@ public class ProcessModuleHandleTest {
   public void test1(TestContext context) {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
-    desc.setExec("sleep 10 #%p");
+    desc.setExec("java -version %p");
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
     ModuleHandle mh = pmh;
 
