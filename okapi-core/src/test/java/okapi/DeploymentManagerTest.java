@@ -1,6 +1,8 @@
 package okapi;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -18,10 +20,13 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class DeploymentManagerTest {
 
+  private final Logger logger = LoggerFactory.getLogger("okapi");
+
   Vertx vertx;
   Async async;
   Ports ports;
   DiscoveryManager dis;
+  DeploymentManager dm;
 
   @Before
   public void setUp(TestContext context) {
@@ -30,6 +35,7 @@ public class DeploymentManagerTest {
     ports = new Ports(9131, 9140);
     dis = new DiscoveryManager();
     dis.init(vertx, res -> {
+      dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
       async.complete();
     });
   }
@@ -43,10 +49,13 @@ public class DeploymentManagerTest {
   }
 
   @Test
-  public void test1(TestContext context) {
+  public void test(TestContext context) {
     async = context.async();
     assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
+    test1(context);
+  }
+
+  private void test1(TestContext context) {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
@@ -55,30 +64,27 @@ public class DeploymentManagerTest {
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
-        async.complete();
+        test2(context);
       } else {
         assertEquals("http://myhost.index:9131", res1.result().getUrl());
         dm.undeploy(res1.result().getInstId(), res2 -> {
           assertTrue(res2.succeeded());
-          async.complete();
+          test2(context);
         });
       }
     });
   }
 
-  @Test
-  public void test2(TestContext context) {
-    async = context.async();
-    assertNotNull(vertx);
-    DeploymentManager dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
+  private void test2(TestContext context) {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
             + "../okapi-test-module/target/unknown.jar");
-    DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
+    DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       assertFalse(res1.succeeded());
       if (res1.failed()) {
+        logger.info(res1.cause().getMessage());
         async.complete();
       } else {
         dm.undeploy(res1.result().getInstId(), res2 -> {
@@ -87,5 +93,4 @@ public class DeploymentManagerTest {
       }
     });
   }
-
 }

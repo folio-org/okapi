@@ -134,6 +134,32 @@ public class ProcessModuleHandle implements ModuleHandle {
     });
   }
 
+  private void waitPortToClose(Handler<AsyncResult<Void>> stopFuture, int iter) {
+    if (port > 0) {
+      // fail if port is already in use
+      NetClientOptions options = new NetClientOptions().setConnectTimeout(50);
+      NetClient c = vertx.createNetClient(options);
+      c.connect(port, "localhost", res -> {
+        if (res.succeeded()) {
+          NetSocket socket = res.result();
+          socket.close();
+          if (iter > 0) {
+            vertx.setTimer(100, x -> {
+              waitPortToClose(stopFuture, iter - 1);
+            });
+          } else {
+            logger.error("port " + port + " not shut down");
+            stopFuture.handle(Future.failedFuture("port " + port + " not shut down"));
+          }
+        } else {
+          stopFuture.handle(Future.succeededFuture());
+        }
+      });
+    } else {
+      stopFuture.handle(Future.succeededFuture());
+    }
+  }
+
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
     if (p == null) {
@@ -167,7 +193,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
           ports.free(port);
-          stopFuture.handle(Future.succeededFuture());
+          waitPortToClose(stopFuture, 10);
         }
       });
     } else {
@@ -189,7 +215,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           stopFuture.handle(Future.failedFuture(result.cause()));
         } else {
           ports.free(port);
-          stopFuture.handle(Future.succeededFuture());
+          waitPortToClose(stopFuture, 10);
         }
       });
     }
