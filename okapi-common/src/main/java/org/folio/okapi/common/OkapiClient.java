@@ -108,8 +108,12 @@ public class OkapiClient {
       });
     });
     req.exceptionHandler(x -> {
-      logger.debug("OkapiClient exception: " + x.getMessage());
-      fut.handle(new Failure<>(INTERNAL, x.getMessage()));
+      String msg = x.getMessage();
+      if ( msg == null || msg.isEmpty()) { // unresolved address results in no message
+        msg = x.toString(); // so we use toString instead
+      } // but not both, because connection error has identical string in both...
+      logger.debug("OkapiClient exception: " + x.toString() + ": " + x.getMessage());
+      fut.handle(new Failure<>(INTERNAL, msg));
     });
     for ( String hdr : headers.keySet()) {
       logger.debug("OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
