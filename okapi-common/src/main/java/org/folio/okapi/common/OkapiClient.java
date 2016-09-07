@@ -137,5 +137,9 @@ public class OkapiClient {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
+  public String getOkapiUrl() {
+    return okapiUrl;
+  }
+
 
 }
