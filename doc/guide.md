@@ -39,7 +39,7 @@ implementation and usage of Okapi: by presenting concrete web service
 endpoints and details of request processing - handling of request and
 response entities, status codes, error conditions, etc.
 
-Okapi is an implementation of a couple different patterns commonly used within
+Okapi is an implementation of some different patterns commonly used within
 the microservice architecture. The most central of them is the so called "API
 Gateway" pattern which is implemented by the core Okapi 'proxy' service.
 Conceptually, the API Gateway is a server that is a single entry point into

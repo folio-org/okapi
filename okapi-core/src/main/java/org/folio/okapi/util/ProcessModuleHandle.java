@@ -204,7 +204,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           Process start = pb.start();
-          logger.debug("Wating for the port to be closed");
+          logger.debug("Waiting for the port to be closed");
           start.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
         } catch (IOException | InterruptedException ex) {
