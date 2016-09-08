@@ -33,7 +33,11 @@ public class DockerModuleHandle implements ModuleHandle {
     this.hostPort = port;
     this.ports = ports;
     this.image = image;
-    this.dockerUrl = "http://localhost:4243";
+    String u = System.getProperty("dockerUrl", "http://localhost:4243");
+    while (u.endsWith("/")) {
+      u = u.substring(0, u.length() - 1);
+    }
+    this.dockerUrl = u;
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
