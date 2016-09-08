@@ -16,7 +16,6 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
 import org.folio.okapi.bean.Ports;
-import org.folio.okapi.bean.LaunchDescriptor;
 
 public class DockerModuleHandle implements ModuleHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -28,13 +27,17 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String dockerUrl;
   private String containerId;
 
-  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+  public DockerModuleHandle(Vertx vertx, String image,
           Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
-    this.image = desc.getDockerImage();
-    this.dockerUrl = "http://localhost:4243";
+    this.image = image;
+    String u = System.getProperty("dockerUrl", "http://localhost:4243");
+    while (u.endsWith("/")) {
+      u = u.substring(0, u.length() - 1);
+    }
+    this.dockerUrl = u;
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
@@ -43,11 +46,6 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId + "/start";
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      /*
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
-       */
       res.handler(d -> {
         body.appendBuffer(d);
       });

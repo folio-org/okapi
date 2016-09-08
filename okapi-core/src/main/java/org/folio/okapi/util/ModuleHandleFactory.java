@@ -9,8 +9,8 @@ public class ModuleHandleFactory {
     ModuleHandle mh = null;
     if (desc.getDockerImage() == null) {
       mh = new ProcessModuleHandle(vertx, desc, ports, port);
-    } else {
-      mh = new DockerModuleHandle(vertx, desc, ports, port);
+    } else if (desc.getDockerImage() != null) {
+      mh = new DockerModuleHandle(vertx, desc.getDockerImage(), ports, port);
     }
     return mh;
   }

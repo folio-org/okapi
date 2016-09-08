@@ -29,6 +29,7 @@ managing and running microservices.
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Web Service](#web-service)
+    * [Deployment](#deployment)
     * [Instrumentation](#instrumentation)
 
 ## Introduction
@@ -1358,6 +1359,8 @@ Defaults to `localhost`
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
 as X-Okapi-Url header, and the modules can use this to make further requests
 to Okapi. Defaults to `http://localhost:9130/` or what ever port specified.
+* `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
+`http://localhost:4243`.
 
 #### Command
 
@@ -1387,6 +1390,23 @@ in the [RAML](http://raml.org/) syntax.
 
   * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
+
+### Deployment
+
+Deployment is specified by schemas
+[DeploymentDescriptor.json](../okapi-core/src/main/raml/DeploymentDescriptor.json)
+and [LaunchDescriptor.json](../okapi-core/src/main/raml/LaunchDescriptor.json)
+
+The following methods exist for launching modules:
+
+* Process: The `exec` property specifies a process that stays alive and is killed (by signal) by Okapi itself.
+
+* Commands: Triggered by presence of `cmdlineStart` and `cmdlineStop` properties.
+The `cmdlineStart` is a shell script that spawns and puts a service in the background. The `cmdlineStop` is a shell script that terminates
+the corresponding service.
+
+* Docker: The `dockerImage` property specifies an existing image. Okapi manages a container based on this image.
+This option require that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
 
 ### Instrumentation
 
