@@ -113,8 +113,7 @@ public class ProcessModuleHandle implements ModuleHandle {
 
           }
           ProcessBuilder pb = new ProcessBuilder(l);
-          pb.redirectInput(Redirect.INHERIT)
-                  .redirectOutput(Redirect.INHERIT);
+          pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
           logger.warn("Deployment failed: " + ex.getMessage());
