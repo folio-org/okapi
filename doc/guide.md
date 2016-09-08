@@ -1395,7 +1395,9 @@ in the [RAML](http://raml.org/) syntax.
 
 Deployment is specified by schemas
 [DeploymentDescriptor.json](../okapi-core/src/main/raml/DeploymentDescriptor.json)
-and [LaunchDescriptor.json](../okapi-core/src/main/raml/LaunchDescriptor.json)
+and [LaunchDescriptor.json](../okapi-core/src/main/raml/LaunchDescriptor.json). The
+LaunchDescriptor can be part of a ModuleDescriptor, or it can be specified in a
+DeploymentDescriptor.
 
 The following methods exist for launching modules:
 
@@ -1407,6 +1409,10 @@ the corresponding service.
 
 * Docker: The `dockerImage` property specifies an existing image. Okapi manages a container based on this image.
 This option require that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
+
+It is also possible to refer to an already-launched process (maybe running in your
+development IDE), by POSTing a DeploymentDescriptor to /_/discovery, with no nodeId
+and no LaunchDescriptor, but with the URL where the module is running.
 
 ### Instrumentation
 
