@@ -71,15 +71,20 @@ branch. If there are serious issues, you can close the pull request without
 merging, with a comment explaining why you could not do it.
 
 Once all is well, you can use GitHub's interface. Just go to the
-conversation tab, and click on _Merge Pull Request_, edit the comment if
+conversation tab, and click on _Merge Pull Request_ (don't squash, don't rebase,
+[learn why](https://git-scm.com/book/en/v2/Git-Branching-Rebasing#The-Perils-of-Rebasing)).
+Edit the comment if
 necessary, and click on _Confirm Merge_. GitHub should tell you that the
 _Pull request successfully merged and closed_. Next to it is a button to
 _Delete the Branch_. For a simple feature branch, you might as well delete
 it now, it has served its purpose. But if you think there is more work that
 should be done in this branch, of course you don't delete it.
 
-This merging can also be done on the command line, if you prefer
-(TODO - Describe how)
+This merging of the pull request's branch okapi-xxx can also be done on the
+command line, if you prefer.
+
+    git checkout master
+    git merge okapi-xxx
 
 When done, you probably want to delete the local branch from your own machine
 
