@@ -195,8 +195,7 @@ since those produce unnecessary diffs in Git.
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (see [LICENSE](../LICENSE)).
-See [background](http://www.apache.org/licenses/) information.
+Licensed under the Apache License, Version 2.0
 
 ## Tests
 
@@ -214,6 +213,6 @@ nice and run a ```mvn install``` on your own machine before every
 
 ## RAML
 
-We keep the API specs in RAML files under okapi-core/src/main/raml/.
+We keep the API specs in RAML files under `okapi-core/src/main/raml/`.
 Remember to update those if you ever change anything in the API.
 And update the documentation too, of course.
