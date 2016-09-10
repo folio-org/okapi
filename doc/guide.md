@@ -1408,7 +1408,7 @@ The `cmdlineStart` is a shell script that spawns and puts a service in the backg
 the corresponding service.
 
 * Docker: The `dockerImage` property specifies an existing image. Okapi manages a container based on this image.
-This option require that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
+This option requires that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
 
 It is also possible to refer to an already-launched process (maybe running in your
 development IDE), by POSTing a DeploymentDescriptor to /_/discovery, with no nodeId
