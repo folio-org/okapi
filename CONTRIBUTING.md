@@ -2,13 +2,13 @@
 
 ## Git and branches
 
-We are trying to follow "GitHub Flow" - see
-[here](http://scottchacon.com/2011/08/31/github-flow.html)
+For all FOLIO code repositories, we are trying to follow
+[GitHub Flow](https://guides.github.com/introduction/flow/).
 
 In short, the master branch is always the head of latest development. Anything
 merged into master should be of such good quality that at any time a snapshot
 from master passes all tests, and can be deployed. That is not to say that it
-will be free of bugs, we are not superhuman.
+will be free of bugs; we are not superhuman.
 
 All real work should be done in feature branches. It is still OK to make a
 small trivial change directly in the master. Stuff like editing the README.
@@ -18,8 +18,9 @@ small trivial change directly in the master. Stuff like editing the README.
 
 Feature branches should be branched off from the master. The naming of those
 is not strict, but if you start a branch to fix issue okapi-xxx filed in
-[issues.folio.org](https://issues.folio.org/) , you might well call the
-branch _okapi-xxx_:
+[issues.folio.org](https://issues.folio.org/) then you might well call the
+branch _okapi-xxx_ (or if you want to be more descriptive, something
+like _okapi-xxx-contribution-guidelines_):
 
     git checkout -b okapi-xxx
 
@@ -32,7 +33,7 @@ you will write decent commit messages explaining what you have done.
 
 The first time you want to push your branch to GitHub, you may encounter an
 error _The current branch okapi-xxx has no upstream branch_. Git tells you
-what to do, namely
+what to do, namely:
 
     git push --set-upstream origin okapi-xxx
 
