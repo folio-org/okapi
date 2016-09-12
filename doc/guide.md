@@ -326,6 +326,13 @@ of the request, and returns no body, so it is of type
 the request body to determine the login parameters, and it also
 returns a message; so it must be of type `request-response`.
 
+Okapi has a feature where a module can exceptionally return a X-Okapi-Stop
+header, and that will cause Okapi to terminate the pipeline with the result
+this module returned. It is meant to be used sparingly, for example a module
+in a login pipeline may conclude that the user is already authorized since
+he comes from a IP address in the secure office, and abort the sequence of
+events that would lead to a login screen being displayed.
+
 
 ### Status Codes
 
