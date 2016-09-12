@@ -128,6 +128,30 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
+  private void getContainerLog(Handler<AsyncResult<Void>> future) {
+    HttpClient client = vertx.createHttpClient();
+    final String url = dockerUrl + "/containers/" + containerId + "/logs?stderr=1&stdout=1&follow=1";
+    HttpClientRequest req = client.getAbs(url, res -> {
+      if (res.statusCode() == 200) {
+        // stream OK.. Continue other work but keep fetching!
+        res.handler(d -> {
+          // both stderr+stdout are directed to stderr
+          System.err.print(d.toString());
+        });
+        future.handle(Future.succeededFuture());
+      } else {
+        String m = "getContainerLog HTTP error "
+                + Integer.toString(res.statusCode());
+        logger.error(m);
+        future.handle(Future.failedFuture(m));
+      }
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
   private void getImage(Handler<AsyncResult<JsonObject>> future) {
     HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/images/" + image + "/json";
@@ -231,7 +255,13 @@ public class DockerModuleHandle implements ModuleHandle {
             if (res2.failed()) {
               startFuture.handle(Future.failedFuture(res2.cause()));
             } else {
-              startContainer(startFuture);
+              startContainer(res3 -> {
+                if (res3.failed()) {
+                  startFuture.handle(Future.failedFuture(res3.cause()));
+                } else {
+                  getContainerLog(startFuture);
+                }
+              });
             }
           });
         }
