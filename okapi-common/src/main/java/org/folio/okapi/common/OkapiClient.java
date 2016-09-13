@@ -31,7 +31,6 @@ public class OkapiClient {
   private HttpClient httpClient;
   private Vertx vertx;
   private Map<String,String> headers;
-  // TODO X-Okapi headers
   // TODO Response headers: do we need a trace or something?
   // TODO Return type: Need a more complex container class with room for
   //   response headers, the whole response, and so on.
@@ -45,9 +44,9 @@ public class OkapiClient {
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx());
     this.ctx = ctx;
-    this.okapiUrl = ctx.request().getHeader("X-Okapi-Url");
+    this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
     for (String hdr : ctx.request().headers().names()) {
-      if (hdr.startsWith("X-Okapi")) {
+      if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr,hv);
       }

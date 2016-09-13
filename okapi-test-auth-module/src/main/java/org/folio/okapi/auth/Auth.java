@@ -11,6 +11,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import static org.folio.okapi.common.HttpResponse.*;
 import java.util.HashMap;
+import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -28,13 +29,6 @@ import java.util.HashMap;
  *
  */
 public class Auth {
-
-  static final String OKAPITOKENHEADER = "X-Okapi-Token";
-  static final String OKAPIMODPERMSHEADER = "X-Okapi-Module-Permissions";
-  static final String OKAPIMODTOKENSHEADER = "X-Okapi-Module-Tokens";
-  static final String OKAPIPERMISSIONSREQUIRED = "X-Okapi-Permissions-Required";
-  static final String OKAPIPERMISSIONSDESIRED = "X-Okapi-Permissions-Desired";
-  static final String OKAPIPERMISSIONSHEADER = "X-Okapi-Permissions";
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
 
@@ -99,7 +93,7 @@ public class Auth {
       return;
     }
     logger.info("Ok login for " + u + ": " + tok);
-    responseJson(ctx, 200).putHeader(OKAPITOKENHEADER, tok).end(json);
+    responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
 
 
@@ -110,7 +104,7 @@ public class Auth {
    * not possible to extract the user or tenant from them.
    */
   private String moduleTokens(RoutingContext ctx) {
-    String modPermJson = ctx.request().getHeader(OKAPIMODPERMSHEADER);
+    String modPermJson = ctx.request().getHeader(XOkapiHeaders.MODULE_PERMISSIONS);
     logger.debug("moduleTokens: trying to decode '" + modPermJson + "'");
     HashMap<String, String> tokens = new HashMap<>();
     try {
@@ -133,7 +127,7 @@ public class Auth {
       logger.error("no such algorithm: " + ex.getMessage());
     }
     if (!tokens.isEmpty()) { // return also a 'clean' token
-      tokens.put("_", ctx.request().getHeader(OKAPITOKENHEADER));
+      tokens.put("_", ctx.request().getHeader(XOkapiHeaders.TOKEN));
     }
     String alltokens = Json.encode(tokens);
     logger.debug("auth: module tokens for " + modPermJson + "  :  " + alltokens);
@@ -141,11 +135,11 @@ public class Auth {
   }
 
   public void check(RoutingContext ctx) {
-    String tok = ctx.request().getHeader(OKAPITOKENHEADER);
+    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     if (tok == null || tok.isEmpty()) {
-      logger.info("Auth.check called without " + OKAPITOKENHEADER);
+      logger.info("Auth.check called without " + XOkapiHeaders.TOKEN);
       responseText(ctx, 401)
-              .end("Auth.check called without " + OKAPITOKENHEADER);
+              .end("Auth.check called without " + XOkapiHeaders.TOKEN);
       return;
     }
     // Do some magic
@@ -167,16 +161,16 @@ public class Auth {
       return;
     }
     // Fake some desired permissions
-    String des = ctx.request().getHeader(OKAPIPERMISSIONSDESIRED);
+    String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
     if ( des != null && ! des.isEmpty()) {
     ctx.response().headers()
-      .add(OKAPIPERMISSIONSDESIRED, des);
+      .add(XOkapiHeaders.PERMISSIONS, des);
     }
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
-      .add(OKAPITOKENHEADER, tok)
-      .add(OKAPIMODTOKENSHEADER, modTok);
+      .add(XOkapiHeaders.TOKEN, tok)
+      .add(XOkapiHeaders.MODULE_TOKENS, modTok);
     responseText(ctx, 202); // Abusing 202 to say check OK
     echo(ctx);
 

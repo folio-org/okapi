@@ -38,6 +38,7 @@ import org.folio.okapi.service.impl.TimeStampMemory;
 import org.folio.okapi.service.impl.TimeStampMongo;
 import org.folio.okapi.util.LogHelper;
 import static org.folio.okapi.common.HttpResponse.*;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
@@ -266,13 +267,13 @@ public class MainVerticle extends AbstractVerticle {
             .allowedMethod(HttpMethod.POST)
             //allow request headers
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-            .allowedHeader("X-Okapi-Tenant")
-            .allowedHeader("X-Okapi-Token")
+            .allowedHeader(XOkapiHeaders.TENANT)
+            .allowedHeader(XOkapiHeaders.TOKEN)
             .allowedHeader("Authorization")
             //expose response headers
             .exposedHeader(HttpHeaders.LOCATION.toString())
-            .exposedHeader("X-Okapi-Trace")
-            .exposedHeader("X-Okapi-Token")
+            .exposedHeader(XOkapiHeaders.TRACE)
+            .exposedHeader(XOkapiHeaders.TOKEN)
     );
 
     // Paths that start with /_/ are okapi internal configuration

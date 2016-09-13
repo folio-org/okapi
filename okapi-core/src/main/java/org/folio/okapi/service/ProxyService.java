@@ -37,6 +37,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -82,7 +83,7 @@ public class ProxyService {
   private void addTraceHeaders(RoutingContext ctx, ProxyContext pc ) {
 
     for (String th : pc.traceHeaders) {
-      ctx.response().headers().add("X-Okapi-Trace", th);
+      ctx.response().headers().add(XOkapiHeaders.TRACE, th);
     }
   }
 
@@ -136,10 +137,10 @@ public class ProxyService {
   private void authHeaders(List<ModuleInstance> modlist,
         MultiMap requestHeaders, String defaultToken) {
     // Samitize important headers from the incoming request
-    requestHeaders.remove("X-Okapi-Permissions-Required");
-    requestHeaders.remove("X-Okapi-Permissions-Desired");
-    requestHeaders.remove("X-Okapi-Module-Permissions");
-    requestHeaders.remove("X-Okapi-Module-Tokens");
+    requestHeaders.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
+    requestHeaders.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
+    requestHeaders.remove(XOkapiHeaders.MODULE_PERMISSIONS);
+    requestHeaders.remove(XOkapiHeaders.MODULE_TOKENS);
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
     Map<String,String[]> modperms = new HashMap<>(modlist.size());
@@ -161,19 +162,19 @@ public class ProxyService {
       mod.setAuthToken(defaultToken);
     } // mod loop
     if (!req.isEmpty()) {
-      logger.debug("authHeaders:X-Okapi-Permissions-Required: " + String.join(",", req));
-      requestHeaders.add("X-Okapi-Permissions-Required", String.join(",", req));
+      logger.debug("authHeaders: " + XOkapiHeaders.PERMISSIONS_REQUIRED + " " + String.join(",", req));
+      requestHeaders.add(XOkapiHeaders.PERMISSIONS_REQUIRED, String.join(",", req));
     }
     if (!want.isEmpty()) {
-      logger.debug("authHeaders:X-Okapi-Permissions-Desired: " + String.join(",", want));
-      requestHeaders.add("X-Okapi-Permissions-Desired", String.join(",", want));
+      logger.debug("authHeaders: " + XOkapiHeaders.PERMISSIONS_DESIRED + " " + String.join(",", want));
+      requestHeaders.add(XOkapiHeaders.PERMISSIONS_DESIRED, String.join(",", want));
     }
     // Add the X-Okapi-Module-Permissions even if empty. That causes auth to return
     // an empty X-Okapi-Module-Tokens, which will tell us that we have done the mod
     // perms, and no other module should be allowed to do the same.
     String mpj = Json.encode(modperms);
-    logger.debug("authHeaders:X-Okapi-Module-Permissions: " + mpj);
-    requestHeaders.add("X-Okapi-Module-Permissions", mpj);
+    logger.debug("authHeaders:" + XOkapiHeaders.MODULE_PERMISSIONS + " " + mpj);
+    requestHeaders.add(XOkapiHeaders.MODULE_PERMISSIONS, mpj);
   }
 
 
@@ -210,7 +211,7 @@ public class ProxyService {
    * Set tokens for those modules that received one.
    */
   void authResponse(RoutingContext ctx, HttpClientResponse res, ProxyContext pc) {
-    String modTok = res.headers().get("X-Okapi-Module-Tokens");
+    String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
     if ( modTok != null && ! modTok.isEmpty()  ) {
       JsonObject jo = new JsonObject(modTok);
         // { "sample" : "token" }
@@ -227,12 +228,12 @@ public class ProxyService {
         }
       }
     }
-    res.headers().remove("X-Okapi-Module-Tokens"); // nobody else should see them
-    res.headers().remove("X-Okapi-Module-Permissions"); // They have served their purpose
+    res.headers().remove(XOkapiHeaders.MODULE_TOKENS); // nobody else should see them
+    res.headers().remove(XOkapiHeaders.MODULE_PERMISSIONS); // They have served their purpose
   }
 
   void relayToRequest(RoutingContext ctx, HttpClientResponse res, ProxyContext pc) {
-    if ( res.headers().contains("X-Okapi-Module-Tokens")) {
+    if ( res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
       authResponse(ctx,res, pc );
     }
     for (String s : res.headers().names()) {
@@ -253,7 +254,7 @@ public class ProxyService {
   }
 
   public void proxy(RoutingContext ctx) {
-    String tenant_id = ctx.request().getHeader("X-Okapi-Tenant");
+    String tenant_id = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenant_id == null) {
       responseText(ctx, 403).end("Missing Tenant");
       return;
@@ -270,10 +271,9 @@ public class ProxyService {
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);
 
-
-    String authToken = ctx.request().getHeader("X-Okapi-Token");
+    String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
-    ctx.request().headers().add("X-Okapi-Url", okapiUrl);
+    ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
     ProxyContext pc = new ProxyContext(l);
@@ -362,7 +362,7 @@ public class ProxyService {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
             mi.getUrl() + ctx.request().uri(), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
-              && res.getHeader("X-Okapi-Stop") == null
+              && res.getHeader(XOkapiHeaders.STOP) == null
               && it.hasNext()) {
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
                 relayToRequest(ctx, res, pc);
@@ -471,17 +471,17 @@ public class ProxyService {
       responseText(ctx, 404).end();
     } else {
       ModuleInstance mi = it.next();
-      String tenantId = ctx.request().getHeader("X-Okapi-Tenant");
+      String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
       if (tenantId == null || tenantId.isEmpty()) {
         tenantId = "???"; // Should not happen, we have validated earlier
       }
       String metricKey = "proxy." + tenantId + ".module." + mi.getModuleDescriptor().getId();
       Timer.Context timerContext = DropwizardHelper.getTimerContext(metricKey);
 
-      ctx.request().headers().remove("X-Okapi-Token");
+      ctx.request().headers().remove(XOkapiHeaders.TOKEN);
       String token = mi.getAuthToken();
       if ( token != null && !token.isEmpty()) {
-        ctx.request().headers().add("X-Okapi-Token", token);
+        ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
       String rtype = mi.getRoutingEntry().getType();
       logger.debug("Invoking module " + mi.getModuleDescriptor().getName()
