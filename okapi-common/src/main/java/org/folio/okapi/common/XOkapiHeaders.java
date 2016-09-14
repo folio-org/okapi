@@ -70,9 +70,9 @@ public class XOkapiHeaders {
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
 
-  /** X-Okapi-Stop. A signal from a module to Okapi to stop the pipeline
-   * processing and return the result immediately. Only to be used in special
-   * circumstances, like in the auth subsystem.
+  /** X-Okapi-Module-Stop. A signal from a module to Okapi to stop the
+   * pipeline processing and return the result immediately. Only to be used
+   * in special circumstances, like in the auth subsystem.
    */
   public static final String STOP = "X-Okapi-Module-Stop";
 
