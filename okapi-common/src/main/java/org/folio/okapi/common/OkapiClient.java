@@ -140,5 +140,23 @@ public class OkapiClient {
     return okapiUrl;
   }
 
+  /** Get the Okapi authentication token.
+   * From the X-Okapi-Token header.
+   *
+   * @return the token, or null if not defined.
+   */
+  public String getOkapiToken() {
+    return headers.get(XOkapiHeaders.TOKEN);
+  }
+
+  /** Set the Okapi authentication token.
+   * Overrides the auth token. Should normally not be needed,
+   * but can be used in some special cases.
+   * @param token
+   */
+  public void setOkapiToken(String token) {
+    headers.put(XOkapiHeaders.TOKEN, token);
+  }
+
 
 }
