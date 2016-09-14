@@ -43,6 +43,10 @@ public class MainVerticle extends AbstractVerticle {
         }
       }
     }
+    String stopper = ctx.request().getHeader("X-stop-here");
+    if (stopper != null ) {
+      ctx.response().putHeader("X-Okapi-Stop", stopper);
+    }
 
     final String xmlMsg2 = xmlMsg; // it needs to be final, in the callbacks
 

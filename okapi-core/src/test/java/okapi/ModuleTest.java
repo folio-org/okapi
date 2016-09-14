@@ -768,10 +768,22 @@ public class ModuleTest {
             .get("/testb")
             .then().statusCode(200).body(equalTo("It works"));
 
+    // Verify that both modules get executed
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .body("OkapiX").post("/testb")
-            .then().statusCode(200).body(equalTo("Hello Hello OkapiX"));
+            .then().statusCode(200)
+            .body(equalTo("Hello Hello OkapiX"));
+
+    // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
+    // a X-Stop-Here header
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("X-Stop-Here", "Enough!")
+            .body("OkapiX").post("/testb")
+            .then().statusCode(200)
+            .header("X-Okapi-Stop", "Enough!")
+            .body(equalTo("Hello OkapiX")); // only one "Hello"
 
     given().get("/_/test/reloadmodules")
             .then().statusCode(204);
