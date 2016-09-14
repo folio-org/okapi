@@ -571,16 +571,18 @@ public class ModuleTest {
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Check that okapi sets up the permission headers
-    // Check also the X-Okapi-Url header in the same go
+    // Check also the X-Okapi-Url header in the same go, as well as
+    // URL parameters
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .header("X-all-headers", "H") // ask sample to report all headers
-            .get("/testb")
+            .header("X-all-headers", "HB") // ask sample to report all headers
+            .get("/testb?query=foo&limit=10")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
             .header("X-Okapi-Url", "http://localhost:9130/")
-            .body(equalTo("It works"));
+            .header("X-Url-Params", "query=foo&limit=10")
+            .body(containsString("It works"));
     // Check only the required permission bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
@@ -596,11 +598,16 @@ public class ModuleTest {
             .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
             .body(equalTo("It works"));
 
+    // Post request
+    // Test also URL parameters
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
-            .body("Okapi").post("/testb")
-            .then().statusCode(200).body(equalTo("Hello  (XML) Okapi"));
+            .header("X-all-headers", "H") // ask sample to report all headers
+            .body("Okapi").post("/testb?query=foo")
+            .then().statusCode(200)
+            .header("X-Url-Params", "query=foo")
+            .body(equalTo("Hello  (XML) Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)

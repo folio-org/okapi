@@ -31,6 +31,9 @@ public class MainVerticle extends AbstractVerticle {
     // Report all headers back (in headers and in the body) if requested
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
+      String qry = ctx.request().query();
+      if ( qry != null )
+        ctx.request().headers().add("X-Url-Params", qry);
       for (String hdr : ctx.request().headers().names()) {
         hv = ctx.request().getHeader(hdr);
         if (hv != null) {
@@ -38,7 +41,7 @@ public class MainVerticle extends AbstractVerticle {
             ctx.response().putHeader(hdr, hv);
           }
           if (allh.contains("B")) {
-            xmlMsg += " " + hdr + ":" + hv;
+            xmlMsg += " " + hdr + ":" + hv + "\n";
           }
         }
       }
