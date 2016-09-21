@@ -1,5 +1,27 @@
 # Contribution guidelines for Okapi
 
+* [Issue tracker](#issue-tracker)
+* [Git and branches](#git-and-branches)
+    * [Feature branches](#feature-branches)
+    * [Requesting a merge](#requesting-a-merge)
+    * [Merging pull requests](#merging-pull-requests)
+* [Releasing](#releasing)
+* [Version numbers](#version-numbers)
+    * [API versions](#api-versions)
+    * [Implementation versions](#implementation-versions)
+    * [The simple case](#the-simple-case)
+    * [Complex cases](#complex-cases)
+    * [Dot one, not zero](#dot-one-not-zero)
+* [Coding style](#coding-style)
+* [License](#license)
+* [Tests](#tests)
+* [RAML](#raml)
+
+## Issue tracker
+
+The FOLIO Issue Tracker is at [issues.folio.org](https://issues.folio.org/)
+and see the usage [guidelines](http://dev.folio.org/community/guide-issues).
+
 ## Git and branches
 
 For all FOLIO code repositories, we are trying to follow
@@ -23,7 +45,7 @@ like _okapi-xxx-contribution-guidelines_):
 
     git checkout -b okapi-xxx
 
-You can commit stuff as you go, but try not push obviously broken stuff into
+You can commit stuff as you go, but try not to push obviously broken stuff into
 GitHub, not even in your development branch - that will be visible for the
 whole world, and we plan to set up automatic testing for each branch, so
 pushing a broken commit will cause some emails. But if you need to share the
@@ -181,6 +203,9 @@ Do not release modules with a version number ending in `.0`
 
 ## Coding style
 
+Follow the coding style that is being used by each repository for each
+file type.
+
 For Java code, we basically try to adhere to Sun Java coding
 [conventions](http://www.oracle.com/technetwork/java/codeconvtoc-136057.html)
 (that document is old and unmaintained, but seems to be good enough as it is).
@@ -190,8 +215,12 @@ There are a few exceptions:
 - We indent with two spaces only, because vert.x uses deeply nested callbacks.
 - We _don't_ use tab characters for indents, only spaces.
 
-Remember to set your IDE to remove trailing spaces on saving files,
+Remember to set your IDE and editors to remove trailing spaces on saving files,
 since those produce unnecessary diffs in Git.
+
+For XML and JSON and RAML files, the same: two-space indent and no tabs.
+
+For JavaScript code we are implementing an automated lint facility. 
 
 ## License
 
