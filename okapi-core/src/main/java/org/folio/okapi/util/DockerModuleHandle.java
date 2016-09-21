@@ -177,6 +177,7 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
+      logger.warn("Starting a docker image " + image + " failed with " + d.getMessage() );
       future.handle(Future.failedFuture(d.getCause()));
     });
     req.end();

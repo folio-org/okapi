@@ -36,6 +36,8 @@ public class HttpResponse {
   }
 
   static public void responseError(RoutingContext ctx, int code, String msg) {
+    if ( msg == null )
+      msg = "(null)";
     if (code < 200 || code >= 300) {
       logger.error("HTTP response code=" + code + " msg=" + msg);
     }
