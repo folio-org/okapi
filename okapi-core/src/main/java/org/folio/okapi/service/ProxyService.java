@@ -189,7 +189,8 @@ public class ProxyService {
         } else {
           List<DeploymentDescriptor> l = res.result();
           if (l.size() < 1) {
-            fut.handle(new Failure<>(NOT_FOUND, mi.getModuleDescriptor().getId()));
+            fut.handle(new Failure<>(NOT_FOUND, "No running module instance found for "
+              + mi.getModuleDescriptor().getId()));
             return;
           }
           mi.setUrl(l.get(0).getUrl());
