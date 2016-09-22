@@ -35,7 +35,7 @@ import org.folio.okapi.util.DropwizardHelper;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import static org.folio.okapi.common.HttpResponse.*;
+import static org.folio.okapi.common.HttpResponse.*; 
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 
@@ -189,7 +189,8 @@ public class ProxyService {
         } else {
           List<DeploymentDescriptor> l = res.result();
           if (l.size() < 1) {
-            fut.handle(new Failure<>(NOT_FOUND, "No running module instance found for "
+            fut.handle(new Failure<>(NOT_FOUND,
+              "No running module instance found for "
               + mi.getModuleDescriptor().getId()));
             return;
           }
