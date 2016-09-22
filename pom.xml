@@ -182,19 +182,19 @@
 
   <distributionManagement>
     <repository>
-      <id>id-maven-repo</id>
-      <name>Index Data Maven Repository</name>
-      <url>scp://maven.indexdata.com:22/var/www/maven/repository</url>
+      <id>folio-nexus</id>
+      <name>FOLIO Release Repository</name>
+      <url>https://repository.folio.org/repository/maven-releases/</url>
       <uniqueVersion>false</uniqueVersion>
+      <layout>default</layout>
     </repository>
+    <snapshotRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Snapshot Repository</name>
+      <uniqueVersion>true</uniqueVersion>
+      <url>https://repository.folio.org/repository/maven-snapshots/</url>
+      <layout>default</layout>
+    </snapshotRepository>
   </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>id-maven-repo</id>
-      <name>Index Data Maven Repository</name>
-      <url>http://maven.indexdata.com/</url>
-    </repository>
-  </repositories>
 
 </project>
