@@ -10,6 +10,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -24,15 +25,17 @@ public class DockerModuleHandle implements ModuleHandle {
   private final int hostPort;
   private final Ports ports;
   private final String image;
+  private final String[] cmd;
   private final String dockerUrl;
   private String containerId;
 
-  public DockerModuleHandle(Vertx vertx, String image,
+  public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
           Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = image;
+    this.cmd = cmd;
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -199,6 +202,8 @@ public class DockerModuleHandle implements ModuleHandle {
             + "    \"PublishAllPorts\":false\n"
             + "  }\n"
             + "}\n";
+    // JsonObject x = new JsonObject(doc);
+
     HttpClient client = vertx.createHttpClient();
     logger.info("createContainer\n" + doc);
     final String url = dockerUrl + "/containers/create";
