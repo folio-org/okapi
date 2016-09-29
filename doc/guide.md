@@ -1365,7 +1365,8 @@ Defaults to `localhost`
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
 as X-Okapi-Url header, and the modules can use this to make further requests
-to Okapi. Defaults to `http://localhost:9130/` or what ever port specified.
+to Okapi. Defaults to `http://localhost:9130` or what ever port specified. There
+should be no trailing slash, but if there happens to be one, Okapi will remove it.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
 `http://localhost:4243`.
 

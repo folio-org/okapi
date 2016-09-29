@@ -45,6 +45,7 @@ public class OkapiClient {
     init(ctx.vertx());
     this.ctx = ctx;
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
         String hv = ctx.request().getHeader(hdr);
@@ -62,7 +63,7 @@ public class OkapiClient {
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String,String> headers) {
     init(vertx);
     this.ctx = null;
-    this.okapiUrl = okapiUrl;
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
   }

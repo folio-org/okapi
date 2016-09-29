@@ -27,7 +27,8 @@ public class XOkapiHeaders {
    * making requests to other modules. Can be set on Okapi's command line
    * when starting up. Note that it may point to some kind of load balancer
    * or other network trickery, but in the end there will be an Okapi instance
-   * listening on it.
+   * listening on it. Does not including a trailing slash. Defaults to
+   * http://localhost:9130
    */
   public static final String URL = "X-Okapi-Url";
 

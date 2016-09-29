@@ -94,7 +94,8 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("clusterManager not in use");
     }
     final String host = conf("host", "localhost", config);
-    final String okapiUrl = conf("okapiurl", "http://localhost:" + port + "/", config);
+    String okapiUrl = conf("okapiurl", "http://localhost:" + port , config);
+    okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
     String storage = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
