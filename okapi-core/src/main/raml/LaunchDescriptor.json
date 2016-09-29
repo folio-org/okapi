@@ -7,6 +7,8 @@
     "exec": {"type": ["string", "null"]},
     "cmdlineStart": {"type": ["string", "null"]},
     "cmdlineStop": {"type": ["string", "null"]},
-    "dockerImage": {"type": ["string", "null"]}
+    "dockerImage": {"type": ["string", "null"]},
+    "dockerCMD": {"type": ["array", "null"],
+      "items": {"type": "string"}}
   }
 }

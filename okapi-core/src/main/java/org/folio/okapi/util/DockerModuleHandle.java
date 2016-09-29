@@ -10,6 +10,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -24,15 +26,17 @@ public class DockerModuleHandle implements ModuleHandle {
   private final int hostPort;
   private final Ports ports;
   private final String image;
+  private final String[] cmd;
   private final String dockerUrl;
   private String containerId;
 
-  public DockerModuleHandle(Vertx vertx, String image,
+  public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
           Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = image;
+    this.cmd = cmd;
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -184,21 +188,30 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
-    String doc = "{\n"
-            + "  \"AttachStdin\":false,\n"
-            + "  \"AttachStdout\":true,\n"
-            + "  \"AttachStderr\":true,\n"
-            + "  \"Image\":\"" + image + "\",\n"
-            + "  \"StopSignal\":\"SIGTERM\",\n"
-            + "  \"HostConfig\":{\n"
-            + "    \"PortBindings\":{\""
-            + Integer.toString(exposedPort)
-            + "/tcp\":[{\"HostPort\":\""
-            + Integer.toString(hostPort)
-            + "\"}]},\n"
-            + "    \"PublishAllPorts\":false\n"
-            + "  }\n"
-            + "}\n";
+    JsonObject j = new JsonObject();
+    j.put("AttachStdin", Boolean.FALSE);
+    j.put("AttachStdout", Boolean.TRUE);
+    j.put("AttachStderr", Boolean.TRUE);
+    j.put("StopSignal", "SIGTERM");
+    j.put("Image", image);
+
+    JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
+    JsonArray ep = new JsonArray().add(hp);
+    JsonObject pb = new JsonObject();
+    pb.put(Integer.toString(exposedPort) + "/tcp", ep);
+    JsonObject hc = new JsonObject();
+    hc.put("PortBindings", pb);
+    hc.put("PublishAllPorts", Boolean.FALSE);
+    j.put("HostConfig", hc);
+
+    if (this.cmd != null && this.cmd.length > 0) {
+      JsonArray a = new JsonArray();
+      for (int i = 0; i < cmd.length; i++) {
+        a.add(cmd[i]);
+      }
+      j.put("Cmd", a);
+    }
+    String doc = j.encodePrettily();
     HttpClient client = vertx.createHttpClient();
     logger.info("createContainer\n" + doc);
     final String url = dockerUrl + "/containers/create";
