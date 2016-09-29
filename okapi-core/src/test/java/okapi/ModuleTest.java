@@ -1335,7 +1335,8 @@ public class ModuleTest {
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
             + "  \"launchDescriptor\" : {" + LS
-            + "    \"dockerImage\" : \"okapi-test-module\"" + LS
+            + "    \"dockerImage\" : \"okapi-test-module\"," + LS
+            + "    \"dockerCMD\" : [\"-Dfoo=bar\"]" + LS
             + "  }" + LS
             + "}";
 
