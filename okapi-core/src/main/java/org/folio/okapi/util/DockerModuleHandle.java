@@ -11,6 +11,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -187,23 +188,30 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
-    String doc = "{\n"
-            + "  \"AttachStdin\":false,\n"
-            + "  \"AttachStdout\":true,\n"
-            + "  \"AttachStderr\":true,\n"
-            + "  \"Image\":\"" + image + "\",\n"
-            + "  \"StopSignal\":\"SIGTERM\",\n"
-            + "  \"HostConfig\":{\n"
-            + "    \"PortBindings\":{\""
-            + Integer.toString(exposedPort)
-            + "/tcp\":[{\"HostPort\":\""
-            + Integer.toString(hostPort)
-            + "\"}]},\n"
-            + "    \"PublishAllPorts\":false\n"
-            + "  }\n"
-            + "}\n";
-    // JsonObject x = new JsonObject(doc);
+    JsonObject j = new JsonObject();
+    j.put("AttachStdin", Boolean.FALSE);
+    j.put("AttachStdout", Boolean.TRUE);
+    j.put("AttachStderr", Boolean.TRUE);
+    j.put("StopSignal", "SIGTERM");
+    j.put("Image", image);
 
+    JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
+    JsonArray ep = new JsonArray().add(hp);
+    JsonObject pb = new JsonObject();
+    pb.put(Integer.toString(exposedPort) + "/tcp", ep);
+    JsonObject hc = new JsonObject();
+    hc.put("PortBindings", pb);
+    hc.put("PublishAllPorts", Boolean.FALSE);
+    j.put("HostConfig", hc);
+
+    if (this.cmd != null && this.cmd.length > 0) {
+      JsonArray a = new JsonArray();
+      for (int i = 0; i < cmd.length; i++) {
+        a.add(cmd[i]);
+      }
+      j.put("Cmd", a);
+    }
+    String doc = j.encodePrettily();
     HttpClient client = vertx.createHttpClient();
     logger.info("createContainer\n" + doc);
     final String url = dockerUrl + "/containers/create";
