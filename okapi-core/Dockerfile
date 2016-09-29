@@ -21,3 +21,4 @@ COPY target/$VERTICLE_FILE $VERTICLE_HOME/module.jar
 # Launch the verticle
 WORKDIR $VERTICLE_HOME
 ENTRYPOINT ["java", "-jar", "module.jar"]
+CMD ["dev"]
