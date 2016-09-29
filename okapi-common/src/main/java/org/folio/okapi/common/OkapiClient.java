@@ -97,12 +97,15 @@ public class OkapiClient {
         String reply = buf.toString();
         if (postres.statusCode() >= 200 && postres.statusCode() <= 299 ) {
           fut.handle(new Success<>(reply));
-        } else if (postres.statusCode() == 404) {
-          fut.handle(new Failure<>(NOT_FOUND, reply));
-        } else if (postres.statusCode() == 400) {
-          fut.handle(new Failure<>(USER, reply));
         } else {
-          fut.handle(new Failure<>(INTERNAL, reply));
+          reply = postres.statusMessage() + reply;
+          if (postres.statusCode() == 404) {
+            fut.handle(new Failure<>(NOT_FOUND, "404 " + reply + ": " + url ));
+          } else if (postres.statusCode() == 400) {
+            fut.handle(new Failure<>(USER, reply));
+          } else {
+            fut.handle(new Failure<>(INTERNAL, reply));
+          }
         }
       });
     });
