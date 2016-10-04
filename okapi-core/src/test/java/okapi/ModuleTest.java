@@ -580,7 +580,7 @@ public class ModuleTest {
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
-            .header("X-Okapi-Url", "http://localhost:9130")  // no trailing space!
+            .header("X-Okapi-Url", "http://localhost:9130")  // no trailing slash!
             .header("X-Url-Params", "query=foo&limit=10")
             .body(containsString("It works"));
     // Check only the required permission bit, since there is only one.
