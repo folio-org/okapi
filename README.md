@@ -37,3 +37,4 @@ Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
 * [Contributing guidelines](CONTRIBUTING.md)
+* Other documentation at [dev.folio.org](http://dev.folio.org/)
