@@ -1293,7 +1293,7 @@ as a real JWT. The payload is indeed base-64 encoded, and if you decode it, you
 see that it will contain a Json structure with the user id and the tenant id,
 and nothing much else. A real-life auth module would of course put more stuff
 in the JWT, and sign it with some strong crypto. But that should make no
-difference Okapi's users, all they need to know is how do we get a token,
+difference to Okapi's users -- all that they need to know is how do we get a token,
 and how to pass it on in every request. Like this:
 
 ```

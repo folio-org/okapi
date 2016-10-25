@@ -29,7 +29,7 @@ if ( ! $path ) {
 $okapiurl =~ s"/+$/""; # remove trailing slash, if any
 $okapiurl .= $path;
 
-print "Posting stuff to '$okapiurl' usint tenant '$tenant' \n";
+print "Posting stuff to '$okapiurl' using tenant '$tenant' \n";
 print print Dumper(\@ARGV), "\n";
 
 my $ua = new LWP::UserAgent;

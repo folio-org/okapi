@@ -34,7 +34,7 @@ public class Auth {
   /**
    * Calculate a token from tenant and username. Fakes a JWT token almost
    * but not quite completely unlike the one a real auth module would create.
-   * The important point is that it is a JWT, and that it has a tenant it in,
+   * The important point is that it is a JWT, and that it has a tenant in it,
    * so Okapi can recover it in case it does not see a X-Okapi-Tenant header,
    * as happens in some unit tests.
    *
