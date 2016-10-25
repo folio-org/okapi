@@ -26,7 +26,7 @@ GetOptions('okapiurl|u=s' => \$okapiurl,
 if ( ! $path ) {
   die ("--path (or -p) must be specified. For example /_/tenants\n" );
 }
-$okapiurl =~ s"/+$/""; # remove trailing slash, if any
+$okapiurl =~ s"/+$""; # remove trailing slash, if any
 $okapiurl .= $path;
 
 print "Posting stuff to '$okapiurl' using tenant '$tenant' \n";
