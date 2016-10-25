@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
@@ -38,6 +40,7 @@ import org.folio.okapi.common.Failure;
 import static org.folio.okapi.common.HttpResponse.*; 
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.OkapiToken;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -126,6 +129,55 @@ public class ProxyService {
             -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
     r.sort(cmp);
     return r;
+  }
+
+  /**
+   * Extract the tenant. Fix header to standard.
+   * Normalizes the Authorization header to X-Okapi-Token, checks that both are
+   * not present. Checks if we have X-Okapi-Tenant header, and if not, extracts
+   * from the X-Okapi-Token. The tenant will be needed to find the pipeline to
+   * route to, and in most cases the first thing that happens is that the auth
+   * module will verify the tenant against what it has in the token, so even if
+   * a client puts up a bad tenant, we should be safe.
+   * @param ctx
+   * @return null in case of errors, with the response already set in ctx. If
+   * all went well, returns the tenantId for further processing.
+   */
+  private String tenantHeader(RoutingContext ctx) {
+    String auth = ctx.request().getHeader(XOkapiHeaders.AUTHORIZATION);
+    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+
+    if ( auth != null ) {
+      Pattern pattern = Pattern.compile("Bearer\\s+(.+)"); // Grab anything after 'Bearer' and whitespace
+      Matcher matcher = pattern.matcher(auth);
+      if(matcher.find() && matcher.groupCount() > 0) {
+        auth = matcher.group(1);
+      }
+    }
+    if ( auth != null && tok != null && auth != tok ) {
+      responseText(ctx, 400).end("Different tokens in Authentication and X-Okapi-Token. Use only one of them");
+      return null;
+    }
+    if ( tok == null && auth != null) {
+      ctx.request().headers().add(XOkapiHeaders.TOKEN, auth);
+      ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
+      logger.debug("Okapi: Moved Authorization header to X-Okapi-Token");
+    }
+
+    String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    if ( tenantId == null ) {
+      tenantId = new OkapiToken(ctx).getTenant();
+      if ( tenantId != null && !tenantId.isEmpty()) {
+        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
+        logger.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
+      }
+    }
+
+    if ( tenantId == null ) {
+      responseText(ctx, 403).end("Missing Tenant");
+      return null;
+    }
+    return tenantId;
   }
 
   // Get the auth bits from the module list into
@@ -256,10 +308,9 @@ public class ProxyService {
   }
 
   public void proxy(RoutingContext ctx) {
-    String tenant_id = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    String tenant_id = tenantHeader(ctx);
     if (tenant_id == null) {
-      responseText(ctx, 403).end("Missing Tenant");
-      return;
+      return; // Error code already set in ctx
     }
     ReadStream<Buffer> content = ctx.request();
     Tenant tenant = tenantManager.get(tenant_id);
@@ -470,6 +521,7 @@ public class ProxyService {
     if (!it.hasNext()) {
       content.resume();
       addTraceHeaders(ctx, pc);
+      logger.debug("proxyR: Not found");
       responseText(ctx, 404).end();
     } else {
       ModuleInstance mi = it.next();

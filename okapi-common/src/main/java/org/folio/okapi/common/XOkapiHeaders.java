@@ -77,5 +77,13 @@ public class XOkapiHeaders {
    */
   public static final String STOP = "X-Okapi-Stop";
 
+  /** Authorization. Used for carrying the same token as in X-Okapi-Token,
+   * using the "Bearer" schema (to distinguish it from HTTP Basic auth),
+   * for example
+   *   Authorization: Bearer xxyyzzxxyyzz.mnnmmmnnnmnn.ppqqpppqpqppq
+   * Okapi will accept this instead of the X-Okapi-Token, but will always
+   * pass the X-Okapi-Token to the modules it invokes.
+   */
+  public static final String AUTHORIZATION = "Authorization";
 
 }

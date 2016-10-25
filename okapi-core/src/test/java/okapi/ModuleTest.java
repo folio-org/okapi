@@ -554,7 +554,7 @@ public class ModuleTest {
     final String docWrongLogin = "{" + LS
             + "  \"tenant\" : \"t1\"," + LS
             + "  \"username\" : \"peter\"," + LS
-            + "  \"password\" : \"peter37\"" + LS
+            + "  \"password\" : \"peter-wrong-password\"" + LS
             + "}";
 
     given().header("Content-Type", "application/json").body(docWrongLogin)
@@ -562,7 +562,7 @@ public class ModuleTest {
             .then().statusCode(401);
 
     final String docLogin = "{" + LS
-            + "  \"tenant\" : \"t1\"," + LS
+            + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
@@ -629,6 +629,25 @@ public class ModuleTest {
             .header("X-Okapi-Token", okapiToken)
             .get("/testb?p=parameters&q=query")
             .then().statusCode(200);
+
+    // Check that we accept Authorization: Bearer <token> instead of X-Okapi-Token,
+    // and that we can extract the tenant from it
+    given().header("X-all-headers", "H") // ask sample to report all headers
+            .header("Authorization", "Bearer " + okapiToken)
+            .get("/testb")
+            .then().log().ifError()
+            .header("X-Okapi-Token", okapiToken)
+            .header("X-Okapi-Tenant", okapiTenant)
+            .statusCode(200);
+
+    // Check that we fail on conflicting X-Okapi-Token and Auth tokens
+    given().header("X-all-headers", "H") // ask sample to report all headers
+            .header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("Authorization", "Bearer " + okapiToken + "WRONG")
+            .get("/testb")
+            .then().log().ifError()
+            .statusCode(400);
 
     // 2nd sample module.. We only create it in discovery and give it same URL as
     // for sample-module (first one)

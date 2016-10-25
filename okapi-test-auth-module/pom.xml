@@ -51,6 +51,7 @@
       <version>${vertx-version}</version>
       <type>jar</type>
     </dependency>
+
   </dependencies>
 
   <build>

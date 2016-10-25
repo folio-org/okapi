@@ -769,9 +769,7 @@ The dummy module supports two functions: `/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
-headers.  The token, for this dummy module, is simply the username and
-tenant-id concatenated with a checksum. In a real authentication
-module it will be something opaque and difficult to fake.
+headers.
 
 We will see examples of this when we get to play with Okapi itself. If
 you want, you can verify the module directly as with the okapi-test-module.
@@ -1277,7 +1275,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8
+X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
 X-Okapi-Trace: POST test-auth:200 136641us
 Transfer-Encoding: chunked
 
@@ -1285,17 +1283,23 @@ Transfer-Encoding: chunked
 ```
 
 The response just echoes its parameters, but notice that we get back a header
-`X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8`. We are not
-supposed to worry about what that header contains, but we can see that the
-tenant ID and the user ID are there, and that there is some kind of crypto
-stuff to ensure things are right. A real-life auth module is free to put other
-stuff in the token too. All Okapi's users need to know is how do we get a token,
+`X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig`.
+We are not supposed to worry about what that header contains, but we can see its
+format is almost as you would expect from a JWT: Three parts separated by dots,
+first a header, then a base-64 encoded payload, and finally a signature. The
+header and signature would normally be base-64 encoded as well, but the simple
+test-auth module skips that part, to make a distinct that can not be mistaken
+as a real JWT. The payload is indeed base-64 encoded, and if you decode it, you
+see that it will contain a Json structure with the user id and the tenant id,
+and nothing much else. A real-life auth module would of course put more stuff
+in the JWT, and sign it with some strong crypto. But that should make no
+difference Okapi's users, all they need to know is how do we get a token,
 and how to pass it on in every request. Like this:
 
 ```
 curl -D - -w '\n' \
    -H "X-Okapi-Tenant: testlib" \
-   -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
+   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
    http://localhost:9130/testb
 
 HTTP/1.1 200 OK
@@ -1306,8 +1310,6 @@ Transfer-Encoding: chunked
 It works
 ```
 
-You can try to hack the system, change the user ID or the tenant ID, or mess
-with the crypto signature, and see that those requests fail.
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
