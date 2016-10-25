@@ -1,11 +1,10 @@
 package org.folio.okapi.common;
 
-import com.sun.xml.internal.messaging.saaj.util.Base64;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import static org.folio.okapi.common.HttpResponse.responseText;
+import java.util.Base64;
 
 /**
  * The Okapi security token.
@@ -15,6 +14,7 @@ import static org.folio.okapi.common.HttpResponse.responseText;
  * tenant-id, or some other piece of information.
  */
 public class OkapiToken {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String token;
 
@@ -48,9 +48,12 @@ public class OkapiToken {
     return null;
   }
 
+
   private JsonObject getPayload() {
     String encodedJson = this.token.split("\\.")[1];
-    String decodedJson = Base64.base64Decode(encodedJson);
+    if ( encodedJson == null || encodedJson.isEmpty())
+      return null;
+    String decodedJson = new String( Base64.getDecoder().decode(encodedJson) );
     return new JsonObject(decodedJson);
   }
 

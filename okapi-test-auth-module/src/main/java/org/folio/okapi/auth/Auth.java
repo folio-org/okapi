@@ -1,6 +1,5 @@
 package org.folio.okapi.auth;
 
-import com.sun.xml.internal.messaging.saaj.util.Base64;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -8,7 +7,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.security.Key;
+import java.util.Base64;
 import static org.folio.okapi.common.HttpResponse.*;
 import java.util.HashMap;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -52,7 +51,7 @@ public class Auth {
     String encodedpl = payload.encode();
     logger.debug("test-auth: payload: " + encodedpl );
     byte[] bytes = encodedpl.getBytes();
-    byte[] pl64bytes = Base64.encode(bytes);
+    byte[] pl64bytes = Base64.getEncoder().encode(bytes);
     String pl64 = new String(pl64bytes);
     String token = "dummyJwt." + pl64 + ".sig";
     logger.debug("test-auth: token: " + token);
@@ -156,7 +155,7 @@ public class Auth {
     String payload = splitTok[1];
 
     String encodedJson = payload;
-    String decodedJson = Base64.base64Decode(encodedJson);
+    String decodedJson = new String(Base64.getDecoder().decode(payload));
     logger.debug("test-auth: check payload: " + decodedJson);
     JsonObject tokenClaims = new JsonObject(decodedJson);
 
