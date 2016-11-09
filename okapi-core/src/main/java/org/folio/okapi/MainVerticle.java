@@ -17,7 +17,9 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
+import java.io.InputStream;
 import java.lang.management.ManagementFactory;
+import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
@@ -78,6 +80,18 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
+    InputStream in = getClass().getClassLoader().getResourceAsStream("git.properties");
+    if (in != null) {
+      try {
+        Properties prop = new Properties();
+        prop.load(in);
+        in.close();
+        logger.info("git: " + prop.getProperty("git.remote.origin.url")
+                + " " + prop.getProperty("git.commit.id"));
+      } catch (Exception e) {
+        logger.warn(e.getMessage());
+      }
+    }
     boolean enableProxy = false;
     boolean enableDeployment = false;
 
