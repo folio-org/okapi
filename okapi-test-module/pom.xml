@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>okapi-test-module</artifactId>
+  <name>okapi-test-module</name>
 
   <dependencies>
     <dependency>
@@ -106,5 +107,4 @@
       </plugin>
     </plugins>
   </build>
-    <name>okapi-test-module</name>
 </project>

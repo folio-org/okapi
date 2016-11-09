@@ -7,6 +7,7 @@
     <version>0.4-SNAPSHOT</version>
   </parent>
   <artifactId>okapi-test-auth-module</artifactId>
+  <name>okapi-test-auth-module</name>
   <packaging>jar</packaging>
   <dependencies>
     <dependency>
@@ -84,5 +85,4 @@
       </plugin>
     </plugins>
   </build>
-  <name>okapi-test-auth-module</name>
 </project>
