@@ -51,6 +51,11 @@ public class ProcessModuleHandle implements ModuleHandle {
         logger.info("Connected to service at port " + port + " count " + count);
         NetSocket socket = res.result();
         socket.close();
+        try {
+          p.getErrorStream().close();
+        } catch (Exception e) {
+          logger.error("Closing streams failed: " + e.getMessage());
+        }
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         InputStream inputStream = p.getErrorStream();
@@ -113,7 +118,8 @@ public class ProcessModuleHandle implements ModuleHandle {
 
           }
           ProcessBuilder pb = new ProcessBuilder(l);
-          pb.inheritIO();
+          pb.redirectOutput(Redirect.INHERIT);
+          pb.redirectInput(Redirect.INHERIT);
           p = pb.start();
         } catch (IOException ex) {
           logger.warn("Deployment failed: " + ex.getMessage());
