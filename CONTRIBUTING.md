@@ -1,4 +1,4 @@
-# Contribution Guidelines
+# Contribution guidelines
 
 Guidelines for Contributing Code:
-[http://dev.folio.org/community/contrib-code](http://dev.folio.org/community/contrib-code)
+[dev.folio.org/community/contrib-code](http://dev.folio.org/community/contrib-code)
