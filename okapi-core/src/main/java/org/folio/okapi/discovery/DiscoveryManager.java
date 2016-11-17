@@ -147,11 +147,9 @@ public class DiscoveryManager implements NodeListener {
         } else {
           OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, null);
           String reqdata = Json.encode(dd);
-          logger.warn("Dm: about to POST " + reqdata);
-          ok.post("/_/deployment/modules", reqdata, okres-> {
-            if ( okres.failed()) {
-              logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
-              fut.handle(new Failure<>(okres.getType(),okres.cause().getMessage()));
+          ok.post("/_/deployment/modules", reqdata, okres -> {
+            if (okres.failed()) {
+              fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
             } else {
                 DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
                         DeploymentDescriptor.class);
@@ -180,8 +178,7 @@ public class DiscoveryManager implements NodeListener {
               fut.handle(new Failure<>(res1.getType(), res1.cause()));
             } else {
               OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
-              logger.warn("Dm: about to DELETE " + instId);
-              ok.delete("/_/deployment/modules/" + instId, okres-> {
+              ok.delete("/_/deployment/modules/" + instId, okres -> {
                 if ( okres.failed()) {
                   logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
                   fut.handle(new Failure<>(okres.getType(),okres.cause().getMessage()));
