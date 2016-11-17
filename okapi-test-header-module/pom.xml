@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>okapi-test-header-module</artifactId>
+  <name>okapi-test-header-module</name>
 
   <dependencies>
     <dependency>
@@ -97,5 +98,4 @@
       </plugin>
     </plugins>
   </build>
-    <name>okapi-test-header-module</name>
 </project>
