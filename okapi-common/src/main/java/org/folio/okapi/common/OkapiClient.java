@@ -94,12 +94,10 @@ public class OkapiClient {
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
-        logger.debug("OkapiClient endhandler: " + postres.statusCode());
         String reply = buf.toString();
         if (postres.statusCode() >= 200 && postres.statusCode() <= 299 ) {
           fut.handle(new Success<>(reply));
         } else {
-          reply = postres.statusMessage() + reply;
           if (postres.statusCode() == 404) {
             fut.handle(new Failure<>(NOT_FOUND, "404 " + reply + ": " + url ));
           } else if (postres.statusCode() == 400) {
