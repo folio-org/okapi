@@ -33,7 +33,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>3.3.0</vertx-version>
+    <vertx-version>3.3.2</vertx-version>
   </properties>
 
   <build>
