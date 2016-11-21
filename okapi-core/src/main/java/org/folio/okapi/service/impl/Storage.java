@@ -26,9 +26,9 @@ public class Storage {
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
-        moduleStore = new ModuleStoreMongo(mongo);
-        timeStampStore = new TimeStampMongo(mongo);
-        tenantStore = new TenantStoreMongo(mongo);
+        moduleStore = new ModuleStoreMongo(mongo.getClient());
+        timeStampStore = new TimeStampMongo(mongo.getClient());
+        tenantStore = new TenantStoreMongo(mongo.getClient());
         break;
       case "inmemory":
         moduleStore = new ModuleStoreMemory(vertx);
@@ -42,20 +42,14 @@ public class Storage {
   }
 
   public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
-    if (mongo != null && mongo.isTransient()) {
-      mongo.dropDatabase(res -> {
-        if (res.succeeded()) {
-          fut.handle(new Success<>());
-        } else {
-          fut.handle(new Failure(INTERNAL, res.cause()));
-        }
-      });
+    if (mongo != null) {
+      mongo.resetDatabases(fut);
     } else {
       fut.handle(new Success<>());
     }
   }
 
-  public ModuleStore geModuleStoret() {
+  public ModuleStore getModuleStore() {
     return moduleStore;
   }
 

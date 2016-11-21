@@ -161,7 +161,7 @@ public class MainVerticle extends AbstractVerticle {
         discoveryManager.setModuleManager(moduleManager);
       }
       storage = new Storage(vertx, storageType, config);
-      ModuleStore moduleStore = storage.geModuleStoret();
+      ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       TenantStore tenantStore = storage.getTenantStore();
       logger.info("Proxy using " + storageType + " storage");

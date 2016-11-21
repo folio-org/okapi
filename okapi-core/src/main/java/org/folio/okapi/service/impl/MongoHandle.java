@@ -60,10 +60,19 @@ public class MongoHandle {
     return cli;
   }
 
-  public boolean isTransient() {
-    return this.transientDb;
+  public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
+    if (this.transientDb) {
+      dropDatabase(res -> {
+        if (res.succeeded()) {
+          fut.handle(new Success<>());
+        } else {
+          fut.handle(new Failure(INTERNAL, res.cause()));
+        }
+      });
+    } else {
+      fut.handle(new Success<>());
+    }
   }
-
   /**
    * Drop all (relevant?) collections. The idea is that we can start our
    * integration tests on a clean slate

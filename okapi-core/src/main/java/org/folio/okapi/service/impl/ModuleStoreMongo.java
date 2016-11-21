@@ -16,7 +16,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
 /**
- * Stores ModuleDescriptors in a Mongo datbase.
+ * Stores ModuleDescriptors in a Mongo database.
  */
 public class ModuleStoreMongo implements ModuleStore {
 
@@ -25,8 +25,8 @@ public class ModuleStoreMongo implements ModuleStore {
   MongoClient cli;
   final private String collection = "okapi.modules";
 
-  public ModuleStoreMongo(MongoHandle mongo) {
-    this.cli = mongo.getClient();
+  public ModuleStoreMongo(MongoClient cli) {
+    this.cli = cli;
   }
 
   @Override

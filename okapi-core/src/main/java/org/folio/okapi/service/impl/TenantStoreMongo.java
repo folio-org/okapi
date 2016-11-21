@@ -26,8 +26,8 @@ public class TenantStoreMongo implements TenantStore {
   final private String collection = "okapi.tenants";
   private long lastTimestamp = 0;
 
-  public TenantStoreMongo(MongoHandle mongo) {
-    this.cli = mongo.getClient();
+  public TenantStoreMongo(MongoClient cli) {
+    this.cli = cli;
   }
 
   @Override

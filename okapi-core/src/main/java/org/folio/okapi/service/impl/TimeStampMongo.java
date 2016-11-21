@@ -18,8 +18,8 @@ public class TimeStampMongo implements TimeStampStore {
   MongoClient cli;
   final private String collection = "okapi.timestamps";
 
-  public TimeStampMongo(MongoHandle mongo) {
-    this.cli = mongo.getClient();
+  public TimeStampMongo(MongoClient cli) {
+    this.cli = cli;
   }
 
   @Override
