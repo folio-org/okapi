@@ -98,7 +98,7 @@ public class TenantWebService {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
-        responseError(ctx, 400, "No Id in tenant");
+        responseError(ctx, 400, "No id in tenant");
       } else if (!td.getId().matches("^[a-z0-9._-]+$")) {
         responseError(ctx, 400, "Invalid id");
       } else {
@@ -135,12 +135,16 @@ public class TenantWebService {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
+      final String id = ctx.request().getParam("id");
+      if (!id.equals(td.getId())) {
+        responseError(ctx, 400, "Tenant.id=" + td.getId() + " id=" + id);
+        return;
+      }
       Tenant t = new Tenant(td);
       final long ts = getTimestamp();
       t.setTimestamp(ts);
-      final String id = td.getId();
-      if (tenants.updateDescriptor(id, td, ts)) {
-        tenantStore.updateDescriptor(id, td, res -> {
+      if (tenants.updateDescriptor(td, ts)) {
+        tenantStore.updateDescriptor(td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
             responseJson(ctx, 200).end(s);

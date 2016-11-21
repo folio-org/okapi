@@ -271,6 +271,9 @@ schemas:
               schema: ModuleDescriptor
     put:
       description: update descriptor of a particular module
+      body:
+        application/json:
+          schema: ModuleDescriptor
       responses:
         200:
           body:

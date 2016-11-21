@@ -7,7 +7,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Iterator;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -56,7 +55,7 @@ public class ModuleWebService {
       if (this.timestamp < receivedStamp) {
         reloadModules(rres -> {
           if (rres.succeeded()) {
-            logger.info("Reload of modules succeeded");
+            logger.debug("Reload of modules succeeded");
           } else {
             logger.fatal("Reload modules FAILED - No idea what to do about that!");
             // TODO - What can we do if reload fails here ?
@@ -131,7 +130,7 @@ public class ModuleWebService {
                   if (sres.succeeded()) {
                     final String s = Json.encodePrettily(md);
                     responseJson(ctx, 201)
-                            .putHeader("Location", ctx.request().uri() + "/" + ires.result())
+                            .putHeader("Location", ctx.request().uri() + "/" + md.getId())
                             .end(s);
                   } else { // TODO - What to if this fails ??
                     responseError(ctx, sres.getType(), sres.cause());
@@ -166,6 +165,11 @@ public class ModuleWebService {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
+      final String id = ctx.request().getParam("id");
+      if (!id.equals(md.getId())) {
+        responseError(ctx, 400, "Module.id=" + md.getId() + " id=" + id);
+        return;
+      }
       String validerr = validate(md);
       if (!validerr.isEmpty()) {
         responseError(ctx, 400, validerr);
@@ -275,40 +279,19 @@ public class ModuleWebService {
         logger.error("ReloadModules: Failed to delete all");
         fut.handle(res);
       } else {
-        logger.debug("ReloadModules: Should restart all modules");
         loadModules(fut);
       }
     });
   }
 
   public void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
-    //cli.find(collection, jq, res -> {
     moduleStore.getAll(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        Iterator<ModuleDescriptor> it = res.result().iterator();
-        loadR(it, fut);
+        moduleManager.createList(res.result(), fut);
       }
     });
   }
 
-  private void loadR(Iterator<ModuleDescriptor> it,
-          Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      logger.debug("All modules deployed");
-      fut.handle(new Success<>());
-    } else {
-      ModuleDescriptor md = it.next();
-      logger.debug("About to start module " + md.getId());
-      moduleManager.create(md, res -> {
-        if (res.failed()) {
-          logger.debug("Failed to start module " + md.getId() + ": " + res.cause());
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          loadR(it, fut);
-        }
-      });
-    }
-  }
 } // class

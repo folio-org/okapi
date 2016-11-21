@@ -22,11 +22,7 @@ public interface TenantStore {
 
   void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
 
-  void update(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
-
-  void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
-
-  void listIds(Handler<ExtendedAsyncResult<List<String>>> fut);
+  void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
 
   void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
   // TODO - Add list parameters, like which fields, start, and maxrecs
