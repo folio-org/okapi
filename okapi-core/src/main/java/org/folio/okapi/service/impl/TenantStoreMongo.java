@@ -24,7 +24,6 @@ public class TenantStoreMongo implements TenantStore {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   MongoClient cli;
   final private String collection = "okapi.tenants";
-  private long lastTimestamp = 0;
 
   public TenantStoreMongo(MongoClient cli) {
     this.cli = cli;
