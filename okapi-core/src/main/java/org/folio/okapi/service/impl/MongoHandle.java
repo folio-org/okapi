@@ -66,7 +66,7 @@ public class MongoHandle {
         if (res.succeeded()) {
           fut.handle(new Success<>());
         } else {
-          fut.handle(new Failure(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
         }
       });
     } else {
