@@ -16,6 +16,7 @@ import org.folio.okapi.service.TimeStampStore;
 public class Storage {
 
   private MongoHandle mongo;
+  private PostgresHandle postgres;
   private ModuleStore moduleStore;
   private TimeStampStore timeStampStore;
   private TenantStore tenantStore;
@@ -34,6 +35,12 @@ public class Storage {
         moduleStore = new ModuleStoreMemory(vertx);
         timeStampStore = new TimeStampMemory(vertx);
         tenantStore = new TenantStoreMemory();
+        break;
+      case "postgres":
+        postgres = new PostgresHandle(vertx, config);
+        moduleStore = new ModuleStoreMemory(vertx);
+        timeStampStore = new TimeStampMemory(vertx);
+        tenantStore = new TenantStorePostgres(postgres);
         break;
       default:
         logger.fatal("Unknown storage type '" + type + "'");
