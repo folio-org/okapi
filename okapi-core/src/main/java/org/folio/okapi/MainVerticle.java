@@ -200,6 +200,7 @@ public class MainVerticle extends AbstractVerticle {
         if (res.succeeded()) {
           startTenants(fut);
         } else {
+          logger.fatal("load modules: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
       });
@@ -214,6 +215,7 @@ public class MainVerticle extends AbstractVerticle {
         if (res.succeeded()) {
           startDiscovery(fut);
         } else {
+          logger.fatal("load tenants failed: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
       });
