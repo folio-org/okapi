@@ -51,6 +51,9 @@ public class Storage {
   public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
     if (mongo != null) {
       mongo.resetDatabases(fut);
+    } else if ( postgres != null ) {
+      TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
+      tnp.resetDatabase(fut);
     } else {
       fut.handle(new Success<>());
     }
