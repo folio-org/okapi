@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 #
-# Simple script to bulk-load test data into Folio
+# Simple script to bulk-load test data into FOLIO
 #
 #
 # Options
