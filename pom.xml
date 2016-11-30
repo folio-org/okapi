@@ -20,10 +20,6 @@
     <module>okapi-core</module>
   </modules>
 
-  <prerequisites>
-    <maven>3.3.1</maven>
-  </prerequisites>
-
   <licenses>
     <license>
       <name>Apache License 2.0</name>
