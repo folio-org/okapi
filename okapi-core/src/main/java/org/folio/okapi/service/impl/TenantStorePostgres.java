@@ -7,7 +7,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import java.util.ArrayList;
@@ -37,10 +36,11 @@ public class TenantStorePostgres implements TenantStore {
 
   /**
    * Drop and create the table(s) we may need.
-   * @param fut 
+   *
+   * @param fut
    */
   public void resetDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
-    if ( !pg.getDropDb()) {
+    if (!pg.getDropDb()) {
       logger.info("Dropping all tenants and resetting the tables");
       fut.handle(new Success<>());
       return;
@@ -48,25 +48,25 @@ public class TenantStorePostgres implements TenantStore {
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("TenantStorePg: resetDatabase: getConnection() failed: "
-          + gres.cause().getMessage());
+                + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         final SQLConnection conn = gres.result();
         String dropSql = "DROP TABLE IF EXISTS tenants";
         conn.query(dropSql, dres -> {
-          if ( dres.failed()) {
+          if (dres.failed()) {
             logger.fatal("TenantStorePg: resetDatabase: drop table failed: "
-              + gres.cause().getMessage());
+                    + gres.cause().getMessage());
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
           } else {
             String createSql = "create table tenants ( "
-              + " id VARCHAR(32) PRIMARY KEY, "
-              + "tenantjson JSONB NOT NULL )";
+                    + " id VARCHAR(32) PRIMARY KEY, "
+                    + "tenantjson JSONB NOT NULL )";
             logger.debug("TS: About to create tables: " + createSql);
             conn.query(createSql, cres -> {
-              if ( cres.failed()) {
+              if (cres.failed()) {
                 logger.fatal("TenantStorePg: resetDatabase: drop table failed: "
-                  + gres.cause().getMessage());
+                        + gres.cause().getMessage());
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
               } else {
                 fut.handle(new Success<>());
@@ -78,19 +78,18 @@ public class TenantStorePostgres implements TenantStore {
     });
   } // resetDatabase
 
-
   @Override
   public void insert(Tenant t,
           Handler<ExtendedAsyncResult<String>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("TenantStorePg: insert: getConnection() failed: "
-          + gres.cause().getMessage());
+                + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
         String sql = "INSERT INTO tenants ( id, tenantjson ) VALUES (?, ?::JSONB)";
-          // TODO Type of the id ??
+        // TODO Type of the id ??
         String id = t.getId();
         String s = Json.encode(t);
         JsonObject doc = new JsonObject(s);
@@ -98,21 +97,21 @@ public class TenantStorePostgres implements TenantStore {
         jsa.add(id);
         jsa.add(doc.encode());
         conn.queryWithParams(sql, jsa, ires -> {
-          if ( ires.failed()) {
+          if (ires.failed()) {
             logger.fatal("TenantStorePg: insert failed: "
-              + ires.cause().getMessage());
-              conn.close( cres->{
+                    + ires.cause().getMessage());
+            conn.close(cres -> {
               if (cres.failed()) {
                 logger.fatal("TenantStorePg: Insert: Closing handle failed as well: "
-                  + cres.cause().getMessage());
+                        + cres.cause().getMessage());
               } // Do not handle failure here, we report the select failure below
             });
-          fut.handle(new Failure<>(INTERNAL, ires.cause()));
+            fut.handle(new Failure<>(INTERNAL, ires.cause()));
           } else {
-            conn.close( cres->{
+            conn.close(cres -> {
               if (cres.failed()) {
                 logger.fatal("TenantStorePg: insert: Closing handle failed: "
-                  + cres.cause().getMessage());
+                        + cres.cause().getMessage());
                 fut.handle(new Failure<>(INTERNAL, cres.cause()));
               } else {
                 fut.handle(new Success<>(id));
@@ -148,19 +147,19 @@ public class TenantStorePostgres implements TenantStore {
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("TenantStorePg: listTenants: getConnection() failed: "
-          + gres.cause().getMessage());
+                + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
         String sql = "SELECT tenantjson FROM tenants";
         conn.query(sql, sres -> {
-          if ( sres.failed()) {
+          if (sres.failed()) {
             logger.fatal("TenantStorePg: listTenants: select failed: "
-              + sres.cause().getMessage());
-            conn.close( cres->{
+                    + sres.cause().getMessage());
+            conn.close(cres -> {
               if (cres.failed()) {
                 logger.fatal("TenantStorePg: ListTenants: Closing handle failed as well: "
-                  + cres.cause().getMessage());
+                        + cres.cause().getMessage());
               } // Do not handle failure here, we report the select failure below
             });
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
@@ -168,16 +167,16 @@ public class TenantStorePostgres implements TenantStore {
             ResultSet rs = sres.result();
             List<Tenant> tl = new ArrayList<>();
             List<JsonObject> tempList = rs.getRows();
-            for ( JsonObject r : tempList) {
-              logger.debug("listTenants: Looking at " + r );
+            for (JsonObject r : tempList) {
+              logger.debug("listTenants: Looking at " + r);
               String tj = r.getString("tenantjson");
               Tenant t = Json.decodeValue(tj, Tenant.class);
               tl.add(t);
             }
-            conn.close( cres->{
+            conn.close(cres -> {
               if (cres.failed()) {
                 logger.fatal("TenantStorePg: ListTenants: Closing handle failed: "
-                  + cres.cause().getMessage());
+                        + cres.cause().getMessage());
                 fut.handle(new Failure<>(INTERNAL, cres.cause()));
               } else {
                 fut.handle(new Success<>(tl));
