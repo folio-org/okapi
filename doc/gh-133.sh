@@ -51,11 +51,10 @@ cat > /tmp/sampleproxy.json <<END
   }
 END
 
-curl -w '\n' -X POST -D -   \
-    -H "Content-type: application/json"   \
-    -d @/tmp/sampleproxy.json \
-   $OKAPI/_/proxy/modules
-
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/sampleproxy.json \
+  $OKAPI/_/proxy/modules
 
 #############
 # Tenants
