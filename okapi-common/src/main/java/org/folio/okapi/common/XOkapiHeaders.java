@@ -10,7 +10,7 @@ public class XOkapiHeaders {
 
   /**
    * The common "X-Okapi" prefix for all the headers defined here.
-   * 
+   *
    */
   public static final String PREFIX = "X-Okapi";
 
@@ -54,7 +54,7 @@ public class XOkapiHeaders {
    */
   public static final String PERMISSIONS_DESIRED = "X-Okapi-Permissions-Desired";
 
-  
+
   /** X-Okapi-Permissions. The permissions a module expressed interest in, and
    * which were granted to this user. Can be used for modifying the way a module
    * behaves.

@@ -37,7 +37,7 @@ while (<>) {
   my $line = $_;
   chomp($line);
   print "About to post $line\n";
-  my $resp = $ua->post($okapiurl, 
+  my $resp = $ua->post($okapiurl,
     "X-Okapi-Tenant" => $tenant,
     "Content-Type" => "application/json",
     "Content" => $line );
