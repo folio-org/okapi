@@ -41,7 +41,6 @@ public class TenantStorePostgres implements TenantStore {
    */
   public void resetDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
     if (!pg.getDropDb()) {
-      logger.info("Dropping all tenants and resetting the tables");
       fut.handle(new Success<>());
       return;
     }
@@ -121,13 +120,6 @@ public class TenantStorePostgres implements TenantStore {
         });
       }
     });
-  }
-
-  @Override
-  public void update(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    logger.fatal("update");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
   }
 
   @Override
