@@ -33,6 +33,13 @@ import org.folio.okapi.common.Success;
  *
  * TODO - This is not the right place for these instructions!
  *
+ * To exercise okapi using psql be sure to use the same kind
+ * of connection.. If not, the server might use peer authentication (unix
+ * passwords) rather than md5 auth.
+ *   psql -U okapi postgresql://localhost:5432/okapi
+ *
+ * See /etc/postgresql/version/main/pg_hba.conf
+ *
  */
 public class PostgresHandle {
 
