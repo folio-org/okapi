@@ -42,18 +42,6 @@ public class TenantManager {
     return true;
   }
 
-  public boolean update(Tenant t) {
-    String id = t.getId();
-    if (!tenants.containsKey(id)) {
-      logger.debug("Tenant '" + id + "' not found, can not update");
-      return false;
-    }
-    Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".update");
-    tenants.put(id, t);
-    tim.close();
-    return true;
-  }
-
   public boolean updateDescriptor(String id, TenantDescriptor td, long ts) {
     if (!tenants.containsKey(id)) {
       logger.debug("Tenant '" + id + "' not found, can not update descriptor");
