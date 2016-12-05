@@ -165,7 +165,7 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(doc5)
-            .put(location).then().statusCode(400);
+            .put(location).then().statusCode(200);
     Assert.assertTrue(c.getLastReport().isEmpty());
   }
 }

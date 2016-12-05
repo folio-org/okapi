@@ -43,14 +43,15 @@ public class TenantManager {
   }
 
   public boolean updateDescriptor(String id, TenantDescriptor td, long ts) {
+    Tenant t;
     if (!tenants.containsKey(id)) {
-      logger.debug("Tenant '" + id + "' not found, can not update descriptor");
-      return false;
+      t = new Tenant(td);
+    } else {
+      Tenant oldT = tenants.get(id);
+      t = new Tenant(td, oldT.getEnabled());
     }
-    Tenant t = tenants.get(id);
-    Tenant nt = new Tenant(td, t.getEnabled());
-    nt.setTimestamp(ts);
-    tenants.put(id, nt);
+    t.setTimestamp(ts);
+    tenants.put(id, t);
     return true;
   }
 
