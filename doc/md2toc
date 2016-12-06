@@ -16,7 +16,7 @@ while (@ARGV > 2) {
     } elsif ($ARGV[0] =~ /^-/) {
         print STDERR "Usage: md2toc [-l <lowest>] [-h <highest>] <FILE.md>\
         -l <lowest> specified lowest heading level to include.\
-        -h <highest> specified lowest heading level to include.\n";
+        -h <highest> specified highest heading level to include.\n";
         exit 1;
     } else {
         last;
