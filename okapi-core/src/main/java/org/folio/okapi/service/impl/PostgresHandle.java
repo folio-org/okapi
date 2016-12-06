@@ -106,4 +106,14 @@ public class PostgresHandle {
     return dropdb;
   }
 
+  public void closeConnection(SQLConnection conn) {
+    conn.close(cres -> {
+      if (cres.failed()) {
+        logger.fatal("Closing handle failed: "
+                + cres.cause().getMessage());
+      }
+    });
+  }
+
+
 }

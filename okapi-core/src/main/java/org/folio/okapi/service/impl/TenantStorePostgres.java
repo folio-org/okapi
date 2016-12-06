@@ -25,13 +25,10 @@ import org.folio.okapi.common.Success;
 public class TenantStorePostgres implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private long lastTimestamp = 0;
-  private PostgresHandle pg;
-
-  private final String tenantTable = "tenants";
+  private final PostgresHandle pg;
 
   public TenantStorePostgres(PostgresHandle pg) {
-    logger.info("TenantStoreProgres");
+    logger.info("TenantStorePg");
     this.pg = pg;
   }
 
@@ -55,21 +52,33 @@ public class TenantStorePostgres implements TenantStore {
         String dropSql = "DROP TABLE IF EXISTS tenants";
         conn.query(dropSql, dres -> {
           if (dres.failed()) {
-            logger.fatal("TenantStorePg: resetDatabase: drop table failed: "
+            logger.fatal("TenantStorePg: resetDatabase: " + dropSql + ": "
                     + gres.cause().getMessage());
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
+            pg.closeConnection(conn);
           } else {
+            // create unique index id on tenants using btree(id);
             String createSql = "create table tenants ( "
                     + " id VARCHAR(32) PRIMARY KEY, "
                     + "tenantjson JSONB NOT NULL )";
-            logger.debug("TS: About to create tables: " + createSql);
             conn.query(createSql, cres -> {
               if (cres.failed()) {
-                logger.fatal("TenantStorePg: resetDatabase: drop table failed: "
+                logger.fatal("TenantStorePg:" + createSql + ": "
                         + gres.cause().getMessage());
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
+                pg.closeConnection(conn);
               } else {
-                fut.handle(new Success<>());
+                String createSql1 = "CREATE UNIQUE INDEX id ON tenants USING btree(id)";
+                conn.query(createSql1, res -> {
+                  if (cres.failed()) {
+                    logger.fatal("TenantStorePg: " + createSql1 + ": "
+                            + gres.cause().getMessage());
+                    fut.handle(new Failure<>(gres.getType(), gres.cause()));
+                  } else {
+                    fut.handle(new Success<>());
+                  }
+                  pg.closeConnection(conn);
+                });
               }
             });
           }
@@ -78,7 +87,7 @@ public class TenantStorePostgres implements TenantStore {
     });
   } // resetDatabase
 
-  public void insert(SQLConnection conn, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void insert(SQLConnection conn, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
     String sql = "INSERT INTO tenants ( id, tenantjson ) VALUES (?, ?::JSONB)";
     // TODO Type of the id ??
     String id = t.getId();
@@ -91,23 +100,9 @@ public class TenantStorePostgres implements TenantStore {
       if (ires.failed()) {
         logger.fatal("TenantStorePg: insert failed: "
                 + ires.cause().getMessage());
-        conn.close(cres -> {
-          if (cres.failed()) {
-            logger.fatal("TenantStorePg: Insert: Closing handle failed as well: "
-                    + cres.cause().getMessage());
-          } // Do not handle failure here, we report the select failure below
-        });
         fut.handle(new Failure<>(INTERNAL, ires.cause()));
       } else {
-        conn.close(cres -> {
-          if (cres.failed()) {
-            logger.fatal("TenantStorePg: insert: Closing handle failed: "
-                    + cres.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL, cres.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
+        fut.handle(new Success<>());
       }
     });
   }
@@ -120,12 +115,14 @@ public class TenantStorePostgres implements TenantStore {
                 + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
-        insert(gres.result(), t, res -> {
+        SQLConnection conn= gres.result();
+        insert(conn, t, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
             fut.handle(new Success<>(t.getId()));
           }
+          pg.closeConnection(conn);
         });
       }
     });
@@ -151,18 +148,13 @@ public class TenantStorePostgres implements TenantStore {
         updateAll(conn, id, td, it, fut);
       });
     } else {
-      conn.close(res -> {
-        if (res.failed()) {
-          logger.fatal("TenantStorePg: updateAll: Closing handle failed: "
-                  + res.cause().getMessage());
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
+      pg.closeConnection(conn);
+      fut.handle(new Success<>());
     }
   }
 
+  // INSERT INTO tenants ( id, tenantjson) VALUES (2, '{"enabled": {}, "descriptor": {"id": "our", "name": "our library", "description": "Our Own Library"}}')
+  // ON CONFLICT (id) DO UPDATE SET tenantjson = '{"enabled": {}, "descriptor": {"id": "our", "name": "our library", "description": "Our"}}';
   @Override
   public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("updateDescriptor");
@@ -180,12 +172,7 @@ public class TenantStorePostgres implements TenantStore {
           if (sres.failed()) {
             logger.fatal("TenantStorePg: update failed: "
                     + sres.cause().getMessage());
-            conn.close(cres -> {
-              if (cres.failed()) {
-                logger.fatal("TenantStorePg: update: Closing handle failed as well: "
-                        + cres.cause().getMessage());
-              } // Do not handle failure here, we report the select failure below
-            });
+            pg.closeConnection(conn);
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
             ResultSet rs = sres.result();
@@ -198,6 +185,7 @@ public class TenantStorePostgres implements TenantStore {
                 } else {
                   fut.handle(new Success<>());
                 }
+                pg.closeConnection(conn);
               });
             } else {
               logger.info("update: replace");
@@ -230,12 +218,6 @@ public class TenantStorePostgres implements TenantStore {
           if (sres.failed()) {
             logger.fatal("TenantStorePg: listTenants: select failed: "
                     + sres.cause().getMessage());
-            conn.close(cres -> {
-              if (cres.failed()) {
-                logger.fatal("TenantStorePg: ListTenants: Closing handle failed as well: "
-                        + cres.cause().getMessage());
-              } // Do not handle failure here, we report the select failure below
-            });
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
             ResultSet rs = sres.result();
@@ -247,16 +229,9 @@ public class TenantStorePostgres implements TenantStore {
               Tenant t = Json.decodeValue(tj, Tenant.class);
               tl.add(t);
             }
-            conn.close(cres -> {
-              if (cres.failed()) {
-                logger.fatal("TenantStorePg: ListTenants: Closing handle failed: "
-                        + cres.cause().getMessage());
-                fut.handle(new Failure<>(INTERNAL, cres.cause()));
-              } else {
-                fut.handle(new Success<>(tl));
-              }
-            });
+            fut.handle(new Success<>(tl));
           }
+          pg.closeConnection(conn);
         });
       }
     });
@@ -264,8 +239,38 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
-    logger.fatal("get");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    logger.info("get");
+    pg.getConnection(gres -> {
+      if (gres.failed()) {
+        logger.fatal("TenantStorePg: get: getConnection() failed: "
+                + gres.cause().getMessage());
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        SQLConnection conn = gres.result();
+        String sql = "SELECT tenantjson FROM tenants WHERE id=?";
+        JsonArray jsa = new JsonArray();
+        jsa.add(id);
+        conn.queryWithParams(sql, jsa, sres -> {
+          if (sres.failed()) {
+            logger.fatal("TenantStorePg: get failed: "
+                    + sres.cause().getMessage());
+            pg.closeConnection(conn);
+            fut.handle(new Failure<>(INTERNAL, sres.cause()));
+          } else {
+            ResultSet rs = sres.result();
+            if (rs.getNumRows() == 0) {
+              fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+            } else {
+              JsonObject r = rs.getRows().get(0);
+              String tj = r.getString("tenantjson");
+              Tenant t = Json.decodeValue(tj, Tenant.class);
+              fut.handle(new Success<>(t));
+            }
+            pg.closeConnection(conn);
+          }
+        });
+      }
+    });
   }
 
   @Override
@@ -274,17 +279,90 @@ public class TenantStorePostgres implements TenantStore {
     fut.handle(new Failure<>(INTERNAL, "not implemented"));
   }
 
+  private void updateModuleR(SQLConnection conn, String id, String module,
+          long timestamp, Boolean enable, Iterator<JsonObject> it,
+          Handler<ExtendedAsyncResult<Void>> fut) {
+    if (it.hasNext()) {
+      JsonObject r = it.next();
+      String sql = "UPDATE tenants SET tenantjson = ? WHERE id=?";
+      String tj = r.getString("tenantjson");
+      Tenant t = Json.decodeValue(tj, Tenant.class);
+      t.setTimestamp(timestamp);
+      if (enable)
+        t.enableModule(module);
+      else if (!t.isEnabled(module)) {
+        fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
+                + id + " not found, can not disable"));
+        pg.closeConnection(conn);
+        return;
+      } else
+        t.disableModule(module);
+      String s = Json.encode(t);
+      JsonObject doc = new JsonObject(s);
+      JsonArray jsa = new JsonArray();
+      jsa.add(doc.encode());
+      jsa.add(id);
+      conn.queryWithParams(sql, jsa, res -> {
+        if (res.failed()) {
+          logger.fatal("TenantStorePg: update module failed: "
+                  + res.cause().getMessage());
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          pg.closeConnection(conn);
+        } else {
+          updateModuleR(conn, id, module, timestamp, enable, it, fut);
+        }
+      });
+    } else {
+      fut.handle(new Success<>());
+      pg.closeConnection(conn);
+    }
+  }
+
+  private void updateModule(String id, String module, long timestamp,
+          Boolean enable, Handler<ExtendedAsyncResult<Void>> fut) {
+    pg.getConnection(gres -> {
+      if (gres.failed()) {
+        logger.fatal("TenantStorePg: updateModule: getConnection() failed: "
+                + gres.cause().getMessage());
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        SQLConnection conn = gres.result();
+        String sql = "SELECT tenantjson FROM tenants WHERE id=?";
+        JsonArray jsa = new JsonArray();
+        jsa.add(id);
+        conn.queryWithParams(sql, jsa, sres -> {
+          if (sres.failed()) {
+            logger.fatal("TenantStorePg: updateModule failed: "
+                    + sres.cause().getMessage());
+            pg.closeConnection(conn);
+            fut.handle(new Failure<>(INTERNAL, sres.cause()));
+          } else {
+            ResultSet rs = sres.result();
+            if (rs.getNumRows() == 0) {
+              fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+              pg.closeConnection(conn);
+            } else {
+              logger.info("update: replace");
+              updateModuleR(conn, id, module, timestamp, enable,
+                      rs.getRows().iterator(), fut);
+            }
+          }
+        });
+      }
+    });
+  }
+
   @Override
   public void enableModule(String id, String module, long timestamp,
           Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.fatal("enableModule");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    logger.info("enableModule");
+    updateModule(id, module, timestamp, true, fut);
   }
 
   @Override
   public void disableModule(String id, String module, long timestamp,
           Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.fatal("disableModule");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    logger.info("disableModule");
+    updateModule(id, module, timestamp, false, fut);
   }
 }
