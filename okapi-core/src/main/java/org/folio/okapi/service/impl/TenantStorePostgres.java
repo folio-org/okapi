@@ -9,6 +9,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
+import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -44,7 +45,7 @@ public class TenantStorePostgres implements TenantStore {
     }
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: resetDatabase: getConnection() failed: "
+        logger.fatal("resetDatabase: getConnection() failed: "
                 + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
@@ -52,8 +53,7 @@ public class TenantStorePostgres implements TenantStore {
         String dropSql = "DROP TABLE IF EXISTS tenants";
         conn.query(dropSql, dres -> {
           if (dres.failed()) {
-            logger.fatal("TenantStorePg: resetDatabase: " + dropSql + ": "
-                    + gres.cause().getMessage());
+            logger.fatal(dropSql + ": " + gres.cause().getMessage());
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
             pg.closeConnection(conn);
           } else {
@@ -63,16 +63,14 @@ public class TenantStorePostgres implements TenantStore {
                     + "tenantjson JSONB NOT NULL )";
             conn.query(createSql, cres -> {
               if (cres.failed()) {
-                logger.fatal("TenantStorePg:" + createSql + ": "
-                        + gres.cause().getMessage());
+                logger.fatal(createSql + ": " + gres.cause().getMessage());
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
                 pg.closeConnection(conn);
               } else {
                 String createSql1 = "CREATE UNIQUE INDEX id ON tenants USING btree(id)";
                 conn.query(createSql1, res -> {
                   if (cres.failed()) {
-                    logger.fatal("TenantStorePg: " + createSql1 + ": "
-                            + gres.cause().getMessage());
+                    logger.fatal(createSql1 + ": " + gres.cause().getMessage());
                     fut.handle(new Failure<>(gres.getType(), gres.cause()));
                   } else {
                     fut.handle(new Success<>());
@@ -98,8 +96,7 @@ public class TenantStorePostgres implements TenantStore {
     jsa.add(doc.encode());
     conn.queryWithParams(sql, jsa, ires -> {
       if (ires.failed()) {
-        logger.fatal("TenantStorePg: insert failed: "
-                + ires.cause().getMessage());
+        logger.fatal("insert failed: " + ires.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, ires.cause()));
       } else {
         fut.handle(new Success<>());
@@ -111,8 +108,7 @@ public class TenantStorePostgres implements TenantStore {
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: insert: getConnection() failed: "
-                + gres.cause().getMessage());
+        logger.fatal("insert: getConnection() failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn= gres.result();
@@ -142,8 +138,7 @@ public class TenantStorePostgres implements TenantStore {
       jsa.add(id);
       conn.queryWithParams(sql, jsa, res -> {
         if (res.failed()) {
-          logger.fatal("TenantStorePg: update failed: "
-                  + res.cause().getMessage());
+          logger.fatal("update failed: " + res.cause().getMessage());
         }
         updateAll(conn, id, td, it, fut);
       });
@@ -160,8 +155,7 @@ public class TenantStorePostgres implements TenantStore {
     logger.info("updateDescriptor");
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: update: getConnection() failed: "
-                + gres.cause().getMessage());
+        logger.fatal("update: getConnection() failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
@@ -170,8 +164,7 @@ public class TenantStorePostgres implements TenantStore {
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
           if (sres.failed()) {
-            logger.fatal("TenantStorePg: update failed: "
-                    + sres.cause().getMessage());
+            logger.fatal("update failed: " + sres.cause().getMessage());
             pg.closeConnection(conn);
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
@@ -208,7 +201,7 @@ public class TenantStorePostgres implements TenantStore {
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: listTenants: getConnection() failed: "
+        logger.fatal("listTenants: getConnection() failed: "
                 + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
@@ -216,7 +209,7 @@ public class TenantStorePostgres implements TenantStore {
         String sql = "SELECT tenantjson FROM tenants";
         conn.query(sql, sres -> {
           if (sres.failed()) {
-            logger.fatal("TenantStorePg: listTenants: select failed: "
+            logger.fatal("listTenants: select failed: "
                     + sres.cause().getMessage());
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
@@ -224,7 +217,6 @@ public class TenantStorePostgres implements TenantStore {
             List<Tenant> tl = new ArrayList<>();
             List<JsonObject> tempList = rs.getRows();
             for (JsonObject r : tempList) {
-              logger.debug("listTenants: Looking at " + r);
               String tj = r.getString("tenantjson");
               Tenant t = Json.decodeValue(tj, Tenant.class);
               tl.add(t);
@@ -242,8 +234,7 @@ public class TenantStorePostgres implements TenantStore {
     logger.info("get");
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: get: getConnection() failed: "
-                + gres.cause().getMessage());
+        logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
@@ -252,8 +243,7 @@ public class TenantStorePostgres implements TenantStore {
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
           if (sres.failed()) {
-            logger.fatal("TenantStorePg: get failed: "
-                    + sres.cause().getMessage());
+            logger.fatal("get failed: " + sres.cause().getMessage());
             pg.closeConnection(conn);
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
@@ -275,8 +265,32 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.fatal("delete");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    logger.info("delete");
+    pg.getConnection(gres -> {
+      if (gres.failed()) {
+        logger.fatal("TenantStorePg: delete: getConnection() failed: "
+                + gres.cause().getMessage());
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        SQLConnection conn = gres.result();
+        String sql = "DELETE FROM tenants WHERE id=?";
+        JsonArray jsa = new JsonArray();
+        jsa.add(id);
+        conn.updateWithParams(sql, jsa, sres -> {
+          if (sres.failed()) {
+            logger.fatal("delete failed: " + sres.cause().getMessage());
+            fut.handle(new Failure<>(INTERNAL, sres.cause()));
+          } else {
+            UpdateResult result = sres.result();
+            if (result.getUpdated() > 0)
+              fut.handle(new Success<>());
+            else
+              fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+          }
+          pg.closeConnection(conn);
+        });
+      }
+    });
   }
 
   private void updateModuleR(SQLConnection conn, String id, String module,
@@ -304,8 +318,7 @@ public class TenantStorePostgres implements TenantStore {
       jsa.add(id);
       conn.queryWithParams(sql, jsa, res -> {
         if (res.failed()) {
-          logger.fatal("TenantStorePg: update module failed: "
-                  + res.cause().getMessage());
+          logger.fatal("update module failed: " + res.cause().getMessage());
           fut.handle(new Failure<>(INTERNAL, res.cause()));
           pg.closeConnection(conn);
         } else {
@@ -322,7 +335,7 @@ public class TenantStorePostgres implements TenantStore {
           Boolean enable, Handler<ExtendedAsyncResult<Void>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: updateModule: getConnection() failed: "
+        logger.fatal("updateModule: getConnection() failed: "
                 + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
@@ -332,8 +345,7 @@ public class TenantStorePostgres implements TenantStore {
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
           if (sres.failed()) {
-            logger.fatal("TenantStorePg: updateModule failed: "
-                    + sres.cause().getMessage());
+            logger.fatal("updateModule failed: " + sres.cause().getMessage());
             pg.closeConnection(conn);
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
