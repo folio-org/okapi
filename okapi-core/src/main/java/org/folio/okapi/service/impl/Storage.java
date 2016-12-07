@@ -38,7 +38,7 @@ public class Storage {
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
-        moduleStore = new ModuleStoreMemory(vertx);
+        moduleStore = new ModuleStorePostgres(postgres);
         timeStampStore = new TimeStampMemory(vertx);
         tenantStore = new TenantStorePostgres(postgres);
         break;
@@ -51,9 +51,16 @@ public class Storage {
   public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
     if (mongo != null) {
       mongo.resetDatabases(fut);
-    } else if ( postgres != null ) {
+    } else if (postgres != null) {
       TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
-      tnp.resetDatabase(fut);
+      tnp.resetDatabase(res-> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
+          mnp.resetDatabase(fut);
+        }
+      });
     } else {
       fut.handle(new Success<>());
     }
