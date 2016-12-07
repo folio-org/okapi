@@ -34,7 +34,8 @@ public class TenantStoreMemory implements TenantStore {
   }
 
   @Override
-  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = td.getId();
     Tenant t;
     if (!tenants.containsKey(id)) {
       t = new Tenant(td);

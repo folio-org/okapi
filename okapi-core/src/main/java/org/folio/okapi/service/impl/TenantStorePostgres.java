@@ -27,6 +27,7 @@ public class TenantStorePostgres implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final PostgresHandle pg;
+  private final String whereClause = "tenantjson->'descriptor'->>'id' = ?";
 
   public TenantStorePostgres(PostgresHandle pg) {
     logger.info("TenantStorePg");
@@ -54,7 +55,6 @@ public class TenantStorePostgres implements TenantStore {
           } else {
             // create unique index id on tenants using btree(id);
             String createSql = "create table tenants ( "
-                    + " id VARCHAR(32) PRIMARY KEY, "
                     + "tenantjson JSONB NOT NULL )";
             conn.query(createSql, cres -> {
               if (cres.failed()) {
@@ -62,7 +62,8 @@ public class TenantStorePostgres implements TenantStore {
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
                 pg.closeConnection(conn);
               } else {
-                String createSql1 = "CREATE UNIQUE INDEX id ON tenants USING btree(id)";
+                String createSql1 = "CREATE UNIQUE INDEX id ON tenants USING" +
+                        " btree((tenantjson->'descriptor'->'id'))";
                 conn.query(createSql1, res -> {
                   if (cres.failed()) {
                     logger.fatal(createSql1 + ": " + gres.cause().getMessage());
@@ -81,13 +82,10 @@ public class TenantStorePostgres implements TenantStore {
   } // resetDatabase
 
   private void insert(SQLConnection conn, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    String sql = "INSERT INTO tenants ( id, tenantjson ) VALUES (?, ?::JSONB)";
-    // TODO Type of the id ??
-    String id = t.getId();
+    String sql = "INSERT INTO tenants ( tenantjson ) VALUES (?::JSONB)";
     String s = Json.encode(t);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
-    jsa.add(id);
     jsa.add(doc.encode());
     conn.queryWithParams(sql, jsa, ires -> {
       if (ires.failed()) {
@@ -122,7 +120,7 @@ public class TenantStorePostgres implements TenantStore {
   private void updateAll(SQLConnection conn, String id, TenantDescriptor td, Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
-      String sql = "UPDATE tenants SET tenantjson = ? WHERE id=?";
+      String sql = "UPDATE tenants SET tenantjson = ? WHERE " + whereClause;
       String tj = r.getString("tenantjson");
       Tenant t = Json.decodeValue(tj, Tenant.class);
       Tenant t2 = new Tenant(td, t.getEnabled());
@@ -146,15 +144,16 @@ public class TenantStorePostgres implements TenantStore {
   // INSERT INTO tenants ( id, tenantjson) VALUES (2, '{"enabled": {}, "descriptor": {"id": "our", "name": "our library", "description": "Our Own Library"}}')
   // ON CONFLICT (id) DO UPDATE SET tenantjson = '{"enabled": {}, "descriptor": {"id": "our", "name": "our library", "description": "Our"}}';
   @Override
-  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("updateDescriptor");
+    final String id = td.getId();
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("update: getConnection() failed: " + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT tenantjson FROM tenants WHERE id=?";
+        String sql = "SELECT tenantjson FROM tenants WHERE " + whereClause;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
@@ -233,7 +232,7 @@ public class TenantStorePostgres implements TenantStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT tenantjson FROM tenants WHERE id=?";
+        String sql = "SELECT tenantjson FROM tenants WHERE " + whereClause;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
@@ -268,7 +267,7 @@ public class TenantStorePostgres implements TenantStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "DELETE FROM tenants WHERE id=?";
+        String sql = "DELETE FROM tenants WHERE " + whereClause;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.updateWithParams(sql, jsa, sres -> {
@@ -293,7 +292,7 @@ public class TenantStorePostgres implements TenantStore {
           Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
-      String sql = "UPDATE tenants SET tenantjson = ? WHERE id=?";
+      String sql = "UPDATE tenants SET tenantjson = ? WHERE " + whereClause;
       String tj = r.getString("tenantjson");
       Tenant t = Json.decodeValue(tj, Tenant.class);
       t.setTimestamp(timestamp);
@@ -335,7 +334,7 @@ public class TenantStorePostgres implements TenantStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT tenantjson FROM tenants WHERE id=?";
+        String sql = "SELECT tenantjson FROM tenants WHERE " + whereClause;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {

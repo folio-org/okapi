@@ -48,7 +48,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = td.getId();
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {

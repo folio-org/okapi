@@ -42,9 +42,10 @@ public class TenantManager {
     return true;
   }
 
-  public boolean updateDescriptor(String id, TenantDescriptor td, long ts) {
+  public boolean updateDescriptor(TenantDescriptor td, long ts) {
     Tenant t;
-    if (!tenants.containsKey(id)) {
+    final String id = td.getId();
+    if (!tenants.containsKey(td.getId())) {
       t = new Tenant(td);
     } else {
       Tenant oldT = tenants.get(id);
