@@ -33,11 +33,6 @@ public class TenantStorePostgres implements TenantStore {
     this.pg = pg;
   }
 
-  /**
-   * Drop and create the table(s) we may need.
-   *
-   * @param fut
-   */
   public void resetDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
     if (!pg.getDropDb()) {
       fut.handle(new Success<>());
