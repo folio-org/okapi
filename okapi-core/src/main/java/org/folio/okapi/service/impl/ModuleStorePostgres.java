@@ -23,7 +23,8 @@ public class ModuleStorePostgres implements ModuleStore {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final PostgresHandle pg;
   private final String jsonColumn = "modulejson";
-  private final String whereClause = jsonColumn + "->>'id' = ?";
+  private final String idSelect = jsonColumn + "->>'id' = ?";
+  private final String idIndex = jsonColumn + "->'id'";
 
   public ModuleStorePostgres(PostgresHandle pg) {
     this.pg = pg;
@@ -56,8 +57,8 @@ public class ModuleStorePostgres implements ModuleStore {
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
                 pg.closeConnection(conn);
               } else {
-                String createSql1 = "CREATE UNIQUE INDEX module_id ON modules USING" +
-                        " btree((" + jsonColumn + "->'id'))";
+                String createSql1 = "CREATE UNIQUE INDEX module_id ON " + ""
+                        + "modules USING btree((" + idIndex + "))";
                 conn.query(createSql1, res -> {
                   if (cres.failed()) {
                     logger.fatal(createSql1 + ": " + gres.cause().getMessage());
@@ -117,7 +118,35 @@ public class ModuleStorePostgres implements ModuleStore {
   public void update(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
     logger.info("update");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    final String id = md.getId();
+    pg.getConnection(gres -> {
+      if (gres.failed()) {
+        logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        SQLConnection conn = gres.result();
+        String sql = "INSERT INTO modules (" + jsonColumn + ") VALUES (?::JSONB)"
+                + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= ?::JSONB";
+        String s = Json.encode(md);
+        JsonObject doc = new JsonObject(s);
+        JsonArray jsa = new JsonArray();
+        jsa.add(doc.encode());
+        jsa.add(doc.encode());
+        conn.updateWithParams(sql, jsa, sres -> {
+          if (sres.failed()) {
+            logger.fatal("update failed: " + sres.cause().getMessage());
+            fut.handle(new Failure<>(INTERNAL, sres.cause()));
+          } else {
+            UpdateResult result = sres.result();
+            if (result.getUpdated() > 0)
+              fut.handle(new Success<>(id));
+            else
+              fut.handle(new Success<>(id));
+          }
+          pg.closeConnection(conn);
+        });
+      }
+    });
   }
 
   @Override
@@ -130,7 +159,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT " + jsonColumn + " FROM modules WHERE " + whereClause;
+        String sql = "SELECT " + jsonColumn + " FROM modules WHERE " + idSelect;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
@@ -198,7 +227,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "DELETE FROM modules WHERE " + whereClause;
+        String sql = "DELETE FROM modules WHERE " + idSelect;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.updateWithParams(sql, jsa, sres -> {
