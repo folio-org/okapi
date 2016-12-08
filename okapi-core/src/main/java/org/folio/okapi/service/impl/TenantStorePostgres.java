@@ -62,7 +62,7 @@ public class TenantStorePostgres implements TenantStore {
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
                 pg.closeConnection(conn);
               } else {
-                String createSql1 = "CREATE UNIQUE INDEX id ON tenants USING" +
+                String createSql1 = "CREATE UNIQUE INDEX tenant_id ON tenants USING" +
                         " btree((tenantjson->'descriptor'->'id'))";
                 conn.query(createSql1, res -> {
                   if (cres.failed()) {
@@ -262,7 +262,7 @@ public class TenantStorePostgres implements TenantStore {
     logger.info("delete");
     pg.getConnection(gres -> {
       if (gres.failed()) {
-        logger.fatal("TenantStorePg: delete: getConnection() failed: "
+        logger.fatal("delete: getConnection() failed: "
                 + gres.cause().getMessage());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
