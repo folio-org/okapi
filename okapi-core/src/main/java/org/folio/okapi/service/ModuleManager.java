@@ -135,26 +135,20 @@ public class ModuleManager {
 
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
-    if (!modules.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "update: module does not exist"));
-      return;
-    }
     LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.replace(id, md);
+    tempList.put(id, md);
     String res = checkAllDependencies(tempList);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
       return;
     }
-
     String ten = tenantManager.getModuleUser(id);
     if (!ten.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id
               + " is used by tenant " + ten));
       return;
     }
-
-    modules.replace(id, md);
+    modules.put(id, md);
     fut.handle(new Success<>());
   }
 
