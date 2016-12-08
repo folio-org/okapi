@@ -9,6 +9,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
+import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -21,7 +22,8 @@ public class ModuleStorePostgres implements ModuleStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final PostgresHandle pg;
-  private final String whereClause = "modulejson->>'id' = ?";
+  private final String jsonColumn = "modulejson";
+  private final String whereClause = jsonColumn + "->>'id' = ?";
 
   public ModuleStorePostgres(PostgresHandle pg) {
     this.pg = pg;
@@ -47,7 +49,7 @@ public class ModuleStorePostgres implements ModuleStore {
             pg.closeConnection(conn);
           } else {
             String createSql = "create table modules ( "
-                    + "modulejson JSONB NOT NULL )";
+                    + jsonColumn + " JSONB NOT NULL )";
             conn.query(createSql, cres -> {
               if (cres.failed()) {
                 logger.fatal(createSql + ": " + gres.cause().getMessage());
@@ -55,7 +57,7 @@ public class ModuleStorePostgres implements ModuleStore {
                 pg.closeConnection(conn);
               } else {
                 String createSql1 = "CREATE UNIQUE INDEX module_id ON modules USING" +
-                        " btree((modulejson->'id'))";
+                        " btree((" + jsonColumn + "->'id'))";
                 conn.query(createSql1, res -> {
                   if (cres.failed()) {
                     logger.fatal(createSql1 + ": " + gres.cause().getMessage());
@@ -74,7 +76,7 @@ public class ModuleStorePostgres implements ModuleStore {
   } // resetDatabase
 
   private void insert(SQLConnection conn, ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    String sql = "INSERT INTO modules ( modulejson ) VALUES (?::JSONB)";
+    String sql = "INSERT INTO modules ( " + jsonColumn + " ) VALUES (?::JSONB)";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
@@ -128,7 +130,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT modulejson FROM modules WHERE " + whereClause;
+        String sql = "SELECT " + jsonColumn + " FROM modules WHERE " + whereClause;
         JsonArray jsa = new JsonArray();
         jsa.add(id);
         conn.queryWithParams(sql, jsa, sres -> {
@@ -142,7 +144,7 @@ public class ModuleStorePostgres implements ModuleStore {
               fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
             } else {
               JsonObject r = rs.getRows().get(0);
-              String tj = r.getString("modulejson");
+              String tj = r.getString(jsonColumn);
               ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
               fut.handle(new Success<>(md));
             }
@@ -163,7 +165,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         SQLConnection conn = gres.result();
-        String sql = "SELECT modulejson FROM modules";
+        String sql = "SELECT " + jsonColumn + " FROM modules";
         conn.query(sql, sres -> {
           if (sres.failed()) {
             logger.fatal("getAll: select failed: "
@@ -174,7 +176,7 @@ public class ModuleStorePostgres implements ModuleStore {
             List<ModuleDescriptor> ml = new ArrayList<>();
             List<JsonObject> tempList = rs.getRows();
             for (JsonObject r : tempList) {
-              String tj = r.getString("modulejson");
+              String tj = r.getString(jsonColumn);
               ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
               ml.add(md);
             }
@@ -195,6 +197,30 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("delete");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+    pg.getConnection(gres -> {
+      if (gres.failed()) {
+        logger.fatal("delete: getConnection() failed: "
+                + gres.cause().getMessage());
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        SQLConnection conn = gres.result();
+        String sql = "DELETE FROM modules WHERE " + whereClause;
+        JsonArray jsa = new JsonArray();
+        jsa.add(id);
+        conn.updateWithParams(sql, jsa, sres -> {
+          if (sres.failed()) {
+            logger.fatal("delete failed: " + sres.cause().getMessage());
+            fut.handle(new Failure<>(INTERNAL, sres.cause()));
+          } else {
+            UpdateResult result = sres.result();
+            if (result.getUpdated() > 0)
+              fut.handle(new Success<>());
+            else
+              fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
+          }
+          pg.closeConnection(conn);
+        });
+      }
+    });
   }
 }
