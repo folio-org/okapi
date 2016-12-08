@@ -189,12 +189,6 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    logger.info("listIds");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
-  }
-
-  @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("delete");
     pg.getConnection(gres -> {

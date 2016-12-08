@@ -112,23 +112,6 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<String> ids = new ArrayList<>(res.result().size());
-        for (JsonObject jo : res.result()) {
-          ids.add(jo.getString("id"));
-        }
-        fut.handle(new Success<>(ids));
-      }
-    });
-  }
-
-  @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);

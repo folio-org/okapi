@@ -68,15 +68,6 @@ public class ModuleStoreMemory implements ModuleStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    List<String> ml = new ArrayList<>();
-    for (String id : modules.keySet()) {
-      ml.add(id);
-    }
-    fut.handle(new Success<>(ml));
-  }
-
-  @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     if (modules.containsKey(id)) {
       modules.remove(id);
