@@ -85,25 +85,6 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<String> ids = new ArrayList<>(res.result().size());
-        for (JsonObject jo : res.result()) {
-          jo.remove("_id");
-          final Tenant t = Json.decodeValue(jo.encode(), Tenant.class);
-          ids.add(t.getId());
-        }
-        fut.handle(new Success<>(ids));
-      }
-    });
-  }
-
-  @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
     String q = "{}";
     JsonObject jq = new JsonObject(q);

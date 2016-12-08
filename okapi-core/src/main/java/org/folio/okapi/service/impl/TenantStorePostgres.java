@@ -186,12 +186,6 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    logger.fatal("listIds");
-    fut.handle(new Failure<>(INTERNAL, "not implemented"));
-  }
-
-  @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {

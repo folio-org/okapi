@@ -49,16 +49,6 @@ public class TenantStoreMemory implements TenantStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    List<String> tl = new ArrayList<>();
-    for (String id : tenants.keySet()) {
-      Tenant t = tenants.get(id);
-      tl.add(t.getId());
-    }
-    fut.handle(new Success<>(tl));
-  }
-
-  @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
     List<Tenant> tl = new ArrayList<>();
     for (String id : tenants.keySet()) {
