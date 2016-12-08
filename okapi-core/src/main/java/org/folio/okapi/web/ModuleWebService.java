@@ -166,6 +166,11 @@ public class ModuleWebService {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
+      final String id = ctx.request().getParam("id");
+      if (!id.equals(md.getId())) {
+        responseError(ctx, 400, "Module.id=" + md.getId() + " id=" + id);
+        return;
+      }
       String validerr = validate(md);
       if (!validerr.isEmpty()) {
         responseError(ctx, 400, validerr);
