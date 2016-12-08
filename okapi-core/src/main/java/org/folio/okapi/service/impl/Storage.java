@@ -24,22 +24,20 @@ public class Storage {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public Storage(Vertx vertx, String type, JsonObject config) {
+    timeStampStore = new TimeStampMemory(vertx);
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo.getClient());
-        timeStampStore = new TimeStampMongo(mongo.getClient());
         tenantStore = new TenantStoreMongo(mongo.getClient());
         break;
       case "inmemory":
         moduleStore = new ModuleStoreMemory(vertx);
-        timeStampStore = new TimeStampMemory(vertx);
         tenantStore = new TenantStoreMemory();
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
         moduleStore = new ModuleStorePostgres(postgres);
-        timeStampStore = new TimeStampMemory(vertx);
         tenantStore = new TenantStorePostgres(postgres);
         break;
       default:
