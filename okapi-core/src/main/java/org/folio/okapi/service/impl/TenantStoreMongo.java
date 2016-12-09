@@ -59,7 +59,15 @@ public class TenantStoreMongo implements TenantStore {
       } else {
         List<JsonObject> l = res.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+          logger.info("MONGO: update must INSERT");
+          Tenant t = new Tenant(td);
+          insert(t, ires -> {
+            if (ires.succeeded()) {
+              fut.handle(new Success<>());
+            } else {
+              fut.handle(new Failure<>(ires.getType(), ires.cause()));
+            }
+          });
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
