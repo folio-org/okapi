@@ -1,0 +1,6 @@
+{
+  "plugins": [
+    "eslint-plugin-json",
+    "eslint-plugin-raml"
+  ]
+}
