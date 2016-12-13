@@ -12,6 +12,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.ModuleManager;
@@ -113,12 +114,14 @@ public class ModuleWebService {
 
   public void create(RoutingContext ctx) {
     try {
-      logger.debug("Trying to decode md: " + ctx.getBodyAsString());  // !!!
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
+      if (md.getId() == null || md.getId().isEmpty()) {
+        md.setId(UUID.randomUUID().toString());
+      }
       String validerr = validate(md);
-      if (!validerr.isEmpty()) {
-        responseError(ctx, 400, validerr);
+      if (!validerr.isEmpty()) { 
+       responseError(ctx, 400, validerr);
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
