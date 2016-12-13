@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -98,14 +99,15 @@ public class TenantWebService {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
-        responseError(ctx, 400, "No id in tenant");
-      } else if (!td.getId().matches("^[a-z0-9._-]+$")) {
+        td.setId(UUID.randomUUID().toString());
+      }
+      final String id = td.getId();
+      if (!id.matches("^[a-z0-9._-]+$")) {
         responseError(ctx, 400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
         t.setTimestamp(ts);
-        final String id = td.getId();
         if (tenants.insert(t)) {
           tenantStore.insert(t, res -> {
             if (res.succeeded()) {
