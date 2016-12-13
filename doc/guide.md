@@ -1376,7 +1376,7 @@ should be no trailing slash, but if there happens to be one, Okapi will remove i
 * `postgres_user` : Postgres username. Defaults to `okapi`.
 * `postgres_password`: Postgres password. Defaults to `okapi25`.
 * `postgres_database`: Postgres database. Defaults to `okapi`.
-* `postgres_db_init`: For a value of `1`, Okapi wiol drop existing Postgres
+* `postgres_db_init`: For a value of `1`, Okapi will drop existing Postgres
 database and prepare a new one. A value of `0` (null) will leave it unmodified
 (default).
 
