@@ -148,7 +148,7 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(doc4)
-            .put(location).then().statusCode(200).body(equalTo(doc4));
+            .put(location3).then().statusCode(200).body(equalTo(doc4));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
@@ -165,7 +165,7 @@ public class TenantRATest {
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(doc5)
-            .put(location).then().statusCode(400);
+            .put(location3).then().statusCode(200);
     Assert.assertTrue(c.getLastReport().isEmpty());
   }
 }

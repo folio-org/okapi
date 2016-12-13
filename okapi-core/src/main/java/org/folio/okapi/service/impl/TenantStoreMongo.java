@@ -24,10 +24,9 @@ public class TenantStoreMongo implements TenantStore {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   MongoClient cli;
   final private String collection = "okapi.tenants";
-  private long lastTimestamp = 0;
 
-  public TenantStoreMongo(MongoHandle mongo) {
-    this.cli = mongo.getClient();
+  public TenantStoreMongo(MongoClient cli) {
+    this.cli = cli;
   }
 
   @Override
@@ -49,27 +48,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void update(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    String id = t.getId();
-    String s = Json.encodePrettily(t);
-    JsonObject document = new JsonObject(s);
-    document.put("_id", id);
-    final String q = "{ \"_id\": \"" + id + "\"}";
-    JsonObject jq = new JsonObject(q);
-    cli.replace(collection, jq, document, res -> {
-      if (res.succeeded()) {
-        fut.handle(new Success<>(id));
-      } else {
-        logger.debug("TenantStoreMongo: Failed to update " + id
-                + ": " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      }
-    });
-  }
-
-  @Override
-  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = td.getId();
     final String q = "{ \"_id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {
@@ -79,7 +59,15 @@ public class TenantStoreMongo implements TenantStore {
       } else {
         List<JsonObject> l = res.result();
         if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+          logger.info("MONGO: update must INSERT");
+          Tenant t = new Tenant(td);
+          insert(t, ires -> {
+            if (ires.succeeded()) {
+              fut.handle(new Success<>());
+            } else {
+              fut.handle(new Failure<>(ires.getType(), ires.cause()));
+            }
+          });
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
@@ -100,25 +88,6 @@ public class TenantStoreMongo implements TenantStore {
             }
           });
         }
-      }
-    });
-  }
-
-  @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<String> ids = new ArrayList<>(res.result().size());
-        for (JsonObject jo : res.result()) {
-          jo.remove("_id");
-          final Tenant t = Json.decodeValue(jo.encode(), Tenant.class);
-          ids.add(t.getId());
-        }
-        fut.handle(new Success<>(ids));
       }
     });
   }

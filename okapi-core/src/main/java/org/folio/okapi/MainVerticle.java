@@ -31,19 +31,13 @@ import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.TimeStampStore;
-import org.folio.okapi.service.impl.ModuleStoreMemory;
-import org.folio.okapi.service.impl.ModuleStoreMongo;
-import org.folio.okapi.service.impl.MongoHandle;
-import org.folio.okapi.service.impl.TenantStoreMemory;
-import org.folio.okapi.service.impl.TenantStoreMongo;
-import org.folio.okapi.service.impl.TimeStampMemory;
-import org.folio.okapi.service.impl.TimeStampMongo;
 import org.folio.okapi.util.LogHelper;
 import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
+import org.folio.okapi.service.impl.Storage;
 import org.folio.okapi.toys.Receiver;
 import org.folio.okapi.toys.Sender;
 
@@ -51,8 +45,6 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final LogHelper logHelper = new LogHelper();
-
-  MongoHandle mongo = null;
 
   HealthService healthService;
   ModuleManager moduleManager;
@@ -64,6 +56,7 @@ public class MainVerticle extends AbstractVerticle {
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
+  private Storage storage;
   private int port;
 
   // Little helper to get a config value
@@ -110,7 +103,7 @@ public class MainVerticle extends AbstractVerticle {
     final String host = conf("host", "localhost", config);
     String okapiUrl = conf("okapiurl", "http://localhost:" + port , config);
     okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
-    String storage = conf("storage", "inmemory", config);
+    String storageType = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
       logHelper.setRootLogLevel(loglevel);
@@ -161,33 +154,17 @@ public class MainVerticle extends AbstractVerticle {
       discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
       moduleManager = new ModuleManager(vertx);
-      TenantStore tenantStore = null;
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
 
       if (discoveryManager != null && moduleManager != null) {
         discoveryManager.setModuleManager(moduleManager);
       }
-      ModuleStore moduleStore = null;
-      TimeStampStore timeStampStore = null;
-
-      switch (storage) {
-        case "mongo":
-          mongo = new MongoHandle(vertx, config);
-          moduleStore = new ModuleStoreMongo(mongo);
-          timeStampStore = new TimeStampMongo(mongo);
-          tenantStore = new TenantStoreMongo(mongo);
-          break;
-        case "inmemory":
-          moduleStore = new ModuleStoreMemory(vertx);
-          timeStampStore = new TimeStampMemory(vertx);
-          tenantStore = new TenantStoreMemory();
-          break;
-        default:
-          logger.fatal("Unknown storage type '" + storage + "'");
-          System.exit(1);
-      }
-      logger.info("Proxy using " + storage + " storage");
+      storage = new Storage(vertx, storageType, config);
+      ModuleStore moduleStore = storage.getModuleStore();
+      TimeStampStore timeStampStore = storage.getTimeStampStore();
+      TenantStore tenantStore = storage.getTenantStore();
+      logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
       tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore);
 
@@ -201,13 +178,13 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
-    if (mongo != null && mongo.isTransient()) {
-      mongo.dropDatabase(res -> {
-        if (res.succeeded()) {
-          startModules(fut);
+    if (storage != null) {
+      storage.resetDatabases(res -> {
+        if (res.failed()) {
+          logger.fatal("start failed", res.cause());
+          fut.complete();
         } else {
-          logger.fatal("createHttpServer failed", res.cause());
-          fut.fail(res.cause());
+          startModules(fut);
         }
       });
     } else {
@@ -223,6 +200,7 @@ public class MainVerticle extends AbstractVerticle {
         if (res.succeeded()) {
           startTenants(fut);
         } else {
+          logger.fatal("load modules: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
       });
@@ -237,6 +215,7 @@ public class MainVerticle extends AbstractVerticle {
         if (res.succeeded()) {
           startDiscovery(fut);
         } else {
+          logger.fatal("load tenants failed: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
       });

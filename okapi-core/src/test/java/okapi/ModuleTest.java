@@ -239,8 +239,8 @@ public class ModuleTest {
             .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-
     locationAuthDeployment = r.getHeader("Location");
+
     c = api.createRestAssured();
     String docAuthDiscovery = c.given().get(locationAuthDeployment)
             .then().statusCode(200).extract().body().asString();
@@ -285,6 +285,49 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    final String docAuthModule2 =  "{" + LS
+            + "  \"id\" : \"auth2\"," + LS
+            + "  \"name\" : \"auth2\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"auth2\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/s\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"," + LS
+            + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
+            + "  }, {"
+            + "    \"methods\" : [ \"POST\" ]," + LS
+            + "    \"path\" : \"/login\"," + LS
+            + "    \"level\" : \"20\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+
+    final String locationAuthModule2 = locationAuthModule + "2";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docAuthModule2).put(locationAuthModule2).then().statusCode(200)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(locationAuthModule2).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
 
     final String docSampleDeployment = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS

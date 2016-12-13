@@ -39,12 +39,8 @@ public class ModuleStoreMemory implements ModuleStore {
   public void update(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
     String id = md.getId();
-    if (!modules.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found, can not update (inmemory-db)"));
-    } else {
-      modules.put(id, new ModuleDescriptor(md));
-      fut.handle(new Success<>(id));
-    }
+    modules.put(id, new ModuleDescriptor(md));
+    fut.handle(new Success<>(id));
   }
 
   @Override
@@ -63,15 +59,6 @@ public class ModuleStoreMemory implements ModuleStore {
     List<ModuleDescriptor> ml = new ArrayList<>();
     for (String id : modules.keySet()) {
       ml.add(new ModuleDescriptor(modules.get(id)));
-    }
-    fut.handle(new Success<>(ml));
-  }
-
-  @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    List<String> ml = new ArrayList<>();
-    for (String id : modules.keySet()) {
-      ml.add(id);
     }
     fut.handle(new Success<>(ml));
   }

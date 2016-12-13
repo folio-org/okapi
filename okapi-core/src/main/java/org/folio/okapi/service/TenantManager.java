@@ -42,27 +42,17 @@ public class TenantManager {
     return true;
   }
 
-  public boolean update(Tenant t) {
-    String id = t.getId();
-    if (!tenants.containsKey(id)) {
-      logger.debug("Tenant '" + id + "' not found, can not update");
-      return false;
+  public boolean updateDescriptor(TenantDescriptor td, long ts) {
+    Tenant t;
+    final String id = td.getId();
+    if (!tenants.containsKey(td.getId())) {
+      t = new Tenant(td);
+    } else {
+      Tenant oldT = tenants.get(id);
+      t = new Tenant(td, oldT.getEnabled());
     }
-    Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".update");
+    t.setTimestamp(ts);
     tenants.put(id, t);
-    tim.close();
-    return true;
-  }
-
-  public boolean updateDescriptor(String id, TenantDescriptor td, long ts) {
-    if (!tenants.containsKey(id)) {
-      logger.debug("Tenant '" + id + "' not found, can not update descriptor");
-      return false;
-    }
-    Tenant t = tenants.get(id);
-    Tenant nt = new Tenant(td, t.getEnabled());
-    nt.setTimestamp(ts);
-    tenants.put(id, nt);
     return true;
   }
 
