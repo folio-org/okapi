@@ -99,8 +99,14 @@ public class TenantRATest {
     c.given()
             .header("Content-Type", "application/json").body(doc)
             .post("/_/proxy/tenants").then().statusCode(400);
-
     Assert.assertTrue(c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .get("/_/proxy/tenants/roskilde/modules/foo").then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+             c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get(location).then().statusCode(200).body(equalTo(doc));

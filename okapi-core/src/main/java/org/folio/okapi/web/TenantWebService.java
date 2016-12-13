@@ -302,7 +302,7 @@ public class TenantWebService {
           String s = Json.encodePrettily(tmd);
           responseJson(ctx, 200).end(s);
         } else {
-          responseError(ctx, 404, res.cause());
+          responseError(ctx, 404, mod);
         }
       } else {
         responseError(ctx, res.getType(), res.cause());

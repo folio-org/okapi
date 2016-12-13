@@ -374,6 +374,10 @@ schemas:
               body:
                 application/json:
                   schema: TenantModuleDescriptor
+            404:
+              description: Not Found
+              body:
+                text/plain:
         delete:
           description: remove particular module selection
           responses:
