@@ -1400,6 +1400,7 @@ in the [RAML](http://raml.org/) syntax.
 
   * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
+  * [API reference documentation](http://dev.folio.org/doc/api/) generated from those files
 
 ### Deployment
 
