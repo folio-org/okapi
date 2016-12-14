@@ -118,42 +118,28 @@ public class ModuleManager {
   }
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    List<ModuleDescriptor> l = new LinkedList<ModuleDescriptor>();
+    List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
     createList(l, fut);
   }
 
   public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
-    // insert what we can with proper dependencies .. And repeat process until
-    // done or show-stopper (error)
-    while (!list.isEmpty()) {
-      String id = null;
-      String res = null;
-      Boolean put = false;
-      for (int i = 0; i < list.size(); i++) {
-        ModuleDescriptor md = list.get(i);
-        id = md.getId();
-        if (modules.containsKey(id)) {
-          fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
-          return;
-        }
-        HashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-        tempList.put(id, md);
-        res = checkAllDependencies(tempList);
-        if (res.isEmpty()) {
-          list.remove(i);
-          modules.put(id, md);
-          put = true;
-          break;
-        }
-      }
-      if (!put && id != null && id != null) {
-        // nothing inserted through scan ..
-        fut.handle(new Failure<>(USER, "create module " + id +": " + res));
+    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    for (ModuleDescriptor md : list) {
+      final String id = md.getId();
+      if (modules.containsKey(id)) {
+        fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
         return;
       }
+      tempList.put(id, md);
     }
-    fut.handle(new Success<>());
+    String res = checkAllDependencies(tempList);
+    if (!res.isEmpty()) {
+      fut.handle(new Failure<>(USER, res));
+    } else {
+      modules = tempList;
+      fut.handle(new Success<>());
+    }
   }
 
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
