@@ -8,7 +8,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.UpdateOptions;
-import io.vertx.ext.mongo.WriteOption;
 import java.util.ArrayList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -115,22 +114,13 @@ public class ModuleStoreMongo implements ModuleStore {
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("id", id);
-    cli.find(collection, jq, fres -> {
-      if (fres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, fres.cause()));
+    cli.removeDocument(collection, jq, rres -> {
+      if (rres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, rres.cause()));
+      } else if (rres.result().getRemovedCount() == 0) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
       } else {
-        List<JsonObject> l = fres.result();
-        if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-        } else {
-          cli.remove(collection, jq, rres -> {
-            if (rres.failed()) {
-              fut.handle(new Failure<>(INTERNAL, rres.cause()));
-            } else {
-              fut.handle(new Success<>());
-            }
-          });
-        }
+        fut.handle(new Success<>());
       }
     });
   }
