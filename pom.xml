@@ -72,36 +72,36 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>1.2.1</version>
         <executions>
-            <execution>
-                <id>default-cli</id>
-                <goals>
-                    <goal>exec</goal>
-                </goals>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-jar</argument>
-                        <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                        <argument>dev</argument>
-                    </arguments>
-                </configuration>
-            </execution>
-            <execution>
-                <id>debug</id>
-                <goals>
-                    <goal>exec</goal>
-                </goals>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-Xdebug</argument>
-                        <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
-                        <argument>-jar</argument>
-                        <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                        <argument>dev</argument>
-                    </arguments>
-                </configuration>
-            </execution>
+          <execution>
+            <id>default-cli</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-jar</argument>
+                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                <argument>dev</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>debug</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-Xdebug</argument>
+                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
+                <argument>-jar</argument>
+                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                <argument>dev</argument>
+              </arguments>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
 
