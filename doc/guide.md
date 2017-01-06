@@ -438,6 +438,8 @@ But it will reject:
 * 3.1.9   - Lesser minor version
 * 3.2.27  - Too small software version, may not contain crucial bug-fixes
 
+See further explanation of
+[Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
 
 ### Security
 
