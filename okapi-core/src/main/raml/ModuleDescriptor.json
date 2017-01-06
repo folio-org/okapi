@@ -68,7 +68,8 @@
     },
     "launchDescriptor": {
       "$ref": "LaunchDescriptor.json"
-    }
+    },
+    "tenantInterface": {"type": "string"}
   },
   "required": ["id", "name", "routingEntries"]
 }

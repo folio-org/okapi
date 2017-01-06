@@ -750,7 +750,8 @@ public class ModuleTest {
             + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"31\"," + LS
             + "    \"type\" : \"request-response\"" + LS
-            + "  } ]" + LS
+            + "  } ]," + LS
+            + "  \"tenantInterface\" : \"tenant\"" + LS
             + "}";
     c = api.createRestAssured();
     r = c.given()
