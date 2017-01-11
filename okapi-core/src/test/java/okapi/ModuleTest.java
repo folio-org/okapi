@@ -493,6 +493,15 @@ public class ModuleTest {
             .body(docEnableWithoutDep).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(400);
 
+    final String docEnableAuthBad = "{" + LS
+            + "  \"id\" : \"UnknonwModule\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(400);
+
     final String docEnableAuth = "{" + LS
             + "  \"id\" : \"auth\"" + LS
             + "}";
@@ -751,7 +760,7 @@ public class ModuleTest {
             + "    \"level\" : \"31\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
-            + "  \"tenantInterface\" : \"tenant\"" + LS
+            + "  \"tenantInterface\" : \"/tenant\"" + LS
             + "}";
     c = api.createRestAssured();
     r = c.given()
