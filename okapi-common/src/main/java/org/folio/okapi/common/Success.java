@@ -35,6 +35,6 @@ public class Success<T> implements ExtendedAsyncResult<T> {
 
   @Override
   public ErrorType getType() {
-    return ANY;
+    return OK;
   }
 }

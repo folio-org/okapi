@@ -239,8 +239,8 @@ public class ModuleTest {
             .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-
     locationAuthDeployment = r.getHeader("Location");
+
     c = api.createRestAssured();
     String docAuthDiscovery = c.given().get(locationAuthDeployment)
             .then().statusCode(200).extract().body().asString();
@@ -285,6 +285,49 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    final String docAuthModule2 =  "{" + LS
+            + "  \"id\" : \"auth2\"," + LS
+            + "  \"name\" : \"auth2\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"auth2\"," + LS
+            + "    \"version\" : \"1.2.3\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"*\" ]," + LS
+            + "    \"path\" : \"/s\"," + LS
+            + "    \"level\" : \"10\"," + LS
+            + "    \"type\" : \"request-response\"," + LS
+            + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
+            + "  }, {"
+            + "    \"methods\" : [ \"POST\" ]," + LS
+            + "    \"path\" : \"/login\"," + LS
+            + "    \"level\" : \"20\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]" + LS
+            + "}";
+
+    final String locationAuthModule2 = locationAuthModule + "2";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docAuthModule2).put(locationAuthModule2).then().statusCode(200)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(locationAuthModule2).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
 
     final String docSampleDeployment = "{" + LS
             + "  \"srvcId\" : \"sample-module\"," + LS
@@ -554,7 +597,7 @@ public class ModuleTest {
     final String docWrongLogin = "{" + LS
             + "  \"tenant\" : \"t1\"," + LS
             + "  \"username\" : \"peter\"," + LS
-            + "  \"password\" : \"peter37\"" + LS
+            + "  \"password\" : \"peter-wrong-password\"" + LS
             + "}";
 
     given().header("Content-Type", "application/json").body(docWrongLogin)
@@ -562,7 +605,7 @@ public class ModuleTest {
             .then().statusCode(401);
 
     final String docLogin = "{" + LS
-            + "  \"tenant\" : \"t1\"," + LS
+            + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
@@ -571,16 +614,18 @@ public class ModuleTest {
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Check that okapi sets up the permission headers
-    // Check also the X-Okapi-Url header in the same go
+    // Check also the X-Okapi-Url header in the same go, as well as
+    // URL parameters
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
-            .header("X-all-headers", "H") // ask sample to report all headers
-            .get("/testb")
+            .header("X-all-headers", "HB") // ask sample to report all headers
+            .get("/testb?query=foo&limit=10")
             .then().statusCode(200)
             .header("X-Okapi-Permissions-Required", "sample.needed")
             .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
-            .header("X-Okapi-Url", "http://localhost:9130/")
-            .body(equalTo("It works"));
+            .header("X-Okapi-Url", "http://localhost:9130")  // no trailing slash!
+            .header("X-Url-Params", "query=foo&limit=10")
+            .body(containsString("It works"));
     // Check only the required permission bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
     // well defined...
@@ -596,11 +641,16 @@ public class ModuleTest {
             .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
             .body(equalTo("It works"));
 
+    // Post request
+    // Test also URL parameters
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
-            .body("Okapi").post("/testb")
-            .then().statusCode(200).body(equalTo("Hello  (XML) Okapi"));
+            .header("X-all-headers", "H") // ask sample to report all headers
+            .body("Okapi").post("/testb?query=foo")
+            .then().statusCode(200)
+            .header("X-Url-Params", "query=foo")
+            .body(equalTo("Hello  (XML) Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -622,6 +672,25 @@ public class ModuleTest {
             .header("X-Okapi-Token", okapiToken)
             .get("/testb?p=parameters&q=query")
             .then().statusCode(200);
+
+    // Check that we accept Authorization: Bearer <token> instead of X-Okapi-Token,
+    // and that we can extract the tenant from it
+    given().header("X-all-headers", "H") // ask sample to report all headers
+            .header("Authorization", "Bearer " + okapiToken)
+            .get("/testb")
+            .then().log().ifError()
+            .header("X-Okapi-Token", okapiToken)
+            .header("X-Okapi-Tenant", okapiTenant)
+            .statusCode(200);
+
+    // Check that we fail on conflicting X-Okapi-Token and Auth tokens
+    given().header("X-all-headers", "H") // ask sample to report all headers
+            .header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("Authorization", "Bearer " + okapiToken + "WRONG")
+            .get("/testb")
+            .then().log().ifError()
+            .statusCode(400);
 
     // 2nd sample module.. We only create it in discovery and give it same URL as
     // for sample-module (first one)
@@ -768,10 +837,22 @@ public class ModuleTest {
             .get("/testb")
             .then().statusCode(200).body(equalTo("It works"));
 
+    // Verify that both modules get executed
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .body("OkapiX").post("/testb")
-            .then().statusCode(200).body(equalTo("Hello Hello OkapiX"));
+            .then().statusCode(200)
+            .body(equalTo("Hello Hello OkapiX"));
+
+    // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
+    // a X-Stop-Here header
+    given().header("X-Okapi-Tenant", okapiTenant)
+            .header("X-Okapi-Token", okapiToken)
+            .header("X-Stop-Here", "Enough!")
+            .body("OkapiX").post("/testb")
+            .then().statusCode(200)
+            .header("X-Okapi-Stop", "Enough!")
+            .body(equalTo("Hello OkapiX")); // only one "Hello"
 
     given().get("/_/test/reloadmodules")
             .then().statusCode(204);
@@ -1316,7 +1397,8 @@ public class ModuleTest {
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]," + LS
             + "  \"launchDescriptor\" : {" + LS
-            + "    \"dockerImage\" : \"okapi-test-module\"" + LS
+            + "    \"dockerImage\" : \"okapi-test-module\"," + LS
+            + "    \"dockerCMD\" : [\"-Dfoo=bar\"]" + LS
             + "  }" + LS
             + "}";
 

@@ -31,7 +31,6 @@ public class OkapiClient {
   private HttpClient httpClient;
   private Vertx vertx;
   private Map<String,String> headers;
-  // TODO X-Okapi headers
   // TODO Response headers: do we need a trace or something?
   // TODO Return type: Need a more complex container class with room for
   //   response headers, the whole response, and so on.
@@ -45,9 +44,10 @@ public class OkapiClient {
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx());
     this.ctx = ctx;
-    this.okapiUrl = ctx.request().getHeader("X-Okapi-Url");
+    this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     for (String hdr : ctx.request().headers().names()) {
-      if (hdr.startsWith("X-Okapi")) {
+      if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr,hv);
       }
@@ -63,7 +63,7 @@ public class OkapiClient {
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String,String> headers) {
     init(vertx);
     this.ctx = null;
-    this.okapiUrl = okapiUrl;
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
   }
@@ -94,22 +94,27 @@ public class OkapiClient {
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
-        logger.debug("OkapiClient endhandler: " + postres.statusCode());
         String reply = buf.toString();
         if (postres.statusCode() >= 200 && postres.statusCode() <= 299 ) {
           fut.handle(new Success<>(reply));
-        } else if (postres.statusCode() == 404) {
-          fut.handle(new Failure<>(NOT_FOUND, reply));
-        } else if (postres.statusCode() == 400) {
-          fut.handle(new Failure<>(USER, reply));
         } else {
-          fut.handle(new Failure<>(INTERNAL, reply));
+          if (postres.statusCode() == 404) {
+            fut.handle(new Failure<>(NOT_FOUND, "404 " + reply + ": " + url ));
+          } else if (postres.statusCode() == 400) {
+            fut.handle(new Failure<>(USER, reply));
+          } else {
+            fut.handle(new Failure<>(INTERNAL, reply));
+          }
         }
       });
     });
     req.exceptionHandler(x -> {
-      logger.debug("OkapiClient exception: " + x.getMessage());
-      fut.handle(new Failure<>(INTERNAL, x.getMessage()));
+      String msg = x.getMessage();
+      if ( msg == null || msg.isEmpty()) { // unresolved address results in no message
+        msg = x.toString(); // so we use toString instead
+      } // but not both, because connection error has identical string in both...
+      logger.debug("OkapiClient exception: " + x.toString() + ": " + x.getMessage());
+      fut.handle(new Failure<>(INTERNAL, msg));
     });
     for ( String hdr : headers.keySet()) {
       logger.debug("OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
@@ -131,6 +136,28 @@ public class OkapiClient {
   public void delete(String path,
         Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
+  }
+
+  public String getOkapiUrl() {
+    return okapiUrl;
+  }
+
+  /** Get the Okapi authentication token.
+   * From the X-Okapi-Token header.
+   *
+   * @return the token, or null if not defined.
+   */
+  public String getOkapiToken() {
+    return headers.get(XOkapiHeaders.TOKEN);
+  }
+
+  /** Set the Okapi authentication token.
+   * Overrides the auth token. Should normally not be needed,
+   * but can be used in some special cases.
+   * @param token
+   */
+  public void setOkapiToken(String token) {
+    headers.put(XOkapiHeaders.TOKEN, token);
   }
 
 

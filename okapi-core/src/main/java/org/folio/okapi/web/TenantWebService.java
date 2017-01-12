@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -98,14 +99,15 @@ public class TenantWebService {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
-        responseError(ctx, 400, "No Id in tenant");
-      } else if (!td.getId().matches("^[a-z0-9._-]+$")) {
+        td.setId(UUID.randomUUID().toString());
+      }
+      final String id = td.getId();
+      if (!id.matches("^[a-z0-9._-]+$")) {
         responseError(ctx, 400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
         t.setTimestamp(ts);
-        final String id = td.getId();
         if (tenants.insert(t)) {
           tenantStore.insert(t, res -> {
             if (res.succeeded()) {
@@ -135,12 +137,16 @@ public class TenantWebService {
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
+      final String id = ctx.request().getParam("id");
+      if (!id.equals(td.getId())) {
+        responseError(ctx, 400, "Tenant.id=" + td.getId() + " id=" + id);
+        return;
+      }
       Tenant t = new Tenant(td);
       final long ts = getTimestamp();
       t.setTimestamp(ts);
-      final String id = td.getId();
-      if (tenants.updateDescriptor(id, td, ts)) {
-        tenantStore.updateDescriptor(id, td, res -> {
+      if (tenants.updateDescriptor(td, ts)) {
+        tenantStore.updateDescriptor(td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
             responseJson(ctx, 200).end(s);
@@ -298,7 +304,7 @@ public class TenantWebService {
           String s = Json.encodePrettily(tmd);
           responseJson(ctx, 200).end(s);
         } else {
-          responseError(ctx, 404, res.cause());
+          responseError(ctx, 404, mod);
         }
       } else {
         responseError(ctx, res.getType(), res.cause());

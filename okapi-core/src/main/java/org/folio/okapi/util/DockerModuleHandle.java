@@ -10,13 +10,14 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
 import org.folio.okapi.bean.Ports;
-import org.folio.okapi.bean.LaunchDescriptor;
 
 public class DockerModuleHandle implements ModuleHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -25,16 +26,22 @@ public class DockerModuleHandle implements ModuleHandle {
   private final int hostPort;
   private final Ports ports;
   private final String image;
+  private final String[] cmd;
   private final String dockerUrl;
   private String containerId;
 
-  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+  public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
           Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
-    this.image = desc.getDockerImage();
-    this.dockerUrl = "http://localhost:4243";
+    this.image = image;
+    this.cmd = cmd;
+    String u = System.getProperty("dockerUrl", "http://localhost:4243");
+    while (u.endsWith("/")) {
+      u = u.substring(0, u.length() - 1);
+    }
+    this.dockerUrl = u;
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
@@ -43,11 +50,6 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId + "/start";
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      /*
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
-       */
       res.handler(d -> {
         body.appendBuffer(d);
       });
@@ -130,6 +132,30 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
+  private void getContainerLog(Handler<AsyncResult<Void>> future) {
+    HttpClient client = vertx.createHttpClient();
+    final String url = dockerUrl + "/containers/" + containerId + "/logs?stderr=1&stdout=1&follow=1";
+    HttpClientRequest req = client.getAbs(url, res -> {
+      if (res.statusCode() == 200) {
+        // stream OK.. Continue other work but keep fetching!
+        res.handler(d -> {
+          // both stderr+stdout are directed to stderr
+          System.err.print(d.toString());
+        });
+        future.handle(Future.succeededFuture());
+      } else {
+        String m = "getContainerLog HTTP error "
+                + Integer.toString(res.statusCode());
+        logger.error(m);
+        future.handle(Future.failedFuture(m));
+      }
+    });
+    req.exceptionHandler(d -> {
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
   private void getImage(Handler<AsyncResult<JsonObject>> future) {
     HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/images/" + image + "/json";
@@ -155,27 +181,37 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
+      logger.warn("Starting a docker image " + image + " failed with " + d.getMessage() );
       future.handle(Future.failedFuture(d.getCause()));
     });
     req.end();
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
-    String doc = "{\n"
-            + "  \"AttachStdin\":false,\n"
-            + "  \"AttachStdout\":true,\n"
-            + "  \"AttachStderr\":true,\n"
-            + "  \"Image\":\"" + image + "\",\n"
-            + "  \"StopSignal\":\"SIGTERM\",\n"
-            + "  \"HostConfig\":{\n"
-            + "    \"PortBindings\":{\""
-            + Integer.toString(exposedPort)
-            + "/tcp\":[{\"HostPort\":\""
-            + Integer.toString(hostPort)
-            + "\"}]},\n"
-            + "    \"PublishAllPorts\":false\n"
-            + "  }\n"
-            + "}\n";
+    JsonObject j = new JsonObject();
+    j.put("AttachStdin", Boolean.FALSE);
+    j.put("AttachStdout", Boolean.TRUE);
+    j.put("AttachStderr", Boolean.TRUE);
+    j.put("StopSignal", "SIGTERM");
+    j.put("Image", image);
+
+    JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
+    JsonArray ep = new JsonArray().add(hp);
+    JsonObject pb = new JsonObject();
+    pb.put(Integer.toString(exposedPort) + "/tcp", ep);
+    JsonObject hc = new JsonObject();
+    hc.put("PortBindings", pb);
+    hc.put("PublishAllPorts", Boolean.FALSE);
+    j.put("HostConfig", hc);
+
+    if (this.cmd != null && this.cmd.length > 0) {
+      JsonArray a = new JsonArray();
+      for (int i = 0; i < cmd.length; i++) {
+        a.add(cmd[i]);
+      }
+      j.put("Cmd", a);
+    }
+    String doc = j.encodePrettily();
     HttpClient client = vertx.createHttpClient();
     logger.info("createContainer\n" + doc);
     final String url = dockerUrl + "/containers/create";
@@ -233,7 +269,13 @@ public class DockerModuleHandle implements ModuleHandle {
             if (res2.failed()) {
               startFuture.handle(Future.failedFuture(res2.cause()));
             } else {
-              startContainer(startFuture);
+              startContainer(res3 -> {
+                if (res3.failed()) {
+                  startFuture.handle(Future.failedFuture(res3.cause()));
+                } else {
+                  getContainerLog(startFuture);
+                }
+              });
             }
           });
         }

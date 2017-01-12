@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
+import io.vertx.ext.mongo.UpdateOptions;
 import java.util.ArrayList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -16,7 +17,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
 /**
- * Stores ModuleDescriptors in a Mongo datbase.
+ * Stores ModuleDescriptors in a Mongo database.
  */
 public class ModuleStoreMongo implements ModuleStore {
 
@@ -25,8 +26,8 @@ public class ModuleStoreMongo implements ModuleStore {
   MongoClient cli;
   final private String collection = "okapi.modules";
 
-  public ModuleStoreMongo(MongoHandle mongo) {
-    this.cli = mongo.getClient();
+  public ModuleStoreMongo(MongoClient cli) {
+    this.cli = cli;
   }
 
   @Override
@@ -51,16 +52,16 @@ public class ModuleStoreMongo implements ModuleStore {
   public void update(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
     String id = md.getId();
-    final String q = "{ \"_id\": \"" + id + "\"}";
-    JsonObject jq = new JsonObject(q);
+    JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     document.put("_id", id);
-    cli.replace(collection, jq, document, res -> {
+    UpdateOptions options = new UpdateOptions().setUpsert(true);
+    cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
-        logger.debug("ModuleDbMongo: Failed to update" + id
+        logger.warn("Failed to update " + id
                 + ": " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
@@ -70,8 +71,7 @@ public class ModuleStoreMongo implements ModuleStore {
   @Override
   public void get(String id,
           Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    final String q = "{ \"_id\": \"" + id + "\"}";
-    JsonObject jq = new JsonObject(q);
+    JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
@@ -112,42 +112,15 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<String> ids = new ArrayList<>(res.result().size());
-        for (JsonObject jo : res.result()) {
-          ids.add(jo.getString("id"));
-        }
-        fut.handle(new Success<>(ids));
-      }
-    });
-  }
-
-  @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    String q = "{ \"id\": \"" + id + "\"}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, fres -> {
-      if (fres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, fres.cause()));
+    JsonObject jq = new JsonObject().put("id", id);
+    cli.removeDocument(collection, jq, rres -> {
+      if (rres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, rres.cause()));
+      } else if (rres.result().getRemovedCount() == 0) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
       } else {
-        List<JsonObject> l = fres.result();
-        if (l.size() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-        } else {
-          cli.remove(collection, jq, rres -> {
-            if (rres.failed()) {
-              fut.handle(new Failure<>(INTERNAL, rres.cause()));
-            } else {
-              fut.handle(new Success<>());
-            }
-          });
-        }
+        fut.handle(new Success<>());
       }
     });
   }

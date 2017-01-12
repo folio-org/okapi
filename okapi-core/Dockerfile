@@ -8,17 +8,15 @@
 
 FROM java:8
 
-ENV VERTICLE_FILE okapi-core-fat.jar
-
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
 
 EXPOSE 8080
 
 # Copy your fat jar to the container
-COPY target/$VERTICLE_FILE $VERTICLE_HOME/
+COPY target/*-fat.jar $VERTICLE_HOME/module.jar
 
 # Launch the verticle
 WORKDIR $VERTICLE_HOME
-ENTRYPOINT ["sh", "-c"]
-CMD ["java -jar $VERTICLE_FILE"]
+ENTRYPOINT ["java", "-jar", "module.jar"]
+CMD ["dev"]

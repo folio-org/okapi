@@ -34,30 +34,18 @@ public class TenantStoreMemory implements TenantStore {
   }
 
   @Override
-  public void update(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    String id = t.getId();
-    tenants.put(id, new Tenant(t));
-    fut.handle(new Success<>(id));
-  }
-
-  @Override
-  public void updateDescriptor(String id, TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
-    Tenant t = tenants.get(id);
-    Tenant nt = new Tenant(td, t.getEnabled());
-    // TODO - Validate that we don't change the id
-    tenants.put(id, nt);
-    fut.handle(new Success<>());
-  }
-
-  @Override
-  public void listIds(Handler<ExtendedAsyncResult<List<String>>> fut) {
-    List<String> tl = new ArrayList<>();
-    for (String id : tenants.keySet()) {
-      Tenant t = tenants.get(id);
-      tl.add(t.getId());
+  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = td.getId();
+    Tenant t;
+    if (!tenants.containsKey(id)) {
+      t = new Tenant(td);
+    } else {
+      Tenant oldT = tenants.get(id);
+      t = new Tenant(td, oldT.getEnabled());
     }
-    fut.handle(new Success<>(tl));
+    // TODO - Validate that we don't change the id
+    tenants.put(id, t);
+    fut.handle(new Success<>());
   }
 
   @Override

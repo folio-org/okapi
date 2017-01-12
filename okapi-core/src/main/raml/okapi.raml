@@ -271,6 +271,9 @@ schemas:
               schema: ModuleDescriptor
     put:
       description: update descriptor of a particular module
+      body:
+        application/json:
+          schema: ModuleDescriptor
       responses:
         200:
           body:
@@ -371,6 +374,10 @@ schemas:
               body:
                 application/json:
                   schema: TenantModuleDescriptor
+            404:
+              description: Not Found
+              body:
+                text/plain:
         delete:
           description: remove particular module selection
           responses:

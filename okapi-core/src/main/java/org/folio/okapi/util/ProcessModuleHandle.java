@@ -21,7 +21,10 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
-  private final LaunchDescriptor desc;
+  final String exec;
+  final String cmdlineStart;
+  final String cmdlineStop;
+
   private Process p;
   private final int port;
   private final Ports ports;
@@ -31,7 +34,10 @@ public class ProcessModuleHandle implements ModuleHandle {
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
     this.vertx = vertx;
-    this.desc = desc;
+
+    this.exec = desc.getExec();
+    this.cmdlineStart = desc.getCmdlineStart();
+    this.cmdlineStop = desc.getCmdlineStop();
     this.port = port;
     this.ports = ports;
     this.p = null;
@@ -45,6 +51,11 @@ public class ProcessModuleHandle implements ModuleHandle {
         logger.info("Connected to service at port " + port + " count " + count);
         NetSocket socket = res.result();
         socket.close();
+        try {
+          p.getErrorStream().close();
+        } catch (Exception e) {
+          logger.error("Closing streams failed: " + e.getMessage());
+        }
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         InputStream inputStream = p.getErrorStream();
@@ -63,10 +74,6 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    if (desc == null) {
-      startFuture.handle(Future.failedFuture("No launchDescriptor"));
-      return;
-    }
     if (port > 0) {
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
@@ -87,8 +94,6 @@ public class ProcessModuleHandle implements ModuleHandle {
   }
 
   private void start2(Handler<AsyncResult<Void>> startFuture) {
-    final String exec = desc.getExec();
-    final String cmdlineStart = desc.getCmdlineStart();
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
@@ -113,8 +118,8 @@ public class ProcessModuleHandle implements ModuleHandle {
 
           }
           ProcessBuilder pb = new ProcessBuilder(l);
-          pb.redirectInput(Redirect.INHERIT)
-                  .redirectOutput(Redirect.INHERIT);
+          pb.redirectOutput(Redirect.INHERIT);
+          pb.redirectInput(Redirect.INHERIT);
           p = pb.start();
         } catch (IOException ex) {
           logger.warn("Deployment failed: " + ex.getMessage());
@@ -167,8 +172,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       stopFuture.handle(Future.succeededFuture());
       return;
     }
-    final String cmdline = desc.getCmdlineStop();
-    if (cmdline == null) {
+    if (cmdlineStop == null) {
       vertx.executeBlocking(future -> {
         p.destroy();
         while (p.isAlive()) {
@@ -199,13 +203,16 @@ public class ProcessModuleHandle implements ModuleHandle {
     } else {
       vertx.executeBlocking(future -> {
         try {
-          String c = cmdline.replace("%p", Integer.toString(port));
+          String c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = new ProcessBuilder(l);
           pb.inheritIO();
           Process start = pb.start();
-          start.waitFor(12, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+          logger.debug("Waiting for the port to be closed");
+          start.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+          logger.debug("Wait done");
         } catch (IOException | InterruptedException ex) {
+          logger.debug("Caught exception " + ex);
           future.fail(ex);
           return;
         }

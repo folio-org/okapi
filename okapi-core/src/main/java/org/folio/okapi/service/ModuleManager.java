@@ -7,6 +7,8 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.util.DropwizardHelper;
@@ -115,46 +117,47 @@ public class ModuleManager {
     return "";
   }
 
-  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
-    final String id = md.getId();
-    if (modules.containsKey(id)) {
-      fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
-      return;
-    }
-    HashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.put(id, md);
+  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    List<ModuleDescriptor> l = new LinkedList<>();
+    l.add(md);
+    createList(l, fut);
+  }
 
+  public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
+    for (ModuleDescriptor md : list) {
+      final String id = md.getId();
+      if (modules.containsKey(id)) {
+        fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+        return;
+      }
+      tempList.put(id, md);
+    }
     String res = checkAllDependencies(tempList);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, "create: module " + id + ": " + res));
-      return;
+      fut.handle(new Failure<>(USER, res));
+    } else {
+      modules = tempList;
+      fut.handle(new Success<>());
     }
-    modules.put(id, md);
-    fut.handle(new Success<>(id));
   }
 
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
-    if (!modules.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "update: module does not exist"));
-      return;
-    }
     LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.replace(id, md);
+    tempList.put(id, md);
     String res = checkAllDependencies(tempList);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
       return;
     }
-
     String ten = tenantManager.getModuleUser(id);
     if (!ten.isEmpty()) {
       fut.handle(new Failure<>(USER, "update: module " + id
               + " is used by tenant " + ten));
       return;
     }
-
-    modules.replace(id, md);
+    modules.put(id, md);
     fut.handle(new Success<>());
   }
 

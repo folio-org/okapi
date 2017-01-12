@@ -80,7 +80,7 @@ returns it to the UI.
 ### Phase 3: updating the record
 
 * UI issues a request `PATCH /patrons/23` to Okapi. (We use PATCH
-  rather then PUT because in general we won't be sending the whole
+  rather than PUT because in general we won't be sending the whole
   record: for example, we may be missing the date-of-birth field
   because the user was not authorised to see it.)
 * As before, Okapi analyses which registered modules subscribe to that

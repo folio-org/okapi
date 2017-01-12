@@ -20,10 +20,6 @@
     <module>okapi-core</module>
   </modules>
 
-  <prerequisites>
-    <maven>3.3.1</maven>
-  </prerequisites>
-
   <licenses>
     <license>
       <name>Apache License 2.0</name>
@@ -33,8 +29,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>3.3.0</vertx-version>
-    <docker.registry>docker.indexdata.com:5000</docker.registry>
+    <vertx-version>3.3.2</vertx-version>
   </properties>
 
   <build>
@@ -77,86 +72,37 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>1.2.1</version>
         <executions>
-            <execution>
-                <id>default-cli</id>
-                <goals>
-                    <goal>exec</goal>
-                </goals>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-jar</argument>
-                        <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                        <argument>dev</argument>
-                    </arguments>
-                </configuration>
-            </execution>
-            <execution>
-                <id>debug</id>
-                <goals>
-                    <goal>exec</goal>
-                </goals>
-                <configuration>
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>-Xdebug</argument>
-                        <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
-                        <argument>-jar</argument>
-                        <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                        <argument>dev</argument>
-                    </arguments>
-                </configuration>
-            </execution>
-        </executions>
-      </plugin>
-     <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
-        <version>2.2.1</version>
-        <executions>
           <execution>
+            <id>default-cli</id>
             <goals>
-              <goal>revision</goal>
+              <goal>exec</goal>
             </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-jar</argument>
+                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                <argument>dev</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>debug</id>
+            <goals>
+              <goal>exec</goal>
+            </goals>
+            <configuration>
+              <executable>java</executable>
+              <arguments>
+                <argument>-Xdebug</argument>
+                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
+                <argument>-jar</argument>
+                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
+                <argument>dev</argument>
+              </arguments>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <dotGitDirectory>${project.basedir}/.git</dotGitDirectory>
-          <!-- <dateFormatTimeZone>${user.timezone}</dateFormatTimeZone> -->
-          <dateFormatTimeZone>UTC</dateFormatTimeZone> -->
-          <verbose>false</verbose>
-          <generateGitPropertiesFile>true</generateGitPropertiesFile>
-          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
-          <injectAllReactorProjects>true</injectAllReactorProjects>
-          <skip>false</skip>
-          <runOnlyOnce>false</runOnlyOnce>
-        </configuration>
-      </plugin>
-     <plugin>
-        <groupId>com.spotify</groupId>
-        <artifactId>docker-maven-plugin</artifactId>
-        <version>0.4.5</version>
-        <configuration>
-          <skipDockerBuild>true</skipDockerBuild>
-          <skipDockerTag>true</skipDockerTag>
-          <dockerDirectory>${basedir}</dockerDirectory>
-          <serverId>docker_registry</serverId>
-          <registryUrl>https://${docker.registry}/v2/</registryUrl>
-          <imageName>${project.artifactId}</imageName>
-          <imageTags>
-            <imageTag>${git.commit.id.abbrev}</imageTag>
-            <imageTag>latest</imageTag>
-          </imageTags>
-          <image>${project.artifactId}:${git.commit.id.abbrev}</image>
-          <newName>${docker.registry}/${project.artifactId}:${git.commit.id.abbrev}</newName>
-          <resources>
-            <resource>
-              <targetPath>/</targetPath>
-              <directory>${project.build.directory}</directory>
-              <include>${project.outputFile}</include>
-            </resource>
-          </resources>
-        </configuration>
       </plugin>
 
       <plugin>
@@ -182,19 +128,19 @@
 
   <distributionManagement>
     <repository>
-      <id>id-maven-repo</id>
-      <name>Index Data Maven Repository</name>
-      <url>scp://maven.indexdata.com:22/var/www/maven/repository</url>
+      <id>folio-nexus</id>
+      <name>FOLIO Release Repository</name>
+      <url>https://repository.folio.org/repository/maven-releases/</url>
       <uniqueVersion>false</uniqueVersion>
+      <layout>default</layout>
     </repository>
+    <snapshotRepository>
+      <id>folio-nexus</id>
+      <name>FOLIO Snapshot Repository</name>
+      <uniqueVersion>true</uniqueVersion>
+      <url>https://repository.folio.org/repository/maven-snapshots/</url>
+      <layout>default</layout>
+    </snapshotRepository>
   </distributionManagement>
-
-  <repositories>
-    <repository>
-      <id>id-maven-repo</id>
-      <name>Index Data Maven Repository</name>
-      <url>http://maven.indexdata.com/</url>
-    </repository>
-  </repositories>
 
 </project>

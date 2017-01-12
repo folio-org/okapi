@@ -7,10 +7,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import static org.folio.okapi.common.HttpResponse.*;
 import java.util.HashMap;
+import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -29,47 +29,39 @@ import java.util.HashMap;
  */
 public class Auth {
 
-  static final String OKAPITOKENHEADER = "X-Okapi-Token";
-  static final String OKAPIMODPERMSHEADER = "X-Okapi-Module-Permissions";
-  static final String OKAPIMODTOKENSHEADER = "X-Okapi-Module-Tokens";
-  static final String OKAPIPERMISSIONSREQUIRED = "X-Okapi-Permissions-Required";
-  static final String OKAPIPERMISSIONSDESIRED = "X-Okapi-Permissions-Desired";
-  static final String OKAPIPERMISSIONSHEADER = "X-Okapi-Permissions";
-
   private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
 
   /**
-   * Calculate a token from tenant and username. The token is like ttt:uuu:ccc,
-   * where ttt is the tenant, uuu is the user, and ccc is a crypto thing that
-   * depends on those two.
+   * Calculate a token from tenant and username. Fakes a JWT token almost
+   * but not quite completely unlike the one a real auth module would create.
+   * The important point is that it is a JWT, and that it has a tenant in it,
+   * so Okapi can recover it in case it does not see a X-Okapi-Tenant header,
+   * as happens in some unit tests.
    *
    * @param tenant
    * @param user
    * @return the token
-   * @throws NoSuchAlgorithmException which should never happen
    */
-  private String token(String tenant, String user) throws NoSuchAlgorithmException {
-    MessageDigest md = MessageDigest.getInstance("MD5");
-    String salt = "salt"; // A real-life toke would use something from a date too.
-      // We don't, since we want our unit tests to be reproducible.
-    md.update(salt.getBytes());
-    md.update(tenant.getBytes());
-    md.update(user.getBytes());
-    byte[] mdbytes = md.digest();
+  private String token(String tenant, String user)  {
 
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < mdbytes.length; i++) {
-      sb.append(Integer.toString((mdbytes[i] & 0xff) + 0x100, 16).substring(1));
-    }
-    return "" + tenant + ":" + user + ":" + sb.toString();
+    // Create a dummy JWT token with the correct tenant
+    JsonObject payload = new JsonObject()
+                .put("sub", user)
+                .put("tenant", tenant);
+    String encodedpl = payload.encode();
+    logger.debug("test-auth: payload: " + encodedpl );
+    byte[] bytes = encodedpl.getBytes();
+    byte[] pl64bytes = Base64.getEncoder().encode(bytes);
+    String pl64 = new String(pl64bytes);
+    String token = "dummyJwt." + pl64 + ".sig";
+    logger.debug("test-auth: token: " + token);
+    return token;
   }
-
-  ;
 
   public void login(RoutingContext ctx) {
     final String json = ctx.getBodyAsString();
     if (json.length() == 0) {
-      logger.info("Auth accept OK in login");
+      logger.debug("test-auth: accept OK in login");
       responseText(ctx, 202).end("Auth accept in /login");
       return;
     }
@@ -85,21 +77,15 @@ public class Auth {
     String u = p.getUsername();
     String correctpw = u + "-password";
     if (!p.getPassword().equals(correctpw)) {
-      logger.info("Bad passwd for '" + u + "'. "
+      logger.warn("test-auth: Bad passwd for '" + u + "'. "
               + "Got '" + p.getPassword() + "' expected '" + correctpw + "'");
       responseText(ctx, 401).end("Wrong username or password");
       return;
-
     }
     String tok;
-    try {
-      tok = token(p.getTenant(), p.getUsername());
-    } catch (NoSuchAlgorithmException ex) {
-      responseText(ctx, 500).end("Error in invoking MD5sum: " + ex);
-      return;
-    }
-    logger.info("Ok login for " + u + ": " + tok);
-    responseJson(ctx, 200).putHeader(OKAPITOKENHEADER, tok).end(json);
+    tok = token(p.getTenant(), p.getUsername());
+    logger.info("test-auth: Ok login for " + u + ": " + tok);
+    responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
 
 
@@ -110,76 +96,82 @@ public class Auth {
    * not possible to extract the user or tenant from them.
    */
   private String moduleTokens(RoutingContext ctx) {
-    String modPermJson = ctx.request().getHeader(OKAPIMODPERMSHEADER);
-    logger.debug("moduleTokens: trying to decode '" + modPermJson + "'");
+    String modPermJson = ctx.request().getHeader(XOkapiHeaders.MODULE_PERMISSIONS);
+    logger.debug("test-auth: moduleTokens: trying to decode '" + modPermJson + "'");
     HashMap<String, String> tokens = new HashMap<>();
-    try {
-      if (modPermJson != null && !modPermJson.isEmpty()) {
-        JsonObject jo = new JsonObject(modPermJson);
-        String permstr = "";
-        for (String mod : jo.fieldNames()) {
-          JsonArray ja = jo.getJsonArray(mod);
-          for ( int i = 0; i < ja.size(); i++) {
-            String p = ja.getString(i);
-            if (! permstr.isEmpty() )
-              permstr += ",";
-            permstr += p;
-            }
-          String tok = token(mod, permstr);
-          tokens.put(mod, tok);
-        }
+    if (modPermJson != null && !modPermJson.isEmpty()) {
+      JsonObject jo = new JsonObject(modPermJson);
+      String permstr = "";
+      for (String mod : jo.fieldNames()) {
+        JsonArray ja = jo.getJsonArray(mod);
+        for ( int i = 0; i < ja.size(); i++) {
+          String p = ja.getString(i);
+          if (! permstr.isEmpty() )
+            permstr += ",";
+          permstr += p;
+          }
+        String tok = token(mod, permstr);
+        tokens.put(mod, tok);
       }
-    } catch (NoSuchAlgorithmException ex) {
-      logger.error("no such algorithm: " + ex.getMessage());
     }
     if (!tokens.isEmpty()) { // return also a 'clean' token
-      tokens.put("_", ctx.request().getHeader(OKAPITOKENHEADER));
+      tokens.put("_", ctx.request().getHeader(XOkapiHeaders.TOKEN));
     }
     String alltokens = Json.encode(tokens);
-    logger.debug("auth: module tokens for " + modPermJson + "  :  " + alltokens);
+    logger.debug("test-auth: module tokens for " + modPermJson + "  :  " + alltokens);
     return alltokens;
   }
 
   public void check(RoutingContext ctx) {
-    String tok = ctx.request().getHeader(OKAPITOKENHEADER);
+    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     if (tok == null || tok.isEmpty()) {
-      logger.info("Auth.check called without " + OKAPITOKENHEADER);
+      logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN);
       responseText(ctx, 401)
-              .end("Auth.check called without " + OKAPITOKENHEADER);
+              .end("Auth.check called without " + XOkapiHeaders.TOKEN);
       return;
     }
-    // Do some magic
-    String[] split = tok.split(":", 3);
-    String properToken = "???";
-    try {
-      if (split.length == 3) {
-        properToken = token(split[0], split[1]);
-      }
-      if (!tok.equals(properToken)) {
-        logger.info("Invalid token. "
-                + "Got '" + tok + "' Expected '" + properToken + "'");
-        responseText(ctx, 401).end("Invalid token");
-        return;
-      }
-    } catch (NoSuchAlgorithmException ex) {
-      logger.error("no such algorithm: " + ex.getMessage());
-      responseText(ctx, 500).end(ex.getMessage());
+    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    if (tenant == null || tenant.isEmpty()) {
+      responseText(ctx, 401)
+              .end("Auth.check called without " + XOkapiHeaders.TENANT);
       return;
     }
+    logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
+
+    String[] splitTok = tok.split("\\.");
+    logger.debug("test-auth: check: split the jwt into " + splitTok.length
+        + ": " + Json.encode(splitTok));
+    if ( splitTok.length != 3) {
+      logger.warn("test-auth: Bad JWT, can not split in three parts. '" + tok + "'");
+      responseError(ctx, 400, "Auth.check: Bad JWT");
+      return;
+    }
+
+    if (!splitTok[0].equals("dummyJwt")){
+      logger.warn("test-auth: Bad dummy JWT, starts with '" + splitTok[0] + "', not 'dummyJwt'");
+      responseError(ctx, 400, "Auth.check needs a dummyJwt");
+      return;
+    }
+    String payload = splitTok[1];
+
+    String encodedJson = payload;
+    String decodedJson = new String(Base64.getDecoder().decode(payload));
+    logger.debug("test-auth: check payload: " + decodedJson);
+    JsonObject tokenClaims = new JsonObject(decodedJson);
+
     // Fake some desired permissions
-    String des = ctx.request().getHeader(OKAPIPERMISSIONSDESIRED);
+    String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
     if ( des != null && ! des.isEmpty()) {
     ctx.response().headers()
-      .add(OKAPIPERMISSIONSDESIRED, des);
+      .add(XOkapiHeaders.PERMISSIONS, des);
     }
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
-      .add(OKAPITOKENHEADER, tok)
-      .add(OKAPIMODTOKENSHEADER, modTok);
+      .add(XOkapiHeaders.TOKEN, tok)
+      .add(XOkapiHeaders.MODULE_TOKENS, modTok);
     responseText(ctx, 202); // Abusing 202 to say check OK
     echo(ctx);
-
   }
 
   private void echo(RoutingContext ctx) {
@@ -200,7 +192,7 @@ public class Auth {
    * @param ctx
    */
   public void accept(RoutingContext ctx) {
-    logger.info("Auth accept OK");
+    logger.info("test-auth: Auth accept OK");
     responseText(ctx, 202);
     echo(ctx);
   }

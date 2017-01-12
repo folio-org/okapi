@@ -29,6 +29,7 @@ managing and running microservices.
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Web Service](#web-service)
+    * [Deployment](#deployment)
     * [Instrumentation](#instrumentation)
 
 ## Introduction
@@ -39,7 +40,7 @@ implementation and usage of Okapi: by presenting concrete web service
 endpoints and details of request processing - handling of request and
 response entities, status codes, error conditions, etc.
 
-Okapi is an implementation of a couple different patterns commonly used within
+Okapi is an implementation of some different patterns commonly used within
 the microservice architecture. The most central of them is the so called "API
 Gateway" pattern which is implemented by the core Okapi 'proxy' service.
 Conceptually, the API Gateway is a server that is a single entry point into
@@ -325,6 +326,13 @@ of the request, and returns no body, so it is of type
 the request body to determine the login parameters, and it also
 returns a message; so it must be of type `request-response`.
 
+Okapi has a feature where a module can exceptionally return a X-Okapi-Stop
+header, and that will cause Okapi to terminate the pipeline with the result
+this module returned. It is meant to be used sparingly, for example a module
+in a login pipeline may conclude that the user is already authorized since
+he comes from a IP address in the secure office, and abort the sequence of
+events that would lead to a login screen being displayed.
+
 
 ### Status Codes
 
@@ -430,6 +438,8 @@ But it will reject:
 * 3.1.9   - Lesser minor version
 * 3.2.27  - Too small software version, may not contain crucial bug-fixes
 
+See further explanation of
+[Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
 
 ### Security
 
@@ -627,8 +637,9 @@ the [Reference](#reference) section.
 Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment, MongoDB storage can be enabled by adding the
-option `-Dstorage=mongo` to the command line that starts Okapi.
+to the next. At the moment, MongoDB and Postgres storage can be enabled by
+option `-Dstorage=mongo` and  `-Dstorage=postgres` respectively to the command
+line that starts Okapi.
 
 ### Curl examples
 
@@ -761,9 +772,7 @@ The dummy module supports two functions: `/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
-headers.  The token, for this dummy module, is simply the username and
-tenant-id concatenated with a checksum. In a real authentication
-module it will be something opaque and difficult to fake.
+headers.
 
 We will see examples of this when we get to play with Okapi itself. If
 you want, you can verify the module directly as with the okapi-test-module.
@@ -1269,7 +1278,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8
+X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
 X-Okapi-Trace: POST test-auth:200 136641us
 Transfer-Encoding: chunked
 
@@ -1277,17 +1286,23 @@ Transfer-Encoding: chunked
 ```
 
 The response just echoes its parameters, but notice that we get back a header
-`X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8`. We are not
-supposed to worry about what that header contains, but we can see that the
-tenant ID and the user ID are there, and that there is some kind of crypto
-stuff to ensure things are right. A real-life auth module is free to put other
-stuff in the token too. All Okapi's users need to know is how do we get a token,
+`X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig`.
+We are not supposed to worry about what that header contains, but we can see its
+format is almost as you would expect from a JWT: Three parts separated by dots,
+first a header, then a base-64 encoded payload, and finally a signature. The
+header and signature would normally be base-64 encoded as well, but the simple
+test-auth module skips that part, to make a distinct that can not be mistaken
+as a real JWT. The payload is indeed base-64 encoded, and if you decode it, you
+see that it will contain a Json structure with the user id and the tenant id,
+and nothing much else. A real-life auth module would of course put more stuff
+in the JWT, and sign it with some strong crypto. But that should make no
+difference to Okapi's users -- all that they need to know is how do we get a token,
 and how to pass it on in every request. Like this:
 
 ```
 curl -D - -w '\n' \
    -H "X-Okapi-Tenant: testlib" \
-   -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
+   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
    http://localhost:9130/testb
 
 HTTP/1.1 200 OK
@@ -1298,8 +1313,6 @@ Transfer-Encoding: chunked
 It works
 ```
 
-You can try to hack the system, change the user ID or the tenant ID, or mess
-with the crypto signature, and see that those requests fail.
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
@@ -1352,12 +1365,22 @@ Okapi. These must be at the beginning of the command line, before the
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
 Defaults to `localhost`
-* `storage`: Defines the storage back end, `mongo` or (the default) `inmemory`
+* `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
+`inmemory`
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
 as X-Okapi-Url header, and the modules can use this to make further requests
-to Okapi. Defaults to `http://localhost:9130/` or what ever port specified.
+to Okapi. Defaults to `http://localhost:9130` or what ever port specified. There
+should be no trailing slash, but if there happens to be one, Okapi will remove it.
+* `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
+`http://localhost:4243`.
+* `postgres_user` : Postgres username. Defaults to `okapi`.
+* `postgres_password`: Postgres password. Defaults to `okapi25`.
+* `postgres_database`: Postgres database. Defaults to `okapi`.
+* `postgres_db_init`: For a value of `1`, Okapi will drop existing Postgres
+database and prepare a new one. A value of `0` (null) will leave it unmodified
+(default).
 
 #### Command
 
@@ -1387,6 +1410,33 @@ in the [RAML](http://raml.org/) syntax.
 
   * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
+  * [API reference documentation](http://dev.folio.org/doc/api/) generated from those files
+
+### Deployment
+
+Deployment is specified by schemas
+[DeploymentDescriptor.json](../okapi-core/src/main/raml/DeploymentDescriptor.json)
+and [LaunchDescriptor.json](../okapi-core/src/main/raml/LaunchDescriptor.json). The
+LaunchDescriptor can be part of a ModuleDescriptor, or it can be specified in a
+DeploymentDescriptor.
+
+The following methods exist for launching modules:
+
+* Process: The `exec` property specifies a process that stays alive and is killed (by signal) by Okapi itself.
+
+* Commands: Triggered by presence of `cmdlineStart` and `cmdlineStop` properties.
+The `cmdlineStart` is a shell script that spawns and puts a service in the background. The `cmdlineStop` is a shell script that terminates
+the corresponding service.
+
+* Docker: The `dockerImage` property specifies an existing image. Okapi manages a container based on this image.
+This option requires that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
+The Dockerfile's CMD directive may be changed with property `dockerCMD`. This assumes
+that ENTRYPOINT is the full invocation of the module and that CMD is either
+default settings or, preferably, empty.
+
+It is also possible to refer to an already-launched process (maybe running in your
+development IDE), by POSTing a DeploymentDescriptor to /_/discovery, with no nodeId
+and no LaunchDescriptor, but with the URL where the module is running.
 
 ### Instrumentation
 

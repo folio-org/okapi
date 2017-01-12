@@ -23,10 +23,10 @@ do
 
   echo
   date
-  curl  -w '\n' -D -  \
-      -H "X-Okapi-Tenant: $TENANT" \
-      -H "$TOKEN" \
-      $OKAPI/$MODULE
+  curl  -w '\n' -D - \
+    -H "X-Okapi-Tenant: $TENANT" \
+    -H "$TOKEN" \
+    $OKAPI/$MODULE
 
   sleep $SLEEP
 
