@@ -9,7 +9,7 @@ In almost all cases, when a server-side module needs to report an error to the c
 
 For example, one could imagine a client submitting an edit which fails validation on the server side: then the response could contain a list of validation-failure objects, each containing a fieldName, maybe the associated fieldValue that failed, and an explanation of why it was rejected:
 
-````
+```
 400 Bad Request
 Content-Type: application/json
 
@@ -29,7 +29,7 @@ Content-Type: application/json
     }
   ]
 }
-````
+```
 
 A clever UI could use this to annotate its edit page and guide the user.
 
@@ -53,7 +53,7 @@ When receiving an error response, it is the responsibility of the client to chec
 
 It might make sense if there are error codes not covered by HTTP but needed across a variety of modules to provide a set of standard error codes but require that any codes not on the list, use a module-based namespace encoding.
 
-Since we have no immediate need for structure error information, there is little gain _now_ from adopting this approach. But it will be a big win down the line when we decide we need more expressive power in diagnostics. The ugrade path is very painless, as individual errors on the server side can be upgraded as and when; and no such change will require a corresponding UI change, the additional information will just be there for the UI to use when it's ready.
+Since we have no immediate need for structured error information, there is little gain _now_ from adopting this approach. But it will be a big win down the line when we decide we need more expressive power in diagnostics. The ugrade path is very painless, as individual errors on the server side can be upgraded as and when; and no such change will require a corresponding UI change, the additional information will just be there for the UI to use when it's ready.
 
 So upgrading the format of an error reported by service doesn't break anything.
 
