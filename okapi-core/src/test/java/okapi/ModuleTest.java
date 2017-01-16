@@ -638,7 +638,7 @@ public class ModuleTest {
             .get("/testb")
             .then().statusCode(200)
             .header("Access-Control-Allow-Origin", "*")
-            .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token")
+            .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token,Authorization")
             .body(equalTo("It works"));
 
     // Post request

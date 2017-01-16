@@ -263,11 +263,12 @@ public class MainVerticle extends AbstractVerticle {
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
             .allowedHeader(XOkapiHeaders.TENANT)
             .allowedHeader(XOkapiHeaders.TOKEN)
-            .allowedHeader("Authorization")
+            .allowedHeader(XOkapiHeaders.AUTHORIZATION)
             //expose response headers
             .exposedHeader(HttpHeaders.LOCATION.toString())
             .exposedHeader(XOkapiHeaders.TRACE)
             .exposedHeader(XOkapiHeaders.TOKEN)
+            .exposedHeader(XOkapiHeaders.AUTHORIZATION)
     );
 
     // Paths that start with /_/ are okapi internal configuration
