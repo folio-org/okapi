@@ -30,6 +30,10 @@ public class TenantManager {
     DropwizardHelper.registerGauge(metricKey, () -> tenants.size());
   }
 
+  public ModuleManager getModuleManager() {
+    return moduleManager;
+  }
+
   public boolean insert(Tenant t) {
     String id = t.getId();
     Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".create");

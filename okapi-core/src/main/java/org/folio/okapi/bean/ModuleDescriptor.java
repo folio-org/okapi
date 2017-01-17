@@ -22,6 +22,8 @@ public class ModuleDescriptor {
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
 
+  private String tenantInterface;
+
   public ModuleDescriptor() {
   }
 
@@ -40,6 +42,7 @@ public class ModuleDescriptor {
     this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
+    this.tenantInterface = other.tenantInterface;
   }
 
   public String getId() {
@@ -113,5 +116,14 @@ public class ModuleDescriptor {
   public void setLaunchDescriptor(LaunchDescriptor launchDescriptor) {
     this.launchDescriptor = launchDescriptor;
   }
+
+  public String getTenantInterface() {
+    return tenantInterface;
+  }
+
+  public void setTenantInterface(String tenantInterface) {
+    this.tenantInterface = tenantInterface;
+  }
+
 
 }

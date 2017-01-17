@@ -69,6 +69,21 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  public void my_tenant_handle(RoutingContext ctx) {
+    ctx.response().setStatusCode(200);
+    ctx.response().setChunked(true);
+
+    ctx.response().write(ctx.request().method() + " request to tenant service\n");
+    logger.info(ctx.request().method() + " request to okapi-test-module tenant service\n");
+    ctx.request().handler(x -> {
+      ctx.response().write(x);
+    });
+    ctx.request().endHandler(x -> {
+      ctx.response().end();
+    });
+  }
+
+
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
@@ -79,6 +94,14 @@ public class MainVerticle extends AbstractVerticle {
 
     router.get("/testb").handler(this::my_stream_handle);
     router.post("/testb").handler(this::my_stream_handle);
+
+    // TODO - Remove the /tenant path when we have switched to /_/tenant everywhere
+    router.get("/tenant").handler(this::my_tenant_handle);
+    router.post("/tenant").handler(this::my_tenant_handle);
+    router.delete("/tenant").handler(this::my_tenant_handle);
+    router.get("/_/tenant").handler(this::my_tenant_handle);
+    router.post("/_/tenant").handler(this::my_tenant_handle);
+    router.delete("/_/tenant").handler(this::my_tenant_handle);
 
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);
