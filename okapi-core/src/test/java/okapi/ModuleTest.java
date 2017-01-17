@@ -411,7 +411,8 @@ public class ModuleTest {
             + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"exec\" : \"/usr/bin/false\"" + LS
-            + "  }" + LS
+            + "  }," + LS
+            + "  \"tenantInterface\" : \"/tenant\"" + LS
             + "}";
     logger.debug(docSampleModule);
     c = api.createRestAssured();
@@ -934,11 +935,20 @@ public class ModuleTest {
             .get("/testb")
             .then().statusCode(404); // because sample2 was removed
 
+    // Disable the sample module. No tenant-destroy for sample, but for sample2, yes.
+    c.given()
+            .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module")
+            .then().statusCode(204);
+    c.given()
+            .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
+            .then().statusCode(400);  // no running instance
+
     c = api.createRestAssured();
     c.given().delete(locationTenantRoskilde)
             .then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
 
     // Clean up, so the next test starts with a clean slate
     logger.debug("testproxy cleaning up");

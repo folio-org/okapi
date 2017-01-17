@@ -305,6 +305,64 @@ public class TenantWebService {
     }
   }
 
+  /**
+   * Helper to make a DELETE request to the module's tenant interface.
+   * Sets up the response in ctx.
+   * @param ctx
+   * @param module 
+   */
+  private void destroyTenant(RoutingContext ctx, String module){
+      ModuleManager modMan = tenants.getModuleManager();
+      ModuleDescriptor md = modMan.get(module);
+      if ( md == null ) {
+        responseError(ctx, 400, "Unknown module " + module );
+        return;
+      }
+      String tenInt = md.getTenantInterface();
+      if (tenInt == null || tenInt.isEmpty() )
+      {
+        logger.debug("disableModule: " + module + " has no support for tenant destroy");
+        responseText(ctx, 204).end();
+        return;
+      }
+      // We have a tenant interface, invoke DELETE on it
+      discoveryManager.get(module, gres->{
+        if ( gres.failed()) {
+          responseError(ctx, gres.getType(), gres.cause());
+        } else {
+          List<DeploymentDescriptor> instances = gres.result();
+          if (instances.isEmpty()) {
+            responseError(ctx, 400, "No running instances for module " + module
+              + ". Can not invoke tenant destroy" );
+          } else { // TODO - Don't just take the first. Pick one by random.
+            String baseurl = instances.get(0).getUrl();
+            logger.debug("disableModule Url: " + baseurl + " and "  + tenInt);
+            Map<String,String> headers = new HashMap<>();
+            for (String hdr : ctx.request().headers().names()) {
+              if ( hdr.matches("^X-.*$")) {
+                headers.put(hdr, ctx.request().headers().get(hdr));
+              }
+            }
+            headers.put("Accept", "*/*");
+            //headers.put("Content-Type", "application/json; charset=UTF-8");
+            String body = ""; // dummy
+            OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.request(HttpMethod.DELETE, tenInt, body, cres->{
+              if ( cres.failed()) {
+                logger.warn("Tenant destroy request for "
+                  + module + " failed with " + cres.cause().getMessage());
+                responseError(ctx, 500, "Post to /tenant on " + module + " failed with "
+                   + cres.cause().getMessage());
+              } else { // All well, we can finally enable it
+                logger.debug("disableModule: destroy request to " + module + " succeeded");
+                responseText(ctx, 204).end();  // finally we are done
+              }
+            });
+          }
+        }
+      });
+  }
+
   public void disableModule(RoutingContext ctx) {
     try {
       final String id = ctx.request().getParam("id");
@@ -316,7 +374,7 @@ public class TenantWebService {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            responseText(ctx, 204).end();
+            destroyTenant(ctx, module);
           } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
             logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
             responseError(ctx, 404, res.cause());

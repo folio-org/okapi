@@ -98,8 +98,10 @@ public class MainVerticle extends AbstractVerticle {
     // TODO - Remove the /tenant path when we have switched to /_/tenant everywhere
     router.get("/tenant").handler(this::my_tenant_handle);
     router.post("/tenant").handler(this::my_tenant_handle);
+    router.delete("/tenant").handler(this::my_tenant_handle);
     router.get("/_/tenant").handler(this::my_tenant_handle);
     router.post("/_/tenant").handler(this::my_tenant_handle);
+    router.delete("/_/tenant").handler(this::my_tenant_handle);
 
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);
