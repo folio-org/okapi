@@ -31,6 +31,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.service.ModuleManager;
 
@@ -281,6 +282,10 @@ public class TenantWebService {
                   headers.put(hdr, ctx.request().headers().get(hdr));
                 }
               }
+              if ( !headers.containsKey(XOkapiHeaders.TENANT)) {
+                headers.put(XOkapiHeaders.TENANT, id);
+                logger.warn("Added " + XOkapiHeaders.TENANT + " : " + id);
+              }
               headers.put("Accept", "*/*");
               headers.put("Content-Type", "application/json; charset=UTF-8");
               String body = "{}"; // dummy
@@ -311,7 +316,7 @@ public class TenantWebService {
    * @param ctx
    * @param module 
    */
-  private void destroyTenant(RoutingContext ctx, String module){
+  private void destroyTenant(RoutingContext ctx, String module, String id){
       ModuleManager modMan = tenants.getModuleManager();
       ModuleDescriptor md = modMan.get(module);
       if ( md == null ) {
@@ -342,6 +347,10 @@ public class TenantWebService {
               if ( hdr.matches("^X-.*$")) {
                 headers.put(hdr, ctx.request().headers().get(hdr));
               }
+            }
+            if ( !headers.containsKey(XOkapiHeaders.TENANT)) {
+              headers.put(XOkapiHeaders.TENANT, id);
+              logger.warn("Added " + XOkapiHeaders.TENANT + " : " + id);
             }
             headers.put("Accept", "*/*");
             //headers.put("Content-Type", "application/json; charset=UTF-8");
@@ -374,7 +383,7 @@ public class TenantWebService {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            destroyTenant(ctx, module);
+            destroyTenant(ctx, module, id);
           } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
             logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
             responseError(ctx, 404, res.cause());

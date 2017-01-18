@@ -10,6 +10,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import org.folio.okapi.common.XOkapiHeaders;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -73,8 +74,11 @@ public class MainVerticle extends AbstractVerticle {
     ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
-    ctx.response().write(ctx.request().method() + " request to tenant service\n");
-    logger.info(ctx.request().method() + " request to okapi-test-module tenant service\n");
+    String tenant =  ctx.request().getHeader(XOkapiHeaders.TENANT);
+    ctx.response().write(ctx.request().method() 
+      + " request to tenant service for tenant " + tenant + "\n");
+    logger.info(ctx.request().method() 
+      + " request to okapi-test-module tenant servic for tenant " + tenant);
     ctx.request().handler(x -> {
       ctx.response().write(x);
     });
