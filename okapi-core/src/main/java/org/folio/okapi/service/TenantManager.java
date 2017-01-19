@@ -88,8 +88,8 @@ public class TenantManager {
 
   private String checkOneDependency(Tenant tenant, ModuleDescriptor md, ModuleInterface req) {
     ModuleInterface seenversion = null;
-    for (String enabledmodule : tenant.listModules()) {
-      ModuleDescriptor rm = moduleManager.get(enabledmodule);
+    for (String enabledModule : tenant.listModules()) {
+      ModuleDescriptor rm = moduleManager.get(enabledModule);
       ModuleInterface[] provides = rm.getProvides();
       if (provides != null) {
         for (ModuleInterface pi : provides) {
@@ -118,7 +118,30 @@ public class TenantManager {
     }
     logger.debug(msg);
     return msg;
-
+  }
+  private String checkOneConflict(Tenant tenant, ModuleDescriptor md, ModuleInterface prov) {
+    ModuleInterface seenversion = null;
+    for (String enabledModule : tenant.listModules()) {
+      ModuleDescriptor rm = moduleManager.get(enabledModule);
+      ModuleInterface[] provides = rm.getProvides();
+      if (provides != null) {
+        for (ModuleInterface pi : provides) {
+          logger.debug("Checking conflict of " + md.getId() + ": "
+                  + prov.getId() + " " + prov.getVersion()
+                  + " against " + pi.getId() + " " + pi.getVersion());
+          if (prov.getId().equals(pi.getId())) {
+            String msg = "Can not enable module '" +  md.getId() + "'"
+              + " for tenant '" + tenant.getId() + "'"
+              + " because of conflict:"
+              + " Interfcace '" + prov.getId() + "' already provided by module '"
+              + enabledModule + "'";
+            logger.debug(msg);
+            return msg;
+          }
+        }
+      }
+    }
+    return "";
   }
 
   private String checkDependencies(Tenant tenant, ModuleDescriptor md) {
@@ -128,6 +151,17 @@ public class TenantManager {
         String one = checkOneDependency(tenant, md, req);
         if (!one.isEmpty()) {
           return one;
+        }
+      }
+    }
+    ModuleInterface[] provides = md.getProvides();
+    if (provides != null) {
+      for (ModuleInterface prov : provides) {
+        if ( ! prov.getId().startsWith("_")) { // skip system interfaces like _tenant
+          String one = checkOneConflict(tenant, md, prov);
+          if (!one.isEmpty()) {
+            return one;
+          }
         }
       }
     }
