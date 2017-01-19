@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -225,6 +226,35 @@ public class TenantWebService {
 
 
   /**
+   * Helper to get the tenantInterface path.
+   * Checks the tenantInterface field in the md, and uses that if present,
+   * with a warning that it is deprecated. Then checks if the module supports
+   * the _tenant system interface, and if so, returns the well-known path for
+   * it: "/_/tenant".
+   * @param md
+   * @return "" if no tenantInterface, or the path to it.
+   */
+  private String findTenantInterface(ModuleDescriptor md ) {
+    String ti = md.getTenantInterface();
+    if (ti != null && !ti.isEmpty()) {
+      logger.warn("Module '" + md.getId() + "'"
+        + " still uses the DEPRECATED tenantInterface field."
+        + " Provide a '_tenant' interface instead");
+      return ti;
+    }
+    ModuleInterface[] prov = md.getProvides();
+    logger.debug("findTenantInterface: prov: " + Json.encode(prov));
+    if (prov != null) {
+      for (ModuleInterface pi : prov) {
+        logger.debug("findTenantInterface: Looking at " + pi.getId());
+        if ("_tenant".equals(pi.getId())) {
+          return "/_/tenant";
+        }
+      }
+    }
+    return "";
+  }
+  /**
    * Helper to actually enable the module. Mostly error handling.
    */
   private void enableModuleHelper(RoutingContext ctx,
@@ -259,7 +289,7 @@ public class TenantWebService {
         responseError(ctx, 400, "Unknown module " + module );
         return;
       }
-      String tenInt = md.getTenantInterface();
+      String tenInt = findTenantInterface(md);
       if (tenInt == null || tenInt.isEmpty() )
       {
         logger.debug("enableModule: " + module + " has no support for tenant init");
@@ -284,7 +314,7 @@ public class TenantWebService {
               }
               if ( !headers.containsKey(XOkapiHeaders.TENANT)) {
                 headers.put(XOkapiHeaders.TENANT, id);
-                logger.warn("Added " + XOkapiHeaders.TENANT + " : " + id);
+                logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
               }
               headers.put("Accept", "*/*");
               headers.put("Content-Type", "application/json; charset=UTF-8");
@@ -314,7 +344,7 @@ public class TenantWebService {
    * Helper to make a DELETE request to the module's tenant interface.
    * Sets up the response in ctx.
    * @param ctx
-   * @param module 
+   * @param module
    */
   private void destroyTenant(RoutingContext ctx, String module, String id){
       ModuleManager modMan = tenants.getModuleManager();
@@ -350,7 +380,7 @@ public class TenantWebService {
             }
             if ( !headers.containsKey(XOkapiHeaders.TENANT)) {
               headers.put(XOkapiHeaders.TENANT, id);
-              logger.warn("Added " + XOkapiHeaders.TENANT + " : " + id);
+              logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
             }
             headers.put("Accept", "*/*");
             //headers.put("Content-Type", "application/json; charset=UTF-8");

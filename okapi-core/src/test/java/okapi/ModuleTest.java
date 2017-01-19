@@ -414,8 +414,7 @@ public class ModuleTest {
             + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"exec\" : \"/usr/bin/false\"" + LS
-            + "  }," + LS
-            + "  \"tenantInterface\" : \"/tenant\"" + LS
+            + "  }" + LS
             + "}";
     logger.debug(docSampleModule);
     c = api.createRestAssured();

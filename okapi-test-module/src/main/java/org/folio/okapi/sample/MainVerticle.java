@@ -78,7 +78,7 @@ public class MainVerticle extends AbstractVerticle {
     ctx.response().write(ctx.request().method() 
       + " request to tenant service for tenant " + tenant + "\n");
     logger.info(ctx.request().method() 
-      + " request to okapi-test-module tenant servic for tenant " + tenant);
+      + " request to okapi-test-module tenant service for tenant " + tenant);
     ctx.request().handler(x -> {
       ctx.response().write(x);
     });

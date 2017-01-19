@@ -831,6 +831,9 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
     "provides" : [ {
       "id" : "test-basic",
       "version" : "2.2.3"
+    }, {
+      "id" : "_tenant",
+      "version" : "1.0.0"
     } ],
     "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
@@ -848,10 +851,22 @@ END
 ```
 The id is what we will be using to refer to this module later.
 
+The module provides two interfaces: `test-basic`, which is its main reason of
+existing, and a special interface called `_tenant` - note the underscore. That
+indicates that this is a "system" interface, something Okapi will call when
+the module gets enabled for a tenant (and disabled too). This is where the
+module may do all sort of setting up tasks, like initializing a database for
+this tenant.
+
+The module could also require some interfaces to be present, but since this is
+the first module we add, we don't require anything else.
+
 The routingEntries indicate that the module is interested in GET and POST
 requests to the /testb path and nothing else, and that the module is supposed
 to provide a full response. The level is used to to specify the order in which
-the request will be sent to multiple modules, as will be seen later.
+the request will be sent to multiple modules, as will be seen later. Note that
+the `_tenant` interface is not listed here at all, calls to system interfaces
+do not go through the regular proxy routing tables at all.
 
 We will come back to the permission things later, when we look at the auth
 module.
@@ -880,6 +895,9 @@ Content-Length: 494
   "provides" : [ {
     "id" : "test-basic",
     "version" : "2.2.3"
+    }, {
+      "id" : "_tenant",
+      "version" : "1.0.0"
   } ],
   "routingEntries" : [ {
     "methods" : [ "GET", "POST" ],
@@ -1063,6 +1081,16 @@ Content-Length: 25
 {
   "id" : "test-basic"
 }
+```
+
+Well, although the operation was simple, there was some magic happening behind
+the scenes. When enabling the module, Okapi also POSTed a message to its
+`/_/tenant` interface, and the module could have done some initialization there.
+Since our test module is so simple, it does not need anything fancy, so all it
+does it post a message in the log, which you may catch flying past on the screen
+where Okapi is running. It should say something like
+```
+POST request to okapi-test-module tenant service for tenant testlib
 ```
 
 #### Calling the module
