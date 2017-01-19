@@ -395,6 +395,9 @@ public class ModuleTest {
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
+            + "  }, {" + LS
+            + "    \"id\" : \"_tenant\"," + LS   
+            + "    \"version\" : \"1.0.0\"" + LS
             + "  } ]," + LS
             + "  \"requires\" : [ {" + LS
             + "    \"id\" : \"auth\"," + LS
@@ -411,8 +414,7 @@ public class ModuleTest {
             + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
             + "  \"launchDescriptor\" : {" + LS
             + "    \"exec\" : \"/usr/bin/false\"" + LS
-            + "  }," + LS
-            + "  \"tenantInterface\" : \"/tenant\"" + LS
+            + "  }" + LS
             + "}";
     logger.debug(docSampleModule);
     c = api.createRestAssured();
@@ -755,6 +757,10 @@ public class ModuleTest {
     final String docSample2Module = "{" + LS
             + "  \"id\" : \"sample-module2\"," + LS
             + "  \"name\" : \"another-sample-module2\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"_tenant\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/testb\"," + LS
@@ -805,6 +811,10 @@ public class ModuleTest {
     final String docSample3Module = "{" + LS
             + "  \"id\" : \"sample-module3\"," + LS
             + "  \"name\" : \"sample-module3\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"_tenant\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
             + "  \"routingEntries\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/testb\"," + LS
@@ -839,9 +849,16 @@ public class ModuleTest {
             .header("Content-Type", "application/json")
             .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
             .then().statusCode(200)
+            .log().ifError()
             .body(equalTo(docEnableSample3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+    given()
+           .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+           .then().statusCode(200)
+           .log().all();
+
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -1061,6 +1078,9 @@ public class ModuleTest {
             + "  \"name\" : \"sample module for deployment test\"," + LS
             + "  \"provides\" : [ {" + LS
             + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  }, {" + LS
+            + "    \"id\" : \"_tenant\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  } ]," + LS
             + "  \"routingEntries\" : [ {" + LS
