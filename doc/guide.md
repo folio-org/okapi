@@ -1087,8 +1087,8 @@ Well, although the operation was simple, there was some magic happening behind
 the scenes. When enabling the module, Okapi also POSTed a message to its
 `/_/tenant` interface, and the module could have done some initialization there.
 Since our test module is so simple, it does not need anything fancy, so all it
-does it post a message in the log, which you may catch flying past on the screen
-where Okapi is running. It should say something like
+does is post a message in the log, which you may catch flying past on the screen
+where Okapi is running. It should say something like:
 ```
 POST request to okapi-test-module tenant service for tenant testlib
 ```
