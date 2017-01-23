@@ -15,6 +15,8 @@ import org.folio.okapi.common.XOkapiHeaders;
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-module");
+  private String helloGreeting;
+
 
   public void my_stream_handle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
@@ -60,7 +62,7 @@ public class MainVerticle extends AbstractVerticle {
       });
     } else {
       ctx.response().setChunked(true);
-      ctx.response().write("Hello " + xmlMsg2);
+      ctx.response().write(helloGreeting + " " + xmlMsg2);
       ctx.request().handler(x -> {
         ctx.response().write(x);
       });
@@ -75,9 +77,9 @@ public class MainVerticle extends AbstractVerticle {
     ctx.response().setChunked(true);
 
     String tenant =  ctx.request().getHeader(XOkapiHeaders.TENANT);
-    ctx.response().write(ctx.request().method() 
+    ctx.response().write(ctx.request().method()
       + " request to tenant service for tenant " + tenant + "\n");
-    logger.info(ctx.request().method() 
+    logger.info(ctx.request().method()
       + " request to okapi-test-module tenant service for tenant " + tenant);
     ctx.request().handler(x -> {
       ctx.response().write(x);
@@ -92,6 +94,10 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
 
+    helloGreeting = System.getenv("helloGreeting");
+    if (helloGreeting == null) {
+      helloGreeting = "Hello";
+    }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting okapi-test-module " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
     //enable reading body to string
