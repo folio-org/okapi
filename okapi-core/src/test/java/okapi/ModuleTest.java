@@ -333,7 +333,11 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+            + "    \"env\" : [ {" + LS
+            + "      \"name\" : \"helloGreeting\"," + LS
+            + "      \"value\" : \"hej\"" + LS
+            + "    } ]" + LS
             + "  }" + LS
             + "}";
     c = api.createRestAssured();
@@ -396,7 +400,7 @@ public class ModuleTest {
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  }, {" + LS
-            + "    \"id\" : \"_tenant\"," + LS   
+            + "    \"id\" : \"_tenant\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  } ]," + LS
             + "  \"requires\" : [ {" + LS
