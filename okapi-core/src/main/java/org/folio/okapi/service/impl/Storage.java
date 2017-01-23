@@ -21,10 +21,18 @@ public class Storage {
   private TimeStampStore timeStampStore;
   private TenantStore tenantStore;
 
+  public enum InitMode {
+    NORMAL, // normal operation
+    INIT, // create database at startup
+    PURGE  // purge the whole database
+  };
+  private InitMode initMode;
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  public Storage(Vertx vertx, String type, JsonObject config) {
+  public Storage(Vertx vertx, String type, InitMode initMode, JsonObject config) {
     timeStampStore = new TimeStampMemory(vertx);
+    this.initMode = initMode;
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
@@ -47,19 +55,25 @@ public class Storage {
   }
 
   public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.warn("Storage.resetDatabases: " + initMode);
     if (mongo != null) {
+      if (initMode != InitMode.NORMAL) {
+        logger.warn("Mong backend does not support the init/purge database commands");
+      } // This does not matter, we will drop mongo soon
       mongo.resetDatabases(fut);
     } else if (postgres != null) {
       TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
-      tnp.resetDatabase(res-> {
+      tnp.resetDatabase(initMode, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
-          mnp.resetDatabase(fut);
+          mnp.resetDatabase(initMode, fut);
         }
       });
     } else {
+      // inmemory will always ignore the database things, it always starts with
+      // nothing in its in-memory arrays
       fut.handle(new Success<>());
     }
   }

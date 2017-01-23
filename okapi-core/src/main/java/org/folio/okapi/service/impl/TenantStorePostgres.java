@@ -36,8 +36,15 @@ public class TenantStorePostgres implements TenantStore {
     this.pg = pg;
   }
 
-  public void resetDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!pg.getDropDb()) {
+  public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (pg.getDropDb()) {
+      // dirty trick to use recursion here, but initMode needs to be
+      // effectively final in the lambda below...
+      // This code can be removed when we drop the -D options to initialize databases
+      this.resetDatabase(Storage.InitMode.INIT, fut);
+      return;
+    }
+    if (initMode == Storage.InitMode.NORMAL) {
       fut.handle(new Success<>());
       return;
     }
@@ -55,7 +62,11 @@ public class TenantStorePostgres implements TenantStore {
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
             pg.closeConnection(conn);
           } else {
-            // create unique index id on tenants using btree(id);
+            logger.debug("Dropped the tenant table");
+            if (initMode != Storage.InitMode.INIT) {
+              fut.handle(new Success<>());
+              return;
+            }
             String createSql = "create table tenants ( "
                     + jsonColumn + " JSONB NOT NULL )";
             conn.query(createSql, cres -> {
@@ -64,6 +75,7 @@ public class TenantStorePostgres implements TenantStore {
                 fut.handle(new Failure<>(gres.getType(), gres.cause()));
                 pg.closeConnection(conn);
               } else {
+                // create unique index id on tenants using btree(id);
                 String createSql1 = "CREATE UNIQUE INDEX tenant_id ON "
                         + "tenants USING " + idIndex;
                 conn.query(createSql1, res -> {
@@ -71,6 +83,7 @@ public class TenantStorePostgres implements TenantStore {
                     logger.fatal(createSql1 + ": " + gres.cause().getMessage());
                     fut.handle(new Failure<>(gres.getType(), gres.cause()));
                   } else {
+                    logger.debug("Initalized the tenant table");
                     fut.handle(new Success<>());
                   }
                   pg.closeConnection(conn);

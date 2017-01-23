@@ -83,7 +83,10 @@ public class PostgresHandle {
     String db_init = getSysConf("postgres_db_init", "0", conf);
     if ("1".equals(db_init)) {
       logger.warn("Will initialize the whole database!");
+      logger.warn("The postgres_db_init option is DEPRECATED!"
+        + " use 'initdatabase' command (instead of 'dev' on the command line)");
       this.dropdb = true;
+      // TODO - Drop the whole dropdb flag, when the time ready
     }
 
     logger.debug("Connecting to postgres with " + pgconf.encode());

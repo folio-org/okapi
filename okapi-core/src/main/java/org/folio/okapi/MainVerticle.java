@@ -38,6 +38,7 @@ import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.service.impl.Storage;
+import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.toys.Receiver;
 import org.folio.okapi.toys.Sender;
 
@@ -57,6 +58,7 @@ public class MainVerticle extends AbstractVerticle {
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
   private Storage storage;
+  Storage.InitMode initMode = NORMAL;
   private int port;
 
   // Little helper to get a config value
@@ -121,6 +123,14 @@ public class MainVerticle extends AbstractVerticle {
       case "proxy":
         enableProxy = true;
         break;
+      case "purgedatabase":
+        initMode = PURGE;
+        enableProxy = true; // so we get to initialize the database. We exit soon after anyway
+        break;
+      case "initdatabase":
+        initMode = INIT;
+        enableProxy = true;
+        break;
       default:
         logger.fatal("Unknown role '" + mode + "'");
         System.exit(1);
@@ -160,14 +170,13 @@ public class MainVerticle extends AbstractVerticle {
       if (discoveryManager != null && moduleManager != null) {
         discoveryManager.setModuleManager(moduleManager);
       }
-      storage = new Storage(vertx, storageType, config);
+      storage = new Storage(vertx, storageType, initMode, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       TenantStore tenantStore = storage.getTenantStore();
       logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
       tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
-
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
     }
   }
@@ -184,6 +193,10 @@ public class MainVerticle extends AbstractVerticle {
           logger.fatal("start failed", res.cause());
           fut.complete();
         } else {
+          if (initMode != NORMAL) {
+            logger.info("Database operation " + initMode.toString() + " done. Exiting");
+            System.exit(0);
+          }
           startModules(fut);
         }
       });

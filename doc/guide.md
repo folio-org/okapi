@@ -641,6 +641,17 @@ to the next. At the moment, MongoDB and Postgres storage can be enabled by
 option `-Dstorage=mongo` and  `-Dstorage=postgres` respectively to the command
 line that starts Okapi.
 
+Postgres requires some tables and indexes to be created. This can be done with
+the command initdatabase, for example
+```
+java -Dport=8600 -Dstorage=postgres -jar target/okapi-core-fat.jar initdatabase
+```
+This command creates the necessary stuff, and exits Okapi. If you want to clear
+things up, you can use the command `purgedatabase`.
+
+The Mongo backend does not respect these commands, and the in-memory backed has
+no need for them.
+
 ### Curl examples
 
 The examples in the following sections can be pasted into a command-line console.
