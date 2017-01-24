@@ -333,7 +333,11 @@ public class ModuleTest {
             + "  \"srvcId\" : \"sample-module\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+            + "    \"env\" : [ {" + LS
+            + "      \"name\" : \"helloGreeting\"," + LS
+            + "      \"value\" : \"hej\"" + LS
+            + "    } ]" + LS
             + "  }" + LS
             + "}";
     c = api.createRestAssured();
@@ -396,7 +400,7 @@ public class ModuleTest {
             + "    \"id\" : \"sample\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  }, {" + LS
-            + "    \"id\" : \"_tenant\"," + LS   
+            + "    \"id\" : \"_tenant\"," + LS
             + "    \"version\" : \"1.0.0\"" + LS
             + "  } ]," + LS
             + "  \"requires\" : [ {" + LS
@@ -662,7 +666,7 @@ public class ModuleTest {
             .body("Okapi").post("/testb?query=foo")
             .then().statusCode(200)
             .header("X-Url-Params", "query=foo")
-            .body(equalTo("Hello  (XML) Okapi"));
+            .body(equalTo("hej  (XML) Okapi"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
@@ -870,7 +874,7 @@ public class ModuleTest {
             .header("X-Okapi-Token", okapiToken)
             .body("OkapiX").post("/testb")
             .then().statusCode(200)
-            .body(equalTo("Hello Hello OkapiX"));
+            .body(equalTo("hej hej OkapiX"));
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
     // a X-Stop-Here header
@@ -880,7 +884,7 @@ public class ModuleTest {
             .body("OkapiX").post("/testb")
             .then().statusCode(200)
             .header("X-Okapi-Stop", "Enough!")
-            .body(equalTo("Hello OkapiX")); // only one "Hello"
+            .body(equalTo("hej OkapiX")); // only one "Hello"
 
     given().get("/_/test/reloadmodules")
             .then().statusCode(204);

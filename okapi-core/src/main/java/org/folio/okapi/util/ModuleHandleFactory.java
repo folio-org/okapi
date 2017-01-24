@@ -13,7 +13,7 @@ public class ModuleHandleFactory {
       mh = new ProcessModuleHandle(vertx, desc, ports, port);
     } else if (desc.getDockerImage() != null) {
       mh = new DockerModuleHandle(vertx, desc.getDockerImage(),
-              desc.getDockerCMD(), ports, port);
+              desc.getDockerCMD(), desc.getEnv(), ports, port);
     }
     return mh;
   }

@@ -1,6 +1,5 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "id": "http://okapi/launch_descriptor#",
   "title": "LaunchDescriptor",
   "type": [ "object", "null" ],
   "properties": {
@@ -8,7 +7,19 @@
     "cmdlineStart": {"type": ["string", "null"]},
     "cmdlineStop": {"type": ["string", "null"]},
     "dockerImage": {"type": ["string", "null"]},
-    "dockerCMD": {"type": ["array", "null"],
-      "items": {"type": "string"}}
+    "dockerCMD": {
+      "type": ["array", "null"],
+      "items": {"type": "string"}
+     },
+    "env" : {
+      "type": "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "name" : {"type": "string"},
+          "value" : {"type": "string"}
+        }
+      }
+    }
   }
 }

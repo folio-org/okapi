@@ -1461,17 +1461,32 @@ DeploymentDescriptor.
 
 The following methods exist for launching modules:
 
-* Process: The `exec` property specifies a process that stays alive and is killed (by signal) by Okapi itself.
+* Process: The `exec` property specifies a process that stays alive and is
+killed (by signal) by Okapi itself.
 
-* Commands: Triggered by presence of `cmdlineStart` and `cmdlineStop` properties.
-The `cmdlineStart` is a shell script that spawns and puts a service in the background. The `cmdlineStop` is a shell script that terminates
-the corresponding service.
+* Commands: Triggered by presence of `cmdlineStart` and `cmdlineStop`
+properties. The `cmdlineStart` is a shell script that spawns and puts
+a service in the background. The `cmdlineStop` is a shell script that
+terminates the corresponding service.
 
-* Docker: The `dockerImage` property specifies an existing image. Okapi manages a container based on this image.
-This option requires that the `dockerUrl` points to a Docker Daemon accessible via HTTP.
-The Dockerfile's CMD directive may be changed with property `dockerCMD`. This assumes
-that ENTRYPOINT is the full invocation of the module and that CMD is either
-default settings or, preferably, empty.
+* Docker: The `dockerImage` property specifies an existing
+image. Okapi manages a container based on this image. This option
+requires that the `dockerUrl` points to a Docker Daemon accessible via
+HTTP. The Dockerfile's `CMD` directive may be changed with property
+`dockerCMD`. This assumes that `ENTRYPOINT` is the full invocation of
+the module and that `CMD` is either default settings or, preferably,
+empty.
+
+For all deployment types environment variables may be passed via the
+`env` property. This takes an array of objects specifying each
+environment variable. Each object has property `name`and `value` for
+environment variable name and value respectively.
+
+When launching a module, a TCP listening port is assigned. The module
+should be listening on that port after successful deployment (serving
+HTTP requests).  The port is passed as `%p` in the value of properties
+`exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
+exposed port (`EXPOSE`) to the dynamically assigned port.
 
 It is also possible to refer to an already-launched process (maybe running in your
 development IDE), by POSTing a DeploymentDescriptor to /_/discovery, with no nodeId

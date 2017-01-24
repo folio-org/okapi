@@ -12,9 +12,11 @@ import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessBuilder.Redirect;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.NameValue;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
@@ -24,6 +26,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   final String exec;
   final String cmdlineStart;
   final String cmdlineStop;
+  final NameValue[] env;
 
   private Process p;
   private final int port;
@@ -38,9 +41,21 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.exec = desc.getExec();
     this.cmdlineStart = desc.getCmdlineStart();
     this.cmdlineStop = desc.getCmdlineStop();
+    this.env = desc.getEnv();
     this.port = port;
     this.ports = ports;
     this.p = null;
+  }
+
+  private ProcessBuilder createProcessBuilder(String[] l) {
+    ProcessBuilder pb = new ProcessBuilder(l);
+    if (env != null) {
+      Map<String, String> penv = pb.environment();
+      for (NameValue nv : env) {
+        penv.put(nv.getName(), nv.getValue());
+      }
+    }
+    return pb;
   }
 
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
@@ -117,7 +132,7 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
 
           }
-          ProcessBuilder pb = new ProcessBuilder(l);
+          ProcessBuilder pb = createProcessBuilder(l);
           pb.redirectOutput(Redirect.INHERIT);
           pb.redirectInput(Redirect.INHERIT);
           p = pb.start();
@@ -205,7 +220,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           String c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
-          ProcessBuilder pb = new ProcessBuilder(l);
+          ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
           Process start = pb.start();
           logger.debug("Waiting for the port to be closed");

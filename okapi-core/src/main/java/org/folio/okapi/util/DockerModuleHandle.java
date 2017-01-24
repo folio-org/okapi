@@ -17,6 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
+import org.folio.okapi.bean.NameValue;
 import org.folio.okapi.bean.Ports;
 
 public class DockerModuleHandle implements ModuleHandle {
@@ -28,15 +29,18 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String image;
   private final String[] cmd;
   private final String dockerUrl;
+  private final NameValue[] env;
+
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
-          Ports ports, int port) {
+          NameValue[] env, Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = image;
     this.cmd = cmd;
+    this.env = env;
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -193,6 +197,13 @@ public class DockerModuleHandle implements ModuleHandle {
     j.put("AttachStdout", Boolean.TRUE);
     j.put("AttachStderr", Boolean.TRUE);
     j.put("StopSignal", "SIGTERM");
+    if (env != null) {
+      JsonArray a = new JsonArray();
+      for (NameValue nv : env) {
+        a.add(nv.getName() + "=" + nv.getValue());
+      }
+      j.put("env", a);
+    }
     j.put("Image", image);
 
     JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
