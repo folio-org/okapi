@@ -13,7 +13,7 @@
       "items": {"type": "string"}
      },
     "env" : {
-      "type": ["array", "null"],
+      "type": "array",
       "items" : {
         "type" : "object",
         "properties" : {
