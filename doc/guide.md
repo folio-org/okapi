@@ -1477,9 +1477,9 @@ HTTP. The Dockerfile's `CMD` directive may be changed with property
 the module and that `CMD` is either default settings or, preferably,
 empty.
 
-For all deployment types environment variables may be passed via the
+For all deployment types, environment variables may be passed via the
 `env` property. This takes an array of objects specifying each
-environment variable. Each object has property `name`and `value` for
+environment variable. Each object has property `name` and `value` for
 environment variable name and value respectively.
 
 When launching a module, a TCP listening port is assigned. The module
