@@ -2,7 +2,7 @@ package org.folio.okapi.util;
 
 // Docker Module. Using the Docker HTTP API.
 // We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
-// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-host-port-or-a-unix-socket
+// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-hostport-or-a-unix-socket
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
