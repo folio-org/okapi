@@ -7,7 +7,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Success;
 
 /**
- * Time stamps, as stored in the in-memory back end
+ * Time stamps, as stored in the in-memory back end.
  */
 public class TimeStampMemory implements TimeStampStore {
 

@@ -131,7 +131,7 @@ public class TenantWebService {
               sendReloadSignal(id, ts);
             } else {
               // This should never happen in a well behaving system. It is
-              // possible with some race conditions etc. Hard to test...
+              // possible with some race conditions etc. Hard to test.
               // TODO - Check what errors the mongo store can return
               logger.error("create: Db layer error " + res.cause().getMessage());
               tenants.delete(id); // Take it away from the runtime, since it was no good.

@@ -8,7 +8,7 @@ public enum ErrorType {
   OK,
   /** Internal errors of any kind */
   INTERNAL,
-  /** Bad requests, etc */
+  /** Bad requests, etc. */
   USER,
   /** Stuff that is not there */
   NOT_FOUND,

@@ -1,8 +1,8 @@
 package org.folio.okapi.util;
 
-// Docker Module .. Using the Docker HTTP API
-// We don't do local unix sockets .. The dockerd must unfortunately be listening on localhost
-// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-host-port-or-a-unix-socket
+// Docker Module. Using the Docker HTTP API.
+// We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
+// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-hostport-or-a-unix-socket
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -141,7 +141,7 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId + "/logs?stderr=1&stdout=1&follow=1";
     HttpClientRequest req = client.getAbs(url, res -> {
       if (res.statusCode() == 200) {
-        // stream OK.. Continue other work but keep fetching!
+        // stream OK. Continue other work but keep fetching!
         res.handler(d -> {
           // both stderr+stdout are directed to stderr
           System.err.print(d.toString());

@@ -70,7 +70,7 @@ public class ModuleInterface {
   }
 
   /**
-   * Return the version parts
+   * Return the version parts.
    *
    * @param version
    * @return an array of 3 elements, XX, YY, ZZ, with -1 for missing parts
@@ -141,7 +141,7 @@ public class ModuleInterface {
   }
 
   /**
-   * Compare to another ModuleInterface
+   * Compare to another ModuleInterface.
    *
    * @param other
    * @return 0 if equal, -1 if this.id < other.id

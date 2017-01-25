@@ -32,8 +32,8 @@ public class Auth {
   private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
 
   /**
-   * Calculate a token from tenant and username. Fakes a JWT token almost
-   * but not quite completely unlike the one a real auth module would create.
+   * Calculate a token from tenant and username. Fakes a JWT token, almost
+   * but not quite completely unlike the one that a real auth module would create.
    * The important point is that it is a JWT, and that it has a tenant in it,
    * so Okapi can recover it in case it does not see a X-Okapi-Tenant header,
    * as happens in some unit tests.
@@ -73,7 +73,7 @@ public class Auth {
       return;
     }
 
-    // Simple password validation: "peter" has a password "peter-password", etc
+    // Simple password validation: "peter" has a password "peter-password", etc.
     String u = p.getUsername();
     String correctpw = u + "-password";
     if (!p.getPassword().equals(correctpw)) {
@@ -186,8 +186,8 @@ public class Auth {
   }
 
   /**
-   * Accept a request. Gets called with anything else than a POST to /login.
-   * These need to be accepted, so we can do a pre-check before the proper POST
+   * Accept a request. Gets called with anything else than a POST to "/login".
+   * These need to be accepted, so we can do a pre-check before the proper POST.
    *
    * @param ctx
    */

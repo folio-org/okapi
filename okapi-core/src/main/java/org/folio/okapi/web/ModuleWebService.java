@@ -90,8 +90,8 @@ public class ModuleWebService {
     });
   }
 
-  // Helper to validate some features of a md
-  // Returns "" if ok, otherwise an informative error message
+  // Helper to validate some features of a md.
+  // Returns "" if ok, otherwise an informative error message.
   private String validate(ModuleDescriptor md) {
     if (md.getId() == null || md.getId().isEmpty()) {
       return "No Id in module";
@@ -120,7 +120,7 @@ public class ModuleWebService {
         md.setId(UUID.randomUUID().toString());
       }
       String validerr = validate(md);
-      if (!validerr.isEmpty()) { 
+      if (!validerr.isEmpty()) {
        responseError(ctx, 400, validerr);
       } else {
         moduleManager.create(md, cres -> {
@@ -147,7 +147,7 @@ public class ModuleWebService {
                 moduleManager.delete(md.getId(), dres -> { // remove from runtime too
                   if (dres.succeeded()) {
                     responseError(ctx, 500, ires.cause());
-                    // Note, we return ires.cause, the reason why the insert failed
+                    // Note, we return ires.cause, the reason why the insert failed.
                   } else {
                     // TODO - What to do now - the system may be inconsistent!
                     responseError(ctx, 500, ires.cause());
@@ -254,7 +254,7 @@ public class ModuleWebService {
                 responseText(ctx, 204).end();
               } else { // TODO - What can be done if sending signal fails?
                 // Probably best to report failure of deleting the module
-                // we can not really undelete it here...
+                // we can not really undelete it here.
                 responseError(ctx, 500, res.cause());
               }
             });

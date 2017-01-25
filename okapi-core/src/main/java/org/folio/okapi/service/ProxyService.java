@@ -81,7 +81,7 @@ public class ProxyService {
   }
 
   /**
-   * Add the trace headers to the response
+   * Add the trace headers to the response.
    */
   private void addTraceHeaders(RoutingContext ctx, ProxyContext pc ) {
 
@@ -188,7 +188,7 @@ public class ProxyService {
   // dedicated tokens, but by default we use the one given to us by the client.
   private void authHeaders(List<ModuleInstance> modlist,
         MultiMap requestHeaders, String defaultToken) {
-    // Samitize important headers from the incoming request
+    // Sanitize important headers from the incoming request
     requestHeaders.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
     requestHeaders.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
     requestHeaders.remove(XOkapiHeaders.MODULE_PERMISSIONS);
@@ -319,7 +319,7 @@ public class ProxyService {
       return;
     }
     // Pause the request data stream before doing any slow ops, otherwise
-    // it will get read into a buffer somewhere...
+    // it will get read into a buffer somewhere.
     content.pause();
     String metricKey = "proxy." + tenant_id + "." + ctx.request().method() + "." + ctx.normalisedPath();
     DropwizardHelper.markEvent(metricKey);

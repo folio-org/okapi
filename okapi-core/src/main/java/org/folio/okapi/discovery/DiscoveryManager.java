@@ -30,7 +30,7 @@ import org.folio.okapi.common.OkapiClient;
 /**
  * Keeps track of which modules are running where.
  * Uses a shared map to list running modules on the different nodes.
- * Maps a SrvcId to a DeploymentDescpriptor. Can also invoke deployment
+ * Maps a SrvcId to a DeploymentDescriptor. Can also invoke deployment,
  * and record the result in its map.
  */
 public class DiscoveryManager implements NodeListener {
@@ -90,8 +90,8 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Adds a service to the discovery, and optionally deploys it too.
    *
-   *   1: We have launchDescriptor and NodeId: Deploy on that node.
-   *   2: NodeId, but no launchDescriptor: Fetch the module, use its launchdesc, and deploy.
+   *   1: We have LaunchDescriptor and NodeId: Deploy on that node.
+   *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
   public void addAndDeploy(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
@@ -103,7 +103,7 @@ public class DiscoveryManager implements NodeListener {
     }
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
-    if (launchDesc == null && nodeId == null) { // 3:already deployed
+    if (launchDesc == null && nodeId == null) { // 3: already deployed
       final String instId = dd.getInstId();
       if (instId == null) {
         fut.handle(new Failure<>(USER, "Needs instId"));
@@ -221,7 +221,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   /**
-   * Get the list for one srvcId. May return an empty list
+   * Get the list for one srvcId. May return an empty list.
    */
   public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.get(srvcId, res -> {

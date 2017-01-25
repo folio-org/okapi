@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
- * A brief view of a ModuleDescriptor
+ * A brief view of a ModuleDescriptor.
  *
  */
 @JsonInclude(Include.NON_NULL)

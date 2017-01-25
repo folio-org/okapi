@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * Description of a module. These are used when creating modules under
- * /_/proxy/modules, etc.
+ * "/_/proxy/modules" etc.
  *
  */
 @JsonInclude(Include.NON_NULL)

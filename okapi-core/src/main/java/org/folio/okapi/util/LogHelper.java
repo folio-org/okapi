@@ -11,11 +11,11 @@ import static org.folio.okapi.common.HttpResponse.*;
 /**
  * Helper class to mess with logging stuff. Normally we use
  * io.vertx.core.logging.Logger for all our logging. Behind the scenes, this
- * turns out to use log4j. For advanced stuff we need to access log4j directly.
+ * turns out to use log4j. For advanced stuff, we need to access log4j directly.
  * This class tries to hide such things from the rest of the system. There are
  * methods for getting and setting the root logging level, from a Level, a
  * String, or as a web service. Later we may want to add more fancy log level
- * control, for example for different loggers or systems...
+ * control, for example for different loggers or systems.
  *
  * @author heikki
  */

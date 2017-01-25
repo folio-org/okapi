@@ -16,7 +16,7 @@ public class XOkapiHeaders {
 
   /** X-Okapi-Token. A token that identifies the user who is making the current
    * request. May carry additional permissions and other stuff related to
-   * authorization. Only the authorization modules should look inside, for the
+   * authorization. Only the authorization modules should look inside. For the
    * rest of the system this should be opaque. When a module needs to make a
    * call to another module, it needs to pass the token it received in its
    * request into the request to the new module.
@@ -27,7 +27,7 @@ public class XOkapiHeaders {
    * making requests to other modules. Can be set on Okapi's command line
    * when starting up. Note that it may point to some kind of load balancer
    * or other network trickery, but in the end there will be an Okapi instance
-   * listening on it. Does not including a trailing slash. Defaults to
+   * listening on it. Does not include a trailing slash. Defaults to
    * http://localhost:9130
    */
   public static final String URL = "X-Okapi-Url";
@@ -79,7 +79,7 @@ public class XOkapiHeaders {
 
   /** Authorization. Used for carrying the same token as in X-Okapi-Token,
    * using the "Bearer" schema (to distinguish it from HTTP Basic auth),
-   * for example
+   * for example:
    *   Authorization: Bearer xxyyzzxxyyzz.mnnmmmnnnmnn.ppqqpppqpqppq
    * Okapi will accept this instead of the X-Okapi-Token, but will always
    * pass the X-Okapi-Token to the modules it invokes.

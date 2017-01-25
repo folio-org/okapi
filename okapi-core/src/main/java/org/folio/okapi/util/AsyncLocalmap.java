@@ -9,7 +9,7 @@ import io.vertx.core.shareddata.SharedData;
 import org.folio.okapi.common.Success;
 
 /**
- * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap
+ * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap.
  */
 public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
@@ -56,7 +56,7 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void remove(K k, Handler<AsyncResult<V>> resultHandler) {
-    // This is a unsafe operation!
+    // This is an unsafe operation!
     throw new UnsupportedOperationException("Not supported yet.");
   }
 
@@ -73,7 +73,7 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void replace(K k, V v, Handler<AsyncResult<V>> resultHandler) {
-    // This is a unsafe operation!
+    // This is an unsafe operation!
     throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
   }
 

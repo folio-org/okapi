@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  * Parameters for the login service. These are in a class of their own, so we
- * can use Json to pack and unpack them as needed.
+ * can use JSON to pack and unpack them as needed.
  *
  * @author heikki
  */

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 /**
  * One entry in Okapi's routing table.
  * Each entry contains one or more HTTP methods, and the path they mean,
- * for example GET /foo. Incoming requests are mapped to a series of
+ * for example "GET /foo". Incoming requests are mapped to a series of
  * routingEntries, ordered by their level. Also carries the permission bits
  * required and desired for this operation.
  */
