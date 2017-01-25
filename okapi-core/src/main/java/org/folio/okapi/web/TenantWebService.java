@@ -318,7 +318,6 @@ public class TenantWebService {
               }
               headers.put("Accept", "*/*");
               headers.put("Content-Type", "application/json; charset=UTF-8");
-              headers.put("X-Okapi-Tenant", id);
               String body = "{}"; // dummy
               OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
               cli.request(HttpMethod.POST, tenInt, body, cres->{
