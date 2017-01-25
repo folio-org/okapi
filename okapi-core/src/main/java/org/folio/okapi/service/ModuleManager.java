@@ -18,7 +18,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
 /**
- * Manages a list of modules known to Okapi's /_/proxy. Maintains consistency
+ * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
  * checks on module versions, etc.
  */
 public class ModuleManager {
@@ -83,7 +83,7 @@ public class ModuleManager {
    * Check that the dependencies are satisfied.
    *
    * @param md Module to be checked
-   * @return "" if no problems, or an erro rmessage
+   * @return "" if no problems, or an error message
    */
   private String checkDependencies(ModuleDescriptor md,
           HashMap<String, ModuleDescriptor> modlist) {

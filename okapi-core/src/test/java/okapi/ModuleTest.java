@@ -122,7 +122,6 @@ public class ModuleTest {
 
   /**
    * Check that the tests have not left anything in the database. Since the
-   *
    * @Tests are run in a nondeterministic order, each ought to clean up after
    * itself. This should be called in the beginning and end of each @Test
    *
@@ -629,9 +628,9 @@ public class ModuleTest {
             .header("X-Okapi-Tenant", okapiTenant).post("/login")
             .then().statusCode(200).extract().header("X-Okapi-Token");
 
-    // Check that okapi sets up the permission headers
+    // Check that okapi sets up the permission headers.
     // Check also the X-Okapi-Url header in the same go, as well as
-    // URL parameters
+    // URL parameters.
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("X-all-headers", "HB") // ask sample to report all headers
@@ -644,10 +643,10 @@ public class ModuleTest {
             .body(containsString("It works"));
     // Check only the required permission bit, since there is only one.
     // There are wanted bits too, two of them, but their order is not
-    // well defined...
+    // well defined.
 
-    // Check the CORS headers
-    // The presence of the Origin header should provoke the two extra headers
+    // Check the CORS headers.
+    // The presence of the Origin header should provoke the two extra headers.
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Origin", "http://foobar.com")
@@ -657,8 +656,8 @@ public class ModuleTest {
             .header("Access-Control-Expose-Headers", "Location,X-Okapi-Trace,X-Okapi-Token,Authorization")
             .body(equalTo("It works"));
 
-    // Post request
-    // Test also URL parameters
+    // Post request.
+    // Test also URL parameters.
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("Content-Type", "text/xml")
@@ -708,8 +707,8 @@ public class ModuleTest {
             .then().log().ifError()
             .statusCode(400);
 
-    // 2nd sample module.. We only create it in discovery and give it same URL as
-    // for sample-module (first one)
+    // 2nd sample module. We only create it in discovery and give it same URL as
+    // for sample-module (first one).
     c = api.createRestAssured();
     final String docSample2Deployment = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
@@ -794,8 +793,8 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    // 3rd sample module.. We only create it in discovery and give it same URL as
-    // for sample-module (first one)
+    // 3rd sample module. We only create it in discovery and give it same URL as
+    // for sample-module (first one).
     c = api.createRestAssured();
     final String docSample3Deployment = "{" + LS
             + "  \"instId\" : \"sample3-instance\"," + LS
@@ -877,7 +876,7 @@ public class ModuleTest {
             .body(equalTo("hej hej OkapiX"));
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
-    // a X-Stop-Here header
+    // a X-Stop-Here header.
     given().header("X-Okapi-Tenant", okapiTenant)
             .header("X-Okapi-Token", okapiToken)
             .header("X-Stop-Here", "Enough!")
@@ -1137,8 +1136,8 @@ public class ModuleTest {
     locationSample5Deployment = r.getHeader("Location");
 
     // Would be nice to verify that the module works, but too much hassle with
-    // tenants etc
-    // Undeploy
+    // tenants etc.
+    // Undeploy.
     given().delete(locationSample5Deployment)
             .then().statusCode(204);
     // Undeploy again, to see it is gone

@@ -38,9 +38,9 @@ public class TenantStorePostgres implements TenantStore {
 
   public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
     if (pg.getDropDb()) {
-      // dirty trick to use recursion here, but initMode needs to be
-      // effectively final in the lambda below...
-      // This code can be removed when we drop the -D options to initialize databases
+      // Dirty trick to use recursion here, but initMode needs to be
+      // effectively final in the lambda below.
+      // This code can be removed when we drop the -D options to initialize databases.
       this.resetDatabase(Storage.InitMode.INIT, fut);
       return;
     }

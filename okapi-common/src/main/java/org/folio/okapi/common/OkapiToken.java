@@ -34,7 +34,7 @@ public class OkapiToken {
 
 
   /**
-   * Read the X-Okapi-Token header from cts
+   * Read the X-Okapi-Token header from ctx.
    *
    *
    * @param ctx Routing context, with the headers

@@ -16,7 +16,7 @@ import org.folio.okapi.common.Success;
 /**
  * Postgres interface for Okapi.
  *
- * Before using postgres, you need to have it installed and running. You
+ * Before using Postgres, you need to have it installed and running. You
  * also need to define a database, a database user, and its password.
  * For development on a Debian system, you can do the following:
  *   sudo -u postgres -i
@@ -25,7 +25,7 @@ import org.folio.okapi.common.Success;
  * The values 'okapi', 'okapi25', and 'okapi' are defaults intended for
  * development use only. In real production, some DBA will have to set up
  * a proper database and its parameters. Pass these to Okapi with the
- * -D command line options, for example
+ * -D command line options, for example:
  *   -D postgres_url=jdbc:postgresql://localhost:5432/okapi
  *   -D postgres_user=okapi
  *   -D postgres_password=okapi25
@@ -34,7 +34,7 @@ import org.folio.okapi.common.Success;
  * TODO - This is not the right place for these instructions!
  *
  * To exercise okapi using psql be sure to use the same kind
- * of connection.. If not, the server might use peer authentication (unix
+ * of connection. If not, the server might use peer authentication (unix
  * passwords) rather than md5 auth.
  *   psql -U okapi postgresql://localhost:5432/okapi
  *
@@ -48,7 +48,7 @@ public class PostgresHandle {
   private boolean dropdb = false;
 
   /**
-   *   Little helper to get a config value.
+   * Little helper to get a config value.
    * First from System (-D on command line),
    * then from config (from the way the verticle gets deployed, e.g. in tests)
    * finally a default value.

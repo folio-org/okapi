@@ -44,7 +44,7 @@ public class Tenant {
   }
 
   /**
-   * Copy constructor. Makes separate copies of everything
+   * Copy constructor. Makes separate copies of everything.
    *
    * @param other
    */
@@ -63,8 +63,8 @@ public class Tenant {
   }
 
   /**
-   * Get the name. The JsonIgnore tells Json not to encode the name as a
-   * top-level thing
+   * Get the name. The JsonIgnore tells JSON not to encode the name as a
+   * top-level thing.
    *
    * @return
    */

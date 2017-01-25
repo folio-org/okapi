@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 /**
- * The auth module provides two services: login and check. URI /login takes
- * username, password, and other parameters, and returns a token. URI /check
+ * The auth module provides two services: login and check. URI "/login" takes
+ * username, password, and other parameters, and returns a token. URI "/check"
  * takes the token, and verifies that everything is all right. This is a very
  * trivial dummy module, that provides simple hard-coded authentication for any
  * user who can append '-password' to his username to make a fake password.

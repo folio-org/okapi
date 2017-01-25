@@ -12,7 +12,7 @@ import static org.folio.okapi.common.HttpResponse.responseText;
 import static org.folio.okapi.common.HttpResponse.responseError;
 
 /**
- * Web service functions for /_/discovery
+ * Web service functions for "/_/discovery".
  */
 public class DiscoveryService {
 

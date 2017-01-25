@@ -31,7 +31,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
-  private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds..
+  private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds.
   private static final long MILLISECONDS = 200;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,

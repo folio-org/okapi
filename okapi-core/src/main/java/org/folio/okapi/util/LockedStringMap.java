@@ -234,9 +234,9 @@ public class LockedStringMap {
               if (resDel.succeeded()) {
                 if (resDel.result()) {
                   fut.handle(new Success<>(true));
-                  // Note that we do not remove the key from the list
+                  // Note that we do not remove the key from the list.
                   // That could lead to race conditions, better to have
-                  // unused entried in the key list.
+                  // unused entries in the key list.
                 } else {
                   vertx.setTimer(delay, res -> {
                     remove(k, k2, fut);

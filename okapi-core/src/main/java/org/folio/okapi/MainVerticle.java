@@ -61,7 +61,7 @@ public class MainVerticle extends AbstractVerticle {
   Storage.InitMode initMode = NORMAL;
   private int port;
 
-  // Little helper to get a config value
+  // Little helper to get a config value:
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value
@@ -346,7 +346,7 @@ public class MainVerticle extends AbstractVerticle {
 
     router.route("/_*").handler(this::NotFound);
 
-    //everything else gets proxified to modules
+    // everything else gets proxified to modules
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }

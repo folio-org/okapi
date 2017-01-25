@@ -24,7 +24,7 @@ public class MongoHandle {
   private final MongoClient cli;
   private boolean transientDb = false;
 
-  // Little helper to get a config value
+  // Little helper to get a config value:
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
@@ -75,7 +75,7 @@ public class MongoHandle {
   }
   /**
    * Drop all (relevant?) collections. The idea is that we can start our
-   * integration tests on a clean slate
+   * integration tests on a clean slate.
    *
    */
   public void dropDatabase(Handler<ExtendedAsyncResult<Void>> fut) {

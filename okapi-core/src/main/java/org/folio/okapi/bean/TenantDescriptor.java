@@ -1,7 +1,7 @@
 package org.folio.okapi.bean;
 
 /**
- * Description of a Tenant. This is what gets POSTed to /_/proxy/tenants to
+ * Description of a Tenant. This is what gets POSTed to "/_/proxy/tenants" to
  * create new tenants, etc. Carries an id, and some human-readable info about
  * the tenant.
  *
@@ -50,7 +50,7 @@ public class TenantDescriptor {
   }
 
   /**
-   * Copy constructor. Makes a separate copy of everything
+   * Copy constructor. Makes a separate copy of everything.
    *
    * @param other
    */
