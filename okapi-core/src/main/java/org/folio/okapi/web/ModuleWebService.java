@@ -120,7 +120,7 @@ public class ModuleWebService {
         md.setId(UUID.randomUUID().toString());
       }
       String validerr = validate(md);
-      if (!validerr.isEmpty()) { 
+      if (!validerr.isEmpty()) {
        responseError(ctx, 400, validerr);
       } else {
         moduleManager.create(md, cres -> {
