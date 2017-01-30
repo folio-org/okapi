@@ -1501,6 +1501,11 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
+Enabling the metrics via -enable-metrics will start sending metrics to localhost:2003 .
+If you add -DgraphiteHost=graphite.yourdomain.io as a parameter to your java command 
+e.g java -DgraphiteHost=graphite.yourdomain.io -jar okapi-core/target/okapi-core-fat.jar dev   -enable-metrics
+metrics will be sent to graphite.yourdomain.io 
+
   * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.`_\$HTTPMETHOD_`.`_\$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
   * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.module.`_\$SRVCID`_ -- Time for one module invocation.
   * `folio.okapi.`_\$HOST_`.tenants.count` -- Number of tenants known to the system
