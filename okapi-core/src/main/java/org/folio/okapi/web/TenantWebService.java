@@ -324,8 +324,9 @@ public class TenantWebService {
                 if ( cres.failed()) {
                   logger.warn("Tenant init request for "
                     + module + " failed with " + cres.cause().getMessage());
-                  responseError(ctx, 500, "Post to /tenant on " + module + " failed with "
-                     + cres.cause().getMessage());
+                  responseError(ctx, 500, "Post to " + tenInt
+                    + " on " + module + " failed with "
+                    + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
                   enableModuleHelper(ctx, td, id, module);
                   logger.debug("enableModule: Init request to " + module + " succeeded");
@@ -390,8 +391,9 @@ public class TenantWebService {
               if ( cres.failed()) {
                 logger.warn("Tenant destroy request for "
                   + module + " failed with " + cres.cause().getMessage());
-                responseError(ctx, 500, "Post to /tenant on " + module + " failed with "
-                   + cres.cause().getMessage());
+                responseError(ctx, 500, "DELETE to " + tenInt
+                  + " on " + module + " failed with "
+                  + cres.cause().getMessage());
               } else { // All well, we can finally enable it
                 logger.debug("disableModule: destroy request to " + module + " succeeded");
                 responseText(ctx, 204).end();  // finally we are done

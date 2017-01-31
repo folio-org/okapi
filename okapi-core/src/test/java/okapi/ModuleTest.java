@@ -560,6 +560,13 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
+    // Try to enable it again, should fail
+    given()
+      .header("Content-Type", "application/json")
+      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(400)
+      .body(containsString("already provided"));
+
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
             .then().statusCode(404); // trailing slash
