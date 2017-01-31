@@ -1395,7 +1395,7 @@ for relevant properties. Okapi itself parses *command* and any
 
 #### Java -D options
 
-The -D option can be used to specify various run-time parameters in
+The `-D` option can be used to specify various run-time parameters in
 Okapi. These must be at the beginning of the command line, before the
 `-jar`.
 
@@ -1489,7 +1489,7 @@ HTTP requests).  The port is passed as `%p` in the value of properties
 exposed port (`EXPOSE`) to the dynamically assigned port.
 
 It is also possible to refer to an already-launched process (maybe running in your
-development IDE), by POSTing a DeploymentDescriptor to /_/discovery, with no nodeId
+development IDE), by POSTing a DeploymentDescriptor to `/_/discovery`, with no nodeId
 and no LaunchDescriptor, but with the URL where the module is running.
 
 ### Instrumentation
@@ -1501,10 +1501,11 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-Enabling the metrics via -enable-metrics will start sending metrics to localhost:2003 .
-If you add -DgraphiteHost=graphite.yourdomain.io as a parameter to your java command 
-e.g java -DgraphiteHost=graphite.yourdomain.io -jar okapi-core/target/okapi-core-fat.jar dev   -enable-metrics
-metrics will be sent to graphite.yourdomain.io 
+Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:2003`.
+If you add `-DgraphiteHost=graphite.yourdomain.io` as a parameter to your java command 
+e.g.
+`java -DgraphiteHost=graphite.yourdomain.io -jar okapi-core/target/okapi-core-fat.jar dev -enable-metrics`
+then metrics will be sent to `graphite.yourdomain.io` 
 
   * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.`_\$HTTPMETHOD_`.`_\$PATH`_ -- Time for the whole request, including all modules that it ended up invoking.
   * `folio.okapi.`_\$HOST_`.proxy.`_\$TENANT_`.module.`_\$SRVCID`_ -- Time for one module invocation.
