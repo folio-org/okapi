@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.bean.NameValue;
+import org.folio.okapi.bean.EnvEntry;
 
 public class ProcessModuleHandle implements ModuleHandle {
 
@@ -26,7 +26,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   final String exec;
   final String cmdlineStart;
   final String cmdlineStop;
-  final NameValue[] env;
+  final EnvEntry[] env;
 
   private Process p;
   private final int port;
@@ -51,7 +51,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     ProcessBuilder pb = new ProcessBuilder(l);
     if (env != null) {
       Map<String, String> penv = pb.environment();
-      for (NameValue nv : env) {
+      for (EnvEntry nv : env) {
         penv.put(nv.getName(), nv.getValue());
       }
     }

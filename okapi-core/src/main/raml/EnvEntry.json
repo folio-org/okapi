@@ -1,0 +1,11 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "EnvEntry",
+  "type" : "object",
+  "properties" : {
+    "name" : {"type": "string"},
+    "value" : {"type": "string"},
+    "description" : {"type": "string"}
+  },
+  "required" : ["name"]
+}

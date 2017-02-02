@@ -16,7 +16,7 @@ public class LaunchDescriptor {
   private String exec;
   private String dockerImage;
   private String[] dockerCMD;
-  private NameValue[] env;
+  private EnvEntry[] env;
 
   public LaunchDescriptor() {
   }
@@ -61,11 +61,11 @@ public class LaunchDescriptor {
     this.dockerCMD = dockerCMD;
   }
 
-  public NameValue[] getEnv() {
+  public EnvEntry[] getEnv() {
     return env;
   }
 
-  public void setEnv(NameValue[] env) {
+  public void setEnv(EnvEntry[] env) {
     this.env = env;
   }
 }
