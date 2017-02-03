@@ -1,5 +1,8 @@
 package org.folio.okapi.sample;
 
+/*
+ * Test module, to be used in Okapi's own unit tests
+ */
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
@@ -16,7 +19,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-module");
   private String helloGreeting;
-
+  private String tenantRequests = "";
 
   public void my_stream_handle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
@@ -29,6 +32,10 @@ public class MainVerticle extends AbstractVerticle {
     if (hv != null) {
       xmlMsg += hv;
     }
+    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
+    if (tenantReqs != null) {
+      xmlMsg += " Tenant requests: " + tenantRequests;
+    }
     ctx.response().putHeader("Content-Type", "text/plain");
 
     // Report all headers back (in headers and in the body) if requested
@@ -38,13 +45,13 @@ public class MainVerticle extends AbstractVerticle {
       if ( qry != null )
         ctx.request().headers().add("X-Url-Params", qry);
       for (String hdr : ctx.request().headers().names()) {
-        hv = ctx.request().getHeader(hdr);
-        if (hv != null) {
+        tenantReqs = ctx.request().getHeader(hdr);
+        if (tenantReqs != null) {
           if (allh.contains("H")) {
-            ctx.response().putHeader(hdr, hv);
+            ctx.response().putHeader(hdr, tenantReqs);
           }
           if (allh.contains("B")) {
-            xmlMsg += " " + hdr + ":" + hv + "\n";
+            xmlMsg += " " + hdr + ":" + tenantReqs + "\n";
           }
         }
       }
@@ -76,11 +83,14 @@ public class MainVerticle extends AbstractVerticle {
     ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
-    String tenant =  ctx.request().getHeader(XOkapiHeaders.TENANT);
-    ctx.response().write(ctx.request().method()
-      + " request to tenant service for tenant " + tenant + "\n");
-    logger.info(ctx.request().method()
-      + " request to okapi-test-module tenant service for tenant " + tenant);
+    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    String meth = ctx.request().method().name();
+    ctx.response().write(meth + " request to okapi-test-module "
+      + "tenant service for tenant " + tenant + "\n");
+    logger.info(meth + " request to okapi-test-module "
+      + "tenant service for tenant " + tenant);
+    this.tenantRequests += meth + "-" + tenant + " ";
+    logger.debug("Tenant requests so far: " + tenantRequests);
     ctx.request().handler(x -> {
       ctx.response().write(x);
     });

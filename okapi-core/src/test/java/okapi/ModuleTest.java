@@ -793,12 +793,23 @@ public class ModuleTest {
             + "}";
     c = api.createRestAssured();
     c.given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableSample2));
+      .header("Content-Type", "application/json")
+      .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200)
+      .body(equalTo(docEnableSample2));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
+        c.getLastReport().isEmpty());
+    // disable it, and re-enable.
+    // Later we will check that we got the right calls in its
+    // tenant interface.
+    given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
+      .then().statusCode(204);
+    given()
+      .header("Content-Type", "application/json")
+      .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200)
+      .body(equalTo(docEnableSample2));
 
     // 3rd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one).
@@ -880,7 +891,18 @@ public class ModuleTest {
             .header("X-Okapi-Token", okapiToken)
             .body("OkapiX").post("/testb")
             .then().statusCode(200)
-            .body(equalTo("hej hej OkapiX"));
+      .body(equalTo("hej hej OkapiX"));
+
+    // Verify that we have seen tenant requests to POST and DELETE
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-tenant-reqs", "yes")
+      .get("/testb")
+      .then()
+      .statusCode(200)
+      .body(containsString("POST-roskilde DELETE-roskilde POST-roskilde"))
+      .log().ifError();
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
     // a X-Stop-Here header.
@@ -962,13 +984,14 @@ public class ModuleTest {
             .get("/testb")
             .then().statusCode(404); // because sample2 was removed
 
-    // Disable the sample module. No tenant-destroy for sample, but for sample2, yes.
-    c.given()
+    // Disable the sample module. No tenant-destroy for sample
+    given()
             .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module")
             .then().statusCode(204);
-    c.given()
-            .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
-            .then().statusCode(400);  // no running instance
+    // Disable the sample2 module. It has a tenant request handler
+    given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
+      .then().statusCode(400);  // no running instance
 
     c = api.createRestAssured();
     c.given().delete(locationTenantRoskilde)
