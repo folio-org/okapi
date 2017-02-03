@@ -37,6 +37,8 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
+import org.folio.okapi.env.EnvManager;
+import org.folio.okapi.env.EnvService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.toys.Receiver;
@@ -49,6 +51,8 @@ public class MainVerticle extends AbstractVerticle {
 
   HealthService healthService;
   ModuleManager moduleManager;
+  EnvService envService;
+  EnvManager envManager;
   ModuleWebService moduleWebService;
   ProxyService proxyService;
   TenantWebService tenantWebService;
@@ -166,7 +170,8 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager = new ModuleManager(vertx);
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
-
+      envManager = new EnvManager();
+      envService = new EnvService(envManager);
       if (discoveryManager != null && moduleManager != null) {
         discoveryManager.setModuleManager(moduleManager);
       }
@@ -222,13 +227,27 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startTenants(Future<Void> fut) {
     if (tenantWebService == null) {
-      startDiscovery(fut);
+      startEnv(fut);
     } else {
       tenantWebService.loadTenants(res -> {
         if (res.succeeded()) {
-          startDiscovery(fut);
+          startEnv(fut);
         } else {
           logger.fatal("load tenants failed: " + res.cause().getMessage());
+          fut.fail(res.cause());
+        }
+      });
+    }
+  }
+
+  private void startEnv(Future<Void> fut) {
+    if (envManager == null) {
+      startDiscovery(fut);
+    } else {
+      envManager.init(vertx, res -> {
+        if (res.succeeded()) {
+          startDiscovery(fut);
+        } else {
           fut.fail(res.cause());
         }
       });
@@ -334,7 +353,12 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
       router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
     }
-
+    if (envService != null) {
+      router.postWithRegex("/_/env").handler(envService::create);
+      router.delete("/_/env/:id").handler(envService::delete);
+      router.get("/_/env").handler(envService::getAll);
+      router.get("/_/env/:id").handler(envService::get);
+    }
     if (System.getProperty("toys.sender") != null) {
       Sender sender = new Sender(vertx);
       router.get("/_/sender/:message").handler(sender::send);
