@@ -521,8 +521,7 @@ public class ModuleTest {
     c.given()
             .header("Content-Type", "application/json")
             .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableAuth));
+      .then().statusCode(201)            .body(equalTo(docEnableAuth));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
@@ -553,10 +552,10 @@ public class ModuleTest {
             + "}";
     c = api.createRestAssured();
     c.given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableSample));
+      .header("Content-Type", "application/json")
+      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .body(equalTo(docEnableSample));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
@@ -795,7 +794,7 @@ public class ModuleTest {
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(200)
+      .then().statusCode(201)
       .body(equalTo(docEnableSample2));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -808,7 +807,7 @@ public class ModuleTest {
     given()
       .header("Content-Type", "application/json")
       .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(200)
+      .then().statusCode(201)
       .body(equalTo(docEnableSample2));
 
     // 3rd sample module. We only create it in discovery and give it same URL as
@@ -867,11 +866,12 @@ public class ModuleTest {
             + "}";
     c = api.createRestAssured();
     c.given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .log().ifError()
-            .body(equalTo(docEnableSample3));
+      .header("Content-Type", "application/json")
+      .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .header("Location", equalTo("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module3"))
+      .log().ifError()
+      .body(equalTo(docEnableSample3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
@@ -1267,19 +1267,19 @@ public class ModuleTest {
             + "  \"id\" : \"sample-module5\"" + LS
             + "}";
     given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableSample));
+      .header("Content-Type", "application/json")
+      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .body(equalTo(docEnableSample));
 
     final String docEnableHeader = "{" + LS
             + "  \"id\" : \"header-module\"" + LS
             + "}";
     given()
-            .header("Content-Type", "application/json")
-            .body(docEnableHeader).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableHeader));
+      .header("Content-Type", "application/json")
+      .body(docEnableHeader).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .body(equalTo(docEnableHeader));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .body("bar").post("/testb")
@@ -1309,10 +1309,10 @@ public class ModuleTest {
     final String locationSampleModule2 = r.getHeader("Location");
 
     given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then().statusCode(200)
-            .body(equalTo(docEnableSample));
+      .header("Content-Type", "application/json")
+      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .body(equalTo(docEnableSample));
 
     given().header("X-Okapi-Tenant", okapiTenant)
             .body("bar").post("/testb")

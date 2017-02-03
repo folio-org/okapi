@@ -361,7 +361,11 @@ schemas:
           application/json:
             schema: TenantModuleDescriptor
         responses:
-          200:
+          201:
+            description: Created
+            headers:
+              Location:
+                description: URI to the created tenant
             body:
               application/json:
                 schema: TenantModuleDescriptor
