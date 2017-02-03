@@ -354,8 +354,8 @@ public class TenantWebService {
         responseError(ctx, 400, "Unknown module " + module );
         return;
       }
-      String tenInt = md.getTenantInterface();
-      if (tenInt == null || tenInt.isEmpty() )
+    String tenInt = findTenantInterface(md);
+    if (tenInt == null || tenInt.isEmpty() )
       {
         logger.debug("disableModule: " + module + " has no support for tenant destroy");
         responseText(ctx, 204).end();
