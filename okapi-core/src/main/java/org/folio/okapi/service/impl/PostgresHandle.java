@@ -13,10 +13,10 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
-/**
- * Postgres interface for Okapi.
+/*
+ * PostgreSQL interface for Okapi.
  *
- * Before using Postgres, you need to have it installed and running. You
+ * Before using PostgreSQL, you need to have it installed and running. You
  * also need to define a database, a database user, and its password.
  * For development on a Debian system, you can do the following:
  *   sudo -u postgres -i
@@ -24,18 +24,12 @@ import org.folio.okapi.common.Success;
  *   createdb -O okapi okapi
  * The values 'okapi', 'okapi25', and 'okapi' are defaults intended for
  * development use only. In real production, some DBA will have to set up
- * a proper database and its parameters. Pass these to Okapi with the
- * -D command line options, for example:
- *   -D postgres_url=jdbc:postgresql://localhost:5432/okapi
- *   -D postgres_user=okapi
- *   -D postgres_password=okapi25
- *   -D postgres_database=okapi
+ * a proper database and its parameters.
  *
- * TODO - This is not the right place for these instructions!
+ * To exercise okapi using psql be sure to use the same kind of connection.
+ * If not, the server might use peer authentication (unix passwords) rather
+ * than md5 auth.
  *
- * To exercise okapi using psql be sure to use the same kind
- * of connection. If not, the server might use peer authentication (unix
- * passwords) rather than md5 auth.
  *   psql -U okapi postgresql://localhost:5432/okapi
  *
  * See /etc/postgresql/version/main/pg_hba.conf
@@ -47,28 +41,27 @@ public class PostgresHandle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private boolean dropdb = false;
 
-  /**
-   * Little helper to get a config value.
-   * First from System (-D on command line),
-   * then from config (from the way the verticle gets deployed, e.g. in tests)
-   * finally a default value.
-   * @param key   - Name of the config
-   * @param def   - Default value
-   * @param conf  - configs to take from
-   * @return the value
-   */
-  private String getSysConf(String key, String def, JsonObject conf) {
+  static private String getSysConf(String key, String def, JsonObject conf) {
     String v = System.getProperty(key, conf.getString(key, def));
     return v;
   }
 
   public PostgresHandle(Vertx vertx, JsonObject conf) {
     JsonObject pgconf = new JsonObject();
-    String val = getSysConf("postgres_url", "", conf);
+    String val;
+
+    val = getSysConf("postgres_host", "", conf);
     if (!val.isEmpty()) {
-      pgconf.put("url", val);
+      pgconf.put("host", val);
+    }
+    val = getSysConf("postgres_port", "", conf);
+    if (!val.isEmpty()) {
+      pgconf.put("port", val);
     }
     val = getSysConf("postgres_user", "okapi", conf);
+    if (!val.isEmpty()) {
+      val = getSysConf("postgres_username", "okapi", conf);
+    }
     if (!val.isEmpty()) {
       pgconf.put("username", val);
     }

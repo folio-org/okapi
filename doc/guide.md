@@ -637,11 +637,11 @@ the [Reference](#reference) section.
 Okapi defaults to an internal in-memory mock storage, so it can run without
 any database layer under it. This is fine for development and testing, but of
 course in real life we will want some of our data to persist from one invocation
-to the next. At the moment, MongoDB and Postgres storage can be enabled by
+to the next. At the moment, MongoDB and PostgreSQL storage can be enabled by
 option `-Dstorage=mongo` and  `-Dstorage=postgres` respectively to the command
 line that starts Okapi.
 
-Postgres requires some tables and indexes to be created. This can be done with
+PostgreSQL requires some tables and indexes to be created. This can be done with
 the command initdatabase, for example
 ```
 java -Dport=8600 -Dstorage=postgres -jar target/okapi-core-fat.jar initdatabase
@@ -1414,10 +1414,12 @@ to Okapi. Defaults to `http://localhost:9130` or what ever port specified. There
 should be no trailing slash, but if there happens to be one, Okapi will remove it.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
 `http://localhost:4243`.
-* `postgres_user` : Postgres username. Defaults to `okapi`.
-* `postgres_password`: Postgres password. Defaults to `okapi25`.
-* `postgres_database`: Postgres database. Defaults to `okapi`.
-* `postgres_db_init`: For a value of `1`, Okapi will drop existing Postgres
+* `postgres_host` : PostgreSQL host. Defaults to `localhost`.
+* `postgres_port` : PostgreSQL port. Defaults to 5432.
+* `postgres_username` : PostgreSQL username. Defaults to `okapi`.
+* `postgres_password`: PostgreSQL password. Defaults to `okapi25`.
+* `postgres_database`: PostgreSQL database. Defaults to `okapi`.
+* `postgres_db_init`: For a value of `1`, Okapi will drop existing PostgreSQL
 database and prepare a new one. A value of `0` (null) will leave it unmodified
 (default).
 
