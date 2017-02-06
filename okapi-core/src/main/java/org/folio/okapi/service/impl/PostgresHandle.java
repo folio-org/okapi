@@ -58,10 +58,7 @@ public class PostgresHandle {
     if (!val.isEmpty()) {
       pgconf.put("port", val);
     }
-    val = getSysConf("postgres_user", "okapi", conf);
-    if (!val.isEmpty()) {
-      val = getSysConf("postgres_username", "okapi", conf);
-    }
+    val = getSysConf("postgres_username", getSysConf("postgres_user", "okapi", conf), conf);
     if (!val.isEmpty()) {
       pgconf.put("username", val);
     }
