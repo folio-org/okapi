@@ -265,7 +265,10 @@ public class TenantWebService {
       tenantStore.enableModule(id, module, ts, res -> {
         if (res.succeeded()) {
           sendReloadSignal(id, ts);
-          responseJson(ctx, 200).end(Json.encodePrettily(td));
+          final String uri = ctx.request().uri() + "/" + module;
+          responseJson(ctx, 201)
+            .putHeader("Location", uri)
+            .end(Json.encodePrettily(td));
         } else {
           responseError(ctx, res.getType(), res.cause());
         }
