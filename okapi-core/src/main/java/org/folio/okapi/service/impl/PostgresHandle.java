@@ -56,7 +56,12 @@ public class PostgresHandle {
     }
     val = getSysConf("postgres_port", "", conf);
     if (!val.isEmpty()) {
-      pgconf.put("port", val);
+      try {
+        Integer x = Integer.parseInt(val);
+        pgconf.put("port", x);
+      } catch (NumberFormatException e) {
+        logger.warn("Bad postgres_port value: " + val + ": " + e.getMessage());
+      }
     }
     val = getSysConf("postgres_username", getSysConf("postgres_user", "okapi", conf), conf);
     if (!val.isEmpty()) {
