@@ -397,6 +397,28 @@ schemas:
         description: Server Error
 
 /_/env:
+  post:
+    description: add envionment entry
+    body:
+      application/json:
+        schema: EnvEntry
+    responses:
+      201:
+        description: Created
+        headers:
+          Location:
+            description: URI to the env entry instance
+        body:
+          application/json:
+            schema: EnvEntry
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   get:
     description: get list of all environment
     responses:
