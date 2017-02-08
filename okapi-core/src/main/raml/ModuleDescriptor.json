@@ -8,12 +8,7 @@
     "tags" : {"type" : ["array", "null"],
       "items" : {"type": "string"}
     },
-    "env" : {
-      "type": "array",
-      "items": {
-        "$ref": "EnvEntry.json"
-      }
-    },
+    "env" : { "$ref": "EnvEntryList.json" },
     "provides" : {
       "type": ["array", "null"],
       "items" : {
