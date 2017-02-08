@@ -21,12 +21,6 @@ import static org.folio.okapi.common.ErrorType.INTERNAL;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import static org.folio.okapi.common.ErrorType.USER;
 
-/**
- * A shared map with extra features like locking and listing of keys. Two level
- * keys.
- *
- * @author heikki
- */
 public class LockedStringMap {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -61,22 +55,29 @@ public class LockedStringMap {
   }
 
   public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
-    StringMap smap = new StringMap();
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
-        //logger.debug("Get " + k + "/" + k2 + ":" + val);
-        if (val != null) {
-          StringMap oldlist = Json.decodeValue(val, StringMap.class);
-          smap.strings.putAll(oldlist.strings);
-          if (smap.strings.containsKey(k2)) {
-            fut.handle(new Success<>(smap.strings.get(k2)));
-            return;
+        if (k2 == null) {
+          if (val == null) {
+            fut.handle(new Failure<>(NOT_FOUND, k));
+          } else {
+            fut.handle(new Success<>(val));
+          }
+        } else {
+          if (val == null) {
+            fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
+          } else {
+            StringMap smap = new StringMap();
+            StringMap oldlist = Json.decodeValue(val, StringMap.class);
+            smap.strings.putAll(oldlist.strings);
+            if (smap.strings.containsKey(k2)) {
+              fut.handle(new Success<>(smap.strings.get(k2)));
+            }
           }
         }
-        fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
       }
     });
   }
@@ -186,23 +187,27 @@ public class LockedStringMap {
   }
 
   public void addOrReplace(boolean allowReplace, String k, String k2, String value, Handler<ExtendedAsyncResult<Void>> fut) {
-    StringMap smap = new StringMap();
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
         String oldVal = resGet.result();
-        if (oldVal != null) {
-          StringMap oldlist = Json.decodeValue(oldVal, StringMap.class);
-          smap.strings.putAll(oldlist.strings);
+        String newVal;
+        if (k2 == null) {
+          newVal = value;
+        } else {
+          StringMap smap = new StringMap();
+          if (oldVal != null) {
+            StringMap oldlist = Json.decodeValue(oldVal, StringMap.class);
+            smap.strings.putAll(oldlist.strings);
+          }
+          if (!allowReplace && smap.strings.containsKey(k2)) {
+            fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
+            return;
+          }
+          smap.strings.put(k2, value);
+          newVal = Json.encodePrettily(smap);
         }
-        if (!allowReplace && smap.strings.containsKey(k2)) {
-          fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
-          return;
-        }
-        smap.strings.put(k2, value);
-        String newVal = Json.encodePrettily(smap);
-        //logger.debug("Add: to " + k + ":" + newVal);
         if (oldVal == null) { // new entry
           list.putIfAbsent(k, newVal, resPut -> {
             if (resPut.succeeded()) {
@@ -236,6 +241,10 @@ public class LockedStringMap {
     });
   }
 
+  public void remove(String k, Handler<ExtendedAsyncResult<Boolean>> fut) {
+    remove(k, null, fut);
+  }
+
   public void remove(String k, String k2, Handler<ExtendedAsyncResult<Boolean>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -246,44 +255,47 @@ public class LockedStringMap {
           fut.handle(new Failure<>(NOT_FOUND, k));
           return;
         }
-        StringMap smap = Json.decodeValue(val, StringMap.class);
-        if (!smap.strings.containsKey(k2)) {
-          fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
-        } else {
-          smap.strings.remove(k2);
-          if (smap.strings.isEmpty()) {
-            list.removeIfPresent(k, val, resDel -> {
-              if (resDel.succeeded()) {
-                if (resDel.result()) {
-                  fut.handle(new Success<>(true));
-                  // Note that we don't remove from the allkeys list.
-                  // That could lead to race conditions, better to have
-                  // unused entries in the allkeys list.
-                } else {
-                  vertx.setTimer(delay, res -> {
-                    remove(k, k2, fut);
-                  });
-                }
-              } else {
-                fut.handle(new Failure<>(INTERNAL, resDel.cause()));
-              }
-            });
-          } else { // list was not empty, remove value
-            String newVal = Json.encodePrettily(smap);
-            list.replaceIfPresent(k, val, newVal, resPut -> {
-              if (resPut.succeeded()) {
-                if (resPut.result()) {
-                  fut.handle(new Success<>(false));
-                } else {
-                  vertx.setTimer(delay, res -> {
-                    remove(k, k2, fut);
-                  });
-                }
-              } else {
-                fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-              }
-            });
+        StringMap smap = new StringMap();
+        if (k2 != null) {
+          smap = Json.decodeValue(val, StringMap.class);
+          if (!smap.strings.containsKey(k2)) {
+            fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
+            return;
           }
+          smap.strings.remove(k2);
+        }
+        if (smap.strings.isEmpty()) {
+          list.removeIfPresent(k, val, resDel -> {
+            if (resDel.succeeded()) {
+              if (resDel.result()) {
+                fut.handle(new Success<>(true));
+                // Note that we don't remove from the allkeys list.
+                // That could lead to race conditions, better to have
+                // unused entries in the allkeys list.
+              } else {
+                vertx.setTimer(delay, res -> {
+                  remove(k, k2, fut);
+                });
+              }
+            } else {
+              fut.handle(new Failure<>(INTERNAL, resDel.cause()));
+            }
+          });
+        } else { // list was not empty, remove value
+          String newVal = Json.encodePrettily(smap);
+          list.replaceIfPresent(k, val, newVal, resPut -> {
+            if (resPut.succeeded()) {
+              if (resPut.result()) {
+                fut.handle(new Success<>(false));
+              } else {
+                vertx.setTimer(delay, res -> {
+                  remove(k, k2, fut);
+                });
+              }
+            } else {
+              fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+            }
+          });
         }
       }
     });

@@ -8,11 +8,11 @@ import io.vertx.core.json.Json;
 import java.util.LinkedList;
 import java.util.List;
 
-public class LockedTypedMap<T> extends LockedStringMap {
+public class LockedTypedMap2<T> extends LockedStringMap {
 
   private final Class<T> clazz;
 
-  public LockedTypedMap(Class<T> c) {
+  public LockedTypedMap2(Class<T> c) {
     this.clazz = c;
   }
 
