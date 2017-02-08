@@ -209,7 +209,12 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         DeploymentDescriptor md = resGet.result();
-        if (clusterManager != null) {
+        String url = md.getUrl();
+        if (url == null) {
+          url = "";
+        }
+        // check that the node is alive, but only on non-url instances
+        if (clusterManager != null && url.isEmpty()) {
           if (!clusterManager.getNodes().contains(md.getNodeId())) {
             fut.handle(new Failure<>(NOT_FOUND, "gone"));
             return;
@@ -232,7 +237,14 @@ public class DiscoveryManager implements NodeListener {
         Iterator<DeploymentDescriptor> it = result.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (clusterManager != null) {
+          String url = md.getUrl();
+          if (url == null) {
+            url = "";
+          }
+          // remove instances that on nodes that are not up
+          // but not those that have an explicit URL
+          if (clusterManager != null && url.isEmpty()) {
+            List<String> n = clusterManager.getNodes();
             if (!clusterManager.getNodes().contains(md.getNodeId())) {
               it.remove();
             }
@@ -249,7 +261,7 @@ public class DiscoveryManager implements NodeListener {
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.getKeys(resGet -> {
       if (resGet.failed()) {
-        logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
+        logger.debug("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
@@ -406,7 +418,6 @@ public class DiscoveryManager implements NodeListener {
   public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
     nodes.getKeys(resGet -> {
       if (resGet.failed()) {
-        logger.warn("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
