@@ -140,13 +140,15 @@ public class MainVerticle extends AbstractVerticle {
         System.exit(1);
     }
 
+    envManager = new EnvManager();
     discoveryManager = new DiscoveryManager();
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
     if (enableDeployment) {
       Ports ports = new Ports(port_start, port_end);
-      deploymentManager = new DeploymentManager(vertx, discoveryManager, host, ports, port);
+      deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
+              host, ports, port);
       deploymentWebService = new DeploymentWebService(deploymentManager);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void run() {
@@ -170,7 +172,6 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager = new ModuleManager(vertx);
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
-      envManager = new EnvManager();
       envService = new EnvService(envManager);
       if (discoveryManager != null && moduleManager != null) {
         discoveryManager.setModuleManager(moduleManager);

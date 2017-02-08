@@ -11,6 +11,7 @@ import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -27,7 +28,12 @@ public class EnvTest {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
+  private HttpClient httpClient;
+
   private static final String LS = System.lineSeparator();
+  private String locationSampleDeployment;
+  private String locationSampleModule;
+  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   public EnvTest() {
   }
@@ -35,7 +41,7 @@ public class EnvTest {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-
+    httpClient = vertx.createHttpClient();
     DeploymentOptions opt = new DeploymentOptions()
             .setConfig(new JsonObject().put("storage", "inmemory"));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
@@ -43,7 +49,20 @@ public class EnvTest {
 
   @After
   public void tearDown(TestContext context) {
-    Async async = context.async();
+    td(context, context.async());
+  }
+
+  private void td(TestContext context, Async async) {
+    if (locationSampleDeployment != null) {
+      httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationSampleDeployment = null;
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
     vertx.close(x -> {
       async.complete();
     });
@@ -51,8 +70,6 @@ public class EnvTest {
 
   @Test
   public void test1() {
-    int port = Integer.parseInt(System.getProperty("port", "9130"));
-
     RestAssured.port = port;
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -96,6 +113,7 @@ public class EnvTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
     String locationName1 = r.getHeader("Location");
+
     c = api.createRestAssured();
     c.given().get(locationName1)
             .then()
@@ -125,5 +143,111 @@ public class EnvTest {
     c.given().get("/_/env").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
+
+  }
+
+  @Test
+  public void test2() {
+    final String okapiTenant = "roskilde";
+    RestAssured.port = port;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+            .assumingBaseUri("https://okapi.cloud");
+    RestAssuredClient c;
+    Response r;
+    // add Env entry
+    final String doc = "{" + LS
+            + "  \"name\" : \"helloGreeting\"," + LS
+            + "  \"value\" : \"hejsa\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(doc).post("/_/env")
+            .then()
+            .statusCode(201)
+            .body(equalTo(doc))
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    String locationName1 = r.getHeader("Location");
+    // deploy module
+    final String docSampleDeployment = "{" + LS
+            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"descriptor\" : {" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docSampleDeployment).post("/_/deployment/modules")
+            .then()
+            .statusCode(201)
+            .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    locationSampleDeployment  = r.getHeader("Location");
+    // proxy module
+    final String docSampleModule = "{" + LS
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"this module\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"_tenant\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/testb\"," + LS
+            + "    \"level\" : \"31\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]," + LS
+            + "  \"tenantInterface\" : \"/tenant\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+            .extract().response();
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    locationSampleModule = r.getHeader("Location");
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+            + "  \"id\" : \"" + okapiTenant + "\"," + LS
+            + "  \"name\" : \"" + okapiTenant + "\"," + LS
+            + "  \"description\" : \"Roskilde bibliotek\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docTenantRoskilde).post("/_/proxy/tenants")
+            .then().statusCode(201)
+            .body(equalTo(docTenantRoskilde))
+            .extract().response();
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+    // associate tenant for module
+    final String docEnableSample = "{" + LS
+            + "  \"id\" : \"sample-module\"" + LS
+            + "}";
+    c = api.createRestAssured();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+            .then().statusCode(200)
+            .body(equalTo(docEnableSample));
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+    // run module
+    c = api.createRestAssured();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+            .body("Okapi").post("/testb")
+            .then().statusCode(200)
+            .body(equalTo("hejsa Okapi"));
   }
 }

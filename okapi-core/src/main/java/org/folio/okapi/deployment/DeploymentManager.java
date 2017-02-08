@@ -5,11 +5,13 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
+import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.util.ModuleHandle;
 import org.folio.okapi.bean.Ports;
@@ -21,6 +23,7 @@ import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.env.EnvManager;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -34,11 +37,13 @@ public class DeploymentManager {
   Ports ports;
   String host;
   DiscoveryManager dm;
+  EnvManager em;
   private final int listenPort;
 
-  public DeploymentManager(Vertx vertx, DiscoveryManager dm,
+  public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
           String host, Ports ports, int listenPort) {
     this.dm = dm;
+    this.em = em;
     this.vertx = vertx;
     this.host = host;
     this.listenPort = listenPort;
@@ -96,23 +101,47 @@ public class DeploymentManager {
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
       return;
     }
-    ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
-
-    mh.start(future -> {
-      if (future.succeeded()) {
-        DeploymentDescriptor md2
-                = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
-                        url, md1.getDescriptor(), mh);
-        md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
-        list.put(md2.getInstId(), md2);
-        tim.stop();
-        dm.add(md2, res -> {
-          fut.handle(new Success<>(md2));
-        });
+    HashMap<String, EnvEntry> entries = new HashMap<>();
+    EnvEntry[] env = descriptor.getEnv();
+    if (env != null) {
+      for (EnvEntry e : env) {
+        entries.put(e.getName(), e);
+      }
+    }
+    em.get(eres -> {
+      if (eres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
       } else {
-        tim.stop();
-        ports.free(use_port);
-        fut.handle(new Failure<>(INTERNAL, future.cause()));
+        for (EnvEntry er : eres.result()) {
+          entries.put(er.getName(), er);
+        }
+        if (entries.size() > 0) {
+          EnvEntry[] nenv = new EnvEntry[entries.size()];
+          int i = 0;
+          for (String k : entries.keySet()) {
+            nenv[i++] = entries.get(k);
+          }
+          descriptor.setEnv(nenv);
+        }
+        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
+
+        mh.start(future -> {
+          if (future.succeeded()) {
+            DeploymentDescriptor md2
+                    = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
+                            url, md1.getDescriptor(), mh);
+            md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
+            list.put(md2.getInstId(), md2);
+            tim.stop();
+            dm.add(md2, res -> {
+              fut.handle(new Success<>(md2));
+            });
+          } else {
+            tim.stop();
+            ports.free(use_port);
+            fut.handle(new Failure<>(INTERNAL, future.cause()));
+          }
+        });
       }
     });
   }
