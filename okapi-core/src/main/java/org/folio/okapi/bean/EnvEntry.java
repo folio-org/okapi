@@ -3,9 +3,10 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class NameValue {
+public class EnvEntry {
   private String name;
   private String value;
+  private String description;
 
   public String getName() {
     return name;
@@ -21,5 +22,13 @@ public class NameValue {
 
   public void setValue(String value) {
     this.value = value;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
   }
 }

@@ -10,16 +10,8 @@
     "dockerCMD": {
       "type": ["array", "null"],
       "items": {"type": "string"}
-     },
-    "env" : {
-      "type": "array",
-      "items" : {
-        "type" : "object",
-        "properties" : {
-          "name" : {"type": "string"},
-          "value" : {"type": "string"}
-        }
-      }
-    }
+    },
+    "env" : { "$ref": "EnvEntryList.json" }
   }
 }
+

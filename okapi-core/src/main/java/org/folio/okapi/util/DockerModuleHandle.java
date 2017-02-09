@@ -17,7 +17,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
-import org.folio.okapi.bean.NameValue;
+import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.Ports;
 
 public class DockerModuleHandle implements ModuleHandle {
@@ -29,12 +29,12 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String image;
   private final String[] cmd;
   private final String dockerUrl;
-  private final NameValue[] env;
+  private final EnvEntry[] env;
 
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
-          NameValue[] env, Ports ports, int port) {
+          EnvEntry[] env, Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
@@ -199,7 +199,7 @@ public class DockerModuleHandle implements ModuleHandle {
     j.put("StopSignal", "SIGTERM");
     if (env != null) {
       JsonArray a = new JsonArray();
-      for (NameValue nv : env) {
+      for (EnvEntry nv : env) {
         a.add(nv.getName() + "=" + nv.getValue());
       }
       j.put("env", a);
