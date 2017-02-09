@@ -54,13 +54,8 @@ public class DeploymentManagerTest {
   }
 
   @Test
-  public void test(TestContext context) {
+  public void test1(TestContext context) {
     async = context.async();
-    assertNotNull(vertx);
-    test1(context);
-  }
-
-  private void test1(TestContext context) {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
@@ -69,18 +64,20 @@ public class DeploymentManagerTest {
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
-        test2(context);
+        async.complete();
       } else {
         assertEquals("http://myhost.index:9131", res1.result().getUrl());
         dm.undeploy(res1.result().getInstId(), res2 -> {
           assertTrue(res2.succeeded());
-          test2(context);
+          async.complete();
         });
       }
     });
   }
 
-  private void test2(TestContext context) {
+  @Test
+  public void test2(TestContext context) {
+    async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
