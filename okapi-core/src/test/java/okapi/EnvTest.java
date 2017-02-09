@@ -238,7 +238,7 @@ public class EnvTest {
     c.given()
             .header("Content-Type", "application/json")
             .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-            .then() // .statusCode(200) will eventually be 201.
+            .then().statusCode(201)
             .body(equalTo(docEnableSample));
     Assert.assertTrue(
             "raml: " + c.getLastReport().toString(),
