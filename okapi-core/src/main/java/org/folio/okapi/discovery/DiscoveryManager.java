@@ -23,7 +23,8 @@ import org.folio.okapi.service.ModuleManager;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.util.LockedTypedMap;
+import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 
@@ -37,8 +38,8 @@ public class DiscoveryManager implements NodeListener {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  LockedTypedMap<DeploymentDescriptor> deployments = new LockedTypedMap<>(DeploymentDescriptor.class);
-  LockedTypedMap<NodeDescriptor> nodes = new LockedTypedMap<>(NodeDescriptor.class);
+  LockedTypedMap2<DeploymentDescriptor> deployments = new LockedTypedMap2<>(DeploymentDescriptor.class);
+  LockedTypedMap1<NodeDescriptor> nodes = new LockedTypedMap1<>(NodeDescriptor.class);
   Vertx vertx;
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
@@ -379,11 +380,11 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
-    nodes.put(nd.getNodeId(), "a", nd, fut);
+    nodes.put(nd.getNodeId(), nd, fut);
   }
 
   private void removeNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    nodes.remove(nd.getNodeId(), "a", fut);
+    nodes.remove(nd.getNodeId(), fut);
   }
 
   void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
@@ -412,7 +413,7 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
     }
-    nodes.get(nodeId, "a", fut);
+    nodes.get(nodeId, fut);
   }
 
   public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
@@ -441,7 +442,7 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeLeft(String nodeID) {
-    nodes.remove(nodeID, "a", res -> {
+    nodes.remove(nodeID, res -> {
       logger.info("node.remove " + nodeID + " result=" + res.result());
     });
   }

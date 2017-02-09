@@ -66,7 +66,6 @@ public class LockedStringMapTest {
   }
 
   private void testgetK12(TestContext context) {
-    //System.out.println("testgetK12");
     map.getString("k1", "k2", res -> {
       assertTrue(res.succeeded());
       assertEquals("FOOBAR", res.result());
@@ -75,7 +74,6 @@ public class LockedStringMapTest {
   }
 
   private void testgetK1(TestContext context) {
-    //System.out.println("testgetK1");
     map.getString("k1", res -> {
       assertTrue(res.succeeded());
       assertEquals("[FOOBAR]", res.result().toString());
@@ -84,7 +82,6 @@ public class LockedStringMapTest {
   }
 
   public void addAnother(TestContext context) {
-    //System.out.println("addAnother");
     map.addOrReplace(false, "k1", "k2.2", "SecondFoo", res -> {
       assertTrue(res.succeeded());
       addSecondK1(context);
@@ -92,7 +89,6 @@ public class LockedStringMapTest {
   }
 
   public void addSecondK1(TestContext context) {
-    //System.out.println("Adding second K1");
     map.addOrReplace(false, "k1.1", "x", "SecondKey", res -> {
       assertTrue(res.succeeded());
       testgetK1Again(context);
@@ -102,7 +98,6 @@ public class LockedStringMapTest {
   private void testgetK1Again(TestContext context) {
     map.getString("k1", res -> {
       assertTrue(res.succeeded());
-      //System.out.println("K1Again: '"+res.result().toString()+"'");
       assertEquals("[FOOBAR, SecondFoo]", res.result().toString());
       listKeys(context);
     });
@@ -111,8 +106,47 @@ public class LockedStringMapTest {
   public void listKeys(TestContext context) {
     map.getKeys(res -> {
       assertTrue(res.succeeded());
-      //System.out.println("Got keys: '" +res.result().toString() + "'" );
       assertTrue("[k1, k1.1]".equals(res.result().toString()));
+      deleteKey1(context);
+    });
+  }
+
+  private void deleteKey1(TestContext context) {
+    map.remove("k1", "k2", res -> {
+      assertTrue(res.succeeded());
+      assertFalse(res.result()); // there is still k1/k2.2 left
+      listKeys1(context);
+    });
+  }
+
+  private void listKeys1(TestContext context) {
+    map.getKeys(res -> {
+      assertTrue(res.succeeded());
+      assertTrue("[k1, k1.1]".equals(res.result().toString()));
+      deleteKey2(context);
+    });
+  }
+
+  private void deleteKey2(TestContext context) {
+    map.remove("k1", "k2.2", res -> {
+      assertTrue(res.succeeded());
+      assertTrue(res.result()); // no keys left
+      testgetk1(context);
+    });
+  }
+
+  private void testgetk1(TestContext context) {
+    map.getString("k1", res -> {
+      assertTrue(res.succeeded());
+      assertEquals("[]", res.result().toString());
+      listKeys2(context);
+    });
+  }
+
+  private void listKeys2(TestContext context) {
+    map.getKeys(res -> {
+      assertTrue(res.succeeded());
+      assertTrue("[k1.1]".equals(res.result().toString()));
       done(context);
     });
   }
