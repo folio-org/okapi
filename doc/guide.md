@@ -28,6 +28,7 @@ managing and running microservices.
     * [Deploying Modules](#deploying-modules)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
+    * [Environment Variables](#environment-variables)
     * [Web Service](#web-service)
     * [Deployment](#deployment)
     * [Instrumentation](#instrumentation)
@@ -104,6 +105,7 @@ endpoints are:
  * `/_/proxy`
  * `/_/discovery`
  * `/_/deployment`
+ * `/_/env`
 
 The special prefix `/_` is used to to distinguish the routing for Okapi
 internal web services from the extension points provided by modules.
@@ -130,7 +132,10 @@ internal web services from the extension points provided by modules.
    discovery service, but is left open in case some cluster management
    system could make use of it.
 
-These three parts are coded as separate services, so that it will be possible
+ * The `/_/env`  endpoint is used to manage environment variables - system-wide
+   properties that are passed to modules during deployment.
+
+These four parts are coded as separate services, so that it will be possible
 to use alternative deployment and discovery methods, if the chosen clustering
 system offers such.
 
@@ -1443,6 +1448,25 @@ These options are at the end of the command line:
 end.
 * `-cluster-host` _ip_ -- Vertx cluster host
 * `-cluster-port` _port_ -- Vertx cluster port
+
+
+### Environment Variables
+
+Okapi offers a concept: environment variables. These are system-wide
+properties and provides a way to pass information to modules
+during deployment. For example, a module that accesses a database
+will need to know the connection details.
+
+At deployment the environment variables are defined for the
+process to be deployed. Note that those can only be passed to modules
+that Okapi manages, eg Docker instances and processes. But not
+remote services defined by a URL (which are not deployed anyway).
+
+For everything but the deployment-mode, Okapi provides CRU service under
+`/_/env`. The identifier for the service is the name of the variable. It
+may not include a slash and may not begin with underscore.
+An environemnt entity is defined by
+[`EnvEntry.json`](../okapi-core/src/main/raml/EnvEntry.json).
 
 ### Web Service
 
