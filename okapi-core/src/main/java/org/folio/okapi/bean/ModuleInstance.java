@@ -10,15 +10,18 @@ public class ModuleInstance {
   String url;
   final RoutingEntry re;
   String authToken;
-  String redirectFrom;
+  String redirectFrom; // The path before any redirects
+  String originalModule; // the module before any redirects
 
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String from) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re,
+    String from, String origMod) {
     this.md = md;
     this.url = null;
     this.re = re;
     this.authToken = null;
     this.redirectFrom = from;
+    this.originalModule = origMod;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -47,6 +50,10 @@ public class ModuleInstance {
 
   public String getRedirectFrom() {
     return redirectFrom;
+  }
+
+  public String getOriginalModule() {
+    return originalModule;
   }
 
 }

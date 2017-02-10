@@ -92,11 +92,20 @@ public class ProxyService {
 
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
           Timer.Context timer, ProxyContext pc ) {
-    //long timeDiff = (System.nanoTime() - timer) / 1000;
     long timeDiff = timer.stop() / 1000;
+    String redir = mi.getRedirectFrom();
+    if (redir == null) {
+      redir = "";
+    }
+    if (redir.isEmpty()) {
+      redir = "- ";
+    } else {
+      redir = mi.getOriginalModule() + redir + "-> ";
+    }
+    String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.traceHeaders.add(ctx.request().method() + " "
-            + mi.getModuleDescriptor().getId() + ":"
-            + statusCode + " " + timeDiff + "us");
+      + redir + mi.getModuleDescriptor().getNameOrId() + " "
+      + url + " : " + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, pc);
   }
 
@@ -124,15 +133,11 @@ public class ProxyService {
    * later
    * @return false if errors, sets ctx up.
    */
-  private boolean resolveRedirects(RoutingContext ctx,
-    List<ModuleInstance> mods,
-    String mod,
-    RoutingEntry re,
-    Tenant t,
-    String loop,
-    String redirectFrom) {
+  private boolean resolveRedirects(RoutingContext ctx, List<ModuleInstance> mods,
+    String mod, RoutingEntry re, Tenant t,
+    String loop, String redirectFrom, String origMod) {
     if (!re.getType().matches("redirect")) { // regular type
-      ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom);
+      ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
       mods.add(mi);
       return true;
     }
@@ -147,6 +152,7 @@ public class ProxyService {
           if (tryre.getPath().equals(re.getRedirectPath())) {
             if (redirectFrom.isEmpty()) {
               redirectFrom = re.getPath();
+              origMod = mod;
             }
             found = true;
             logger.debug("resolveRedirects: Found a good one!");
@@ -155,7 +161,7 @@ public class ProxyService {
               return false;
             }
             resolveRedirects(ctx, mods, trymod, tryre, t,
-              loop + " -> " + tryre.getPath(), redirectFrom);
+              loop + " -> " + tryre.getPath(), redirectFrom, origMod);
           }
         }
       }
@@ -184,7 +190,7 @@ public class ProxyService {
         RoutingEntry[] rr = modules.get(mod).getRoutingEntries();
         for (RoutingEntry re : rr) {
           if (match(re, ctx.request())) {
-            if (!resolveRedirects(ctx, mods, mod, re, t, "", "")) {
+            if (!resolveRedirects(ctx, mods, mod, re, t, "", "", "")) {
               return null;
             }
           }

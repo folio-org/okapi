@@ -1725,6 +1725,7 @@ public class ModuleTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
+      .header("X-Okapi-Trace", containsString("GET header-module/red-> sample-module http://localhost:9131/testr"))
       .log().ifError();
 
     // Bad redirect
@@ -1784,6 +1785,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
+      .header("X-Okapi-Trace", containsString("-> sample-module http://localhost:9131/testrlight : 404"))
       .log().ifError();
 
     // Verify that we replace only the beginning of the path
