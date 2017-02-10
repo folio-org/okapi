@@ -1459,13 +1459,13 @@ will need to know the connection details.
 
 At deployment the environment variables are defined for the
 process to be deployed. Note that those can only be passed to modules
-that Okapi manages, eg Docker instances and processes. But not
+that Okapi manages, e.g. Docker instances and processes. But not
 remote services defined by a URL (which are not deployed anyway).
 
 For everything but the deployment-mode, Okapi provides CRU service under
 `/_/env`. The identifier for the service is the name of the variable. It
 may not include a slash and may not begin with underscore.
-An environemnt entity is defined by
+An environment entity is defined by
 [`EnvEntry.json`](../okapi-core/src/main/raml/EnvEntry.json).
 
 ### Web Service
