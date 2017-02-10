@@ -16,6 +16,8 @@ public class ModuleDescriptor {
   private String name;
 
   private String[] tags;
+  private EnvEntry[] env;
+
   private ModuleInterface[] provides;
   private ModuleInterface[] requires;
   private RoutingEntry[] routingEntries;
@@ -37,6 +39,7 @@ public class ModuleDescriptor {
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
+    this.env = other.env;
     this.routingEntries = other.routingEntries;
     this.provides = other.provides;
     this.requires = other.requires;
@@ -77,6 +80,13 @@ public class ModuleDescriptor {
     this.tags = tags;
   }
 
+  public EnvEntry[] getEnv() {
+    return env;
+  }
+
+  public void setEnv(EnvEntry[] env) {
+    this.env = env;
+  }
   public ModuleInterface[] getProvides() {
     return provides;
   }

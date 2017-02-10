@@ -11,6 +11,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.discovery.DiscoveryManager;
+import org.folio.okapi.env.EnvManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,16 +28,20 @@ public class DeploymentManagerTest {
   Ports ports;
   DiscoveryManager dis;
   DeploymentManager dm;
+  EnvManager em;
 
   @Before
   public void setUp(TestContext context) {
     async = context.async();
     vertx = Vertx.vertx();
     ports = new Ports(9131, 9140);
-    dis = new DiscoveryManager();
-    dis.init(vertx, res -> {
-      dm = new DeploymentManager(vertx, dis, "myhost.index", ports, 9130);
-      async.complete();
+    em = new EnvManager();
+    em.init(vertx, res1 -> {
+      dis = new DiscoveryManager();
+      dis.init(vertx, res2 -> {
+        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9130);
+        async.complete();
+      });
     });
   }
 
@@ -49,13 +54,8 @@ public class DeploymentManagerTest {
   }
 
   @Test
-  public void test(TestContext context) {
+  public void test1(TestContext context) {
     async = context.async();
-    assertNotNull(vertx);
-    test1(context);
-  }
-
-  private void test1(TestContext context) {
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
@@ -64,18 +64,20 @@ public class DeploymentManagerTest {
     dm.deploy(dd, res1 -> {
       assertTrue(res1.succeeded());
       if (res1.failed()) {
-        test2(context);
+        async.complete();
       } else {
         assertEquals("http://myhost.index:9131", res1.result().getUrl());
         dm.undeploy(res1.result().getInstId(), res2 -> {
           assertTrue(res2.succeeded());
-          test2(context);
+          async.complete();
         });
       }
     });
   }
 
-  private void test2(TestContext context) {
+  @Test
+  public void test2(TestContext context) {
+    async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
