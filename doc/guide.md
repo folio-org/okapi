@@ -1464,7 +1464,7 @@ remote services defined by a URL (which are not deployed anyway).
 
 For everything but the deployment-mode, Okapi provides CRU service under
 `/_/env`. The identifier for the service is the name of the variable. It
-may not include a slash and may not begin with underscore.
+must not include a slash and may not begin with underscore.
 An environment entity is defined by
 [`EnvEntry.json`](../okapi-core/src/main/raml/EnvEntry.json).
 
