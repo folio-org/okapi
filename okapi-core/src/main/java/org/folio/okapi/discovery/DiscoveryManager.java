@@ -242,7 +242,7 @@ public class DiscoveryManager implements NodeListener {
           if (url == null) {
             url = "";
           }
-          // remove instances that on nodes that are not up
+          // remove instances that are on nodes that are not up
           // but not those that have an explicit URL
           if (clusterManager != null && url.isEmpty()) {
             List<String> n = clusterManager.getNodes();
