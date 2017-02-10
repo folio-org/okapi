@@ -903,8 +903,8 @@ public class ModuleTest {
       .header("X-tenant-reqs", "yes")
       .get("/testb")
       .then()
-      .statusCode(200)
-      .body(containsString("POST-roskilde DELETE-roskilde POST-roskilde"))
+      .statusCode(200) // No longer expects a DELETE. See Okapi-252
+      .body(containsString("POST-roskilde POST-roskilde"))
       .log().ifError();
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
@@ -991,10 +991,12 @@ public class ModuleTest {
     given()
             .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module")
             .then().statusCode(204);
-    // Disable the sample2 module. It has a tenant request handler
+
+    // Disable the sample2 module. It has a tenant request handler which is
+    // no longer invoked, so it does not matter we don't have a running instance
     given()
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
-      .then().statusCode(400);  // no running instance
+      .then().statusCode(204);
 
     c = api.createRestAssured();
     c.given().delete(locationTenantRoskilde)

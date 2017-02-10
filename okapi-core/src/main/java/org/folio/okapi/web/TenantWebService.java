@@ -346,7 +346,11 @@ public class TenantWebService {
 
   /**
    * Helper to make a DELETE request to the module's tenant interface.
-   * Sets up the response in ctx.
+   * Sets up
+   * the response in ctx. NOTE - This is not used at the moment. It used to be
+   * called from disableModule, but that was too drastic. We will need a way to
+   * invoke this, in some future version.
+   *
    * @param ctx
    * @param module
    */
@@ -418,7 +422,7 @@ public class TenantWebService {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            destroyTenant(ctx, module, id);
+            responseText(ctx, 204).end();
           } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
             logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
             responseError(ctx, 404, res.cause());
