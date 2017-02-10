@@ -371,8 +371,15 @@ schemas:
             body:
               application/json:
                 schema: TenantModuleDescriptor
-
-      /{module_tenant_id}:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
+      /{module_id}:
         get:
           description: look up particular module selection
           responses:
@@ -382,6 +389,32 @@ schemas:
                   schema: TenantModuleDescriptor
             404:
               description: Not Found
+              body:
+                text/plain:
+        put:
+          description: update a module for a specified tenant.
+          body:
+            application/json:
+              schema: TenantModuleDescriptor
+          responses:
+            201:
+              description: Created
+              headers:
+                Location:
+                  description: URI to the created tenant
+              body:
+                application/json:
+                  schema: TenantModuleDescriptor
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server Error
               body:
                 text/plain:
         delete:
@@ -402,7 +435,7 @@ schemas:
 
 /_/env:
   post:
-    description: add envionment entry
+    description: add environment entry
     body:
       application/json:
         schema: EnvEntry
