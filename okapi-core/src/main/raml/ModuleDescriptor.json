@@ -41,7 +41,12 @@
           },
           "path": {"type": "string"},
           "level": {"type": "string"},
-          "type": {"type": "string"},
+          "type": {
+            "type": "string"
+          },
+          "redirectPath": {
+            "type": "string"
+          },
           "permissionsRequired": {
             "type": ["array","null"],
             "items": {

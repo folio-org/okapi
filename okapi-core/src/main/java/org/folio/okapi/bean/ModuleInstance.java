@@ -10,13 +10,15 @@ public class ModuleInstance {
   String url;
   final RoutingEntry re;
   String authToken;
+  String redirectFrom;
 
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String from) {
     this.md = md;
     this.url = null;
     this.re = re;
     this.authToken = null;
+    this.redirectFrom = from;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -41,6 +43,10 @@ public class ModuleInstance {
 
   public void setAuthToken(String authToken) {
     this.authToken = authToken;
+  }
+
+  public String getRedirectFrom() {
+    return redirectFrom;
   }
 
 }
