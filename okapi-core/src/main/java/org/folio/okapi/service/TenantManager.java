@@ -30,10 +30,6 @@ public class TenantManager {
     DropwizardHelper.registerGauge(metricKey, () -> tenants.size());
   }
 
-  public ModuleManager getModuleManager() {
-    return moduleManager;
-  }
-
   public boolean insert(Tenant t) {
     String id = t.getId();
     Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".create");
@@ -130,11 +126,11 @@ public class TenantManager {
                   + prov.getId() + " " + prov.getVersion()
                   + " against " + pi.getId() + " " + pi.getVersion());
           if (prov.getId().equals(pi.getId())) {
-            String msg = "Can not enable module '" +  md.getId() + "'"
-              + " for tenant '" + tenant.getId() + "'"
-              + " because of conflict:"
-              + " Interfcace '" + prov.getId() + "' already provided by module '"
-              + enabledModule + "'";
+            String msg = "Can not enable module '" + md.getId() + "'"
+                    + " for tenant '" + tenant.getId() + "'"
+                    + " because of conflict:"
+                    + " Interface '" + prov.getId() + "' already provided by module '"
+                    + enabledModule + "'";
             logger.debug(msg);
             return msg;
           }
@@ -168,27 +164,26 @@ public class TenantManager {
     return "";
   }
 
-  /**
-   * Enable a module for a given tenant.
-   *
-   * @param id
-   * @param module
-   * @return error message, or "" if all is ok
-   */
-  public String enableModule(String id, String module) {
+  public String updateModule(String id, String module_from, String module_to) {
     Tenant tenant = tenants.get(id);
     if (tenant == null) {
       return "tenant " + id + " not found";
     }
-    ModuleDescriptor mod = moduleManager.get(module);
-    if (mod == null) {
-      return "module " + module + " not found";
+    ModuleDescriptor mod_to = moduleManager.get(module_to);
+    if (mod_to == null) {
+      return "module " + module_to + " not found";
     }
-    String deperr = checkDependencies(tenant, mod);
+    if (module_from != null) {
+      tenant.disableModule(module_from);
+    }
+    String deperr = checkDependencies(tenant, mod_to);
     if (!deperr.isEmpty()) {
+      if (module_from != null) {
+        tenant.enableModule(module_from);
+      }
       return deperr;
     }
-    tenant.enableModule(module);
+    tenant.enableModule(module_to);
     return "";
   }
 
@@ -251,6 +246,31 @@ public class TenantManager {
       tenant.disableModule(module);
       return "";
     }
+  }
+
+  public String getTenantInterface(String module) {
+    ModuleDescriptor md = this.moduleManager.get(module);
+    if (md == null) {
+      return "";
+    }
+    String ti = md.getTenantInterface();
+    if (ti != null && !ti.isEmpty()) {
+      logger.warn("Module '" + md.getId() + "'"
+              + " still uses the DEPRECATED tenantInterface field."
+              + " Provide a '_tenant' interface instead");
+      return ti;
+    }
+    ModuleInterface[] prov = md.getProvides();
+    logger.debug("findTenantInterface: prov: " + Json.encode(prov));
+    if (prov != null) {
+      for (ModuleInterface pi : prov) {
+        logger.debug("findTenantInterface: Looking at " + pi.getId());
+        if ("_tenant".equals(pi.getId())) {
+          return "/_/tenant";
+        }
+      }
+    }
+    return "";
   }
 
   /**

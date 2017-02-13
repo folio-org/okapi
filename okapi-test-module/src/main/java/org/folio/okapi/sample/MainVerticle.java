@@ -89,6 +89,14 @@ public class MainVerticle extends AbstractVerticle {
       + "tenant service for tenant " + tenant + "\n");
     logger.info(meth + " request to okapi-test-module "
       + "tenant service for tenant " + tenant);
+    final String module_from = ctx.request().getParam("module_from");
+    if (module_from != null) {
+      logger.info("module_from=" + module_from);
+    }
+    final String module_to = ctx.request().getParam("module_to");
+    if (module_to != null) {
+      logger.info("module_to=" + module_to);
+    }
     this.tenantRequests += meth + "-" + tenant + " ";
     logger.debug("Tenant requests so far: " + tenantRequests);
     ctx.request().handler(x -> {
