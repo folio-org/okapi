@@ -141,27 +141,28 @@ public class ProxyService {
       mods.add(mi);
       return true;
     }
-    logger.debug("resolveRedirects: Considering " + Json.encode(re));
     boolean found = false;
     for (String trymod : modules.list()) {
       if (t.isEnabled(trymod)) {
         RoutingEntry[] rr = modules.get(trymod).getRoutingEntries();
         for (RoutingEntry tryre : rr) {
-          logger.debug("resolveRedirects: Looking at "
-            + Json.encode(tryre));
           if (tryre.getPath().equals(re.getRedirectPath())) {
             if (redirectFrom.isEmpty()) {
               redirectFrom = re.getPath();
               origMod = mod;
             }
             found = true;
-            logger.debug("resolveRedirects: Found a good one!");
+            logger.debug("resolveRedirects: "
+              + ctx.request().method() + " " + re.getPath()
+              + " => " + trymod + " " + tryre.getPath());
             if (loop.contains(tryre.getPath() + " ")) {
               responseError(ctx, 500, "Redirect loop: " + loop + " -> " + tryre.getPath());
               return false;
             }
-            resolveRedirects(ctx, mods, trymod, tryre, t,
-              loop + " -> " + tryre.getPath(), redirectFrom, origMod);
+            if (!resolveRedirects(ctx, mods, trymod, tryre, t,
+              loop + " -> " + tryre.getPath(), redirectFrom, origMod)) {
+              return false;
+            }
           }
         }
       }
@@ -641,7 +642,8 @@ public class ProxyService {
         proxyHeaders(ctx, it, pc,
                 content, bcontent, mi, timerContext);
       } else {
-        logger.warn("proxyR: bad rtype: " + rtype);
+        logger.warn("proxyR: Module " + mi.getModuleDescriptor().getNameOrId()
+          + " has bad request type: '" + rtype + "'");
         responseText(ctx, 500).end(); // Should not happen
       }
     }
