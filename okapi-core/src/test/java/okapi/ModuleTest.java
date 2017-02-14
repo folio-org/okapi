@@ -39,7 +39,6 @@ public class ModuleTest {
   Async async;
 
   private String locationSampleDeployment;
-  private String locationSample5Deployment;
   private String locationHeaderDeployment;
   private String locationAuthDeployment = null;
   private String okapiToken;
@@ -93,11 +92,11 @@ public class ModuleTest {
       }).end();
       return;
     }
-    if (locationSample5Deployment != null) {
-      httpClient.delete(port, "localhost", locationSample5Deployment, response -> {
+    if (locationSampleDeployment != null) {
+      httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
-          locationSample5Deployment = null;
+          locationSampleDeployment = null;
           td(context);
         });
       }).end();
@@ -133,7 +132,7 @@ public class ModuleTest {
     // Check that we are not depending on td() to undeploy modules
     Assert.assertNull("locationAuthDeployment", locationAuthDeployment);
     Assert.assertNull("locationSampleDeployment", locationSampleDeployment);
-    Assert.assertNull("locationSample5Deployment", locationSample5Deployment);
+    Assert.assertNull("locationSample5Deployment", locationSampleDeployment);
     Assert.assertNull("locationHeaderDeployment", locationHeaderDeployment);
 
     String emptyListDoc = "[ ]";
@@ -1068,10 +1067,9 @@ public class ModuleTest {
       .then().statusCode(201)
       .body(equalTo(doc2))
       .extract().response();
-    locationSample5Deployment = r.getHeader("Location");
+    locationSampleDeployment = r.getHeader("Location");
 
-    given().get(locationSample5Deployment)
-      .then().statusCode(200)
+    given().get(locationSampleDeployment).then().statusCode(200)
       .body(equalTo(doc2));
 
     given().get("/_/deployment/modules")
@@ -1091,9 +1089,9 @@ public class ModuleTest {
       .log().ifError()
       .body(equalTo("[ " + doc2 + " ]"));
 
-    System.out.println("delete: " + locationSample5Deployment);
-    given().delete(locationSample5Deployment).then().statusCode(204);
-    locationSample5Deployment = null;
+    System.out.println("delete: " + locationSampleDeployment);
+    given().delete(locationSampleDeployment).then().statusCode(204);
+    locationSampleDeployment = null;
 
     // Verify that the list works also after delete
     given().get("/_/deployment/modules")
@@ -1166,17 +1164,15 @@ public class ModuleTest {
       .then().statusCode(201)
       .body(equalTo(DeployResp))
       .extract().response();
-    locationSample5Deployment = r.getHeader("Location");
+    locationSampleDeployment = r.getHeader("Location");
 
     // Would be nice to verify that the module works, but too much hassle with
     // tenants etc.
     // Undeploy.
-    given().delete(locationSample5Deployment)
-      .then().statusCode(204);
+    given().delete(locationSampleDeployment).then().statusCode(204);
     // Undeploy again, to see it is gone
-    given().delete(locationSample5Deployment)
-      .then().statusCode(404);
-    locationSample5Deployment = null;
+    given().delete(locationSampleDeployment).then().statusCode(404);
+    locationSampleDeployment = null;
 
     // and delete from the proxy
     given().delete(locationSampleModule)
@@ -1206,7 +1202,7 @@ public class ModuleTest {
       .body(docLaunch1).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    locationSample5Deployment = r.getHeader("Location");
+    locationSampleDeployment = r.getHeader("Location");
 
     final String docLaunch2 = "{" + LS
       + "  \"srvcId\" : \"header-module\"," + LS
@@ -1327,9 +1323,8 @@ public class ModuleTest {
       .then().statusCode(204);
     given().delete(locationSampleModule)
       .then().statusCode(204);
-    given().delete(locationSample5Deployment)
-      .then().statusCode(204);
-    locationSample5Deployment = null;
+    given().delete(locationSampleDeployment).then().statusCode(204);
+    locationSampleDeployment = null;
     given().delete(locationHeaderDeployment)
       .then().statusCode(204);
     locationHeaderDeployment = null;
@@ -1501,15 +1496,324 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSample5Deployment = r.getHeader("Location");
+    locationSampleDeployment = r.getHeader("Location");
 
     given().delete(locationSampleModule).then().statusCode(204);
 
-    given().delete(locationSample5Deployment).then().statusCode(204);
-    locationSample5Deployment = null;
+    given().delete(locationSampleDeployment).then().statusCode(204);
+    locationSampleDeployment = null;
 
     checkDbIsEmpty("testDockerModule done", context);
 
     async.complete();
   }
+
+  /*
+   * Test redirect types. Sets up two modules, our sample, and the header test
+   * module.
+   *
+   * Both modules support the /testb path.
+   * Test also supports /testr path.
+   * Header will redirect /red path to /testr, which will end up in the test module.
+   * Header will also attempt to support /loop, /loop1, and /loop2 for testing
+   * looping redirects. These are expected to fail.
+   *
+   */
+  @Test
+  public void testRedirect(TestContext context) {
+    logger.info("Redirect test starting");
+    async = context.async();
+    RestAssuredClient c;
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml")
+      .load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    // Set up a tenant to test with
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    // Set up, deploy, and enable a sample module
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"5\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testr\"," + LS
+      + "    \"level\" : \"5\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/loop2\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/loop1\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/chain3\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    final String locationSampleModule = r.getHeader("Location");
+
+    final String docSampleDeploy = "{" + LS
+      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given().header("Content-Type", "application/json")
+      .body(docSampleDeploy).post("/_/discovery/modules")
+      .then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationSampleDeployment = r.getHeader("Location");
+
+    final String docEnableSample = "{" + LS
+      + "  \"id\" : \"sample-module\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201).body(equalTo(docEnableSample));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testr")
+      .then().statusCode(200)
+      .body(containsString("It works"))
+      .log().ifError();
+
+    // Set up, deploy, and enable the header module
+    final String docHeaderModule = "{" + LS
+      + "  \"id\" : \"header-module\"," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/red\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/badredirect\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/nonexisting\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/simpleloop\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/simpleloop\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/loop1\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/loop2\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/chain1\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/chain2\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"GET\" ]," + LS
+      + "    \"path\" : \"/chain2\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/chain3\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"POST\" ]," + LS
+      + "    \"path\" : \"/multiple\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "  }, {" + LS
+      + "    \"methods\" : [ \"POST\" ]," + LS
+      + "    \"path\" : \"/multiple\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"redirect\"," + LS
+      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docHeaderModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    final String locationHeaderModule = r.getHeader("Location");
+
+    final String docHeaderDeploy = "{" + LS
+      + "  \"srvcId\" : \"header-module\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given().header("Content-Type", "application/json")
+      .body(docHeaderDeploy).post("/_/discovery/modules")
+      .then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationHeaderDeployment = r.getHeader("Location");
+
+    final String docEnableHeader = "{" + LS
+      + "  \"id\" : \"header-module\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHeader).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201).body(equalTo(docEnableHeader));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(200)
+      .body(containsString("It works"))
+      .log().ifError();
+
+    // Actual redirecting request
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/red")
+      .then().statusCode(200)
+      .body(containsString("It works"))
+      .header("X-Okapi-Trace", containsString("GET header-module/red-> sample-module http://localhost:9131/testr"))
+      .log().ifError();
+
+    // Bad redirect
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/badredirect")
+      .then().statusCode(500)
+      .body(containsString("No suitable module found"))
+      .log().ifError();
+
+    // catch redirect loops
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/simpleloop")
+      .then().statusCode(500)
+      .body(containsString("loop:"))
+      .log().ifError();
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/loop1")
+      .then().statusCode(500)
+      .body(containsString("loop:"))
+      .log().ifError();
+
+    // redirect to multiple modules
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "application/json")
+      .body("{}")
+      .post("/multiple")
+      .then().statusCode(200)
+      .body(containsString("Hello Hello")) // test-module run twice
+      .log().ifError();
+
+    // Redirect with parameters
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "1")
+      .get("/red?foo=bar")
+      .then().statusCode(200)
+      .body(containsString("It works"))
+      .log().ifError();
+
+    // A longer chain of redirects
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/chain1")
+      .then().statusCode(200)
+      .body(containsString("It works"))
+      .log().ifError();
+
+    // What happens on prefix match
+    // /red matches, replaces with /testr, getting /testrlight which is not found
+    // This is odd, and subotimal, but not a serious failure. okapi-253
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/redlight")
+      .then().statusCode(404)
+      .header("X-Okapi-Trace", containsString("-> sample-module http://localhost:9131/testrlight : 404"))
+      .log().ifError();
+
+    // Verify that we replace only the beginning of the path
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/red/blue/red?color=/red")
+      .then().statusCode(404)
+      .log().ifError();
+
+    // Clean up
+    logger.info("Redirect test done. Cleaning up");
+    given().delete(locationTenantRoskilde)
+      .then().statusCode(204);
+    given().delete(locationSampleModule)
+      .then().statusCode(204);
+    given().delete(locationSampleDeployment)
+      .then().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locationHeaderModule)
+      .then().statusCode(204);
+    given().delete(locationHeaderDeployment)
+      .then().statusCode(204);
+    locationHeaderDeployment = null;
+
+    checkDbIsEmpty("testRedirect done", context);
+
+    async.complete();
+
+  }
+
 }

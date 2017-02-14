@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -55,6 +56,21 @@ public class ModuleDescriptor {
   public void setId(String id) {
     this.id = id;
   }
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  @JsonIgnore
+  public String getNameOrId() {
+    if (name != null && !name.isEmpty()) {
+      return name;
+    }
+    return id;
+  }
 
   public String[] getTags() {
     return tags;
@@ -95,13 +111,6 @@ public class ModuleDescriptor {
     this.routingEntries = routingEntries;
   }
 
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
-    this.name = name;
-  }
 
   public String[] getModulePermissions() {
     return modulePermissions;

@@ -117,11 +117,14 @@ public class MainVerticle extends AbstractVerticle {
       helloGreeting = "Hello";
     }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting okapi-test-module " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
-    //enable reading body to string
+    logger.info("Starting okapi-test-module "
+      + ManagementFactory.getRuntimeMXBean().getName()
+      + " on port " + port);
 
     router.get("/testb").handler(this::my_stream_handle);
     router.post("/testb").handler(this::my_stream_handle);
+    router.get("/testr").handler(this::my_stream_handle);
+    router.post("/testr").handler(this::my_stream_handle);
 
     // TODO - Remove the /tenant path when we have switched to /_/tenant everywhere
     router.get("/tenant").handler(this::my_tenant_handle);

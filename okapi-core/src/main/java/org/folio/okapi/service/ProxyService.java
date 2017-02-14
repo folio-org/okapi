@@ -92,11 +92,20 @@ public class ProxyService {
 
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
           Timer.Context timer, ProxyContext pc ) {
-    //long timeDiff = (System.nanoTime() - timer) / 1000;
     long timeDiff = timer.stop() / 1000;
+    String redir = mi.getRedirectFrom();
+    if (redir == null) {
+      redir = "";
+    }
+    if (redir.isEmpty()) {
+      redir = "- ";
+    } else {
+      redir = mi.getOriginalModule() + redir + "-> ";
+    }
+    String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.traceHeaders.add(ctx.request().method() + " "
-            + mi.getModuleDescriptor().getId() + ":"
-            + statusCode + " " + timeDiff + "us");
+      + redir + mi.getModuleDescriptor().getNameOrId() + " "
+      + url + " : " + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, pc);
   }
 
@@ -112,23 +121,87 @@ public class ProxyService {
     return false;
   }
 
-  public List<ModuleInstance> getModulesForRequest(HttpServerRequest hreq, Tenant t) {
-    List<ModuleInstance> r = new ArrayList<>();
-    for (String s : modules.list()) {
-      if (t.isEnabled(s)) {
-        RoutingEntry[] rr = modules.get(s).getRoutingEntries();
-        for (RoutingEntry rr1 : rr) {
-          if (match(rr1, hreq)) {
-            ModuleInstance mi = new ModuleInstance(modules.get(s), rr1);
-            r.add(mi);
+  /**
+   * Adds a ModuleInstance to the list, resolves redirects.
+   *
+   * @param ctx context
+   * @param mods list to add the moduleInstance(s) to
+   * @param mod id of the (original) module
+   * @param re (original) routingEntry
+   * @param loop String to detect redirect loops
+   * @param redirectFrom Path in the original routingEntry, for url rewrite
+   * later
+   * @return false if errors, sets ctx up.
+   */
+  private boolean resolveRedirects(RoutingContext ctx, List<ModuleInstance> mods,
+    String mod, RoutingEntry re, Tenant t,
+    String loop, String redirectFrom, String origMod) {
+    if (!re.getType().matches("redirect")) { // regular type
+      ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
+      mods.add(mi);
+      return true;
+    }
+    boolean found = false;
+    for (String trymod : modules.list()) {
+      if (t.isEnabled(trymod)) {
+        RoutingEntry[] rr = modules.get(trymod).getRoutingEntries();
+        for (RoutingEntry tryre : rr) {
+          if (tryre.getPath().equals(re.getRedirectPath())) {
+            if (redirectFrom.isEmpty()) {
+              redirectFrom = re.getPath();
+              origMod = mod;
+            }
+            found = true;
+            logger.debug("resolveRedirects: "
+              + ctx.request().method() + " " + re.getPath()
+              + " => " + trymod + " " + tryre.getPath());
+            if (loop.contains(tryre.getPath() + " ")) {
+              responseError(ctx, 500, "Redirect loop: " + loop + " -> " + tryre.getPath());
+              return false;
+            }
+            if (!resolveRedirects(ctx, mods, trymod, tryre, t,
+              loop + " -> " + tryre.getPath(), redirectFrom, origMod)) {
+              return false;
+            }
+          }
+        }
+      }
+    }
+    if (!found) {
+      String msg = "Redirecting " + re.getPath()
+        + " to " + re.getRedirectPath()
+        + " FAILED. No suitable module found";
+      responseError(ctx, 500, msg);
+    }
+    return found;
+  }
+
+  /**
+   * Builds the pipeline of modules to be invoked for a request.
+   *
+   * @param ctx RoutingContext, to get to the request, and pass errors back
+   * @param t The current tenant
+   * @return a list of ModuleInstances. In case of error, sets up ctx and
+   * returns null.
+   */
+  public List<ModuleInstance> getModulesForRequest(RoutingContext ctx, Tenant t) {
+    List<ModuleInstance> mods = new ArrayList<>();
+    for (String mod : modules.list()) {
+      if (t.isEnabled(mod)) {
+        RoutingEntry[] rr = modules.get(mod).getRoutingEntries();
+        for (RoutingEntry re : rr) {
+          if (match(re, ctx.request())) {
+            if (!resolveRedirects(ctx, mods, mod, re, t, "", "", "")) {
+              return null;
+            }
           }
         }
       }
     }
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
             -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
-    r.sort(cmp);
-    return r;
+    mods.sort(cmp);
+    return mods;
   }
 
   /**
@@ -154,7 +227,7 @@ public class ProxyService {
         auth = matcher.group(1);
       }
     }
-    if ( auth != null && tok != null && auth != tok ) {
+    if (auth != null && tok != null && !auth.equals(tok)) {
       responseText(ctx, 400).end("Different tokens in Authentication and X-Okapi-Token. Use only one of them");
       return null;
     }
@@ -243,7 +316,7 @@ public class ProxyService {
           if (l.size() < 1) {
             fut.handle(new Failure<>(NOT_FOUND,
               "No running module instance found for "
-              + mi.getModuleDescriptor().getId()));
+              + mi.getModuleDescriptor().getNameOrId()));
             return;
           }
           mi.setUrl(l.get(0).getUrl());
@@ -307,6 +380,19 @@ public class ProxyService {
     }
   }
 
+  private String makeUrl(RoutingContext ctx, ModuleInstance mi) {
+    logger.debug("makeUrl " + mi.getUrl() + " " + ctx.request().uri()
+      + " from " + mi.getRedirectFrom());
+    String path = ctx.request().uri();
+    String from = mi.getRedirectFrom();
+    if (!from.isEmpty()) {
+      //path = path.replace(from, mi.getRoutingEntry().getPath());
+      path = path.replaceFirst(from, mi.getRoutingEntry().getPath());
+      logger.debug("makeUrl: path after replace: '" + path + "'");
+    }
+    return mi.getUrl() + path;
+  }
+
   public void proxy(RoutingContext ctx) {
     String tenant_id = tenantHeader(ctx);
     if (tenant_id == null) {
@@ -325,7 +411,10 @@ public class ProxyService {
     DropwizardHelper.markEvent(metricKey);
 
     String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    List<ModuleInstance> l = getModulesForRequest(ctx.request(), tenant);
+    List<ModuleInstance> l = getModulesForRequest(ctx, tenant);
+    if (l == null) {
+      return; // error already in ctx
+    }
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
@@ -345,7 +434,7 @@ public class ProxyService {
           ProxyContext pc,
           Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
-            mi.getUrl() + ctx.request().uri(), res -> {
+      makeUrl(ctx, mi), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
@@ -413,7 +502,7 @@ public class ProxyService {
           ReadStream<Buffer> content, Buffer bcontent,
           ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
-            mi.getUrl() + ctx.request().uri(), res -> {
+      makeUrl(ctx, mi), res -> {
               if (res.statusCode() >= 200 && res.statusCode() < 300
               && res.getHeader(XOkapiHeaders.STOP) == null
               && it.hasNext()) {
@@ -466,7 +555,7 @@ public class ProxyService {
           ReadStream<Buffer> content, Buffer bcontent,
           ModuleInstance mi, Timer.Context timer) {
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
-            mi.getUrl() + ctx.request().uri(), res -> {
+      makeUrl(ctx, mi), res -> {
               if (res.statusCode() < 200 || res.statusCode() >= 300) {
                 relayToResponse(ctx.response(), res);
                 makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
@@ -538,10 +627,11 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
       String rtype = mi.getRoutingEntry().getType();
-      logger.debug("Invoking module " + mi.getModuleDescriptor().getName()
-              + " type " + rtype
-              + " level " + mi.getRoutingEntry().getLevel()
-              + " path " + mi.getRoutingEntry().getPath());
+      logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
+        + " type " + rtype
+        + " level " + mi.getRoutingEntry().getLevel()
+        + " path " + mi.getRoutingEntry().getPath()
+        + " url " + mi.getUrl());
       if ("request-only".equals(rtype)) {
         proxyRequestOnly(ctx, it, pc,
                 content, bcontent, mi, timerContext);
@@ -552,7 +642,8 @@ public class ProxyService {
         proxyHeaders(ctx, it, pc,
                 content, bcontent, mi, timerContext);
       } else {
-        logger.warn("proxyR: bad rtype: " + rtype);
+        logger.warn("proxyR: Module " + mi.getModuleDescriptor().getNameOrId()
+          + " has bad request type: '" + rtype + "'");
         responseText(ctx, 500).end(); // Should not happen
       }
     }

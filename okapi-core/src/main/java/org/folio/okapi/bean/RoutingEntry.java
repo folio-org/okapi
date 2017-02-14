@@ -16,6 +16,8 @@ public class RoutingEntry {
   private String path;
   private String level;
   private String type;
+  private String redirectPath; // only for type='redirect'
+
   private String[] permissionsRequired;
   private String[] permissionsDesired;
 
@@ -41,6 +43,14 @@ public class RoutingEntry {
 
   public void setType(String type) {
     this.type = type;
+  }
+
+  public String getRedirectPath() {
+    return redirectPath;
+  }
+
+  public void setRedirectPath(String redirectPath) {
+    this.redirectPath = redirectPath;
   }
 
   public String getLevel() {

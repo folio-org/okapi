@@ -103,8 +103,9 @@ public class ModuleWebService {
       for (RoutingEntry e : md.getRoutingEntries()) {
         String t = e.getType();
         if (!(t.equals("request-only")
-                || (t.equals("request-response"))
-                || (t.equals("headers")))) {
+          || (t.equals("request-response"))
+          || (t.equals("headers"))
+          || (t.equals("redirect")))) {
           return "Bad routing entry type: '" + t + "'";
         }
       }

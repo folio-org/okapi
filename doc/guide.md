@@ -321,6 +321,14 @@ is controlled via the response status codes, and the response headers
 are merged back into the complete response using the rules described
 below.
 
+* `redirect` - The module does not serve this path directly, but redirects
+the request to some other path, served by some other module. This is
+intended as a mechanism for piling more complex modules on top of simpler
+implementations, for example a module to edit and list users could be
+extended by a module that manages users and passwords. It would have
+actual code to handle creating and updating users, but could redirect
+requests to list and get users to the simpler user module. 
+
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
 requires content to be streamed to and from the module. Where more
