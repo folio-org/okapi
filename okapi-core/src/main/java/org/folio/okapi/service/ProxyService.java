@@ -136,44 +136,46 @@ public class ProxyService {
   private boolean resolveRedirects(RoutingContext ctx, List<ModuleInstance> mods,
     String mod, RoutingEntry re, Tenant t,
     String loop, String redirectFrom, String origMod) {
-    if (!re.getType().matches("redirect")) { // regular type
-      ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
-      mods.add(mi);
-      return true;
-    }
-    boolean found = false;
-    for (String trymod : modules.list()) {
-      if (t.isEnabled(trymod)) {
-        RoutingEntry[] rr = modules.get(trymod).getRoutingEntries();
-        for (RoutingEntry tryre : rr) {
-          if (tryre.getPath().equals(re.getRedirectPath())) {
-            if (redirectFrom.isEmpty()) {
-              redirectFrom = re.getPath();
-              origMod = mod;
-            }
-            found = true;
-            logger.debug("resolveRedirects: "
-              + ctx.request().method() + " " + re.getPath()
-              + " => " + trymod + " " + tryre.getPath());
-            if (loop.contains(tryre.getPath() + " ")) {
-              responseError(ctx, 500, "Redirect loop: " + loop + " -> " + tryre.getPath());
-              return false;
-            }
-            if (!resolveRedirects(ctx, mods, trymod, tryre, t,
-              loop + " -> " + tryre.getPath(), redirectFrom, origMod)) {
-              return false;
+
+    // add the module to the pipeline in any case
+    ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
+    mods.add(mi);
+    if (re.getType().matches("redirect")) { // resolve redirects
+      boolean found = false;
+      for (String trymod : modules.list()) {
+        if (t.isEnabled(trymod)) {
+          RoutingEntry[] rr = modules.get(trymod).getRoutingEntries();
+          for (RoutingEntry tryre : rr) {
+            if (tryre.getPath().equals(re.getRedirectPath())) {
+              if (redirectFrom.isEmpty()) {
+                redirectFrom = re.getPath();
+                origMod = mod;
+              }
+              found = true;
+              logger.debug("resolveRedirects: "
+                + ctx.request().method() + " " + re.getPath()
+                + " => " + trymod + " " + tryre.getPath());
+              if (loop.contains(tryre.getPath() + " ")) {
+                responseError(ctx, 500, "Redirect loop: " + loop + " -> " + tryre.getPath());
+                return false;
+              }
+              if (!resolveRedirects(ctx, mods, trymod, tryre, t,
+                loop + " -> " + tryre.getPath(), redirectFrom, origMod)) {
+                return false;
+              }
             }
           }
         }
       }
+      if (!found) {
+        String msg = "Redirecting " + re.getPath()
+          + " to " + re.getRedirectPath()
+          + " FAILED. No suitable module found";
+        responseError(ctx, 500, msg);
+      }
+      return found;
     }
-    if (!found) {
-      String msg = "Redirecting " + re.getPath()
-        + " to " + re.getRedirectPath()
-        + " FAILED. No suitable module found";
-      responseError(ctx, 500, msg);
-    }
-    return found;
+  return true;
   }
 
   /**
@@ -265,6 +267,7 @@ public class ProxyService {
     requestHeaders.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
     requestHeaders.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
     requestHeaders.remove(XOkapiHeaders.MODULE_PERMISSIONS);
+    requestHeaders.remove(XOkapiHeaders.EXTRA_PERMISSIONS);
     requestHeaders.remove(XOkapiHeaders.MODULE_TOKENS);
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
@@ -295,10 +298,10 @@ public class ProxyService {
       requestHeaders.add(XOkapiHeaders.PERMISSIONS_DESIRED, String.join(",", want));
     }
     // Add the X-Okapi-Module-Permissions even if empty. That causes auth to return
-    // an empty X-Okapi-Module-Tokens, which will tell us that we have done the mod
+    // an empty X-Okapi-Module-Token, which will tell us that we have done the mod
     // perms, and no other module should be allowed to do the same.
     String mpj = Json.encode(modperms);
-    logger.debug("authHeaders:" + XOkapiHeaders.MODULE_PERMISSIONS + " " + mpj);
+    logger.debug("authHeaders: " + XOkapiHeaders.MODULE_PERMISSIONS + " " + mpj);
     requestHeaders.add(XOkapiHeaders.MODULE_PERMISSIONS, mpj);
   }
 
@@ -602,6 +605,32 @@ public class ProxyService {
     c_req.end();
     log(c_req);
   }
+  private void proxyNull(RoutingContext ctx, Iterator<ModuleInstance> it,
+    ProxyContext pc,
+    ReadStream<Buffer> content, Buffer bcontent,
+    ModuleInstance mi, Timer.Context timer) {
+    if (it.hasNext()) {
+      proxyR(ctx, it, pc, content, bcontent);
+    } else {
+      ctx.response().setChunked(true);
+
+      makeTraceHeader(ctx, mi, 999, timer, pc);  // !!!
+      if (bcontent == null) {
+        content.handler(data -> {
+          ctx.response().write(data);
+        });
+        content.endHandler(v -> {
+          ctx.response().end();
+        });
+        content.exceptionHandler(v -> {
+          logger.debug("proxyNull: content exception " + v.getMessage());
+        });
+        content.resume();
+      } else {
+        ctx.response().end(bcontent);
+      }
+    }
+  }
 
   private void proxyR(RoutingContext ctx,
           Iterator<ModuleInstance> it,
@@ -627,11 +656,13 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
       String rtype = mi.getRoutingEntry().getType();
+      if (!"redirect".equals(rtype)) {
       logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
         + " type " + rtype
         + " level " + mi.getRoutingEntry().getLevel()
         + " path " + mi.getRoutingEntry().getPath()
-        + " url " + mi.getUrl());
+          + " url " + mi.getUrl());
+      }
       if ("request-only".equals(rtype)) {
         proxyRequestOnly(ctx, it, pc,
                 content, bcontent, mi, timerContext);
@@ -641,6 +672,9 @@ public class ProxyService {
       } else if ("headers".equals(rtype)) {
         proxyHeaders(ctx, it, pc,
                 content, bcontent, mi, timerContext);
+      } else if ("redirect".equals(rtype)) {
+        proxyNull(ctx, it, pc,
+          content, bcontent, mi, timerContext);
       } else {
         logger.warn("proxyR: Module " + mi.getModuleDescriptor().getNameOrId()
           + " has bad request type: '" + rtype + "'");

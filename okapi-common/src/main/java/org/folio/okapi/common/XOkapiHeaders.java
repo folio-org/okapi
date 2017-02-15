@@ -66,6 +66,14 @@ public class XOkapiHeaders {
    */
   public static final String MODULE_PERMISSIONS = "X-Okapi-Module-Permissions";
 
+  /**
+   * X-Okapi-Extra-Permissions. Additional permissions granted by Okapi itself.
+   * Used only between Okapi and the authorization module, in some special
+   * situations, like when a moduleDescriptor has a "redirect" routing entry and
+   * also module-specific permissions.
+   */
+  public static final String EXTRA_PERMISSIONS = "X-Okapi-Extra-Permissions";
+
   /** X-Okapi-Module-Tokens. JWT tokens specifically made for invoking given
    * modules. Only used between Okapi and the authorization module.
    */
