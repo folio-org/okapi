@@ -271,6 +271,7 @@ public class ProxyService {
     requestHeaders.remove(XOkapiHeaders.MODULE_TOKENS);
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
+    Set<String> extraperms = new HashSet<>();
     Map<String,String[]> modperms = new HashMap<>(modlist.size());
     for (ModuleInstance mod : modlist) {
       RoutingEntry re = mod.getRoutingEntry();
@@ -285,7 +286,11 @@ public class ProxyService {
       ModuleDescriptor md = mod.getModuleDescriptor();
       String[] modp = md.getModulePermissions();
       if ( modp != null && modp.length > 0) {
-        modperms.put(md.getId(), modp);
+        if ( "redirect".equals(mod.getRoutingEntry().getType())) {
+          extraperms.addAll(Arrays.asList(modp));
+        } else {
+          modperms.put(md.getId(), modp);
+        }
       }
       mod.setAuthToken(defaultToken);
     } // mod loop
@@ -303,6 +308,11 @@ public class ProxyService {
     String mpj = Json.encode(modperms);
     logger.debug("authHeaders: " + XOkapiHeaders.MODULE_PERMISSIONS + " " + mpj);
     requestHeaders.add(XOkapiHeaders.MODULE_PERMISSIONS, mpj);
+    if (!extraperms.isEmpty()) {
+      String epj = Json.encode(extraperms);
+      logger.debug("authHeaders: " + XOkapiHeaders.EXTRA_PERMISSIONS + " " + epj);
+      requestHeaders.add(XOkapiHeaders.EXTRA_PERMISSIONS, epj);
+    }
   }
 
 

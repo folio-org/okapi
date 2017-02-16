@@ -1576,6 +1576,7 @@ public class ModuleTest {
       + "    \"redirectPath\" : \"/testr\"," + LS
       + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
       + "  } ]," + LS
+      + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
@@ -1679,6 +1680,7 @@ public class ModuleTest {
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"" + LS
       + "  } ]," + LS
+      + "  \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
       + "  }" + LS
@@ -1781,6 +1783,7 @@ public class ModuleTest {
       .then().statusCode(200)
       .body(containsString("It works"))
       .body(containsString("X-Okapi-Permissions-Desired:hdr.chain1,hdr.chain2,sample.testr,sample.chain3"))
+      .body(containsString("X-Okapi-Extra-Permissions:[\"hdr.modperm\",\"sample.modperm\"]"))
       .log().ifError();
 
     // What happens on prefix match
