@@ -321,7 +321,7 @@ public class EnvTest {
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
-            .body(docEnableSample2).put(locationTenantModule)
+            .body(docEnableSample2).post(locationTenantModule)
             .then()
             .statusCode(201)
             .extract().response();

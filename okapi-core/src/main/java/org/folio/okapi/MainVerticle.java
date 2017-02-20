@@ -322,7 +322,7 @@ public class MainVerticle extends AbstractVerticle {
       router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
       router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
       router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-      router.put("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
+      router.post("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
       router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
       router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
       router.getWithRegex("/_/proxy/health").handler(healthService::get);
