@@ -10,6 +10,7 @@ import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -292,13 +293,13 @@ public class TenantWebService {
               }
               headers.put("Accept", "*/*");
               headers.put("Content-Type", "application/json; charset=UTF-8");
-              String body = "{}"; // dummy
+              JsonObject jo = new JsonObject();
+              jo.put("module_to", module_to);
               OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-              String p = tenInt + "?module_to=" + module_to;
               if (module_from != null) {
-                p = p + "&module_from=" + module_from;
+                jo.put("module_from", module_from);
               }
-              cli.request(HttpMethod.POST, p, body, cres -> {
+              cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
                   logger.warn("Tenant init request for "
                           + module_to + " failed with " + cres.cause().getMessage());
