@@ -1554,26 +1554,29 @@ public class ModuleTest {
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"5\"," + LS
+      + "    \"level\" : \"50\"," + LS
       + "    \"type\" : \"request-response\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testr\"," + LS
-      + "    \"level\" : \"5\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
+      + "    \"level\" : \"59\"," + LS
+      + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsDesired\" : [ \"sample.testr\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/loop2\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"52\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/loop1\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain3\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"53\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
       + "  } ]," + LS
+      + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
@@ -1624,57 +1627,60 @@ public class ModuleTest {
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"20\"," + LS
       + "    \"type\" : \"request-response\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/red\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"21\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/badredirect\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/nonexisting\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/simpleloop\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/simpleloop\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/loop1\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"24\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/loop2\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain1\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"25\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/chain2\"" + LS
+      + "    \"redirectPath\" : \"/chain2\"," + LS
+      + "    \"permissionsDesired\" : [ \"hdr.chain1\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain2\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"26\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/chain3\"" + LS
+      + "    \"redirectPath\" : \"/chain3\"," + LS
+      + "    \"permissionsDesired\" : [ \"hdr.chain2\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"27\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
-      + "    \"level\" : \"10\"," + LS
+      + "    \"level\" : \"28\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"" + LS
       + "  } ]," + LS
+      + "  \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
       + "  }" + LS
@@ -1764,7 +1770,6 @@ public class ModuleTest {
     // Redirect with parameters
     given()
       .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-all-headers", "1")
       .get("/red?foo=bar")
       .then().statusCode(200)
       .body(containsString("It works"))
@@ -1773,9 +1778,12 @@ public class ModuleTest {
     // A longer chain of redirects
     given()
       .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B")
       .get("/chain1")
       .then().statusCode(200)
       .body(containsString("It works"))
+      .body(containsString("X-Okapi-Permissions-Desired:hdr.chain1,hdr.chain2,sample.testr,sample.chain3"))
+      .body(containsString("X-Okapi-Extra-Permissions:[\"hdr.modperm\",\"sample.modperm\"]"))
       .log().ifError();
 
     // What happens on prefix match
