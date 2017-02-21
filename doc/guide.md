@@ -31,6 +31,7 @@ managing and running microservices.
     * [Environment Variables](#environment-variables)
     * [Web Service](#web-service)
     * [Deployment](#deployment)
+    * [Docker](#docker)
     * [Instrumentation](#instrumentation)
 
 ## Introduction
@@ -1509,7 +1510,11 @@ requires that the `dockerUrl` points to a Docker Daemon accessible via
 HTTP. The Dockerfile's `CMD` directive may be changed with property
 `dockerCMD`. This assumes that `ENTRYPOINT` is the full invocation of
 the module and that `CMD` is either default settings or, preferably,
-empty.
+empty. Finally, the property `dockerArgs` may be used to pass
+Docker SDK create-container arguments. This is an object with keys
+such as `Hostname`, `DomainName`, `User`, `AttachStdin`, ... See
+for example, the [v1.26 API](https://docs.docker.com/engine/api/v1.26).
+
 
 For all deployment types, environment variables may be passed via the
 `env` property. This takes an array of objects specifying each
@@ -1525,6 +1530,22 @@ exposed port (`EXPOSE`) to the dynamically assigned port.
 It is also possible to refer to an already-launched process (maybe running in your
 development IDE), by POSTing a DeploymentDescriptor to `/_/discovery`, with no nodeId
 and no LaunchDescriptor, but with the URL where the module is running.
+
+### Docker
+
+Okapi uses the [Docker Engine API](https://docs.docker.com/engine/api/) for
+launching modules. The Docker daemon must be listening on a TCP port in
+order for that to work because Okapi does not deal with HTTP over Unix local
+socket. Enabling that for the Docker daemon depends on the host system.
+For systemd based systems, the `/lib/systemd/system/docker.service` must be
+adjusted and the `ExecStart` line should include the `-H` option with a tcp
+listening host+port. For example `-H tcp://127.0.0.1:4243` .
+
+```
+vi /lib/systemd/system/docker.service
+systemctl daemon-reload
+systemctl restart docker
+```
 
 ### Instrumentation
 

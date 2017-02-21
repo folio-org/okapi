@@ -1394,9 +1394,6 @@ public class ModuleTest {
     final String url = dockerUrl + "/images/json?all=1";
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
       res.handler(d -> {
         body.appendBuffer(d);
       });
@@ -1430,8 +1427,8 @@ public class ModuleTest {
       });
     });
     req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+      future.handle(Future.failedFuture(d.getMessage()));
+      });
     req.end();
   }
 
@@ -1442,7 +1439,7 @@ public class ModuleTest {
       if (res.succeeded()) {
         dockerTests(context);
       } else {
-        logger.info("NOT running module within Docker test");
+        logger.info("NOT running module within Docker test. Reason: " + res.cause().getMessage());
         async.complete();
       }
     });
@@ -1455,23 +1452,26 @@ public class ModuleTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
-      + "  \"name\" : \"sample module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/test\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"dockerImage\" : \"okapi-test-module\"," + LS
-      + "    \"dockerCMD\" : [\"-Dfoo=bar\"]" + LS
-      + "  }" + LS
-      + "}";
+            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"name\" : \"sample module\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"sample\"," + LS
+            + "    \"version\" : \"1.0.0\"" + LS
+            + "  } ]," + LS
+            + "  \"routingEntries\" : [ {" + LS
+            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "    \"path\" : \"/test\"," + LS
+            + "    \"level\" : \"30\"," + LS
+            + "    \"type\" : \"request-response\"" + LS
+            + "  } ]," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"dockerImage\" : \"okapi-test-module\"," + LS
+            + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
+            + "    \"dockerArgs\" : {" + LS
+            + "      \"StopTimeout\" : 12" + LS
+            + "    }" + LS
+            + "  }" + LS
+            + "}";
 
     c = api.createRestAssured();
     r = c.given()
