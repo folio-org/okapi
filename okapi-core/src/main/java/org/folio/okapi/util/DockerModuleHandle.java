@@ -10,14 +10,15 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
+import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 
 public class DockerModuleHandle implements ModuleHandle {
@@ -30,17 +31,19 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String[] cmd;
   private final String dockerUrl;
   private final EnvEntry[] env;
+  private final AnyDescriptor dockerArgs;
 
   private String containerId;
 
-  public DockerModuleHandle(Vertx vertx, String image, String[] cmd,
-          EnvEntry[] env, Ports ports, int port) {
+  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+          Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
-    this.image = image;
-    this.cmd = cmd;
-    this.env = env;
+    this.image = desc.getDockerImage();
+    this.cmd = desc.getDockerCMD();
+    this.env = desc.getEnv();
+    this.dockerArgs = desc.getDockerArgs();
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -221,6 +224,11 @@ public class DockerModuleHandle implements ModuleHandle {
         a.add(cmd[i]);
       }
       j.put("Cmd", a);
+    }
+    if (dockerArgs != null) {
+      for (Map.Entry<String, Object> entry : dockerArgs.properties().entrySet()) {
+        j.put(entry.getKey(), entry.getValue());
+      }
     }
     String doc = j.encodePrettily();
     HttpClient client = vertx.createHttpClient();

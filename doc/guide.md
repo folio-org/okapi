@@ -1510,7 +1510,11 @@ requires that the `dockerUrl` points to a Docker Daemon accessible via
 HTTP. The Dockerfile's `CMD` directive may be changed with property
 `dockerCMD`. This assumes that `ENTRYPOINT` is the full invocation of
 the module and that `CMD` is either default settings or, preferably,
-empty.
+empty. Finally, the property `dockerArgs` may be used to pass
+Docker SDK create-container arguments. This is an object with keys
+such as `Hostname`, `DomainName`, `User`, `AttachStdin`, ... See
+for example, the [v1.26 API](https://docs.docker.com/engine/api/v1.26).
+
 
 For all deployment types, environment variables may be passed via the
 `env` property. This takes an array of objects specifying each
