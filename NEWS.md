@@ -1,3 +1,14 @@
+ * Postgres storage option. Mongodb still supported
+ * New commands: initdatabase and purgedatabase. Deprecated are
+   properties -Dmongo_db_init and -Dpostgres_db_init
+ * Docker support. Triggered in launchDescriptor with
+   dockerImage property. It can be tuned further with properties
+   dockerCMD and dockerArgs.
+ * Tenant initialization: Okapi may call Module when it is
+   associated with a module and when changing from one module to
+   another (upgrade).
+ * Everything else since 0.3
+
 ## 0.3 2016-05-03
 
  * Split of Okapi into three services: deployment, discovery and proxy
