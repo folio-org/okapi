@@ -254,7 +254,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
-      + "    \"path\" : \"/s\"," + LS
+      + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
@@ -301,7 +301,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
-      + "    \"path\" : \"/s\"," + LS
+      + "    \"path\" : \"/\"," + LS
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
@@ -608,14 +608,24 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    given().get("/sample")
+    // Request without any X-Okapi headers
+    given()
+      .get("/testb")
       .then().statusCode(403);
 
-    given().header("X-Okapi-Tenant", okapiTenant).get("/q")
+    // Request with a header, to unknown path
+    // (note, should fail without invoking the auth module)
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/something.we.do.not.have")
       .then().statusCode(404);
 
-    given().header("X-Okapi-Tenant", okapiTenant).get("/sample")
-      .then().statusCode(401);
+    // Request without an auth token
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then()
+      .statusCode(401);
 
     final String docWrongLogin = "{" + LS
       + "  \"tenant\" : \"t1\"," + LS
@@ -675,36 +685,55 @@ public class ModuleTest {
       .header("X-Url-Params", "query=foo")
       .body(equalTo("hej  (XML) Okapi"));
 
+    // Verify that the path matching is case sensitive
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .get("/samplE")
-      .then().statusCode(202);
+      .get("/TESTB")
+      .then().statusCode(404);
 
+    // Same, but with the /t prefix that triggers auth
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .delete("/sample")
-      .then().statusCode(202);
+      .get("/teSTB")
+      .then().statusCode(404);
+
+    // See that a delete fails - we only match auth, which is a filter
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .delete("/testb")
+      .then().statusCode(404);
 
     // Check that we don't do prefix matching
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .get("/testbXXX")
       .then().statusCode(404);
+
     // Check that parameters don't mess with the routing
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .get("/testb?p=parameters&q=query")
       .then().statusCode(200);
 
+    // Check that we refuse unknown paths, even with auth module
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .get("/something.we.do.not.have")
+      .then().statusCode(404);
+
     // Check that we accept Authorization: Bearer <token> instead of X-Okapi-Token,
-    // and that we can extract the tenant from it
-    given().header("X-all-headers", "H") // ask sample to report all headers
+    // and that we can extract the tenant from it.
+    given()
+      .header("X-all-headers", "H") // ask sample to report all headers
       .header("Authorization", "Bearer " + okapiToken)
       .get("/testb")
       .then().log().ifError()
-      .header("X-Okapi-Token", okapiToken)
       .header("X-Okapi-Tenant", okapiTenant)
       .statusCode(200);
+    // Note that we can not check the token, the module sees a different token,
+    // created by the auth module, when it saw a ModulePermission for the sample
+    // module. This is all right, since we explicitly ask sample to pass its
+    // request headers into its response. See Okapi-266.
 
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
@@ -716,7 +745,7 @@ public class ModuleTest {
       .statusCode(400);
 
     // 2nd sample module. We only create it in discovery and give it same URL as
-    // for sample-module (first one).
+    // for sample-module (first one). Then we delete it again.
     c = api.createRestAssured();
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
@@ -813,7 +842,7 @@ public class ModuleTest {
       .body(equalTo(docEnableSample2));
 
     // 3rd sample module. We only create it in discovery and give it same URL as
-    // for sample-module (first one).
+    // for sample-module (first one), just like sample2 above.
     c = api.createRestAssured();
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS

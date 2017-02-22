@@ -109,6 +109,9 @@ public class ProxyService {
     addTraceHeaders(ctx, pc);
   }
 
+  // Match the path to the Re. Case-sensitive match
+  // TODO - Move this into RoutingEntry. Make the match path-segment prefix, not
+  // character prefix. See Okapi-253
   private boolean match(RoutingEntry e, HttpServerRequest req) {
     if (req.uri().startsWith(e.getPath())) {
       String[] methods = e.getMethods();
@@ -203,6 +206,20 @@ public class ProxyService {
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
             -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
     mods.sort(cmp);
+    // Check that our pipeline has a real module in it, not just filters
+    logger.debug("Checking filters for " + ctx.request().absoluteURI());
+    boolean found = false;
+    for (ModuleInstance inst : mods) {
+      if (!inst.getRoutingEntry().actuallyIsFilter()) {
+        found = true;
+      }
+    }
+    if (!found) {
+      responseError(ctx, 404, "No suitable module found for "
+        + ctx.request().absoluteURI());
+      return null;
+    }
+
     return mods;
   }
 
