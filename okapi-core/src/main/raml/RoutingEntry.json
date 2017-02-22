@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "RoutingEntry",
+  "type": "object",
+  "items": {
+    "type": "object",
+    "properties": {
+      "methods": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "path": {
+        "type": "string"
+      },
+      "level": {
+        "type": "string"
+      },
+      "type": {
+        "type": "string"
+      },
+      "redirectPath": {
+        "type": "string"
+      },
+      "permissionsRequired": {
+        "type": ["array", "null"],
+        "items": {
+          "type": "string"
+        }
+      },
+      "permissionsDesired": {
+        "type": ["array", "null"],
+        "items": {
+          "type": "string"
+        }
+      },
+      "ModulePermissions": {
+        "type": ["array", "null"],
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

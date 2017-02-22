@@ -23,6 +23,7 @@ public class RoutingEntry {
 
   private String[] permissionsRequired;
   private String[] permissionsDesired;
+  private String[] modulePermissions;
 
   public String[] getPermissionsRequired() {
     return permissionsRequired;
@@ -38,6 +39,14 @@ public class RoutingEntry {
 
   public void setPermissionsDesired(String[] permissionsDesired) {
     this.permissionsDesired = permissionsDesired;
+  }
+
+  public String[] getModulePermissions() {
+    return modulePermissions;
+  }
+
+  public void setModulePermissions(String[] modulePermissions) {
+    this.modulePermissions = modulePermissions;
   }
 
   public String getType() {

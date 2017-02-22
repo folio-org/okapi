@@ -397,16 +397,16 @@ public class ModuleTest {
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"helloGreeting\"" + LS
       + "  } ]," + LS
+      + "  \"requires\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2.3\"" + LS
+      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0.0\"" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ {" + LS
-      + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2.3\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS

@@ -18,8 +18,9 @@ public class ModuleDescriptor {
   private String[] tags;
   private EnvEntry[] env;
 
-  private ModuleInterface[] provides;
   private ModuleInterface[] requires;
+  private ModuleInterface[] provides;
+  private ModuleInterface[] systemInterfaces;
   private RoutingEntry[] routingEntries;
   private String[] modulePermissions;
   private UiModuleDescriptor uiDescriptor;
@@ -87,6 +88,15 @@ public class ModuleDescriptor {
   public void setEnv(EnvEntry[] env) {
     this.env = env;
   }
+
+  public ModuleInterface[] getRequires() {
+    return requires;
+  }
+
+  public void setRequires(ModuleInterface[] requires) {
+    this.requires = requires;
+  }
+
   public ModuleInterface[] getProvides() {
     return provides;
   }
@@ -95,12 +105,12 @@ public class ModuleDescriptor {
     this.provides = provides;
   }
 
-  public ModuleInterface[] getRequires() {
-    return requires;
+  public ModuleInterface[] getSystemInterfaces() {
+    return systemInterfaces;
   }
 
-  public void setRequires(ModuleInterface[] requires) {
-    this.requires = requires;
+  public void setSystemInterfaces(ModuleInterface[] systemInterfaces) {
+    this.systemInterfaces = systemInterfaces;
   }
 
   public RoutingEntry[] getRoutingEntries() {

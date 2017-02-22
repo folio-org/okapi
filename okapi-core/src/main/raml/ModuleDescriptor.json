@@ -8,59 +8,67 @@
     "tags" : {"type" : ["array", "null"],
       "items" : {"type": "string"}
     },
-    "env" : { "$ref": "EnvEntryList.json" },
-    "provides" : {
+    "env": {
+      "$ref": "EnvEntryList.json"
+    },
+    "requires": {
       "type": ["array", "null"],
-      "items" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {"type": "string"},
-          "version" : {"type": "string"}
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          }
         }
       }
     },
-    "requires" : {
+    "provides": {
       "type": ["array", "null"],
-      "items" : {
-        "type" : "object",
-        "properties" : {
-          "id" : {"type": "string"},
-          "version" : {"type": "string"}
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "routingEntries": {
+            "type": "array",
+            "items": {
+              "$ref": "RoutingEntry.json"
+            }
+          }
+        }
+      }
+    },
+    "systemInterfaces": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "routingEntries": {
+            "type": "array",
+            "items": {
+              "$ref": "RoutingEntry.json"
+            }
+          }
         }
       }
     },
     "routingEntries": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "methods": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "path": {"type": "string"},
-          "level": {"type": "string"},
-          "type": {
-            "type": "string"
-          },
-          "redirectPath": {
-            "type": "string"
-          },
-          "permissionsRequired": {
-            "type": ["array","null"],
-            "items": {
-              "type": "string"
-            }
-          },
-          "permissionsDesired": {
-            "type": ["array","null"],
-            "items": {
-              "type": "string"
-            }
-          }
-        }
+        "$ref": "RoutingEntry.json"
       }
     },
     "modulePermissions" : {
