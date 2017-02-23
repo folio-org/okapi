@@ -17,7 +17,7 @@
     <dependency>
       <groupId>org.folio.okapi</groupId>
       <artifactId>okapi-common</artifactId>
-      <version>0.4-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
 
     <!-- logging see http://www.slf4j.org/legacy.html -->
