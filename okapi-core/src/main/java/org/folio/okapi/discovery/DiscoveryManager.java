@@ -88,6 +88,30 @@ public class DiscoveryManager implements NodeListener {
     deployments.add(srvcId, instId, md, fut);
   }
 
+  private void getNodeIdFromUrl(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<String>> fut) {
+    final String url = dd.getUrl();
+    if (dd.getNodeId() == null && url != null) {
+      this.getNodes(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          List<NodeDescriptor> result = res.result();
+          Iterator<NodeDescriptor> iterator = result.iterator();
+          while (iterator.hasNext()) {
+            NodeDescriptor next = iterator.next();
+            if (next.getUrl().compareTo(url) == 0) {
+              fut.handle(new Success<>(next.getNodeId()));
+              return;
+            }
+          }
+          fut.handle(new Failure<>(NOT_FOUND, url));
+        }
+      });
+    } else {
+      fut.handle(new Success<>(null));
+    }
+  }
+
   /**
    * Adds a service to the discovery, and optionally deploys it too.
    *
@@ -405,7 +429,40 @@ public class DiscoveryManager implements NodeListener {
     }
   }
 
+  private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
+    if (nodeId.startsWith("http://")) {
+      getNodes(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          List<NodeDescriptor> result = res.result();
+          Iterator<NodeDescriptor> iterator = result.iterator();
+          while (iterator.hasNext()) {
+            NodeDescriptor next = iterator.next();
+            if (nodeId.compareTo(next.getUrl()) == 0) {
+              fut.handle(new Success<>(next.getNodeId()));
+              return;
+            }
+          }
+          fut.handle(new Failure<>(NOT_FOUND, nodeId));
+        }
+      });
+    } else {
+      fut.handle(new Success<>(nodeId));
+    }
+  }
+
   public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    nodeUrl(nodeId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        getNode1(res.result(), fut);
+      }
+    });
+  }
+
+  private void getNode1(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
