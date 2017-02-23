@@ -36,6 +36,9 @@
           "version": {
             "type": "string"
           },
+          "interfaceType": {
+            "type": ["string", "null"]
+          },
           "routingEntries": {
             "type": ["array", "null"],
             "items": {

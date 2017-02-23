@@ -155,6 +155,49 @@ public class ModuleTest {
   }
 
   /**
+   * Helper to create a tenant. So it can be done in a one-liner without
+   * cluttering real tests. Actually testing the tenant stuff should be in its
+   * own test.
+   *
+   * @return the location, for deleting it later
+   */
+  public String createTenant() {
+    final String docTenant = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"" + okapiTenant + " bibliotek\"" + LS
+      + "}";
+    final String location = given()
+      .header("Content-Type", "application/json")
+      .body(docTenant)
+      .post("/_/proxy/tenants")
+      .then()
+      .statusCode(201)
+      .extract().header("Location");
+    return location;
+  }
+
+  /**
+   * Helper to enable a module for our test tenant.
+   *
+   * @param modId The module to enable
+   * @return the location, so we can delete it later. Can safely be ignored.
+   */
+  public String enableModule(String modId) {
+    final String docEnable = "{" + LS
+      + "  \"id\" : \"" + modId + "\"" + LS
+      + "}";
+    final String location = given()
+      .header("Content-Type", "application/json")
+      .body(docEnable)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .extract().header("Location");
+    return location;
+  }
+
+  /**
    * Tests that declare one module. Declares a single module in many ways, often
    * with errors. In the end the module gets deployed and enabled for a newly
    * created tenant, and a request is made to it. Uses the test module, but not
@@ -188,6 +231,8 @@ public class ModuleTest {
       .then()
       .statusCode(404);
 
+    // This is a good ModuleDescriptor. For error tests, some things get
+    // replaced out.
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
@@ -210,6 +255,7 @@ public class ModuleTest {
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
       + "    \"routingEntries\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
@@ -222,6 +268,7 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
 
+    // Actually create the module
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -232,12 +279,12 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationSampleModule = r.getHeader("Location");
+    final String locSampleModule = r.getHeader("Location");
 
     // Get the module
     c = api.createRestAssured();
     c.given()
-      .get(locationSampleModule)
+      .get(locSampleModule)
       .then().statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -255,17 +302,62 @@ public class ModuleTest {
       .body(equalTo(expOneModList));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
+    // Deploy the module
+    final String docDeploy = "{" + LS
+      + "  \"instId\" : \"sample-inst\"," + LS
+      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docDeploy)
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(201).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationSampleDeployment = r.header("Location");
+
+    // Create a tenant and enable the module
+    final String locTenant = createTenant();
+    final String locEnable = enableModule("sample-module");
+
+     // Make a simple request to the module
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(200)
+      .body(containsString("It works"));
+
+    // Make a more complex request that returns all headers and parameters
+    // So the headers we check are those that the module sees and reports to
+    // us, not necessarily those that Okapi would return to us.
+    // Note that since this is the only module in the pipeline, Okapi assumes
+    // it is the auth module, and passes it those extra headers. Normally
+    // the auth module would have handled those, and indicated to Okapi that
+    // these are no longer needed, and Okapi would not pass them to regular
+    // modules.
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "H") // ask sample to report all headers
+      .get("/testb?query=foo&limit=10")
+      .then().statusCode(200)
+      .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
+      .header("X-Url-Params", "query=foo&limit=10")
+      .header("X-Okapi-Permissions-Required", "sample.needed")
+      .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
+      .body(containsString("It works"));
 
     // Clean up, so the next test starts with a clean slate
     logger.debug("testOneModule cleaning up");
-    given().delete(locationSampleModule).then().log().ifError().statusCode(204);
-//    given().delete(locationAuthDeployment).then().log().ifError().statusCode(204);
-//    locationAuthDeployment = null;
+    given().delete(locEnable).then().log().ifError().statusCode(204);
+    given().delete(locTenant).then().log().ifError().statusCode(204);
+    given().delete(locSampleModule).then().log().ifError().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
+    locationSampleDeployment = null;
 
     checkDbIsEmpty("testOneModule done", context);
-
     async.complete();
-
   }
 
   // TODO - This function is way too long and confusing

@@ -3,6 +3,9 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -112,6 +115,36 @@ public class ModuleDescriptor {
     this.routingEntries = routingEntries;
   }
 
+  /**
+   * Get all RoutingEntries that are type proxy
+   *
+   * @param interfaceType - "system" or "proxy"
+   * @return
+   */
+  @JsonIgnore
+  public List<RoutingEntry> getProxyRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    RoutingEntry[] res = getRoutingEntries();
+    if (res != null) {
+      Collections.addAll(all, res);
+    }
+    ModuleInterface[] prov = getProvides();
+    if (prov != null) {
+      for (ModuleInterface mi : prov) {
+        String t = mi.getInterfaceType();
+        if (t == null || t.isEmpty()) {
+          t = "proxy";
+        }
+        if (t.equals("proxy")) {
+          res = mi.getRoutingEntries();
+          if (res != null) {
+            Collections.addAll(all, res);
+          }
+        }
+      }
+    }
+    return all;
+  }
 
   public String[] getModulePermissions() {
     return modulePermissions;

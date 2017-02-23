@@ -148,7 +148,7 @@ public class ProxyService {
       boolean found = false;
       for (String trymod : modules.list()) {
         if (t.isEnabled(trymod)) {
-          RoutingEntry[] rr = modules.get(trymod).getRoutingEntries();
+          List<RoutingEntry> rr = modules.get(trymod).getProxyRoutingEntries();
           for (RoutingEntry tryre : rr) {
             if (tryre.getPath().equals(re.getRedirectPath())) {
               if (redirectFrom.isEmpty()) {
@@ -194,7 +194,7 @@ public class ProxyService {
     List<ModuleInstance> mods = new ArrayList<>();
     for (String mod : modules.list()) {
       if (t.isEnabled(mod)) {
-        RoutingEntry[] rr = modules.get(mod).getRoutingEntries();
+        List<RoutingEntry> rr = modules.get(mod).getProxyRoutingEntries();
         for (RoutingEntry re : rr) {
           if (match(re, ctx.request())) {
             if (!resolveRedirects(ctx, mods, mod, re, t, "", "", "")) {
@@ -302,9 +302,19 @@ public class ProxyService {
       if (wap != null) {
         want.addAll(Arrays.asList(wap));
       }
+      String[] modp = re.getModulePermissions();
+      if (modp != null) {
+        if ("redirect".equals(re.getType())) {
+          extraperms.addAll(Arrays.asList(modp));
+        } else {
+          modperms.put(mod.getModuleDescriptor().getId(), modp);
+        }
+      }
+
       ModuleDescriptor md = mod.getModuleDescriptor();
-      String[] modp = md.getModulePermissions();
+      modp = md.getModulePermissions();
       if (modp != null && modp.length > 0) {
+        // TODO - The general modperms are DEPRECATED, use the ones in the re.
         if ("redirect".equals(mod.getRoutingEntry().getType())) {
           extraperms.addAll(Arrays.asList(modp));
         } else {
