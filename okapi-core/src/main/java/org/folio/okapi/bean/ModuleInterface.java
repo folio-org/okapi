@@ -10,6 +10,8 @@ public class ModuleInterface {
 
   private String id;
   private String version;
+  private RoutingEntry[] routingEntries;
+
 
   public ModuleInterface() {
   }
@@ -168,4 +170,13 @@ public class ModuleInterface {
     }
     return 0;
   }
+
+  public RoutingEntry[] getRoutingEntries() {
+    return routingEntries;
+  }
+
+  public void setRoutingEntries(RoutingEntry[] routingEntries) {
+    this.routingEntries = routingEntries;
+  }
+
 }

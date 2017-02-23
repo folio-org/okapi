@@ -128,7 +128,7 @@ public class ModuleTest {
    */
   private void checkDbIsEmpty(String label, TestContext context) {
 
-    logger.debug("Db check " + label);
+    logger.debug("Db check '" + label + "'");
     // Check that we are not depending on td() to undeploy modules
     Assert.assertNull("locationAuthDeployment", locationAuthDeployment);
     Assert.assertNull("locationSampleDeployment", locationSampleDeployment);
@@ -150,10 +150,127 @@ public class ModuleTest {
       .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
     given().get("/_/proxy/tenants").then()
       .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
-    logger.debug("Db check " + label + " done");
+    logger.debug("Db check '" + label + "' OK");
 
   }
 
+  /**
+   * Tests that declare one module. Declares a single module in many ways, often
+   * with errors. In the end the module gets deployed and enabled for a newly
+   * created tenant, and a request is made to it. Uses the test module, but not
+   * any auth module, that should be a separate test.
+   *
+   * @param context
+   */
+  @Test
+  public void testOneModule(TestContext context) {
+    async = context.async();
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
+    Response r;
+    checkDbIsEmpty("testOneModule starting", context);
+
+    // Get an empty list of modules
+    c = api.createRestAssured();
+    c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200)
+      .body(equalTo("[ ]"));
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    // Check that we refuse the request with a trailing slash
+    given()
+      .get("/_/proxy/modules/")
+      .then()
+      .statusCode(404);
+
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"helloGreeting\"" + LS
+      + "  } ]," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+      + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
+      + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"," + LS
+      + "      \"level\" : \"10\"," + LS
+      + "      \"type\" : \"system\"" + LS // TODO - Permissions
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
+    // Get the module
+    c = api.createRestAssured();
+    c.given()
+      .get(locationSampleModule)
+      .then().statusCode(200).body(equalTo(docSampleModule));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // List the one module
+    final String expOneModList = "[ {" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"name\" : \"sample module\"" + LS
+      + "} ]";
+    c = api.createRestAssured();
+    c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200)
+      .body(equalTo(expOneModList));
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+
+    // Clean up, so the next test starts with a clean slate
+    logger.debug("testOneModule cleaning up");
+    given().delete(locationSampleModule).then().log().ifError().statusCode(204);
+//    given().delete(locationAuthDeployment).then().log().ifError().statusCode(204);
+//    locationAuthDeployment = null;
+
+    checkDbIsEmpty("testOneModule done", context);
+
+    async.complete();
+
+  }
+
+  // TODO - This function is way too long and confusing
+  // Create smaller functions that test one thing at a time
+  // Later, move them into separate files
   @Test
   public void testProxy(TestContext context) {
     async = context.async();
@@ -315,7 +432,7 @@ public class ModuleTest {
 
     final String locationAuthModule2 = locationAuthModule + "2";
     c = api.createRestAssured();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docAuthModule2).put(locationAuthModule2).then().statusCode(200)
       .extract().response();
@@ -433,19 +550,21 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
-    c = api.createRestAssured(); // trailing slash is no good
-    c.given().get("/_/proxy/modules/").then().statusCode(404);
+    // Commented-out tests have been moved to testOneModule, no need to repeat here
+    // TODO - Remove these when refactoring complete
+    //c = api.createRestAssured(); // trailing slash is no good
+    //c.given().get("/_/proxy/modules/").then().statusCode(404);
 
-    c = api.createRestAssured();
-    c.given().get("/_/proxy/modules").then().statusCode(200);
-    Assert.assertTrue(c.getLastReport().isEmpty());
+    //c = api.createRestAssured();
+    //c.given().get("/_/proxy/modules").then().statusCode(200);
+    //Assert.assertTrue(c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
-    c.given()
-      .get(locationSampleModule)
-      .then().statusCode(200).body(equalTo(docSampleModule));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    //c = api.createRestAssured();
+    //c.given()
+    //  .get(locationSampleModule)
+    //  .then().statusCode(200).body(equalTo(docSampleModule));
+    //Assert.assertTrue("raml: " + c.getLastReport().toString(),
+    //  c.getLastReport().isEmpty());
 
     // Try to delete the auth module that our sample depends on
     c.given().delete(locationAuthModule).then().statusCode(400);

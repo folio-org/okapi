@@ -37,7 +37,7 @@
             "type": "string"
           },
           "routingEntries": {
-            "type": "array",
+            "type": ["array", "null"],
             "items": {
               "$ref": "RoutingEntry.json"
             }
@@ -65,5 +65,5 @@
     },
     "tenantInterface": {"type": "string"}
   },
-  "required": ["id", "name", "routingEntries"]
+  "required": ["id", "name"]
 }
