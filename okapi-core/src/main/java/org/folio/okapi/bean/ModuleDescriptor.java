@@ -20,7 +20,6 @@ public class ModuleDescriptor {
 
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
-  private ModuleInterface[] systemInterfaces;
   private RoutingEntry[] routingEntries;
   private String[] modulePermissions;
   private UiModuleDescriptor uiDescriptor;
@@ -42,8 +41,8 @@ public class ModuleDescriptor {
     this.tags = other.tags;
     this.env = other.env;
     this.routingEntries = other.routingEntries;
-    this.provides = other.provides;
     this.requires = other.requires;
+    this.provides = other.provides;
     this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
@@ -103,14 +102,6 @@ public class ModuleDescriptor {
 
   public void setProvides(ModuleInterface[] provides) {
     this.provides = provides;
-  }
-
-  public ModuleInterface[] getSystemInterfaces() {
-    return systemInterfaces;
-  }
-
-  public void setSystemInterfaces(ModuleInterface[] systemInterfaces) {
-    this.systemInterfaces = systemInterfaces;
   }
 
   public RoutingEntry[] getRoutingEntries() {

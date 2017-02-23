@@ -45,26 +45,6 @@
         }
       }
     },
-    "systemInterfaces": {
-      "type": ["array", "null"],
-      "items": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "version": {
-            "type": "string"
-          },
-          "routingEntries": {
-            "type": "array",
-            "items": {
-              "$ref": "RoutingEntry.json"
-            }
-          }
-        }
-      }
-    },
     "routingEntries": {
       "type": "array",
       "items": {
