@@ -260,13 +260,43 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS // TODO - Permissions
+      + "      \"type\" : \"system\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS
       + "}";
+
+    // First some error checks: Missing id
+    String docBadId = docSampleModule.replace("sample-module", "bad module id?!");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docBadId)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Bad interface type
+    String docBadIntType = docSampleModule.replace("system", "strange interface type");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docBadIntType)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Bad RoutingEntry type
+    String docBadReType = docSampleModule.replace("request-response", "strange-re-type");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docBadReType)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+    // TODO - Tests for bad interface versions
+    // TODO - Test for RoutingEntries: bad paths, methods, ids.
+    // TODO - Update the validate() function in ModuleWebService 
 
     // Actually create the module
     c = api.createRestAssured();
@@ -348,7 +378,17 @@ public class ModuleTest {
       .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
 
-    // Clean up, so the next test starts with a clean slate
+    // Check that the tenant API got called (exactly once)
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-tenant-reqs", "yes")
+      .get("/testb")
+      .then()
+      .statusCode(200)
+      .body(equalTo("It works Tenant requests: POST-roskilde "))
+      .log().ifError();
+
+    // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testOneModule cleaning up");
     given().delete(locEnable).then().log().ifError().statusCode(204);
     given().delete(locTenant).then().log().ifError().statusCode(204);

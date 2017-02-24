@@ -3,6 +3,9 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -14,6 +17,7 @@ import java.util.List;
  */
 @JsonInclude(Include.NON_NULL)
 public class ModuleDescriptor {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String id;
   private String name;
@@ -116,16 +120,28 @@ public class ModuleDescriptor {
   }
 
   /**
-   * Get all RoutingEntries that are type proxy
+   * Get all RoutingEntries that are type proxy. Either from provided
+   * interfaces, or from the global level RoutingEntries.
    *
-   * @param interfaceType - "system" or "proxy"
    * @return
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
+    return getAllRoutingEntries("proxy", true);
+  }
+
+  /**
+   * Get all routingEntries of given type.
+   *
+   * @param type "proxy" or "system" or "" for all types
+   * @param globaltoo true: include the global-level entries too
+   * @return a list of RoutingEntries
+   */
+  @JsonIgnore
+  public List<RoutingEntry> getAllRoutingEntries(String type, boolean globaltoo) {
     List<RoutingEntry> all = new ArrayList<>();
     RoutingEntry[] res = getRoutingEntries();
-    if (res != null) {
+    if (res != null && globaltoo) {
       Collections.addAll(all, res);
     }
     ModuleInterface[] prov = getProvides();
@@ -135,7 +151,7 @@ public class ModuleDescriptor {
         if (t == null || t.isEmpty()) {
           t = "proxy";
         }
-        if (t.equals("proxy")) {
+        if (type.isEmpty() || type.equals(t)) {
           res = mi.getRoutingEntries();
           if (res != null) {
             Collections.addAll(all, res);
@@ -144,6 +160,48 @@ public class ModuleDescriptor {
       }
     }
     return all;
+  }
+
+  /**
+   * Validate some features of a ModuleDescriptor.
+   *
+   * @return "" if ok, otherwise an informative error message.
+   */
+  public String validate() {
+    if (getId() == null || getId().isEmpty()) {
+      return "No Id in module";
+    }
+    if (!getId().matches("^[a-z0-9._-]+$")) {
+      return "Invalid id";
+    }
+    List<RoutingEntry> all = getAllRoutingEntries("", true);
+    if (all != null) {
+      for (RoutingEntry e : all) {
+        // TODO - Validate RoutingEntry in its own module
+        String t = e.getType();
+        if (!(t.equals("request-only")
+          || (t.equals("request-response"))
+          || (t.equals("headers"))
+          || (t.equals("redirect"))
+          || (t.equals("system")))) {
+          return "Bad routing entry type: '" + t + "'";
+        }
+      }
+    }
+    if (getProvides() != null) {
+      for (ModuleInterface pr : getProvides()) {
+        String it = pr.getInterfaceType();
+        if (it != null && !it.equals("proxy") && !it.equals("system")) {
+          return "Bad interface type '" + it + "'";
+        }
+      }
+    }
+    if (getTenantInterface() != null) {
+      logger.warn("Module uses DEPRECATED tenantInterface field. "
+        + "Provide a 'tenant' system interface instead");
+      // Can not return error yet, need to accept this.
+    }
+    return "";
   }
 
   public String[] getModulePermissions() {

@@ -89,14 +89,4 @@ public class RoutingEntry {
     this.path = path;
   }
 
-  // TODO - Fix this after refactoring the ModuleDescriptor
-  // For now, it is a dirty hack to make sure Okapi can return a 404
-  // in case only auth module gets invoked
-  public boolean actuallyIsFilter() {
-    if ("/".equals(this.path)) {
-      return true; // A path of "/" is a filter by default
-    } else {
-      return false; // everythign else is not
-    }
-  }
 }

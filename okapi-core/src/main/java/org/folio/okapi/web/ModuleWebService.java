@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
-import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TimeStampStore;
@@ -37,7 +36,6 @@ public class ModuleWebService {
   ModuleStore moduleStore;
   EventBus eb;
   private final String eventBusName = "okapi.conf.modules";
-  final private Vertx vertx;
   final private TimeStampStore timeStampStore;
   final String timestampId = "modules";
   private Long timestamp = (long) -1;
@@ -45,7 +43,6 @@ public class ModuleWebService {
   public ModuleWebService(Vertx vertx,
           ModuleManager moduleService, ModuleStore moduleStore,
           TimeStampStore timeStampStore) {
-    this.vertx = vertx;
     this.moduleManager = moduleService;
     this.moduleStore = moduleStore;
     this.timeStampStore = timeStampStore;
@@ -90,29 +87,6 @@ public class ModuleWebService {
     });
   }
 
-  // Helper to validate some features of a md.
-  // Returns "" if ok, otherwise an informative error message.
-  private String validate(ModuleDescriptor md) {
-    if (md.getId() == null || md.getId().isEmpty()) {
-      return "No Id in module";
-    }
-    if (!md.getId().matches("^[a-z0-9._-]+$")) {
-      return "Invalid id";
-    }
-    if (md.getRoutingEntries() != null) {
-      for (RoutingEntry e : md.getRoutingEntries()) {
-        String t = e.getType();
-        if (!(t.equals("request-only")
-          || (t.equals("request-response"))
-          || (t.equals("headers"))
-          || (t.equals("redirect")))) {
-          return "Bad routing entry type: '" + t + "'";
-        }
-      }
-    }
-    return "";
-  }
-
   public void create(RoutingContext ctx) {
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
@@ -120,7 +94,7 @@ public class ModuleWebService {
       if (md.getId() == null || md.getId().isEmpty()) {
         md.setId(UUID.randomUUID().toString());
       }
-      String validerr = validate(md);
+      String validerr = md.validate();
       if (!validerr.isEmpty()) {
        responseError(ctx, 400, validerr);
       } else {
@@ -174,7 +148,7 @@ public class ModuleWebService {
         responseError(ctx, 400, "Module.id=" + md.getId() + " id=" + id);
         return;
       }
-      String validerr = validate(md);
+      String validerr = md.validate();
       if (!validerr.isEmpty()) {
         responseError(ctx, 400, validerr);
       } else {

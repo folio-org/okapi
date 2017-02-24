@@ -207,20 +207,20 @@ public class ProxyService {
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
       -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
     mods.sort(cmp);
-    // Check that our pipeline has a real module in it, not just filters
+    // Check that our pipeline has a real module in it, not just filters,
+    // so that we can return a proper 404 for requests that only hit auth
     logger.debug("Checking filters for " + ctx.request().absoluteURI());
     boolean found = false;
     for (ModuleInstance inst : mods) {
-      if (!inst.getRoutingEntry().actuallyIsFilter()) {
-        found = true;
-      }
+      if (!"/".equals(inst.getRoutingEntry().getPath())) {
+        found = true;  // Dirty heuristic: Any path longer than '/' is a real handler
+      } // Works for auth, but may fail later.
     }
     if (!found) {
       responseError(ctx, 404, "No suitable module found for "
         + ctx.request().absoluteURI());
       return null;
     }
-
     return mods;
   }
 

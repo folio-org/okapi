@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.util.DropwizardHelper;
@@ -248,6 +249,16 @@ public class TenantManager {
     }
   }
 
+  /**
+   * Find the tenant API interface. Supports several deprecated versions of the
+   * tenant interface: the 'tenantInterface' field in MD; if the module provides
+   * a '_tenant' interface without RoutingEntries, and finally the proper way,
+   * if the module provides a '_tenant' interface that is marked as a system
+   * interface, and has a RoutingEntry that supports POST.
+   *
+   * @param module
+   * @return the path to the interface, or "" if not supported.
+   */
   public String getTenantInterface(String module) {
     ModuleDescriptor md = this.moduleManager.get(module);
     if (md == null) {
@@ -266,6 +277,22 @@ public class TenantManager {
       for (ModuleInterface pi : prov) {
         logger.debug("findTenantInterface: Looking at " + pi.getId());
         if ("_tenant".equals(pi.getId())) {
+          if ("system".equals(pi.getInterfaceType())) { // looks like a new type
+            RoutingEntry[] res = pi.getRoutingEntries();
+            if (res != null) {
+              for (RoutingEntry re : res) {
+                if (String.join("/", re.getMethods()).contains("POST")) {
+                  return re.getPath();
+                }
+              }
+            }
+            logger.warn("Tenant interface for module '" + module + "' "
+              + "has no suitable RoutingEntry. Can not call the Tenant API");
+            return "";
+          }
+          logger.warn("Module '" + module + "' uses old-fashioned tenant "
+            + "interface. Define InterfaceType=system, and add a RoutingEntry."
+            + " Falling back to calling /_/tenant.");
           return "/_/tenant";
         }
       }
