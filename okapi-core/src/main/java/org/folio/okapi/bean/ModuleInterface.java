@@ -1,15 +1,21 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * ModuleInterface describes an interface a module can provide, or depend on.
  * Basically just a name, and a version number. Version numbers are in the form
  * X.Y.Z where X is the major version of the interface, Y is the minor version
  * of the interface, and Z is the software version of the module.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ModuleInterface {
 
   private String id;
   private String version;
+  private String interfaceType; // enum "proxy" (default), or "system"
+  private RoutingEntry[] routingEntries;
+
 
   public ModuleInterface() {
   }
@@ -168,4 +174,21 @@ public class ModuleInterface {
     }
     return 0;
   }
+
+  public String getInterfaceType() {
+    return interfaceType;
+  }
+
+  public void setInterfaceType(String interfaceType) {
+    this.interfaceType = interfaceType;
+  }
+
+  public RoutingEntry[] getRoutingEntries() {
+    return routingEntries;
+  }
+
+  public void setRoutingEntries(RoutingEntry[] routingEntries) {
+    this.routingEntries = routingEntries;
+  }
+
 }

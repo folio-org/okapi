@@ -23,6 +23,7 @@ public class RoutingEntry {
 
   private String[] permissionsRequired;
   private String[] permissionsDesired;
+  private String[] modulePermissions;
 
   public String[] getPermissionsRequired() {
     return permissionsRequired;
@@ -38,6 +39,14 @@ public class RoutingEntry {
 
   public void setPermissionsDesired(String[] permissionsDesired) {
     this.permissionsDesired = permissionsDesired;
+  }
+
+  public String[] getModulePermissions() {
+    return modulePermissions;
+  }
+
+  public void setModulePermissions(String[] modulePermissions) {
+    this.modulePermissions = modulePermissions;
   }
 
   public String getType() {
@@ -80,14 +89,4 @@ public class RoutingEntry {
     this.path = path;
   }
 
-  // TODO - Fix this after refactoring the ModuleDescriptor
-  // For now, it is a dirty hack to make sure Okapi can return a 404
-  // in case only auth module gets invoked
-  public boolean actuallyIsFilter() {
-    if ("/".equals(this.path)) {
-      return true; // A path of "/" is a filter by default
-    } else {
-      return false; // everythign else is not
-    }
-  }
 }

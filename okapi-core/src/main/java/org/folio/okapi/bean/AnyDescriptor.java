@@ -5,6 +5,9 @@ import com.fasterxml.jackson.annotation.JsonAnySetter;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+/**
+ * A way to map arbitrary Json. Used for Docker arguments etc.
+ */
 public class AnyDescriptor {
 
   private Map<String, Object> properties = new LinkedHashMap<>();

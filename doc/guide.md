@@ -328,7 +328,7 @@ intended as a mechanism for piling more complex modules on top of simpler
 implementations, for example a module to edit and list users could be
 extended by a module that manages users and passwords. It would have
 actual code to handle creating and updating users, but could redirect
-requests to list and get users to the simpler user module. 
+requests to list and get users to the simpler user module.
 
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
@@ -855,18 +855,24 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
     "name" : "Okapi test module",
     "provides" : [ {
       "id" : "test-basic",
-      "version" : "2.2.3"
+      "version" : "2.2.3",
+      "routingEntries" : [ {
+        "methods" : [ "GET", "POST" ],
+        "path" : "/testb",
+        "level" : "30",
+        "type" : "request-response",
+        "permissionsRequired" : [ "test-basic.needed" ],
+        "permissionsDesired" : [ "test-basic.extra" ]
+        } ]
     }, {
       "id" : "_tenant",
-      "version" : "1.0.0"
-    } ],
-    "routingEntries" : [ {
-      "methods" : [ "GET", "POST" ],
-      "path" : "/testb",
-      "level" : "30",
-      "type" : "request-response",
-      "permissionsRequired" : [ "test-basic.needed" ],
-      "permissionsDesired" : [ "test-basic.extra" ]
+      "version" : "1.0.0",
+      "interfaceType" : "system",
+      "routingEntries" : [ {
+        "methods" : [ "POST", "DELETE" ],
+        "path" : "/_/tenant",
+        "type" : "request-response"
+        } ]
     } ],
     "launchDescriptor" : {
       "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
@@ -874,24 +880,25 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
   }
 END
 ```
-The id is what we will be using to refer to this module later.
+The id is what we will be using to refer to this module later. In real world,
+we would probably be using UUIDs or something, but here a human-readable string
+is nicer.
 
-The module provides two interfaces: `test-basic`, which is its main reason of
-existing, and a special interface called `_tenant` - note the underscore. That
-indicates that this is a "system" interface, something Okapi will call when
-the module gets enabled for a tenant (and disabled too). This is where the
-module may do all sort of setting up tasks, like initializing a database for
-this tenant.
+The module provides two interfaces: First the real interface, called
+`test-basic`. It has some routingEntries that indicate that the interface is
+interested in GET and POST requests to the /testb path and nothing else, and
+that the module is supposed to provide a full response. The level is used to
+specify the order in which the request will be sent to multiple modules, as
+will be seen later.
+
+The second interface this modules provides is called "_tenant". This is a
+"system" interface, as can be seen in the interfaceType, and by convention
+its name starts with an underscore. Okapi will make a request to this interface
+when it is about to enable the module for a tenant, and the module can use this
+for all kind of initialization, for example creating tables in a database.
 
 The module could also require some interfaces to be present, but since this is
 the first module we add, we don't require anything else.
-
-The routingEntries indicate that the module is interested in GET and POST
-requests to the /testb path and nothing else, and that the module is supposed
-to provide a full response. The level is used to to specify the order in which
-the request will be sent to multiple modules, as will be seen later. Note that
-the `_tenant` interface is not listed here at all, calls to system interfaces
-do not go through the regular proxy routing tables at all.
 
 We will come back to the permission things later, when we look at the auth
 module.
@@ -899,8 +906,8 @@ module.
 The launchDescriptor tells Okapi how this module is to be started and stopped.
 In this version we use a simple `exec` command line, remember the PID, and
 just kill the process when we are done with it. We could also specify command
-lines for starting and stopping things. In some future version we are likely to
-have options for managing Docker images directly...
+lines for starting and stopping things. There are also facilities for starting
+and stopping Docker images directly.
 
 So, let's post it
 ```
@@ -912,29 +919,38 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 494
+Content-Length: 755
 
 {
   "id" : "test-basic",
   "name" : "Okapi test module",
   "provides" : [ {
     "id" : "test-basic",
-    "version" : "2.2.3"
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0"
+    "version" : "2.2.3",
+    "routingEntries" : [ {
+      "methods" : [ "GET", "POST" ],
+      "path" : "/testb",
+      "level" : "30",
+      "type" : "request-response",
+      "permissionsRequired" : [ "test-basic.needed" ],
+      "permissionsDesired" : [ "test-basic.extra" ]
+    } ]
+  }, {
+    "id" : "_tenant",
+    "version" : "1.0.0",
+    "interfaceType" : "system",
+    "routingEntries" : [ {
+      "methods" : [ "POST", "DELETE" ],
+      "path" : "/_/tenant",
+      "level" : "30",
+      "type" : "request-response"
+    } ]
   } ],
-  "routingEntries" : [ {
-    "methods" : [ "GET", "POST" ],
-    "path" : "/testb",
-    "level" : "30",
-    "type" : "request-response",
-    "permissionsRequired" : [ "test-basic.needed" ],
-    "permissionsDesired" : [ "test-basic.extra" ]
-  } ],
- "launchDescriptor" : {
+  "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
 }
+
 ```
 
 Okapi responds with a "201 Created", and reports back the same JSON. There is
@@ -974,7 +990,9 @@ Okapi responds with a short list of only one node:
 
 This is not surprising, we are running the whole thing on one machine, in 'dev'
 mode, so we only have one node in the cluster and by default it is called
-'localhost'.  So let's deploy it there. First we create a DeploymentDescriptor:
+'localhost'.  If this was a real cluster, the cluster manager would have given
+ugly UUIDs for all the nodes when they started up. So let's deploy it there.
+First we create a DeploymentDescriptor:
 
 
 ```
@@ -1157,22 +1175,22 @@ cat > /tmp/okapi-module-auth.json <<END
   "name" : "Okapi test auth module",
   "provides" : [ {
     "id" : "test-auth",
-    "version" : "3.4.5"
+    "version" : "3.4.5",
+    "routingEntries" : [ {
+      "methods" : [ "*" ],
+      "path" : "/",
+      "level" : "10",
+      "type" : "headers"
+      }, {
+      "methods" : [ "POST" ],
+      "path" : "/login",
+      "level" : "20",
+      "type" : "request-response"
+    } ]
   } ],
   "requires" : [ {
     "id" : "test-basic",
     "version" : "2.2.1"
-  } ],
-  "routingEntries" : [ {
-    "methods" : [ "*" ],
-    "path" : "/",
-    "level" : "10",
-    "type" : "headers"
-  }, {
-    "methods" : [ "POST" ],
-    "path" : "/login",
-    "level" : "20",
-    "type" : "request-response"
   } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
@@ -1302,7 +1320,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET test-auth:401 43813us
+X-Okapi-Trace: GET - Okapi test auth module http://localhost:9132/testb : 401 68987us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
@@ -1344,7 +1362,7 @@ We are not supposed to worry about what that header contains, but we can see its
 format is almost as you would expect from a JWT: Three parts separated by dots,
 first a header, then a base-64 encoded payload, and finally a signature. The
 header and signature would normally be base-64 encoded as well, but the simple
-test-auth module skips that part, to make a distinct that can not be mistaken
+test-auth module skips that part, to make a distinct token that can not be mistaken
 as a real JWT. The payload is indeed base-64 encoded, and if you decode it, you
 see that it will contain a Json structure with the user id and the tenant id,
 and nothing much else. A real-life auth module would of course put more stuff
