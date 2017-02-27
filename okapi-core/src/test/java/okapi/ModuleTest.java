@@ -296,7 +296,7 @@ public class ModuleTest {
       .statusCode(400);
     // TODO - Tests for bad interface versions
     // TODO - Test for RoutingEntries: bad paths, methods, ids.
-    // TODO - Update the validate() function in ModuleWebService 
+    // TODO - Update the validate() function in ModuleWebService
 
     // Actually create the module
     c = api.createRestAssured();

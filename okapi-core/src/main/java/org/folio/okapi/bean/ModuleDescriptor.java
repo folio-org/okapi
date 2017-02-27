@@ -194,8 +194,10 @@ public class ModuleDescriptor {
         if (it != null && !it.equals("proxy") && !it.equals("system")) {
           return "Bad interface type '" + it + "'";
         }
+        // TODO - Validate version numbers and id
       }
     }
+    // TODO - Validate requires section, no RoutingEntgries there,
     if (getTenantInterface() != null) {
       logger.warn("Module uses DEPRECATED tenantInterface field. "
         + "Provide a 'tenant' system interface instead");
