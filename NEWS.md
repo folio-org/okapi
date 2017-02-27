@@ -1,3 +1,5 @@
+## 1.0.0 2017-02-27
+
  * Postgres storage option. Mongodb still supported
  * New commands: initdatabase and purgedatabase. Deprecated are
    properties -Dmongo_db_init and -Dpostgres_db_init
