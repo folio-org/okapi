@@ -919,7 +919,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 755
+Content-Length: 733
 
 {
   "id" : "test-basic",
@@ -942,7 +942,6 @@ Content-Length: 755
     "routingEntries" : [ {
       "methods" : [ "POST", "DELETE" ],
       "path" : "/_/tenant",
-      "level" : "30",
       "type" : "request-response"
     } ]
   } ],
@@ -950,7 +949,6 @@ Content-Length: 755
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
-
 ```
 
 Okapi responds with a "201 Created", and reports back the same JSON. There is
@@ -1117,7 +1115,7 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/okapi-enable-basic.json  \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
-HTTP/1.1 200 OK
+HTTP/1.1 201 Created
 Content-Type: application/json
 Content-Length: 25
 
@@ -1149,7 +1147,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
-X-Okapi-Trace: GET test-basic:200 7977us
+X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 11152us
 Transfer-Encoding: chunked
 
 It works
@@ -1177,11 +1175,6 @@ cat > /tmp/okapi-module-auth.json <<END
     "id" : "test-auth",
     "version" : "3.4.5",
     "routingEntries" : [ {
-      "methods" : [ "*" ],
-      "path" : "/",
-      "level" : "10",
-      "type" : "headers"
-      }, {
       "methods" : [ "POST" ],
       "path" : "/login",
       "level" : "20",
@@ -1192,6 +1185,12 @@ cat > /tmp/okapi-module-auth.json <<END
     "id" : "test-basic",
     "version" : "2.2.1"
   } ],
+  "routingEntries" : [ {
+    "methods" : [ "*" ],
+    "path" : "/",
+    "level" : "10",
+    "type" : "headers"
+    } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
@@ -1204,7 +1203,12 @@ depends on the test-basic module, version 2.2.1 or higher.  You can experiment
 with requiring version 2.4.1, that should fail since we only have 2.2.3.
 
 The module has two routing entries, a simple check that gets called before
-any real module, and a login service.
+any real module, and a login service. Note that the first RoutingEntry is
+within the auth interface definition, but the second one is not, it is in
+a global list of RoutingEntries. This is because it is a filter, something
+that gets invoked for every request Okapi sees. It is also of type "headers",
+which means that Okapi is not passing the full request to it, only the headers.
+This saves a little bit time.
 
 As before, there is a launchDescriptor that tells how the module is to
 be deployed.
@@ -1220,38 +1224,36 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 698
+Content-Length: 601
 
 {
   "id" : "test-auth",
   "name" : "Okapi test auth module",
-  "provides" : [ {
-    "id" : "test-auth",
-    "version" : "3.4.5"
-  } ],
   "requires" : [ {
     "id" : "test-basic",
     "version" : "2.2.1"
+  } ],
+  "provides" : [ {
+    "id" : "test-auth",
+    "version" : "3.4.5",
+    "routingEntries" : [ {
+      "methods" : [ "POST" ],
+      "path" : "/login",
+      "level" : "20",
+      "type" : "request-response"
+    } ]
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
     "path" : "/",
     "level" : "10",
-    "type" : "headers",
-    "permissionsRequired" : null,
-    "permissionsDesired" : null
-  }, {
-    "methods" : [ "POST" ],
-    "path" : "/login",
-    "level" : "20",
-    "type" : "request-response",
-    "permissionsRequired" : null,
-    "permissionsDesired" : null
+    "type" : "headers"
   } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
+
 ```
 
 Next we need to deploy the module.
@@ -1300,7 +1302,7 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/okapi-enable-auth.json  \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
-HTTP/1.1 200 OK
+HTTP/1.1 201 Created
 Content-Type: application/json
 Content-Length: 24
 
