@@ -1,0 +1,3 @@
+[submodule "okapi-core/src/main/raml/raml-util"]
+	path = okapi-core/src/main/raml/raml-util
+	url = https://github.com/folio-org/raml.git
