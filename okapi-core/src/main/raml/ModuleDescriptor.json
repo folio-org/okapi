@@ -44,6 +44,12 @@
             "items": {
               "$ref": "RoutingEntry.json"
             }
+          },
+          "permissionSets": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "Permission.json"
+            }
           }
         }
       }
