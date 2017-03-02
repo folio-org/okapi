@@ -89,6 +89,8 @@ public class MainVerticle extends AbstractVerticle {
       + "tenant service for tenant " + tenant + "\n");
     logger.info(meth + " request to okapi-test-module "
       + "tenant service for tenant " + tenant);
+    final String cont = ctx.request().getHeader("Content-Type");
+    logger.debug("Tenant api content type: '" + cont + "'");
     final String module_from = ctx.request().getParam("module_from");
     if (module_from != null) {
       logger.info("module_from=" + module_from);
