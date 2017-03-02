@@ -874,6 +874,12 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
         "type" : "request-response"
         } ]
     } ],
+    "permissionSets" : [ {
+      "permissionName" : "test-basic.everything",
+      "displayName" : "every possible permission",
+      "description" : "All permissions combined",
+      "subPermissions" : [ "test-basic.needed", "test-basic.extra" ]
+      } ],
     "launchDescriptor" : {
       "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
     }
@@ -891,6 +897,9 @@ that the module is supposed to provide a full response. The level is used to
 specify the order in which the request will be sent to multiple modules, as
 will be seen later.
 
+We will come back to the permission things later, when we look at the auth
+module.
+
 The second interface this modules provides is called "_tenant". This is a
 "system" interface, as can be seen in the interfaceType, and by convention
 its name starts with an underscore. Okapi will make a request to this interface
@@ -900,8 +909,9 @@ for all kind of initialization, for example creating tables in a database.
 The module could also require some interfaces to be present, but since this is
 the first module we add, we don't require anything else.
 
-We will come back to the permission things later, when we look at the auth
-module.
+The permissionSets declares a shorthand for admins to give permissions to users.
+These will percolate to the permission management in the auth module (not in
+our trivial sample auth, the but the real life version).
 
 The launchDescriptor tells Okapi how this module is to be started and stopped.
 In this version we use a simple `exec` command line, remember the PID, and
@@ -950,6 +960,7 @@ Content-Length: 733
   }
 }
 ```
+<!-- TODO - the response is out of date.  -->
 
 Okapi responds with a "201 Created", and reports back the same JSON. There is
 also a Location header that shows the address of this module, if we want to

@@ -1,0 +1,21 @@
+{
+  "title": "Permissions Definition Schema",
+  "type": "object",
+  "properties": {
+    "permissionName": {
+      "type": "string"
+    },
+    "displayName": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "subPermissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

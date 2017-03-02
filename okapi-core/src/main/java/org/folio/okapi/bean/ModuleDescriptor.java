@@ -3,7 +3,8 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -28,11 +29,12 @@ public class ModuleDescriptor {
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
   private RoutingEntry[] routingEntries;
-  private String[] modulePermissions;
+  private Permission[] permissionSets;
+  private String[] modulePermissions; /* DEPRECATED */
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
 
-  private String tenantInterface;
+  private String tenantInterface; /* DEPRECATED */
 
   public ModuleDescriptor() {
   }
@@ -50,6 +52,7 @@ public class ModuleDescriptor {
     this.routingEntries = other.routingEntries;
     this.requires = other.requires;
     this.provides = other.provides;
+    this.permissionSets = other.permissionSets;
     this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
@@ -238,5 +241,12 @@ public class ModuleDescriptor {
     this.tenantInterface = tenantInterface;
   }
 
+  public Permission[] getPermissionSets() {
+    return permissionSets;
+  }
+
+  public void setPermissionSets(Permission[] permissionSets) {
+    this.permissionSets = permissionSets;
+  }
 
 }

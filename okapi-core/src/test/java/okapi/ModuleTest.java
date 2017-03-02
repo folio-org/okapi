@@ -257,6 +257,12 @@ public class ModuleTest {
       + "      \"type\" : \"system\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
+      + "  \"permissionSets\" : [ {" + LS
+      + "    \"permissionName\" : \"everything\"," + LS
+      + "    \"displayName\" : \"every possible permission\"," + LS
+      + "    \"description\" : \"All permissions combined\"," + LS
+      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]" + LS
+      + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS
