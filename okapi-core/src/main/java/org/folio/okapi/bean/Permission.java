@@ -1,8 +1,3 @@
-/*
- * Copyright (c) 2015-2017, Index Data
- * All rights reserved.
- * See the file LICENSE for details.
- */
 package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
