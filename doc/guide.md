@@ -911,7 +911,7 @@ the first module we add, we don't require anything else.
 
 The permissionSets declares a shorthand for admins to give permissions to users.
 These will percolate to the permission management in the auth module (not in
-our trivial sample auth, the but the real life version).
+our trivial sample auth, but the real life version).
 
 The launchDescriptor tells Okapi how this module is to be started and stopped.
 In this version we use a simple `exec` command line, remember the PID, and
