@@ -815,7 +815,7 @@ java -jar okapi-core/target/okapi-core-fat.jar dev
 The `dev` command tells to run it in development mode, which makes it start
 with a known clean state without any modules or tenants defined.
 
-Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
+Okapi lists its PID (process ID) and says `API Gateway started`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using in-memory storage. (To use MongoDB
 storage instead, add `-Dstorage=mongo` to the command line.)
@@ -900,7 +900,7 @@ will be seen later.
 We will come back to the permission things later, when we look at the auth
 module.
 
-The second interface this modules provides is called "_tenant". This is a
+The second interface this modules provides is called `_tenant`. This is a
 "system" interface, as can be seen in the interfaceType, and by convention
 its name starts with an underscore. Okapi will make a request to this interface
 when it is about to enable the module for a tenant, and the module can use this
@@ -919,7 +919,7 @@ just kill the process when we are done with it. We could also specify command
 lines for starting and stopping things. There are also facilities for starting
 and stopping Docker images directly.
 
-So, let's post it
+So, let's post it:
 ```
 curl -w '\n' -X POST -D - \
     -H "Content-type: application/json" \
@@ -929,7 +929,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 733
+Content-Length: 977
 
 {
   "id" : "test-basic",
@@ -955,12 +955,17 @@ Content-Length: 733
       "type" : "request-response"
     } ]
   } ],
+  "permissionSets" : [ {
+    "permissionName" : "test-basic.everything",
+    "displayName" : "every possible permission",
+    "description" : "All permissions combined",
+    "subPermissions" : [ "test-basic.needed", "test-basic.extra" ]
+  } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 ```
-<!-- TODO - the response is out of date.  -->
 
 Okapi responds with a "201 Created", and reports back the same JSON. There is
 also a Location header that shows the address of this module, if we want to
@@ -1128,6 +1133,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
+Location: /_/proxy/tenants/testlib/modules/test-basic
 Content-Length: 25
 
 {
@@ -1264,7 +1270,6 @@ Content-Length: 601
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
-
 ```
 
 Next we need to deploy the module.
@@ -1315,6 +1320,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
+Location: /_/proxy/tenants/testlib/modules/test-auth
 Content-Length: 24
 
 {
@@ -1363,7 +1369,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST test-auth:200 136641us
+X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/login : 200 159251us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
@@ -1391,7 +1397,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
-X-Okapi-Trace: GET test-basic:200 1791us
+X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 1567us
 Transfer-Encoding: chunked
 
 It works
