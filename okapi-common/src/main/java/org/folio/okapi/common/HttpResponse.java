@@ -36,12 +36,11 @@ public class HttpResponse {
   }
 
   static public void responseError(RoutingContext ctx, int code, String msg) {
-    if ( msg == null )
-      msg = "(null)";
+    String text = (msg == null) ? "(null)" : msg;
     if (code < 200 || code >= 300) {
-      logger.error("HTTP response code=" + code + " msg=" + msg);
+      logger.error("HTTP response code=" + code + " msg=" + text);
     }
-    responseText(ctx, code).end(msg);
+    responseText(ctx, code).end(text);
   }
 
   static public HttpServerResponse responseText(RoutingContext ctx, int code) {

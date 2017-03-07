@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 
 public class OkapiStream {
@@ -13,7 +14,7 @@ public class OkapiStream {
       while ((length = inputStream.read(buffer)) != -1) {
         result.write(buffer, 0, length);
       }
-    } catch (Exception ex) {
+    } catch (IOException ex) {
     }
     return result.toString();
   }

@@ -58,7 +58,7 @@ public class DropwizardHelper {
       reg.removeMatching((String name, Metric metric) -> key.equals(name));
       reg.register(key, g);
     } catch (Exception e) {
-      logger.warn("registerGauge caught an exception: " + e.getMessage());
+      logger.warn("registerGauge caught an exception: " + e);
     }
   }
 

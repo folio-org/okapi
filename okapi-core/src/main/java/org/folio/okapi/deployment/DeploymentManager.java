@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map.Entry;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -87,6 +88,7 @@ public class DeploymentManager {
     int use_port = ports.get();
     if (use_port == -1) {
       fut.handle(new Failure<>(INTERNAL, "all ports in use"));
+      tim.close();
       return;
     }
     String url = "http://" + host + ":" + use_port;
@@ -99,6 +101,7 @@ public class DeploymentManager {
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
+      tim.close();
       return;
     }
     HashMap<String, EnvEntry> entries = new HashMap<>();
@@ -111,6 +114,7 @@ public class DeploymentManager {
     em.get(eres -> {
       if (eres.failed()) {
         fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
+        tim.close();
       } else {
         for (EnvEntry er : eres.result()) {
           entries.put(er.getName(), er);
@@ -118,8 +122,8 @@ public class DeploymentManager {
         if (entries.size() > 0) {
           EnvEntry[] nenv = new EnvEntry[entries.size()];
           int i = 0;
-          for (String k : entries.keySet()) {
-            nenv[i++] = entries.get(k);
+          for (Entry<String, EnvEntry> key : entries.entrySet()) {
+            nenv[i++] = key.getValue();
           }
           descriptor.setEnv(nenv);
         }
@@ -132,12 +136,12 @@ public class DeploymentManager {
                             url, md1.getDescriptor(), mh);
             md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
             list.put(md2.getInstId(), md2);
-            tim.stop();
+            tim.close();
             dm.add(md2, res -> {
               fut.handle(new Success<>(md2));
             });
           } else {
-            tim.stop();
+            tim.close();
             ports.free(use_port);
             fut.handle(new Failure<>(INTERNAL, future.cause()));
           }
@@ -161,6 +165,7 @@ public class DeploymentManager {
           ModuleHandle mh = md.getModuleHandle();
           mh.stop(future -> {
             if (future.failed()) {
+              tim.close();
               fut.handle(new Failure<>(INTERNAL, future.cause()));
             } else {
               fut.handle(new Success<>());

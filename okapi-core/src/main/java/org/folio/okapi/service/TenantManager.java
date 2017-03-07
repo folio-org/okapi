@@ -117,7 +117,6 @@ public class TenantManager {
     return msg;
   }
   private String checkOneConflict(Tenant tenant, ModuleDescriptor md, ModuleInterface prov) {
-    ModuleInterface seenversion = null;
     for (String enabledModule : tenant.listModules()) {
       ModuleDescriptor rm = moduleManager.get(enabledModule);
       ModuleInterface[] provides = rm.getProvides();

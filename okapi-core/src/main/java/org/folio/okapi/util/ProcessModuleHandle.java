@@ -69,7 +69,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         try {
           p.getErrorStream().close();
         } catch (Exception e) {
-          logger.error("Closing streams failed: " + e.getMessage());
+          logger.error("Closing streams failed: " + e);
         }
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
