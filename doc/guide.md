@@ -815,7 +815,7 @@ java -jar okapi-core/target/okapi-core-fat.jar dev
 The `dev` command tells to run it in development mode, which makes it start
 with a known clean state without any modules or tenants defined.
 
-Okapi lists its PID (process ID) and says it `succeeded deploying verticle`.
+Okapi lists its PID (process ID) and says `API Gateway started`.
 That means it is running, and listening on the default port
 which happens to be 9130, and using in-memory storage. (To use MongoDB
 storage instead, add `-Dstorage=mongo` to the command line.)
