@@ -900,7 +900,7 @@ will be seen later.
 We will come back to the permission things later, when we look at the auth
 module.
 
-The second interface this modules provides is called "_tenant". This is a
+The second interface this modules provides is called `_tenant`. This is a
 "system" interface, as can be seen in the interfaceType, and by convention
 its name starts with an underscore. Okapi will make a request to this interface
 when it is about to enable the module for a tenant, and the module can use this
@@ -919,7 +919,7 @@ just kill the process when we are done with it. We could also specify command
 lines for starting and stopping things. There are also facilities for starting
 and stopping Docker images directly.
 
-So, let's post it
+So, let's post it:
 ```
 curl -w '\n' -X POST -D - \
     -H "Content-type: application/json" \
