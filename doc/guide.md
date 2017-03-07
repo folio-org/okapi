@@ -929,7 +929,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 733
+Content-Length: 977
 
 {
   "id" : "test-basic",
@@ -955,12 +955,17 @@ Content-Length: 733
       "type" : "request-response"
     } ]
   } ],
+  "permissionSets" : [ {
+    "permissionName" : "test-basic.everything",
+    "displayName" : "every possible permission",
+    "description" : "All permissions combined",
+    "subPermissions" : [ "test-basic.needed", "test-basic.extra" ]
+  } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
 }
 ```
-<!-- TODO - the response is out of date.  -->
 
 Okapi responds with a "201 Created", and reports back the same JSON. There is
 also a Location header that shows the address of this module, if we want to
@@ -1128,6 +1133,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
+Location: /_/proxy/tenants/testlib/modules/test-basic
 Content-Length: 25
 
 {
@@ -1264,7 +1270,6 @@ Content-Length: 601
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
-
 ```
 
 Next we need to deploy the module.
@@ -1315,6 +1320,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
+Location: /_/proxy/tenants/testlib/modules/test-auth
 Content-Length: 24
 
 {
@@ -1363,7 +1369,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST test-auth:200 136641us
+X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/login : 200 159251us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
@@ -1391,7 +1397,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
-X-Okapi-Trace: GET test-basic:200 1791us
+X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 1567us
 Transfer-Encoding: chunked
 
 It works
