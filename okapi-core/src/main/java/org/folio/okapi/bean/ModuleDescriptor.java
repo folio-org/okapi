@@ -182,11 +182,11 @@ public class ModuleDescriptor {
       for (RoutingEntry e : all) {
         // TODO - Validate RoutingEntry in its own module
         String t = e.getType();
-        if (!(t.equals("request-only")
-          || (t.equals("request-response"))
-          || (t.equals("headers"))
-          || (t.equals("redirect"))
-          || (t.equals("system")))) {
+        if (!("request-only".equals(t)
+                || "request-response".equals(t)
+                || "headers".equals(t)
+                || "redirect".equals(t)
+                || "system".equals(t))) {
           return "Bad routing entry type: '" + t + "'";
         }
       }
@@ -194,7 +194,7 @@ public class ModuleDescriptor {
     if (getProvides() != null) {
       for (ModuleInterface pr : getProvides()) {
         String it = pr.getInterfaceType();
-        if (it != null && !it.equals("proxy") && !it.equals("system")) {
+        if (it != null && !"proxy".equals(it) && !"system".equals(it)) {
           return "Bad interface type '" + it + "'";
         }
         // TODO - Validate version numbers and id

@@ -147,17 +147,15 @@ public class Auth {
       return;
     }
 
-    if (!splitTok[0].equals("dummyJwt")){
+    if (!"dummyJwt".equals(splitTok[0])) {
       logger.warn("test-auth: Bad dummy JWT, starts with '" + splitTok[0] + "', not 'dummyJwt'");
       responseError(ctx, 400, "Auth.check needs a dummyJwt");
       return;
     }
     String payload = splitTok[1];
 
-    String encodedJson = payload;
     String decodedJson = new String(Base64.getDecoder().decode(payload));
     logger.debug("test-auth: check payload: " + decodedJson);
-    JsonObject tokenClaims = new JsonObject(decodedJson);
 
     // Fake some desired permissions
     String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);

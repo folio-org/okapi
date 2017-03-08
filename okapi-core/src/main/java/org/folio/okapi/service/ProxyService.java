@@ -138,22 +138,24 @@ public class ProxyService {
    * @return false if errors, sets ctx up.
    */
   private boolean resolveRedirects(RoutingContext ctx, List<ModuleInstance> mods,
-    String mod, RoutingEntry re, Tenant t,
-    String loop, String redirectFrom, String origMod) {
+          final String mod, RoutingEntry re, Tenant t,
+          String loop, final String redirectFrom, final String origMod) {
 
     // add the module to the pipeline in any case
     ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
     mods.add(mi);
     if (re.getType().matches("redirect")) { // resolve redirects
       boolean found = false;
+      String rm = redirectFrom;
+      String om = origMod;
       for (String trymod : modules.list()) {
         if (t.isEnabled(trymod)) {
           List<RoutingEntry> rr = modules.get(trymod).getProxyRoutingEntries();
           for (RoutingEntry tryre : rr) {
             if (tryre.getPath().equals(re.getRedirectPath())) {
-              if (redirectFrom.isEmpty()) {
-                redirectFrom = re.getPath();
-                origMod = mod;
+              if (rm.isEmpty()) {
+                rm = re.getPath();
+                om = mod;
               }
               found = true;
               logger.debug("resolveRedirects: "
@@ -164,7 +166,7 @@ public class ProxyService {
                 return false;
               }
               if (!resolveRedirects(ctx, mods, trymod, tryre, t,
-                loop + " -> " + tryre.getPath(), redirectFrom, origMod)) {
+                      loop + " -> " + tryre.getPath(), rm, om)) {
                 return false;
               }
             }
@@ -558,7 +560,7 @@ public class ProxyService {
             ctx.response().write(data);
           });
           res.endHandler(v -> {
-            timer.stop();
+            timer.close();
             ctx.response().end();
           });
           res.exceptionHandler(v -> {
@@ -568,7 +570,7 @@ public class ProxyService {
       });
     c_req.exceptionHandler(res -> {
       logger.debug("proxyRequestResponse failure: " + mi.getUrl() + ": " + res.getMessage());
-      timer.stop();
+      timer.close();
       responseText(ctx, 500)
         .end("connect url " + mi.getUrl() + ": " + res.getMessage());
     });
@@ -649,6 +651,7 @@ public class ProxyService {
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi, Timer.Context timer) {
     if (it.hasNext()) {
+      timer.close();
       proxyR(ctx, it, pc, content, bcontent);
     } else {
       ctx.response().setChunked(true);
@@ -659,6 +662,7 @@ public class ProxyService {
           ctx.response().write(data);
         });
         content.endHandler(v -> {
+          timer.close();
           ctx.response().end();
         });
         content.exceptionHandler(v -> {
@@ -666,6 +670,7 @@ public class ProxyService {
         });
         content.resume();
       } else {
+        timer.close();
         ctx.response().end(bcontent);
       }
     }
@@ -716,7 +721,8 @@ public class ProxyService {
           content, bcontent, mi, timerContext);
       } else {
         logger.warn("proxyR: Module " + mi.getModuleDescriptor().getNameOrId()
-          + " has bad request type: '" + rtype + "'");
+                + " has bad request type: '" + rtype + "'");
+        timerContext.close();
         responseText(ctx, 500).end(); // Should not happen
       }
     }

@@ -63,7 +63,7 @@ public class MainCluster {
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          err.println("Cannot load " + resource + ": " + e.getMessage());
+          logger.error("Cannot load " + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
@@ -72,7 +72,7 @@ public class MainCluster {
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          err.println("Cannot load " + resource + ": " + e.getMessage());
+          logger.error("Cannot load " + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
@@ -81,7 +81,7 @@ public class MainCluster {
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          err.println("Cannot load " + resource + ": " + e.getMessage());
+          logger.error("Cannot load " + resource + ": " + e);
           exit(1);
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {

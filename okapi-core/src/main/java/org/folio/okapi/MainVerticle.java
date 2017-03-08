@@ -88,7 +88,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.info("git: " + prop.getProperty("git.remote.origin.url")
                 + " " + prop.getProperty("git.commit.id"));
       } catch (Exception e) {
-        logger.warn(e.getMessage());
+        logger.warn(e);
       }
     }
     boolean enableProxy = false;
@@ -173,9 +173,7 @@ public class MainVerticle extends AbstractVerticle {
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
-      if (discoveryManager != null && moduleManager != null) {
-        discoveryManager.setModuleManager(moduleManager);
-      }
+      discoveryManager.setModuleManager(moduleManager);
       storage = new Storage(vertx, storageType, initMode, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
