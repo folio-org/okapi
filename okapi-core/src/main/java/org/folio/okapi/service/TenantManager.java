@@ -280,6 +280,7 @@ public class TenantManager {
           if ("system".equals(pi.getInterfaceType())) { // looks like a new type
             RoutingEntry[] res = pi.getRoutingEntries();
             if (res != null) {
+              // TODO - Check the version of the interface. Must be 1.0
               for (RoutingEntry re : res) {
                 if (String.join("/", re.getMethods()).contains("POST")) {
                   return re.getPath();

@@ -23,8 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -224,42 +222,19 @@ public class TenantWebService {
     }
   }
 
-  private void enable2(RoutingContext ctx, TenantModuleDescriptor td,
-          String id, String module_to) {
-    final long ts = getTimestamp();
-    tenantStore.enableModule(id, module_to, ts, res -> {
-      if (res.succeeded()) {
-        sendReloadSignal(id, ts);
-        final String uri = ctx.request().uri() + "/" + module_to;
-        responseJson(ctx, 201)
-                .putHeader("Location", uri)
-                .end(Json.encodePrettily(td));
-      } else {
-        responseError(ctx, res.getType(), res.cause());
-      }
-    });
+  public void enableModule(RoutingContext ctx) {
+    enableTenantInt(ctx, null);
   }
 
-  private void enable1(RoutingContext ctx, TenantModuleDescriptor td,
-          String id, String module_from, String module_to) {
-    final long ts = getTimestamp();
-    String err = tenants.updateModule(id, module_from, module_to);
-    if (err.isEmpty()) {
-      if (module_from != null) {
-        tenantStore.disableModule(id, module_from, ts, res -> {
-          enable2(ctx, td, id, module_to);
-        });
-      } else {
-        enable2(ctx, td, id, module_to);
-      }
-    } else if (err.contains("not found") && err.contains("tenant")) {
-      responseError(ctx, 404, err);
-    } else { // TODO - handle this right
-      responseError(ctx, 400, err);
-    } // Missing dependencies are bad requests...
+  public void updateModule(RoutingContext ctx) {
+    final String module_from = ctx.request().getParam("mod");
+    enableTenantInt(ctx, module_from);
   }
 
-  private void enable0(RoutingContext ctx, String module_from) {
+  /**
+   * Enable tenant, part 1: Call the tenant interface.
+   */
+  private void enableTenantInt(RoutingContext ctx, String module_from) {
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
@@ -268,7 +243,7 @@ public class TenantWebService {
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
         logger.debug("enableModule: " + module_to + " has no support for tenant init");
-        enable1(ctx, td, id, module_from, module_to);
+        enableTenantManager(ctx, td, id, module_from, module_to);
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
@@ -307,7 +282,7 @@ public class TenantWebService {
                           + " on " + module_to + " failed with "
                           + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  enable1(ctx, td, id, module_from, module_to);
+                  enableTenantManager(ctx, td, id, module_from, module_to);
                   logger.debug("enableModule: Init request to " + module_to + " succeeded");
                 }
               });
@@ -320,13 +295,44 @@ public class TenantWebService {
     }
   }
 
-  public void enableModule(RoutingContext ctx) {
-    enable0(ctx, null);
+  /**
+   * Enable tenant, part 3: update storage.
+   */
+  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_to) {
+    final long ts = getTimestamp();
+    tenantStore.enableModule(id, module_to, ts, res -> {
+      if (res.succeeded()) {
+        sendReloadSignal(id, ts);
+        final String uri = ctx.request().uri() + "/" + module_to;
+        responseJson(ctx, 201)
+          .putHeader("Location", uri)
+          .end(Json.encodePrettily(td));
+      } else {
+        responseError(ctx, res.getType(), res.cause());
+      }
+    });
   }
 
-  public void updateModule(RoutingContext ctx) {
-    final String module_from = ctx.request().getParam("mod");
-    enable0(ctx, module_from);
+  /**
+   * Enable tenant, part 2: enable in the tenant manager. Also, disable the old
+   * one in storage.
+   */
+  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_from, String module_to) {
+    final long ts = getTimestamp();
+    String err = tenants.updateModule(id, module_from, module_to);
+    if (err.isEmpty()) {
+      if (module_from != null) {
+        tenantStore.disableModule(id, module_from, ts, res -> {
+          enableTenantStorage(ctx, td, id, module_to);
+        });
+      } else {
+        enableTenantStorage(ctx, td, id, module_to);
+      }
+    } else if (err.contains("not found") && err.contains("tenant")) {
+      responseError(ctx, 404, err);
+    } else { // TODO - handle this right
+      responseError(ctx, 400, err);
+    } // Missing dependencies are bad requests...
   }
 
   /**
