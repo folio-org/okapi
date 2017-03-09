@@ -41,8 +41,6 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.env.EnvService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
-import org.folio.okapi.toys.Receiver;
-import org.folio.okapi.toys.Sender;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -359,15 +357,6 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/env").handler(envService::getAll);
       router.get("/_/env/:id").handler(envService::get);
     }
-    if (System.getProperty("toys.sender") != null) {
-      Sender sender = new Sender(vertx);
-      router.get("/_/sender/:message").handler(sender::send);
-    }
-
-    if (System.getProperty("toys.receiver") != null) {
-      Receiver receiver = new Receiver(vertx);
-    }
-
     router.route("/_*").handler(this::NotFound);
 
     // everything else gets proxified to modules
