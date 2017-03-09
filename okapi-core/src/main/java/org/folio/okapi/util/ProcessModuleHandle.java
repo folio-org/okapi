@@ -9,6 +9,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.ProcessBuilder.Redirect;
@@ -33,6 +34,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Ports ports;
   private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds.
   private static final long MILLISECONDS = 200;
+  private File logFile;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
@@ -90,6 +92,14 @@ public class ProcessModuleHandle implements ModuleHandle {
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
     if (port > 0) {
+      String fname = "okapi." + port + ".log";
+      try {
+        logFile = new File(fname);
+        logFile.delete();
+      } catch (SecurityException e) {
+        logger.warn("Could not delete " + fname + ". Exception: " + e);
+        logFile = null;
+      }
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
       NetClient c = vertx.createNetClient(options);
@@ -135,6 +145,11 @@ public class ProcessModuleHandle implements ModuleHandle {
           ProcessBuilder pb = createProcessBuilder(l);
           pb.redirectOutput(Redirect.INHERIT);
           pb.redirectInput(Redirect.INHERIT);
+          if (logFile != null) {
+            pb.redirectError(logFile);
+          } else {
+            pb.redirectError(Redirect.INHERIT);
+          }
           p = pb.start();
         } catch (IOException ex) {
           logger.warn("Deployment failed: " + ex.getMessage());
