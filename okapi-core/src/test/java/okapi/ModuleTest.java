@@ -161,14 +161,58 @@ public class ModuleTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"" + okapiTenant + " bibliotek\"" + LS
       + "}";
-    final String location = given()
+    final String loc = given()
       .header("Content-Type", "application/json")
       .body(docTenant)
       .post("/_/proxy/tenants")
       .then()
       .statusCode(201)
+      .log().ifError()
       .extract().header("Location");
-    return location;
+    return loc;
+  }
+
+  /**
+   * Helper to create a module.
+   *
+   * @param md A full ModuleDescriptor
+   * @return the URL to delete when done
+   */
+  public String createModule(String md) {
+    final String loc = given()
+      .header("Content-Type", "application/json")
+      .body(md)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().header("Location");
+    return loc;
+  }
+
+  /**
+   * Helper to deploy a module. Assumes that the ModuleDescriptor has a good
+   * LaunchDescriptor.
+   *
+   * @param modId Id of the module to be deployed.
+   * @return url to delete when done
+   */
+  public String deployModule(String modId) {
+    final String instId = modId.replace("-module", "") + "-inst";
+    final String docDeploy = "{" + LS
+      + "  \"instId\" : \"" + instId + "\"," + LS
+      + "  \"srvcId\" : \"" + modId + "\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+    final String loc = given()
+      .header("Content-Type", "application/json")
+      .body(docDeploy)
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().header("Location");
+    return loc;
   }
 
   /**
@@ -397,6 +441,128 @@ public class ModuleTest {
     locationSampleDeployment = null;
 
     checkDbIsEmpty("testOneModule done", context);
+    async.complete();
+  }
+
+  /**
+   * Test system interfaces. Mostly about the system interfaces _tenant (on the
+   * module itself, to initialize stuff), and _tenantPermissions to pass its
+   * permissions to the permissions module.
+   *
+   * @param context
+   */
+  @Test
+  public void testSystemInterfaces(TestContext context) {
+    async = context.async();
+    checkDbIsEmpty("testSystemInterfaces starting", context);
+
+    // Set up a tenant to test with
+    final String locTenant = createTenant();
+
+    // Set up an auth module
+    // It has the _tenantPermissions interface that will get called when
+    // sample gets enabled.
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2.3\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenantPermissions\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/_/tenantPermissions\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    // Create, deploy, and enable the auth module
+    final String locAuthModule = createModule(docAuthModule);
+    locationAuthDeployment = deployModule("auth");
+    final String locAuthEnable = enableModule("auth");
+
+    // Set up the test module
+    // It provides a _tenant interface, but no _tenantPermissions
+    // Enabling it will end up invoking the _tenantPermissions in auth
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"helloGreeting\"" + LS
+      + "  } ]," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+      + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
+      + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"routingEntries\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"path\" : \"/_/tenant\"," + LS
+      + "      \"level\" : \"10\"," + LS
+      + "      \"type\" : \"system\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"permissionSets\" : [ {" + LS
+      + "    \"permissionName\" : \"everything\"," + LS
+      + "    \"displayName\" : \"every possible permission\"," + LS
+      + "    \"description\" : \"All permissions combined\"," + LS
+      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    // Create, deploy, and enable the sample module
+    final String locSampleModule = createModule(docSampleModule);
+    locationSampleDeployment = deployModule("sample-module");
+    final String locSampleEnable = enableModule("sample-module");
+
+
+    // Clean up, so the next test starts with a clean slate (in reverse order)
+    logger.debug("testSystemInterfaces cleaning up");
+    given().delete(locSampleEnable).then().log().ifError().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
+    given().delete(locSampleModule).then().log().ifError().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locAuthEnable).then().log().ifError().statusCode(204);
+    given().delete(locationAuthDeployment).then().log().ifError().statusCode(204);
+    given().delete(locAuthModule).then().log().ifError().statusCode(204);
+    locationAuthDeployment = null;
+    given().delete(locTenant).then().log().ifError().statusCode(204);
+
+    checkDbIsEmpty("testSystemInterfaces done", context);
     async.complete();
   }
 

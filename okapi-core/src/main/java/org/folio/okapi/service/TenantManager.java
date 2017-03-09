@@ -302,6 +302,32 @@ public class TenantManager {
   }
 
   /**
+   * Find (the first) module that provides a given system interface. Module must
+   * be enabled for the tenant.
+   *
+   * @return ModuleDescriptor for the module, or null if none found.
+   *
+   * TODO - Take a version too, pass it to getSystemInterface, check there
+   */
+  public ModuleDescriptor findSystemInterface(String tenantId, String interfaceName) {
+    Tenant tenant = tenants.get(tenantId);
+    if (tenant == null) {
+      logger.warn("findSystemInterface " + interfaceName + " for tenant "
+        + tenantId + ": Tenant not found");
+      return null; // Should not happen
+    }
+    Set<String> modlist = this.moduleManager.list();
+    for (String m : modlist) {
+      ModuleDescriptor md = this.moduleManager.get(m);
+      if (md.getSystemInterface(interfaceName) != null
+        && tenant.isEnabled(m)) {
+        return md;
+      }
+    }
+    return null;
+  }
+
+  /**
    * List modules for a given tenant.
    *
    * @param id

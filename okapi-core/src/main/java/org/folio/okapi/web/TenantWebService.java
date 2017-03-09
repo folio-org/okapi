@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -232,7 +233,9 @@ public class TenantWebService {
   }
 
   /**
-   * Enable tenant, part 1: Call the tenant interface.
+   * Enable tenant, part 1: Call the tenant interface. This is done first, as it
+   * is the most likely to fail. The tenant interface service should be
+   * idempotent, so in case of failures, we can call it again.
    */
   private void enableTenantInt(RoutingContext ctx, String module_from) {
     try {
@@ -243,7 +246,7 @@ public class TenantWebService {
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
         logger.debug("enableModule: " + module_to + " has no support for tenant init");
-        enableTenantManager(ctx, td, id, module_from, module_to);
+        enablePermissions(ctx, td, id, module_from, module_to);
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
@@ -282,7 +285,7 @@ public class TenantWebService {
                           + " on " + module_to + " failed with "
                           + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  enableTenantManager(ctx, td, id, module_from, module_to);
+                  enablePermissions(ctx, td, id, module_from, module_to);
                   logger.debug("enableModule: Init request to " + module_to + " succeeded");
                 }
               });
@@ -293,6 +296,45 @@ public class TenantWebService {
     } catch (DecodeException ex) {
       responseError(ctx, 400, ex);
     }
+  }
+
+  /**
+   * Enable tenant, part 2: Pass the module permission(set)s to perms.
+   */
+  private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
+    String id, String module_from, String module_to) {
+    ModuleDescriptor permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
+    if (permsModule == null) {
+      logger.debug("enablePermissions: No perms interface found");
+      enableTenantManager(ctx, td, id, module_from, module_to);
+    } else {
+      logger.debug("enablePermissions: Perms interface found:" + permsModule.getNameOrId());
+      enableTenantManager(ctx, td, id, module_from, module_to);
+
+    }
+  }
+
+  /**
+   * Enable tenant, part 2: enable in the tenant manager. Also, disable the old
+   * one in storage.
+   */
+  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
+    String id, String module_from, String module_to) {
+    final long ts = getTimestamp();
+    String err = tenants.updateModule(id, module_from, module_to);
+    if (err.isEmpty()) {
+      if (module_from != null) {
+        tenantStore.disableModule(id, module_from, ts, res -> {
+          enableTenantStorage(ctx, td, id, module_to);
+        });
+      } else {
+        enableTenantStorage(ctx, td, id, module_to);
+      }
+    } else if (err.contains("not found") && err.contains("tenant")) {
+      responseError(ctx, 404, err);
+    } else { // TODO - handle this right
+      responseError(ctx, 400, err);
+    } // Missing dependencies are bad requests...
   }
 
   /**
@@ -311,28 +353,6 @@ public class TenantWebService {
         responseError(ctx, res.getType(), res.cause());
       }
     });
-  }
-
-  /**
-   * Enable tenant, part 2: enable in the tenant manager. Also, disable the old
-   * one in storage.
-   */
-  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_from, String module_to) {
-    final long ts = getTimestamp();
-    String err = tenants.updateModule(id, module_from, module_to);
-    if (err.isEmpty()) {
-      if (module_from != null) {
-        tenantStore.disableModule(id, module_from, ts, res -> {
-          enableTenantStorage(ctx, td, id, module_to);
-        });
-      } else {
-        enableTenantStorage(ctx, td, id, module_to);
-      }
-    } else if (err.contains("not found") && err.contains("tenant")) {
-      responseError(ctx, 404, err);
-    } else { // TODO - handle this right
-      responseError(ctx, 400, err);
-    } // Missing dependencies are bad requests...
   }
 
   /**

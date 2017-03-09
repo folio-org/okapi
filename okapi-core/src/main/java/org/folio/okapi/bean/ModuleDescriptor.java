@@ -3,6 +3,7 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -166,6 +167,28 @@ public class ModuleDescriptor {
   }
 
   /**
+   * Get the given system interface, if the MD has one.
+   *
+   * @param interfaceId name of the interface we want
+   * @return
+   *
+   * TODO - Take a version too, check compatibility
+   */
+  @JsonIgnore
+  public ModuleInterface getSystemInterface(String interfaceId) {
+    ModuleInterface[] provlist = getProvides();
+    if (provlist != null) {
+      for (ModuleInterface prov : provlist) {
+      if ("system".equals(prov.getInterfaceType())
+        && interfaceId.equals(prov.getId())) {
+        return prov;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Validate some features of a ModuleDescriptor.
    *
    * @return "" if ok, otherwise an informative error message.
@@ -182,6 +205,9 @@ public class ModuleDescriptor {
       for (RoutingEntry e : all) {
         // TODO - Validate RoutingEntry in its own module
         String t = e.getType();
+        if (t == null) {
+          t = "(null)";
+        }
         if (!(t.equals("request-only")
           || (t.equals("request-response"))
           || (t.equals("headers"))
