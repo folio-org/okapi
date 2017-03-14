@@ -138,7 +138,6 @@ public class MainVerticle extends AbstractVerticle {
     router.delete("/_/tenant").handler(this::my_tenant_handle);
 
     for (int i = 0; i < 1000; i++) {
-      out.println("STDOUT XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX " + i);
       err.println("STDERR XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX " + i);
     }
     HttpServerOptions so = new HttpServerOptions()
