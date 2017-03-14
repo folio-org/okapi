@@ -19,6 +19,11 @@ public class PermissionList {
   public PermissionList() {
   }
 
+  public PermissionList(String moduleId, Permission[] perms) {
+    this.moduleId = moduleId;
+    this.perms = perms.clone();
+  }
+
   public PermissionList(PermissionList other) {
     this.moduleId = other.moduleId;
     this.perms = other.perms.clone();

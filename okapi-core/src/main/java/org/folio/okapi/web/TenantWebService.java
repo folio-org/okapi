@@ -2,6 +2,7 @@ package org.folio.okapi.web;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -24,6 +25,9 @@ import java.util.Set;
 import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.PermissionList;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -34,6 +38,7 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
+import org.folio.okapi.service.ModuleManager;
 
 public class TenantWebService {
 
@@ -273,10 +278,10 @@ public class TenantWebService {
               headers.put("Content-Type", "application/json; charset=UTF-8");
               JsonObject jo = new JsonObject();
               jo.put("module_to", module_to);
-              OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
               if (module_from != null) {
                 jo.put("module_from", module_from);
               }
+              OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
               cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
                   logger.warn("Tenant init request for "
@@ -285,8 +290,8 @@ public class TenantWebService {
                           + " on " + module_to + " failed with "
                           + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  enablePermissions(ctx, td, id, module_from, module_to);
                   logger.debug("enableModule: Init request to " + module_to + " succeeded");
+                  enablePermissions(ctx, td, id, module_from, module_to);
                 }
               });
             }
@@ -305,17 +310,92 @@ public class TenantWebService {
     String id, String module_from, String module_to) {
     ModuleDescriptor permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
     if (permsModule == null) {
-      logger.debug("enablePermissions: No perms interface found");
       enableTenantManager(ctx, td, id, module_from, module_to);
     } else {
-      logger.debug("enablePermissions: Perms interface found:" + permsModule.getNameOrId());
-      enableTenantManager(ctx, td, id, module_from, module_to);
-
+      logger.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
+      ModuleManager modMan = tenants.getModuleManager();
+      if (modMan == null) { // Should never happen
+        responseError(ctx, 500, "enablePermissions: No moduleManager found. "
+          + "Can not make _tenantPermissions request");
+        return;
+      }
+      ModuleDescriptor md = modMan.get(module_to);
+      PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
+      //logger.debug("enablePermissions: created pl: " + Json.encode(pl));
+      discoveryManager.get(permsModule.getId(), gres -> {
+        if (gres.failed()) {
+          responseError(ctx, gres.getType(), gres.cause());
+        } else {
+          List<DeploymentDescriptor> instances = gres.result();
+          if (instances.isEmpty()) {
+            responseError(ctx, 400,
+              "No running instances for module " + permsModule.getId()
+              + ". Can not invoke _tenantPermissions");
+          } else { // TODO - Don't just take the first. Pick one by random.
+            String baseurl = instances.get(0).getUrl();
+            ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+            String findPermPath = "";
+            RoutingEntry[] routingEntries = permInt.getRoutingEntries();
+            if (routingEntries != null) {
+              for (RoutingEntry re : routingEntries) {
+                if (String.join("/", re.getMethods()).contains("POST")) {
+                  findPermPath = re.getPath();
+                }
+              }
+            }
+            if (findPermPath.isEmpty()) {
+              responseError(ctx, 400,
+                "Bad _tenantPermissions insterface in module " + permsModule.getNameOrId()
+                + ". No POST");
+              return;
+            }
+            final String permPath = findPermPath; // needs to be final
+            logger.debug("enablePermissions Url: " + baseurl + " and " + permPath);
+            Map<String, String> headers = new HashMap<>();
+            for (String hdr : ctx.request().headers().names()) {
+              if (hdr.matches("^X-.*$")) {
+                headers.put(hdr, ctx.request().headers().get(hdr));
+              }
+            }
+            if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+              headers.put(XOkapiHeaders.TENANT, id);
+              logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
+            }
+            headers.put("Accept", "*/*");
+            headers.put("Content-Type", "application/json; charset=UTF-8");
+            OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.request(HttpMethod.POST, permPath, Json.encodePrettily(pl), cres -> {
+              if (cres.failed()) {
+                logger.warn("_tenantPermissions request for "
+                  + module_to + " failed with " + cres.cause().getMessage());
+                responseError(ctx, 500, "Permissions post for " + module_to
+                  + " to " + permPath
+                  + " on " + permsModule.getNameOrId()
+                  + " failed with " + cres.cause().getMessage());
+                return;
+              } else { // All well
+                // Pass response headers - needed for unit test, if nothing else
+                MultiMap respHeaders = cli.getRespHeaders();
+                if (respHeaders != null) {
+                  for (String hdr : respHeaders.names()) {
+                    if (hdr.matches("^X-.*$")) {
+                      ctx.response().headers().add(hdr, respHeaders.get(hdr));
+                    }
+                  }
+                }
+                logger.debug("enablePermissions: request to " + permsModule.getNameOrId()
+                  + " succeeded");
+                enableTenantManager(ctx, td, id, module_from, module_to);
+              }
+            });
+          }
+        }
+      });
     }
   }
 
   /**
-   * Enable tenant, part 2: enable in the tenant manager. Also, disable the old
+   * Enable tenant, part 3: enable in the tenant manager. Also, disable the old
    * one in storage.
    */
   private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
@@ -338,7 +418,7 @@ public class TenantWebService {
   }
 
   /**
-   * Enable tenant, part 3: update storage.
+   * Enable tenant, part 4: update storage.
    */
   private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_to) {
     final long ts = getTimestamp();
