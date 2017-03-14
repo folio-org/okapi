@@ -117,15 +117,14 @@ public class ProcessModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
+    try {
+      logFile = File.createTempFile("okapi_", ".log");
+      logFile.deleteOnExit();
+    } catch (Exception e) {
+      logger.warn("Could not delete " + logFile.getPath() + ". Exception: " + e);
+      logFile = null;
+    }
     if (port > 0) {
-      String fname = "okapi." + port + ".log";
-      try {
-        logFile = new File(fname);
-        logFile.delete();
-      } catch (SecurityException e) {
-        logger.warn("Could not delete " + fname + ". Exception: " + e);
-        logFile = null;
-      }
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
       NetClient c = vertx.createNetClient(options);
