@@ -70,4 +70,18 @@ public class ProcessModuleHandleTest {
       async.complete();
     });
   }
+
+  @Test
+  public void test3(TestContext context) {
+    final Async async = context.async();
+    LaunchDescriptor desc = new LaunchDescriptor();
+    desc.setExec("java -Dport=%p -jar unknown.jar");
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
+    ModuleHandle mh = pmh;
+
+    mh.start(res -> {
+      context.assertFalse(res.succeeded());
+      async.complete();
+    });
+  }
 }
