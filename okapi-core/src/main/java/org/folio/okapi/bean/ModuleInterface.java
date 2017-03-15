@@ -15,7 +15,7 @@ public class ModuleInterface {
   private String version;
   private String interfaceType; // enum "proxy" (default), or "system"
   private RoutingEntry[] routingEntries;
-
+  private RoutingEntry[] handlers;
 
   public ModuleInterface() {
   }
@@ -191,4 +191,11 @@ public class ModuleInterface {
     this.routingEntries = routingEntries;
   }
 
+  public RoutingEntry[] getHandlers() {
+    return handlers;
+  }
+
+  public void setHandlers(RoutingEntry[] handlers) {
+    this.handlers = handlers;
+  }
 }

@@ -11,7 +11,13 @@
           "type": "string"
         }
       },
+      "pathPattern": {
+        "type": "string"
+      },
       "path": {
+        "type": "string"
+      },
+      "phase": {
         "type": "string"
       },
       "level": {

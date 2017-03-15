@@ -16,11 +16,12 @@ public class RoutingEntry {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String[] methods;
+  private String pathPattern;
   private String path;
+  private String phase;
   private String level;
   private String type;
   private String redirectPath; // only for type='redirect'
-
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
@@ -89,4 +90,19 @@ public class RoutingEntry {
     this.path = path;
   }
 
+  public String getPathPattern() {
+    return pathPattern;
+  }
+
+  public void setPathPattern(String pathPattern) {
+    this.pathPattern = pathPattern;
+  }
+
+  public String getPhase() {
+    return phase;
+  }
+
+  public void setPhase(String phase) {
+    this.phase = phase;
+  }
 }
