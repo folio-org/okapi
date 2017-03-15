@@ -238,6 +238,25 @@ public class TenantWebService {
   }
 
   /**
+   * Helper to make request headers for the system requests we make.
+   */
+  private Map<String, String> reqHeaders(RoutingContext ctx, String tenantId) {
+    Map<String, String> headers = new HashMap<>();
+    for (String hdr : ctx.request().headers().names()) {
+      if (hdr.matches("^X-.*$")) {
+        headers.put(hdr, ctx.request().headers().get(hdr));
+      }
+    }
+    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+      headers.put(XOkapiHeaders.TENANT, tenantId);
+      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    }
+    headers.put("Accept", "*/*");
+    headers.put("Content-Type", "application/json; charset=UTF-8");
+    return headers;
+  }
+
+  /**
    * Enable tenant, part 1: Call the tenant interface. This is done first, as it
    * is the most likely to fail. The tenant interface service should be
    * idempotent, so in case of failures, we can call it again.
@@ -264,18 +283,7 @@ public class TenantWebService {
             } else { // TODO - Don't just take the first. Pick one by random.
               String baseurl = instances.get(0).getUrl();
               logger.debug("enableModule Url: " + baseurl + " and " + tenInt);
-              Map<String, String> headers = new HashMap<>();
-              for (String hdr : ctx.request().headers().names()) {
-                if (hdr.matches("^X-.*$")) {
-                  headers.put(hdr, ctx.request().headers().get(hdr));
-                }
-              }
-              if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-                headers.put(XOkapiHeaders.TENANT, id);
-                logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
-              }
-              headers.put("Accept", "*/*");
-              headers.put("Content-Type", "application/json; charset=UTF-8");
+              Map<String, String> headers = reqHeaders(ctx, id);
               JsonObject jo = new JsonObject();
               jo.put("module_to", module_to);
               if (module_from != null) {
@@ -321,7 +329,6 @@ public class TenantWebService {
       }
       ModuleDescriptor md = modMan.get(module_to);
       PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
-      //logger.debug("enablePermissions: created pl: " + Json.encode(pl));
       discoveryManager.get(permsModule.getId(), gres -> {
         if (gres.failed()) {
           responseError(ctx, gres.getType(), gres.cause());
@@ -351,18 +358,7 @@ public class TenantWebService {
             }
             final String permPath = findPermPath; // needs to be final
             logger.debug("enablePermissions Url: " + baseurl + " and " + permPath);
-            Map<String, String> headers = new HashMap<>();
-            for (String hdr : ctx.request().headers().names()) {
-              if (hdr.matches("^X-.*$")) {
-                headers.put(hdr, ctx.request().headers().get(hdr));
-              }
-            }
-            if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-              headers.put(XOkapiHeaders.TENANT, id);
-              logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
-            }
-            headers.put("Accept", "*/*");
-            headers.put("Content-Type", "application/json; charset=UTF-8");
+            Map<String, String> headers = reqHeaders(ctx, id);
             OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
             cli.request(HttpMethod.POST, permPath, Json.encodePrettily(pl), cres -> {
               if (cres.failed()) {
@@ -384,7 +380,7 @@ public class TenantWebService {
                   }
                 }
                 logger.debug("enablePermissions: request to " + permsModule.getNameOrId()
-                  + " succeeded");
+                  + " succeeded for module " + module_to + " and tenant " + id);
                 enableTenantManager(ctx, td, id, module_from, module_to);
               }
             });

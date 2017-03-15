@@ -544,7 +544,8 @@ public class ModuleTest {
     final String docEnable = "{" + LS
       + "  \"id\" : \"sample-module\"" + LS
       + "}";
-    final String expPerms = "{ \"moduleId\" : \"sample-module\", "
+    final String expPerms = "{ "
+      + "\"moduleId\" : \"sample-module\", "
       + "\"perms\" : [ { "
       + "\"permissionName\" : \"everything\", "
       + "\"displayName\" : \"every possible permission\", "
