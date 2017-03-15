@@ -110,19 +110,8 @@ public class ProxyService {
     addTraceHeaders(ctx, pc);
   }
 
-  // Match the path to the Re. Case-sensitive match
-  // TODO - Move this into RoutingEntry. Make the match path-segment prefix, not
-  // character prefix. See Okapi-253
   private boolean match(RoutingEntry e, HttpServerRequest req) {
-    if (req.uri().startsWith(e.getPath())) {
-      String[] methods = e.getMethods();
-      for (String method : methods) {
-        if (method.equals("*") || method.equals(req.method().name())) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return e.match(req.uri(), req.method().name());
   }
 
   /**
