@@ -1,6 +1,9 @@
 package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 
 /**
  * ModuleInterface describes an interface a module can provide, or depend on.
@@ -16,6 +19,7 @@ public class ModuleInterface {
   private String interfaceType; // enum "proxy" (default), or "system"
   private RoutingEntry[] routingEntries;
 
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public ModuleInterface() {
   }
@@ -189,6 +193,81 @@ public class ModuleInterface {
 
   public void setRoutingEntries(RoutingEntry[] routingEntries) {
     this.routingEntries = routingEntries;
+  }
+
+  /**
+   * Validate a moduleInterface.
+   *
+   * @param strict if false, will only log a warning on most errors
+   * @param section "provides" or "requires" - the rules differ
+   * @return "" if ok, or a simple error message
+   */
+  public String validate(boolean strict, String section) {
+    logger.debug("Validating ModuleInterface " + Json.encode(this));
+    String err;
+    err = validateGeneral();
+    if (!err.isEmpty()) {
+      logger.debug("Validating ModuleInterface failed in req: " + err);
+      return err;
+    }
+    if (section.equals("provides")) {
+      err = validateProvides(strict, section);
+      if (!err.isEmpty()) {
+        logger.debug("Validating ModuleInterface failed in prov: " + err);
+        return err;
+      }
+    }
+    if (section.equals("requires")) {
+      err = validateRequires(strict, section);
+      if (!err.isEmpty()) {
+        logger.debug("Validating ModuleInterface failed in prov: " + err);
+        if (strict) {
+          return err;
+        }
+        logger.warn(err);
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Validate those things that just have to be right.
+   * @return
+   */
+  private String validateGeneral() {
+    String it = getInterfaceType();
+    if (it != null && !it.equals("proxy") && !it.equals("system")) {
+      return "Bad interface type '" + it + "'";
+    }
+    if (!validateVersion(version)) {
+      return "Bad interface version number '" + version + "'";
+    }
+    return "";
+  }
+
+  /**
+   * Validate those things that apply to the "provides" section.
+   */
+  private String validateProvides(boolean strict, String section) {
+    if (routingEntries != null) {
+      for (RoutingEntry re : routingEntries) {
+        String err = re.validate(strict);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    return "";
+  }
+
+  /**
+   * Validate those things that apply to the "requires" section.
+   */
+  private String validateRequires(boolean strict, String section) {
+    if (routingEntries != null && routingEntries.length > 0) {
+      return "No RoutingEntries allowed in 'provides' section";
+    }
+    return "";
   }
 
 }

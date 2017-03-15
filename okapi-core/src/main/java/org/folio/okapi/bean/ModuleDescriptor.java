@@ -200,33 +200,32 @@ public class ModuleDescriptor {
     if (!getId().matches("^[a-z0-9._-]+$")) {
       return "Invalid id";
     }
-    List<RoutingEntry> all = getAllRoutingEntries("", true);
-    if (all != null) {
-      for (RoutingEntry e : all) {
-        // TODO - Validate RoutingEntry in its own module
-        String t = e.getType();
-        if (t == null) {
-          t = "(null)";
-        }
-        if (!(t.equals("request-only")
-          || (t.equals("request-response"))
-          || (t.equals("headers"))
-          || (t.equals("redirect"))
-          || (t.equals("system")))) {
-          return "Bad routing entry type: '" + t + "'";
+    if (provides != null) {
+      for (ModuleInterface pr : provides) {
+        String err = pr.validate(false, "provides");
+        if (!err.isEmpty()) {
+          return err;
         }
       }
     }
-    if (getProvides() != null) {
-      for (ModuleInterface pr : getProvides()) {
-        String it = pr.getInterfaceType();
-        if (it != null && !it.equals("proxy") && !it.equals("system")) {
-          return "Bad interface type '" + it + "'";
+    if (requires != null) {
+      for (ModuleInterface pr : requires) {
+        String err = pr.validate(false, "requires");
+        if (!err.isEmpty()) {
+          return err;
         }
-        // TODO - Validate version numbers and id
       }
     }
-    // TODO - Validate requires section, no RoutingEntgries there,
+
+    if (routingEntries != null) { // This can be removed in 2.0
+      for (RoutingEntry re : routingEntries) {
+        String err = re.validate(false);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+
     if (getTenantInterface() != null) {
       logger.warn("Module uses DEPRECATED tenantInterface field. "
         + "Provide a 'tenant' system interface instead");
