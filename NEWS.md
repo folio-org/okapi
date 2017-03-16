@@ -1,3 +1,6 @@
+ * new property pathPattern which is an alternative to path in
+   routingEntries/handlers/filters.
+
 ## 1.0.0 2017-02-27
 
  * Postgres storage option. Mongodb still supported
