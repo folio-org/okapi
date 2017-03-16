@@ -127,4 +127,35 @@ public class RoutingEntryTest {
     assertFalse(caught);
 
   }
+
+  @Test
+  public void test2() {
+    RoutingEntry t = new RoutingEntry();
+    String methods[] = new String[1];
+    methods[0] = "GET";
+    t.setMethods(methods);
+    t.setPathPattern("/req");
+    t.setRedirectPath("/res");
+    assertTrue(t.match("/req", "GET"));
+    assertEquals("/res", t.getRedirectUri("/req"));
+    assertEquals("/res?abc", t.getRedirectUri("/req?abc"));
+    assertEquals("/res?abc#a", t.getRedirectUri("/req?abc#a"));
+    assertEquals("/res#a", t.getRedirectUri("/req#a"));
+
+    t.setPathPattern("/req/{id}");
+    t.setRedirectPath("/res/1234");
+    assertTrue(t.match("/req/2", "GET"));
+    assertEquals("/res/1234", t.getRedirectUri("/req/2"));
+
+    t.setPathPattern("/req/{id}/bongo");
+    t.setRedirectPath("/res/1234/a/b");
+    assertTrue(t.match("/req/q/bongo", "GET"));
+    assertEquals("/res/1234/a/b", t.getRedirectUri("/req/2/bongo"));
+
+    t.setPathPattern("/req/*/s");
+    t.setRedirectPath("/res/1234");
+    assertTrue(t.match("/req/a/s", "GET"));
+    assertEquals("/res/1234", t.getRedirectUri("/req/a/s"));
+
+  }
 }

@@ -112,7 +112,7 @@ public class ProxyService {
     // add the module to the pipeline in any case
     ModuleInstance mi = new ModuleInstance(modules.get(mod), re, uri);
     mods.add(mi);
-    if (re.getPath() != null && re.getType().matches("redirect")) { // resolve redirects
+    if (re.getType().matches("redirect")) { // resolve redirects
       boolean found = false;
       final String redirectPath = re.getRedirectPath();
       for (String trymod : modules.list()) {
@@ -120,7 +120,7 @@ public class ProxyService {
           List<RoutingEntry> rr = modules.get(trymod).getProxyRoutingEntries();
           for (RoutingEntry tryre : rr) {
             if (tryre.match(redirectPath, ctx.request().method().name())) {
-              final String newUri = redirectPath + uri.substring(re.getPath().length());
+              final String newUri = re.getRedirectUri(uri);
               found = true;
               logger.debug("resolveRedirects: "
                 + ctx.request().method() + " " + uri

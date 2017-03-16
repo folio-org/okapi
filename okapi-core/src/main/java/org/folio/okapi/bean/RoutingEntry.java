@@ -160,6 +160,30 @@ public class RoutingEntry {
     return false;
   }
 
+  public String getRedirectUri(String uri) {
+    if (pathRegex != null) {
+      int indx1 = uri.indexOf('?');
+      final int indx2 = uri.indexOf('#');
+      if (indx1 == -1) {
+        indx1 = indx2;
+      }
+      String p;
+      if (indx1 != -1) {
+        p = uri.substring(0, indx1);
+      } else {
+        p = uri;
+      }
+      p = p.replaceAll(pathRegex, this.redirectPath);
+      if (indx1 != -1) {
+        p = p.concat(uri.substring(indx1));
+      }
+      return p;
+    } else if (path != null) {
+      return redirectPath + uri.substring(path.length());
+    } else {
+      return null;
+    }
+  }
   /**
    * Validate the RoutingEntry.
    *
