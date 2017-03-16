@@ -347,13 +347,16 @@ public class TenantWebService {
               for (RoutingEntry re : routingEntries) {
                 if (String.join("/", re.getMethods()).contains("POST")) {
                   findPermPath = re.getPath();
+                  if (findPermPath == null || findPermPath.isEmpty()) {
+                    findPermPath = re.getPathPattern();
+                  }
                 }
               }
             }
-            if (findPermPath.isEmpty()) {
+            if (findPermPath == null || findPermPath.isEmpty()) {
               responseError(ctx, 400,
-                "Bad _tenantPermissions insterface in module " + permsModule.getNameOrId()
-                + ". No POST");
+                "Bad _tenantPermissions interface in module " + permsModule.getNameOrId()
+                + ". No path to POST to");
               return;
             }
             final String permPath = findPermPath; // needs to be final
