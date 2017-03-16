@@ -41,8 +41,6 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.env.EnvService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
-import org.folio.okapi.toys.Receiver;
-import org.folio.okapi.toys.Sender;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -88,7 +86,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.info("git: " + prop.getProperty("git.remote.origin.url")
                 + " " + prop.getProperty("git.commit.id"));
       } catch (Exception e) {
-        logger.warn(e.getMessage());
+        logger.warn(e);
       }
     }
     boolean enableProxy = false;
@@ -173,9 +171,7 @@ public class MainVerticle extends AbstractVerticle {
       TenantManager tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
-      if (discoveryManager != null && moduleManager != null) {
-        discoveryManager.setModuleManager(moduleManager);
-      }
+      discoveryManager.setModuleManager(moduleManager);
       storage = new Storage(vertx, storageType, initMode, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
@@ -361,15 +357,6 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/env").handler(envService::getAll);
       router.get("/_/env/:id").handler(envService::get);
     }
-    if (System.getProperty("toys.sender") != null) {
-      Sender sender = new Sender(vertx);
-      router.get("/_/sender/:message").handler(sender::send);
-    }
-
-    if (System.getProperty("toys.receiver") != null) {
-      Receiver receiver = new Receiver(vertx);
-    }
-
     router.route("/_*").handler(this::NotFound);
 
     // everything else gets proxified to modules
