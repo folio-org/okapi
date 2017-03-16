@@ -1,11 +1,13 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -35,6 +37,7 @@ public class OkapiClient {
   // TODO Return type: Need a more complex container class with room for
   //   response headers, the whole response, and so on.
   // TODO Use this in the discovery-deployment communications
+  private MultiMap respHeaders;
 
   /**
    * Constructor from a vert.x ctx.
@@ -66,12 +69,14 @@ public class OkapiClient {
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
+    respHeaders = null;
   }
 
   private void init(Vertx vertx) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     this.headers = new HashMap<>();
+    respHeaders = null;
   }
 
   /**
@@ -86,16 +91,18 @@ public class OkapiClient {
   public void request( HttpMethod method, String path, String data,
         Handler<ExtendedAsyncResult<String>> fut) {
     String url = this.okapiUrl + path;
+    respHeaders = null;
     logger.debug("OkapiClient: " + method.toString() + " request to " + url);
     HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
       final Buffer buf = Buffer.buffer();
+      respHeaders = postres.headers();
       postres.handler(b -> {
         logger.debug("OkapiClient Buffering response " + b.toString());
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
         String reply = buf.toString();
-        if (postres.statusCode() >= 200 && postres.statusCode() <= 299 ) {
+        if (postres.statusCode() >= 200 && postres.statusCode() <= 299) {
           fut.handle(new Success<>(reply));
         } else {
           if (postres.statusCode() == 404) {
@@ -142,8 +149,17 @@ public class OkapiClient {
     return okapiUrl;
   }
 
-  /** Get the Okapi authentication token.
-   * From the X-Okapi-Token header.
+  /**
+   * Get the response headers. May be null
+   *
+   * @return
+   */
+  public MultiMap getRespHeaders() {
+    return respHeaders;
+  }
+
+  /**
+   * Get the Okapi authentication token.   * From the X-Okapi-Token header.
    *
    * @return the token, or null if not defined.
    */

@@ -2,6 +2,7 @@ package org.folio.okapi.web;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -25,6 +26,8 @@ import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.PermissionList;
+import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
@@ -35,6 +38,7 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
+import org.folio.okapi.service.ModuleManager;
 
 public class TenantWebService {
 
@@ -224,42 +228,40 @@ public class TenantWebService {
     }
   }
 
-  private void enable2(RoutingContext ctx, TenantModuleDescriptor td,
-          String id, String module_to) {
-    final long ts = getTimestamp();
-    tenantStore.enableModule(id, module_to, ts, res -> {
-      if (res.succeeded()) {
-        sendReloadSignal(id, ts);
-        final String uri = ctx.request().uri() + "/" + module_to;
-        responseJson(ctx, 201)
-                .putHeader("Location", uri)
-                .end(Json.encodePrettily(td));
-      } else {
-        responseError(ctx, res.getType(), res.cause());
-      }
-    });
+  public void enableModule(RoutingContext ctx) {
+    enableTenantInt(ctx, null);
   }
 
-  private void enable1(RoutingContext ctx, TenantModuleDescriptor td,
-          String id, String module_from, String module_to) {
-    final long ts = getTimestamp();
-    String err = tenants.updateModule(id, module_from, module_to);
-    if (err.isEmpty()) {
-      if (module_from != null) {
-        tenantStore.disableModule(id, module_from, ts, res -> {
-          enable2(ctx, td, id, module_to);
-        });
-      } else {
-        enable2(ctx, td, id, module_to);
-      }
-    } else if (err.contains("not found") && err.contains("tenant")) {
-      responseError(ctx, 404, err);
-    } else { // TODO - handle this right
-      responseError(ctx, 400, err);
-    } // Missing dependencies are bad requests...
+  public void updateModule(RoutingContext ctx) {
+    final String module_from = ctx.request().getParam("mod");
+    enableTenantInt(ctx, module_from);
   }
 
-  private void enable0(RoutingContext ctx, String module_from) {
+  /**
+   * Helper to make request headers for the system requests we make.
+   */
+  private Map<String, String> reqHeaders(RoutingContext ctx, String tenantId) {
+    Map<String, String> headers = new HashMap<>();
+    for (String hdr : ctx.request().headers().names()) {
+      if (hdr.matches("^X-.*$")) {
+        headers.put(hdr, ctx.request().headers().get(hdr));
+      }
+    }
+    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+      headers.put(XOkapiHeaders.TENANT, tenantId);
+      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    }
+    headers.put("Accept", "*/*");
+    headers.put("Content-Type", "application/json; charset=UTF-8");
+    return headers;
+  }
+
+  /**
+   * Enable tenant, part 1: Call the tenant interface. This is done first, as it
+   * is the most likely to fail. The tenant interface service should be
+   * idempotent, so in case of failures, we can call it again.
+   */
+  private void enableTenantInt(RoutingContext ctx, String module_from) {
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
@@ -268,7 +270,7 @@ public class TenantWebService {
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
         logger.debug("enableModule: " + module_to + " has no support for tenant init");
-        enable1(ctx, td, id, module_from, module_to);
+        enablePermissions(ctx, td, id, module_from, module_to);
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
@@ -281,24 +283,13 @@ public class TenantWebService {
             } else { // TODO - Don't just take the first. Pick one by random.
               String baseurl = instances.get(0).getUrl();
               logger.debug("enableModule Url: " + baseurl + " and " + tenInt);
-              Map<String, String> headers = new HashMap<>();
-              for (String hdr : ctx.request().headers().names()) {
-                if (hdr.matches("^X-.*$")) {
-                  headers.put(hdr, ctx.request().headers().get(hdr));
-                }
-              }
-              if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-                headers.put(XOkapiHeaders.TENANT, id);
-                logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
-              }
-              headers.put("Accept", "*/*");
-              headers.put("Content-Type", "application/json; charset=UTF-8");
+              Map<String, String> headers = reqHeaders(ctx, id);
               JsonObject jo = new JsonObject();
               jo.put("module_to", module_to);
-              OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
               if (module_from != null) {
                 jo.put("module_from", module_from);
               }
+              OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
               cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
                   logger.warn("Tenant init request for "
@@ -307,8 +298,8 @@ public class TenantWebService {
                           + " on " + module_to + " failed with "
                           + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  enable1(ctx, td, id, module_from, module_to);
                   logger.debug("enableModule: Init request to " + module_to + " succeeded");
+                  enablePermissions(ctx, td, id, module_from, module_to);
                 }
               });
             }
@@ -320,13 +311,124 @@ public class TenantWebService {
     }
   }
 
-  public void enableModule(RoutingContext ctx) {
-    enable0(ctx, null);
+  /**
+   * Enable tenant, part 2: Pass the module permission(set)s to perms.
+   */
+  private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
+    String id, String module_from, String module_to) {
+    ModuleDescriptor permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
+    if (permsModule == null) {
+      enableTenantManager(ctx, td, id, module_from, module_to);
+    } else {
+      logger.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
+      ModuleManager modMan = tenants.getModuleManager();
+      if (modMan == null) { // Should never happen
+        responseError(ctx, 500, "enablePermissions: No moduleManager found. "
+          + "Can not make _tenantPermissions request");
+        return;
+      }
+      ModuleDescriptor md = modMan.get(module_to);
+      PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
+      discoveryManager.get(permsModule.getId(), gres -> {
+        if (gres.failed()) {
+          responseError(ctx, gres.getType(), gres.cause());
+        } else {
+          List<DeploymentDescriptor> instances = gres.result();
+          if (instances.isEmpty()) {
+            responseError(ctx, 400,
+              "No running instances for module " + permsModule.getId()
+              + ". Can not invoke _tenantPermissions");
+          } else { // TODO - Don't just take the first. Pick one by random.
+            String baseurl = instances.get(0).getUrl();
+            ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+            String findPermPath = "";
+            RoutingEntry[] routingEntries = permInt.getRoutingEntries();
+            if (routingEntries != null) {
+              for (RoutingEntry re : routingEntries) {
+                if (String.join("/", re.getMethods()).contains("POST")) {
+                  findPermPath = re.getPath();
+                }
+              }
+            }
+            if (findPermPath.isEmpty()) {
+              responseError(ctx, 400,
+                "Bad _tenantPermissions insterface in module " + permsModule.getNameOrId()
+                + ". No POST");
+              return;
+            }
+            final String permPath = findPermPath; // needs to be final
+            logger.debug("enablePermissions Url: " + baseurl + " and " + permPath);
+            Map<String, String> headers = reqHeaders(ctx, id);
+            OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.request(HttpMethod.POST, permPath, Json.encodePrettily(pl), cres -> {
+              if (cres.failed()) {
+                logger.warn("_tenantPermissions request for "
+                  + module_to + " failed with " + cres.cause().getMessage());
+                responseError(ctx, 500, "Permissions post for " + module_to
+                  + " to " + permPath
+                  + " on " + permsModule.getNameOrId()
+                  + " failed with " + cres.cause().getMessage());
+                return;
+              } else { // All well
+                // Pass response headers - needed for unit test, if nothing else
+                MultiMap respHeaders = cli.getRespHeaders();
+                if (respHeaders != null) {
+                  for (String hdr : respHeaders.names()) {
+                    if (hdr.matches("^X-.*$")) {
+                      ctx.response().headers().add(hdr, respHeaders.get(hdr));
+                    }
+                  }
+                }
+                logger.debug("enablePermissions: request to " + permsModule.getNameOrId()
+                  + " succeeded for module " + module_to + " and tenant " + id);
+                enableTenantManager(ctx, td, id, module_from, module_to);
+              }
+            });
+          }
+        }
+      });
+    }
   }
 
-  public void updateModule(RoutingContext ctx) {
-    final String module_from = ctx.request().getParam("mod");
-    enable0(ctx, module_from);
+  /**
+   * Enable tenant, part 3: enable in the tenant manager. Also, disable the old
+   * one in storage.
+   */
+  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
+    String id, String module_from, String module_to) {
+    final long ts = getTimestamp();
+    String err = tenants.updateModule(id, module_from, module_to);
+    if (err.isEmpty()) {
+      if (module_from != null) {
+        tenantStore.disableModule(id, module_from, ts, res -> {
+          enableTenantStorage(ctx, td, id, module_to);
+        });
+      } else {
+        enableTenantStorage(ctx, td, id, module_to);
+      }
+    } else if (err.contains("not found") && err.contains("tenant")) {
+      responseError(ctx, 404, err);
+    } else { // TODO - handle this right
+      responseError(ctx, 400, err);
+    } // Missing dependencies are bad requests...
+  }
+
+  /**
+   * Enable tenant, part 4: update storage.
+   */
+  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_to) {
+    final long ts = getTimestamp();
+    tenantStore.enableModule(id, module_to, ts, res -> {
+      if (res.succeeded()) {
+        sendReloadSignal(id, ts);
+        final String uri = ctx.request().uri() + "/" + module_to;
+        responseJson(ctx, 201)
+          .putHeader("Location", uri)
+          .end(Json.encodePrettily(td));
+      } else {
+        responseError(ctx, res.getType(), res.cause());
+      }
+    });
   }
 
   /**

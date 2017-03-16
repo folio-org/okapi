@@ -31,6 +31,13 @@ public class TenantManager {
     DropwizardHelper.registerGauge(metricKey, () -> tenants.size());
   }
 
+  /**
+   * Get the moduleManager.
+   */
+  public ModuleManager getModuleManager() {
+    return moduleManager;
+  }
+
   public boolean insert(Tenant t) {
     String id = t.getId();
     Timer.Context tim = DropwizardHelper.getTimerContext("tenants." + id + ".create");
@@ -279,6 +286,7 @@ public class TenantManager {
           if ("system".equals(pi.getInterfaceType())) { // looks like a new type
             RoutingEntry[] res = pi.getRoutingEntries();
             if (res != null) {
+              // TODO - Check the version of the interface. Must be 1.0
               for (RoutingEntry re : res) {
                 if (String.join("/", re.getMethods()).contains("POST")) {
                   return re.getPath();
@@ -297,6 +305,32 @@ public class TenantManager {
       }
     }
     return "";
+  }
+
+  /**
+   * Find (the first) module that provides a given system interface. Module must
+   * be enabled for the tenant.
+   *
+   * @return ModuleDescriptor for the module, or null if none found.
+   *
+   * TODO - Take a version too, pass it to getSystemInterface, check there
+   */
+  public ModuleDescriptor findSystemInterface(String tenantId, String interfaceName) {
+    Tenant tenant = tenants.get(tenantId);
+    if (tenant == null) {
+      logger.warn("findSystemInterface " + interfaceName + " for tenant "
+        + tenantId + ": Tenant not found");
+      return null; // Should not happen
+    }
+    Set<String> modlist = this.moduleManager.list();
+    for (String m : modlist) {
+      ModuleDescriptor md = this.moduleManager.get(m);
+      if (md.getSystemInterface(interfaceName) != null
+        && tenant.isEnabled(m)) {
+        return md;
+      }
+    }
+    return null;
   }
 
   /**

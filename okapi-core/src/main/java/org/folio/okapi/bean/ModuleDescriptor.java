@@ -3,6 +3,7 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -166,6 +167,28 @@ public class ModuleDescriptor {
   }
 
   /**
+   * Get the given system interface, if the MD has one.
+   *
+   * @param interfaceId name of the interface we want
+   * @return
+   *
+   * TODO - Take a version too, check compatibility
+   */
+  @JsonIgnore
+  public ModuleInterface getSystemInterface(String interfaceId) {
+    ModuleInterface[] provlist = getProvides();
+    if (provlist != null) {
+      for (ModuleInterface prov : provlist) {
+      if ("system".equals(prov.getInterfaceType())
+        && interfaceId.equals(prov.getId())) {
+        return prov;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
    * Validate some features of a ModuleDescriptor.
    *
    * @return "" if ok, otherwise an informative error message.
@@ -177,30 +200,32 @@ public class ModuleDescriptor {
     if (!getId().matches("^[a-z0-9._-]+$")) {
       return "Invalid id";
     }
-    List<RoutingEntry> all = getAllRoutingEntries("", true);
-    if (all != null) {
-      for (RoutingEntry e : all) {
-        // TODO - Validate RoutingEntry in its own module
-        String t = e.getType();
-        if (!("request-only".equals(t)
-                || "request-response".equals(t)
-                || "headers".equals(t)
-                || "redirect".equals(t)
-                || "system".equals(t))) {
-          return "Bad routing entry type: '" + t + "'";
+    if (provides != null) {
+      for (ModuleInterface pr : provides) {
+        String err = pr.validate(false, "provides");
+        if (!err.isEmpty()) {
+          return err;
         }
       }
     }
-    if (getProvides() != null) {
-      for (ModuleInterface pr : getProvides()) {
-        String it = pr.getInterfaceType();
-        if (it != null && !"proxy".equals(it) && !"system".equals(it)) {
-          return "Bad interface type '" + it + "'";
+    if (requires != null) {
+      for (ModuleInterface pr : requires) {
+        String err = pr.validate(false, "requires");
+        if (!err.isEmpty()) {
+          return err;
         }
-        // TODO - Validate version numbers and id
       }
     }
-    // TODO - Validate requires section, no RoutingEntgries there,
+
+    if (routingEntries != null) { // This can be removed in 2.0
+      for (RoutingEntry re : routingEntries) {
+        String err = re.validate(false);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+
     if (getTenantInterface() != null) {
       logger.warn("Module uses DEPRECATED tenantInterface field. "
         + "Provide a 'tenant' system interface instead");

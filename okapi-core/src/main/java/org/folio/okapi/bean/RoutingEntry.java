@@ -2,6 +2,7 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -158,4 +159,29 @@ public class RoutingEntry {
     }
     return false;
   }
+
+  /**
+   * Validate the RoutingEntry.
+   *
+   * @param strict - if false, will not report all error, just log a warning
+   * @return an error message (as a string), or "" if all is well.
+   */
+  public String validate(boolean strict) {
+    logger.debug("Validating RoutingEntry " + Json.encode(this));
+    String t = type;
+    if (t == null) {
+      t = "(null)";
+    }
+    if (!(t.equals("request-only")
+      || (t.equals("request-response"))
+      || (t.equals("headers"))
+      || (t.equals("redirect"))
+      || (t.equals("system")))) {
+      logger.debug("Validating RoutingEntry failed: Bad routing entry type");
+      return "Bad routing entry type: '" + t + "'";
+    }
+    // TODO - Validate permissions required and desired, and modulePerms
+    return ""; // no problems found
+  }
+
 }
