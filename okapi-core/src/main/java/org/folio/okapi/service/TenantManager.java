@@ -281,7 +281,12 @@ public class TenantManager {
             if (res != null) {
               for (RoutingEntry re : res) {
                 if (String.join("/", re.getMethods()).contains("POST")) {
-                  return re.getPath();
+                  if (re.getPath() != null) {
+                    return re.getPath();
+                  }
+                  if (re.getPathPattern() != null) {
+                    return re.getPathPattern();
+                  }
                 }
               }
             }
