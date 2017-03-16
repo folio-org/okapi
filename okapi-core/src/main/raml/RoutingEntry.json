@@ -11,6 +11,9 @@
           "type": "string"
         }
       },
+      "pathPattern": {
+        "type": "string"
+      },
       "path": {
         "type": "string"
       },

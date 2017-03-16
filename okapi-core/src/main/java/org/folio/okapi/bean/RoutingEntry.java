@@ -1,6 +1,8 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -16,6 +18,8 @@ public class RoutingEntry {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String[] methods;
+  private String pathPattern;
+
   private String path;
   private String level;
   private String type;
@@ -24,6 +28,9 @@ public class RoutingEntry {
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
+  private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
+  @JsonIgnore
+  private String pathRegex;
 
   public String[] getPermissionsRequired() {
     return permissionsRequired;
@@ -77,16 +84,78 @@ public class RoutingEntry {
     return methods;
   }
 
-  public String getPath() {
-    return path;
-  }
-
   public void setMethods(String[] methods) {
     this.methods = methods;
+  }
+
+  public String getPath() {
+    return path;
   }
 
   public void setPath(String path) {
     this.path = path;
   }
 
+  public String getPathPattern() {
+    return pathPattern;
+  }
+
+  public void setPathPattern(String pathPattern) throws DecodeException {
+    this.pathPattern = pathPattern;
+    StringBuilder b = new StringBuilder();
+    b.append("^");
+    for (int i = 0; i < pathPattern.length(); i++) {
+      char c = pathPattern.charAt(i);
+      if (c == '{') {
+        b.append("[^/?#]+");
+        i++;
+        for (; i < pathPattern.length(); i++) {
+          c = pathPattern.charAt(i);
+          if (c == '}') {
+            break;
+          } else if (INVALID_PATH_CHARS.indexOf(c) != -1 || c == '/') {
+            throw new DecodeException("Invalid character " + c + " inside {}-construct in pathPattern");
+          }
+        }
+        if (c != '}') {
+          throw new DecodeException("Missing {-character for {}-construct in pathPattern");
+        }
+      } else if (c == '*') {
+        b.append(".*");
+      } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
+        throw new DecodeException("Invalid character " + c + " for pathPattern");
+      } else {
+        b.append(c);
+      }
+    }
+    b.append("$");
+    this.pathRegex = b.toString();
+  }
+
+  public boolean match(String uri, String method) {
+    if (pathRegex != null) {
+      String p = uri;
+      int indx = p.indexOf('?');
+      if (indx > 0) {
+        p = p.substring(0, indx);
+      }
+      indx = p.indexOf('#');
+      if (indx > 0) {
+        p = p.substring(0, indx);
+      }
+      if (!p.matches(pathRegex)) {
+        return false;
+      }
+    } else if (path != null) {
+      if (!uri.startsWith(path)) {
+        return false;
+      }
+    }
+    for (String m : methods) {
+      if (method == null || m.equals("*") || m.equals(method)) {
+        return true;
+      }
+    }
+    return false;
+  }
 }
