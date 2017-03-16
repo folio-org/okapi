@@ -858,7 +858,7 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
       "version" : "2.2.3",
       "routingEntries" : [ {
         "methods" : [ "GET", "POST" ],
-        "path" : "/testb",
+        "pathPattern" : "/testb",
         "level" : "30",
         "type" : "request-response",
         "permissionsRequired" : [ "test-basic.needed" ],
@@ -870,7 +870,7 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
       "interfaceType" : "system",
       "routingEntries" : [ {
         "methods" : [ "POST", "DELETE" ],
-        "path" : "/_/tenant",
+        "pathPattern" : "/_/tenant",
         "type" : "request-response"
         } ]
     } ],
@@ -939,7 +939,7 @@ Content-Length: 977
     "version" : "2.2.3",
     "routingEntries" : [ {
       "methods" : [ "GET", "POST" ],
-      "path" : "/testb",
+      "pathPattern" : "/testb",
       "level" : "30",
       "type" : "request-response",
       "permissionsRequired" : [ "test-basic.needed" ],
@@ -951,7 +951,7 @@ Content-Length: 977
     "interfaceType" : "system",
     "routingEntries" : [ {
       "methods" : [ "POST", "DELETE" ],
-      "path" : "/_/tenant",
+      "pathPattern" : "/_/tenant",
       "type" : "request-response"
     } ]
   } ],
@@ -1193,7 +1193,7 @@ cat > /tmp/okapi-module-auth.json <<END
     "version" : "3.4.5",
     "routingEntries" : [ {
       "methods" : [ "POST" ],
-      "path" : "/login",
+      "pathPattern" : "/login",
       "level" : "20",
       "type" : "request-response"
     } ]
@@ -1204,7 +1204,7 @@ cat > /tmp/okapi-module-auth.json <<END
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
-    "path" : "/",
+    "pathPattern" : "/*",
     "level" : "10",
     "type" : "headers"
     } ],
@@ -1226,6 +1226,10 @@ a global list of RoutingEntries. This is because it is a filter, something
 that gets invoked for every request Okapi sees. It is also of type "headers",
 which means that Okapi is not passing the full request to it, only the headers.
 This saves a little bit time.
+
+The pathPattern for the filter uses the wildcard character (`*`) to match any path.
+A pathPattern may also include curly braces pairs to match a path component. For
+example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 
 As before, there is a launchDescriptor that tells how the module is to
 be deployed.
@@ -1255,14 +1259,14 @@ Content-Length: 601
     "version" : "3.4.5",
     "routingEntries" : [ {
       "methods" : [ "POST" ],
-      "path" : "/login",
+      "pathPattern" : "/login",
       "level" : "20",
       "type" : "request-response"
     } ]
   } ],
   "routingEntries" : [ {
     "methods" : [ "*" ],
-    "path" : "/",
+    "pathPattern" : "/*",
     "level" : "10",
     "type" : "headers"
   } ],
