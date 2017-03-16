@@ -94,18 +94,9 @@ public class ProxyService {
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
     Timer.Context timer, ProxyContext pc) {
     long timeDiff = timer.stop() / 1000;
-    String redir = mi.getRedirectFrom();
-    if (redir == null) {
-      redir = "";
-    }
-    if (redir.isEmpty()) {
-      redir = "- ";
-    } else {
-      redir = mi.getOriginalModule() + redir + "-> ";
-    }
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.traceHeaders.add(ctx.request().method() + " "
-      + redir + mi.getModuleDescriptor().getNameOrId() + " "
+      + mi.getModuleDescriptor().getNameOrId() + " "
       + url + " : " + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, pc);
   }
@@ -114,48 +105,32 @@ public class ProxyService {
     return e.match(req.uri(), req.method().name());
   }
 
-  /**
-   * Adds a ModuleInstance to the list, resolves redirects.
-   *
-   * @param ctx context
-   * @param mods list to add the moduleInstance(s) to
-   * @param mod id of the (original) module
-   * @param re (original) routingEntry
-   * @param loop String to detect redirect loops
-   * @param redirectFrom Path in the original routingEntry, for url rewrite
-   * later
-   * @return false if errors, sets ctx up.
-   */
   private boolean resolveRedirects(RoutingContext ctx, List<ModuleInstance> mods,
-          final String mod, RoutingEntry re, Tenant t,
-          String loop, final String redirectFrom, final String origMod) {
+    final String mod, RoutingEntry re, Tenant t,
+    final String loop, final String uri, final String origMod) {
 
     // add the module to the pipeline in any case
-    ModuleInstance mi = new ModuleInstance(modules.get(mod), re, redirectFrom, origMod);
+    ModuleInstance mi = new ModuleInstance(modules.get(mod), re, uri);
     mods.add(mi);
-    if (re.getType().matches("redirect")) { // resolve redirects
+    if (re.getPath() != null && re.getType().matches("redirect")) { // resolve redirects
       boolean found = false;
-      String rm = redirectFrom;
-      String om = origMod;
+      final String redirectPath = re.getRedirectPath();
       for (String trymod : modules.list()) {
         if (t.isEnabled(trymod)) {
           List<RoutingEntry> rr = modules.get(trymod).getProxyRoutingEntries();
           for (RoutingEntry tryre : rr) {
-            if (tryre.getPath().equals(re.getRedirectPath())) {
-              if (rm.isEmpty()) {
-                rm = re.getPath();
-                om = mod;
-              }
+            if (tryre.match(redirectPath, ctx.request().method().name())) {
+              final String newUri = redirectPath + uri.substring(re.getPath().length());
               found = true;
               logger.debug("resolveRedirects: "
-                + ctx.request().method() + " " + re.getPath()
-                + " => " + trymod + " " + tryre.getPath());
-              if (loop.contains(tryre.getPath() + " ")) {
-                responseError(ctx, 500, "Redirect loop: " + loop + " -> " + tryre.getPath());
+                + ctx.request().method() + " " + uri
+                + " => " + trymod + " " + newUri);
+              if (loop.contains(redirectPath + " ")) {
+                responseError(ctx, 500, "Redirect loop: " + loop + " -> " + redirectPath);
                 return false;
               }
               if (!resolveRedirects(ctx, mods, trymod, tryre, t,
-                      loop + " -> " + tryre.getPath(), rm, om)) {
+                loop + " -> " + redirectPath, newUri, origMod)) {
                 return false;
               }
             }
@@ -163,8 +138,7 @@ public class ProxyService {
         }
       }
       if (!found) {
-        String msg = "Redirecting " + re.getPath()
-          + " to " + re.getRedirectPath()
+        String msg = "Redirecting " + uri + " to " + redirectPath
           + " FAILED. No suitable module found";
         responseError(ctx, 500, msg);
       }
@@ -188,7 +162,7 @@ public class ProxyService {
         List<RoutingEntry> rr = modules.get(mod).getProxyRoutingEntries();
         for (RoutingEntry re : rr) {
           if (match(re, ctx.request())) {
-            if (!resolveRedirects(ctx, mods, mod, re, t, "", "", "")) {
+            if (!resolveRedirects(ctx, mods, mod, re, t, "", ctx.request().uri(), "")) {
               return null;
             }
           }
@@ -203,7 +177,7 @@ public class ProxyService {
     logger.debug("Checking filters for " + ctx.request().absoluteURI());
     boolean found = false;
     for (ModuleInstance inst : mods) {
-      if (!"/".equals(inst.getRoutingEntry().getPath())) {
+      if (!inst.getRoutingEntry().match("/", null)) {
         found = true;  // Dirty heuristic: Any path longer than '/' is a real handler
       } // Works for auth, but may fail later.
     }
@@ -413,16 +387,9 @@ public class ProxyService {
   }
 
   private String makeUrl(RoutingContext ctx, ModuleInstance mi) {
-    logger.debug("makeUrl " + mi.getUrl() + " " + ctx.request().uri()
-      + " from " + mi.getRedirectFrom());
-    String path = ctx.request().uri();
-    String from = mi.getRedirectFrom();
-    if (!from.isEmpty()) {
-      //path = path.replace(from, mi.getRoutingEntry().getPath());
-      path = path.replaceFirst(from, mi.getRoutingEntry().getPath());
-      logger.debug("makeUrl: path after replace: '" + path + "'");
-    }
-    return mi.getUrl() + path;
+    logger.debug("makeUrl " + mi.getUrl() + " orig=" + ctx.request().uri()
+      + "  to=" + mi.getUri());
+    return mi.getUrl() + mi.getUri();
   }
 
   public void proxy(RoutingContext ctx) {
@@ -693,7 +660,7 @@ public class ProxyService {
         logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
           + " type " + rtype
           + " level " + mi.getRoutingEntry().getLevel()
-          + " path " + mi.getRoutingEntry().getPath()
+          + " path " + mi.getUri()
           + " url " + mi.getUrl());
       }
       if ("request-only".equals(rtype)) {

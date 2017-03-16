@@ -143,15 +143,16 @@ public class RoutingEntry {
       if (indx > 0) {
         p = p.substring(0, indx);
       }
-      if (p.matches(pathRegex)) {
-        for (String m : methods) {
-          if (m.equals("*") || m.equals(method)) {
-            return true;
-          }
-        }
+      if (!p.matches(pathRegex)) {
+        return false;
       }
     } else if (path != null) {
-      if (uri.startsWith(path)) {
+      if (!uri.startsWith(path)) {
+        return false;
+      }
+    }
+    for (String m : methods) {
+      if (method == null || m.equals("*") || m.equals(method)) {
         return true;
       }
     }
