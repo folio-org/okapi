@@ -110,7 +110,7 @@ public class RoutingEntry {
       logger.debug("Validating RoutingEntry failed: Bad routing entry type");
       return "Bad routing entry type: '" + t + "'";
     }
-
+    // TODO - Validate permissions required and desired, and modulePerms
     return ""; // no problems found
   }
 }
