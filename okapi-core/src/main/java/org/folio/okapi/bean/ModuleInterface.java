@@ -18,8 +18,8 @@ public class ModuleInterface {
   private String version;
   private String interfaceType; // enum "proxy" (default), or "system"
   private RoutingEntry[] routingEntries;
-
   private final Logger logger = LoggerFactory.getLogger("okapi");
+  private RoutingEntry[] handlers;
 
   public ModuleInterface() {
   }
@@ -270,4 +270,11 @@ public class ModuleInterface {
     return "";
   }
 
+  public RoutingEntry[] getHandlers() {
+    return handlers;
+  }
+
+  public void setHandlers(RoutingEntry[] handlers) {
+    this.handlers = handlers;
+  }
 }

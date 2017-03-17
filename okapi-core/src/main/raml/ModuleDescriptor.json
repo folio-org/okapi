@@ -39,6 +39,12 @@
           "interfaceType": {
             "type": ["string", "null"]
           },
+          "handlers": {
+            "type": ["array", "null"],
+            "items": {
+              "$ref": "RoutingEntry.json"
+            }
+          },
           "routingEntries": {
             "type": ["array", "null"],
             "items": {
@@ -52,6 +58,12 @@
             }
           }
         }
+      }
+    },
+    "filters": {
+      "type": "array",
+      "items": {
+        "$ref": "RoutingEntry.json"
       }
     },
     "routingEntries": {

@@ -3,9 +3,6 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -29,13 +26,13 @@ public class ModuleDescriptor {
 
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
-  private RoutingEntry[] routingEntries;
+  private RoutingEntry[] routingEntries; //DEPRECATED
+  private RoutingEntry[] filters;
   private Permission[] permissionSets;
-  private String[] modulePermissions; /* DEPRECATED */
+  private String[] modulePermissions; // DEPRECATED
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
-
-  private String tenantInterface; /* DEPRECATED */
+  private String tenantInterface; // DEPRECATED
 
   public ModuleDescriptor() {
   }
@@ -51,6 +48,7 @@ public class ModuleDescriptor {
     this.tags = other.tags;
     this.env = other.env;
     this.routingEntries = other.routingEntries;
+    this.filters = other.filters;
     this.requires = other.requires;
     this.provides = other.provides;
     this.permissionSets = other.permissionSets;
@@ -274,4 +272,11 @@ public class ModuleDescriptor {
     this.permissionSets = permissionSets;
   }
 
+  public RoutingEntry[] getFilters() {
+    return filters;
+  }
+
+  public void setFilters(RoutingEntry[] filters) {
+    this.filters = filters;
+  }
 }

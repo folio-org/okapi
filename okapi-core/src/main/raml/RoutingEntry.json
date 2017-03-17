@@ -17,6 +17,9 @@
       "path": {
         "type": "string"
       },
+      "phase": {
+        "type": "string"
+      },
       "level": {
         "type": "string"
       },
