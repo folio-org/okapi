@@ -164,21 +164,29 @@ public class RoutingEntry {
    * Validate the RoutingEntry.
    *
    * @param strict - if false, will not report all error, just log a warning
+   * @param section "provides" or "toplevel". Soon also "filter" and "handler".
    * @return an error message (as a string), or "" if all is well.
    */
-  public String validate(boolean strict) {
+  public String validate(boolean strict, String section) {
     logger.debug("Validating RoutingEntry " + Json.encode(this));
     String t = type;
     if (t == null) {
       t = "(null)";
     }
-    if (!(t.equals("request-only")
-      || (t.equals("request-response"))
-      || (t.equals("headers"))
-      || (t.equals("redirect"))
-      || (t.equals("system")))) {
-      logger.debug("Validating RoutingEntry failed: Bad routing entry type");
-      return "Bad routing entry type: '" + t + "'";
+    if ("toplevel".equals(section) || "provides".equals(section)) {
+      if (!(t.equals("request-only")
+        || (t.equals("request-response"))
+        || (t.equals("headers"))
+        || (t.equals("redirect"))
+        || (t.equals("system")))) {
+        logger.debug("Validating RoutingEntry failed: Bad routing entry type");
+        return "Bad routing entry type: '" + t + "'";
+      }
+    }
+
+    if ((path == null || path.isEmpty())
+      && (pathPattern == null || pathPattern.isEmpty())) {
+      return "Bad routing entry, needs a pathPattern or at least a path";
     }
     // TODO - Validate permissions required and desired, and modulePerms
     return ""; // no problems found

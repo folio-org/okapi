@@ -251,7 +251,7 @@ public class ModuleInterface {
   private String validateProvides(boolean strict, String section) {
     if (routingEntries != null) {
       for (RoutingEntry re : routingEntries) {
-        String err = re.validate(strict);
+        String err = re.validate(strict, "provides");
         if (!err.isEmpty()) {
           return err;
         }

@@ -1617,6 +1617,8 @@ files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that define this interface.
 
+The tenant interface was introduced in version 1.0
+
 #### TenantPermissions Interface
 When a module gets enabled for a tenant, Okapi also attempts to locate a
 '_tenantPermissions' interface, and invoke that. Typically this would be
@@ -1637,6 +1639,7 @@ files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-header-mod
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that define this interface.
 
+The tenantPermissions interface was introduced in version 1.1
 
 
 ### Instrumentation
