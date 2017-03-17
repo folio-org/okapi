@@ -129,7 +129,7 @@ public class ModuleDescriptor {
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
-    return getAllRoutingEntries("proxy", true);
+    return getAllRoutingEntries("proxy");
   }
 
   /**
@@ -140,10 +140,15 @@ public class ModuleDescriptor {
    * @return a list of RoutingEntries
    */
   @JsonIgnore
-  public List<RoutingEntry> getAllRoutingEntries(String type, boolean globaltoo) {
+  private List<RoutingEntry> getAllRoutingEntries(String type) {
     List<RoutingEntry> all = new ArrayList<>();
-    RoutingEntry[] res = getRoutingEntries();
-    if (res != null && globaltoo) {
+    RoutingEntry[] res;
+    res = getRoutingEntries();
+    if (res != null) {
+      Collections.addAll(all, res);
+    }
+    res = getFilters();
+    if (res != null) {
       Collections.addAll(all, res);
     }
     ModuleInterface[] prov = getProvides();
@@ -155,6 +160,10 @@ public class ModuleDescriptor {
         }
         if (type.isEmpty() || type.equals(t)) {
           res = mi.getRoutingEntries();
+          if (res != null) {
+            Collections.addAll(all, res);
+          }
+          res = mi.getHandlers();
           if (res != null) {
             Collections.addAll(all, res);
           }
