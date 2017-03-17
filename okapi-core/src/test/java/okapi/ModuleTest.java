@@ -281,7 +281,7 @@ public class ModuleTest {
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS // PROBLEM
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
@@ -475,7 +475,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenantPermissions\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/_/tenantPermissions\"," + LS
       + "      \"level\" : \"20\"," + LS
@@ -504,7 +504,7 @@ public class ModuleTest {
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
@@ -517,7 +517,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS

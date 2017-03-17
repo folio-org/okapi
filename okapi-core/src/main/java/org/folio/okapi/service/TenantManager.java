@@ -4,7 +4,9 @@ import com.codahale.metrics.Timer;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -284,8 +286,8 @@ public class TenantManager {
         logger.debug("findTenantInterface: Looking at " + pi.getId());
         if ("_tenant".equals(pi.getId())) {
           if ("system".equals(pi.getInterfaceType())) { // looks like a new type
-            RoutingEntry[] res = pi.getRoutingEntries();
-            if (res != null) {
+            List<RoutingEntry> res = pi.getAllRoutingEntries();
+            if (!res.isEmpty()) {
               // TODO - Check the version of the interface. Must be 1.0
               for (RoutingEntry re : res) {
                 if (String.join("/", re.getMethods()).contains("POST")) {

@@ -1,9 +1,13 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * ModuleInterface describes an interface a module can provide, or depend on.
@@ -191,6 +195,21 @@ public class ModuleInterface {
     return routingEntries;
   }
 
+  @JsonIgnore
+  public List<RoutingEntry> getAllRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    RoutingEntry[] res;
+    res = getRoutingEntries();
+    if (res != null) {
+      Collections.addAll(all, res);
+    }
+    res = getHandlers();
+    if (res != null) {
+      Collections.addAll(all, res);
+    }
+    return all;
+  }
+
   public void setRoutingEntries(RoutingEntry[] routingEntries) {
     this.routingEntries = routingEntries;
   }
@@ -249,12 +268,11 @@ public class ModuleInterface {
    * Validate those things that apply to the "provides" section.
    */
   private String validateProvides(boolean strict, String section) {
-    if (routingEntries != null) {
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate(strict);
-        if (!err.isEmpty()) {
-          return err;
-        }
+    List<RoutingEntry> routingEntries = getAllRoutingEntries();
+    for (RoutingEntry re : routingEntries) {
+      String err = re.validate(strict);
+      if (!err.isEmpty()) {
+        return err;
       }
     }
     return "";
@@ -264,7 +282,8 @@ public class ModuleInterface {
    * Validate those things that apply to the "requires" section.
    */
   private String validateRequires(boolean strict, String section) {
-    if (routingEntries != null && routingEntries.length > 0) {
+    List<RoutingEntry> routingEntries = getAllRoutingEntries();
+    if (!routingEntries.isEmpty()) {
       return "No RoutingEntries allowed in 'provides' section";
     }
     return "";

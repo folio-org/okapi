@@ -342,8 +342,8 @@ public class TenantWebService {
             String baseurl = instances.get(0).getUrl();
             ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
             String findPermPath = "";
-            RoutingEntry[] routingEntries = permInt.getRoutingEntries();
-            if (routingEntries != null) {
+            List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
+            if (!routingEntries.isEmpty()) {
               for (RoutingEntry re : routingEntries) {
                 if (String.join("/", re.getMethods()).contains("POST")) {
                   findPermPath = re.getPath();
