@@ -1155,7 +1155,8 @@ Okapi does one more thing. It tries to locate a permission module (technically,
 any module that provides a `_tenantPermissions` interface), and makes a request
 to that module passing it all the permissionSets defined in the module descriptor.
 This is the mechanism by which the permissions go from the ModuleDescriptor into
-some permission module. For all the gory details, see the reference section.
+some permission module. For all the gory details, see the
+[reference](#system-interfaces) section.
 
 
 #### Calling the module
