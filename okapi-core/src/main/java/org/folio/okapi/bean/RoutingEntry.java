@@ -212,6 +212,13 @@ public class RoutingEntry {
       && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
     }
+
+    // TODO - Do not accept old paths in Handlers and Filters, once we get those
+    if (pathPattern == null || pathPattern.isEmpty()) {
+      logger.warn("RoutingEntry uses old type path " + path
+        + ". Use a pathPattern instead");
+    }
+
     // TODO - Validate permissions required and desired, and modulePerms
     return ""; // no problems found
   }
