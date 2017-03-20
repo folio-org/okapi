@@ -1,3 +1,5 @@
+## 1.1.0 2017-03-20
+
  * new property pathPattern which is an alternative to path in
    routingEntries/handlers/filters. OKAPI-274
  * routingEntries (handler) may be given for an interface OKAPI-269
