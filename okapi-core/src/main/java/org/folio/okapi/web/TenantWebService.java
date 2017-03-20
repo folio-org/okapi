@@ -298,7 +298,8 @@ public class TenantWebService {
                           + " on " + module_to + " failed with "
                           + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  logger.debug("enableModule: Init request to " + module_to + " succeeded");
+                  logger.debug("enableModule: Tenant init request to "
+                    + module_to + " succeeded");
                   enablePermissions(ctx, td, id, module_from, module_to);
                 }
               });

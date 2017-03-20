@@ -338,8 +338,25 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(400);
+
+    String docMissingPath = docSampleModule.replace("/testb", "");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docMissingPath)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    String docBadPathPat = docSampleModule.replace("path", "pathPattern")
+      .replace("/testb", "/test.*b(/?)");  // invalid characters in pattern
+    given()
+      .header("Content-Type", "application/json")
+      .body(docBadPathPat)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
     // TODO - Tests for bad interface versions
-    // TODO - Test for RoutingEntries: bad paths, methods, ids.
 
     // Actually create the module
     c = api.createRestAssured();
