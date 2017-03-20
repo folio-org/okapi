@@ -8,7 +8,7 @@
 
 if [ -f "${CONF_DIR}/okapi.conf" ] ; then
    . "${CONF_DIR}/okapi.conf"
-else 
+else
    echo "Cannot locate okapi.conf"
    exit 2
 fi
@@ -21,7 +21,7 @@ OKAPI_JAR="${LIB_DIR}/okapi-core-fat.jar"
 parse_okapi_conf()  {
 
    # storage backend options
-   if [ "$role" == "dev" ] || [ $role == "cluster" ]; then 
+   if [ "$role" == "dev" ] || [ $role == "cluster" ]; then
 
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
@@ -37,25 +37,25 @@ parse_okapi_conf()  {
    fi
 
    # if role is not set to 'dev', get cluster options
-   if [ "$role" != "dev" ]; then 
+   if [ "$role" != "dev" ]; then
 
-      if [ "$cluster_interface" ]; then 
+      if [ "$cluster_interface" ]; then
          CLUSTER_IP=`ip addr show dev $cluster_interface | grep ' inet ' \
                     | awk '{ print $2 }' | awk -F "/" '{ print $1 }'`
          CLUSTER_OPTIONS+=" -cluster-host $CLUSTER_IP"
       fi
-   
+
       if [ "$cluster_port" ]; then
-         CLUSTER_OPTIONS+=" -cluster-port $cluster_port" 
+         CLUSTER_OPTIONS+=" -cluster-port $cluster_port"
       fi
 
       if [ "$cluster_config" ]; then
-         CLUSTER_OPTIONS+=" $cluster_config" 
+         CLUSTER_OPTIONS+=" $cluster_config"
       fi
 
       if [  -n "$CLUSTER_OPTIONS" ]; then
-         OKAPI_OPTIONS+=" $CLUSTER_OPTIONS" 
-      fi 
+         OKAPI_OPTIONS+=" $CLUSTER_OPTIONS"
+      fi
 
    fi
 
@@ -67,13 +67,13 @@ parse_okapi_conf()  {
    fi
 
    # configure log file if specified
-   if [ "$log4j_config" ]; then 
-      OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=slf4j" 
+   if [ "$log4j_config" ]; then
+      OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=slf4j"
       OKAPI_JAVA_OPTS+=" -Dlog4j.configuration=file://${log4j_config}"
    fi
 
    # configure okapi host
-   if [ "$host" ]; then 
+   if [ "$host" ]; then
       OKAPI_JAVA_OPTS+=" -Dhost=${host}"
    fi
 
@@ -113,13 +113,13 @@ java_check() {
       echo "Could not find any executable java binary."
       echo "Install java in your PATH or set JAVA_HOME"
       exit 1
-   else 
+   else
       VERSION=$("$JAVA" -version 2>&1 | awk -F '"' '/version/ { print $2 }' \
               | awk -F '.' '{ print $2 }')
-      if [ "$VERSION" -lt "8" ];  then 
+      if [ "$VERSION" -lt "8" ];  then
          echo "Java version 8 or higher is required."
          exit 0
-      fi 
+      fi
    fi
 }  # end java_check
 
@@ -127,7 +127,7 @@ java_check() {
 init_db() {
    # Postgres instance check
    if command -v psql >/dev/null; then
-      psql postgresql://${postgres_user}:${postgres_password}@${postgres_host}:${postgres_port}/${postgres_database}?connect_timeout=5 > /dev/null 2>&1 << EOF 
+      psql postgresql://${postgres_user}:${postgres_password}@${postgres_host}:${postgres_port}/${postgres_database}?connect_timeout=5 > /dev/null 2>&1 << EOF
 \q
 EOF
       POSTGRES_RETVAL=$?
@@ -146,17 +146,17 @@ EOF
             exit 2
          else
             echo "OK"
-            exit  
+            exit
          fi
       fi
-    
+
    else
       echo "Postgres client not installed.  Unable to test connectivity to"
       echo "postgres instance. Please manually verify connectivity and init"
       echo "okapi database manually."
       exit 2
    fi
-}  # end init_db   
+}  # end init_db
 
 # Set 'java'
 java_check
@@ -166,14 +166,14 @@ if [ "$1" = "--initdb" ] && [ "$storage" = "postgres" ]; then
 fi
 
 
-# start Okapi as daemon 
+# start Okapi as daemon
 cd $DATA_DIR
 if [ -f "${PID_DIR}/okapi.pid" ]; then
    PID=`cat ${PID_DIR}/okapi.pid`
    if ps -p $PID > /dev/null; then
       echo "Okapi already running with [${PID}]"
       exit 0
-   else  
+   else
       echo "Pid file exists, but the Pid does not exist."
       echo "Remove ${PID_DIR}/okapi.pid and retry."
       exit 1
@@ -192,19 +192,19 @@ else
    echo ""
 
    echo -n "Starting Okapi..."
-   exec $JAVA $OKAPI_JAVA_OPTS -jar "$OKAPI_JAR" $role $OKAPI_OPTIONS <&- & 
-      
+   exec $JAVA $OKAPI_JAVA_OPTS -jar "$OKAPI_JAR" $role $OKAPI_OPTIONS <&- &
+
    RETVAL=$?
    PID=$!
    [ $RETVAL -eq 0 ] || exit $RETVAL
    sleep 3
-   if ! ps -p $PID > /dev/null; then 
+   if ! ps -p $PID > /dev/null; then
       exit 1
-   else 
+   else
       echo "$PID" > ${PID_DIR}/okapi.pid
       echo "OK [$PID]"
       exit 0
-   fi 
+   fi
 fi
 
 exit $?
