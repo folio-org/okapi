@@ -926,12 +926,10 @@ curl -w '\n' -X POST -D - \
     -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
-HTTP/1.1 100 Continue
-
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 991
+Content-Length: 977
 
 {
   "id" : "test-basic",
@@ -1085,6 +1083,7 @@ Content-Type: text/plain
 Content-Length: 14
 
 Missing Tenant
+
 ```
 
 Okapi is a multi-tenant system, so each request must be done on behalf of some
@@ -1156,8 +1155,7 @@ Okapi does one more thing. It tries to locate a permission module (technically,
 any module that provides a `_tenantPermissions` interface), and makes a request
 to that module passing it all the permissionSets defined in the module descriptor.
 This is the mechanism by which the permissions go from the ModuleDescriptor into
-some permission module. For all the gory details, see the
-[reference](#system-interfaces) section.
+some permission module. For all the gory details, see the reference section.
 
 
 #### Calling the module
@@ -1254,7 +1252,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 616
+Content-Length: 601
 
 {
   "id" : "test-auth",
@@ -1614,7 +1612,7 @@ got disabled at the same time, for example when a module is being upgraded. The
 module can use this information to upgrade or initialize its database, and do
 any kind of housekeeping it needs.
 
-For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` the
+For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` at
 files `ramls/tenant.raml` and `schemas/moduleInfo.schema`. The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.

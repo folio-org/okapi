@@ -1,19 +1,14 @@
-/*
- * Copyright (c) 2015-2017, Index Data
- * All rights reserved.
- * See the file LICENSE for details.
- */
 package org.folio.okapi.bean;
 
 /**
  * List of Permissions (and permission sets) belonging to a module. Used as a
- * parameter in the system request to initialize the permission module when a a
+ * parameter in the system request to initialize the permission module when a
  * module is being enabled for a tenant.
  *
  * @author heikki
  */
 public class PermissionList {
-  String moduleId; // The module that own these permissions.
+  String moduleId; // The module that owns these permissions.
   Permission[] perms;
 
   public PermissionList() {
