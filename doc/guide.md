@@ -926,10 +926,12 @@ curl -w '\n' -X POST -D - \
     -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
+HTTP/1.1 100 Continue
+
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 977
+Content-Length: 991
 
 {
   "id" : "test-basic",
@@ -1083,7 +1085,6 @@ Content-Type: text/plain
 Content-Length: 14
 
 Missing Tenant
-
 ```
 
 Okapi is a multi-tenant system, so each request must be done on behalf of some
@@ -1253,7 +1254,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 601
+Content-Length: 616
 
 {
   "id" : "test-auth",
