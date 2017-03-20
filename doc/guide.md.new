@@ -1612,7 +1612,7 @@ got disabled at the same time, for example when a module is being upgraded. The
 module can use this information to upgrade or initialize its database, and do
 any kind of housekeeping it needs.
 
-For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` the
+For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` at
 files `ramls/tenant.raml` and `schemas/moduleInfo.schema`. The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.
