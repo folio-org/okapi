@@ -1,5 +1,16 @@
+## 1.1.0 2017-03-20
+
  * new property pathPattern which is an alternative to path in
-   routingEntries/handlers/filters.
+   routingEntries/handlers/filters. OKAPI-274
+ * routingEntries (handler) may be given for an interface OKAPI-269
+   This is the preferred way of declaring handlers (that implement
+   an interface). Filters, on other other hand, do not implement
+   an interface and stays in the usual top-level (non-interface specific
+   place).
+ * Permission loading interface /_/tenantPermissions OKAPI-268
+ * Define permission sets in ModuleDescriptor OKAPI-267
+ * Cleaned up a few things issued by SonarQube OKAPI-279 OKAPI-280
+ * Fix Okapi may hang due to standard error being buffered OKAPI-282
 
 ## 1.0.0 2017-02-27
 

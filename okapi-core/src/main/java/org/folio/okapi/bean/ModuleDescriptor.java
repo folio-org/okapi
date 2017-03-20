@@ -226,7 +226,7 @@ public class ModuleDescriptor {
 
     if (routingEntries != null) { // This can be removed in 2.0
       for (RoutingEntry re : routingEntries) {
-        String err = re.validate(false);
+        String err = re.validate(false, "toplevel");
         if (!err.isEmpty()) {
           return err;
         }

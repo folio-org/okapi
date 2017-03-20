@@ -926,10 +926,12 @@ curl -w '\n' -X POST -D - \
     -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
+HTTP/1.1 100 Continue
+
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 977
+Content-Length: 991
 
 {
   "id" : "test-basic",
@@ -1083,7 +1085,6 @@ Content-Type: text/plain
 Content-Length: 14
 
 Missing Tenant
-
 ```
 
 Okapi is a multi-tenant system, so each request must be done on behalf of some
@@ -1150,6 +1151,14 @@ where Okapi is running. It should say something like:
 ```
 POST request to okapi-test-module tenant service for tenant testlib
 ```
+
+Okapi does one more thing. It tries to locate a permission module (technically,
+any module that provides a `_tenantPermissions` interface), and makes a request
+to that module passing it all the permissionSets defined in the module descriptor.
+This is the mechanism by which the permissions go from the ModuleDescriptor into
+some permission module. For all the gory details, see the
+[reference](#system-interfaces) section.
+
 
 #### Calling the module
 
@@ -1245,7 +1254,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 601
+Content-Length: 616
 
 {
   "id" : "test-auth",
@@ -1587,6 +1596,53 @@ vi /lib/systemd/system/docker.service
 systemctl daemon-reload
 systemctl restart docker
 ```
+
+### System Interfaces
+
+Modules can provide system interfaces, and Okapi can make requests to those in
+some well defined situations. By convention these interfaces have names that
+start with an underscore.
+
+At the moment we have two system interfaces defined, but in time we may get
+a few more.
+
+#### Tenant Interface
+If a module provides a system interface called `_tenant`, Okapi invokes that
+interface every time a module gets enabled for a tenant. The request contains
+information about the newly enabled module, and optionally of some module that
+got disabled at the same time, for example when a module is being upgraded. The
+module can use this information to upgrade or initialize its database, and do
+any kind of housekeeping it needs.
+
+For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` the
+files `ramls/tenant.raml` and `schemas/moduleInfo.schema`. The okapi-test-module
+has a very trivial implementation of this, and the moduleTest shows a module
+Descriptor that defines this interface.
+
+The tenant interface was introduced in version 1.0
+
+#### TenantPermissions Interface
+When a module gets enabled for a tenant, Okapi also attempts to locate a
+`_tenantPermissions` interface, and invoke that. Typically this would be
+provided by the permission module. It gets a structure that contains the
+module to be enabled, and all the permissionSets from the moduleDescriptor.
+The purpose of this is to load the permissions and permission sets into the
+permission module, so that they can be assigned to users, or used in other
+permission sets.
+
+The service should be idempotent, since it may get called again, if something
+went wrong with enabling the module. It should start by deleting all permissions
+and permission sets for the named module, and then insert those it received in
+the request. That way it will clean up permissions that may have been introduced
+in some older version of the module, and are no longer used.
+
+For the specifics, see under .../okapi/okapi-core/src/main/raml/raml-util,
+files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-header-module
+has a very trivial implementation of this, and the moduleTest shows a module
+Descriptor that define this interface.
+
+The tenantPermissions interface was introduced in version 1.1
+
 
 ### Instrumentation
 
