@@ -1154,7 +1154,7 @@ POST request to okapi-test-module tenant service for tenant testlib
 Okapi does one more thing. It tries to locate a permission module (technically,
 any module that provides a _tenantPermissions interface), and makes a request
 to that module passing it all the permissionSets defined in the module descriptor.
-This is the mechnism by which the permissions go from the ModuleDescriptor into
+This is the mechanism by which the permissions go from the ModuleDescriptor into
 some permission module. For all the gory details, see the reference section.
 
 
@@ -1597,7 +1597,7 @@ systemctl restart docker
 
 ### System Interfaces
 
-Modules can provide system interfaces, and Okapi can make request to those in
+Modules can provide system interfaces, and Okapi can make requests to those in
 some well defined situations. By convention these interfaces have names that
 start with an underscore.
 
@@ -1615,7 +1615,7 @@ any kind of housekeeping it needs.
 For the specifics, see under .../okapi/okapi-core/src/main/raml/raml-util,
 files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
-Descriptor that define this interface.
+Descriptor that defines this interface.
 
 The tenant interface was introduced in version 1.0
 
