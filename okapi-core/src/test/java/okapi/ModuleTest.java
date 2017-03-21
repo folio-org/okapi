@@ -2002,7 +2002,7 @@ public class ModuleTest {
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
       + "  \"id\" : \"header-module\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"20\"," + LS
