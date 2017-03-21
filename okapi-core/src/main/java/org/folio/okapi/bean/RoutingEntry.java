@@ -31,6 +31,8 @@ public class RoutingEntry {
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
   private String pathRegex;
+  @JsonIgnore
+  private String phaseLevel = "50";
 
   public String[] getPermissionsRequired() {
     return permissionsRequired;
@@ -78,6 +80,12 @@ public class RoutingEntry {
 
   public void setLevel(String level) {
     this.level = level;
+    this.phaseLevel = level;
+  }
+
+  @JsonIgnore
+  public String getPhaseLevel() {
+    return phaseLevel;
   }
 
   public String[] getMethods() {
@@ -227,6 +235,11 @@ public class RoutingEntry {
   }
 
   public void setPhase(String phase) {
+    if ("auth".equals(phase)) {
+      phaseLevel = "10";
+    } else {
+      throw new DecodeException("Invalid phase " + phase);
+    }
     this.phase = phase;
   }
 }

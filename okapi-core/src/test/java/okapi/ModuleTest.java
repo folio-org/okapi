@@ -700,7 +700,7 @@ public class ModuleTest {
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
-      + "    \"level\" : \"10\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  }, {"
