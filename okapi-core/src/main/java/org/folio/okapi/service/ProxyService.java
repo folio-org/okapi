@@ -32,6 +32,7 @@ import java.util.regex.Pattern;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
+import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
@@ -112,7 +113,7 @@ public class ProxyService {
     // add the module to the pipeline in any case
     ModuleInstance mi = new ModuleInstance(modules.get(mod), re, uri);
     mods.add(mi);
-    if (re.getType().matches("redirect")) { // resolve redirects
+    if (re.getProxyType() == ProxyType.REDIRECT) { // resolve redirects
       boolean found = false;
       final String redirectPath = re.getRedirectPath();
       for (String trymod : modules.list()) {
@@ -270,7 +271,7 @@ public class ProxyService {
       }
       String[] modp = re.getModulePermissions();
       if (modp != null) {
-        if ("redirect".equals(re.getType())) {
+        if (re.getProxyType() == ProxyType.REDIRECT) {
           extraperms.addAll(Arrays.asList(modp));
         } else {
           modperms.put(mod.getModuleDescriptor().getId(), modp);
@@ -281,7 +282,7 @@ public class ProxyService {
       modp = md.getModulePermissions();
       if (modp != null && modp.length > 0) {
         // TODO - The general modperms are DEPRECATED, use the ones in the re.
-        if ("redirect".equals(mod.getRoutingEntry().getType())) {
+        if (mod.getRoutingEntry().getProxyType() == ProxyType.REDIRECT) {
           extraperms.addAll(Arrays.asList(modp));
         } else {
           modperms.put(md.getId(), modp);
@@ -656,29 +657,29 @@ public class ProxyService {
       if (token != null && !token.isEmpty()) {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
-      String rtype = mi.getRoutingEntry().getType();
-      if (!"redirect".equals(rtype)) {
-        logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
-          + " type " + rtype
+      ProxyType pType = mi.getRoutingEntry().getProxyType();
+      if (pType != ProxyType.REDIRECT) {
+        logger.info("Invoking module " + mi.getModuleDescriptor().getNameOrId()
+          + " type " + pType
           + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getUri()
           + " url " + mi.getUrl());
       }
-      if ("request-only".equals(rtype)) {
+      if (pType == ProxyType.REQUEST_ONLY) {
         proxyRequestOnly(ctx, it, pc,
           content, bcontent, mi, timerContext);
-      } else if ("request-response".equals(rtype)) {
+      } else if (pType == ProxyType.REQUEST_RESPONSE) {
         proxyRequestResponse(ctx, it, pc,
           content, bcontent, mi, timerContext);
-      } else if ("headers".equals(rtype)) {
+      } else if (pType == ProxyType.HEADERS) {
         proxyHeaders(ctx, it, pc,
           content, bcontent, mi, timerContext);
-      } else if ("redirect".equals(rtype)) {
+      } else if (pType == ProxyType.REDIRECT) {
         proxyNull(ctx, it, pc,
           content, bcontent, mi, timerContext);
       } else {
         logger.warn("proxyR: Module " + mi.getModuleDescriptor().getNameOrId()
-                + " has bad request type: '" + rtype + "'");
+          + " has bad request type: '" + pType + "'");
         timerContext.close();
         responseText(ctx, 500).end(); // Should not happen
       }
