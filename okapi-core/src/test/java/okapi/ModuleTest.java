@@ -281,7 +281,7 @@ public class ModuleTest {
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
@@ -492,7 +492,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenantPermissions\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/_/tenantPermissions\"," + LS
       + "      \"level\" : \"20\"," + LS
@@ -521,7 +521,7 @@ public class ModuleTest {
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
@@ -534,7 +534,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
@@ -700,7 +700,7 @@ public class ModuleTest {
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
-      + "    \"level\" : \"10\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  }, {"
@@ -2002,7 +2002,7 @@ public class ModuleTest {
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
       + "  \"id\" : \"header-module\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"20\"," + LS

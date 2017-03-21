@@ -170,8 +170,9 @@ public class ProxyService {
       }
     }
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
-      -> a.getRoutingEntry().getLevel().compareTo(b.getRoutingEntry().getLevel());
+      -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
     mods.sort(cmp);
+
     // Check that our pipeline has a real module in it, not just filters,
     // so that we can return a proper 404 for requests that only hit auth
     logger.debug("Checking filters for " + ctx.request().absoluteURI());
@@ -659,7 +660,7 @@ public class ProxyService {
       if (!"redirect".equals(rtype)) {
         logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
           + " type " + rtype
-          + " level " + mi.getRoutingEntry().getLevel()
+          + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getUri()
           + " url " + mi.getUrl());
       }

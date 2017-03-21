@@ -1,9 +1,13 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * ModuleInterface describes an interface a module can provide, or depend on.
@@ -18,8 +22,8 @@ public class ModuleInterface {
   private String version;
   private String interfaceType; // enum "proxy" (default), or "system"
   private RoutingEntry[] routingEntries;
-
   private final Logger logger = LoggerFactory.getLogger("okapi");
+  private RoutingEntry[] handlers;
 
   public ModuleInterface() {
   }
@@ -191,6 +195,18 @@ public class ModuleInterface {
     return routingEntries;
   }
 
+  @JsonIgnore
+  public List<RoutingEntry> getAllRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    if (routingEntries != null) {
+      Collections.addAll(all, routingEntries);
+    }
+    if (handlers != null) {
+      Collections.addAll(all, handlers);
+    }
+    return all;
+  }
+
   public void setRoutingEntries(RoutingEntry[] routingEntries) {
     this.routingEntries = routingEntries;
   }
@@ -249,12 +265,11 @@ public class ModuleInterface {
    * Validate those things that apply to the "provides" section.
    */
   private String validateProvides(boolean strict, String section) {
-    if (routingEntries != null) {
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate(strict, "provides");
-        if (!err.isEmpty()) {
-          return err;
-        }
+    List<RoutingEntry> routingEntries = getAllRoutingEntries();
+    for (RoutingEntry re : routingEntries) {
+      String err = re.validate(strict, "provides");
+      if (!err.isEmpty()) {
+        return err;
       }
     }
     return "";
@@ -264,10 +279,18 @@ public class ModuleInterface {
    * Validate those things that apply to the "requires" section.
    */
   private String validateRequires(boolean strict, String section) {
-    if (routingEntries != null && routingEntries.length > 0) {
+    List<RoutingEntry> routingEntries = getAllRoutingEntries();
+    if (!routingEntries.isEmpty()) {
       return "No RoutingEntries allowed in 'provides' section";
     }
     return "";
   }
 
+  public RoutingEntry[] getHandlers() {
+    return handlers;
+  }
+
+  public void setHandlers(RoutingEntry[] handlers) {
+    this.handlers = handlers;
+  }
 }

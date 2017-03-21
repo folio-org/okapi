@@ -20,18 +20,19 @@ public class RoutingEntry {
 
   private String[] methods;
   private String pathPattern;
-
   private String path;
+  private String phase;
   private String level;
   private String type;
   private String redirectPath; // only for type='redirect'
-
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
   private String pathRegex;
+  @JsonIgnore
+  private String phaseLevel = "50";
 
   public String[] getPermissionsRequired() {
     return permissionsRequired;
@@ -79,6 +80,12 @@ public class RoutingEntry {
 
   public void setLevel(String level) {
     this.level = level;
+    this.phaseLevel = level;
+  }
+
+  @JsonIgnore
+  public String getPhaseLevel() {
+    return phaseLevel;
   }
 
   public String[] getMethods() {
@@ -223,4 +230,16 @@ public class RoutingEntry {
     return ""; // no problems found
   }
 
+  public String getPhase() {
+    return phase;
+  }
+
+  public void setPhase(String phase) {
+    if ("auth".equals(phase)) {
+      phaseLevel = "10";
+    } else {
+      throw new DecodeException("Invalid phase " + phase);
+    }
+    this.phase = phase;
+  }
 }
