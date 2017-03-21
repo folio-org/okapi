@@ -142,14 +142,11 @@ public class ModuleDescriptor {
   @JsonIgnore
   private List<RoutingEntry> getAllRoutingEntries(String type) {
     List<RoutingEntry> all = new ArrayList<>();
-    RoutingEntry[] res;
-    res = getRoutingEntries();
-    if (res != null) {
-      Collections.addAll(all, res);
+    if (routingEntries != null) {
+      Collections.addAll(all, routingEntries);
     }
-    res = getFilters();
-    if (res != null) {
-      Collections.addAll(all, res);
+    if (filters != null) {
+      Collections.addAll(all, filters);
     }
     ModuleInterface[] prov = getProvides();
     if (prov != null) {
@@ -159,14 +156,7 @@ public class ModuleDescriptor {
           t = "proxy";
         }
         if (type.isEmpty() || type.equals(t)) {
-          res = mi.getRoutingEntries();
-          if (res != null) {
-            Collections.addAll(all, res);
-          }
-          res = mi.getHandlers();
-          if (res != null) {
-            Collections.addAll(all, res);
-          }
+          all.addAll(mi.getAllRoutingEntries());
         }
       }
     }

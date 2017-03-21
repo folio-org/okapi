@@ -198,14 +198,11 @@ public class ModuleInterface {
   @JsonIgnore
   public List<RoutingEntry> getAllRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    RoutingEntry[] res;
-    res = getRoutingEntries();
-    if (res != null) {
-      Collections.addAll(all, res);
+    if (routingEntries != null) {
+      Collections.addAll(all, routingEntries);
     }
-    res = getHandlers();
-    if (res != null) {
-      Collections.addAll(all, res);
+    if (handlers != null) {
+      Collections.addAll(all, handlers);
     }
     return all;
   }
