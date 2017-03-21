@@ -659,7 +659,7 @@ public class ProxyService {
       }
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
-        logger.info("Invoking module " + mi.getModuleDescriptor().getNameOrId()
+        logger.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
           + " type " + pType
           + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getUri()
