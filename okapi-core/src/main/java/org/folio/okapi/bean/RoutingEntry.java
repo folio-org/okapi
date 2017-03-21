@@ -34,6 +34,16 @@ public class RoutingEntry {
   @JsonIgnore
   private String phaseLevel = "50";
 
+  public enum ProxyType {
+    REQUEST_RESPONSE,
+    REQUEST_ONLY,
+    HEADERS,
+    REDIRECT
+  };
+
+  @JsonIgnore
+  private ProxyType proxyType = ProxyType.REQUEST_RESPONSE;
+
   public String[] getPermissionsRequired() {
     return permissionsRequired;
   }
@@ -58,11 +68,29 @@ public class RoutingEntry {
     this.modulePermissions = modulePermissions;
   }
 
+  @JsonIgnore
+  public ProxyType getProxyType() {
+    return this.proxyType;
+  }
+
   public String getType() {
     return type;
   }
 
   public void setType(String type) {
+    if ("request-response".equals(type)) {
+      proxyType = ProxyType.REQUEST_RESPONSE;
+    } else if ("request-only".equals(type)) {
+      proxyType = ProxyType.REQUEST_ONLY;
+    } else if ("headers".equals(type)) {
+      proxyType = ProxyType.HEADERS;
+    } else if ("redirect".equals(type)) {
+      proxyType = ProxyType.REDIRECT;
+    } else if ("system".equals(type)) {
+      proxyType = ProxyType.REQUEST_RESPONSE;
+    } else {
+      throw new DecodeException("Invalid entry type: " + type);
+    }
     this.type = type;
   }
 
@@ -200,21 +228,6 @@ public class RoutingEntry {
    */
   public String validate(boolean strict, String section) {
     logger.debug("Validating RoutingEntry " + Json.encode(this));
-    String t = type;
-    if (t == null) {
-      t = "(null)";
-    }
-    if ("toplevel".equals(section) || "provides".equals(section)) {
-      if (!(t.equals("request-only")
-        || (t.equals("request-response"))
-        || (t.equals("headers"))
-        || (t.equals("redirect"))
-        || (t.equals("system")))) {
-        logger.debug("Validating RoutingEntry failed: Bad routing entry type");
-        return "Bad routing entry type: '" + t + "'";
-      }
-    }
-
     if ((path == null || path.isEmpty())
       && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
