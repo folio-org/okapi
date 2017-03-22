@@ -850,13 +850,13 @@ To tell Okapi that we want to use the `okapi-test-module`, we create a JSON
 structure of a moduleDescriptor and POST it to Okapi:
 
 ```
-cat > /tmp/okapi-proxy-test-basic.json <<END
+cat > /tmp/okapi-proxy-test-basic.1.json <<END
   {
-    "id" : "test-basic",
+    "id" : "test-basic-1.0.0",
     "name" : "Okapi test module",
     "provides" : [ {
       "id" : "test-basic",
-      "version" : "2.2.3",
+      "version" : "2.2",
       "handlers" : [ {
         "methods" : [ "GET", "POST" ],
         "pathPattern" : "/testb"
@@ -868,11 +868,12 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
   }
 END
 ```
-<!-- TODO - Remove the type, when the code works without -->
+<!-- TODO - Update responses - I have changed the ids and interface versions -->
 
-The id is what we will be using to refer to this module later. In real world,
-we would probably be using UUIDs or something, but here a human-readable string
-is nicer.
+The id is what we will be using to refer to this module later. The version number
+is included in the id, so that the id uniquely identifies exactly what module
+we are talking about. (Okapi does not enforce this, it is also possible to use
+UUIDs or other things, as long as they are truly unique)
 
 The module provides just one interface, called `test-basic`. It has one handler
 that indicate that the interface is interested in GET and POST requests to the
@@ -890,7 +891,7 @@ So, let's post it:
 ```
 curl -w '\n' -X POST -D - \
     -H "Content-type: application/json" \
-    -d @/tmp/okapi-proxy-test-basic.json \
+    -d @/tmp/okapi-proxy-test-basic.1.json \
    http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
@@ -959,9 +960,9 @@ First we create a DeploymentDescriptor:
 
 
 ```
-cat > /tmp/okapi-deploy-test-basic.json <<END
+cat > /tmp/okapi-deploy-test-basic.1.json <<END
 {
-  "srvcId" : "test-basic",
+  "srvcId" : "test-basic-1.0.0",
   "nodeId" : "localhost"
 }
 END
@@ -978,7 +979,7 @@ access to the nodes.
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-deploy-test-basic.json  \
+  -d @/tmp/okapi-deploy-test-basic.1.json  \
   http://localhost:9130/_/discovery/modules
 ```
 
@@ -1070,7 +1071,7 @@ Next we need to enable the module for our tenant. This is even simpler operation
 ```
 cat > /tmp/okapi-enable-basic.json <<END
 {
-  "id" : "test-basic"
+  "id" : "test-basic-1.0.0"
 }
 END
 
@@ -1126,7 +1127,7 @@ cat > /tmp/okapi-module-auth.json <<END
   "name" : "Okapi test auth module",
   "provides" : [ {
     "id" : "test-auth",
-    "version" : "3.4.5",
+    "version" : "3.4",
     "handlers" : [ {
       "methods" : [ "POST" ],
       "pathPattern" : "/login"
@@ -1135,7 +1136,7 @@ cat > /tmp/okapi-module-auth.json <<END
   "filters" : [ {
     "methods" : [ "*" ],
     "pathPattern" : "/*",
-    "level" : "10",
+    "phase" : "auth",
     "type" : "headers"
     } ],
   "launchDescriptor" : {
