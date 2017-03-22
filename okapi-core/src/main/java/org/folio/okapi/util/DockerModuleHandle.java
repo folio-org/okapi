@@ -52,7 +52,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
-    logger.info("startContainer");
+    logger.info("start container " + containerId + " image " + image);
     HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/containers/" + containerId + "/start";
     HttpClientRequest req = client.postAbs(url, res -> {
@@ -79,7 +79,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void stopContainer(Handler<AsyncResult<Void>> future) {
-    logger.info("stopContainer");
+    logger.info("stop container " + containerId + " image " + image);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest req;
     final String url = dockerUrl + "/containers/" + containerId + "/stop";
@@ -110,7 +110,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void deleteContainer(Handler<AsyncResult<Void>> future) {
-    logger.info("deleteContainer");
+    logger.info("delete container " + containerId + " image " + image);
     HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/containers/" + containerId;
     HttpClientRequest req = client.deleteAbs(url, res -> {
@@ -179,22 +179,56 @@ public class DockerModuleHandle implements ModuleHandle {
           JsonObject b = body.toJsonObject();
           future.handle(Future.succeededFuture(b));
         } else {
-          String m = "getImage HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
+          String m = url + " HTTP error "
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }
       });
     });
     req.exceptionHandler(d -> {
-      logger.warn("Starting a docker image " + image + " failed with " + d.getMessage() );
+      logger.warn(url + " : " + d.getMessage());
+      future.handle(Future.failedFuture(d.getCause()));
+    });
+    req.end();
+  }
+
+  private void pullImage(Handler<AsyncResult<JsonObject>> future) {
+    logger.info("pull image " + image + " initiated");
+    HttpClient client = vertx.createHttpClient();
+    final String url = dockerUrl + "/images/create?fromImage=" + image;
+    HttpClientRequest req = client.postAbs(url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        future.handle(Future.failedFuture(d.getCause()));
+      });
+      res.handler(d -> {
+        body.appendBuffer(d);
+      });
+      res.endHandler(d -> {
+        logger.info("pull image " + image + " done");
+        if (res.statusCode() == 200) {
+          JsonObject b = body.toJsonObject();
+          future.handle(Future.succeededFuture(b));
+        } else {
+          String m = url + " HTTP error "
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
+    req.exceptionHandler(d -> {
+      logger.warn(url + " : " + d.getMessage());
       future.handle(Future.failedFuture(d.getCause()));
     });
     req.end();
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
+    logger.info("create container from image " + image);
     JsonObject j = new JsonObject();
     j.put("AttachStdin", Boolean.FALSE);
     j.put("AttachStdout", Boolean.TRUE);
@@ -264,41 +298,43 @@ public class DockerModuleHandle implements ModuleHandle {
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    getImage(res1 -> {
-      if (res1.failed()) {
-        startFuture.handle(Future.failedFuture(res1.cause()));
-      } else {
-        JsonObject b = res1.result();
-        JsonObject config = b.getJsonObject("Config");
-        JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-        Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
-        int exposedPort = 0;
-        while (iterator.hasNext()) {
-          Map.Entry<String, Object> next = iterator.next();
-          String key = next.getKey();
-          String sPort = key.split("/")[0];
-          if (exposedPort == 0) {
-            exposedPort = Integer.valueOf(sPort);
+    pullImage(res0 -> {
+      getImage(res1 -> {
+        if (res1.failed()) {
+          startFuture.handle(Future.failedFuture(res1.cause()));
+        } else {
+          JsonObject b = res1.result();
+          JsonObject config = b.getJsonObject("Config");
+          JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
+          Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
+          int exposedPort = 0;
+          while (iterator.hasNext()) {
+            Map.Entry<String, Object> next = iterator.next();
+            String key = next.getKey();
+            String sPort = key.split("/")[0];
+            if (exposedPort == 0) {
+              exposedPort = Integer.valueOf(sPort);
+            }
+          }
+          if (hostPort == 0) {
+            startFuture.handle(Future.failedFuture("No exposedPorts in image"));
+          } else {
+            createContainer(exposedPort, res2 -> {
+              if (res2.failed()) {
+                startFuture.handle(Future.failedFuture(res2.cause()));
+              } else {
+                startContainer(res3 -> {
+                  if (res3.failed()) {
+                    startFuture.handle(Future.failedFuture(res3.cause()));
+                  } else {
+                    getContainerLog(startFuture);
+                  }
+                });
+              }
+            });
           }
         }
-        if (hostPort == 0) {
-          startFuture.handle(Future.failedFuture("No exposedPorts in image"));
-        } else {
-          createContainer(exposedPort, res2 -> {
-            if (res2.failed()) {
-              startFuture.handle(Future.failedFuture(res2.cause()));
-            } else {
-              startContainer(res3 -> {
-                if (res3.failed()) {
-                  startFuture.handle(Future.failedFuture(res3.cause()));
-                } else {
-                  getContainerLog(startFuture);
-                }
-              });
-            }
-          });
-        }
-      }
+      });
     });
   }
 
