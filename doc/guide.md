@@ -958,7 +958,6 @@ mode, so we only have one node in the cluster and by default it is called
 ugly UUIDs for all the nodes when they started up. So let's deploy it there.
 First we create a DeploymentDescriptor:
 
-
 ```
 cat > /tmp/okapi-deploy-test-basic.1.json <<END
 {
@@ -1069,7 +1068,7 @@ Content-Length: 91
 Next we need to enable the module for our tenant. This is even simpler operation:
 
 ```
-cat > /tmp/okapi-enable-basic.json <<END
+cat > /tmp/okapi-enable-basic-1.json <<END
 {
   "id" : "test-basic-1.0.0"
 }
@@ -1077,7 +1076,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-basic.json  \
+  -d @/tmp/okapi-enable-basic-1.json  \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 201 Created
@@ -1324,14 +1323,160 @@ Transfer-Encoding: chunked
 
 It works
 ```
+
+We can also post things to our test module:
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  -d '{ "foo":"bar"}'  \
+  http://localhost:9130/testb
+```
+The module responds with the same Json, but prepends "Hello" to the string.
+
+
+### Example 3: Upgrading, versions, environment, and the _tenant interface
+
+Upgrading can often be problematic. More so in Okapi, since we are serving many
+tenants, who will have different ideas about when and what to upgrade. In this
+example we go through the upgrading process, discuss versions, environment
+variables, and also look at the special _tenant system interface.
+
+Let's say we have a new and improved sample module:
+```
+cat > /tmp/okapi-proxy-test-basic.2.json <<END
+  {
+    "id" : "test-basic-1.2.0",
+    "name" : "Okapi test module, improved",
+    "provides" : [ {
+      "id" : "test-basic",
+      "version" : "2.4",
+      "handlers" : [ {
+        "methods" : [ "GET", "POST" ],
+        "pathPattern" : "/testb"
+        } ]
+    }, {
+      "id" : "_tenant",
+      "version" : "1.0.0",
+      "interfaceType" : "system",
+      "routingEntries" : [ {
+        "methods" : [ "POST" ],
+        "pathPattern" : "/_/tenant"
+        } ]
+    } ],
+    "requires" : [ {
+       "id" : "test-auth",
+       "version" : "3.1"
+     } ],
+    "launchDescriptor" : {
+      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+      "env" : [ {
+        "name" : "helloGreeting",
+        "value" : "Hi there"
+      } ]
+    }
+  }
+END
+```
+Note that we give it a different id, with the same name, but a higher version
+number. Note also that for this example we make use of the same okapi-test-module
+program, since we don't have much else to play with. This could also happen in
+real life, if we only have changes in the module descriptor, like we have here.
+
+We have added a new interface that the module supports, "_tenant". It is a
+system interface that Okapi will automatically call when the module gets
+enabled for a tenant. Its purpose is to do what ever initialization the module
+needs, for example to create database tables.
+
+We have also specified that this module requires the test-auth interface at least
+in version 3.1. The auth module we installed in the previous example propvides
+3.4, so it is good enough.  (Requiring 3.5 or 4.0, or even 2.0 would not work,
+see [_Versioning and Dependencies_](#versioning-and-dependencies) or edit the
+descriptor and try to post it).
+
+Finally we have added an environment variable in the launch descriptor that
+specifies a different greeting. The module should report that back when
+serving a POST request.
+
+The upgrade process starts by posting the new module descriptor, just like with
+any module. We can not touch the old one, since some tenants may be using it.
+
+```
+curl -w '\n' -X POST -D - \
+    -H "Content-type: application/json" \
+    -d @/tmp/okapi-proxy-test-basic.2.json \
+   http://localhost:9130/_/proxy/modules
+
+```
+Next we deploy the module, just as before.
+```
+
+cat > /tmp/okapi-deploy-test-basic.2.json <<END
+{
+  "srvcId" : "test-basic-1.2.0",
+  "nodeId" : "localhost"
+}
+END
+
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-deploy-test-basic.2.json  \
+  http://localhost:9130/_/discovery/modules
+```
+
+Now we have both modules installed and running.Our tenant is still using the
+old one, let's change that, by enabling the new one instead of the old one.
+This is done with a POST request to the URL of the current module.
+
+```
+cat > /tmp/okapi-enable-basic-2.json <<END
+{
+  "id" : "test-basic-1.2.0"
+}
+END
+
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-enable-basic-2.json  \
+  http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.0.0
+```
+Now the new module is enabled for our tenant, and the old one is not, as can
+be seen with
+```
+curl http://localhost:9130/_/proxy/tenants/testlib/modules
+```
+
+If you look at Okapi's log, you see there is a line like this:
+```
+15:32:40 INFO  MainVerticle         POST request to okapi-test-module tenant service for tenant testlib
+```
+It shows that our test module did get a request to the tenant interface.
+
+In order to verify that we really are using the new module, let's post a thing
+to it:
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  -d '{ "foo":"bar"}'  \
+  http://localhost:9130/testb
+
+HTTP/1.1 200 OK
+Content-Type: text/plain
+X-Okapi-Trace: POST Okapi test module, improved http://localhost:9133/testb : 200 4260us
+Transfer-Encoding: chunked
+
+Hi there { "foo":"bar"}
+```
+
+Indeed, we see "Hi there" instead of "Hello", and the X-Okapi-Trace shows that
+the request was sent to the improved version of the module.
+
 <!-- TODO
-  * Example 3: Upgrading, Tenant interface and versions
-    - Create a better sample module,
-      - depends on the auth module
-      - requires some permissions
-    - Post the module
-    - upgrade the tenant to use that module
-    -
+  * Example 4, with all the permission stuff. No need to go through all the curl stuff
   * Ref section: Anatomy of a (modern) ModuleDescriptor
 -->
 
