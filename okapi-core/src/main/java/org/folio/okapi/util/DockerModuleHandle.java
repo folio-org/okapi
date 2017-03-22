@@ -146,8 +146,7 @@ public class DockerModuleHandle implements ModuleHandle {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
         res.handler(d -> {
-          // both stderr+stdout are directed to stderr
-          System.err.print(d.toString());
+          System.err.print(d.getString(8, d.length()));
         });
         future.handle(Future.succeededFuture());
       } else {
