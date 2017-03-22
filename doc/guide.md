@@ -673,12 +673,13 @@ The examples in the following sections can be pasted into a command-line console
 It is also possible to extract all the example records with a perl
 one-liner, assuming you have this MarkDown source of this guide in the
 current directory as _guide.md_ -- as is the case in the source tree.
-
+This leaves them all in /tmp, as files like `okapi-tenant.json`
 ```
 perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
 ```
 
-It is also possible to run all the examples with a slightly more complex command:
+After that, it is also possible to run all the examples with a slightly more
+complex command:
 
 ```
 perl -n -e  'print if /^curl /../http/; ' guide.md |
@@ -835,7 +836,7 @@ cases:
 [ ]
 ```
 
-### Deploying Modules
+### Example 1: Deploying and using a simple module
 
 So we need to tell Okapi that we want to work with some modules. In real life
 these operations would be carried out by a properly authorized administrator.
@@ -856,68 +857,34 @@ cat > /tmp/okapi-proxy-test-basic.json <<END
     "provides" : [ {
       "id" : "test-basic",
       "version" : "2.2.3",
-      "routingEntries" : [ {
+      "handlers" : [ {
         "methods" : [ "GET", "POST" ],
-        "pathPattern" : "/testb",
-        "level" : "30",
-        "type" : "request-response",
-        "permissionsRequired" : [ "test-basic.needed" ],
-        "permissionsDesired" : [ "test-basic.extra" ]
-        } ]
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "routingEntries" : [ {
-        "methods" : [ "POST", "DELETE" ],
-        "pathPattern" : "/_/tenant",
-        "type" : "request-response"
+        "pathPattern" : "/testb"
         } ]
     } ],
-    "permissionSets" : [ {
-      "permissionName" : "test-basic.everything",
-      "displayName" : "every possible permission",
-      "description" : "All permissions combined",
-      "subPermissions" : [ "test-basic.needed", "test-basic.extra" ]
-      } ],
     "launchDescriptor" : {
       "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
     }
   }
 END
 ```
+<!-- TODO - Remove the type, when the code works without -->
+
 The id is what we will be using to refer to this module later. In real world,
 we would probably be using UUIDs or something, but here a human-readable string
 is nicer.
 
-The module provides two interfaces: First the real interface, called
-`test-basic`. It has some routingEntries that indicate that the interface is
-interested in GET and POST requests to the /testb path and nothing else, and
-that the module is supposed to provide a full response. The level is used to
-specify the order in which the request will be sent to multiple modules, as
-will be seen later.
-
-We will come back to the permission things later, when we look at the auth
-module.
-
-The second interface this modules provides is called `_tenant`. This is a
-"system" interface, as can be seen in the interfaceType, and by convention
-its name starts with an underscore. Okapi will make a request to this interface
-when it is about to enable the module for a tenant, and the module can use this
-for all kind of initialization, for example creating tables in a database.
-
-The module could also require some interfaces to be present, but since this is
-the first module we add, we don't require anything else.
-
-The permissionSets declares a shorthand for admins to give permissions to users.
-These will percolate to the permission management in the auth module (not in
-our trivial sample auth, but the real life version).
+The module provides just one interface, called `test-basic`. It has one handler
+that indicate that the interface is interested in GET and POST requests to the
+/testb path and nothing else.  (In real life, those two would likely be separate
+entries, with different permissions etc, but we try to keep things simple here).
 
 The launchDescriptor tells Okapi how this module is to be started and stopped.
-In this version we use a simple `exec` command line, remember the PID, and
-just kill the process when we are done with it. We could also specify command
-lines for starting and stopping things. There are also facilities for starting
-and stopping Docker images directly.
+In this version we use a simple `exec` command line. Okapi will start a process,
+remember the PID, and just kill it when we are done.
+
+The moduleDescriptor can contain much more stuff, more about that in later
+examples.
 
 So, let's post it:
 ```
@@ -926,12 +893,10 @@ curl -w '\n' -X POST -D - \
     -d @/tmp/okapi-proxy-test-basic.json \
    http://localhost:9130/_/proxy/modules
 
-HTTP/1.1 100 Continue
-
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic
-Content-Length: 991
+Content-Length: 381
 
 {
   "id" : "test-basic",
@@ -939,29 +904,11 @@ Content-Length: 991
   "provides" : [ {
     "id" : "test-basic",
     "version" : "2.2.3",
-    "routingEntries" : [ {
+    "handlers" : [ {
       "methods" : [ "GET", "POST" ],
       "pathPattern" : "/testb",
-      "level" : "30",
-      "type" : "request-response",
-      "permissionsRequired" : [ "test-basic.needed" ],
-      "permissionsDesired" : [ "test-basic.extra" ]
-    } ]
-  }, {
-    "id" : "_tenant",
-    "version" : "1.0.0",
-    "interfaceType" : "system",
-    "routingEntries" : [ {
-      "methods" : [ "POST", "DELETE" ],
-      "pathPattern" : "/_/tenant",
       "type" : "request-response"
     } ]
-  } ],
-  "permissionSets" : [ {
-    "permissionName" : "test-basic.everything",
-    "displayName" : "every possible permission",
-    "description" : "All permissions combined",
-    "subPermissions" : [ "test-basic.needed", "test-basic.extra" ]
   } ],
   "launchDescriptor" : {
     "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
@@ -1142,24 +1089,6 @@ Content-Length: 25
 }
 ```
 
-Well, although the operation was simple, there was some magic happening behind
-the scenes. When enabling the module, Okapi also POSTed a message to its
-`/_/tenant` interface, and the module could have done some initialization there.
-Since our test module is so simple, it does not need anything fancy, so all it
-does is post a message in the log, which you may catch flying past on the screen
-where Okapi is running. It should say something like:
-```
-POST request to okapi-test-module tenant service for tenant testlib
-```
-
-Okapi does one more thing. It tries to locate a permission module (technically,
-any module that provides a `_tenantPermissions` interface), and makes a request
-to that module passing it all the permissionSets defined in the module descriptor.
-This is the mechanism by which the permissions go from the ModuleDescriptor into
-some permission module. For all the gory details, see the
-[reference](#system-interfaces) section.
-
-
 #### Calling the module
 
 So, now we have a tenant, and it has a module enabled. Last time we tried to
@@ -1179,17 +1108,15 @@ Transfer-Encoding: chunked
 It works
 ```
 
-Note that this works for anyone who can guess a tenant ID. That is fine for a
-small test module, but real life modules do real work, and need to be
-restricted to privileged users.
+### Example 2: Adding the Auth module
 
-#### The Auth module
-
-Okapi is supposed to be used together with a proper authorization module, which
-in turn will depend on authentication and permission management and all that.
-Here in this small example we only have Okapi's own test-auth-module to play
-with. It is just about sufficient to demonstrate what an authenticated request
-would look like.
+The previosu example works for anyone who can guess a tenant ID. That is fine
+for a small test module, but real life modules do real work, and need to be
+restricted to privileged users. In real life we would have a complex set of
+modules managing all kind of authentication and authorization stuff, but for
+this example we only have Okapi's own test-auth module to play with. It will
+not do any serious authentication, but will be just enough to demonstrate how
+to use one.
 
 As before, the first thing we create is a ModuleDescriptor:
 ```
@@ -1200,18 +1127,12 @@ cat > /tmp/okapi-module-auth.json <<END
   "provides" : [ {
     "id" : "test-auth",
     "version" : "3.4.5",
-    "routingEntries" : [ {
+    "handlers" : [ {
       "methods" : [ "POST" ],
-      "pathPattern" : "/login",
-      "level" : "20",
-      "type" : "request-response"
+      "pathPattern" : "/login"
     } ]
   } ],
-  "requires" : [ {
-    "id" : "test-basic",
-    "version" : "2.2.1"
-  } ],
-  "routingEntries" : [ {
+  "filters" : [ {
     "methods" : [ "*" ],
     "pathPattern" : "/*",
     "level" : "10",
@@ -1223,18 +1144,11 @@ cat > /tmp/okapi-module-auth.json <<END
 }
 END
 ```
+The module has one handler, for the /login path. It also has a filter that
+connects with every incoming request. That is where it decides if the user will
+be allowed to make the request. This one has a type "headers", which means that
+Okapi does not pass the whole request to it, just the headers.
 
-Just for the sake of an example, we have specified that the auth module
-depends on the test-basic module, version 2.2.1 or higher.  You can experiment
-with requiring version 2.4.1, that should fail since we only have 2.2.3.
-
-The module has two routing entries, a simple check that gets called before
-any real module, and a login service. Note that the first RoutingEntry is
-within the auth interface definition, but the second one is not, it is in
-a global list of RoutingEntries. This is because it is a filter, something
-that gets invoked for every request Okapi sees. It is also of type "headers",
-which means that Okapi is not passing the full request to it, only the headers.
-This saves a little bit time.
 
 The pathPattern for the filter uses the wildcard character (`*`) to match any path.
 A pathPattern may also include curly braces pairs to match a path component. For
@@ -1254,26 +1168,20 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 616
+Content-Length: 471
 
 {
   "id" : "test-auth",
   "name" : "Okapi test auth module",
-  "requires" : [ {
-    "id" : "test-basic",
-    "version" : "2.2.1"
-  } ],
   "provides" : [ {
     "id" : "test-auth",
     "version" : "3.4.5",
-    "routingEntries" : [ {
+    "handlers" : [ {
       "methods" : [ "POST" ],
-      "pathPattern" : "/login",
-      "level" : "20",
-      "type" : "request-response"
+      "pathPattern" : "/login"
     } ]
   } ],
-  "routingEntries" : [ {
+  "filters" : [ {
     "methods" : [ "*" ],
     "pathPattern" : "/*",
     "level" : "10",
@@ -1285,7 +1193,7 @@ Content-Length: 616
 }
 ```
 
-Next we need to deploy the module.
+Next we need to deploy the module, like before
 
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
@@ -1415,7 +1323,16 @@ Transfer-Encoding: chunked
 
 It works
 ```
-
+<!-- TODO
+  * Example 3: Upgrading, Tenant interface and versions
+    - Create a better sample module,
+      - depends on the auth module
+      - requires some permissions
+    - Post the module
+    - upgrade the tenant to use that module
+    -
+  * Ref section: Anatomy of a (modern) ModuleDescriptor
+-->
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
