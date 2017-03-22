@@ -567,7 +567,7 @@ The build requirements are:
 With these available, build with:
 
 ```
-git clone https://github.com/folio-org/okapi.git
+git clone --recursive https://github.com/folio-org/okapi.git
 cd okapi
 mvn install
 ```
