@@ -280,7 +280,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
@@ -292,7 +292,7 @@ public class ModuleTest {
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"routingEntries\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -490,7 +490,7 @@ public class ModuleTest {
       + "  \"name\" : \"header-module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
@@ -519,7 +519,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
@@ -531,7 +531,7 @@ public class ModuleTest {
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -694,7 +694,7 @@ public class ModuleTest {
       + "  \"name\" : \"auth\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2.3\"" + LS
+      + "    \"version\" : \"1.2\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
@@ -741,7 +741,7 @@ public class ModuleTest {
       + "  \"name\" : \"auth2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth2\"," + LS
-      + "    \"version\" : \"1.2.3\"" + LS
+      + "    \"version\" : \"1.2\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
@@ -804,7 +804,7 @@ public class ModuleTest {
       + "  \"name\" : \"sample module\"," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
-      + "    \"version\" : \"1.2.3\"" + LS
+      + "    \"version\" : \"1.2\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ ] " + LS
       + "}";
@@ -820,11 +820,11 @@ public class ModuleTest {
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"9.9.3\"" + LS // We only have 1.2.3
+      + "    \"version\" : \"9.9\"" + LS // We only have 1.2
       + "  } ]," + LS
       + "  \"routingEntries\" : [ ] " + LS
       + "}";
@@ -843,14 +843,14 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2.3\"" + LS
+      + "    \"version\" : \"1.2\"" + LS
       + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS // TODO - Define paths - add test
+      + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
@@ -898,7 +898,7 @@ public class ModuleTest {
 
     // Try to update the auth module to a lower version, would break
     // sample dependency
-    final String docAuthLowerVersion = docAuthModule.replace("1.2.3", "1.1.1");
+    final String docAuthLowerVersion = docAuthModule.replace("1.2", "1.0");
     c.given()
       .header("Content-Type", "application/json")
       .body(docAuthLowerVersion)
@@ -906,7 +906,7 @@ public class ModuleTest {
       .then().statusCode(400);
 
     // Update the auth module to a bit higher version
-    final String docAuthhigherVersion = docAuthModule.replace("1.2.3", "1.2.4");
+    final String docAuthhigherVersion = docAuthModule.replace("1.2", "1.3");
     c.given()
       .header("Content-Type", "application/json")
       .body(docAuthhigherVersion)
@@ -1265,7 +1265,7 @@ public class ModuleTest {
       + "  \"name\" : \"another-sample-module2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
@@ -1332,7 +1332,7 @@ public class ModuleTest {
       + "  \"name\" : \"sample-module3\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
@@ -1609,10 +1609,10 @@ public class ModuleTest {
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
+      + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
