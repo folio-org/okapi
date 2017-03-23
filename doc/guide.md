@@ -1475,23 +1475,152 @@ Hi there { "foo":"bar"}
 Indeed, we see "Hi there" instead of "Hello", and the X-Okapi-Trace shows that
 the request was sent to the improved version of the module.
 
-<!-- TODO
-  * Example 4, with all the permission stuff. No need to go through all the curl stuff
-  * Ref section: Anatomy of a (modern) ModuleDescriptor
--->
+### Example 4: Complete ModuleDescriptor
+
+In this example we just show you a complete ModuleDescriptor, with all the bells
+and whistles. By now you should know how to use one, so there is no need to
+repeat the `curl` commands.
+
+```
+  {
+    "id" : "test-basic-1.3.0",
+    "name" : "Bells and Whistles",
+    "provides" : [ {
+      "id" : "test-basic",
+      "version" : "2.4",
+      "handlers" : [ {
+        "methods" : [ "GET" ],
+        "pathPattern" : "/testb"
+        "permissionsRequired" : [ "test-basic.get.list" ],
+     }, {
+        "methods" : [ "GET" ],
+        "pathPattern" : "/testb/{id}"
+        "permissionsRequired" : [ "test-basic.get.details" ],
+        "permissionsDesired" : [ "test-basic.get.sensitive.details" ],
+        "modulePermissions" : [ "config.lookup" ]
+     }, {
+        "methods" : [ "POST", "PUT" ],
+        "pathPattern" : "/testb"
+        "permissionsRequired" : [ "test-basic.update" ],
+        "modulePermissions" : [ "config.lookup" ]
+      } ]
+    }, {
+      "id" : "_tenant",
+      "version" : "1.0.0",
+      "interfaceType" : "system",
+      "routingEntries" : [ {
+        "methods" : [ "POST" ],
+        "pathPattern" : "/_/tenant"
+        } ]
+    }, {
+      "id" : "_tenantPermissions",
+      "version" : "1.0.0",
+      "interfaceType" : "system",
+      "routingEntries" : [ {
+        "methods" : [ "POST" ],
+        "pathPattern" : "/_/tenantpermissions"
+        } ]
+    } ],
+    "requires" : [ {
+       "id" : "test-auth",
+       "version" : "3.1"
+     } ],
+    "permissionSets" : [ {
+       "permissionName" : "test-basic.get.list",
+       "displayName" : "test-basic list records",
+       "description" : "Get a list of records",
+     }, {
+       "permissionName" : "test-basic.get.details",
+       "displayName" : "test-basic get record",
+       "description" : "Get a record, except sensitive stuff"
+     }, {
+       "permissionName" : "test-basic.get.sensitive.details",
+       "displayName" : "test-basic get whole record",
+       "description" : "Get a record, including all sensitive stuff"
+     }, {
+       "permissionName" : "test-basic.update",
+       "displayName" : "test-basic update record",
+       "description" : "Update or create a record, including all sensitive stuff"
+     }, {
+       "permissionName" : "test-basic.view",
+       "displayName" : "test-basic list and view records",
+       "description" : "See everything, except the sensitive stuff",
+       "subPermissions" : [ "test-basic.get.list", "test-basic.get.details"]
+     }, {
+       "permissionName" : "test-basic.modify",
+       "displayName" : "test-basic modify data",
+       "description" : "See, Update or create a record, including sensitive stuff",
+       "subPermissions" : [ "test-basic.view",
+          "test-basic.update", " test-basic.get.sensitive.details" ]
+     } ],
+    "launchDescriptor" : {
+      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+      "env" : [ {
+        "name" : "helloGreeting",
+        "value" : "Hi there"
+      } ]
+    }
+  }
+```
+Most of the descriptor should look quite familiar at this point. The the big
+new thing is about permissions. The full permission system is explained in a separate
+document <!-- TODO - how to link to it? --> and managed by the auth module complex.
+All that is outside the scope of Okapi itself, and of this guide.
+
+The most visible new thing in this descriptor is the whole new section called
+permissionSets. This defines what permissions and permission sets this module
+cares about. Point of terminology: "Permissions", or "Permission Bits" are
+simple strings like "test-basic.get.list". Okapi and the auth module operate
+on this granular level. "Permission Sets" are named sets that can contain
+several permission bits, and even other sets. Those will be reduced to the
+actual bits by the auth module. These are the lowest level that an admin user
+normally sees, and form the building blocks for building more complex roles.
+
+The permission bits are used in the handler entries. The first one has a
+permissionsRequired field that contains the permission "test-basic.get.list".
+That means that if the user does not have such a permission, the auth module
+tells Okapi, which will refusethe request.
+
+The next entry has a permissionsRequired too, but also a permissionsDesired
+field with "test-basic.get.sensitive.details" in it. That indicates that the
+module desires to know if the user has such a permission or not. It is not a
+hard requirement, the request will be passed to the module in any case, but
+there will be a X-Okapi-Permissions header that will or will not contain
+that permission name. It is up to the module to decide what to do with it,
+in this case it could well decide to show or hide some unusually sensitive
+fields.
+
+There is also a third field, "modulePermissions" with the value "config.lookup".
+This tells that our module has been granted this permission. Even if the user
+will not have such a permission, the module does, and is therefore allowed to
+do something like looking up the configuration settings.
+
+As noted above, Okapi operates with the raw permission bits. It passed the
+required and desired permissions to the auth module, which will somehow
+deduct if the user will have those permissions or not. The details should not
+concern us here, but clearly the process has something to do with the
+permissionSets. How does the auth module get access to the permission sets of
+the moduleDescription? It does not happen by magic, but almost. When a module
+gets enabled for a tenant, Okapi not only calls the _tenant interface of the
+module itself, but also sees if any module provides a tenantPermissions
+interface, and passes the permissionSets there. The permission module is
+supposed to do that, and receive the permissionSets that way.
+
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
 installed:
 
 ```
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.2.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic/localhost-9131
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.0.0/localhost-9131
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.2.0/localhost-9133
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.0.0
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.2.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic
 ```
 
 Okapi responds to each of these with a simple:
@@ -1500,7 +1629,6 @@ Okapi responds to each of these with a simple:
 HTTP/1.1 204 No Content
 Content-Type: text/plain
 Content-Length: 0
-
 ```
 
 Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
