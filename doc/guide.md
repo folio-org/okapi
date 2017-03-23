@@ -875,10 +875,9 @@ is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
 UUIDs or other things, as long as they are truly unique)
 
-The module provides just one interface, called `test-basic`. It has one handler
+This module provides just one interface, called `test-basic`. It has one handler
 that indicate that the interface is interested in GET and POST requests to the
-/testb path and nothing else.  (In real life, those two would likely be separate
-entries, with different permissions etc, but we try to keep things simple here).
+/testb path and nothing else.
 
 The launchDescriptor tells Okapi how this module is to be started and stopped.
 In this version we use a simple `exec` command line. Okapi will start a process,
@@ -922,7 +921,7 @@ also a Location header that shows the address of this module, if we want to
 modify or delete it, or just look at it, like this:
 
 ```
-curl -w '\n' -D - http://localhost:9130/_/proxy/modules/test-basic
+curl -w '\n' -D - http://localhost:9130/_/proxy/modules/test-basic-1.0.0
 ```
 
 We can also ask Okapi to list all known modules, like we did in the beginning:
@@ -1001,8 +1000,8 @@ Content-Length: 231
 ```
 
 There is a bit more detail than what we posted to it. We only gave it the
-service Id "test-basic", and it went ahead and looked up the LaunchDescriptor
-from the ModuleDescriptor we posted earlier, with this id.
+service Id "test-basic-1.0.0", and it went ahead and looked up the
+LaunchDescriptor from the ModuleDescriptor we posted earlier, with this id.
 
 Okapi has also allocated a port for this module, 9131, and given it an instance
 ID, "localhost-9131". This is necessary, since we can have multiple instances
@@ -1110,7 +1109,7 @@ It works
 
 ### Example 2: Adding the Auth module
 
-The previosu example works for anyone who can guess a tenant ID. That is fine
+The previous example works for anyone who can guess a tenant ID. That is fine
 for a small test module, but real life modules do real work, and need to be
 restricted to privileged users. In real life we would have a complex set of
 modules managing all kind of authentication and authorization stuff, but for
@@ -1137,9 +1136,7 @@ cat > /tmp/okapi-module-auth.json <<END
     "pathPattern" : "/*",
     "phase" : "auth",
     "type" : "headers"
-    } ],
-  "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+    } ]
   }
 }
 END
@@ -1154,8 +1151,10 @@ The pathPattern for the filter uses the wildcard character (`*`) to match any pa
 A pathPattern may also include curly braces pairs to match a path component. For
 example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 
-As before, there is a launchDescriptor that tells how the module is to
-be deployed.
+We could have included a launchDescriptor as before, but just to demonstrate
+another way, we have omitted it here. Doing it this way may make more sense in
+a clustered environment where each module instance may need some extra
+commandline arguments or environment variables.
 
 So we POST it to Okapi:
 
@@ -1186,20 +1185,21 @@ Content-Length: 471
     "pathPattern" : "/*",
     "level" : "10",
     "type" : "headers"
-  } ],
-  "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
-  }
+  } ]
 }
 ```
 
-Next we need to deploy the module, like before
+Next we need to deploy the module. Since we did not put a launchDescriptor
+in the moduleDescriptor, we need to provide one here.
 
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
   "srvcId" : "test-auth",
-  "nodeId" : "localhost"
+  "nodeId" : "localhost",
+  "descriptor" : {
+    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+  }
 }
 END
 
@@ -1410,8 +1410,8 @@ curl -w '\n' -X POST -D - \
 
 ```
 Next we deploy the module, just as before.
-```
 
+```
 cat > /tmp/okapi-deploy-test-basic.2.json <<END
 {
   "srvcId" : "test-basic-1.2.0",
@@ -1445,7 +1445,7 @@ curl -w '\n' -X POST -D - \
 Now the new module is enabled for our tenant, and the old one is not, as can
 be seen with
 ```
-curl http://localhost:9130/_/proxy/tenants/testlib/modules
+curl -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules
 ```
 
 If you look at Okapi's log, you see there is a line like this:
@@ -1479,7 +1479,7 @@ the request was sent to the improved version of the module.
 
 In this example we just show you a complete ModuleDescriptor, with all the bells
 and whistles. By now you should know how to use one, so there is no need to
-repeat the `curl` commands.
+repeat all the `curl` commands.
 
 ```
   {
@@ -1508,7 +1508,7 @@ repeat the `curl` commands.
       "id" : "_tenant",
       "version" : "1.0.0",
       "interfaceType" : "system",
-      "routingEntries" : [ {
+      "handlers" : [ {
         "methods" : [ "POST" ],
         "pathPattern" : "/_/tenant"
         } ]
@@ -1516,7 +1516,7 @@ repeat the `curl` commands.
       "id" : "_tenantPermissions",
       "version" : "1.0.0",
       "interfaceType" : "system",
-      "routingEntries" : [ {
+      "handlers" : [ {
         "methods" : [ "POST" ],
         "pathPattern" : "/_/tenantpermissions"
         } ]
@@ -1606,6 +1606,12 @@ module itself, but also sees if any module provides a tenantPermissions
 interface, and passes the permissionSets there. The permission module is
 supposed to do that, and receive the permissionSets that way.
 
+Even this example does not cover all the possibilities in a ModuleDescriptor.
+There are features lingering from older versions (older than Okapi 1.2.0) that
+are still supported, but will be deprecated and removed in future versions.
+For example ModulePermissions and RoutingEntries on the top level of the
+descriptor. For the fully up to date definition, you should always refer to
+the RAML and Json schemas in the reference section.
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
