@@ -275,9 +275,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
@@ -514,9 +511,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0.0\"," + LS
@@ -838,9 +832,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
       + "    \"version\" : \"1.2.3\"" + LS
