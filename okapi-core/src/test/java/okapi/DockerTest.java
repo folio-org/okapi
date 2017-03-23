@@ -10,6 +10,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -54,7 +55,10 @@ public class DockerTest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
+    VertxOptions options = new VertxOptions();
+    options.setBlockedThreadCheckInterval(60000); // in ms
+    options.setWarningExceptionTime(60000); // in ms
+    vertx = Vertx.vertx(options);
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
