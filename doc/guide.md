@@ -868,7 +868,6 @@ cat > /tmp/okapi-proxy-test-basic.1.json <<END
   }
 END
 ```
-<!-- TODO - Update responses - I have changed the ids and interface versions -->
 
 The id is what we will be using to refer to this module later. The version number
 is included in the id, so that the id uniquely identifies exactly what module
@@ -895,19 +894,18 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/test-basic
-Content-Length: 381
+Location: /_/proxy/modules/test-basic-1.0.0
+Content-Length: 350
 
 {
-  "id" : "test-basic",
+  "id" : "test-basic-1.0.0",
   "name" : "Okapi test module",
   "provides" : [ {
     "id" : "test-basic",
-    "version" : "2.2.3",
+    "version" : "2.2",
     "handlers" : [ {
       "methods" : [ "GET", "POST" ],
-      "pathPattern" : "/testb",
-      "type" : "request-response"
+      "pathPattern" : "/testb"
     } ]
   } ],
   "launchDescriptor" : {
@@ -985,12 +983,12 @@ Okapi responds with
 ```
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/test-basic/localhost-9131
-Content-Length: 231
+Location: /_/discovery/modules/test-basic-1.0.0/localhost-9131
+Content-Length: 237
 
 {
   "instId" : "localhost-9131",
-  "srvcId" : "test-basic",
+  "srvcId" : "test-basic-1.0.0",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
   "descriptor" : {
@@ -1080,11 +1078,11 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/tenants/testlib/modules/test-basic
-Content-Length: 25
+Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0
+Content-Length: 31
 
 {
-  "id" : "test-basic"
+  "id" : "test-basic-1.0.0"
 }
 ```
 
@@ -1167,14 +1165,14 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth
-Content-Length: 471
+Content-Length: 345
 
 {
   "id" : "test-auth",
   "name" : "Okapi test auth module",
   "provides" : [ {
     "id" : "test-auth",
-    "version" : "3.4.5",
+    "version" : "3.4",
     "handlers" : [ {
       "methods" : [ "POST" ],
       "pathPattern" : "/login"
@@ -1183,7 +1181,7 @@ Content-Length: 471
   "filters" : [ {
     "methods" : [ "*" ],
     "pathPattern" : "/*",
-    "level" : "10",
+    "phase" : "auth",
     "type" : "headers"
   } ]
 }
@@ -1223,6 +1221,7 @@ Content-Length: 240
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
+
 ```
 
 And we enable the module for our tenant:
@@ -1408,6 +1407,7 @@ curl -w '\n' -X POST -D - \
     -d @/tmp/okapi-proxy-test-basic.2.json \
    http://localhost:9130/_/proxy/modules
 
+HTTP/1.1 201 Created   ...
 ```
 Next we deploy the module, just as before.
 
@@ -1441,6 +1441,16 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/okapi-enable-basic-2.json  \
   http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.0.0
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0/test-basic-1.2.0
+Content-Length: 31
+
+{
+  "id" : "test-basic-1.2.0"
+}
+
 ```
 Now the new module is enabled for our tenant, and the old one is not, as can
 be seen with
