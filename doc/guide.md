@@ -423,34 +423,40 @@ the other.
 
 We use a 3-part versioning scheme for module software versions, like
 3.1.41 -- very much like [Semantic Versioning](http://semver.org/).
-Interface versions consist only of the first two parts.
+Interface versions consist only of the first two parts, as they have
+no implementation version.
 
-The first number is the major version of the interface. It needs to be
-incremented whenever making a change that is not strictly backwards
-compatible, for example removing functionality or changing semantics.
-Okapi will require that the major version number matches exactly what
-is required.
+The first number is the major version. It needs to be incremented whenever
+making a change that is not strictly backwards compatible, for example removing
+functionality or changing semantics.
 
-The second number is the minor version of the interface. It needs to
-be incremented whenever backwards-compatible changes are made, for
-example adding new functionality or optional fields.  Okapi will check
-that the module implementing a service provides at least the required
-minor version.
+The second number is the minor version. It needs to be incremented whenever
+backwards-compatible changes are made, for example adding new functionality
+or optional fields.
 
 The third number is the software version. It should be incremented on changes
 that do not affect the interface, for example fixing bugs or improving
 efficiency.
 
-If a module requires an interface 3.2.41, it will accept:
-* 3.2.41  - same version
-* 3.2.68  - same interface, later software version
-* 3.3.8   - Higher minor version, compatible interfaces
+Although it is strongly recommended to use this versioning schema for all
+modules, Okapi does not enforce it for modules. The reason is that Okapi does
+not need to know anything about module versions - it only worries about the
+interfaces being compatible.
+
+Whne checking interface versions, Okapi will require that the major version
+number matches exactly what is required, and that the minor version is at least
+as high as required.
+
+
+If a module requires an interface 3.2, it will accept:
+* 3.2  - same version
+* 3.   - Higher minor version, compatible interfaces
 
 But it will reject:
-* 2.2.2   - Lower major version
-* 4.4.4   - Higher major version
-* 3.1.9   - Lesser minor version
-* 3.2.27  - Too small software version, may not contain crucial bug-fixes
+* 2.2  - Lower major version
+* 4.7   - Higher major version
+* 3.1   - Lesser minor version
+* 3.2  - Too small software version, may not contain crucial bug-fixes
 
 See further explanation of
 [Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
