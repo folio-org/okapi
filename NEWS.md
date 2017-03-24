@@ -1,3 +1,13 @@
+## 1.2.0 2017-03-24
+
+ * Add ability to pull Docker images from a remote repository OKAPI-283
+ * Allow Handlers/filters instead of routingEntries OKAPI-284
+ * Allow phase instead of level inside routingEntries  OKAPI-284
+ * Rewrite the Okapi guide examples OKAPI-286
+ * Make RoutingEntry type optional and default to request-response OKAPI-288
+ * Fix garbage character for Docker logging OKAPI-291
+ * Increase wait time before warning in Unit Test for Docker OKAPI-294
+
 ## 1.1.0 2017-03-20
 
  * new property pathPattern which is an alternative to path in
