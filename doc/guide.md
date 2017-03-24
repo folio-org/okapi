@@ -443,7 +443,7 @@ modules, Okapi does not enforce it for modules. The reason is that Okapi does
 not need to know anything about module versions - it only worries about the
 interfaces being compatible.
 
-Whne checking interface versions, Okapi will require that the major version
+When checking interface versions, Okapi will require that the major version
 number matches exactly what is required, and that the minor version is at least
 as high as required.
 
@@ -878,7 +878,7 @@ END
 The id is what we will be using to refer to this module later. The version number
 is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
-UUIDs or other things, as long as they are truly unique)
+UUIDs or other things, as long as they are truly unique.)
 
 This module provides just one interface, called `test-basic`. It has one handler
 that indicate that the interface is interested in GET and POST requests to the
@@ -1158,7 +1158,7 @@ example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 We could have included a launchDescriptor as before, but just to demonstrate
 another way, we have omitted it here. Doing it this way may make more sense in
 a clustered environment where each module instance may need some extra
-commandline arguments or environment variables.
+command-line arguments or environment variables.
 
 So we POST it to Okapi:
 
@@ -1309,7 +1309,7 @@ first a header, then a base-64 encoded payload, and finally a signature. The
 header and signature would normally be base-64 encoded as well, but the simple
 test-auth module skips that part, to make a distinct token that can not be mistaken
 as a real JWT. The payload is indeed base-64 encoded, and if you decode it, you
-see that it will contain a Json structure with the user id and the tenant id,
+see that it will contain a JSON structure with the user id and the tenant id,
 and nothing much else. A real-life auth module would of course put more stuff
 in the JWT, and sign it with some strong crypto. But that should make no
 difference to Okapi's users -- all that they need to know is how do we get a token,
@@ -1338,7 +1338,7 @@ curl -w '\n' -X POST -D - \
   -d '{ "foo":"bar"}'  \
   http://localhost:9130/testb
 ```
-The module responds with the same Json, but prepends "Hello" to the string.
+The module responds with the same JSON, but prepends "Hello" to the string.
 
 
 ### Example 3: Upgrading, versions, environment, and the _tenant interface
@@ -1391,11 +1391,11 @@ real life, if we only have changes in the module descriptor, like we have here.
 
 We have added a new interface that the module supports, "_tenant". It is a
 system interface that Okapi will automatically call when the module gets
-enabled for a tenant. Its purpose is to do what ever initialization the module
+enabled for a tenant. Its purpose is to do whatever initialization the module
 needs, for example to create database tables.
 
 We have also specified that this module requires the test-auth interface at least
-in version 3.1. The auth module we installed in the previous example propvides
+in version 3.1. The auth module we installed in the previous example provides
 3.4, so it is good enough.  (Requiring 3.5 or 4.0, or even 2.0 would not work,
 see [_Versioning and Dependencies_](#versioning-and-dependencies) or edit the
 descriptor and try to post it).
@@ -1432,8 +1432,8 @@ curl -w '\n' -D - -s \
   http://localhost:9130/_/discovery/modules
 ```
 
-Now we have both modules installed and running.Our tenant is still using the
-old one, let's change that, by enabling the new one instead of the old one.
+Now we have both modules installed and running. Our tenant is still using the
+old one. Let's change that, by enabling the new one instead of the old one.
 This is done with a POST request to the URL of the current module.
 
 ```
@@ -1458,8 +1458,9 @@ Content-Length: 31
 }
 
 ```
+
 Now the new module is enabled for our tenant, and the old one is not, as can
-be seen with
+be seen with:
 ```
 curl -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules
 ```
@@ -1468,6 +1469,7 @@ If you look at Okapi's log, you see there is a line like this:
 ```
 15:32:40 INFO  MainVerticle         POST request to okapi-test-module tenant service for tenant testlib
 ```
+
 It shows that our test module did get a request to the tenant interface.
 
 In order to verify that we really are using the new module, let's post a thing
@@ -1578,10 +1580,10 @@ repeat all the `curl` commands.
     }
   }
 ```
-Most of the descriptor should look quite familiar at this point. The the big
+Most of the descriptor should look quite familiar at this point. The big
 new thing is about permissions. The full permission system is explained in a separate
 document <!-- TODO - how to link to it? --> and managed by the auth module complex.
-All that is outside the scope of Okapi itself, and of this guide.
+All of that is outside the scope of Okapi itself, and of this guide.
 
 The most visible new thing in this descriptor is the whole new section called
 permissionSets. This defines what permissions and permission sets this module
@@ -1590,12 +1592,12 @@ simple strings like "test-basic.get.list". Okapi and the auth module operate
 on this granular level. "Permission Sets" are named sets that can contain
 several permission bits, and even other sets. Those will be reduced to the
 actual bits by the auth module. These are the lowest level that an admin user
-normally sees, and form the building blocks for building more complex roles.
+normally sees, and form the building blocks for constructing more complex roles.
 
 The permission bits are used in the handler entries. The first one has a
 permissionsRequired field that contains the permission "test-basic.get.list".
 That means that if the user does not have such a permission, the auth module
-tells Okapi, which will refusethe request.
+tells Okapi, which will refuse the request.
 
 The next entry has a permissionsRequired too, but also a permissionsDesired
 field with "test-basic.get.sensitive.details" in it. That indicates that the
@@ -1613,7 +1615,7 @@ do something like looking up the configuration settings.
 
 As noted above, Okapi operates with the raw permission bits. It passed the
 required and desired permissions to the auth module, which will somehow
-deduct if the user will have those permissions or not. The details should not
+deduce if the user will have those permissions or not. The details should not
 concern us here, but clearly the process has something to do with the
 permissionSets. How does the auth module get access to the permission sets of
 the moduleDescription? It does not happen by magic, but almost. When a module
@@ -1626,8 +1628,8 @@ Even this example does not cover all the possibilities in a ModuleDescriptor.
 There are features lingering from older versions (older than Okapi 1.2.0) that
 are still supported, but will be deprecated and removed in future versions.
 For example ModulePermissions and RoutingEntries on the top level of the
-descriptor. For the fully up to date definition, you should always refer to
-the RAML and Json schemas in the reference section.
+descriptor. For the fully up-to-date definition, you should always refer to
+the RAML and JSON schemas in the reference section.
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
@@ -1820,6 +1822,7 @@ At the moment we have two system interfaces defined, but in time we may get
 a few more.
 
 #### Tenant Interface
+
 If a module provides a system interface called `_tenant`, Okapi invokes that
 interface every time a module gets enabled for a tenant. The request contains
 information about the newly enabled module, and optionally of some module that
@@ -1835,6 +1838,7 @@ Descriptor that defines this interface.
 The tenant interface was introduced in version 1.0
 
 #### TenantPermissions Interface
+
 When a module gets enabled for a tenant, Okapi also attempts to locate a
 `_tenantPermissions` interface, and invoke that. Typically this would be
 provided by the permission module. It gets a structure that contains the
