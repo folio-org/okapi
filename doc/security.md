@@ -1,5 +1,19 @@
 # Okapi Security Model
 
+<!-- ./md2toc -l 2 -h 3 security.md -->
+* [Introduction](#introduction)
+* [Simplified Overview](#simplified-overview)
+* [Authentication](#authentication)
+* [Authorization](#authorization)
+* [Examples of data flow](#examples-of-data-flow)
+    * [Simple request: Date](#simple-request-date)
+    * [More complex request: MOTD](#more-complex-request-motd)
+    * [Login](#login)
+* [Open questions and technical details](#open-questions-and-technical-details)
+* [Okapi process](#okapi-process)
+* [The auth process](#the-auth-process)
+
+## Introduction
 
 The Okapi security model consists of two parts: authentication and authorization.
 Authentication is responsible for assuring that our user is who they claim to be.
