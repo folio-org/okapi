@@ -97,16 +97,22 @@ public class DockerTest {
         if (res.statusCode() == 200) {
           boolean gotIt = false;
           logger.info("RESULT\n" + body.toString());
-          JsonArray ar = body.toJsonArray();
-          for (int i = 0; i < ar.size(); i++) {
-            JsonObject ob = ar.getJsonObject(i);
-            JsonArray ar1 = ob.getJsonArray("RepoTags");
-            for (int j = 0; j < ar1.size(); j++) {
-              String tag = ar1.getString(j);
-              if (tag != null && tag.startsWith("okapi-test-module")) {
-                gotIt = true;
+          try {
+            JsonArray ar = body.toJsonArray();
+            for (int i = 0; i < ar.size(); i++) {
+              JsonObject ob = ar.getJsonObject(i);
+              JsonArray ar1 = ob.getJsonArray("RepoTags");
+              if (ar1 != null) {
+                for (int j = 0; j < ar1.size(); j++) {
+                  String tag = ar1.getString(j);
+                  if (tag != null && tag.startsWith("okapi-test-module")) {
+                    gotIt = true;
+                  }
+                }
               }
             }
+          } catch (Exception ex) {
+            logger.warn(ex);
           }
           if (gotIt) {
             future.handle(Future.succeededFuture());
@@ -115,8 +121,8 @@ public class DockerTest {
           }
         } else {
           String m = "checkDocker HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }
