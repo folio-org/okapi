@@ -457,7 +457,6 @@ But it will reject:
 * 2.2  - Lower major version
 * 4.7   - Higher major version
 * 3.1   - Lesser minor version
-* 3.2  - Too small software version, may not contain crucial bug-fixes
 
 See further explanation of
 [Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
