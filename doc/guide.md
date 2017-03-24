@@ -1019,9 +1019,9 @@ running on that URL. Well, not exactly that URL, but a URL that we get when
 we combine the path from the RoutingEntry with the base URL above:
 ```
 curl -w '\n' http://localhost:9131/testb
-```
 
-It works!
+It works
+```
 
 #### Creating a tenant
 As noted above, all traffic should be going through Okapi, not directly
@@ -1508,17 +1508,17 @@ repeat all the `curl` commands.
       "version" : "2.4",
       "handlers" : [ {
         "methods" : [ "GET" ],
-        "pathPattern" : "/testb"
-        "permissionsRequired" : [ "test-basic.get.list" ],
+        "pathPattern" : "/testb",
+        "permissionsRequired" : [ "test-basic.get.list" ]
      }, {
         "methods" : [ "GET" ],
-        "pathPattern" : "/testb/{id}"
+        "pathPattern" : "/testb/{id}",
         "permissionsRequired" : [ "test-basic.get.details" ],
         "permissionsDesired" : [ "test-basic.get.sensitive.details" ],
         "modulePermissions" : [ "config.lookup" ]
      }, {
         "methods" : [ "POST", "PUT" ],
-        "pathPattern" : "/testb"
+        "pathPattern" : "/testb",
         "permissionsRequired" : [ "test-basic.update" ],
         "modulePermissions" : [ "config.lookup" ]
       } ]
@@ -1546,7 +1546,7 @@ repeat all the `curl` commands.
     "permissionSets" : [ {
        "permissionName" : "test-basic.get.list",
        "displayName" : "test-basic list records",
-       "description" : "Get a list of records",
+       "description" : "Get a list of records"
      }, {
        "permissionName" : "test-basic.get.details",
        "displayName" : "test-basic get record",
