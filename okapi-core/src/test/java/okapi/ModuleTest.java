@@ -269,6 +269,13 @@ public class ModuleTest {
       .then()
       .statusCode(404);
 
+    // Check that we refuse the request to unknown okapi service
+    // (also check that the parameters do not end in the log)
+    given()
+      .get("/_/foo?q=bar")
+      .then()
+      .statusCode(404);
+
     // This is a good ModuleDescriptor. For error tests, some things get
     // replaced out.
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";

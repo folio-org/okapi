@@ -184,7 +184,12 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public void NotFound(RoutingContext ctx) {
-    responseText(ctx, 404).end("Okapi: unrecognized service");
+    String slash = "";
+    if (ctx.request().path().endsWith("/")) {
+      slash = "  Try without a trailing slash";
+    }
+    responseError(ctx, 404, "Okapi: unrecognized service "
+      + ctx.request().path() + slash);
   }
 
   @Override
