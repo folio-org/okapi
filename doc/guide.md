@@ -694,11 +694,10 @@ perl -n -e  'print if /^curl /../http/; ' guide.md |
   sh -x
 ```
 
+(See the script `doc/okapi-examples.sh` which runs the above two commands.)
+
 This explicitly omits the cleaning up DELETE commands, so it leaves Okapi in a
 well-defined state with a few modules enabled for a few known tenants.
-
-See the script `doc/okapi-examples.sh`.
-Also see [Okapi demonstration](demos.md).
 
 ### Example modules
 
