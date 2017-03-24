@@ -87,7 +87,7 @@ the latter.
 
 The specification of the core Okapi web services, in its current form,
 is captured in [RAML](http://raml.org/) (RESTful API Modeling
-Language). See the [Reference](#reference) section.  The
+Language). See the [Reference](#web-service) section.  The
 specification, however, aims to make very few assumptions about the
 actual API endpoints exposed by specific modules, which are basically
 left undefined.  The goal is to allow for different styles and formats
@@ -651,7 +651,7 @@ http client. You should be able to copy and paste the commands to your
 command line from this document.
 
 The exact definition of the services is in the RAML files listed in
-the [Reference](#reference) section.
+the [Reference](#web-service) section.
 
 ### Storage
 
@@ -1581,9 +1581,11 @@ repeat all the `curl` commands.
     }
   }
 ```
+
 Most of the descriptor should look quite familiar at this point. The big
-new thing is about permissions. The full permission system is explained in a separate
-document <!-- TODO - how to link to it? --> and managed by the auth module complex.
+new thing is about permissions.
+The full [permission system](security.md) is explained in a separate
+document and managed by the auth module complex.
 All of that is outside the scope of Okapi itself, and of this guide.
 
 The most visible new thing in this descriptor is the whole new section called
@@ -1630,7 +1632,7 @@ There are features lingering from older versions (older than Okapi 1.2.0) that
 are still supported, but will be deprecated and removed in future versions.
 For example ModulePermissions and RoutingEntries on the top level of the
 descriptor. For the fully up-to-date definition, you should always refer to
-the RAML and JSON schemas in the reference section.
+the RAML and JSON schemas in the [Reference](#web-service) section.
 
 #### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
