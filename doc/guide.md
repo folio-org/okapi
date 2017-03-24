@@ -1016,7 +1016,7 @@ cluster there would be a firewall preventing any direct access to the modules,
 since all traffic must go through Okapi for authorization checks, logging, etc.
 But in our simple test example, we can verify that the module is actually
 running on that URL. Well, not exactly that URL, but a URL that we get when
-we combine the path from the RoutingEntry with the base URL above:
+we combine the path from the handler with the base URL above:
 ```
 curl -w '\n' http://localhost:9131/testb
 ```
@@ -1365,7 +1365,7 @@ cat > /tmp/okapi-proxy-test-basic.2.json <<END
       "id" : "_tenant",
       "version" : "1.0.0",
       "interfaceType" : "system",
-      "routingEntries" : [ {
+      "handlers" : [ {
         "methods" : [ "POST" ],
         "pathPattern" : "/_/tenant"
         } ]
