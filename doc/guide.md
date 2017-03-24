@@ -3,10 +3,7 @@
 This is the guide and reference to Okapi: a gateway for
 managing and running microservices.
 
-## Table of Contents
-
 <!-- Regenerate this as needed by running `make guide-toc.md` and including its output here -->
-* [Table of Contents](#table-of-contents)
 * [Introduction](#introduction)
 * [Architecture](#architecture)
     * [Okapi's own Web Services](#okapis-own-web-services)
@@ -25,13 +22,17 @@ managing and running microservices.
     * [Curl examples](#curl-examples)
     * [Example modules](#example-modules)
     * [Running Okapi itself](#running-okapi-itself)
-    * [Deploying Modules](#deploying-modules)
+    * [Example 1: Deploying and using a simple module](#example-1-deploying-and-using-a-simple-module)
+    * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
+    * [Example 3: Upgrading, versions, environment, and the _tenant interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
+    * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
     * [Web Service](#web-service)
     * [Deployment](#deployment)
     * [Docker](#docker)
+    * [System Interfaces](#system-interfaces)
     * [Instrumentation](#instrumentation)
 
 ## Introduction
