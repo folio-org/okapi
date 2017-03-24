@@ -451,7 +451,7 @@ as high as required.
 
 If a module requires an interface 3.2, it will accept:
 * 3.2  - same version
-* 3.   - Higher minor version, compatible interfaces
+* 3.4  - Higher minor version, compatible interfaces
 
 But it will reject:
 * 2.2  - Lower major version
