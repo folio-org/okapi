@@ -856,21 +856,25 @@ structure of a moduleDescriptor and POST it to Okapi:
 
 ```
 cat > /tmp/okapi-proxy-test-basic.1.json <<END
-  {
-    "id" : "test-basic-1.0.0",
-    "name" : "Okapi test module",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.2",
-      "handlers" : [ {
-        "methods" : [ "GET", "POST" ],
-        "pathPattern" : "/testb"
-        } ]
-    } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+{
+  "id": "test-basic-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
     }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
+}
 END
 ```
 
@@ -963,8 +967,8 @@ First we create a DeploymentDescriptor:
 ```
 cat > /tmp/okapi-deploy-test-basic.1.json <<END
 {
-  "srvcId" : "test-basic-1.0.0",
-  "nodeId" : "localhost"
+  "srvcId": "test-basic-1.0.0",
+  "nodeId": "localhost"
 }
 END
 ```
@@ -1043,9 +1047,9 @@ not very difficult:
 ```
 cat > /tmp/okapi-tenant.json <<END
 {
-  "id" : "testlib",
-  "name" : "Test Library",
-  "description" : "Our Own Test Library"
+  "id": "testlib",
+  "name": "Test Library",
+  "description": "Our Own Test Library"
 }
 END
 
@@ -1072,7 +1076,7 @@ Next we need to enable the module for our tenant. This is even simpler operation
 ```
 cat > /tmp/okapi-enable-basic-1.json <<END
 {
-  "id" : "test-basic-1.0.0"
+  "id": "test-basic-1.0.0"
 }
 END
 
@@ -1124,23 +1128,28 @@ As before, the first thing we create is a ModuleDescriptor:
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
-  "id" : "test-auth",
-  "name" : "Okapi test auth module",
-  "provides" : [ {
-    "id" : "test-auth",
-    "version" : "3.4",
-    "handlers" : [ {
-      "methods" : [ "POST" ],
-      "pathPattern" : "/login"
-    } ]
-  } ],
-  "filters" : [ {
-    "methods" : [ "*" ],
-    "pathPattern" : "/*",
-    "phase" : "auth",
-    "type" : "headers"
-    } ]
-  }
+  "id": "test-auth",
+  "name": "Okapi test auth module",
+  "provides": [
+    {
+      "id": "test-auth",
+      "version": "3.4",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/login"
+        }
+      ]
+    }
+  ],
+  "filters": [
+    {
+      "methods": [ "*" ],
+      "pathPattern": "/*",
+      "phase": "auth",
+      "type": "headers"
+    }
+  ]
 }
 END
 ```
@@ -1198,10 +1207,10 @@ in the moduleDescriptor, we need to provide one here.
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId" : "test-auth",
-  "nodeId" : "localhost",
-  "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+  "srvcId": "test-auth",
+  "nodeId": "localhost",
+  "descriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
@@ -1234,7 +1243,7 @@ And we enable the module for our tenant:
 ```
 cat > /tmp/okapi-enable-auth.json <<END
 {
-  "id" : "test-auth"
+  "id": "test-auth"
 }
 END
 
@@ -1350,37 +1359,48 @@ variables, and also look at the special `_tenant` system interface.
 Let's say we have a new and improved sample module:
 ```
 cat > /tmp/okapi-proxy-test-basic.2.json <<END
-  {
-    "id" : "test-basic-1.2.0",
-    "name" : "Okapi test module, improved",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.4",
-      "handlers" : [ {
-        "methods" : [ "GET", "POST" ],
-        "pathPattern" : "/testb"
-        } ]
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenant"
-        } ]
-    } ],
-    "requires" : [ {
-       "id" : "test-auth",
-       "version" : "3.1"
-     } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
-      "env" : [ {
-        "name" : "helloGreeting",
-        "value" : "Hi there"
-      } ]
+{
+  "id": "test-basic-1.2.0",
+  "name": "Okapi test module, improved",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.4",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenant"
+        }
+      ]
     }
+  ],
+  "requires": [
+    {
+      "id": "test-auth",
+      "version": "3.1"
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "env": [
+      {
+        "name": "helloGreeting",
+        "value": "Hi there"
+      }
+    ]
   }
+}
 END
 ```
 Note that we give it a different id, with the same name, but a higher version
@@ -1419,8 +1439,8 @@ Next we deploy the module, just as before.
 ```
 cat > /tmp/okapi-deploy-test-basic.2.json <<END
 {
-  "srvcId" : "test-basic-1.2.0",
-  "nodeId" : "localhost"
+  "srvcId": "test-basic-1.2.0",
+  "nodeId": "localhost"
 }
 END
 
@@ -1438,7 +1458,7 @@ This is done with a POST request to the URL of the current module.
 ```
 cat > /tmp/okapi-enable-basic-2.json <<END
 {
-  "id" : "test-basic-1.2.0"
+  "id": "test-basic-1.2.0"
 }
 END
 
@@ -1498,86 +1518,115 @@ In this example we just show you a complete ModuleDescriptor, with all the bells
 and whistles. By now you should know how to use one, so there is no need to
 repeat all the `curl` commands.
 
-```
-  {
-    "id" : "test-basic-1.3.0",
-    "name" : "Bells and Whistles",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.4",
-      "handlers" : [ {
-        "methods" : [ "GET" ],
-        "pathPattern" : "/testb",
-        "permissionsRequired" : [ "test-basic.get.list" ]
-     }, {
-        "methods" : [ "GET" ],
-        "pathPattern" : "/testb/{id}",
-        "permissionsRequired" : [ "test-basic.get.details" ],
-        "permissionsDesired" : [ "test-basic.get.sensitive.details" ],
-        "modulePermissions" : [ "config.lookup" ]
-     }, {
-        "methods" : [ "POST", "PUT" ],
-        "pathPattern" : "/testb",
-        "permissionsRequired" : [ "test-basic.update" ],
-        "modulePermissions" : [ "config.lookup" ]
-      } ]
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenant"
-        } ]
-    }, {
-      "id" : "_tenantPermissions",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenantpermissions"
-        } ]
-    } ],
-    "requires" : [ {
-       "id" : "test-auth",
-       "version" : "3.1"
-     } ],
-    "permissionSets" : [ {
-       "permissionName" : "test-basic.get.list",
-       "displayName" : "test-basic list records",
-       "description" : "Get a list of records"
-     }, {
-       "permissionName" : "test-basic.get.details",
-       "displayName" : "test-basic get record",
-       "description" : "Get a record, except sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.get.sensitive.details",
-       "displayName" : "test-basic get whole record",
-       "description" : "Get a record, including all sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.update",
-       "displayName" : "test-basic update record",
-       "description" : "Update or create a record, including all sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.view",
-       "displayName" : "test-basic list and view records",
-       "description" : "See everything, except the sensitive stuff",
-       "subPermissions" : [ "test-basic.get.list", "test-basic.get.details"]
-     }, {
-       "permissionName" : "test-basic.modify",
-       "displayName" : "test-basic modify data",
-       "description" : "See, Update or create a record, including sensitive stuff",
-       "subPermissions" : [ "test-basic.view",
-          "test-basic.update", " test-basic.get.sensitive.details" ]
-     } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
-      "env" : [ {
-        "name" : "helloGreeting",
-        "value" : "Hi there"
-      } ]
+```javascript
+{
+  "id": "test-basic-1.3.0",
+  "name": "Bells and Whistles",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.4",
+      "handlers": [
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.get.list" ]
+        },
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/testb/{id}",
+          "permissionsRequired": [ "test-basic.get.details" ],
+          "permissionsDesired": [ "test-basic.get.sensitive.details" ],
+          "modulePermissions": [ "config.lookup" ]
+        },
+        {
+          "methods": [ "POST", "PUT" ],
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.update" ],
+          "modulePermissions": [ "config.lookup" ]
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenant"
+        }
+      ]
+    },
+    {
+      "id": "_tenantPermissions",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenantpermissions"
+        }
+      ]
     }
+  ],
+  "requires": [
+    {
+      "id": "test-auth",
+      "version": "3.1"
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "test-basic.get.list",
+      "displayName": "test-basic list records",
+      "description": "Get a list of records"
+    },
+    {
+      "permissionName": "test-basic.get.details",
+      "displayName": "test-basic get record",
+      "description": "Get a record, except sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.get.sensitive.details",
+      "displayName": "test-basic get whole record",
+      "description": "Get a record, including all sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.update",
+      "displayName": "test-basic update record",
+      "description": "Update or create a record, including all sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.view",
+      "displayName": "test-basic list and view records",
+      "description": "See everything, except the sensitive stuff",
+      "subPermissions": [
+        "test-basic.get.list",
+        "test-basic.get.details"
+      ]
+    },
+    {
+      "permissionName": "test-basic.modify",
+      "displayName": "test-basic modify data",
+      "description": "See, Update or create a record, including sensitive stuff",
+      "subPermissions": [
+        "test-basic.view",
+        "test-basic.update",
+        " test-basic.get.sensitive.details"
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "env": [
+      {
+        "name": "helloGreeting",
+        "value": "Hi there"
+      }
+    ]
   }
+}
 ```
 
 Most of the descriptor should look quite familiar at this point. The big
