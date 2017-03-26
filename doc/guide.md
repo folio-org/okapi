@@ -450,13 +450,13 @@ as high as required.
 
 
 If a module requires an interface 3.2, it will accept:
-* 3.2  - same version
-* 3.4  - Higher minor version, compatible interfaces
+* 3.2 - same version
+* 3.4 - Higher minor version, compatible interfaces
 
 But it will reject:
-* 2.2  - Lower major version
-* 4.7   - Higher major version
-* 3.1   - Lesser minor version
+* 2.2 - Lower major version
+* 4.7 - Higher major version
+* 3.1 - Lesser minor version
 
 See further explanation of
 [Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
@@ -681,14 +681,14 @@ one-liner, assuming you have this MarkDown source of this guide in the
 current directory as _guide.md_ -- as is the case in the source tree.
 This leaves them all in /tmp, as files like `okapi-tenant.json`
 ```
-perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
+perl -n -e 'print if /^cat /../^END/;' guide.md | sh
 ```
 
 After that, it is also possible to run all the examples with a slightly more
 complex command:
 
 ```
-perl -n -e  'print if /^curl /../http/; ' guide.md |
+perl -n -e 'print if /^curl /../http/; ' guide.md |
   grep -v 8080 | grep -v DELETE |
   sh -x
 ```
@@ -893,9 +893,9 @@ examples.
 So, let's post it:
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-proxy-test-basic.1.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-test-basic.1.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -980,7 +980,7 @@ access to the nodes.
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-deploy-test-basic.1.json  \
+  -d @/tmp/okapi-deploy-test-basic.1.json \
   http://localhost:9130/_/discovery/modules
 ```
 
@@ -1051,7 +1051,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-tenant.json  \
+  -d @/tmp/okapi-tenant.json \
   http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 201 Created
@@ -1078,7 +1078,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-basic-1.json  \
+  -d @/tmp/okapi-enable-basic-1.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 201 Created
@@ -1163,9 +1163,9 @@ So we POST it to Okapi:
 
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-module-auth.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-module-auth.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -1209,7 +1209,7 @@ END
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-deploy-test-auth.json  \
+  -d @/tmp/okapi-deploy-test-auth.json \
   http://localhost:9130/_/discovery/modules
 
 HTTP/1.1 201 Created
@@ -1240,7 +1240,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-auth.json  \
+  -d @/tmp/okapi-enable-auth.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 201 Created
@@ -1259,8 +1259,8 @@ basic module as before:
 
 ```
 curl -D - -w '\n' \
-   -H "X-Okapi-Tenant: testlib" \
-   http://localhost:9130/testb
+  -H "X-Okapi-Tenant: testlib" \
+  http://localhost:9130/testb
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
@@ -1288,7 +1288,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
-  -d @/tmp/okapi-login.json  \
+  -d @/tmp/okapi-login.json \
   http://localhost:9130/login
 
 HTTP/1.1 200 OK
@@ -1316,9 +1316,9 @@ and how to pass it on in every request. Like this:
 
 ```
 curl -D - -w '\n' \
-   -H "X-Okapi-Tenant: testlib" \
-   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-   http://localhost:9130/testb
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  http://localhost:9130/testb
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -1334,7 +1334,7 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-  -d '{ "foo":"bar"}'  \
+  -d '{ "foo":"bar"}' \
   http://localhost:9130/testb
 ```
 The module responds with the same JSON, but prepends "Hello" to the string.
@@ -1408,9 +1408,9 @@ any module. We can not touch the old one, since some tenants may be using it.
 
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-proxy-test-basic.2.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-test-basic.2.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created   ...
 ```
@@ -1444,7 +1444,7 @@ END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-basic-2.json  \
+  -d @/tmp/okapi-enable-basic-2.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.0.0
 
 HTTP/1.1 201 Created
@@ -1478,7 +1478,7 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-  -d '{ "foo":"bar"}'  \
+  -d '{ "foo":"bar"}' \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
