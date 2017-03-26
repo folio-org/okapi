@@ -1831,8 +1831,9 @@ got disabled at the same time, for example when a module is being upgraded. The
 module can use this information to upgrade or initialize its database, and do
 any kind of housekeeping it needs.
 
-For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` the
-files `ramls/tenant.raml` and `schemas/moduleInfo.schema`. The okapi-test-module
+For the [specifics](#web-service), see under `.../okapi/okapi-core/src/main/raml/raml-util`
+the files `ramls/tenant.raml` and `schemas/moduleInfo.schema`.
+The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.
 
@@ -1854,8 +1855,9 @@ and permission sets for the named module, and then insert those it received in
 the request. That way it will clean up permissions that may have been introduced
 in some older version of the module, and are no longer used.
 
-For the specifics, see under .../okapi/okapi-core/src/main/raml/raml-util,
-files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-header-module
+For the [specifics](#web-service), see under `.../okapi/okapi-core/src/main/raml/raml-util`
+the files `ramls/tenant.raml` and `schemas/moduleInfo.schema`.
+The okapi-test-header-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that define this interface.
 
@@ -1871,8 +1873,9 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:2003`.
-If you add `-DgraphiteHost=graphite.yourdomain.io` as a parameter to your java command
+Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:2003`
+
+If you add `graphiteHost` as a parameter to your java command,
 e.g.
 `java -DgraphiteHost=graphite.yourdomain.io -jar okapi-core/target/okapi-core-fat.jar dev -enable-metrics`
 then metrics will be sent to `graphite.yourdomain.io`
