@@ -24,7 +24,7 @@ managing and running microservices.
     * [Running Okapi itself](#running-okapi-itself)
     * [Example 1: Deploying and using a simple module](#example-1-deploying-and-using-a-simple-module)
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
-    * [Example 3: Upgrading, versions, environment, and the _tenant interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
+    * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
@@ -1340,12 +1340,12 @@ curl -w '\n' -X POST -D - \
 The module responds with the same JSON, but prepends "Hello" to the string.
 
 
-### Example 3: Upgrading, versions, environment, and the _tenant interface
+### Example 3: Upgrading, versions, environment, and the `_tenant` interface
 
 Upgrading can often be problematic. More so in Okapi, since we are serving many
 tenants, who will have different ideas about when and what to upgrade. In this
 example we go through the upgrading process, discuss versions, environment
-variables, and also look at the special _tenant system interface.
+variables, and also look at the special `_tenant` system interface.
 
 Let's say we have a new and improved sample module:
 ```
@@ -1388,7 +1388,7 @@ number. Note also that for this example we make use of the same okapi-test-modul
 program, since we don't have much else to play with. This could also happen in
 real life, if we only have changes in the module descriptor, like we have here.
 
-We have added a new interface that the module supports, "_tenant". It is a
+We have added a new interface that the module supports: `_tenant`. It is a
 system interface that Okapi will automatically call when the module gets
 enabled for a tenant. Its purpose is to do whatever initialization the module
 needs, for example to create database tables.
@@ -1620,7 +1620,7 @@ deduce if the user will have those permissions or not. The details should not
 concern us here, but clearly the process has something to do with the
 permissionSets. How does the auth module get access to the permission sets of
 the moduleDescription? It does not happen by magic, but almost. When a module
-gets enabled for a tenant, Okapi not only calls the _tenant interface of the
+gets enabled for a tenant, Okapi not only calls the `_tenant` interface of the
 module itself, but also sees if any module provides a tenantPermissions
 interface, and passes the permissionSets there. The permission module is
 supposed to do that, and receive the permissionSets that way.
