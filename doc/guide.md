@@ -40,7 +40,7 @@ managing and running microservices.
 This document aims to provide an overview of concepts that relate to Okapi and
 the entire ecosystem around it (e.g. core vs modules) as well as details of the
 implementation and usage of Okapi: by presenting concrete web service
-endpoints and details of request processing - handling of request and
+endpoints and details of request processing -- handling of request and
 response entities, status codes, error conditions, etc.
 
 Okapi is an implementation of some different patterns commonly used within
@@ -64,7 +64,7 @@ Discovery tool: service A wanting to talk to service B only needs to
 know its HTTP interface since Okapi will inspect the registry of
 available services to locate the physical instance of the service.
 
-Okapi is designed to be configurable and extensible - it allows one to
+Okapi is designed to be configurable and extensible -- it allows one to
 expose new, or enrich existing, web service endpoints without a need
 for programmatic changes to the software itself. Registration of new
 services ('modules' as seen from Okapi) happens by making calls to the Okapi
@@ -78,8 +78,8 @@ allow for app store features in which services or groups of services
 
 Web service endpoints in Okapi can be, roughly, divided into two
 parts: (1) general module and tenant management APIs, sometimes
-referred to as 'core' - initially part of Okapi itself but potentially
-separable into their own services  - and (2) endpoints for accessing
+referred to as 'core' -- initially part of Okapi itself but potentially
+separable into their own services -- and (2) endpoints for accessing
 module-provided, business-logic specific interfaces, e.g. Patron
 management or Circulation. This document will discuss the former in
 detail and offer a general overview of allowed formats and styles for
@@ -134,7 +134,7 @@ internal web services from the extension points provided by modules.
    discovery service, but is left open in case some cluster management
    system could make use of it.
 
- * The `/_/env`  endpoint is used to manage environment variables - system-wide
+ * The `/_/env`  endpoint is used to manage environment variables -- system-wide
    properties that are passed to modules during deployment.
 
 These four parts are coded as separate services, so that it will be possible
@@ -294,7 +294,7 @@ processed. Currently, we have three kinds of request processing by
 modules (controlled by the `type` parameter in the module registration
 configuration). The possible values are:
 
- * `headers` - the module is interested in headers/parameters only,
+ * `headers` -- The module is interested in headers/parameters only,
 and it can inspect them and perform an action based on the
 presence/absence of headers/parameters and their corresponding
 value. The module is not expected to return any entity in the
@@ -304,7 +304,7 @@ module may return certain response headers that will be merged into
 the complete response header list according to the header manipulation
 rules below.
 
- * `request-only` - the module is interested in the full client
+ * `request-only` -- The module is interested in the full client
 request: header/parameters and the entity body attached to the
 request. It does not produce a modified version or a new entity in the
 response but performs an associated action and returns optional
@@ -313,7 +313,7 @@ termination. In cases when an entity is returned, Okapi will discard
 it and continue forwarding the original request body to the subsequent
 modules in the pipeline.
 
- * `request-response` - the module is interested in both
+ * `request-response` -- The module is interested in both
 headers/parameters and the request body. It is also expected that the
 module will return an entity in the response. This may be e.g. a
 modified request body, in which case the module acts as a filter. The
@@ -323,7 +323,7 @@ is controlled via the response status codes, and the response headers
 are merged back into the complete response using the rules described
 below.
 
-* `redirect` - The module does not serve this path directly, but redirects
+* `redirect` -- The module does not serve this path directly, but redirects
 the request to some other path, served by some other module. This is
 intended as a mechanism for piling more complex modules on top of simpler
 implementations, for example a module to edit and list users could be
@@ -374,7 +374,7 @@ terminates the entire chain and returns the code back to the caller.
 
 Since Okapi forwards the response from a previous module on to the
 next module in the pipeline (e.g. for additional filtering/processing),
-certain initial request headers become invalid - e.g. when a
+certain initial request headers become invalid, e.g. when a
 module converts the entity to a different content type or changes its
 size. Invalid headers need to be updated, based on the module's
 response header values, before the request can be forwarded to the
@@ -422,8 +422,8 @@ the other.
 
 #### Version numbers
 
-We use a 3-part versioning scheme for module software versions, like
-3.1.41 -- very much like [Semantic Versioning](http://semver.org/).
+We use a 3-part versioning scheme for module software versions, for example
+`3.1.41` -- very much like [Semantic Versioning](http://semver.org/).
 Interface versions consist only of the first two parts, as they have
 no implementation version.
 
@@ -441,7 +441,7 @@ efficiency.
 
 Although it is strongly recommended to use this versioning schema for all
 modules, Okapi does not enforce it for modules. The reason is that Okapi does
-not need to know anything about module versions - it only worries about the
+not need to know anything about module versions -- it only worries about the
 interfaces being compatible.
 
 When checking interface versions, Okapi will require that the major version
@@ -450,13 +450,13 @@ as high as required.
 
 
 If a module requires an interface 3.2, it will accept:
-* 3.2 - same version
-* 3.4 - Higher minor version, compatible interfaces
+* 3.2 -- Same version
+* 3.4 -- Higher minor version, compatible interfaces
 
 But it will reject:
-* 2.2 - Lower major version
-* 4.7 - Higher major version
-* 3.1 - Lesser minor version
+* 2.2 -- Lower major version
+* 4.7 -- Higher major version
+* 3.1 -- Lesser minor version
 
 See further explanation of
 [Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
@@ -468,9 +468,9 @@ Most of the security discussion has been moved into its own document,
 This chapter of this Okapi Guide just provides a quick overview.
 
 The security model is concerned about three things:
-* Authentication - that we know who the user is
-* Authorization - that the user is allowed to make this request
-* Permissions - mapping from user roles all the way down to detailed permissions
+* Authentication -- That we know who the user is.
+* Authorization -- That the user is allowed to make this request.
+* Permissions -- Mapping from user roles all the way down to detailed permissions
 Most of this work has been delegated to modules, so Okapi itself will not have
 to do so much work. But it still needs to orchestrate the whole operation.
 
@@ -594,18 +594,18 @@ the end:
 
 The okapi directory contains a few sub modules. These are:
 
- * `okapi-core`: the gateway server itself
- * `okapi-common`: utilities used by both gateway and modules
- * `doc`: documentation, including this guide
- * `okapi-test-auth-module`: a simple module for testing authentication stuff
- * `okapi-test-module`: a module mangling HTTP content for test purposes
- * `okapi-test-header-module`: a module to test headers-only mode
+ * `okapi-core` -- The gateway server itself.
+ * `okapi-common` -- Utilities used by both gateway and modules.
+ * `doc` -- Documentation, including this guide.
+ * `okapi-test-auth-module` -- A simple module for testing authentication stuff.
+ * `okapi-test-module` -- A module mangling HTTP content for test purposes.
+ * `okapi-test-header-module` -- A module to test headers-only mode.
 
 (Note the build order specified in the `pom.xml`:
 okapi-core must be last because its tests rely on the previous ones.)
 
 The result for each module and okapi-core is a combined jar file
-with all necessary components combined - including Vert.x. The listening
+with all necessary components combined, including Vert.x. The listening
 port is adjusted with property `port`.
 
 For example, to run the okapi-test-auth-module module and listen on port 8600, use:
@@ -1385,7 +1385,7 @@ END
 ```
 Note that we give it a different id, with the same name, but a higher version
 number. Note also that for this example we make use of the same okapi-test-module
-program, since we don't have much else to play with. This could also happen in
+program, since we do not have much else to play with. This could also happen in
 real life, if we only have changes in the module descriptor, like we have here.
 
 We have added a new interface that the module supports: `_tenant`. It is a
