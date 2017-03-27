@@ -24,7 +24,7 @@ managing and running microservices.
     * [Running Okapi itself](#running-okapi-itself)
     * [Example 1: Deploying and using a simple module](#example-1-deploying-and-using-a-simple-module)
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
-    * [Example 3: Upgrading, versions, environment, and the _tenant interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
+    * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
@@ -40,7 +40,7 @@ managing and running microservices.
 This document aims to provide an overview of concepts that relate to Okapi and
 the entire ecosystem around it (e.g. core vs modules) as well as details of the
 implementation and usage of Okapi: by presenting concrete web service
-endpoints and details of request processing - handling of request and
+endpoints and details of request processing -- handling of request and
 response entities, status codes, error conditions, etc.
 
 Okapi is an implementation of some different patterns commonly used within
@@ -64,7 +64,7 @@ Discovery tool: service A wanting to talk to service B only needs to
 know its HTTP interface since Okapi will inspect the registry of
 available services to locate the physical instance of the service.
 
-Okapi is designed to be configurable and extensible - it allows one to
+Okapi is designed to be configurable and extensible -- it allows one to
 expose new, or enrich existing, web service endpoints without a need
 for programmatic changes to the software itself. Registration of new
 services ('modules' as seen from Okapi) happens by making calls to the Okapi
@@ -78,8 +78,8 @@ allow for app store features in which services or groups of services
 
 Web service endpoints in Okapi can be, roughly, divided into two
 parts: (1) general module and tenant management APIs, sometimes
-referred to as 'core' - initially part of Okapi itself but potentially
-separable into their own services  - and (2) endpoints for accessing
+referred to as 'core' -- initially part of Okapi itself but potentially
+separable into their own services -- and (2) endpoints for accessing
 module-provided, business-logic specific interfaces, e.g. Patron
 management or Circulation. This document will discuss the former in
 detail and offer a general overview of allowed formats and styles for
@@ -134,7 +134,7 @@ internal web services from the extension points provided by modules.
    discovery service, but is left open in case some cluster management
    system could make use of it.
 
- * The `/_/env`  endpoint is used to manage environment variables - system-wide
+ * The `/_/env`  endpoint is used to manage environment variables -- system-wide
    properties that are passed to modules during deployment.
 
 These four parts are coded as separate services, so that it will be possible
@@ -294,7 +294,7 @@ processed. Currently, we have three kinds of request processing by
 modules (controlled by the `type` parameter in the module registration
 configuration). The possible values are:
 
- * `headers` - the module is interested in headers/parameters only,
+ * `headers` -- The module is interested in headers/parameters only,
 and it can inspect them and perform an action based on the
 presence/absence of headers/parameters and their corresponding
 value. The module is not expected to return any entity in the
@@ -304,7 +304,7 @@ module may return certain response headers that will be merged into
 the complete response header list according to the header manipulation
 rules below.
 
- * `request-only` - the module is interested in the full client
+ * `request-only` -- The module is interested in the full client
 request: header/parameters and the entity body attached to the
 request. It does not produce a modified version or a new entity in the
 response but performs an associated action and returns optional
@@ -313,7 +313,7 @@ termination. In cases when an entity is returned, Okapi will discard
 it and continue forwarding the original request body to the subsequent
 modules in the pipeline.
 
- * `request-response` - the module is interested in both
+ * `request-response` -- The module is interested in both
 headers/parameters and the request body. It is also expected that the
 module will return an entity in the response. This may be e.g. a
 modified request body, in which case the module acts as a filter. The
@@ -323,7 +323,7 @@ is controlled via the response status codes, and the response headers
 are merged back into the complete response using the rules described
 below.
 
-* `redirect` - The module does not serve this path directly, but redirects
+* `redirect` -- The module does not serve this path directly, but redirects
 the request to some other path, served by some other module. This is
 intended as a mechanism for piling more complex modules on top of simpler
 implementations, for example a module to edit and list users could be
@@ -374,7 +374,7 @@ terminates the entire chain and returns the code back to the caller.
 
 Since Okapi forwards the response from a previous module on to the
 next module in the pipeline (e.g. for additional filtering/processing),
-certain initial request headers become invalid - e.g. when a
+certain initial request headers become invalid, e.g. when a
 module converts the entity to a different content type or changes its
 size. Invalid headers need to be updated, based on the module's
 response header values, before the request can be forwarded to the
@@ -422,8 +422,8 @@ the other.
 
 #### Version numbers
 
-We use a 3-part versioning scheme for module software versions, like
-3.1.41 -- very much like [Semantic Versioning](http://semver.org/).
+We use a 3-part versioning scheme for module software versions, for example
+`3.1.41` -- very much like [Semantic Versioning](http://semver.org/).
 Interface versions consist only of the first two parts, as they have
 no implementation version.
 
@@ -441,7 +441,7 @@ efficiency.
 
 Although it is strongly recommended to use this versioning schema for all
 modules, Okapi does not enforce it for modules. The reason is that Okapi does
-not need to know anything about module versions - it only worries about the
+not need to know anything about module versions -- it only worries about the
 interfaces being compatible.
 
 When checking interface versions, Okapi will require that the major version
@@ -450,13 +450,13 @@ as high as required.
 
 
 If a module requires an interface 3.2, it will accept:
-* 3.2  - same version
-* 3.4  - Higher minor version, compatible interfaces
+* 3.2 -- Same version
+* 3.4 -- Higher minor version, compatible interfaces
 
 But it will reject:
-* 2.2  - Lower major version
-* 4.7   - Higher major version
-* 3.1   - Lesser minor version
+* 2.2 -- Lower major version
+* 4.7 -- Higher major version
+* 3.1 -- Lesser minor version
 
 See further explanation of
 [Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
@@ -468,9 +468,9 @@ Most of the security discussion has been moved into its own document,
 This chapter of this Okapi Guide just provides a quick overview.
 
 The security model is concerned about three things:
-* Authentication - that we know who the user is
-* Authorization - that the user is allowed to make this request
-* Permissions - mapping from user roles all the way down to detailed permissions
+* Authentication -- That we know who the user is.
+* Authorization -- That the user is allowed to make this request.
+* Permissions -- Mapping from user roles all the way down to detailed permissions
 Most of this work has been delegated to modules, so Okapi itself will not have
 to do so much work. But it still needs to orchestrate the whole operation.
 
@@ -594,18 +594,18 @@ the end:
 
 The okapi directory contains a few sub modules. These are:
 
- * `okapi-core`: the gateway server itself
- * `okapi-common`: utilities used by both gateway and modules
- * `doc`: documentation, including this guide
- * `okapi-test-auth-module`: a simple module for testing authentication stuff
- * `okapi-test-module`: a module mangling HTTP content for test purposes
- * `okapi-test-header-module`: a module to test headers-only mode
+ * `okapi-core` -- The gateway server itself.
+ * `okapi-common` -- Utilities used by both gateway and modules.
+ * `doc` -- Documentation, including this guide.
+ * `okapi-test-auth-module` -- A simple module for testing authentication stuff.
+ * `okapi-test-module` -- A module mangling HTTP content for test purposes.
+ * `okapi-test-header-module` -- A module to test headers-only mode.
 
 (Note the build order specified in the `pom.xml`:
 okapi-core must be last because its tests rely on the previous ones.)
 
 The result for each module and okapi-core is a combined jar file
-with all necessary components combined - including Vert.x. The listening
+with all necessary components combined, including Vert.x. The listening
 port is adjusted with property `port`.
 
 For example, to run the okapi-test-auth-module module and listen on port 8600, use:
@@ -681,14 +681,14 @@ one-liner, assuming you have this MarkDown source of this guide in the
 current directory as _guide.md_ -- as is the case in the source tree.
 This leaves them all in /tmp, as files like `okapi-tenant.json`
 ```
-perl -n -e  'print if /^cat /../^END/;' guide.md  | sh
+perl -n -e 'print if /^cat /../^END/;' guide.md | sh
 ```
 
 After that, it is also possible to run all the examples with a slightly more
 complex command:
 
 ```
-perl -n -e  'print if /^curl /../http/; ' guide.md |
+perl -n -e 'print if /^curl /../http/; ' guide.md |
   grep -v 8080 | grep -v DELETE |
   sh -x
 ```
@@ -856,21 +856,25 @@ structure of a moduleDescriptor and POST it to Okapi:
 
 ```
 cat > /tmp/okapi-proxy-test-basic.1.json <<END
-  {
-    "id" : "test-basic-1.0.0",
-    "name" : "Okapi test module",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.2",
-      "handlers" : [ {
-        "methods" : [ "GET", "POST" ],
-        "pathPattern" : "/testb"
-        } ]
-    } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+{
+  "id": "test-basic-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
     }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
+}
 END
 ```
 
@@ -893,9 +897,9 @@ examples.
 So, let's post it:
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-proxy-test-basic.1.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-test-basic.1.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -963,8 +967,8 @@ First we create a DeploymentDescriptor:
 ```
 cat > /tmp/okapi-deploy-test-basic.1.json <<END
 {
-  "srvcId" : "test-basic-1.0.0",
-  "nodeId" : "localhost"
+  "srvcId": "test-basic-1.0.0",
+  "nodeId": "localhost"
 }
 END
 ```
@@ -980,7 +984,7 @@ access to the nodes.
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-deploy-test-basic.1.json  \
+  -d @/tmp/okapi-deploy-test-basic.1.json \
   http://localhost:9130/_/discovery/modules
 ```
 
@@ -1043,15 +1047,15 @@ not very difficult:
 ```
 cat > /tmp/okapi-tenant.json <<END
 {
-  "id" : "testlib",
-  "name" : "Test Library",
-  "description" : "Our Own Test Library"
+  "id": "testlib",
+  "name": "Test Library",
+  "description": "Our Own Test Library"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-tenant.json  \
+  -d @/tmp/okapi-tenant.json \
   http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 201 Created
@@ -1072,13 +1076,13 @@ Next we need to enable the module for our tenant. This is even simpler operation
 ```
 cat > /tmp/okapi-enable-basic-1.json <<END
 {
-  "id" : "test-basic-1.0.0"
+  "id": "test-basic-1.0.0"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-basic-1.json  \
+  -d @/tmp/okapi-enable-basic-1.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 201 Created
@@ -1124,23 +1128,28 @@ As before, the first thing we create is a ModuleDescriptor:
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
-  "id" : "test-auth",
-  "name" : "Okapi test auth module",
-  "provides" : [ {
-    "id" : "test-auth",
-    "version" : "3.4",
-    "handlers" : [ {
-      "methods" : [ "POST" ],
-      "pathPattern" : "/login"
-    } ]
-  } ],
-  "filters" : [ {
-    "methods" : [ "*" ],
-    "pathPattern" : "/*",
-    "phase" : "auth",
-    "type" : "headers"
-    } ]
-  }
+  "id": "test-auth",
+  "name": "Okapi test auth module",
+  "provides": [
+    {
+      "id": "test-auth",
+      "version": "3.4",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/login"
+        }
+      ]
+    }
+  ],
+  "filters": [
+    {
+      "methods": [ "*" ],
+      "pathPattern": "/*",
+      "phase": "auth",
+      "type": "headers"
+    }
+  ]
 }
 END
 ```
@@ -1163,9 +1172,9 @@ So we POST it to Okapi:
 
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-module-auth.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-module-auth.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created
 Content-Type: application/json
@@ -1198,10 +1207,10 @@ in the moduleDescriptor, we need to provide one here.
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId" : "test-auth",
-  "nodeId" : "localhost",
-  "descriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
+  "srvcId": "test-auth",
+  "nodeId": "localhost",
+  "descriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
 END
@@ -1209,7 +1218,7 @@ END
 curl -w '\n' -D - -s \
   -X POST \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-deploy-test-auth.json  \
+  -d @/tmp/okapi-deploy-test-auth.json \
   http://localhost:9130/_/discovery/modules
 
 HTTP/1.1 201 Created
@@ -1234,13 +1243,13 @@ And we enable the module for our tenant:
 ```
 cat > /tmp/okapi-enable-auth.json <<END
 {
-  "id" : "test-auth"
+  "id": "test-auth"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-auth.json  \
+  -d @/tmp/okapi-enable-auth.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules
 
 HTTP/1.1 201 Created
@@ -1259,8 +1268,8 @@ basic module as before:
 
 ```
 curl -D - -w '\n' \
-   -H "X-Okapi-Tenant: testlib" \
-   http://localhost:9130/testb
+  -H "X-Okapi-Tenant: testlib" \
+  http://localhost:9130/testb
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
@@ -1288,7 +1297,7 @@ END
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
-  -d @/tmp/okapi-login.json  \
+  -d @/tmp/okapi-login.json \
   http://localhost:9130/login
 
 HTTP/1.1 200 OK
@@ -1316,9 +1325,9 @@ and how to pass it on in every request. Like this:
 
 ```
 curl -D - -w '\n' \
-   -H "X-Okapi-Tenant: testlib" \
-   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-   http://localhost:9130/testb
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  http://localhost:9130/testb
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
@@ -1334,61 +1343,72 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-  -d '{ "foo":"bar"}'  \
+  -d '{ "foo":"bar"}' \
   http://localhost:9130/testb
 ```
 The module responds with the same JSON, but prepends "Hello" to the string.
 
 
-### Example 3: Upgrading, versions, environment, and the _tenant interface
+### Example 3: Upgrading, versions, environment, and the `_tenant` interface
 
 Upgrading can often be problematic. More so in Okapi, since we are serving many
 tenants, who will have different ideas about when and what to upgrade. In this
 example we go through the upgrading process, discuss versions, environment
-variables, and also look at the special _tenant system interface.
+variables, and also look at the special `_tenant` system interface.
 
 Let's say we have a new and improved sample module:
 ```
 cat > /tmp/okapi-proxy-test-basic.2.json <<END
-  {
-    "id" : "test-basic-1.2.0",
-    "name" : "Okapi test module, improved",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.4",
-      "handlers" : [ {
-        "methods" : [ "GET", "POST" ],
-        "pathPattern" : "/testb"
-        } ]
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenant"
-        } ]
-    } ],
-    "requires" : [ {
-       "id" : "test-auth",
-       "version" : "3.1"
-     } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
-      "env" : [ {
-        "name" : "helloGreeting",
-        "value" : "Hi there"
-      } ]
+{
+  "id": "test-basic-1.2.0",
+  "name": "Okapi test module, improved",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.4",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenant"
+        }
+      ]
     }
+  ],
+  "requires": [
+    {
+      "id": "test-auth",
+      "version": "3.1"
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "env": [
+      {
+        "name": "helloGreeting",
+        "value": "Hi there"
+      }
+    ]
   }
+}
 END
 ```
 Note that we give it a different id, with the same name, but a higher version
 number. Note also that for this example we make use of the same okapi-test-module
-program, since we don't have much else to play with. This could also happen in
+program, since we do not have much else to play with. This could also happen in
 real life, if we only have changes in the module descriptor, like we have here.
 
-We have added a new interface that the module supports, "_tenant". It is a
+We have added a new interface that the module supports: `_tenant`. It is a
 system interface that Okapi will automatically call when the module gets
 enabled for a tenant. Its purpose is to do whatever initialization the module
 needs, for example to create database tables.
@@ -1408,9 +1428,9 @@ any module. We can not touch the old one, since some tenants may be using it.
 
 ```
 curl -w '\n' -X POST -D - \
-    -H "Content-type: application/json" \
-    -d @/tmp/okapi-proxy-test-basic.2.json \
-   http://localhost:9130/_/proxy/modules
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-test-basic.2.json \
+  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 201 Created   ...
 ```
@@ -1419,8 +1439,8 @@ Next we deploy the module, just as before.
 ```
 cat > /tmp/okapi-deploy-test-basic.2.json <<END
 {
-  "srvcId" : "test-basic-1.2.0",
-  "nodeId" : "localhost"
+  "srvcId": "test-basic-1.2.0",
+  "nodeId": "localhost"
 }
 END
 
@@ -1438,13 +1458,13 @@ This is done with a POST request to the URL of the current module.
 ```
 cat > /tmp/okapi-enable-basic-2.json <<END
 {
-  "id" : "test-basic-1.2.0"
+  "id": "test-basic-1.2.0"
 }
 END
 
 curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
-  -d @/tmp/okapi-enable-basic-2.json  \
+  -d @/tmp/okapi-enable-basic-2.json \
   http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.0.0
 
 HTTP/1.1 201 Created
@@ -1478,7 +1498,7 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
   -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
-  -d '{ "foo":"bar"}'  \
+  -d '{ "foo":"bar"}' \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
@@ -1498,86 +1518,115 @@ In this example we just show you a complete ModuleDescriptor, with all the bells
 and whistles. By now you should know how to use one, so there is no need to
 repeat all the `curl` commands.
 
-```
-  {
-    "id" : "test-basic-1.3.0",
-    "name" : "Bells and Whistles",
-    "provides" : [ {
-      "id" : "test-basic",
-      "version" : "2.4",
-      "handlers" : [ {
-        "methods" : [ "GET" ],
-        "pathPattern" : "/testb",
-        "permissionsRequired" : [ "test-basic.get.list" ]
-     }, {
-        "methods" : [ "GET" ],
-        "pathPattern" : "/testb/{id}",
-        "permissionsRequired" : [ "test-basic.get.details" ],
-        "permissionsDesired" : [ "test-basic.get.sensitive.details" ],
-        "modulePermissions" : [ "config.lookup" ]
-     }, {
-        "methods" : [ "POST", "PUT" ],
-        "pathPattern" : "/testb",
-        "permissionsRequired" : [ "test-basic.update" ],
-        "modulePermissions" : [ "config.lookup" ]
-      } ]
-    }, {
-      "id" : "_tenant",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenant"
-        } ]
-    }, {
-      "id" : "_tenantPermissions",
-      "version" : "1.0.0",
-      "interfaceType" : "system",
-      "handlers" : [ {
-        "methods" : [ "POST" ],
-        "pathPattern" : "/_/tenantpermissions"
-        } ]
-    } ],
-    "requires" : [ {
-       "id" : "test-auth",
-       "version" : "3.1"
-     } ],
-    "permissionSets" : [ {
-       "permissionName" : "test-basic.get.list",
-       "displayName" : "test-basic list records",
-       "description" : "Get a list of records"
-     }, {
-       "permissionName" : "test-basic.get.details",
-       "displayName" : "test-basic get record",
-       "description" : "Get a record, except sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.get.sensitive.details",
-       "displayName" : "test-basic get whole record",
-       "description" : "Get a record, including all sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.update",
-       "displayName" : "test-basic update record",
-       "description" : "Update or create a record, including all sensitive stuff"
-     }, {
-       "permissionName" : "test-basic.view",
-       "displayName" : "test-basic list and view records",
-       "description" : "See everything, except the sensitive stuff",
-       "subPermissions" : [ "test-basic.get.list", "test-basic.get.details"]
-     }, {
-       "permissionName" : "test-basic.modify",
-       "displayName" : "test-basic modify data",
-       "description" : "See, Update or create a record, including sensitive stuff",
-       "subPermissions" : [ "test-basic.view",
-          "test-basic.update", " test-basic.get.sensitive.details" ]
-     } ],
-    "launchDescriptor" : {
-      "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
-      "env" : [ {
-        "name" : "helloGreeting",
-        "value" : "Hi there"
-      } ]
+```javascript
+{
+  "id": "test-basic-1.3.0",
+  "name": "Bells and Whistles",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.4",
+      "handlers": [
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.get.list" ]
+        },
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/testb/{id}",
+          "permissionsRequired": [ "test-basic.get.details" ],
+          "permissionsDesired": [ "test-basic.get.sensitive.details" ],
+          "modulePermissions": [ "config.lookup" ]
+        },
+        {
+          "methods": [ "POST", "PUT" ],
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.update" ],
+          "modulePermissions": [ "config.lookup" ]
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenant"
+        }
+      ]
+    },
+    {
+      "id": "_tenantPermissions",
+      "version": "1.0.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenantpermissions"
+        }
+      ]
     }
+  ],
+  "requires": [
+    {
+      "id": "test-auth",
+      "version": "3.1"
+    }
+  ],
+  "permissionSets": [
+    {
+      "permissionName": "test-basic.get.list",
+      "displayName": "test-basic list records",
+      "description": "Get a list of records"
+    },
+    {
+      "permissionName": "test-basic.get.details",
+      "displayName": "test-basic get record",
+      "description": "Get a record, except sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.get.sensitive.details",
+      "displayName": "test-basic get whole record",
+      "description": "Get a record, including all sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.update",
+      "displayName": "test-basic update record",
+      "description": "Update or create a record, including all sensitive stuff"
+    },
+    {
+      "permissionName": "test-basic.view",
+      "displayName": "test-basic list and view records",
+      "description": "See everything, except the sensitive stuff",
+      "subPermissions": [
+        "test-basic.get.list",
+        "test-basic.get.details"
+      ]
+    },
+    {
+      "permissionName": "test-basic.modify",
+      "displayName": "test-basic modify data",
+      "description": "See, Update or create a record, including sensitive stuff",
+      "subPermissions": [
+        "test-basic.view",
+        "test-basic.update",
+        " test-basic.get.sensitive.details"
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar",
+    "env": [
+      {
+        "name": "helloGreeting",
+        "value": "Hi there"
+      }
+    ]
   }
+}
 ```
 
 Most of the descriptor should look quite familiar at this point. The big
@@ -1620,7 +1669,7 @@ deduce if the user will have those permissions or not. The details should not
 concern us here, but clearly the process has something to do with the
 permissionSets. How does the auth module get access to the permission sets of
 the moduleDescription? It does not happen by magic, but almost. When a module
-gets enabled for a tenant, Okapi not only calls the _tenant interface of the
+gets enabled for a tenant, Okapi not only calls the `_tenant` interface of the
 module itself, but also sees if any module provides a tenantPermissions
 interface, and passes the permissionSets there. The permission module is
 supposed to do that, and receive the permissionSets that way.
@@ -1831,8 +1880,9 @@ got disabled at the same time, for example when a module is being upgraded. The
 module can use this information to upgrade or initialize its database, and do
 any kind of housekeeping it needs.
 
-For the specifics, see under `.../okapi/okapi-core/src/main/raml/raml-util` the
-files `ramls/tenant.raml` and `schemas/moduleInfo.schema`. The okapi-test-module
+For the [specifics](#web-service), see under `.../okapi/okapi-core/src/main/raml/raml-util`
+the files `ramls/tenant.raml` and `schemas/moduleInfo.schema`.
+The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.
 
@@ -1854,8 +1904,9 @@ and permission sets for the named module, and then insert those it received in
 the request. That way it will clean up permissions that may have been introduced
 in some older version of the module, and are no longer used.
 
-For the specifics, see under .../okapi/okapi-core/src/main/raml/raml-util,
-files ramls/tenant.raml and schemas/moduleInfo.schema. The okapi-test-header-module
+For the [specifics](#web-service), see under `.../okapi/okapi-core/src/main/raml/raml-util`
+the files `ramls/tenant.raml` and `schemas/moduleInfo.schema`.
+The okapi-test-header-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that define this interface.
 
@@ -1871,8 +1922,9 @@ so we can classify by tenant or module. Individual
 modules may push their own numbers as well, as needed. It is hoped that they
 will use a key naming scheme that is close to what we do in Okapi.
 
-Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:2003`.
-If you add `-DgraphiteHost=graphite.yourdomain.io` as a parameter to your java command
+Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:2003`
+
+If you add `graphiteHost` as a parameter to your java command,
 e.g.
 `java -DgraphiteHost=graphite.yourdomain.io -jar okapi-core/target/okapi-core-fat.jar dev -enable-metrics`
 then metrics will be sent to `graphite.yourdomain.io`
