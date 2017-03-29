@@ -168,7 +168,8 @@ public class DockerModuleHandle implements ModuleHandle {
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
+        logger.warn(url + ": " + d.getMessage());
+        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
       });
       res.handler(d -> {
         body.appendBuffer(d);
@@ -187,8 +188,8 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
-      logger.warn(url + " : " + d.getMessage());
-      future.handle(Future.failedFuture(d.getCause()));
+      logger.warn(url + ": " + d.getMessage());
+      future.handle(Future.failedFuture(url + ": " + d.getMessage()));
     });
     req.end();
   }
@@ -200,7 +201,8 @@ public class DockerModuleHandle implements ModuleHandle {
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
+        logger.warn(url + ": " + d.getMessage());
+        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
       });
       res.handler(d -> {
         body.appendBuffer(d);
@@ -220,8 +222,8 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
-      logger.warn(url + " : " + d.getMessage());
-      future.handle(Future.failedFuture(d.getCause()));
+      logger.warn(url + ": " + d.getMessage());
+      future.handle(Future.failedFuture(url + ": " + d.getMessage()));
     });
     req.end();
   }
