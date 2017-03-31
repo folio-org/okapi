@@ -1,3 +1,11 @@
+## 1.2.1 2017-03-31
+
+ * Fix Null diagnostic when Docker can not be reached OKAPI-299
+ * Fix HTTP connection hangs after throwing error OKAPI-298
+ * Fix DocketTest Unit Test may timeout OKAPI-297
+ * Documentation: Link to API docs section and improve presentation
+   of Instrumentation section
+
 ## 1.2.0 2017-03-24
 
  * Add ability to pull Docker images from a remote repository OKAPI-283
