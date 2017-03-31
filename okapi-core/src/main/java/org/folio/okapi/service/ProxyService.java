@@ -414,6 +414,7 @@ public class ProxyService {
     String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     List<ModuleInstance> l = getModulesForRequest(ctx, tenant);
     if (l == null) {
+      content.resume();
       return; // error already in ctx
     }
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
@@ -423,6 +424,7 @@ public class ProxyService {
 
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
+        content.resume();
         responseError(ctx, res.getType(), res.cause());
       } else {
         proxyR(ctx, l.iterator(), pc, content, null);
