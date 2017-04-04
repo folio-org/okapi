@@ -214,11 +214,12 @@ public class ModuleInterface {
   /**
    * Validate a moduleInterface.
    *
-   * @param strict if false, will only log a warning on most errors
+   * Writes Warnings in the log in case of deprecated features.
+   *
    * @param section "provides" or "requires" - the rules differ
    * @return "" if ok, or a simple error message
    */
-  public String validate(boolean strict, String section) {
+  public String validate(String section) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
     String err;
     err = validateGeneral();
@@ -227,28 +228,24 @@ public class ModuleInterface {
       return err;
     }
     if (section.equals("provides")) {
-      err = validateProvides(strict, section);
+      err = validateProvides(section);
       if (!err.isEmpty()) {
-        logger.debug("Validating ModuleInterface failed in prov: " + err);
         return err;
       }
     }
     if (section.equals("requires")) {
-      err = validateRequires(strict, section);
+      err = validateRequires(section);
       if (!err.isEmpty()) {
         logger.debug("Validating ModuleInterface failed in prov: " + err);
-        if (strict) {
-          return err;
+        return err;
         }
-        logger.warn(err);
       }
-    }
     return "";
   }
 
   /**
    * Validate those things that just have to be right.
-   * @return
+   * @return "" if ok, or an error message
    */
   private String validateGeneral() {
     String it = getInterfaceType();
@@ -264,10 +261,10 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(boolean strict, String section) {
+  private String validateProvides(String section) {
     List<RoutingEntry> routingEntries = getAllRoutingEntries();
     for (RoutingEntry re : routingEntries) {
-      String err = re.validate(strict, "provides");
+      String err = re.validate("provides");
       if (!err.isEmpty()) {
         return err;
       }
@@ -278,7 +275,7 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "requires" section.
    */
-  private String validateRequires(boolean strict, String section) {
+  private String validateRequires(String section) {
     List<RoutingEntry> routingEntries = getAllRoutingEntries();
     if (!routingEntries.isEmpty()) {
       return "No RoutingEntries allowed in 'provides' section";
