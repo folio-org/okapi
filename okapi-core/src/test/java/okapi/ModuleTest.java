@@ -585,9 +585,44 @@ public class ModuleTest {
       .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
 
+    // Try with a minimal MD, to see we don't have null pointers hanging around
+    final String docSampleModule2 = "{" + LS
+      + "  \"id\" : \"sample-module2\"," + LS
+      + "  \"name\" : \"sample module2\"," + LS
+      //      + "  \"provides\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    // Create the sample module
+    final String locSampleModule2 = createModule(docSampleModule2);
+    final String locationSampleDeployment2 = deployModule("sample-module2");
+
+    // Enable the small module. Verify that the _tenantPermissions gets
+    // invoked.
+    final String docEnable2 = "{" + LS
+      + "  \"id\" : \"sample-module2\"" + LS
+      + "}";
+    final String expPerms2 = "{ "
+      + "\"moduleId\" : \"sample-module2\", "
+      + "\"perms\" : null }";
+
+    final String locSampleEnable2 = given()
+      .header("Content-Type", "application/json")
+      .body(docEnable2)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .header("X-Tenant-Perms-Result", expPerms2)
+      .extract().header("Location");
+
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testSystemInterfaces cleaning up");
+    given().delete(locSampleEnable2).then().log().ifError().statusCode(204);
+    given().delete(locationSampleDeployment2).then().log().ifError().statusCode(204);
+    given().delete(locSampleModule2).then().log().ifError().statusCode(204);
     given().delete(locSampleEnable).then().log().ifError().statusCode(204);
     given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
     given().delete(locSampleModule).then().log().ifError().statusCode(204);
