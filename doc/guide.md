@@ -1891,12 +1891,15 @@ The tenant interface was introduced in version 1.0
 #### TenantPermissions Interface
 
 When a module gets enabled for a tenant, Okapi also attempts to locate a
-`_tenantPermissions` interface, and invoke that. Typically this would be
-provided by the permission module. It gets a structure that contains the
-module to be enabled, and all the permissionSets from the moduleDescriptor.
-The purpose of this is to load the permissions and permission sets into the
-permission module, so that they can be assigned to users, or used in other
-permission sets.
+module that provides the `_tenantPermissions` interface, and invoke that.
+Typically this would be provided by the permission module. It gets a structure
+that contains the module to be enabled, and all the permissionSets from the
+moduleDescriptor. The purpose of this is to load the permissions and permission
+sets into the permission module, so that they can be assigned to users, or used
+in other permission sets.
+
+Unless you are writing a permission module, you should never need to provide
+this interface.
 
 The service should be idempotent, since it may get called again, if something
 went wrong with enabling the module. It should start by deleting all permissions
