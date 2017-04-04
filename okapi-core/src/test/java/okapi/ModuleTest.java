@@ -589,7 +589,6 @@ public class ModuleTest {
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module2\"," + LS
       + "  \"name\" : \"sample module2\"," + LS
-      //      + "  \"provides\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS
