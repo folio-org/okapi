@@ -1,3 +1,9 @@
+## 1.2.2 2017-04-04
+
+ * Fix Okapi fails when invoking tenantPermissions with an v1.0
+   ModuleDescriptor OKAPI-301
+ * Fix tenantPermissions for the permission module itself OKAPI-304
+
 ## 1.2.1 2017-03-31
 
  * Fix Null diagnostic when Docker can not be reached OKAPI-299
