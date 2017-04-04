@@ -188,6 +188,9 @@ public class ModuleDescriptor {
   /**
    * Validate some features of a ModuleDescriptor.
    *
+   * In case of Deprecated things, writes warnings in the log.
+   * TODO: Turn these into errors when releasing 2.0
+   *
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate() {
@@ -199,7 +202,7 @@ public class ModuleDescriptor {
     }
     if (provides != null) {
       for (ModuleInterface pr : provides) {
-        String err = pr.validate(false, "provides");
+        String err = pr.validate("provides");
         if (!err.isEmpty()) {
           return err;
         }
@@ -207,26 +210,34 @@ public class ModuleDescriptor {
     }
     if (requires != null) {
       for (ModuleInterface pr : requires) {
-        String err = pr.validate(false, "requires");
+        String err = pr.validate("requires");
         if (!err.isEmpty()) {
           return err;
         }
       }
     }
 
-    if (routingEntries != null) { // This can be removed in 2.0
+    if (routingEntries != null) {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
       for (RoutingEntry re : routingEntries) {
-        String err = re.validate(false, "toplevel");
+        String err = re.validate("toplevel");
         if (!err.isEmpty()) {
           return err;
         }
       }
+    }
+
+    if (getEnv() != null) {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + " uses DEPRECATED top-level environment settings. Put those "
+        + "in the launchDescriptor instead.");
     }
 
     if (getTenantInterface() != null) {
-      logger.warn("Module uses DEPRECATED tenantInterface field. "
-        + "Provide a 'tenant' system interface instead");
-      // Can not return error yet, need to accept this.
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + "uses DEPRECATED tenantInterface field."
+        + " Provide a '_tenant' system interface instead");
     }
     return "";
   }

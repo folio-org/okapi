@@ -222,11 +222,10 @@ public class RoutingEntry {
   /**
    * Validate the RoutingEntry.
    *
-   * @param strict - if false, will not report all error, just log a warning
    * @param section "provides" or "toplevel". Soon also "filter" and "handler".
    * @return an error message (as a string), or "" if all is well.
    */
-  public String validate(boolean strict, String section) {
+  public String validate(String section) {
     logger.debug("Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
       && (pathPattern == null || pathPattern.isEmpty())) {
