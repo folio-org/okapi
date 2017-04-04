@@ -277,7 +277,7 @@ public class ModuleTest {
       .statusCode(404);
 
     // This is a good ModuleDescriptor. For error tests, some things get
-    // replaced out.
+    // replaced out. Still some old-style fields here and there...
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
@@ -290,8 +290,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"level\" : \"30\"," + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS

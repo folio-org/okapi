@@ -274,10 +274,7 @@ public class TenantManager {
     }
     String ti = md.getTenantInterface();
     if (ti != null && !ti.isEmpty()) {
-      logger.warn("Module '" + md.getId() + "'"
-              + " still uses the DEPRECATED tenantInterface field."
-              + " Provide a '_tenant' interface instead");
-      return ti;
+      return ti; // DEPRECATED - warned when POSTing a ModuleDescriptor
     }
     ModuleInterface[] prov = md.getProvides();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));

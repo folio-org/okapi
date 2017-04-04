@@ -22,8 +22,8 @@ public class ModuleInterface {
   private String version;
   private String interfaceType; // enum "proxy" (default), or "system"
   private RoutingEntry[] routingEntries;
-  private final Logger logger = LoggerFactory.getLogger("okapi");
   private RoutingEntry[] handlers;
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public ModuleInterface() {
   }
@@ -211,6 +211,14 @@ public class ModuleInterface {
     this.routingEntries = routingEntries;
   }
 
+  public RoutingEntry[] getHandlers() {
+    return handlers;
+  }
+
+  public void setHandlers(RoutingEntry[] handlers) {
+    this.handlers = handlers;
+  }
+
   /**
    * Validate a moduleInterface.
    *
@@ -219,24 +227,22 @@ public class ModuleInterface {
    * @param section "provides" or "requires" - the rules differ
    * @return "" if ok, or a simple error message
    */
-  public String validate(String section) {
+  public String validate(String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
     String err;
-    err = validateGeneral();
+    err = validateGeneral(mod);
     if (!err.isEmpty()) {
-      logger.debug("Validating ModuleInterface failed in req: " + err);
       return err;
     }
     if (section.equals("provides")) {
-      err = validateProvides(section);
+      err = validateProvides(section, mod);
       if (!err.isEmpty()) {
         return err;
       }
     }
     if (section.equals("requires")) {
-      err = validateRequires(section);
+      err = validateRequires(section, mod);
       if (!err.isEmpty()) {
-        logger.debug("Validating ModuleInterface failed in prov: " + err);
         return err;
         }
       }
@@ -247,7 +253,7 @@ public class ModuleInterface {
    * Validate those things that just have to be right.
    * @return "" if ok, or an error message
    */
-  private String validateGeneral() {
+  private String validateGeneral(String mod) {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system")) {
       return "Bad interface type '" + it + "'";
@@ -261,12 +267,20 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(String section) {
-    List<RoutingEntry> routingEntries = getAllRoutingEntries();
-    for (RoutingEntry re : routingEntries) {
-      String err = re.validate("provides");
-      if (!err.isEmpty()) {
-        return err;
+  private String validateProvides(String section, String mod) {
+    if (getRoutingEntries() != null) {
+      logger.warn("Module '" + mod + "':"
+        + "Provided interface " + getId()
+        + " uses DEPRECATED RoutingEntries. "
+        + "Use handlers instead");
+    }
+    RoutingEntry[] handlers = getHandlers();
+    if (handlers != null) {
+      for (RoutingEntry re : handlers) {
+        String err = re.validate("handlers", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
       }
     }
     return "";
@@ -275,19 +289,16 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "requires" section.
    */
-  private String validateRequires(String section) {
-    List<RoutingEntry> routingEntries = getAllRoutingEntries();
-    if (!routingEntries.isEmpty()) {
-      return "No RoutingEntries allowed in 'provides' section";
+  private String validateRequires(String section, String mod) {
+    RoutingEntry[] oldRoutingEntries = getRoutingEntries();
+    if (oldRoutingEntries != null) {
+      return "No RoutingEntries allowed in 'requires' section";
+    }
+    RoutingEntry[] handlers1 = getHandlers();
+    if (handlers != null && handlers.length > 0) {
+      return "No handlers allowed in 'requires' section";
     }
     return "";
   }
 
-  public RoutingEntry[] getHandlers() {
-    return handlers;
-  }
-
-  public void setHandlers(RoutingEntry[] handlers) {
-    this.handlers = handlers;
-  }
 }

@@ -219,28 +219,6 @@ public class RoutingEntry {
       return null;
     }
   }
-  /**
-   * Validate the RoutingEntry.
-   *
-   * @param section "provides" or "toplevel". Soon also "filter" and "handler".
-   * @return an error message (as a string), or "" if all is well.
-   */
-  public String validate(String section) {
-    logger.debug("Validating RoutingEntry " + Json.encode(this));
-    if ((path == null || path.isEmpty())
-      && (pathPattern == null || pathPattern.isEmpty())) {
-      return "Bad routing entry, needs a pathPattern or at least a path";
-    }
-
-    // TODO - Do not accept old paths in Handlers and Filters, once we get those
-    if (pathPattern == null || pathPattern.isEmpty()) {
-      logger.warn("RoutingEntry uses old type path " + path
-        + ". Use a pathPattern instead");
-    }
-
-    // TODO - Validate permissions required and desired, and modulePerms
-    return ""; // no problems found
-  }
 
   public String getPhase() {
     return phase;
@@ -254,4 +232,62 @@ public class RoutingEntry {
     }
     this.phase = phase;
   }
+
+  /**
+   * Validate the RoutingEntry.
+   *
+   * @param section "requires", "provides", "filters", "handlers" or "toplevel"
+   * @return an error message (as a string), or "" if all is well.
+   */
+  public String validate(String section, String mod) {
+    final String prefix = "Module '" + mod + "' section " + section + ": ";
+    logger.debug(prefix
+      + "Validating RoutingEntry " + Json.encode(this));
+    if ((path == null || path.isEmpty())
+      && (pathPattern == null || pathPattern.isEmpty())) {
+      return "Bad routing entry, needs a pathPattern or at least a path";
+    }
+    if (pathPattern == null || pathPattern.isEmpty()) {
+      logger.warn(prefix
+        + "RoutingEntry uses old type path " + path
+        + ". Use a pathPattern instead");
+    }
+    if (level != null && !"toplevel".equals(section)) {
+      String ph = "";  // toplevel has a higher-level warning
+      if ("filters".equals(section)) {
+        ph = "Use a phase instead";
+      }
+      logger.warn(prefix
+        + "RoutingEntry uses DEPRECATED level. " + ph);
+    }
+    if ("handlers".equals(section)) {
+      String err = validateHandlers(mod);
+      if (!err.isEmpty()) {
+        return err;
+      }
+    } else if ("filters".equals(section)) {
+
+    } else if ("requires".equals(section)) {
+
+    } else if ("toplevel".equals(section)) {
+      // nothing to validate here, we warn about the existence of
+      // toplevel routingEntries on a higher level.
+    } else {  // Should not happen
+      return "Programming error: "
+        + "RoutingEntry.validate() called with unknown section "
+        + "'" + section + "'";
+    }
+    // TODO - Validate permissions required and desired, and modulePerms
+    return ""; // no problems found
+  }
+
+  private String validateHandlers(String prefix) {
+    if (phase != null) {
+      logger.warn(prefix
+        + "RoutingEntry uses 'phase' in the handlers section. "
+        + "Leave it out");
+    }
+    return "";
+  }
+
 }
