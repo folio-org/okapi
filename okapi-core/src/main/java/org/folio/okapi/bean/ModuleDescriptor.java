@@ -167,7 +167,7 @@ public class ModuleDescriptor {
    * Get the given system interface, if the MD has one.
    *
    * @param interfaceId name of the interface we want
-   * @return
+   * @return null if not found, or the interface
    *
    * TODO - Take a version too, check compatibility
    */

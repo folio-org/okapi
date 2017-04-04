@@ -317,18 +317,24 @@ public class TenantWebService {
    */
   private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
-    ModuleDescriptor permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
+    ModuleManager modMan = tenants.getModuleManager();
+    if (modMan == null) { // Should never happen
+      responseError(ctx, 500, "enablePermissions: No moduleManager found. "
+        + "Can not make _tenantPermissions request");
+      return;
+    }
+    ModuleDescriptor permsModule;
+    ModuleDescriptor md = modMan.get(module_to);
+    if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
+      permsModule = md;
+      logger.warn("Should call the tenantPermissions of this module itself");
+    } else {
+      permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
+    }
     if (permsModule == null) {
       enableTenantManager(ctx, td, id, module_from, module_to);
     } else {
       logger.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
-      ModuleManager modMan = tenants.getModuleManager();
-      if (modMan == null) { // Should never happen
-        responseError(ctx, 500, "enablePermissions: No moduleManager found. "
-          + "Can not make _tenantPermissions request");
-        return;
-      }
-      ModuleDescriptor md = modMan.get(module_to);
       PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
       discoveryManager.get(permsModule.getId(), gres -> {
         if (gres.failed()) {

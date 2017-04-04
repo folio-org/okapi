@@ -884,7 +884,7 @@ we are talking about. (Okapi does not enforce this, it is also possible to use
 UUIDs or other things, as long as they are truly unique.)
 
 This module provides just one interface, called `test-basic`. It has one handler
-that indicate that the interface is interested in GET and POST requests to the
+that indicates that the interface is interested in GET and POST requests to the
 /testb path and nothing else.
 
 The launchDescriptor tells Okapi how this module is to be started and stopped.
