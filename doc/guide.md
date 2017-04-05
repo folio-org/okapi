@@ -1158,10 +1158,14 @@ connects with every incoming request. That is where it decides if the user will
 be allowed to make the request. This one has a type "headers", which means that
 Okapi does not pass the whole request to it, just the headers.
 
-
 The pathPattern for the filter uses the wildcard character (`*`) to match any path.
 A pathPattern may also include curly braces pairs to match a path component. For
 example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
+
+The phase specifies at which stage the filter is to be applied. At this point,
+we only have one phase, "auth", which gets invoked before the handlers. We are
+likely to come up with different phases as the need arises, both before and
+after the handlers.
 
 We could have included a launchDescriptor as before, but just to demonstrate
 another way, we have omitted it here. Doing it this way may make more sense in
