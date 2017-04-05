@@ -229,11 +229,26 @@ public class ModuleInterface {
    */
   public String validate(String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
+    String prefix = "Module '" + mod + "' interface '" + id + "': ";
     String err;
     err = validateGeneral(mod);
     if (!err.isEmpty()) {
       return err;
     }
+    if (version.matches("\\d+\\.\\d+\\.\\d+")) {
+      logger.warn(prefix + "has a 3-part version number '" + version + "'."
+        + "Interfaces should be 2-part");
+    }
+
+    if ("_tenant".equals(this.id) && !"1.0".equals(version)) {
+      logger.warn(prefix + " is '" + version + "'."
+        + " should be '1.0'");
+    }
+    if ("_tenantPermissions".equals(this.id) && !"1.0".equals(version)) {
+      logger.warn(prefix + " is '" + version + "'."
+        + " should be '1.0'");
+    }
+
     if (section.equals("provides")) {
       err = validateProvides(section, mod);
       if (!err.isEmpty()) {

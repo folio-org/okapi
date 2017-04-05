@@ -240,7 +240,13 @@ public class RoutingEntry {
    * @return an error message (as a string), or "" if all is well.
    */
   public String validate(String section, String mod) {
-    final String prefix = "Module '" + mod + "' section " + section + ": ";
+    String prefix = "Module '" + mod + "' " + section;
+    if (pathPattern != null && !pathPattern.isEmpty()) {
+      prefix += " " + pathPattern;
+    } else if (path != null && !path.isEmpty()) {
+      prefix += " " + path;
+    }
+    prefix += ": ";
     logger.debug(prefix
       + "Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
@@ -249,33 +255,46 @@ public class RoutingEntry {
     }
     if (pathPattern == null || pathPattern.isEmpty()) {
       logger.warn(prefix
-        + "RoutingEntry uses old type path " + path
+        + " uses old type path"
         + ". Use a pathPattern instead");
     }
     if (level != null && !"toplevel".equals(section)) {
       String ph = "";  // toplevel has a higher-level warning
       if ("filters".equals(section)) {
-        ph = "Use a phase instead";
+        ph = "Use a phase=auth instead";
       }
       logger.warn(prefix
-        + "RoutingEntry uses DEPRECATED level. " + ph);
+        + "uses DEPRECATED level. " + ph);
     }
-    if ("handlers".equals(section)) {
-      String err = validateHandlers(mod);
-      if (!err.isEmpty()) {
-        return err;
-      }
-    } else if ("filters".equals(section)) {
 
-    } else if ("requires".equals(section)) {
+    if (pathPattern != null && pathPattern.endsWith("/")) {
+      logger.warn(prefix
+        + "ends in a slash. Probably not what you intend");
+    }
+    if ("system".equals(type)) {
+      logger.warn(prefix
+        + "uses DEPRECATED type 'system'");
+    }
 
-    } else if ("toplevel".equals(section)) {
-      // nothing to validate here, we warn about the existence of
-      // toplevel routingEntries on a higher level.
-    } else {  // Should not happen
-      return "Programming error: "
-        + "RoutingEntry.validate() called with unknown section "
-        + "'" + section + "'";
+    if (null != section)
+      switch (section) {
+        case "handlers":
+          String err = validateHandlers(mod);
+          if (!err.isEmpty()) {
+            return err;
+          }
+          break;
+        case "filters":
+          break;
+        case "requires":
+          break;
+        case "toplevel":
+          break;
+        default:
+          // Should not happen
+          return "Programming error: "
+            + "RoutingEntry.validate() called with unknown section "
+            + "'" + section + "'";
     }
     // TODO - Validate permissions required and desired, and modulePerms
     return ""; // no problems found
@@ -286,6 +305,11 @@ public class RoutingEntry {
       logger.warn(prefix
         + "RoutingEntry uses 'phase' in the handlers section. "
         + "Leave it out");
+    }
+    if (type != null && "request-response".equals(type)) {
+      logger.warn(prefix
+        + "RoutingEntry uses type=request-response. "
+        + "That is the default, you can leave it out");
     }
     return "";
   }
