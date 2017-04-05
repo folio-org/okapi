@@ -319,7 +319,17 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
 
-    // First some error checks: Missing id
+    // First some error checks
+    // Invalid Json, a hanging comma
+    String docHangingComma = docSampleModule.replace("system\"", "system\",");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docHangingComma)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Bad module id
     String docBadId = docSampleModule.replace("sample-module", "bad module id?!");
     given()
       .header("Content-Type", "application/json")
