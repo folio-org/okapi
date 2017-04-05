@@ -277,7 +277,7 @@ public class ModuleTest {
       .statusCode(404);
 
     // This is a good ModuleDescriptor. For error tests, some things get
-    // replaced out.
+    // replaced out. Still some old-style fields here and there...
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
@@ -290,8 +290,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"level\" : \"30\"," + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
@@ -305,7 +305,7 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS
+      + "      \"type\" : \"system\"" + LS // DEPRECATED, gives a warning
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
@@ -319,7 +319,17 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
 
-    // First some error checks: Missing id
+    // First some error checks
+    // Invalid Json, a hanging comma
+    String docHangingComma = docSampleModule.replace("system\"", "system\",");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docHangingComma)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Bad module id
     String docBadId = docSampleModule.replace("sample-module", "bad module id?!");
     given()
       .header("Content-Type", "application/json")

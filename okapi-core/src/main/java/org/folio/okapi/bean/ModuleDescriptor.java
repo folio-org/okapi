@@ -185,63 +185,6 @@ public class ModuleDescriptor {
     return null;
   }
 
-  /**
-   * Validate some features of a ModuleDescriptor.
-   *
-   * In case of Deprecated things, writes warnings in the log.
-   * TODO: Turn these into errors when releasing 2.0
-   *
-   * @return "" if ok, otherwise an informative error message.
-   */
-  public String validate() {
-    if (getId() == null || getId().isEmpty()) {
-      return "No Id in module";
-    }
-    if (!getId().matches("^[a-z0-9._-]+$")) {
-      return "Invalid id";
-    }
-    if (provides != null) {
-      for (ModuleInterface pr : provides) {
-        String err = pr.validate("provides");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-    if (requires != null) {
-      for (ModuleInterface pr : requires) {
-        String err = pr.validate("requires");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-
-    if (routingEntries != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
-        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate("toplevel");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-
-    if (getEnv() != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
-        + " uses DEPRECATED top-level environment settings. Put those "
-        + "in the launchDescriptor instead.");
-    }
-
-    if (getTenantInterface() != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
-        + "uses DEPRECATED tenantInterface field."
-        + " Provide a '_tenant' system interface instead");
-    }
-    return "";
-  }
-
   public String[] getModulePermissions() {
     return modulePermissions;
   }
@@ -289,4 +232,68 @@ public class ModuleDescriptor {
   public void setFilters(RoutingEntry[] filters) {
     this.filters = filters;
   }
+
+  /**
+   * Validate some features of a ModuleDescriptor.
+   *
+   * In case of Deprecated things, writes warnings in the log.
+   * TODO: Turn these into errors when releasing 2.0
+   *
+   * @return "" if ok, otherwise an informative error message.
+   */
+  public String validate() {
+    if (getId() == null || getId().isEmpty()) {
+      return "No Id in module";
+    }
+    if (!getId().matches("^[a-z0-9._-]+$")) {
+      return "Invalid id";
+    }
+    String mod = getNameOrId();
+    if (provides != null) {
+      for (ModuleInterface pr : provides) {
+        String err = pr.validate("provides", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (requires != null) {
+      for (ModuleInterface pr : requires) {
+        String err = pr.validate("requires", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (filters != null) {
+      for (RoutingEntry fe : filters) {
+        String err = fe.validate("filters", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (routingEntries != null) {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
+      for (RoutingEntry re : routingEntries) {
+        String err = re.validate("toplevel", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (getEnv() != null) {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + " uses DEPRECATED top-level environment settings. Put those "
+        + "in the launchDescriptor instead.");
+    }
+    if (getTenantInterface() != null) {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + "uses DEPRECATED tenantInterface field."
+        + " Provide a '_tenant' system interface instead");
+    }
+    return "";
+  }
+
 }
