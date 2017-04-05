@@ -1,6 +1,6 @@
 ## 1.2.2 2017-04-04
 
- * Fix Okapi fails when invoking tenantPermissions with an v1.0
+ * Fix Okapi failure when invoking tenantPermissions with a v1.0
    ModuleDescriptor OKAPI-301
  * Fix tenantPermissions for the permission module itself OKAPI-304
 
@@ -8,7 +8,7 @@
 
  * Fix Null diagnostic when Docker can not be reached OKAPI-299
  * Fix HTTP connection hangs after throwing error OKAPI-298
- * Fix DocketTest Unit Test may timeout OKAPI-297
+ * Fix DockerTest Unit Test may timeout OKAPI-297
  * Documentation: Link to API docs section and improve presentation
    of Instrumentation section
 
@@ -24,14 +24,14 @@
 
 ## 1.1.0 2017-03-20
 
- * new property pathPattern which is an alternative to path in
+ * New property pathPattern which is an alternative to path in
    routingEntries/handlers/filters. OKAPI-274
  * routingEntries (handler) may be given for an interface OKAPI-269
    This is the preferred way of declaring handlers (that implement
-   an interface). Filters, on other other hand, do not implement
+   an interface). Filters, on the other hand, do not implement
    an interface and stays in the usual top-level (non-interface specific
    place).
- * Permission loading interface /_/tenantPermissions OKAPI-268
+ * Permission loading interface `/_/tenantPermissions` OKAPI-268
  * Define permission sets in ModuleDescriptor OKAPI-267
  * Cleaned up a few things issued by SonarQube OKAPI-279 OKAPI-280
  * Fix Okapi may hang due to standard error being buffered OKAPI-282
