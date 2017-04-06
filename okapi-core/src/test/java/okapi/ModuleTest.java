@@ -364,11 +364,19 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
-    String docBadPathPat = docSampleModule.replace("path", "pathPattern")
+    String docBadPathPat = docSampleModule
       .replace("/testb", "/test.*b(/?)");  // invalid characters in pattern
     given()
       .header("Content-Type", "application/json")
       .body(docBadPathPat)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    String docbadRedir = docSampleModule.replace("request-response\"", "redirect\"");
+    given()
+      .header("Content-Type", "application/json")
+      .body(docbadRedir)
       .post("/_/proxy/modules")
       .then()
       .statusCode(400);

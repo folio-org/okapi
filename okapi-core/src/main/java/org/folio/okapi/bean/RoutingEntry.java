@@ -253,7 +253,18 @@ public class RoutingEntry {
       && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
     }
-    if (pathPattern == null || pathPattern.isEmpty()) {
+
+    if ("redirect".equals(type)) {
+      if (redirectPath == null || redirectPath.isEmpty()) {
+        return "Redirect entry without redirectPath";
+      }
+    } else {
+      if (redirectPath != null && !redirectPath.isEmpty()) {
+        logger.warn(prefix
+          + "has a redirectPath, even though it is not a redirect");
+      }
+
+      if (pathPattern == null || pathPattern.isEmpty()) {
       logger.warn(prefix
         + " uses old type path"
         + ". Use a pathPattern instead");
@@ -274,6 +285,8 @@ public class RoutingEntry {
     if ("system".equals(type)) {
       logger.warn(prefix
         + "uses DEPRECATED type 'system'");
+      }
+
     }
 
     if (null != section)
