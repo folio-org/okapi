@@ -1,3 +1,8 @@
+## 1.2.3 2017-04-07
+
+ * Warn about deprecated features in ModuleDescriptors OKAPI-295
+ * Inherit stderr again for deployed modules OKAPI-307
+
 ## 1.2.2 2017-04-04
 
  * Fix Okapi failure when invoking tenantPermissions with a v1.0
