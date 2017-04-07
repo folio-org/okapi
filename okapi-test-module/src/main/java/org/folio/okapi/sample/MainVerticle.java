@@ -14,7 +14,6 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.folio.okapi.common.XOkapiHeaders;
-import static java.lang.System.*;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -137,11 +136,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/_/tenant").handler(this::my_tenant_handle);
     router.delete("/_/tenant").handler(this::my_tenant_handle);
 
-    for (int i = 0; i < 1000; i++) {
-      err.println("STDERR XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX " + i);
-    }
-    HttpServerOptions so = new HttpServerOptions()
-            .setHandle100ContinueAutomatically(true);
+    HttpServerOptions so = new HttpServerOptions()            .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
             .requestHandler(router::accept)
             .listen(
