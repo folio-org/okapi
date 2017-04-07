@@ -381,6 +381,7 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
+
     // TODO - Tests for bad interface versions
 
     // Actually create the module
@@ -473,8 +474,41 @@ public class ModuleTest {
       .body(equalTo("It works Tenant requests: POST-roskilde "))
       .log().ifError();
 
+    // Test a moduleDescriptor with empty arrays
+    // We have seen errors with such before.
+    final String docEmptyModule = "{" + LS
+      + "  \"id\" : \"empty-module\"," + LS
+      + "  \"name\" : \"empty module\"," + LS
+      + "  \"tags\" : [ ]," + LS
+      + "  \"env\" : [ ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"provides\" : [ ]," + LS
+      + "  \"filters\" : [ ]," + LS
+      + "  \"routingEntries\" : [ ]," + LS
+      + "  \"modulePermissions\" : [ ]," + LS
+      + "  \"permissionSets\" : [ ]," + LS
+      + "  \"launchDescriptor\" : { }" + LS
+      + "}";
+
+    // create the module - no need to deplaoy and use, it won't work.
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEmptyModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locEmptyModule = r.getHeader("Location");
+    // Create a tenant and enable the module
+    final String locEnableEmpty = enableModule("empty-module");
+
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testOneModule cleaning up");
+    given().delete(locEnableEmpty).then().log().ifError().statusCode(204);
+    given().delete(locEmptyModule).then().log().ifError().statusCode(204);
     given().delete(locEnable).then().log().ifError().statusCode(204);
     given().delete(locTenant).then().log().ifError().statusCode(204);
     given().delete(locSampleModule).then().log().ifError().statusCode(204);
