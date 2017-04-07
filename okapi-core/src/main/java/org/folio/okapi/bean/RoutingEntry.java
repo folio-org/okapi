@@ -292,7 +292,7 @@ public class RoutingEntry {
     if (null != section)
       switch (section) {
         case "handlers":
-          String err = validateHandlers(mod);
+          String err = validateHandlers(prefix);
           if (!err.isEmpty()) {
             return err;
           }
@@ -316,12 +316,12 @@ public class RoutingEntry {
   private String validateHandlers(String prefix) {
     if (phase != null) {
       logger.warn(prefix
-        + "RoutingEntry uses 'phase' in the handlers section. "
+        + "uses 'phase' in the handlers section. "
         + "Leave it out");
     }
     if (type != null && "request-response".equals(type)) {
       logger.warn(prefix
-        + "RoutingEntry uses type=request-response. "
+        + "uses type=request-response. "
         + "That is the default, you can leave it out");
     }
     return "";
