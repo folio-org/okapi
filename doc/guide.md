@@ -444,6 +444,10 @@ modules, Okapi does not enforce it for modules. The reason is that Okapi does
 not need to know anything about module versions -- it only worries about the
 interfaces being compatible.
 
+Okapi does require that all modules that have the same id, will indeed be the
+same piece of software. We have adopted a convention of using ids that consist
+of a short name, followed by a software version. For example "test-basic-1.2.0".
+
 When checking interface versions, Okapi will require that the major version
 number matches exactly what is required, and that the minor version is at least
 as high as required.
@@ -901,7 +905,8 @@ END
 The id is what we will be using to refer to this module later. The version number
 is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
-UUIDs or other things, as long as they are truly unique.)
+UUIDs or other things, as long as they are truly unique, but we have decided to
+recommend this naming shceme for all modules.)
 
 This module provides just one interface, called `test-basic`. It has one handler
 that indicates that the interface is interested in GET and POST requests to the
