@@ -52,7 +52,6 @@ public class ProxyService {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final ModuleManager modules;
-  private final HttpClient httpClient;
   private final TenantManager tenantManager;
   private final DiscoveryManager discoveryManager;
   private final String okapiUrl;
@@ -65,20 +64,21 @@ public class ProxyService {
     this.tenantManager = tm;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
-    this.httpClient = vertx.createHttpClient();
   }
 
   /**
    * Helper for carrying around those things we need for proxying.
    */
   private static class ProxyContext {
+    final HttpClient httpClient;
 
     List<ModuleInstance> ml;
     List<String> traceHeaders;
 
-    ProxyContext(List<ModuleInstance> ml) {
+    ProxyContext(List<ModuleInstance> ml, Vertx vertx) {
       this.ml = ml;
       traceHeaders = new ArrayList<>();
+      httpClient = vertx.createHttpClient();
     }
   }
 
@@ -420,7 +420,7 @@ public class ProxyService {
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
-    ProxyContext pc = new ProxyContext(l);
+    ProxyContext pc = new ProxyContext(l, vertx);
 
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
@@ -436,7 +436,7 @@ public class ProxyService {
     Iterator<ModuleInstance> it,
     ProxyContext pc,
     Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
@@ -504,7 +504,7 @@ public class ProxyService {
     ProxyContext pc,
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
@@ -557,7 +557,7 @@ public class ProxyService {
     ProxyContext pc,
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
