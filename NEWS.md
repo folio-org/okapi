@@ -1,3 +1,8 @@
+## 1.2.4 2017-04-20
+
+ * Fix hang in recursive calls for parallel requests OKAPI-312 / FOLIO-516
+ * Document PostrgreSQL init commands OKAPI-310
+
 ## 1.2.3 2017-04-07
 
  * Warn about deprecated features in ModuleDescriptors OKAPI-295
