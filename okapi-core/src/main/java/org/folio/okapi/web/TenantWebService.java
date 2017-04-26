@@ -352,7 +352,7 @@ public class TenantWebService {
             List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
             if (!routingEntries.isEmpty()) {
               for (RoutingEntry re : routingEntries) {
-                if (String.join("/", re.getMethods()).contains("POST")) {
+                if (re.match(null, "POST")) {
                   findPermPath = re.getPath();
                   if (findPermPath == null || findPermPath.isEmpty()) {
                     findPermPath = re.getPathPattern();
