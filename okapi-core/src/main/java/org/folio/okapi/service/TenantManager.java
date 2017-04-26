@@ -287,7 +287,7 @@ public class TenantManager {
             if (!res.isEmpty()) {
               // TODO - Check the version of the interface. Must be 1.0
               for (RoutingEntry re : res) {
-                if (String.join("/", re.getMethods()).contains("POST")) {
+                if (re.match(null, "POST")) {
                   if (re.getPath() != null) {
                     return re.getPath();
                   }

@@ -169,27 +169,31 @@ public class RoutingEntry {
   }
 
   public boolean match(String uri, String method) {
-    if (pathRegex != null) {
-      String p = uri;
-      int indx = p.indexOf('?');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
-      indx = p.indexOf('#');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
-      if (!p.matches(pathRegex)) {
-        return false;
-      }
-    } else if (path != null) {
-      if (!uri.startsWith(path)) {
-        return false;
+    if (uri != null) {
+      if (pathRegex != null) {
+        String p = uri;
+        int indx = p.indexOf('?');
+        if (indx > 0) {
+          p = p.substring(0, indx);
+        }
+        indx = p.indexOf('#');
+        if (indx > 0) {
+          p = p.substring(0, indx);
+        }
+        if (!p.matches(pathRegex)) {
+          return false;
+        }
+      } else if (path != null) {
+        if (!uri.startsWith(path)) {
+          return false;
+        }
       }
     }
-    for (String m : methods) {
-      if (method == null || m.equals("*") || m.equals(method)) {
-        return true;
+    if (methods != null) {
+      for (String m : methods) {
+        if (method == null || m.equals("*") || m.equals(method)) {
+          return true;
+        }
       }
     }
     return false;
