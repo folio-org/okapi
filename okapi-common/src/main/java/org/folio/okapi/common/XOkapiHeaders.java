@@ -53,6 +53,13 @@ public class XOkapiHeaders {
   public static final String TRACE = "X-Okapi-Trace";
 
   /**
+   * X-Okapi-Request-Id. Identifies the original request to Okapi. Useful for
+   * logging.
+   *
+   */
+  public static final String REQUEST_ID = "X-Okapi-Request-Id";
+
+  /**
    * X-Okapi-Permissions. The permissions a module expressed interest in, and
    * which were granted to this user. Can be used for modifying the way a module
    * behaves.
