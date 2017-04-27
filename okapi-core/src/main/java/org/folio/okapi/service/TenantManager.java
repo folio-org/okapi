@@ -92,22 +92,25 @@ public class TenantManager {
     return true;
   }
 
-  private String checkOneDependency(Tenant tenant, ModuleDescriptor md, ModuleInterface req) {
+  private String checkOneDependency(Tenant tenant, ModuleDescriptor mod_from,
+    ModuleDescriptor mod_to, ModuleInterface req) {
     ModuleInterface seenversion = null;
     for (String enabledModule : tenant.listModules()) {
       ModuleDescriptor rm = moduleManager.get(enabledModule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          logger.debug("Checking dependency of " + md.getId() + ": "
-                  + req.getId() + " " + req.getVersion()
-                  + " against " + pi.getId() + " " + pi.getVersion());
-          if (req.getId().equals(pi.getId())) {
-            if (seenversion == null || pi.compare(req) > 0) {
-              seenversion = pi;
-            }
-            if (pi.isCompatible(req)) {
-              return "";
+      if (rm != mod_from) {
+        ModuleInterface[] provides = rm.getProvides();
+        if (provides != null) {
+          for (ModuleInterface pi : provides) {
+            logger.debug("Checking dependency of " + mod_to.getId()
+              + ": " + req.getId() + " " + req.getVersion()
+              + " against " + pi.getId() + " " + pi.getVersion());
+            if (req.getId().equals(pi.getId())) {
+              if (seenversion == null || pi.compare(req) > 0) {
+                seenversion = pi;
+              }
+              if (pi.isCompatible(req)) {
+                return "";
+              }
             }
           }
         }
@@ -115,33 +118,37 @@ public class TenantManager {
     }
     String msg;
     if (seenversion == null) {
-      msg = "Can not enable module '" + md.getId() + "'"
-              + ", missing dependency " + req.getId() + ": " + req.getVersion();
+      msg = "Can not enable module '" + mod_to.getId() + "'"
+        + ", missing dependency " + req.getId() + ": " + req.getVersion();
     } else {
-      msg = "Can not enable module '" + md.getId() + "'"
-              + "Incompatible version for " + req.getId() + ". "
-              + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
+      msg = "Can not enable module '" + mod_to.getId() + "'"
+        + "Incompatible version for " + req.getId() + ". "
+        + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
     }
     logger.debug(msg);
     return msg;
   }
-  private String checkOneConflict(Tenant tenant, ModuleDescriptor md, ModuleInterface prov) {
+
+  private String checkOneConflict(Tenant tenant, ModuleDescriptor mod_from,
+    ModuleDescriptor mod_to, ModuleInterface prov) {
     for (String enabledModule : tenant.listModules()) {
       ModuleDescriptor rm = moduleManager.get(enabledModule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          logger.debug("Checking conflict of " + md.getId() + ": "
-                  + prov.getId() + " " + prov.getVersion()
-                  + " against " + pi.getId() + " " + pi.getVersion());
-          if (prov.getId().equals(pi.getId())) {
-            String msg = "Can not enable module '" + md.getId() + "'"
-                    + " for tenant '" + tenant.getId() + "'"
-                    + " because of conflict:"
-                    + " Interface '" + prov.getId() + "' already provided by module '"
-                    + enabledModule + "'";
-            logger.debug(msg);
-            return msg;
+      if (mod_from != rm) {
+        ModuleInterface[] provides = rm.getProvides();
+        if (provides != null) {
+          for (ModuleInterface pi : provides) {
+            logger.debug("Checking conflict of " + mod_to.getId() + ": "
+              + prov.getId() + " " + prov.getVersion()
+              + " against " + pi.getId() + " " + pi.getVersion());
+            if (prov.getId().equals(pi.getId())) {
+              String msg = "Can not enable module '" + mod_to.getId() + "'"
+                + " for tenant '" + tenant.getId() + "'"
+                + " because of conflict:"
+                + " Interface '" + prov.getId() + "' already provided by module '"
+                + enabledModule + "'";
+              logger.debug(msg);
+              return msg;
+            }
           }
         }
       }
@@ -149,21 +156,22 @@ public class TenantManager {
     return "";
   }
 
-  private String checkDependencies(Tenant tenant, ModuleDescriptor md) {
-    ModuleInterface[] requires = md.getRequires();
+  private String checkDependencies(Tenant tenant, ModuleDescriptor mod_from,
+    ModuleDescriptor mod_to) {
+    ModuleInterface[] requires = mod_to.getRequires();
     if (requires != null) {
       for (ModuleInterface req : requires) {
-        String one = checkOneDependency(tenant, md, req);
+        String one = checkOneDependency(tenant, mod_from, mod_to, req);
         if (!one.isEmpty()) {
           return one;
         }
       }
     }
-    ModuleInterface[] provides = md.getProvides();
+    ModuleInterface[] provides = mod_to.getProvides();
     if (provides != null) {
       for (ModuleInterface prov : provides) {
         if ( ! prov.getId().startsWith("_")) { // skip system interfaces like _tenant
-          String one = checkOneConflict(tenant, md, prov);
+          String one = checkOneConflict(tenant, mod_from, mod_to, prov);
           if (!one.isEmpty()) {
             return one;
           }
@@ -173,24 +181,25 @@ public class TenantManager {
     return "";
   }
 
-  public String updateModule(String id, String module_from, String module_to) {
-    Tenant tenant = tenants.get(id);
-    if (tenant == null) {
-      return "tenant " + id + " not found";
-    }
+  public String updateModuleDepCheck(Tenant tenant, String module_from, String module_to) {
     ModuleDescriptor mod_to = moduleManager.get(module_to);
     if (mod_to == null) {
       return "module " + module_to + " not found";
     }
+    ModuleDescriptor mod_from = null;
+    if (module_from != null) {
+      mod_from = moduleManager.get(module_from);
+    }
+    return checkDependencies(tenant, mod_from, mod_to);
+  }
+
+  public String updateModuleCommit(String id, String module_from, String module_to) {
+    Tenant tenant = tenants.get(id);
+    if (tenant == null) {
+      return "tenant " + id + " not found";
+    }
     if (module_from != null) {
       tenant.disableModule(module_from);
-    }
-    String deperr = checkDependencies(tenant, mod_to);
-    if (!deperr.isEmpty()) {
-      if (module_from != null) {
-        tenant.enableModule(module_from);
-      }
-      return deperr;
     }
     tenant.enableModule(module_to);
     return "";

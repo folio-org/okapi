@@ -1265,7 +1265,7 @@ public class ModuleTest {
       .get("/testb")
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
-      .body(equalTo("It works Tenant requests: POST-roskilde POST-roskilde POST-roskilde "))
+      .body(equalTo("It works Tenant requests: POST-roskilde "))
       .log().ifError();
 
     // Check that we refuse unknown paths, even with auth module
