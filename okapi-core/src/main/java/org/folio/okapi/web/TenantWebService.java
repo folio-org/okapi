@@ -257,16 +257,27 @@ public class TenantWebService {
   }
 
   /**
-   * Enable tenant, part 1: Call the tenant interface. This is done first, as it
-   * is the most likely to fail. The tenant interface service should be
-   * idempotent, so in case of failures, we can call it again.
+   * Enable tenant, part 1: Dependency check and call the tenant interface. This
+   * is done first, as it is the most likely to fail. The tenant interface
+   * service should be idempotent, so in case of failures, we can call it again.
    */
   private void enableTenantInt(RoutingContext ctx, String module_from) {
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
-              TenantModuleDescriptor.class);
+        TenantModuleDescriptor.class);
       final String module_to = td.getId();
+      Tenant tenant = tenants.get(id);
+      if (tenant == null) {
+        String err = "tenant " + id + " not found";
+        responseError(ctx, 404, err);
+        return;
+      }
+      String err = tenants.updateModuleDepCheck(tenant, module_from, module_to);
+      if (!err.isEmpty()) {
+        responseError(ctx, 400, err);
+        return;
+      }
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
         logger.debug("enableModule: " + module_to + " has no support for tenant init");
@@ -279,7 +290,7 @@ public class TenantWebService {
             List<DeploymentDescriptor> instances = gres.result();
             if (instances.isEmpty()) {
               responseError(ctx, 400, "No running instances for module " + module_to
-                      + ". Can not invoke tenant init");
+                + ". Can not invoke tenant init");
             } else { // TODO - Don't just take the first. Pick one by random.
               String baseurl = instances.get(0).getUrl();
               logger.debug("enableModule Url: " + baseurl + " and " + tenInt);
@@ -293,10 +304,10 @@ public class TenantWebService {
               cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
                   logger.warn("Tenant init request for "
-                          + module_to + " failed with " + cres.cause().getMessage());
+                    + module_to + " failed with " + cres.cause().getMessage());
                   responseError(ctx, 500, "Post to " + tenInt
-                          + " on " + module_to + " failed with "
-                          + cres.cause().getMessage());
+                    + " on " + module_to + " failed with "
+                    + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
                   logger.debug("enableModule: Tenant init request to "
                     + module_to + " succeeded");
@@ -378,7 +389,6 @@ public class TenantWebService {
                   + " to " + permPath
                   + " on " + permsModule.getNameOrId()
                   + " failed with " + cres.cause().getMessage());
-                return;
               } else { // All well
                 // Pass response headers - needed for unit test, if nothing else
                 MultiMap respHeaders = cli.getRespHeaders();
@@ -407,7 +417,7 @@ public class TenantWebService {
   private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
     final long ts = getTimestamp();
-    String err = tenants.updateModule(id, module_from, module_to);
+    String err = tenants.updateModuleCommit(id, module_from, module_to);
     if (err.isEmpty()) {
       if (module_from != null) {
         tenantStore.disableModule(id, module_from, ts, res -> {
@@ -416,11 +426,9 @@ public class TenantWebService {
       } else {
         enableTenantStorage(ctx, td, id, module_to);
       }
-    } else if (err.contains("not found") && err.contains("tenant")) {
-      responseError(ctx, 404, err);
-    } else { // TODO - handle this right
+    } else {
       responseError(ctx, 400, err);
-    } // Missing dependencies are bad requests...
+    }
   }
 
   /**
