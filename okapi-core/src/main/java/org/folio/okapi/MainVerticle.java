@@ -198,7 +198,7 @@ public class MainVerticle extends AbstractVerticle {
       storage.resetDatabases(res -> {
         if (res.failed()) {
           logger.fatal("start failed", res.cause());
-          fut.complete();
+          fut.fail(res.cause());
         } else {
           if (initMode != NORMAL) {
             logger.info("Database operation " + initMode.toString() + " done. Exiting");
