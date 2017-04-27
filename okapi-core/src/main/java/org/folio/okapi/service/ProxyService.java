@@ -74,11 +74,13 @@ public class ProxyService {
 
     List<ModuleInstance> ml;
     List<String> traceHeaders;
+    String reqId;
 
-    ProxyContext(List<ModuleInstance> ml, Vertx vertx) {
+    ProxyContext(List<ModuleInstance> ml, Vertx vertx, String reqId) {
       this.ml = ml;
       traceHeaders = new ArrayList<>();
       httpClient = vertx.createHttpClient();
+      this.reqId = reqId;
     }
   }
 
@@ -241,12 +243,37 @@ public class ProxyService {
     return tenantId;
   }
 
-  // Get the auth bits from the module list into
-  // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
-  // Also X-Okapi-Module-Permissions for each module that has such.
-  // At the same time, sets the authToken to default for each module.
-  // Some of these will be overwritten once the auth module returns with
-  // dedicated tokens, but by default we use the one given to us by the client.
+  /**
+   * Set the request-id header if necessary.
+   */
+  private String reqidHeader(RoutingContext ctx) {
+    String reqid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
+    String path = ctx.request().path().replaceFirst("(^/[^/]+).*$", "$1");
+    int rnd = (int) (Math.random() * 1000000);
+    String newid = String.format("%06d", rnd);
+    newid += path;
+    if (reqid == null || reqid.isEmpty()) {
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+      logger.warn("Assigned new reqId " + newid);
+    } else {
+      reqid += ";" + newid;
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqid);
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqid);
+      logger.warn("Appended a reqId " + reqid);
+    }
+
+    return newid;
+  }
+
+  /**
+   * Get the auth bits from the module list into X-Okapi-Permissions-Required
+   * and X-Okapi-Permissions-Desired headers. Also X-Okapi-Module-Permissions
+   * for each module that has such. At the same time, sets the authToken to
+   * default for each module. Some of these will be overwritten once the auth
+   * module returns with dedicated tokens, but by default we use the one given
+   * to us by the client.
+   *
+   */
   private void authHeaders(List<ModuleInstance> modlist,
     MultiMap requestHeaders, String defaultToken) {
     // Sanitize important headers from the incoming request
@@ -399,6 +426,7 @@ public class ProxyService {
     if (tenant_id == null) {
       return; // Error code already set in ctx
     }
+    String reqid = reqidHeader(ctx);
     ReadStream<Buffer> content = ctx.request();
     Tenant tenant = tenantManager.get(tenant_id);
     if (tenant == null) {
@@ -420,7 +448,7 @@ public class ProxyService {
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
-    ProxyContext pc = new ProxyContext(l, vertx);
+    ProxyContext pc = new ProxyContext(l, vertx, reqid);
 
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
