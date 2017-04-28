@@ -9,6 +9,7 @@ import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
@@ -40,20 +41,15 @@ public class PostgresHandle {
   private AsyncSQLClient cli;
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  static private String getSysConf(String key, String def, JsonObject conf) {
-    String v = System.getProperty(key, conf.getString(key, def));
-    return v;
-  }
-
   public PostgresHandle(Vertx vertx, JsonObject conf) {
     JsonObject pgconf = new JsonObject();
     String val;
 
-    val = getSysConf("postgres_host", "", conf);
+    val = Config.getSysConf("postgres_host", "", conf);
     if (!val.isEmpty()) {
       pgconf.put("host", val);
     }
-    val = getSysConf("postgres_port", "", conf);
+    val = Config.getSysConf("postgres_port", "", conf);
     if (!val.isEmpty()) {
       try {
         Integer x = Integer.parseInt(val);
@@ -62,15 +58,15 @@ public class PostgresHandle {
         logger.warn("Bad postgres_port value: " + val + ": " + e.getMessage());
       }
     }
-    val = getSysConf("postgres_username", getSysConf("postgres_user", "okapi", conf), conf);
+    val = Config.getSysConf("postgres_username", Config.getSysConf("postgres_user", "okapi", conf), conf);
     if (!val.isEmpty()) {
       pgconf.put("username", val);
     }
-    val = getSysConf("postgres_password", "okapi25", conf);
+    val = Config.getSysConf("postgres_password", "okapi25", conf);
     if (!val.isEmpty()) {
       pgconf.put("password", val);
     }
-    val = getSysConf("postgres_database", "okapi", conf);
+    val = Config.getSysConf("postgres_database", "okapi", conf);
     if (!val.isEmpty()) {
       pgconf.put("database", val);
     }

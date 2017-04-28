@@ -5,13 +5,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.TimeStampStore;
-import static org.folio.okapi.service.impl.MongoHandle.getSysConf;
 
 public class Storage {
 
@@ -54,11 +54,11 @@ public class Storage {
   }
 
   public void prepareDatabases(InitMode initModeP, Handler<ExtendedAsyncResult<Void>> fut) {
-    String db_init = getSysConf("mongo_db_init", "0", config);
+    String db_init = Config.getSysConf("mongo_db_init", "0", config);
     if (mongo != null && "1".equals(db_init)) {
       initModeP = InitMode.INIT;
     }
-    db_init = getSysConf("postgres_db_init", "0", config);
+    db_init = Config.getSysConf("postgres_db_init", "0", config);
     if (postgres != null && "1".equals(db_init)) {
       logger.warn("Will initialize the whole database!");
       logger.warn("The postgres_db_init option is DEPRECATED!"
