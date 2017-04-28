@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -94,6 +95,15 @@ public class ProxyService {
     }
   }
 
+  /**
+   * Make a trace header. Also writes a log entry for the response.
+   *
+   * @param ctx
+   * @param mi
+   * @param statusCode
+   * @param timer
+   * @param pc
+   */
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
     Timer.Context timer, ProxyContext pc) {
     long timeDiff = timer.stop() / 1000;
@@ -102,6 +112,9 @@ public class ProxyService {
       + mi.getModuleDescriptor().getNameOrId() + " "
       + url + " : " + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, pc);
+    logger.info(pc.reqId
+      + " RES " + statusCode + " " + timeDiff + "us "
+      + mi.getModuleDescriptor().getNameOrId() + " " + url);
   }
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
@@ -248,18 +261,22 @@ public class ProxyService {
    */
   private String reqidHeader(RoutingContext ctx) {
     String reqid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
-    String path = ctx.request().path().replaceFirst("(^/[^/]+).*$", "$1");
+    String path = ctx.request().path();
+    if (path == null) { // defensive coding, should always be there
+      path = "";
+    }
+    path = path.replaceFirst("(^/[^/]+).*$", "$1");
     int rnd = (int) (Math.random() * 1000000);
     String newid = String.format("%06d", rnd);
     newid += path;
     if (reqid == null || reqid.isEmpty()) {
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
-      logger.warn("Assigned new reqId " + newid);
+      logger.debug("Assigned new reqId " + newid);
     } else {
-      reqid += ";" + newid;
-      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqid);
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqid);
-      logger.warn("Appended a reqId " + reqid);
+      newid = reqid + ";" + newid;
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, newid);
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+      logger.debug("Appended a reqId " + newid);
     }
 
     return newid;
@@ -450,6 +467,10 @@ public class ProxyService {
 
     ProxyContext pc = new ProxyContext(l, vertx, reqid);
 
+    logger.info(reqid + " REQ "
+      + ctx.request().remoteAddress()
+      + " " + tenant_id + " " + ctx.request().method()
+      + " " + ctx.request().path());
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
         content.resume();
