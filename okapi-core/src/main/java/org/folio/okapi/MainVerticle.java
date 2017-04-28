@@ -172,7 +172,7 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
-      storage = new Storage(vertx, storageType, initMode, config);
+      storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       TenantStore tenantStore = storage.getTenantStore();
@@ -195,7 +195,7 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void start(Future<Void> fut) {
     if (storage != null) {
-      storage.resetDatabases(res -> {
+      storage.prepareDatabases(initMode, res -> {
         if (res.failed()) {
           logger.fatal("start failed", res.cause());
           fut.fail(res.cause());

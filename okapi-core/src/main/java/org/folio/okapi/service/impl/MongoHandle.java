@@ -22,7 +22,6 @@ public class MongoHandle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final MongoClient cli;
-  private boolean transientDb = false;
 
   // Little helper to get a config value:
   // First from System (-D on command line),
@@ -48,11 +47,6 @@ public class MongoHandle {
       opt.put("db_name", db_name);
     }
     logger.info("Using mongo backend at " + h + " : " + p + " / " + db_name);
-
-    String db_init = getSysConf("mongo_db_init", "0", conf);
-    if ("1".equals(db_init)) {
-      this.transientDb = true;
-    }
     this.cli = MongoClient.createShared(vertx, opt);
   }
 
@@ -61,17 +55,13 @@ public class MongoHandle {
   }
 
   public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
-    if (this.transientDb) {
-      dropDatabase(res -> {
-        if (res.succeeded()) {
-          fut.handle(new Success<>());
-        } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        }
-      });
-    } else {
-      fut.handle(new Success<>());
-    }
+    dropDatabase(res -> {
+      if (res.succeeded()) {
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      }
+    });
   }
   /**
    * Drop all (relevant?) collections. The idea is that we can start our
