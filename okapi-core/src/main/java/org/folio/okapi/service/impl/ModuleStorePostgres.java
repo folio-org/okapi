@@ -97,7 +97,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void insert(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
-    logger.info("insert");
+    logger.debug("insert");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("insert: getConnection() failed: " + gres.cause().getMessage());
@@ -119,7 +119,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void update(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
-    logger.info("update");
+    logger.debug("update");
     final String id = md.getId();
     pg.getConnection(gres -> {
       if (gres.failed()) {
@@ -154,7 +154,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void get(String id,
           Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    logger.info("get");
+    logger.debug("get");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
@@ -188,7 +188,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    logger.info("getAll");
+    logger.debug("getAll");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("getAll: getConnection() failed: "
@@ -221,7 +221,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("delete");
+    logger.debug("delete");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("delete: getConnection() failed: "

@@ -76,7 +76,7 @@ public class PostgresHandle {
     }
     logger.debug("Connecting to postgres with " + pgconf.encode());
     cli = PostgreSQLClient.createNonShared(vertx, pgconf);
-    logger.info("PostgresHandle created");
+    logger.debug("created");
   }
 
   public void getConnection(Handler<ExtendedAsyncResult<SQLConnection>> fut) {
