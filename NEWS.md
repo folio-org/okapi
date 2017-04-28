@@ -1,3 +1,12 @@
+## 1.2.5 2017-04-28
+
+ * Okapi initdatabase hangs when pg db is unavailable OKAPI-255
+ * Check dependencies before calling tenant interface OKAPI-277
+ * Fix ModuleDescriptor handler wo method issues NPE OKAPI-308
+ * Log proxy HTTP requests - with session tracking info OKAPI-311
+ * Upgrade to Vert.x 3.4.1 OKAPI-313
+ * initdatabase / purgedatabase updates and clarifications OKAPI-316
+
 ## 1.2.4 2017-04-20
 
  * Fix hang in recursive calls for parallel requests OKAPI-312 / FOLIO-516
