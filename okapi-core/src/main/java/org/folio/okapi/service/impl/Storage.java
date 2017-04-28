@@ -5,13 +5,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.TimeStampStore;
+import static org.folio.okapi.service.impl.MongoHandle.getSysConf;
 
 public class Storage {
 
@@ -26,13 +26,12 @@ public class Storage {
     INIT, // create database at startup
     PURGE  // purge the whole database
   };
-  private InitMode initMode;
-
+  private JsonObject config;
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  public Storage(Vertx vertx, String type, InitMode initMode, JsonObject config) {
+  public Storage(Vertx vertx, String type, JsonObject config) {
     timeStampStore = new TimeStampMemory(vertx);
-    this.initMode = initMode;
+    this.config = config;
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
@@ -54,24 +53,35 @@ public class Storage {
     }
   }
 
-  public void resetDatabases(Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.warn("Storage.resetDatabases: " + initMode);
-    if (mongo != null) {
-      if (initMode != InitMode.NORMAL) {
-        logger.warn("Mong backend does not support the init/purge database commands");
-      } // This does not matter, we will drop mongo soon
+  public void prepareDatabases(InitMode initModeP, Handler<ExtendedAsyncResult<Void>> fut) {
+    String db_init = getSysConf("mongo_db_init", "0", config);
+    if (mongo != null && "1".equals(db_init)) {
+      initModeP = InitMode.INIT;
+    }
+    db_init = getSysConf("postgres_db_init", "0", config);
+    if (postgres != null && "1".equals(db_init)) {
+      logger.warn("Will initialize the whole database!");
+      logger.warn("The postgres_db_init option is DEPRECATED!"
+        + " use 'initdatabase' command (instead of 'dev' on the command line)");
+      initModeP = InitMode.INIT;
+    }
+    final InitMode initMode = initModeP;
+    logger.info("prepareDatabases: " + initMode);
+    if (initMode == InitMode.NORMAL) {
+      fut.handle(new Success<>());
+    } else if (mongo != null) {
       mongo.resetDatabases(fut);
     } else if (postgres != null) {
       TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
-      tnp.resetDatabase(initMode, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
-          mnp.resetDatabase(initMode, fut);
-        }
-      });
-    } else {
+        tnp.resetDatabase(initMode, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
+            mnp.resetDatabase(initMode, fut);
+          }
+        });
+  } else {
       // inmemory will always ignore the database things, it always starts with
       // nothing in its in-memory arrays
       fut.handle(new Success<>());

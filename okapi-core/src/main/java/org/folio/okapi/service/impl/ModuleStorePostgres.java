@@ -31,17 +31,6 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (pg.getDropDb()) {
-      // Dirty trick to use recursion here, but initMode needs to be
-      // effectively final in the lambda below.
-      // This code can be removed when we drop the -D options to initialize databases.
-      this.resetDatabase(Storage.InitMode.INIT, fut);
-      return;
-    }
-    if (initMode == Storage.InitMode.NORMAL) {
-      fut.handle(new Success<>());
-      return;
-    }
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("resetDatabase: getConnection() failed: "
@@ -108,7 +97,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void insert(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
-    logger.info("insert");
+    logger.debug("insert");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("insert: getConnection() failed: " + gres.cause().getMessage());
@@ -130,7 +119,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void update(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
-    logger.info("update");
+    logger.debug("update");
     final String id = md.getId();
     pg.getConnection(gres -> {
       if (gres.failed()) {
@@ -165,7 +154,7 @@ public class ModuleStorePostgres implements ModuleStore {
   @Override
   public void get(String id,
           Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    logger.info("get");
+    logger.debug("get");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
@@ -199,7 +188,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    logger.info("getAll");
+    logger.debug("getAll");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("getAll: getConnection() failed: "
@@ -232,7 +221,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("delete");
+    logger.debug("delete");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("delete: getConnection() failed: "

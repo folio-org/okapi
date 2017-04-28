@@ -686,8 +686,9 @@ for you, when invoked like this:
 ```
 java -Dport=8600 -Dstorage=postgres -jar target/okapi-core-fat.jar initdatabase
 ```
-This command creates the necessary stuff, and exits Okapi. If you want to clear
-things up, you can use the command `purgedatabase`.
+This command removes existing tables and data if available and creates
+the necessary stuff, and exits Okapi. If you want to remove existing tables
+only, you can use the command `purgedatabase`.
 
 If you need to dig into Okapi's PostgreSQL database, you can do it with a
 command like this:
@@ -1789,6 +1790,8 @@ Okapi requires exactly one command to be given. These are:
 * `deployment` for deployment only. Clustered mode
 * `proxy` for proxy + discovery. Clustered mode
 * `help` to list command-line options and commands
+* `initdatabase` drop existing data if available and initializes database
+* `purgedatabase` drop existing data and tables
 
 #### Command-line options
 
