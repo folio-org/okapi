@@ -298,6 +298,14 @@ public class ModuleTest {
       + "      \"modulePermissions\" : [ \"sample.modperm\" ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
+      + "    \"id\" : \"recurse\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/recurse\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
@@ -463,6 +471,13 @@ public class ModuleTest {
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
+
+    // Check that the module can call itself recursively, 5 time
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/recurse?depth=5")
+      .then().statusCode(200)
+      .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Check that the tenant API got called (exactly once)
     given()
