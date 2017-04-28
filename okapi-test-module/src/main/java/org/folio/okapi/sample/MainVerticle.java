@@ -14,6 +14,8 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.folio.okapi.common.XOkapiHeaders;
+import static org.folio.okapi.common.HttpResponse.*;
+import org.folio.okapi.common.OkapiClient;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -109,6 +111,32 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
+  public void recurse_handle(RoutingContext ctx) {
+    String d = ctx.request().getParam("depth");
+    if (d == null || d.isEmpty()) {
+      d = "1";
+    }
+    String depthstr = d; // must be final
+    int depth = Integer.parseInt(depthstr);
+    if (depth < 0) {
+      responseError(ctx, 400, "Bad recursion, can not be negative " + depthstr);
+    } else if (depth == 0) {
+      responseText(ctx, 200);
+      ctx.response().end("Recursion done");
+    } else {
+      OkapiClient ok = new OkapiClient(ctx);
+      depth--;
+      ok.get("/recurse?depth=" + depth, res -> {
+        if (res.succeeded()) {
+          responseText(ctx, 200);
+          ctx.response().end(depthstr + " " + res.result());
+        } else {
+          String message = res.cause().getMessage();
+          responseError(ctx, 500, "Recurse " + depthstr + " failed with " + message);
+        }
+      });
+    }
+  }
 
   @Override
   public void start(Future<Void> fut) throws IOException {
@@ -135,6 +163,8 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/_/tenant").handler(this::my_tenant_handle);
     router.post("/_/tenant").handler(this::my_tenant_handle);
     router.delete("/_/tenant").handler(this::my_tenant_handle);
+
+    router.get("/recurse").handler(this::recurse_handle);
 
     HttpServerOptions so = new HttpServerOptions()            .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)

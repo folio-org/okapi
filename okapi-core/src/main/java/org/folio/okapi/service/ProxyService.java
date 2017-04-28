@@ -16,6 +16,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -74,11 +75,13 @@ public class ProxyService {
 
     List<ModuleInstance> ml;
     List<String> traceHeaders;
+    String reqId;
 
-    ProxyContext(List<ModuleInstance> ml, Vertx vertx) {
+    ProxyContext(List<ModuleInstance> ml, Vertx vertx, String reqId) {
       this.ml = ml;
       traceHeaders = new ArrayList<>();
       httpClient = vertx.createHttpClient();
+      this.reqId = reqId;
     }
   }
 
@@ -92,6 +95,15 @@ public class ProxyService {
     }
   }
 
+  /**
+   * Make a trace header. Also writes a log entry for the response.
+   *
+   * @param ctx
+   * @param mi
+   * @param statusCode
+   * @param timer
+   * @param pc
+   */
   private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
     Timer.Context timer, ProxyContext pc) {
     long timeDiff = timer.stop() / 1000;
@@ -100,6 +112,9 @@ public class ProxyService {
       + mi.getModuleDescriptor().getNameOrId() + " "
       + url + " : " + statusCode + " " + timeDiff + "us");
     addTraceHeaders(ctx, pc);
+    logger.info(pc.reqId
+      + " RES " + statusCode + " " + timeDiff + "us "
+      + mi.getModuleDescriptor().getNameOrId() + " " + url);
   }
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
@@ -241,12 +256,41 @@ public class ProxyService {
     return tenantId;
   }
 
-  // Get the auth bits from the module list into
-  // X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers
-  // Also X-Okapi-Module-Permissions for each module that has such.
-  // At the same time, sets the authToken to default for each module.
-  // Some of these will be overwritten once the auth module returns with
-  // dedicated tokens, but by default we use the one given to us by the client.
+  /**
+   * Set the request-id header if necessary.
+   */
+  private String reqidHeader(RoutingContext ctx) {
+    String reqid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
+    String path = ctx.request().path();
+    if (path == null) { // defensive coding, should always be there
+      path = "";
+    }
+    path = path.replaceFirst("(^/[^/]+).*$", "$1");
+    int rnd = (int) (Math.random() * 1000000);
+    String newid = String.format("%06d", rnd);
+    newid += path;
+    if (reqid == null || reqid.isEmpty()) {
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+      logger.debug("Assigned new reqId " + newid);
+    } else {
+      newid = reqid + ";" + newid;
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, newid);
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+      logger.debug("Appended a reqId " + newid);
+    }
+
+    return newid;
+  }
+
+  /**
+   * Get the auth bits from the module list into X-Okapi-Permissions-Required
+   * and X-Okapi-Permissions-Desired headers. Also X-Okapi-Module-Permissions
+   * for each module that has such. At the same time, sets the authToken to
+   * default for each module. Some of these will be overwritten once the auth
+   * module returns with dedicated tokens, but by default we use the one given
+   * to us by the client.
+   *
+   */
   private void authHeaders(List<ModuleInstance> modlist,
     MultiMap requestHeaders, String defaultToken) {
     // Sanitize important headers from the incoming request
@@ -399,6 +443,7 @@ public class ProxyService {
     if (tenant_id == null) {
       return; // Error code already set in ctx
     }
+    String reqid = reqidHeader(ctx);
     ReadStream<Buffer> content = ctx.request();
     Tenant tenant = tenantManager.get(tenant_id);
     if (tenant == null) {
@@ -420,8 +465,12 @@ public class ProxyService {
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
-    ProxyContext pc = new ProxyContext(l, vertx);
+    ProxyContext pc = new ProxyContext(l, vertx, reqid);
 
+    logger.info(reqid + " REQ "
+      + ctx.request().remoteAddress()
+      + " " + tenant_id + " " + ctx.request().method()
+      + " " + ctx.request().path());
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
         content.resume();

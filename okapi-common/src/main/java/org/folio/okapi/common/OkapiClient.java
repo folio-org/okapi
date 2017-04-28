@@ -48,7 +48,9 @@ public class OkapiClient {
     init(ctx.vertx());
     this.ctx = ctx;
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
-    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    if (this.okapiUrl != null) {
+      this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    }
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
         String hv = ctx.request().getHeader(hdr);
@@ -89,7 +91,12 @@ public class OkapiClient {
    * well, or a plain text string in case of errors.
    */
   public void request( HttpMethod method, String path, String data,
-        Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (this.okapiUrl == null) {
+      logger.error("OkapiClient: No OkapiUrl specified");
+      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
+      return;
+    }
     String url = this.okapiUrl + path;
     respHeaders = null;
     logger.debug("OkapiClient: " + method.toString() + " request to " + url);
