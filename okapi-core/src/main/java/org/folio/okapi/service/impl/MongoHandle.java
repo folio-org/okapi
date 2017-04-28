@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.Iterator;
 import java.util.List;
+import org.folio.okapi.common.Config;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -27,22 +28,17 @@ public class MongoHandle {
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  static String getSysConf(String key, String def, JsonObject conf) {
-    String v = System.getProperty(key, conf.getString(key, def));
-    return v;
-  }
-
   public MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
-    String h = getSysConf("mongo_host", "127.0.0.1", conf);
+    String h = Config.getSysConf("mongo_host", "127.0.0.1", conf);
     if (!h.isEmpty()) {
       opt.put("host", h);
     }
-    String p = getSysConf("mongo_port", "27017", conf);
+    String p = Config.getSysConf("mongo_port", "27017", conf);
     if (!p.isEmpty()) {
       opt.put("port", Integer.parseInt(p));
     }
-    String db_name = getSysConf("mongo_db_name", "", conf);
+    String db_name = Config.getSysConf("mongo_db_name", "", conf);
     if (!db_name.isEmpty()) {
       opt.put("db_name", db_name);
     }
