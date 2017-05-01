@@ -151,9 +151,8 @@ public class MainCluster {
             }
           });
         } else {
-          err.println("Failed to create a clustered vert.x");
-          // We probably should not use logging here, as it depends
-          // on vert.x, which just failed to start!
+          logger.fatal(res.cause().getMessage());
+          exit(1);
         }
       });
     }
