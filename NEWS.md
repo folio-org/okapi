@@ -2,7 +2,7 @@
 
  * Okapi initdatabase hangs when pg db is unavailable OKAPI-255
  * Check dependencies before calling tenant interface OKAPI-277
- * Fix ModuleDescriptor handler wo method issues NPE OKAPI-308
+ * Fix ModuleDescriptor handler without method issues NPE OKAPI-308
  * Log proxy HTTP requests - with session tracking info OKAPI-311
  * Upgrade to Vert.x 3.4.1 OKAPI-313
  * initdatabase / purgedatabase updates and clarifications OKAPI-316

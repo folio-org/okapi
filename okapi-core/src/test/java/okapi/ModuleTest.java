@@ -505,7 +505,7 @@ public class ModuleTest {
       + "  \"launchDescriptor\" : { }" + LS
       + "}";
 
-    // create the module - no need to deplaoy and use, it won't work.
+    // create the module - no need to deploy and use, it won't work.
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")

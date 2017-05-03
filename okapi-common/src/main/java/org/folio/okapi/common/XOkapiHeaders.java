@@ -79,13 +79,14 @@ public class XOkapiHeaders {
    */
   /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
-   * requires.   * Only used between Okapi and the auth complex.
+   * requires.
+   * Used only between Okapi and the auth complex.
    */
   public static final String PERMISSIONS_REQUIRED = "X-Okapi-Permissions-Required";
 
   /** X-Okapi-Permissions-Desired. Lists the permissions a given module is
-   * interested in, without strictly needing them. Only used between Okapi and
-   * the auth complex.
+   * interested in, without strictly needing them.
+   * Used only between Okapi and the auth complex.
    */
   public static final String PERMISSIONS_DESIRED = "X-Okapi-Permissions-Desired";
 
@@ -103,7 +104,8 @@ public class XOkapiHeaders {
   public static final String EXTRA_PERMISSIONS = "X-Okapi-Extra-Permissions";
 
   /** X-Okapi-Module-Tokens. JWT tokens specifically made for invoking given
-   * modules. Only used between Okapi and the authorization module.
+   * modules.
+   * Used only between Okapi and the authorization module.
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
 
