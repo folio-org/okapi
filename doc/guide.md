@@ -907,7 +907,7 @@ The id is what we will be using to refer to this module later. The version numbe
 is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
 UUIDs or other things, as long as they are truly unique, but we have decided to
-recommend this naming shceme for all modules.)
+recommend this naming scheme for all modules.)
 
 This module provides just one interface, called `test-basic`. It has one handler
 that indicates that the interface is interested in GET and POST requests to the
