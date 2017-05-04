@@ -26,6 +26,7 @@ managing and running microservices.
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
     * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
+    * [Running in cluster mode](#running-in-cluster-mode)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -646,6 +647,9 @@ mvn exec:exec@debug
 ```
 This command requires Maven >= 3.3.1. It will listen for a
 debugging client on port 5005.
+
+For running in a cluster, see the [Cluster](#running-in-cluster-mode)
+example below.
 
 ## Using Okapi
 
@@ -1737,6 +1741,200 @@ Content-Length: 0
 
 Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
 command.
+
+### Running in cluster mode
+
+So far all the examples have been running in `dev` mode on a single machine.
+That is good for demonstrating things, development, and such, but in real
+production setups we need to run on a cluster of machines.
+
+#### On a single machine
+
+The simplest cluster setup is to run multiple instances of Okapi on the same
+machine. This is not how it is supposed to be done, but it is easiest to
+demonstrate.
+
+Open a console, and start your first Okapi
+```
+java -jar okapi-core/target/okapi-core-fat.jar cluster
+```
+
+Okapi prints more startup messages than in `dev` mode. The interesting
+message line includes something like
+```
+Hazelcast 3.6.3 (20160527 - 08b28c3) starting at Address[172.17.42.1]:5701
+```
+It says that we are using Hazelcast - the tool vert.x uses for clustering,
+and that it is using port 5701 on address 172.17.42.1. The port is the default,
+but Hazelcast will try to find a free one, so you may end up with another one.
+The address is the address of your machine, on one of its interfaces. More about
+that later.
+
+Open another console, and start another instance of Okapi. Since you are on
+the same machine, both instances can not be listening on the same port. By
+default Okapi allocates 20 ports for the modules, so let's start the next
+Okapi on port 9150:
+```
+java -Dport=9150 -jar okapi-core/target/okapi-core-fat.jar cluster
+```
+Again Okapi prints some startup messages, but note that also the first Okapi
+prints some stuff. Those two are connecting, and talking to each other.
+
+
+Now you can ask Okapi to list the known nodes. On a third console window try this:
+```
+curl -w '\n' -D - \
+   http://localhost:9130/_/discovery/nodes
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 186
+
+[ {
+  "nodeId" : "0d3f8e19-84e3-43e7-8552-fc151cf5abfc",
+  "url" : "http://localhost:9150"
+}, {
+  "nodeId" : "6f8053e1-bc55-48b4-87ef-932ad370081b",
+  "url" : "http://localhost:9130"
+} ]
+
+```
+Indeed, it lists two nodes. They each have a URL they can be reached on, and
+a nodeId that is some random UUID string.
+
+You can ask the other node to list all nodes by changing the port in your URL
+to 9150, and should get the same list, possibly in a different order.
+
+#### On separate machines
+Of course you want to run your cluster on multiple machines, that is the whole
+point of clustering.
+
+*Warning* Okapi uses the Hazelcast library for managing its cluster setup, and
+that uses multicast packets for discovering nodes in the cluster. Multicast
+works fine over most wired ethernets, but not nearly so well with wireless.
+Nobody should use wireless networking in a production cluster, but developers
+may wish to experiment with laptops on a wireless network. THAT WILL NOT WORK!
+There is a workaround involving a hazelcast-config-file where you list all
+IP addresses that participate in your cluster, but it is messy, and we will
+not go into the details here.
+
+The procedure is almost the same, except for two small
+details. For the first, there is no need to specify different ports, since those
+are on separate machines, and will not collide. Instead you need to make sure
+that the machines are on the same network. Modern Linux machines have multiple
+network interfaces, typically at least the ethernet cable, and the loopback
+interface. Quite often also a wifi port, and if you use Docker, it sets up its
+own internal network. You can see all the interfaces listed with `sudo ifcongig`.
+Okapi is not very clever in guessing which interface it needs to use, so often
+you have to tell it. You can do that with something like this:
+```
+java -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-host 10.0.0.2
+```
+Note that the cluster-host option has to be at the end of the command line. The
+parameter name is a bit misleading, it is not a hostname, but a IP address that
+needs to be there.
+
+Start Okapi up on a second machine that is on the same network. Be careful to
+use the proper IP address on the command line. If all goes well, the machines
+should see each other. You can see it in the log on both machines. Now you can
+ask Okapi (any Okapi in the cluster) to list all nodes:
+```
+curl -w '\n' -D - \
+   http://localhost:9130/_/discovery/nodes
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 186
+
+[ {
+  "nodeId" : "81d1d7ca-8ff1-47a0-84af-78cfe1d05ec2",
+  "url" : "http://localhost:9130"
+}, {
+  "nodeId" : "ec08b65d-f7b1-4e78-925b-0da18af49029",
+  "url" : "http://localhost:9130"
+} ]
+```
+
+Note how the nodes have different UUIDs, but the same URL. They both claim to be
+reachable at http://localhost:9130. That is true enough, in a very technical
+sense, if you use curl on the node itself, localhost:9130 points to Okapi. But
+that is not very practical if you (or another Okapi) wants to talk to the node
+from somewhere else on the network. The solution is to add another parameter to
+the command line, telling the hostname Okapi should return for itself.
+
+Stop your Okapi's, and start them again with a command line like this:
+```
+java -Dhost=tapas -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-host 10.0.0.2
+```
+Instead of "tapas", use the name of the machine you are starting on, or even the
+IP address. Again, list the nodes
+
+```
+curl -w '\n' -D - \
+   http://localhost:9130/_/discovery/nodes
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 178
+
+[ {
+  "nodeId" : "40be7787-657a-47e4-bdbf-2582a83b172a",
+  "url" : "http://jamon:9130"
+}, {
+  "nodeId" : "953b7a2a-94e9-4770-bdc0-d0b163861e6a",
+  "url" : "http://tapas:9130"
+} ]
+```
+
+You can verify that the URLs work:
+```
+curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 178
+
+[ {
+  "nodeId" : "40be7787-657a-47e4-bdbf-2582a83b172a",
+  "url" : "http://jamon:9130"
+}, {
+  "nodeId" : "953b7a2a-94e9-4770-bdc0-d0b163861e6a",
+  "url" : "http://tapas:9130"
+} ]
+```
+
+#### So, you have a cluster
+The Okapi cluster works pretty much as a single Okapi you have seen before. For
+most purposes it does not matter which node you talk to, they share all the
+information. You can try to create a module via one node, a tenant via another,
+and enable the module for that tenant via the first node again. You have to be
+a little bit more careful in deploying modules, since you need to control which
+node to run on. The single-node examples above used just 'localhost' as the
+nodeId to deploy on, instead you need to pass the UUID you have seen so many
+times. After you have deployed a module, you can proxy traffic to it, using
+which ever Okapi you like.
+
+There are some small differences you should be aware of:
+ * The in-memory back-end is shared between all nodes in a cluster. That means
+that if you take one node down, and start it again, it will sync with the other
+node, and still be aware of the shared data. Only when all running Okapis are
+taken down, will the data disappear from memory. Of course, using the postgress
+backend will persist data.
+ * You can deploy modules using the /_/deployment endpoint. This has to be done
+on the very node you want the thing to run. Okapi will inform other nodes about
+it. Normally you should deploy through the /_/discovery endpoint, and specify
+the nodeId.
+ * Starting up Okapi can take a bit longer time
+
+There are two more culstering modes you can use. `deployment` starts Okapi up
+in cluster mode, but without doing the proxying. That can be useful in a cluster
+where only one node is visible from the outside, the rest could run in deployment
+mode.
+
+The other mode, `proxy`, is the reverse of that. It is meant for the Okapi node
+that receives all requests, and passes them on to the 'deployment' nodes. That
+would typically be a node that is visible from outside. This kind of division
+starts to make sense when there is so much traffic that the proxying alone will
+keep a node fully occupied.
 
 ## Reference
 
