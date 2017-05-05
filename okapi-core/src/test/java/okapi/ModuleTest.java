@@ -815,7 +815,8 @@ public class ModuleTest {
       + "    \"path\" : \"/login\"," + LS
       + "    \"level\" : \"20\"," + LS
       + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
       + "}";
 
     // Check that we fail on unknown route types
@@ -862,7 +863,8 @@ public class ModuleTest {
       + "    \"path\" : \"/login\"," + LS
       + "    \"level\" : \"20\"," + LS
       + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
       + "}";
 
     final String locationAuthModule2 = locationAuthModule + "2";
@@ -967,7 +969,7 @@ public class ModuleTest {
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
-      + "  } ]," + LS
+      + "  } ]," + LS // no 'requires' - generates a warning
       + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS

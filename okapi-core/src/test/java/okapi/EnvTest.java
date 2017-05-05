@@ -202,23 +202,24 @@ public class EnvTest {
     locationSampleDeployment1 = r.getHeader("Location");
     // proxy module
     final String docSampleModule1 = "{" + LS
-            + "  \"id\" : \"sample-module1\"," + LS
-            + "  \"name\" : \"this module\"," + LS
-            + "  \"provides\" : [ {" + LS
-            + "    \"id\" : \"_tenant\"," + LS
-            + "    \"version\" : \"1.0.0\"" + LS
-            + "  }, {" + LS
-            + "    \"id\" : \"myint\"," + LS
-            + "    \"version\" : \"1.0.0\"" + LS
-            + "  } ]," + LS
-            + "  \"routingEntries\" : [ {" + LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/testb\"," + LS
-            + "    \"level\" : \"31\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]," + LS
-            + "  \"tenantInterface\" : \"/tenant\"" + LS
-            + "}";
+      + "  \"id\" : \"sample-module1\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"31\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"tenantInterface\" : \"/tenant\"" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
@@ -268,23 +269,24 @@ public class EnvTest {
             .body(equalTo("hejsa Okapi"));
 
     final String docSampleModule2 = "{" + LS
-            + "  \"id\" : \"sample-module2\"," + LS
-            + "  \"name\" : \"this module\"," + LS
-            + "  \"provides\" : [ {" + LS
-            + "    \"id\" : \"_tenant\"," + LS
-            + "    \"version\" : \"1.0.0\"" + LS
-            + "  }, {" + LS
-            + "    \"id\" : \"myint\"," + LS
-            + "    \"version\" : \"1.0.0\"" + LS
-            + "  } ]," + LS
-            + "  \"routingEntries\" : [ {" + LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/testb\"," + LS
-            + "    \"level\" : \"31\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]," + LS
-            + "  \"tenantInterface\" : \"/tenant\"" + LS
-            + "}";
+      + "  \"id\" : \"sample-module2\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"routingEntries\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"31\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"tenantInterface\" : \"/tenant\"" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
