@@ -1824,7 +1824,7 @@ are on separate machines, and will not collide. Instead you need to make sure
 that the machines are on the same network. Modern Linux machines have multiple
 network interfaces, typically at least the ethernet cable, and the loopback
 interface. Quite often also a wifi port, and if you use Docker, it sets up its
-own internal network. You can see all the interfaces listed with `sudo ifcongig`.
+own internal network. You can see all the interfaces listed with `sudo ifconfig`.
 Okapi is not very clever in guessing which interface it needs to use, so often
 you have to tell it. You can do that with something like this:
 ```
@@ -1862,12 +1862,12 @@ that is not very practical if you (or another Okapi) wants to talk to the node
 from somewhere else on the network. The solution is to add another parameter to
 the command line, telling the hostname Okapi should return for itself.
 
-Stop your Okapi's, and start them again with a command line like this:
+Stop your Okapis, and start them again with a command line like this:
 ```
 java -Dhost=tapas -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-host 10.0.0.2
 ```
 Instead of "tapas", use the name of the machine you are starting on, or even the
-IP address. Again, list the nodes
+IP address. Again, list the nodes:
 
 ```
 curl -w '\n' -D - \
@@ -1903,6 +1903,7 @@ Content-Length: 178
 ```
 
 #### So, you have a cluster
+
 The Okapi cluster works pretty much as a single Okapi you have seen before. For
 most purposes it does not matter which node you talk to, they share all the
 information. You can try to create a module via one node, a tenant via another,
@@ -1917,15 +1918,15 @@ There are some small differences you should be aware of:
  * The in-memory back-end is shared between all nodes in a cluster. That means
 that if you take one node down, and start it again, it will sync with the other
 node, and still be aware of the shared data. Only when all running Okapis are
-taken down, will the data disappear from memory. Of course, using the postgress
+taken down, will the data disappear from memory. Of course, using the Postgres
 backend will persist data.
  * You can deploy modules using the /_/deployment endpoint. This has to be done
 on the very node you want the thing to run. Okapi will inform other nodes about
 it. Normally you should deploy through the /_/discovery endpoint, and specify
 the nodeId.
- * Starting up Okapi can take a bit longer time
+ * Starting up Okapi can take a bit longer time.
 
-There are two more culstering modes you can use. `deployment` starts Okapi up
+There are two more clustering modes you can use. The `deployment` starts Okapi up
 in cluster mode, but without doing the proxying. That can be useful in a cluster
 where only one node is visible from the outside, the rest could run in deployment
 mode.
