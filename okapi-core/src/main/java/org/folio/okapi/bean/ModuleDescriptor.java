@@ -264,6 +264,10 @@ public class ModuleDescriptor {
           return err;
         }
       }
+    } else {
+      logger.warn("Module '" + this.getNameOrId() + "' "
+        + "has no Requires section. If the module really does not require "
+        + "any other interfaces, provide an empty array to be explicit about it.");
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {
