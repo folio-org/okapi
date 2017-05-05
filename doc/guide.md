@@ -482,7 +482,7 @@ to do so much work. But it still needs to orchestrate the whole operation.
 Ignoring all the messy details, this how it works: The client (often on a web
 browser, but can really be anything) calls the `/login` service to identify
 itself. Depending on the tenant, we may have different authorization modules
-serving the /login request, and they may take different parameters (username
+serving the `/login` request, and they may take different parameters (username
 and password are the most likely, but we can have anything from simple IP
 authentication to complex interactions with LDAP, OAuth, or other systems).
 
@@ -708,7 +708,7 @@ The examples in the following sections can be pasted into a command-line console
 It is also possible to extract all the example records with a perl
 one-liner, assuming you have this MarkDown source of this guide in the
 current directory as _guide.md_ -- as is the case in the source tree.
-This leaves them all in /tmp, as files like `okapi-tenant.json`
+This leaves them all in `/tmp` as files like `okapi-tenant.json`
 ```
 perl -n -e 'print if /^cat /../^END/;' guide.md | sh
 ```
@@ -1183,7 +1183,7 @@ cat > /tmp/okapi-module-auth.json <<END
 }
 END
 ```
-The module has one handler, for the /login path. It also has a filter that
+The module has one handler, for the `/login` path. It also has a filter that
 connects with every incoming request. That is where it decides if the user will
 be allowed to make the request. This one has a type "headers", which means that
 Okapi does not pass the whole request to it, just the headers.
@@ -1856,7 +1856,7 @@ Content-Length: 186
 ```
 
 Note how the nodes have different UUIDs, but the same URL. They both claim to be
-reachable at http://localhost:9130. That is true enough, in a very technical
+reachable at `http://localhost:9130`. That is true enough, in a very technical
 sense, if you use curl on the node itself, localhost:9130 points to Okapi. But
 that is not very practical if you (or another Okapi) wants to talk to the node
 from somewhere else on the network. The solution is to add another parameter to
@@ -1920,9 +1920,9 @@ that if you take one node down, and start it again, it will sync with the other
 node, and still be aware of the shared data. Only when all running Okapis are
 taken down, will the data disappear from memory. Of course, using the Postgres
 backend will persist data.
- * You can deploy modules using the /_/deployment endpoint. This has to be done
+ * You can deploy modules using the `/_/deployment` endpoint. This has to be done
 on the very node you want the thing to run. Okapi will inform other nodes about
-it. Normally you should deploy through the /_/discovery endpoint, and specify
+it. Normally you should deploy through the `/_/discovery` endpoint, and specify
 the nodeId.
  * Starting up Okapi can take a bit longer time.
 
