@@ -275,25 +275,25 @@ In contrast, the ModuleDescriptors POSTed to `/_/proxy` are persisted in a datab
 
 ### Request Processing
 
-Any number of modules can request registration on a single URI
-path. Okapi will then forward the requests to those modules in an
-order controlled by the integer-valued `level` setting in the module
-registration configuration: modules with lower levels are processed
-before those with higher levels.
+Modules can declare two kind ways to handle a request: handlers and filters.
+There should be exactly one handler for each path. That will be of `request-response`
+type by default (see below). If no handlers are found, Okapi will return a 404
+NOTFOUND.
 
-Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
-chunked encoding to make the connections to the modules.
+Each request may be passed through one or more filters. The `phase` determines
+the order in which filters are applied. At the moment that seems a bit of an
+overkill, since we have only one phase, `auth`, which will get invoked before
+the handler. It will be used for checking permissions. We assume that later we
+will introduce more phases, for example one to write an audit log after a request
+has been processed by the handler.
 
-We envision that different kinds of modules will carry different level
-values: e.g. authentication and authorization will have the lowest
-possible priority, next the actual business logic processing unit,
-followed by metrics, statistics, monitoring, logging, etc.
+(In previous versions, we had handlers and filters combined in one
+pipeline, with numerical levels for controlling the order. That was deprecated
+in 1.2, and will be dropped in version 2.0)
 
-The module metadata also controls how the request is forwarded to
-consecutive modules in a pipeline and how the responses are
-processed. Currently, we have three kinds of request processing by
-modules (controlled by the `type` parameter in the module registration
-configuration). The possible values are:
+The `type` parameter in the RoutingEntry in the Moduledescription controls how
+the request is passed to the filters and handlers, and how the responses are
+processed. Currently, we support the following types:
 
  * `headers` -- The module is interested in headers/parameters only,
 and it can inspect them and perform an action based on the
@@ -330,7 +330,9 @@ intended as a mechanism for piling more complex modules on top of simpler
 implementations, for example a module to edit and list users could be
 extended by a module that manages users and passwords. It would have
 actual code to handle creating and updating users, but could redirect
-requests to list and get users to the simpler user module.
+requests to list and get users to the simpler user module. If a handler
+(or a filter) is marked as a redirect, it must also have a redirectPath
+to tell where to redirect to.
 
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
@@ -348,6 +350,9 @@ this module returned. It is meant to be used sparingly, for example a module
 in a login pipeline may conclude that the user is already authorized since
 he comes from a IP address in the secure office, and abort the sequence of
 events that would lead to a login screen being displayed.
+
+Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
+chunked encoding to make the connections to the modules.
 
 
 ### Status Codes
