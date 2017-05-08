@@ -9,26 +9,9 @@ public class HttpResponse {
 
   private final static Logger logger = LoggerFactory.getLogger("okapi");
 
+  //static public int ErrorCodeFromType(ErrorType t)
   static public void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
-    int code = 500;
-    switch (t) {
-      case OK:
-        code = 200;
-        break;
-      case INTERNAL:
-        code = 500;
-        break;
-      case USER:
-        code = 400;
-        break;
-      case NOT_FOUND:
-        code = 404;
-        break;
-      case ANY:
-        code = 500;
-        break;
-    }
-    responseError(ctx, code, cause);
+    responseError(ctx, t.httpCode(t), cause);
   }
 
   static public void responseError(RoutingContext ctx, int code, Throwable cause) {
