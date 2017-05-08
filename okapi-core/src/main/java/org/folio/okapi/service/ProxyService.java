@@ -16,7 +16,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.core.net.SocketAddress;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -43,6 +42,7 @@ import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -68,34 +68,6 @@ public class ProxyService {
   }
 
   /**
-   * Helper for carrying around those things we need for proxying.
-   */
-  private static class ProxyContext {
-    final HttpClient httpClient;
-
-    List<ModuleInstance> ml;
-    List<String> traceHeaders;
-    String reqId;
-
-    ProxyContext(List<ModuleInstance> ml, Vertx vertx, String reqId) {
-      this.ml = ml;
-      traceHeaders = new ArrayList<>();
-      httpClient = vertx.createHttpClient();
-      this.reqId = reqId;
-    }
-  }
-
-  /**
-   * Add the trace headers to the response.
-   */
-  private void addTraceHeaders(RoutingContext ctx, ProxyContext pc) {
-
-    for (String th : pc.traceHeaders) {
-      ctx.response().headers().add(XOkapiHeaders.TRACE, th);
-    }
-  }
-
-  /**
    * Make a trace header. Also writes a log entry for the response.
    *
    * @param ctx
@@ -108,14 +80,13 @@ public class ProxyService {
     Timer.Context timer, ProxyContext pc) {
     long timeDiff = timer.stop() / 1000;
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
-    pc.traceHeaders.add(ctx.request().method() + " "
+    pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getNameOrId() + " "
       + url + " : " + statusCode + " " + timeDiff + "us");
-    addTraceHeaders(ctx, pc);
-    logger.info(pc.reqId
-      + " RES " + statusCode + " " + timeDiff + "us "
-      + mi.getModuleDescriptor().getNameOrId() + " " + url);
+    pc.addTraceHeaders(ctx);
+    pc.logResponse(mi.getModuleDescriptor().getNameOrId(), url, statusCode, timeDiff);
   }
+
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
     return e.match(req.uri(), req.method().name());
@@ -394,7 +365,7 @@ public class ProxyService {
     if (modTok != null && !modTok.isEmpty()) {
       JsonObject jo = new JsonObject(modTok);
       // { "sample" : "token" }
-      for (ModuleInstance mi : pc.ml) {
+      for (ModuleInstance mi : pc.getModList()) {
         String id = mi.getModuleDescriptor().getId();
         if (jo.containsKey(id)) {
           String tok = jo.getString(id);
@@ -467,10 +438,8 @@ public class ProxyService {
 
     ProxyContext pc = new ProxyContext(l, vertx, reqid);
 
-    logger.info(reqid + " REQ "
-      + ctx.request().remoteAddress()
-      + " " + tenant_id + " " + ctx.request().method()
-      + " " + ctx.request().path());
+    pc.logRequest(ctx, tenant_id);
+
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {
         content.resume();
@@ -485,7 +454,7 @@ public class ProxyService {
     Iterator<ModuleInstance> it,
     ProxyContext pc,
     Buffer bcontent, ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.getHttpClient().requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
@@ -553,7 +522,7 @@ public class ProxyService {
     ProxyContext pc,
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.getHttpClient().requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
@@ -606,7 +575,7 @@ public class ProxyService {
     ProxyContext pc,
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi, Timer.Context timer) {
-    HttpClientRequest c_req = pc.httpClient.requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = pc.getHttpClient().requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
@@ -691,7 +660,7 @@ public class ProxyService {
     ReadStream<Buffer> content, Buffer bcontent) {
     if (!it.hasNext()) {
       content.resume();
-      addTraceHeaders(ctx, pc);
+      pc.addTraceHeaders(ctx);
       logger.debug("proxyR: Not found");
       responseText(ctx, 404).end();
     } else {
