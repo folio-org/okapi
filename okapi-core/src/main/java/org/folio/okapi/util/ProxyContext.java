@@ -44,7 +44,6 @@ public class ProxyContext {
     this.modList = ml;
     traceHeaders = new ArrayList<>();
     httpClient = vertx.createHttpClient();
-    this.reqId = reqId;
     reqidHeader(ctx);
     logRequest(ctx, tenant);
   }

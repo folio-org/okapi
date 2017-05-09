@@ -32,7 +32,6 @@ import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.TimeStampStore;
 import org.folio.okapi.util.LogHelper;
-import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
@@ -41,6 +40,7 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.env.EnvService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
+import org.folio.okapi.util.ProxyContext;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -184,12 +184,14 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public void NotFound(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     String slash = "";
     if (ctx.request().path().endsWith("/")) {
       slash = "  Try without a trailing slash";
     }
-    responseError(ctx, 404, "Okapi: unrecognized service "
+    pc.responseError(404, "Okapi: unrecognized service "
       + ctx.request().path() + slash);
+
   }
 
   @Override
