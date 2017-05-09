@@ -7,7 +7,6 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.Tenant;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpServerRequest;
@@ -75,8 +74,9 @@ public class ProxyService {
    * @param timer
    * @param pc
    */
-  private void makeTraceHeader(RoutingContext ctx, ModuleInstance mi, int statusCode,
+  private void makeTraceHeader(ModuleInstance mi, int statusCode,
     Timer.Context timer, ProxyContext pc) {
+    RoutingContext ctx = pc.getCtx();
     long timeDiff = timer.stop() / 1000;
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
@@ -423,7 +423,7 @@ public class ProxyService {
         content.resume();
         pc.responseError(res.getType(), res.cause());
       } else {
-        proxyR(ctx, l.iterator(), pc, content, null);
+        proxyR(l.iterator(), pc, content, null);
       }
     });
   }
@@ -435,7 +435,7 @@ public class ProxyService {
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           res.handler(data -> {
             ctx.response().write(data);
           });
@@ -447,13 +447,13 @@ public class ProxyService {
             logger.debug("proxyRequestHttpClient: res exception " + x.getMessage());
           });
         } else if (it.hasNext()) {
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           timer.close();
           relayToRequest(res, pc);
-          proxyR(ctx, it, pc, null, bcontent);
+          proxyR(it, pc, null, bcontent);
         } else {
           relayToResponse(ctx.response(), res);
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           res.endHandler(x -> {
             timer.close();
             ctx.response().end(bcontent);
@@ -502,13 +502,13 @@ public class ProxyService {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
         && it.hasNext()) {
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           relayToRequest(res, pc);
           res.pause();
-          proxyR(ctx, it, pc, res, null);
+          proxyR(it, pc, res, null);
         } else {
           relayToResponse(ctx.response(), res);
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           res.handler(data -> {
             ctx.response().write(data);
           });
@@ -554,7 +554,7 @@ public class ProxyService {
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           res.handler(data -> {
             ctx.response().write(data);
           });
@@ -567,11 +567,11 @@ public class ProxyService {
         } else if (it.hasNext()) {
           relayToRequest(res, pc);
           res.endHandler(x -> {
-            proxyR(ctx, it, pc, content, bcontent);
+            proxyR(it, pc, content, bcontent);
           });
         } else {
           relayToResponse(ctx.response(), res);
-          makeTraceHeader(ctx, mi, res.statusCode(), timer, pc);
+          makeTraceHeader(mi, res.statusCode(), timer, pc);
           if (bcontent == null) {
             content.handler(data -> {
               ctx.response().write(data);
@@ -605,11 +605,11 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     if (it.hasNext()) {
       timer.close();
-      proxyR(ctx, it, pc, content, bcontent);
+      proxyR(it, pc, content, bcontent);
     } else {
       ctx.response().setChunked(true);
 
-      makeTraceHeader(ctx, mi, 999, timer, pc);  // !!!
+      makeTraceHeader(mi, 999, timer, pc);  // !!!
       if (bcontent == null) {
         content.handler(data -> {
           ctx.response().write(data);
@@ -629,10 +629,10 @@ public class ProxyService {
     }
   }
 
-  private void proxyR(RoutingContext ctx,
-    Iterator<ModuleInstance> it,
+  private void proxyR( Iterator<ModuleInstance> it,
     ProxyContext pc,
     ReadStream<Buffer> content, Buffer bcontent) {
+    RoutingContext ctx = pc.getCtx();
     if (!it.hasNext()) {
       content.resume();
       pc.addTraceHeaders(ctx);
