@@ -18,10 +18,10 @@ import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TimeStampStore;
 import static org.folio.okapi.common.ErrorType.*;
-import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Services related to adding and deleting modules. All operations try to do the
@@ -88,6 +88,7 @@ public class ModuleWebService {
   }
 
   public void create(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
@@ -96,22 +97,21 @@ public class ModuleWebService {
       }
       String validerr = md.validate();
       if (!validerr.isEmpty()) {
-       responseError(ctx, 400, validerr);
+        pc.responseError(400, validerr);
       } else {
         moduleManager.create(md, cres -> {
           if (cres.failed()) {
-            responseError(ctx, cres.getType(), cres.cause());
+            pc.responseError(cres.getType(), cres.cause());
           } else {
             moduleStore.insert(md, ires -> {
               if (ires.succeeded()) {
                 sendReloadSignal(sres -> {
                   if (sres.succeeded()) {
                     final String s = Json.encodePrettily(md);
-                    responseJson(ctx, 201)
-                            .putHeader("Location", ctx.request().uri() + "/" + md.getId())
-                            .end(s);
+                    final String uri = ctx.request().uri() + "/" + md.getId();
+                    pc.responseJson(201, s, uri);
                   } else { // TODO - What to if this fails ??
-                    responseError(ctx, sres.getType(), sres.cause());
+                    pc.responseError(sres.getType(), sres.cause());
                   }
                 });
               } else {
@@ -121,11 +121,11 @@ public class ModuleWebService {
                 logger.warn("create failed " + ires.cause().getMessage());
                 moduleManager.delete(md.getId(), dres -> { // remove from runtime too
                   if (dres.succeeded()) {
-                    responseError(ctx, 500, ires.cause());
+                    pc.responseError(500, ires.cause());
                     // Note, we return ires.cause, the reason why the insert failed.
                   } else {
                     // TODO - What to do now - the system may be inconsistent!
-                    responseError(ctx, 500, ires.cause());
+                    pc.responseError(500, ires.cause());
                   }
                 });
               }
@@ -135,73 +135,76 @@ public class ModuleWebService {
       }
     } catch (DecodeException ex) {
       logger.debug("Failed to decode md: " + ctx.getBodyAsString());
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void update(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
       final String id = ctx.request().getParam("id");
       if (!id.equals(md.getId())) {
-        responseError(ctx, 400, "Module.id=" + md.getId() + " id=" + id);
+        pc.responseError(400, "Module.id=" + md.getId() + " id=" + id);
         return;
       }
       String validerr = md.validate();
       if (!validerr.isEmpty()) {
-        responseError(ctx, 400, validerr);
+        pc.responseError(400, validerr);
       } else {
         moduleManager.update(md, cres -> {
           if (cres.failed()) {
-            responseError(ctx, cres.getType(), cres.cause());
+            pc.responseError(cres.getType(), cres.cause());
           } else {
             moduleStore.update(md, ires -> {
               if (ires.succeeded()) {
                 sendReloadSignal(sres -> {
                   if (sres.succeeded()) {
                     final String s = Json.encodePrettily(md);
-                    responseJson(ctx, 200).end(s);
+                    pc.responseJson(200, s);
                   } else { // TODO - What to do if this fails ??
-                    responseError(ctx, sres.getType(), sres.cause());
+                    pc.responseError(sres.getType(), sres.cause());
                   }
                 });
               } else {
-                responseError(ctx, ires.getType(), ires.cause());
+                pc.responseError(ires.getType(), ires.cause());
               }
             });
           }
         });
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void get(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     final String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
     //cli.find(collection, jq, res -> {
     moduleStore.get(id, res -> {
       if (res.succeeded()) {
-        responseJson(ctx, 200).end(Json.encodePrettily(res.result()));
+        pc.responseJson(200, Json.encodePrettily(res.result()));
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void list(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     moduleStore.getAll(res -> {
       if (res.succeeded()) {
         List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
         for (ModuleDescriptor md : res.result()) {
           ml.add(new ModuleDescriptorBrief(md));
         }
-        responseJson(ctx, 200).end(Json.encodePrettily(ml));
+        pc.responseJson(200, Json.encodePrettily(ml));
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
     // moduleManager.listIds(ctx);
@@ -215,26 +218,27 @@ public class ModuleWebService {
    * @param ctx
    */
   public void delete(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     moduleManager.delete(id, sres -> {
       if (sres.failed()) {
         logger.error("delete (runtime) failed: " + sres.getType()
                 + ":" + sres.cause().getMessage());
-        responseError(ctx, sres.getType(), sres.cause());
+        pc.responseError(sres.getType(), sres.cause());
       } else {
         moduleStore.delete(id, rres -> {
           if (rres.succeeded()) {
             sendReloadSignal(res -> {
               if (res.succeeded()) {
-                responseText(ctx, 204).end();
+                pc.responseText(204, "");
               } else { // TODO - What can be done if sending signal fails?
                 // Probably best to report failure of deleting the module
                 // we can not really undelete it here.
-                responseError(ctx, 500, res.cause());
+                pc.responseError(500, res.cause());
               }
             });
           } else {
-            responseError(ctx, rres.getType(), rres.cause());
+            pc.responseError(rres.getType(), rres.cause());
           }
         });
       }
@@ -242,11 +246,12 @@ public class ModuleWebService {
   }
 
   public void reloadModules(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     reloadModules(res -> {
       if (res.succeeded()) {
-        responseText(ctx, 204).end();
+        pc.responseText(204, "");
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }

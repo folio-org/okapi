@@ -9,7 +9,6 @@ public class HttpResponse {
 
   private final static Logger logger = LoggerFactory.getLogger("okapi");
 
-  //static public int ErrorCodeFromType(ErrorType t)
   static public void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
     responseError(ctx, t.httpCode(t), cause);
   }
@@ -24,6 +23,7 @@ public class HttpResponse {
       logger.error("HTTP response code=" + code + " msg=" + text);
     }
     responseText(ctx, code).end(text);
+    //throw new Error();
   }
 
   static public HttpServerResponse responseText(RoutingContext ctx, int code) {

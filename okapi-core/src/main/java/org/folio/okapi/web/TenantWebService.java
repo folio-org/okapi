@@ -31,7 +31,6 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
-import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiClient;
@@ -39,6 +38,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.service.ModuleManager;
+import org.folio.okapi.util.ProxyContext;
 
 public class TenantWebService {
 
@@ -113,6 +113,7 @@ public class TenantWebService {
   }
 
   public void create(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
@@ -121,7 +122,7 @@ public class TenantWebService {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9._-]+$")) {
-        responseError(ctx, 400, "Invalid id");
+        pc.responseError(400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
@@ -131,7 +132,7 @@ public class TenantWebService {
             if (res.succeeded()) {
               final String uri = ctx.request().uri() + "/" + id;
               final String s = Json.encodePrettily(t.getDescriptor());
-              responseJson(ctx, 201).putHeader("Location", uri).end(s);
+              pc.responseJson(201, s, uri);
               sendReloadSignal(id, ts);
             } else {
               // This should never happen in a well behaving system. It is
@@ -139,25 +140,26 @@ public class TenantWebService {
               // TODO - Check what errors the mongo store can return
               logger.error("create: Db layer error " + res.cause().getMessage());
               tenants.delete(id); // Take it away from the runtime, since it was no good.
-              responseError(ctx, 400, res.cause());
+              pc.responseError(400, res.cause());
             }
           });
         } else {
-          responseError(ctx, 400, "Duplicate id " + id);
+          pc.responseError(400, "Duplicate id " + id);
         }
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void update(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       final String id = ctx.request().getParam("id");
       if (!id.equals(td.getId())) {
-        responseError(ctx, 400, "Tenant.id=" + td.getId() + " id=" + id);
+        pc.responseError(400, "Tenant.id=" + td.getId() + " id=" + id);
         return;
       }
       Tenant t = new Tenant(td);
@@ -167,21 +169,22 @@ public class TenantWebService {
         tenantStore.updateDescriptor(td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
-            responseJson(ctx, 200).end(s);
+            pc.responseJson(200, s);
             sendReloadSignal(id, ts);
           } else {
-            responseError(ctx, 404, res.cause());
+            pc.responseError(404, res.cause());
           }
         });
       } else {
-        responseError(ctx, 400, "Failed to update descriptor " + id);
+        pc.responseError(400, "Failed to update descriptor " + id);
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void list(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     tenantStore.listTenants(res -> {
       if (res.succeeded()) {
         List<Tenant> tl = res.result();
@@ -190,41 +193,42 @@ public class TenantWebService {
           tdl.add(t.getDescriptor());
         }
         String s = Json.encodePrettily(tdl);
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, 400, res.cause());
+        pc.responseError(400, res.cause());
       }
     });
   }
 
   public void get(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
-
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void delete(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     if (tenants.delete(id)) {
       tenantStore.delete(id, res -> {
         if (res.succeeded()) {
           final long ts = getTimestamp();
           sendReloadSignal(id, ts);
-          responseText(ctx, 204).end();
+          pc.responseText(204, "");
         } else {
-          responseError(ctx, res.getType(), res.cause());
+          pc.responseError(res.getType(), res.cause());
         }
       });
     } else {
-      responseError(ctx, 404, id);
+      pc.responseError(404, id);
     }
   }
 
@@ -262,6 +266,7 @@ public class TenantWebService {
    * service should be idempotent, so in case of failures, we can call it again.
    */
   private void enableTenantInt(RoutingContext ctx, String module_from) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
@@ -270,12 +275,12 @@ public class TenantWebService {
       Tenant tenant = tenants.get(id);
       if (tenant == null) {
         String err = "tenant " + id + " not found";
-        responseError(ctx, 404, err);
+        pc.responseError(404, err);
         return;
       }
       String err = tenants.updateModuleDepCheck(tenant, module_from, module_to);
       if (!err.isEmpty()) {
-        responseError(ctx, 400, err);
+        pc.responseError(400, err);
         return;
       }
       String tenInt = tenants.getTenantInterface(module_to);
@@ -285,11 +290,11 @@ public class TenantWebService {
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
-            responseError(ctx, gres.getType(), gres.cause());
+            pc.responseError(gres.getType(), gres.cause());
           } else {
             List<DeploymentDescriptor> instances = gres.result();
             if (instances.isEmpty()) {
-              responseError(ctx, 400, "No running instances for module " + module_to
+              pc.responseError(400, "No running instances for module " + module_to
                 + ". Can not invoke tenant init");
             } else { // TODO - Don't just take the first. Pick one by random.
               String baseurl = instances.get(0).getUrl();
@@ -305,7 +310,7 @@ public class TenantWebService {
                 if (cres.failed()) {
                   logger.warn("Tenant init request for "
                     + module_to + " failed with " + cres.cause().getMessage());
-                  responseError(ctx, 500, "Post to " + tenInt
+                  pc.responseError(500, "Post to " + tenInt
                     + " on " + module_to + " failed with "
                     + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
@@ -319,7 +324,7 @@ public class TenantWebService {
         });
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
@@ -328,9 +333,10 @@ public class TenantWebService {
    */
   private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
+    ProxyContext pc = new ProxyContext(ctx);
     ModuleManager modMan = tenants.getModuleManager();
     if (modMan == null) { // Should never happen
-      responseError(ctx, 500, "enablePermissions: No moduleManager found. "
+      pc.responseError(500, "enablePermissions: No moduleManager found. "
         + "Can not make _tenantPermissions request");
       return;
     }
@@ -349,11 +355,11 @@ public class TenantWebService {
       PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
       discoveryManager.get(permsModule.getId(), gres -> {
         if (gres.failed()) {
-          responseError(ctx, gres.getType(), gres.cause());
+          pc.responseError(gres.getType(), gres.cause());
         } else {
           List<DeploymentDescriptor> instances = gres.result();
           if (instances.isEmpty()) {
-            responseError(ctx, 400,
+            pc.responseError(400,
               "No running instances for module " + permsModule.getId()
               + ". Can not invoke _tenantPermissions");
           } else { // TODO - Don't just take the first. Pick one by random.
@@ -372,7 +378,7 @@ public class TenantWebService {
               }
             }
             if (findPermPath == null || findPermPath.isEmpty()) {
-              responseError(ctx, 400,
+              pc.responseError(400,
                 "Bad _tenantPermissions interface in module " + permsModule.getNameOrId()
                 + ". No path to POST to");
               return;
@@ -385,7 +391,7 @@ public class TenantWebService {
               if (cres.failed()) {
                 logger.warn("_tenantPermissions request for "
                   + module_to + " failed with " + cres.cause().getMessage());
-                responseError(ctx, 500, "Permissions post for " + module_to
+                pc.responseError(500, "Permissions post for " + module_to
                   + " to " + permPath
                   + " on " + permsModule.getNameOrId()
                   + " failed with " + cres.cause().getMessage());
@@ -416,6 +422,7 @@ public class TenantWebService {
    */
   private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
+    ProxyContext pc = new ProxyContext(ctx);
     final long ts = getTimestamp();
     String err = tenants.updateModuleCommit(id, module_from, module_to);
     if (err.isEmpty()) {
@@ -427,24 +434,24 @@ public class TenantWebService {
         enableTenantStorage(ctx, td, id, module_to);
       }
     } else {
-      responseError(ctx, 400, err);
+      pc.responseError(400, err);
     }
   }
 
   /**
    * Enable tenant, part 4: update storage.
    */
-  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_to) {
+  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td,
+    String id, String module_to) {
+    ProxyContext pc = new ProxyContext(ctx);
     final long ts = getTimestamp();
     tenantStore.enableModule(id, module_to, ts, res -> {
       if (res.succeeded()) {
         sendReloadSignal(id, ts);
         final String uri = ctx.request().uri() + "/" + module_to;
-        responseJson(ctx, 201)
-          .putHeader("Location", uri)
-          .end(Json.encodePrettily(td));
+        pc.responseJson(201, Json.encodePrettily(td), uri);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
@@ -460,21 +467,21 @@ public class TenantWebService {
    * @param module
    */
   private void destroyTenant(RoutingContext ctx, String module, String id) {
+    ProxyContext pc = new ProxyContext(ctx);
     String tenInt = tenants.getTenantInterface(module);
     if (tenInt == null || tenInt.isEmpty()) {
       logger.debug("disableModule: " + module + " has no support for tenant destroy");
-      responseText(ctx, 204).end();
+      pc.responseText(204, "");
       return;
     }
     // We have a tenant interface, invoke DELETE on it
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
-        responseError(ctx, gres.getType(), gres.cause());
+        pc.responseError(gres.getType(), gres.cause());
       } else {
         List<DeploymentDescriptor> instances = gres.result();
         if (instances.isEmpty()) {
-          responseError(ctx, 400, "No running instances for module " + module
-                  + ". Can not invoke tenant destroy");
+          pc.responseError(400, "No running instances for module " + module                  + ". Can not invoke tenant destroy");
         } else { // TODO - Don't just take the first. Pick one by random.
           String baseurl = instances.get(0).getUrl();
           logger.debug("disableModule Url: " + baseurl + " and " + tenInt);
@@ -496,12 +503,11 @@ public class TenantWebService {
             if (cres.failed()) {
               logger.warn("Tenant destroy request for "
                       + module + " failed with " + cres.cause().getMessage());
-              responseError(ctx, 500, "DELETE to " + tenInt
-                      + " on " + module + " failed with "
+              pc.responseError(500, "DELETE to " + tenInt                      + " on " + module + " failed with "
                       + cres.cause().getMessage());
             } else { // All well, we can finally enable it
               logger.debug("disableModule: destroy request to " + module + " succeeded");
-              responseText(ctx, 204).end();  // finally we are done
+              pc.responseText(204, "");  // finally we are done
             }
           });
         }
@@ -510,6 +516,7 @@ public class TenantWebService {
   }
 
   public void disableModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
@@ -520,27 +527,28 @@ public class TenantWebService {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            responseText(ctx, 204).end();
+            pc.responseText(204, "");
           } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
             logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
-            responseError(ctx, 404, res.cause());
+            pc.responseError(404, res.cause());
           } else {
-            responseError(ctx, res.getType(), res.cause());
+            pc.responseError(res.getType(), res.cause());
           }
         });
       } else if (err.contains("not found")) {
         logger.error("disableModule: " + err);
-        responseError(ctx, 404, err);
+        pc.responseError(404, err);
       } else {
         logger.error("disableModule: " + err);
-        responseError(ctx, 400, err);
+        pc.responseError(400, err);
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void listModules(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
@@ -554,14 +562,15 @@ public class TenantWebService {
           ta.add(tmd);
         }
         String s = Json.encodePrettily(ta);
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void getModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     final String mod = ctx.request().getParam("mod");
     tenantStore.get(id, res -> {
@@ -572,23 +581,24 @@ public class TenantWebService {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setId(mod);
           String s = Json.encodePrettily(tmd);
-          responseJson(ctx, 200).end(s);
+          pc.responseJson(200, s);
         } else {
-          responseError(ctx, 404, mod);
+          pc.responseError(404, mod);
         }
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void reloadTenant(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     reloadTenant(id, res -> {
       if (res.succeeded()) {
-        responseText(ctx, 204).end();
+        pc.responseText(204, "");
       } else {
-        responseError(ctx, 500, res.cause());
+        pc.responseError(500, res.cause());
       }
     });
   }

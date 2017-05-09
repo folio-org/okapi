@@ -227,31 +227,6 @@ public class ProxyService {
     return tenantId;
   }
 
-  /**
-   * Set the request-id header if necessary.
-   */
-  private String reqidHeader(RoutingContext ctx) {
-    String reqid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
-    String path = ctx.request().path();
-    if (path == null) { // defensive coding, should always be there
-      path = "";
-    }
-    path = path.replaceFirst("(^/[^/]+).*$", "$1");
-    int rnd = (int) (Math.random() * 1000000);
-    String newid = String.format("%06d", rnd);
-    newid += path;
-    if (reqid == null || reqid.isEmpty()) {
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
-      logger.debug("Assigned new reqId " + newid);
-    } else {
-      newid = reqid + ";" + newid;
-      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, newid);
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
-      logger.debug("Appended a reqId " + newid);
-    }
-
-    return newid;
-  }
 
   /**
    * Get the auth bits from the module list into X-Okapi-Permissions-Required
@@ -414,7 +389,6 @@ public class ProxyService {
     if (tenant_id == null) {
       return; // Error code already set in ctx
     }
-    String reqid = reqidHeader(ctx);
     ReadStream<Buffer> content = ctx.request();
     Tenant tenant = tenantManager.get(tenant_id);
     if (tenant == null) {
@@ -436,9 +410,7 @@ public class ProxyService {
     ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
     authHeaders(l, ctx.request().headers(), authToken);
 
-    ProxyContext pc = new ProxyContext(l, vertx, reqid);
-
-    pc.logRequest(ctx, tenant_id);
+    ProxyContext pc = new ProxyContext(l, vertx, ctx, tenant_id);
 
     resolveUrls(l.iterator(), res -> {
       if (res.failed()) {

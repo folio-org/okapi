@@ -7,9 +7,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import static org.folio.okapi.common.HttpResponse.responseJson;
-import static org.folio.okapi.common.HttpResponse.responseText;
-import static org.folio.okapi.common.HttpResponse.responseError;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Web service functions for "/_/discovery".
@@ -27,171 +25,179 @@ public class DiscoveryService {
   }
 
   public void create(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
       dm.addAndDeploy(pmd, res -> {
         if (res.failed()) {
-          responseError(ctx, res.getType(), res.cause());
+          pc.responseError(res.getType(), res.cause());
         } else {
           DeploymentDescriptor md = res.result();
           final String s = Json.encodePrettily(md);
-          responseJson(ctx, 201)
-                  .putHeader("Location", ctx.request().uri()
-                          + "/" + md.getSrvcId()
-                          + "/" + md.getInstId())
-                  .end(s);
+          final String uri = ctx.request().uri()
+            + "/" + md.getSrvcId() + "/" + md.getInstId();
+          pc.responseJson(201, s, uri);
         }
       });
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void delete(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
-      responseError(ctx, 400, "instId missing");
+      pc.responseError(400, "instId missing");
       return;
     }
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "srvcId missing");
+      pc.responseError(400, "srvcId missing");
       return;
     }
     dm.removeAndUndeploy(srvcId, instId, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
-        responseText(ctx, 204).end();
+        pc.responseText(204, "");
       }
     });
   }
 
   public void get(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
-      responseError(ctx, 400, "instId missing");
+      pc.responseError(400, "instId missing");
       return;
     }
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "srvcId missing");
+      pc.responseError(400, "srvcId missing");
       return;
     }
     dm.get(srvcId, instId, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void getSrvcId(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "srvcId missing");
+      pc.responseError(400, "srvcId missing");
       return;
     }
     dm.get(srvcId, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         List<DeploymentDescriptor> result = res.result();
         if (result.isEmpty()) {
-          responseError(ctx, 404, "srvcId " + srvcId + " not found");
+          pc.responseError(404, "srvcId " + srvcId + " not found");
         } else {
           final String s = Json.encodePrettily(res.result());
-          responseJson(ctx, 200).end(s);
+          pc.responseJson(200, s);
         }
       }
     });
   }
 
   public void getAll(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     dm.get(res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void health(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
-      responseError(ctx, 400, "instId missing");
+      pc.responseError(400, "instId missing");
       return;
     }
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "srvcId missing");
+      pc.responseError(400, "srvcId missing");
       return;
     }
     dm.health(srvcId, instId, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void healthSrvcId(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
-      responseError(ctx, 400, "srvcId missing");
+      pc.responseError(400, "srvcId missing");
       return;
     }
     dm.health(srvcId, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void healthAll(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     dm.health(res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void getNodes(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     dm.getNodes(res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
 
   public void getNode(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx);
     final String id = ctx.request().getParam("id");
     if (id == null) {
-      responseError(ctx, 400, "id missing");
+      pc.responseError(400, "id missing");
       return;
     }
     dm.getNode(id, res -> {
       if (res.failed()) {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       } else {
         final String s = Json.encodePrettily(res.result());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       }
     });
   }
