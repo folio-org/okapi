@@ -96,7 +96,6 @@ public class DockerTest {
       res.endHandler(d -> {
         if (res.statusCode() == 200) {
           boolean gotIt = false;
-          logger.info("RESULT\n" + body.toString());
           try {
             JsonArray ar = body.toJsonArray();
             for (int i = 0; i < ar.size(); i++) {
