@@ -37,17 +37,21 @@ public class ProxyContext {
    * @param ctx - the request we are serving
    * @param tenant - tenant id for later logging
    */
-  public ProxyContext(List<ModuleInstance> ml, Vertx vertx,
-    RoutingContext ctx, String tenant) {
+  public ProxyContext(Vertx vertx, RoutingContext ctx) {
     this.ctx = ctx;
-    this.tenant = tenant;
-    this.modList = ml;
+    this.tenant = "-";
+    this.modList = null;
     traceHeaders = new ArrayList<>();
     httpClient = vertx.createHttpClient();
     reqidHeader(ctx);
     logRequest(ctx, tenant);
   }
 
+  /**
+   * Constructor used from inside Okapi.
+   *
+   * @param ctx
+   */
   public ProxyContext(RoutingContext ctx) {
     this.ctx = ctx;
     modList = null;
@@ -64,6 +68,22 @@ public class ProxyContext {
 
   public List<ModuleInstance> getModList() {
     return modList;
+  }
+
+  public void setModList(List<ModuleInstance> modList) {
+    this.modList = modList;
+  }
+
+  public String getTenant() {
+    return tenant;
+  }
+
+  public void setTenant(String tenant) {
+    this.tenant = tenant;
+  }
+
+  public RoutingContext getCtx() {
+    return ctx;
   }
 
   public String getReqId() {
