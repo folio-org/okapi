@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "HealthDescriptor",
   "type": "object",
+  "additionalProperties" : false,
   "properties": {
     "srvcId": {"type": "string"},
     "instId": {"type": "string"},

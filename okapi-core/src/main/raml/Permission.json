@@ -1,6 +1,7 @@
 {
   "title": "Permissions Definition Schema",
   "type": "object",
+  "additionalProperties" : false,
   "properties": {
     "permissionName": {
       "type": "string"
