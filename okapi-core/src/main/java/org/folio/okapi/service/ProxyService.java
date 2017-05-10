@@ -450,8 +450,8 @@ public class ProxyService {
             pc.closeTimer();
             ctx.response().end();
           });
-          res.exceptionHandler(x -> {
-            logger.debug("proxyRequestHttpClient: res exception " + x.getMessage());
+          res.exceptionHandler(e -> {
+            logger.warn("proxyRequestHttpClient: res exception (a)", e);
           });
         } else if (it.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
@@ -465,16 +465,16 @@ public class ProxyService {
             pc.closeTimer();
             ctx.response().end(bcontent);
           });
-          res.exceptionHandler(x -> {
-            logger.debug("proxyRequestHttpClient: res exception " + x.getMessage());
+          res.exceptionHandler(e -> {
+            logger.warn("proxyRequestHttpClient: res exception (b)", e);
           });
         }
       });
-    c_req.exceptionHandler(res -> {
-      logger.debug("proxyRequestHttpClient failure: " + url + ": " + res.getMessage());
-      pc.responseText(500, "(Hcl) connect url "
+    c_req.exceptionHandler(e -> {
+      logger.warn("proxyRequestHttpClient failure: " + url, e);
+      pc.responseText(500, "proxyRequestHttpClient failure: "
         + mi.getModuleDescriptor().getNameOrId() + " "
-        + meth + " " + url + ": " + res.getMessage());
+        + meth + " " + url + ": " + e + " " + e.getMessage());
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
@@ -525,16 +525,15 @@ public class ProxyService {
             pc.closeTimer();
             ctx.response().end();
           });
-          res.exceptionHandler(v -> {
-            logger.debug("proxyRequestResponse: res exception " + v.getMessage());
+          res.exceptionHandler(e -> {
+            logger.warn("proxyRequestResponse: res exception ", e);
           });
         }
       });
-    c_req.exceptionHandler(res -> {
-      logger.debug("proxyRequestResponse failure: " + mi.getUrl() + ": " + res.getMessage());
-      res.printStackTrace();
-      pc.closeTimer();
-      pc.responseText(500, "(Prr) connect url " + mi.getUrl() + ": " + res.getMessage());
+    c_req.exceptionHandler(e -> {
+      logger.warn("proxyRequestResponse failure: ", e);
+      pc.responseText(500, "proxyRequestResponse failure: " + mi.getUrl() + ": "
+        + e + " " + e.getMessage());
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
@@ -547,8 +546,8 @@ public class ProxyService {
       content.endHandler(v -> {
         c_req.end();
       });
-      content.exceptionHandler(v -> {
-        logger.debug("proxyRequestResponse: content exception " + v.getMessage());
+      content.exceptionHandler(e -> {
+        logger.warn("proxyRequestResponse: content exception ", e);
       });
       content.resume();
     }
@@ -571,8 +570,8 @@ public class ProxyService {
           res.endHandler(v -> {
             ctx.response().end();
           });
-          res.exceptionHandler(v -> {
-            logger.debug("proxyHeaders: res exception " + v.getMessage());
+          res.exceptionHandler(e -> {
+            logger.warn("proxyHeaders: res exception ", e);
           });
         } else if (it.hasNext()) {
           relayToRequest(res, pc);
@@ -590,8 +589,8 @@ public class ProxyService {
             content.endHandler(v -> {
               ctx.response().end();
             });
-            content.exceptionHandler(v -> {
-              logger.debug("proxyHeaders: content exception " + v.getMessage());
+            content.exceptionHandler(e -> {
+              logger.warn("proxyHeaders: content exception ", e);
             });
             content.resume();
           } else {
@@ -599,9 +598,10 @@ public class ProxyService {
           }
         }
       });
-    c_req.exceptionHandler(res -> {
-      logger.debug("proxyHeaders failure: " + mi.getUrl() + ": " + res.getMessage());
-      pc.responseText(500, "(Phdr) connect url " + mi.getUrl() + ": " + res.getMessage());
+    c_req.exceptionHandler(e -> {
+      logger.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
+      pc.responseText(500, "proxyHeaders failure. connect url "
+        + mi.getUrl() + ": " + e + " " + e.getMessage());
     });
     c_req.headers().setAll(ctx.request().headers());
     c_req.headers().remove("Content-Length");
@@ -629,8 +629,8 @@ public class ProxyService {
           pc.closeTimer();
           ctx.response().end();
         });
-        content.exceptionHandler(v -> {
-          logger.debug("proxyNull: content exception " + v.getMessage());
+        content.exceptionHandler(e -> {
+          logger.warn("proxyNull: content exception ", e);
         });
         content.resume();
       } else {
