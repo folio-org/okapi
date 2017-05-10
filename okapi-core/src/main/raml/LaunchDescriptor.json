@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "LaunchDescriptor",
   "type": [ "object", "null" ],
+  "additionalProperties" : false,
   "properties": {
     "exec": {"type": ["string", "null"]},
     "cmdlineStart": {"type": ["string", "null"]},

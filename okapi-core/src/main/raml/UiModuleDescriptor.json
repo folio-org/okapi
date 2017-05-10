@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "UiModuleDescriptor",
   "type": ["object", "null"],
+  "additionalProperties" : false,
   "properties": {
     "npm" : {"type" : ["string", "null"]},
     "url" : {"type" : ["string", "null"]},
