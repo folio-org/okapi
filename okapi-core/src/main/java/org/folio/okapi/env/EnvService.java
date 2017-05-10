@@ -21,7 +21,7 @@ public class EnvService {
   }
 
   public void create(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.env.create");
     try {
       final EnvEntry pmd = Json.decodeValue(ctx.getBodyAsString(),
               EnvEntry.class);
@@ -40,7 +40,7 @@ public class EnvService {
   }
 
   public void delete(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.env.delete");
     final String id = ctx.request().getParam("id");
     if (id == null) {
       pc.responseError(400, "id missing");
@@ -56,7 +56,7 @@ public class EnvService {
   }
 
   public void get(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.env.get");
     final String id = ctx.request().getParam("id");
     if (id == null) {
       pc.responseError(400, "id missing");
@@ -73,7 +73,7 @@ public class EnvService {
   }
 
   public void getAll(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.env.list");
     envManager.get(res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());

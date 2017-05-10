@@ -184,7 +184,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   public void NotFound(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.notfound");
     String slash = "";
     if (ctx.request().path().endsWith("/")) {
       slash = "  Try without a trailing slash";

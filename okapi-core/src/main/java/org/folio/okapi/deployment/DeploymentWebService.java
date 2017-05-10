@@ -21,7 +21,7 @@ public class DeploymentWebService {
   }
 
   public void create(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.deployment.create");
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
@@ -40,7 +40,7 @@ public class DeploymentWebService {
   }
 
   public void delete(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.deployment.create");
     final String id = ctx.request().getParam(INST_ID);
     md.undeploy(id, res -> {
       if (res.failed()) {
@@ -52,7 +52,7 @@ public class DeploymentWebService {
   }
 
   public void list(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.deployment.create");
     md.list(res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -64,7 +64,7 @@ public class DeploymentWebService {
   }
 
   public void get(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.deployment.create");
     final String id = ctx.request().getParam(INST_ID);
     md.get(id, res -> {
       if (res.failed()) {

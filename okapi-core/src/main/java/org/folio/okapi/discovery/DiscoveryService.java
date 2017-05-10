@@ -25,7 +25,7 @@ public class DiscoveryService {
   }
 
   public void create(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.create");
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
               DeploymentDescriptor.class);
@@ -46,7 +46,7 @@ public class DiscoveryService {
   }
 
   public void delete(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.delete");
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
       pc.responseError(400, "instId missing");
@@ -67,7 +67,7 @@ public class DiscoveryService {
   }
 
   public void get(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.get");
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
       pc.responseError(400, "instId missing");
@@ -89,7 +89,7 @@ public class DiscoveryService {
   }
 
   public void getSrvcId(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.get.srvcid");
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
       pc.responseError(400, "srvcId missing");
@@ -111,7 +111,7 @@ public class DiscoveryService {
   }
 
   public void getAll(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.get.all");
     dm.get(res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -123,7 +123,7 @@ public class DiscoveryService {
   }
 
   public void health(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.health.all");
     final String instId = ctx.request().getParam(INST_ID);
     if (instId == null) {
       pc.responseError(400, "instId missing");
@@ -145,7 +145,7 @@ public class DiscoveryService {
   }
 
   public void healthSrvcId(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.health.srvc");
     final String srvcId = ctx.request().getParam(SRVC_ID);
     if (srvcId == null) {
       pc.responseError(400, "srvcId missing");
@@ -162,7 +162,7 @@ public class DiscoveryService {
   }
 
   public void healthAll(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.health.all");
     dm.health(res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -174,7 +174,7 @@ public class DiscoveryService {
   }
 
   public void getNodes(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.nodes.list");
     dm.getNodes(res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -186,7 +186,7 @@ public class DiscoveryService {
   }
 
   public void getNode(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.discovery.nodes.get");
     final String id = ctx.request().getParam("id");
     if (id == null) {
       pc.responseError(400, "id missing");

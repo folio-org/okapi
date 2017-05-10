@@ -16,18 +16,20 @@ import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
- * used for Okapi's own services, without the modList.
+ * used for Okapi's own services, without the modList. Also has lots of helpers
+ * for logging, in order to get the request-id in most log messages.
  */
 public class ProxyContext {
 
-  private Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = LoggerFactory.getLogger("okapi");
   private final HttpClient httpClient;
   private List<ModuleInstance> modList;
-  private List<String> traceHeaders;
+  private final List<String> traceHeaders;
   private String reqId;
   private String tenant;
-  private RoutingContext ctx;
+  private final RoutingContext ctx;
   private Timer.Context timer;
+
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
    * know the tenant yet.
@@ -50,7 +52,7 @@ public class ProxyContext {
    * from ctx.
    *
    */
-  public ProxyContext(RoutingContext ctx /*, String timerKey */) {
+  public ProxyContext(RoutingContext ctx, String timerKey ) {
     this.ctx = ctx;
     modList = null;
     traceHeaders = new ArrayList<>();
@@ -59,7 +61,7 @@ public class ProxyContext {
     reqidHeader(ctx);
     logRequest(ctx, "-");
     timer = null;
-    //startTimer(timerKey);
+    startTimer(timerKey);
   }
 
   public void startTimer(String key) {
@@ -79,11 +81,11 @@ public class ProxyContext {
    *
    * @return
    */
-  public long timeDiff() {
+  public String timeDiff() {
     if (timer != null) {
-      return timer.stop() / 1000;
+      return (timer.stop() / 1000) + "us";
     } else {
-      return 0;
+      return "";
     }
   }
 
@@ -130,12 +132,12 @@ public class ProxyContext {
     newid += path;
     if (reqid == null || reqid.isEmpty()) {
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
-      logger.debug("Assigned new reqId " + newid);
+      this.debug("Assigned new reqId " + newid);
     } else {
       newid = reqid + ";" + newid;
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, newid);
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
-      logger.debug("Appended a reqId " + newid);
+      this.debug("Appended a reqId " + newid);
     }
     reqId = newid;
   }
@@ -156,9 +158,9 @@ public class ProxyContext {
       + mods);
   }
 
-  public void logResponse(String module, String url, int statusCode, long timeDiff) {
+  public void logResponse(String module, String url, int statusCode) {
     logger.info(reqId
-      + " RES " + statusCode + " " + timeDiff + "us "
+      + " RES " + statusCode + " " + timeDiff() + " "
       + module + " " + url);
   }
 
@@ -166,7 +168,7 @@ public class ProxyContext {
     int code = response.getStatusCode();
     String text = (msg == null) ? "(null)" : msg;
     text = text.substring(0, 80);
-    logResponse("okapi", text, code, 0);
+    logResponse("okapi", text, code);
   }
 
   public void responseError(ErrorType t, Throwable cause) {
@@ -178,30 +180,21 @@ public class ProxyContext {
   }
 
   public void responseError(int code, String msg) {
-    logResponse("okapi", msg, code, 0);
-    responseText(code).end(msg);
-  }
-
-  public HttpServerResponse responseText(int code) {
-    logResponse("okapi", "", code, 0);
-    return HttpResponse.responseText(ctx, code);
+    logResponse("okapi", msg, code);
+    HttpResponse.responseText(ctx, code).end(msg);
   }
 
   public void responseText(int code, String txt) {
-    logResponse("okapi", txt, code, 0);
+    logResponse("okapi", txt, code);
     HttpResponse.responseText(ctx, code).end(txt);
   }
 
-  public HttpServerResponse responseJson(int code) {
-    logResponse("okapi", "", code, 0);
-    return HttpResponse.responseJson(ctx, code);
-  }
   public void responseJson(int code, String json) {
-    logResponse("okapi", "", code, 0);
+    logResponse("okapi", "", code);
     HttpResponse.responseJson(ctx, code).end(json);
   }
   public void responseJson(int code, String json, String location) {
-    logResponse("okapi", "", code, 0);
+    logResponse("okapi", "", code);
     HttpResponse.responseJson(ctx, code)
       .putHeader("Location", location)
       .end(json);
@@ -218,6 +211,33 @@ public class ProxyContext {
 
   public void addTraceHeaderLine(String h) {
     traceHeaders.add(h);
+  }
+
+  public void fatal(String msg) {
+    logger.fatal(getReqId() + " " + msg);
+  }
+
+  public void info(String msg) {
+    logger.info(getReqId() + " " + msg);
+  }
+
+  public void error(String msg) {
+    logger.error(getReqId() + " " + msg);
+  }
+
+  public void warn(String msg) {
+    logger.warn(getReqId() + " " + msg);
+  }
+  public void warn(String msg, Throwable e) {
+    logger.warn(getReqId() + " " + msg, e);
+  }
+
+  public void debug(String msg) {
+    logger.debug(getReqId() + " " + msg);
+  }
+
+  public void trace(String msg) {
+    logger.trace(getReqId() + " " + msg);
   }
 
 }

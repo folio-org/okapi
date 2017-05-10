@@ -88,7 +88,7 @@ public class ModuleWebService {
   }
 
   public void create(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.create");
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
@@ -118,7 +118,7 @@ public class ModuleWebService {
                 // This can only happen in some kind of race condition, we should
                 // have detected duplicates when creating in the manager.
                 // TODO - How to test these cases?
-                logger.warn("create failed " + ires.cause().getMessage());
+                pc.warn("create failed " + ires.cause().getMessage());
                 moduleManager.delete(md.getId(), dres -> { // remove from runtime too
                   if (dres.succeeded()) {
                     pc.responseError(500, ires.cause());
@@ -134,13 +134,13 @@ public class ModuleWebService {
         });
       }
     } catch (DecodeException ex) {
-      logger.debug("Failed to decode md: " + ctx.getBodyAsString());
+      pc.debug("Failed to decode md: " + ctx.getBodyAsString());
       pc.responseError(400, ex);
     }
   }
 
   public void update(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.update");
     try {
       final ModuleDescriptor md = Json.decodeValue(ctx.getBodyAsString(),
               ModuleDescriptor.class);
@@ -180,7 +180,7 @@ public class ModuleWebService {
   }
 
   public void get(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.get");
     final String id = ctx.request().getParam("id");
     final String q = "{ \"id\": \"" + id + "\"}";
     JsonObject jq = new JsonObject(q);
@@ -195,7 +195,7 @@ public class ModuleWebService {
   }
 
   public void list(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.list");
     moduleStore.getAll(res -> {
       if (res.succeeded()) {
         List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
@@ -218,12 +218,11 @@ public class ModuleWebService {
    * @param ctx
    */
   public void delete(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.delete");
     final String id = ctx.request().getParam("id");
     moduleManager.delete(id, sres -> {
       if (sres.failed()) {
-        logger.error("delete (runtime) failed: " + sres.getType()
-                + ":" + sres.cause().getMessage());
+        pc.error("delete (runtime) failed: " + sres.getType()                + ":" + sres.cause().getMessage());
         pc.responseError(sres.getType(), sres.cause());
       } else {
         moduleStore.delete(id, rres -> {
@@ -246,7 +245,7 @@ public class ModuleWebService {
   }
 
   public void reloadModules(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.modules.reload");
     reloadModules(res -> {
       if (res.succeeded()) {
         pc.responseText(204, "");
