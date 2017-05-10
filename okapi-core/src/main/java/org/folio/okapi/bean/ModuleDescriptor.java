@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -241,7 +242,7 @@ public class ModuleDescriptor {
    *
    * @return "" if ok, otherwise an informative error message.
    */
-  public String validate() {
+  public String validate(ProxyContext pc) {
     if (getId() == null || getId().isEmpty()) {
       return "No Id in module";
     }
@@ -251,7 +252,7 @@ public class ModuleDescriptor {
     String mod = getNameOrId();
     if (provides != null) {
       for (ModuleInterface pr : provides) {
-        String err = pr.validate("provides", mod);
+        String err = pr.validate(pc, "provides", mod);
         if (!err.isEmpty()) {
           return err;
         }
@@ -259,41 +260,41 @@ public class ModuleDescriptor {
     }
     if (requires != null) {
       for (ModuleInterface pr : requires) {
-        String err = pr.validate("requires", mod);
+        String err = pr.validate(pc, "requires", mod);
         if (!err.isEmpty()) {
           return err;
         }
       }
     } else {
-      logger.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + this.getNameOrId() + "' "
         + "has no Requires section. If the module really does not require "
         + "any other interfaces, provide an empty array to be explicit about it.");
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {
-        String err = fe.validate("filters", mod);
+        String err = fe.validate(pc, "filters", mod);
         if (!err.isEmpty()) {
           return err;
         }
       }
     }
     if (routingEntries != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + this.getNameOrId() + "' "
         + " uses DEPRECATED top-level routingEntries. Use handlers instead");
       for (RoutingEntry re : routingEntries) {
-        String err = re.validate("toplevel", mod);
+        String err = re.validate(pc, "toplevel", mod);
         if (!err.isEmpty()) {
           return err;
         }
       }
     }
     if (getEnv() != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + this.getNameOrId() + "' "
         + " uses DEPRECATED top-level environment settings. Put those "
         + "in the launchDescriptor instead.");
     }
     if (getTenantInterface() != null) {
-      logger.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + this.getNameOrId() + "' "
         + "uses DEPRECATED tenantInterface field."
         + " Provide a '_tenant' system interface instead");
     }

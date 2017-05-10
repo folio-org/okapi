@@ -95,7 +95,7 @@ public class ModuleWebService {
       if (md.getId() == null || md.getId().isEmpty()) {
         md.setId(UUID.randomUUID().toString());
       }
-      String validerr = md.validate();
+      String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         pc.responseError(400, validerr);
       } else {
@@ -149,7 +149,7 @@ public class ModuleWebService {
         pc.responseError(400, "Module.id=" + md.getId() + " id=" + id);
         return;
       }
-      String validerr = md.validate();
+      String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         pc.responseError(400, validerr);
       } else {

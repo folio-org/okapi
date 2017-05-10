@@ -121,7 +121,7 @@ public class ProxyContext {
    * Update or create the X-Okapi-Request-Id header. Save the id for future use.
    */
   private void reqidHeader(RoutingContext ctx) {
-    String reqid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
+    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     String path = ctx.request().path();
     if (path == null) { // defensive coding, should always be there
       path = "";
@@ -130,16 +130,16 @@ public class ProxyContext {
     int rnd = (int) (Math.random() * 1000000);
     String newid = String.format("%06d", rnd);
     newid += path;
-    if (reqid == null || reqid.isEmpty()) {
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+    if (curid == null || curid.isEmpty()) {
+      reqId = newid;
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Assigned new reqId " + newid);
     } else {
-      newid = reqid + ";" + newid;
-      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, newid);
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, newid);
+      reqId = curid + ";" + newid;
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Appended a reqId " + newid);
     }
-    reqId = newid;
   }
 
 
