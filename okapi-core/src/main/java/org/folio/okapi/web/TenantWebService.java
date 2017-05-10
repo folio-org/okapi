@@ -233,12 +233,14 @@ public class TenantWebService {
   }
 
   public void enableModule(RoutingContext ctx) {
-    enableTenantInt(ctx, null);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
+    enableTenantInt(pc, null);
   }
 
   public void updateModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
     final String module_from = ctx.request().getParam("mod");
-    enableTenantInt(ctx, module_from);
+    enableTenantInt(pc, module_from);
   }
 
   /**
@@ -265,8 +267,8 @@ public class TenantWebService {
    * is done first, as it is the most likely to fail. The tenant interface
    * service should be idempotent, so in case of failures, we can call it again.
    */
-  private void enableTenantInt(RoutingContext ctx, String module_from) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
+  private void enableTenantInt(ProxyContext pc, String module_from) {
+    RoutingContext ctx = pc.getCtx();
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
@@ -286,7 +288,7 @@ public class TenantWebService {
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
         pc.debug("enableModule: " + module_to + " has no support for tenant init");
-        enablePermissions(ctx, td, id, module_from, module_to);
+        enablePermissions(pc, td, id, module_from, module_to);
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
@@ -316,7 +318,7 @@ public class TenantWebService {
                 } else { // All well, we can finally enable it
                   pc.debug("enableModule: Tenant init request to "
                     + module_to + " succeeded");
-                  enablePermissions(ctx, td, id, module_from, module_to);
+                  enablePermissions(pc, td, id, module_from, module_to);
                 }
               });
             }
@@ -331,9 +333,9 @@ public class TenantWebService {
   /**
    * Enable tenant, part 2: Pass the module permission(set)s to perms.
    */
-  private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
+  private void enablePermissions(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablePermissions");
+    RoutingContext ctx = pc.getCtx();
     // TODO - Use the same pc for the whole chain, log repsonses
     ModuleManager modMan = tenants.getModuleManager();
     if (modMan == null) { // Should never happen
@@ -345,12 +347,12 @@ public class TenantWebService {
     ModuleDescriptor md = modMan.get(module_to);
     if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
       permsModule = md;
-      pc.warn("Should call the tenantPermissions of this module itself");
+      pc.warn("Using the tenantPermissions of this module itself");
     } else {
       permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
     }
     if (permsModule == null) {
-      enableTenantManager(ctx, td, id, module_from, module_to);
+      enableTenantManager(pc, td, id, module_from, module_to);
     } else {
       pc.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
       PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
@@ -408,7 +410,7 @@ public class TenantWebService {
                 }
                 pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
                   + " succeeded for module " + module_to + " and tenant " + id);
-                enableTenantManager(ctx, td, id, module_from, module_to);
+                enableTenantManager(pc, td, id, module_from, module_to);
               }
             });
           }
@@ -421,18 +423,18 @@ public class TenantWebService {
    * Enable tenant, part 3: enable in the tenant manager. Also, disable the old
    * one in storage.
    */
-  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
+  private void enableTenantManager(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enable");  // TODO
+    RoutingContext ctx = pc.getCtx();
     final long ts = getTimestamp();
     String err = tenants.updateModuleCommit(id, module_from, module_to);
     if (err.isEmpty()) {
       if (module_from != null) {
         tenantStore.disableModule(id, module_from, ts, res -> {
-          enableTenantStorage(ctx, td, id, module_to);
+          enableTenantStorage(pc, td, id, module_to);
         });
       } else {
-        enableTenantStorage(ctx, td, id, module_to);
+        enableTenantStorage(pc, td, id, module_to);
       }
     } else {
       pc.responseError(400, err);
@@ -442,9 +444,9 @@ public class TenantWebService {
   /**
    * Enable tenant, part 4: update storage.
    */
-  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td,
+  private void enableTenantStorage(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_to) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enable.store");// TODO
+    RoutingContext ctx = pc.getCtx();
     final long ts = getTimestamp();
     tenantStore.enableModule(id, module_to, ts, res -> {
       if (res.succeeded()) {
