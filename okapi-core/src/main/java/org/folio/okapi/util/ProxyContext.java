@@ -12,8 +12,6 @@ import java.util.List;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
-import static org.folio.okapi.common.HttpResponse.responseError;
-import static org.folio.okapi.common.HttpResponse.responseText;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -29,13 +27,13 @@ public class ProxyContext {
   private String reqId;
   private String tenant;
   private RoutingContext ctx;
+  private Timer.Context timer;
   /**
-   * Constructor to be used from proxy
+   * Constructor to be used from proxy. Does not log the request, as we do not
+   * know the tenant yet.
    *
-   * @param ml - module list, used by proxy itself
    * @param vertx - to create a httpClient, used by proxy
    * @param ctx - the request we are serving
-   * @param tenant - tenant id for later logging
    */
   public ProxyContext(Vertx vertx, RoutingContext ctx) {
     this.ctx = ctx;
@@ -44,15 +42,15 @@ public class ProxyContext {
     traceHeaders = new ArrayList<>();
     httpClient = vertx.createHttpClient();
     reqidHeader(ctx);
-    logRequest(ctx, tenant);
+    timer = null;
   }
 
   /**
-   * Constructor used from inside Okapi.
+   * Constructor used from inside Okapi. Starts a timer and logs the request
+   * from ctx.
    *
-   * @param ctx
    */
-  public ProxyContext(RoutingContext ctx) {
+  public ProxyContext(RoutingContext ctx /*, String timerKey */) {
     this.ctx = ctx;
     modList = null;
     traceHeaders = new ArrayList<>();
@@ -60,6 +58,33 @@ public class ProxyContext {
     this.reqId = reqId;
     reqidHeader(ctx);
     logRequest(ctx, "-");
+    timer = null;
+    //startTimer(timerKey);
+  }
+
+  public void startTimer(String key) {
+    closeTimer();
+    timer = DropwizardHelper.getTimerContext(key);
+  }
+
+  public void closeTimer() {
+    if (timer != null) {
+      timer.close();
+      timer = null;
+    }
+  }
+
+  /**
+   * Return the elapsed time since startTimer, in microseconds.
+   *
+   * @return
+   */
+  public long timeDiff() {
+    if (timer != null) {
+      return timer.stop() / 1000;
+    } else {
+      return 0;
+    }
   }
 
   public HttpClient getHttpClient() {
@@ -118,10 +143,17 @@ public class ProxyContext {
 
   /* Helpers for logging and building responses */
   public void logRequest(RoutingContext ctx, String tenant) {
+    String mods = "";
+    if (modList != null && !modList.isEmpty()) {
+      for (ModuleInstance mi : modList) {
+        mods += " " + mi.getModuleDescriptor().getNameOrId();
+      }
+    }
     logger.info(reqId + " REQ "
       + ctx.request().remoteAddress()
       + " " + tenant + " " + ctx.request().method()
-      + " " + ctx.request().path());
+      + " " + ctx.request().path()
+      + mods);
   }
 
   public void logResponse(String module, String url, int statusCode, long timeDiff) {

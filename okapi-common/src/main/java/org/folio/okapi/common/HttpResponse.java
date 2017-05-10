@@ -5,12 +5,16 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
+/**
+ * Helper to return HTTP responses. In most cases, the ProxyContext has the same
+ * functionality, with added logging.
+ */
 public class HttpResponse {
 
   private final static Logger logger = LoggerFactory.getLogger("okapi");
 
   static public void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
-    responseError(ctx, t.httpCode(t), cause);
+    responseError(ctx, ErrorType.httpCode(t), cause);
   }
 
   static public void responseError(RoutingContext ctx, int code, Throwable cause) {
