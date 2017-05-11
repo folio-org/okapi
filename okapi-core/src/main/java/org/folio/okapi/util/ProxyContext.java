@@ -57,14 +57,13 @@ public class ProxyContext {
     modList = null;
     traceHeaders = new ArrayList<>();
     httpClient = null;
-    this.reqId = reqId;
     reqidHeader(ctx);
     logRequest(ctx, "-");
     timer = null;
     startTimer(timerKey);
   }
 
-  public void startTimer(String key) {
+  public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
   }
@@ -144,7 +143,7 @@ public class ProxyContext {
 
 
   /* Helpers for logging and building responses */
-  public void logRequest(RoutingContext ctx, String tenant) {
+  public final void logRequest(RoutingContext ctx, String tenant) {
     String mods = "";
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {

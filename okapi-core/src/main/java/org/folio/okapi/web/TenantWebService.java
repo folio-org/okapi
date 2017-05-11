@@ -308,6 +308,7 @@ public class TenantWebService {
                 jo.put("module_from", module_from);
               }
               OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+              cli.newReqId("tenant");
               cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
                   pc.warn("Tenant init request for "
@@ -390,6 +391,7 @@ public class TenantWebService {
             pc.debug("enablePermissions Url: " + baseurl + " and " + permPath);
             Map<String, String> headers = reqHeaders(ctx, id);
             OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.newReqId("tenantPermissions");
             cli.request(HttpMethod.POST, permPath, Json.encodePrettily(pl), cres -> {
               if (cres.failed()) {
                 pc.warn("_tenantPermissions request for "
