@@ -38,6 +38,7 @@ public class OkapiClient {
   // TODO Use this in the discovery-deployment communications
   private MultiMap respHeaders;
   private String reqId;
+  private boolean logInfo; // t: log requests on INFO. f: on DEBUG
 
   /**
    * Constructor from a vert.x ctx.
@@ -86,6 +87,23 @@ public class OkapiClient {
     this.headers = new HashMap<>();
     respHeaders = null;
     reqId = "";
+    logInfo = false;
+  }
+
+  /**
+   * Enable logging of request on INFO level. Normally not the case, since Okapi
+   * will log the incoming request anyway. Useful with Okapi's own requests to
+   * modules, etc.
+   */
+  public void enableInfoLog() {
+    logInfo = true;
+  }
+
+  /**
+   * Disable request logging on INFO. They will still be logged on DEBUG.
+   */
+  public void disableInfoLog() {
+    logInfo = false;
   }
 
   /**
@@ -126,14 +144,23 @@ public class OkapiClient {
     }
 
     respHeaders = null;
-      logger.info(reqId + " REQ "
-        + "okapiClient " + tenant + " "
-        + method.toString() + " " + url);
+    String logReqMsg = reqId + " REQ "        + "okapiClient " + tenant + " "
+        + method.toString() + " " + url;
+    if (logInfo) {
+      logger.info(logReqMsg);
+    } else {
+      logger.debug(logReqMsg);
+    }
 
     HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
-      logger.info(reqId
+      String logResMsg = reqId
         + " RES " + postres.statusCode() + " 0us " // TODO - get timing
-        + "okapiClient " + url);
+        + "okapiClient " + url;
+      if (logInfo) {
+        logger.info(logResMsg);
+      } else {
+        logger.debug(logResMsg);
+      }
       final Buffer buf = Buffer.buffer();
       respHeaders = postres.headers();
       postres.handler(b -> {
