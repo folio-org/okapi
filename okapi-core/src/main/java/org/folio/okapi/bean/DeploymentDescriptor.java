@@ -4,6 +4,7 @@ import org.folio.okapi.util.ModuleHandle;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import io.vertx.core.json.DecodeException;
 
 /**
  * Description of one deployed module. Refers to one running instance of a
@@ -57,6 +58,9 @@ public class DeploymentDescriptor {
   }
 
   public void setSrvcId(String srvcId) {
+    if (srvcId.isEmpty()) {
+      throw new DecodeException("Empty srvcId not allowed");
+    }
     this.srvcId = srvcId;
   }
 
