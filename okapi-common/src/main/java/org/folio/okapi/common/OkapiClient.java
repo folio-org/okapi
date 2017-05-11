@@ -7,7 +7,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -38,6 +37,7 @@ public class OkapiClient {
   //   response headers, the whole response, and so on.
   // TODO Use this in the discovery-deployment communications
   private MultiMap respHeaders;
+  private String reqId;
 
   /**
    * Constructor from a vert.x ctx.
@@ -54,7 +54,10 @@ public class OkapiClient {
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
         String hv = ctx.request().getHeader(hdr);
-        headers.put(hdr,hv);
+        headers.put(hdr, hv);
+        if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
+          reqId = hv;
+        }
       }
     }
   }
@@ -71,6 +74,9 @@ public class OkapiClient {
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
+    if (this.headers.containsKey(XOkapiHeaders.REQUEST_ID)) {
+      reqId = this.headers.get(XOkapiHeaders.REQUEST_ID);
+    }
     respHeaders = null;
   }
 
@@ -79,6 +85,22 @@ public class OkapiClient {
     this.httpClient = vertx.createHttpClient();
     this.headers = new HashMap<>();
     respHeaders = null;
+    reqId = "";
+  }
+
+  /**
+   * Set up a new request-Id. Used internally, when Okapi itself makes a new
+   * request to the modules, like the tenant interface.
+   */
+  public void newReqId(String path) {
+    int rnd = (int) (Math.random() * 1000000);
+    String newId = String.format("%06d", rnd) + "/" + path;
+    if (reqId.isEmpty()) {
+      reqId = newId;
+    } else {
+      reqId = reqId + ";" + newId;
+    }
+    headers.put(XOkapiHeaders.REQUEST_ID, reqId);
   }
 
   /**
@@ -98,13 +120,24 @@ public class OkapiClient {
       return;
     }
     String url = this.okapiUrl + path;
+    String tenant = "-";
+    if (headers.containsKey(XOkapiHeaders.TENANT)) {
+      tenant = headers.get(XOkapiHeaders.TENANT);
+    }
+
     respHeaders = null;
-    logger.debug("OkapiClient: " + method.toString() + " request to " + url);
+      logger.info(reqId + " REQ "
+        + "okapiClient " + tenant + " "
+        + method.toString() + " " + url);
+
     HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
+      logger.info(reqId
+        + " RES " + postres.statusCode() + " 0us " // TODO - get timing
+        + "okapiClient " + url);
       final Buffer buf = Buffer.buffer();
       respHeaders = postres.headers();
       postres.handler(b -> {
-        logger.debug("OkapiClient Buffering response " + b.toString());
+        logger.debug(reqId + " OkapiClient Buffering response " + b.toString());
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
@@ -127,11 +160,12 @@ public class OkapiClient {
       if ( msg == null || msg.isEmpty()) { // unresolved address results in no message
         msg = x.toString(); // so we use toString instead
       } // but not both, because connection error has identical string in both...
-      logger.debug("OkapiClient exception: " + x.toString() + ": " + x.getMessage());
+      logger.warn(reqId + " OkapiClient exception: "
+        + x.toString() + ": " + x.getMessage(), x);
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for ( String hdr : headers.keySet()) {
-      logger.debug("OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
+      logger.debug(reqId + " OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
     }
     req.headers().addAll(headers);
     req.end(data);
@@ -166,7 +200,7 @@ public class OkapiClient {
   }
 
   /**
-   * Get the Okapi authentication token.   * From the X-Okapi-Token header.
+   * Get the Okapi authentication token. From the X-Okapi-Token header.
    *
    * @return the token, or null if not defined.
    */

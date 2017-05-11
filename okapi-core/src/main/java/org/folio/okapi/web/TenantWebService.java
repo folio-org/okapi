@@ -31,7 +31,6 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
-import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiClient;
@@ -39,6 +38,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.service.ModuleManager;
+import org.folio.okapi.util.ProxyContext;
 
 public class TenantWebService {
 
@@ -88,7 +88,7 @@ public class TenantWebService {
           } else {
             // TODO - What to do in this case. Nowhere to report any errors.
             logger.fatal("Reloading tenant " + sig.id
-                    + "FAILED. Don't know what to do about that. PANIC!");
+              + " FAILED. Don't know what to do about that. PANIC!");
           }
         });
       }
@@ -113,6 +113,7 @@ public class TenantWebService {
   }
 
   public void create(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.create");
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
@@ -121,7 +122,7 @@ public class TenantWebService {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9._-]+$")) {
-        responseError(ctx, 400, "Invalid id");
+        pc.responseError(400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
         final long ts = getTimestamp();
@@ -131,33 +132,34 @@ public class TenantWebService {
             if (res.succeeded()) {
               final String uri = ctx.request().uri() + "/" + id;
               final String s = Json.encodePrettily(t.getDescriptor());
-              responseJson(ctx, 201).putHeader("Location", uri).end(s);
+              pc.responseJson(201, s, uri);
               sendReloadSignal(id, ts);
             } else {
               // This should never happen in a well behaving system. It is
               // possible with some race conditions etc. Hard to test.
               // TODO - Check what errors the mongo store can return
-              logger.error("create: Db layer error " + res.cause().getMessage());
+              pc.error("create: Db layer error " + res.cause().getMessage());
               tenants.delete(id); // Take it away from the runtime, since it was no good.
-              responseError(ctx, 400, res.cause());
+              pc.responseError(400, res.cause());
             }
           });
         } else {
-          responseError(ctx, 400, "Duplicate id " + id);
+          pc.responseError(400, "Duplicate id " + id);
         }
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void update(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.update");
     try {
       final TenantDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
               TenantDescriptor.class);
       final String id = ctx.request().getParam("id");
       if (!id.equals(td.getId())) {
-        responseError(ctx, 400, "Tenant.id=" + td.getId() + " id=" + id);
+        pc.responseError(400, "Tenant.id=" + td.getId() + " id=" + id);
         return;
       }
       Tenant t = new Tenant(td);
@@ -167,21 +169,22 @@ public class TenantWebService {
         tenantStore.updateDescriptor(td, res -> {
           if (res.succeeded()) {
             final String s = Json.encodePrettily(t.getDescriptor());
-            responseJson(ctx, 200).end(s);
+            pc.responseJson(200, s);
             sendReloadSignal(id, ts);
           } else {
-            responseError(ctx, 404, res.cause());
+            pc.responseError(404, res.cause());
           }
         });
       } else {
-        responseError(ctx, 400, "Failed to update descriptor " + id);
+        pc.responseError(400, "Failed to update descriptor " + id);
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void list(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.list");
     tenantStore.listTenants(res -> {
       if (res.succeeded()) {
         List<Tenant> tl = res.result();
@@ -190,51 +193,54 @@ public class TenantWebService {
           tdl.add(t.getDescriptor());
         }
         String s = Json.encodePrettily(tdl);
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, 400, res.cause());
+        pc.responseError(400, res.cause());
       }
     });
   }
 
   public void get(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.get");
     final String id = ctx.request().getParam("id");
-
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void delete(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.delete");
     final String id = ctx.request().getParam("id");
     if (tenants.delete(id)) {
       tenantStore.delete(id, res -> {
         if (res.succeeded()) {
           final long ts = getTimestamp();
           sendReloadSignal(id, ts);
-          responseText(ctx, 204).end();
+          pc.responseText(204, "");
         } else {
-          responseError(ctx, res.getType(), res.cause());
+          pc.responseError(res.getType(), res.cause());
         }
       });
     } else {
-      responseError(ctx, 404, id);
+      pc.responseError(404, id);
     }
   }
 
   public void enableModule(RoutingContext ctx) {
-    enableTenantInt(ctx, null);
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
+    enableTenantInt(pc, null);
   }
 
   public void updateModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
     final String module_from = ctx.request().getParam("mod");
-    enableTenantInt(ctx, module_from);
+    enableTenantInt(pc, module_from);
   }
 
   /**
@@ -261,7 +267,8 @@ public class TenantWebService {
    * is done first, as it is the most likely to fail. The tenant interface
    * service should be idempotent, so in case of failures, we can call it again.
    */
-  private void enableTenantInt(RoutingContext ctx, String module_from) {
+  private void enableTenantInt(ProxyContext pc, String module_from) {
+    RoutingContext ctx = pc.getCtx();
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
@@ -270,30 +277,30 @@ public class TenantWebService {
       Tenant tenant = tenants.get(id);
       if (tenant == null) {
         String err = "tenant " + id + " not found";
-        responseError(ctx, 404, err);
+        pc.responseError(404, err);
         return;
       }
       String err = tenants.updateModuleDepCheck(tenant, module_from, module_to);
       if (!err.isEmpty()) {
-        responseError(ctx, 400, err);
+        pc.responseError(400, err);
         return;
       }
       String tenInt = tenants.getTenantInterface(module_to);
       if (tenInt == null || tenInt.isEmpty()) {
-        logger.debug("enableModule: " + module_to + " has no support for tenant init");
-        enablePermissions(ctx, td, id, module_from, module_to);
+        pc.debug("enableModule: " + module_to + " has no support for tenant init");
+        enablePermissions(pc, td, id, module_from, module_to);
       } else { // We have an init interface, invoke it
         discoveryManager.get(module_to, gres -> {
           if (gres.failed()) {
-            responseError(ctx, gres.getType(), gres.cause());
+            pc.responseError(gres.getType(), gres.cause());
           } else {
             List<DeploymentDescriptor> instances = gres.result();
             if (instances.isEmpty()) {
-              responseError(ctx, 400, "No running instances for module " + module_to
+              pc.responseError(400, "No running instances for module " + module_to
                 + ". Can not invoke tenant init");
             } else { // TODO - Don't just take the first. Pick one by random.
               String baseurl = instances.get(0).getUrl();
-              logger.debug("enableModule Url: " + baseurl + " and " + tenInt);
+              pc.debug("enableModule Url: " + baseurl + " and " + tenInt);
               Map<String, String> headers = reqHeaders(ctx, id);
               JsonObject jo = new JsonObject();
               jo.put("module_to", module_to);
@@ -301,17 +308,18 @@ public class TenantWebService {
                 jo.put("module_from", module_from);
               }
               OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+              cli.newReqId("tenant");
               cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
                 if (cres.failed()) {
-                  logger.warn("Tenant init request for "
+                  pc.warn("Tenant init request for "
                     + module_to + " failed with " + cres.cause().getMessage());
-                  responseError(ctx, 500, "Post to " + tenInt
+                  pc.responseError(500, "Post to " + tenInt
                     + " on " + module_to + " failed with "
                     + cres.cause().getMessage());
                 } else { // All well, we can finally enable it
-                  logger.debug("enableModule: Tenant init request to "
+                  pc.debug("enableModule: Tenant init request to "
                     + module_to + " succeeded");
-                  enablePermissions(ctx, td, id, module_from, module_to);
+                  enablePermissions(pc, td, id, module_from, module_to);
                 }
               });
             }
@@ -319,18 +327,20 @@ public class TenantWebService {
         });
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   /**
    * Enable tenant, part 2: Pass the module permission(set)s to perms.
    */
-  private void enablePermissions(RoutingContext ctx, TenantModuleDescriptor td,
+  private void enablePermissions(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
+    RoutingContext ctx = pc.getCtx();
+    // TODO - Use the same pc for the whole chain, log repsonses
     ModuleManager modMan = tenants.getModuleManager();
     if (modMan == null) { // Should never happen
-      responseError(ctx, 500, "enablePermissions: No moduleManager found. "
+      pc.responseError(500, "enablePermissions: No moduleManager found. "
         + "Can not make _tenantPermissions request");
       return;
     }
@@ -338,22 +348,22 @@ public class TenantWebService {
     ModuleDescriptor md = modMan.get(module_to);
     if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
       permsModule = md;
-      logger.warn("Should call the tenantPermissions of this module itself");
+      pc.warn("Using the tenantPermissions of this module itself");
     } else {
       permsModule = tenants.findSystemInterface(id, "_tenantPermissions");
     }
     if (permsModule == null) {
-      enableTenantManager(ctx, td, id, module_from, module_to);
+      enableTenantManager(pc, td, id, module_from, module_to);
     } else {
-      logger.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
+      pc.debug("enablePermissions: Perms interface found in " + permsModule.getNameOrId());
       PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
       discoveryManager.get(permsModule.getId(), gres -> {
         if (gres.failed()) {
-          responseError(ctx, gres.getType(), gres.cause());
+          pc.responseError(gres.getType(), gres.cause());
         } else {
           List<DeploymentDescriptor> instances = gres.result();
           if (instances.isEmpty()) {
-            responseError(ctx, 400,
+            pc.responseError(400,
               "No running instances for module " + permsModule.getId()
               + ". Can not invoke _tenantPermissions");
           } else { // TODO - Don't just take the first. Pick one by random.
@@ -372,20 +382,21 @@ public class TenantWebService {
               }
             }
             if (findPermPath == null || findPermPath.isEmpty()) {
-              responseError(ctx, 400,
+              pc.responseError(400,
                 "Bad _tenantPermissions interface in module " + permsModule.getNameOrId()
                 + ". No path to POST to");
               return;
             }
             final String permPath = findPermPath; // needs to be final
-            logger.debug("enablePermissions Url: " + baseurl + " and " + permPath);
+            pc.debug("enablePermissions Url: " + baseurl + " and " + permPath);
             Map<String, String> headers = reqHeaders(ctx, id);
             OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.newReqId("tenantPermissions");
             cli.request(HttpMethod.POST, permPath, Json.encodePrettily(pl), cres -> {
               if (cres.failed()) {
-                logger.warn("_tenantPermissions request for "
+                pc.warn("_tenantPermissions request for "
                   + module_to + " failed with " + cres.cause().getMessage());
-                responseError(ctx, 500, "Permissions post for " + module_to
+                pc.responseError(500, "Permissions post for " + module_to
                   + " to " + permPath
                   + " on " + permsModule.getNameOrId()
                   + " failed with " + cres.cause().getMessage());
@@ -399,9 +410,9 @@ public class TenantWebService {
                     }
                   }
                 }
-                logger.debug("enablePermissions: request to " + permsModule.getNameOrId()
+                pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
                   + " succeeded for module " + module_to + " and tenant " + id);
-                enableTenantManager(ctx, td, id, module_from, module_to);
+                enableTenantManager(pc, td, id, module_from, module_to);
               }
             });
           }
@@ -414,37 +425,38 @@ public class TenantWebService {
    * Enable tenant, part 3: enable in the tenant manager. Also, disable the old
    * one in storage.
    */
-  private void enableTenantManager(RoutingContext ctx, TenantModuleDescriptor td,
+  private void enableTenantManager(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
+    RoutingContext ctx = pc.getCtx();
     final long ts = getTimestamp();
     String err = tenants.updateModuleCommit(id, module_from, module_to);
     if (err.isEmpty()) {
       if (module_from != null) {
         tenantStore.disableModule(id, module_from, ts, res -> {
-          enableTenantStorage(ctx, td, id, module_to);
+          enableTenantStorage(pc, td, id, module_to);
         });
       } else {
-        enableTenantStorage(ctx, td, id, module_to);
+        enableTenantStorage(pc, td, id, module_to);
       }
     } else {
-      responseError(ctx, 400, err);
+      pc.responseError(400, err);
     }
   }
 
   /**
    * Enable tenant, part 4: update storage.
    */
-  private void enableTenantStorage(RoutingContext ctx, TenantModuleDescriptor td, String id, String module_to) {
+  private void enableTenantStorage(ProxyContext pc, TenantModuleDescriptor td,
+    String id, String module_to) {
+    RoutingContext ctx = pc.getCtx();
     final long ts = getTimestamp();
     tenantStore.enableModule(id, module_to, ts, res -> {
       if (res.succeeded()) {
         sendReloadSignal(id, ts);
         final String uri = ctx.request().uri() + "/" + module_to;
-        responseJson(ctx, 201)
-          .putHeader("Location", uri)
-          .end(Json.encodePrettily(td));
+        pc.responseJson(201, Json.encodePrettily(td), uri);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
@@ -460,24 +472,24 @@ public class TenantWebService {
    * @param module
    */
   private void destroyTenant(RoutingContext ctx, String module, String id) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.destroy");
     String tenInt = tenants.getTenantInterface(module);
     if (tenInt == null || tenInt.isEmpty()) {
-      logger.debug("disableModule: " + module + " has no support for tenant destroy");
-      responseText(ctx, 204).end();
+      pc.debug("disableModule: " + module + " has no support for tenant destroy");
+      pc.responseText(204, "");
       return;
     }
     // We have a tenant interface, invoke DELETE on it
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
-        responseError(ctx, gres.getType(), gres.cause());
+        pc.responseError(gres.getType(), gres.cause());
       } else {
         List<DeploymentDescriptor> instances = gres.result();
         if (instances.isEmpty()) {
-          responseError(ctx, 400, "No running instances for module " + module
-                  + ". Can not invoke tenant destroy");
+          pc.responseError(400, "No running instances for module " + module                  + ". Can not invoke tenant destroy");
         } else { // TODO - Don't just take the first. Pick one by random.
           String baseurl = instances.get(0).getUrl();
-          logger.debug("disableModule Url: " + baseurl + " and " + tenInt);
+          pc.debug("disableModule Url: " + baseurl + " and " + tenInt);
           Map<String, String> headers = new HashMap<>();
           for (String hdr : ctx.request().headers().names()) {
             if (hdr.matches("^X-.*$")) {
@@ -486,7 +498,7 @@ public class TenantWebService {
           }
           if (!headers.containsKey(XOkapiHeaders.TENANT)) {
             headers.put(XOkapiHeaders.TENANT, id);
-            logger.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
+            pc.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
           }
           headers.put("Accept", "*/*");
           //headers.put("Content-Type", "application/json; charset=UTF-8");
@@ -494,14 +506,12 @@ public class TenantWebService {
           OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
           cli.request(HttpMethod.DELETE, tenInt, body, cres -> {
             if (cres.failed()) {
-              logger.warn("Tenant destroy request for "
-                      + module + " failed with " + cres.cause().getMessage());
-              responseError(ctx, 500, "DELETE to " + tenInt
-                      + " on " + module + " failed with "
+              pc.warn("Tenant destroy request for "                      + module + " failed with " + cres.cause().getMessage());
+              pc.responseError(500, "DELETE to " + tenInt                      + " on " + module + " failed with "
                       + cres.cause().getMessage());
             } else { // All well, we can finally enable it
-              logger.debug("disableModule: destroy request to " + module + " succeeded");
-              responseText(ctx, 204).end();  // finally we are done
+              pc.debug("disableModule: destroy request to " + module + " succeeded");
+              pc.responseText(204, "");  // finally we are done
             }
           });
         }
@@ -510,37 +520,39 @@ public class TenantWebService {
   }
 
   public void disableModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.disable");
     try {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
       final long ts = getTimestamp();
-      logger.debug("disablemodule t=" + id + " m=" + module);
+      pc.debug("disablemodule t=" + id + " m=" + module);
       String err = tenants.disableModule(id, module);
       if (err.isEmpty()) {
         tenantStore.disableModule(id, module, ts, res -> {
           if (res.succeeded()) {
             sendReloadSignal(id, ts);
-            responseText(ctx, 204).end();
+            pc.responseText(204, "");
           } else if (res.getType() == NOT_FOUND) { // Oops, things are not in sync any more!
-            logger.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
-            responseError(ctx, 404, res.cause());
+            pc.debug("disablemodule: storage NOTFOUND: " + res.cause().getMessage());
+            pc.responseError(404, res.cause());
           } else {
-            responseError(ctx, res.getType(), res.cause());
+            pc.responseError(res.getType(), res.cause());
           }
         });
       } else if (err.contains("not found")) {
-        logger.error("disableModule: " + err);
-        responseError(ctx, 404, err);
+        pc.error("disableModule: " + err);
+        pc.responseError(404, err);
       } else {
-        logger.error("disableModule: " + err);
-        responseError(ctx, 400, err);
+        pc.error("disableModule: " + err);
+        pc.responseError(400, err);
       }
     } catch (DecodeException ex) {
-      responseError(ctx, 400, ex);
+      pc.responseError(400, ex);
     }
   }
 
   public void listModules(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.listmodules");
     final String id = ctx.request().getParam("id");
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
@@ -554,14 +566,15 @@ public class TenantWebService {
           ta.add(tmd);
         }
         String s = Json.encodePrettily(ta);
-        responseJson(ctx, 200).end(s);
+        pc.responseJson(200, s);
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void getModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.getmodule");
     final String id = ctx.request().getParam("id");
     final String mod = ctx.request().getParam("mod");
     tenantStore.get(id, res -> {
@@ -572,28 +585,30 @@ public class TenantWebService {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setId(mod);
           String s = Json.encodePrettily(tmd);
-          responseJson(ctx, 200).end(s);
+          pc.responseJson(200, s);
         } else {
-          responseError(ctx, 404, mod);
+          pc.responseError(404, mod);
         }
       } else {
-        responseError(ctx, res.getType(), res.cause());
+        pc.responseError(res.getType(), res.cause());
       }
     });
   }
 
   public void reloadTenant(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.reload");
     final String id = ctx.request().getParam("id");
     reloadTenant(id, res -> {
       if (res.succeeded()) {
-        responseText(ctx, 204).end();
+        pc.responseText(204, "");
       } else {
-        responseError(ctx, 500, res.cause());
+        pc.responseError(500, res.cause());
       }
     });
   }
 
-  public void reloadTenant(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void reloadTenant(String id,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     tenantStore.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();

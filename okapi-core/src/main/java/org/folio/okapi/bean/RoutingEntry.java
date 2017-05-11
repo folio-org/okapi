@@ -6,6 +6,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * One entry in Okapi's routing table.
@@ -243,7 +244,7 @@ public class RoutingEntry {
    * @param section "requires", "provides", "filters", "handlers" or "toplevel"
    * @return an error message (as a string), or "" if all is well.
    */
-  public String validate(String section, String mod) {
+  public String validate(ProxyContext pc, String section, String mod) {
     String prefix = "Module '" + mod + "' " + section;
     if (pathPattern != null && !pathPattern.isEmpty()) {
       prefix += " " + pathPattern;
@@ -251,7 +252,7 @@ public class RoutingEntry {
       prefix += " " + path;
     }
     prefix += ": ";
-    logger.debug(prefix
+    pc.debug(prefix
       + "Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
       && (pathPattern == null || pathPattern.isEmpty())) {
@@ -264,13 +265,13 @@ public class RoutingEntry {
       }
     } else {
       if (redirectPath != null && !redirectPath.isEmpty()) {
-        logger.warn(prefix
+        pc.warn(prefix
           + "has a redirectPath, even though it is not a redirect");
       }
 
       if (pathPattern == null || pathPattern.isEmpty()) {
-      logger.warn(prefix
-        + " uses old type path"
+        pc.warn(prefix
+          + " uses old type path"
         + ". Use a pathPattern instead");
     }
     if (level != null && !"toplevel".equals(section)) {
@@ -278,16 +279,16 @@ public class RoutingEntry {
       if ("filters".equals(section)) {
         ph = "Use a phase=auth instead";
       }
-      logger.warn(prefix
+      pc.warn(prefix
         + "uses DEPRECATED level. " + ph);
     }
 
     if (pathPattern != null && pathPattern.endsWith("/")) {
-      logger.warn(prefix
+      pc.warn(prefix
         + "ends in a slash. Probably not what you intend");
     }
     if ("system".equals(type)) {
-      logger.warn(prefix
+      pc.warn(prefix
         + "uses DEPRECATED type 'system'");
       }
 
@@ -296,7 +297,7 @@ public class RoutingEntry {
     if (null != section)
       switch (section) {
         case "handlers":
-          String err = validateHandlers(prefix);
+          String err = validateHandlers(pc, prefix);
           if (!err.isEmpty()) {
             return err;
           }
@@ -317,14 +318,14 @@ public class RoutingEntry {
     return ""; // no problems found
   }
 
-  private String validateHandlers(String prefix) {
+  private String validateHandlers(ProxyContext pc, String prefix) {
     if (phase != null) {
-      logger.warn(prefix
+      pc.warn(prefix
         + "uses 'phase' in the handlers section. "
         + "Leave it out");
     }
     if (type != null && "request-response".equals(type)) {
-      logger.warn(prefix
+      pc.warn(prefix
         + "uses type=request-response. "
         + "That is the default, you can leave it out");
     }

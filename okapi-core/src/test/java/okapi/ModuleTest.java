@@ -1499,10 +1499,12 @@ public class ModuleTest {
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .body("OkapiX").post("/testb")
-      .then().statusCode(200)
+      .then()
+      .log().ifError()
+      .statusCode(200)
       .body(equalTo("hej hej OkapiX"));
 
-    // Verify that we have seen tenant requests to POST and DELETE
+    // Verify that we have seen tenant requests to POST but not DELETE
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)

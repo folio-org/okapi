@@ -87,7 +87,6 @@ public class LogHelper {
       setRootLogLevel(inf.getLevel());
       responseJson(ctx, 200).end(Json.encode(inf));
     }
-
   }
 
 }

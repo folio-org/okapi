@@ -8,6 +8,7 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * ModuleInterface describes an interface a module can provide, or depend on.
@@ -227,36 +228,35 @@ public class ModuleInterface {
    * @param section "provides" or "requires" - the rules differ
    * @return "" if ok, or a simple error message
    */
-  public String validate(String section, String mod) {
+  public String validate(ProxyContext pc, String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
     String prefix = "Module '" + mod + "' interface '" + id + "': ";
     String err;
-    err = validateGeneral(mod);
+    err = validateGeneral(pc, mod);
     if (!err.isEmpty()) {
       return err;
     }
     if (version.matches("\\d+\\.\\d+\\.\\d+")) {
-      logger.warn(prefix + "has a 3-part version number '" + version + "'."
+      pc.warn(prefix + "has a 3-part version number '" + version + "'."
         + "Interfaces should be 2-part");
     }
 
     if ("_tenant".equals(this.id) && !"1.0".equals(version)) {
-      logger.warn(prefix + " is '" + version + "'."
+      pc.warn(prefix + " is '" + version + "'."
         + " should be '1.0'");
     }
     if ("_tenantPermissions".equals(this.id) && !"1.0".equals(version)) {
-      logger.warn(prefix + " is '" + version + "'."
-        + " should be '1.0'");
+      pc.warn(prefix + " is '" + version + "'. should be '1.0'");
     }
 
     if (section.equals("provides")) {
-      err = validateProvides(section, mod);
+      err = validateProvides(pc, section, mod);
       if (!err.isEmpty()) {
         return err;
       }
     }
     if (section.equals("requires")) {
-      err = validateRequires(section, mod);
+      err = validateRequires(pc, section, mod);
       if (!err.isEmpty()) {
         return err;
         }
@@ -268,7 +268,7 @@ public class ModuleInterface {
    * Validate those things that just have to be right.
    * @return "" if ok, or an error message
    */
-  private String validateGeneral(String mod) {
+  private String validateGeneral(ProxyContext pc, String mod) {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system")) {
       return "Bad interface type '" + it + "'";
@@ -282,9 +282,9 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(String section, String mod) {
+  private String validateProvides(ProxyContext pc, String section, String mod) {
     if (getRoutingEntries() != null) {
-      logger.warn("Module '" + mod + "':"
+      pc.warn("Module '" + mod + "':"
         + "Provided interface " + getId()
         + " uses DEPRECATED RoutingEntries. "
         + "Use handlers instead");
@@ -292,7 +292,7 @@ public class ModuleInterface {
     RoutingEntry[] handlers = getHandlers();
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
-        String err = re.validate("handlers", mod);
+        String err = re.validate(pc, "handlers", mod);
         if (!err.isEmpty()) {
           return err;
         }
@@ -304,7 +304,7 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "requires" section.
    */
-  private String validateRequires(String section, String mod) {
+  private String validateRequires(ProxyContext pc, String section, String mod) {
     RoutingEntry[] oldRoutingEntries = getRoutingEntries();
     if (oldRoutingEntries != null) {
       return "No RoutingEntries allowed in 'requires' section";
