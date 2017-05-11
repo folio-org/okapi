@@ -442,10 +442,13 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           res.handler(data -> {
             ctx.response().write(data);
+            pc.trace("ProxyRequestHttpClient response chunk '"
+              + data.toString() + "'");
           });
           res.endHandler(x -> {
             pc.closeTimer();
             ctx.response().end();
+            pc.trace("ProxyRequestHttpClient response end");
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyRequestHttpClient: res exception (a)", e);
@@ -460,6 +463,8 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           res.endHandler(x -> {
             pc.closeTimer();
+            pc.trace("ProxyRequestHttpClient final response buf '"
+              + bcontent + "'");
             ctx.response().end(bcontent);
           });
           res.exceptionHandler(e -> {
@@ -475,6 +480,8 @@ public class ProxyService {
     });
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
+    pc.trace("ProxyRequestHttpClient request buf '"
+      + bcontent + "'");
     c_req.end(bcontent);
     log(pc, c_req);
   }
@@ -489,8 +496,11 @@ public class ProxyService {
       final Buffer incoming = Buffer.buffer();
       content.handler(data -> {
         incoming.appendBuffer(data);
+        pc.trace("ProxyRequestOnly request chunk '"
+          + data.toString() + "'");
       });
       content.endHandler(v -> {
+        pc.trace("ProxyRequestOnly request end");
         proxyRequestHttpClient( it, pc, incoming, mi);
         pc.closeTimer();
       });
@@ -517,10 +527,13 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           res.handler(data -> {
             ctx.response().write(data);
+            pc.trace("ProxyRequestResponse response chunk '"
+              + data.toString() + "'");
           });
           res.endHandler(v -> {
             pc.closeTimer();
             ctx.response().end();
+            pc.trace("ProxyRequestResponse response end");
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyRequestResponse: res exception ", e);
@@ -535,12 +548,16 @@ public class ProxyService {
     c_req.setChunked(true);
     c_req.headers().setAll(ctx.request().headers());
     if (bcontent != null) {
+      pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
       c_req.end(bcontent);
     } else {
       content.handler(data -> {
+        pc.trace("proxyRequestResponse request chunk '"
+          + data.toString() + "'");
         c_req.write(data);
       });
       content.endHandler(v -> {
+        pc.trace("proxyRequestResponse request complete");
         c_req.end();
       });
       content.exceptionHandler(e -> {
@@ -563,9 +580,12 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           res.handler(data -> {
             ctx.response().write(data);
+            pc.trace("ProxyHeaders response chunk '"
+              + data.toString() + "'");
           });
           res.endHandler(v -> {
             ctx.response().end();
+            pc.trace("ProxyHeaders response end");
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyHeaders: res exception ", e);
@@ -582,15 +602,19 @@ public class ProxyService {
           if (bcontent == null) {
             content.handler(data -> {
               ctx.response().write(data);
+              pc.trace("ProxyHeaders request chunk '"
+                + data.toString() + "'");
             });
             content.endHandler(v -> {
               ctx.response().end();
+              pc.trace("ProxyHeaders request end");
             });
             content.exceptionHandler(e -> {
               pc.warn("proxyHeaders: content exception ", e);
             });
             content.resume();
           } else {
+            pc.trace("ProxyHeaders request buf '" + bcontent + "'");
             ctx.response().end(bcontent);
           }
         }
@@ -620,10 +644,13 @@ public class ProxyService {
       makeTraceHeader(mi, 999, pc);  // !!!
       if (bcontent == null) {
         content.handler(data -> {
+          pc.trace("ProxyNull response chunk '"
+            + data.toString() + "'");
           ctx.response().write(data);
         });
         content.endHandler(v -> {
           pc.closeTimer();
+          pc.trace("ProxyNull response end");
           ctx.response().end();
         });
         content.exceptionHandler(e -> {
@@ -632,6 +659,7 @@ public class ProxyService {
         content.resume();
       } else {
         pc.closeTimer();
+        pc.trace("ProxyNull response buf '" + bcontent + "'");
         ctx.response().end(bcontent);
       }
     }
