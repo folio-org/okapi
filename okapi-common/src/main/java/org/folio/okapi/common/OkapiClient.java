@@ -181,6 +181,9 @@ public class OkapiClient {
           }
         }
       });
+      postres.exceptionHandler(e -> {
+        fut.handle(new Failure<>(INTERNAL, e));
+      });
     });
     req.exceptionHandler(x -> {
       String msg = x.getMessage();
