@@ -12,6 +12,10 @@
       "type": ["array", "null"],
       "items": {"type": "string"}
     },
+    "dockerArgs": {
+       "type": "object",
+       "additionalProperties": true
+    },
     "env" : { "$ref": "EnvEntryList.json" }
   }
 }
