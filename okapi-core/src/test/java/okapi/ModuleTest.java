@@ -583,7 +583,7 @@ public class ModuleTest {
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
-    // Enabling it will end up invoking the _tenantPermissions in header
+    // Enabling it will end up invoking the _tenantPermissions in header-module
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module\"," + LS
@@ -618,7 +618,8 @@ public class ModuleTest {
       + "    \"permissionName\" : \"everything\"," + LS
       + "    \"displayName\" : \"every possible permission\"," + LS
       + "    \"description\" : \"All permissions combined\"," + LS
-      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]" + LS
+      + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]," + LS
+      + "    \"visible\" : true" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
@@ -639,7 +640,8 @@ public class ModuleTest {
       + "\"permissionName\" : \"everything\", "
       + "\"displayName\" : \"every possible permission\", "
       + "\"description\" : \"All permissions combined\", "
-      + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ] "
+      + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
+      + "\"visible\" : true "
       + "} ] }";
 
     final String locSampleEnable = given()
