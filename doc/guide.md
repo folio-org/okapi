@@ -580,7 +580,9 @@ The build requirements are:
  * Java 8 JDK
  * [Git](https://git-scm.com)
 
-With these available, build with:
+As usual, do all development and running as a regular user, not as root.
+
+So with those requirements available, now build with:
 
 ```
 git clone --recursive https://github.com/folio-org/okapi.git
@@ -589,7 +591,7 @@ mvn install
 ```
 
 The install rule also runs a few tests. Tests should not fail.
-If they do, please report it and in the meantime fall back to:
+If they do then please report it, and in the meantime fall back to:
 
 ```
 mvn install -DskipTests
@@ -2147,7 +2149,7 @@ For the [specifics](#web-service), see under `.../okapi/okapi-core/src/main/raml
 the files `ramls/tenant.raml` and `schemas/moduleInfo.schema`.
 The okapi-test-header-module
 has a very trivial implementation of this, and the moduleTest shows a module
-Descriptor that define this interface.
+Descriptor that defines this interface.
 
 The tenantPermissions interface was introduced in version 1.1
 
