@@ -485,9 +485,9 @@ Most of this work has been delegated to modules, so Okapi itself will not have
 to do so much work. But it still needs to orchestrate the whole operation.
 
 Ignoring all the messy details, this how it works: The client (often on a web
-browser, but can really be anything) calls the `/login` service to identify
+browser, but can really be anything) calls the `/authn/login` service to identify
 itself. Depending on the tenant, we may have different authorization modules
-serving the `/login` request, and they may take different parameters (username
+serving the `/authn/login` request, and they may take different parameters (username
 and password are the most likely, but we can have anything from simple IP
 authentication to complex interactions with LDAP, OAuth, or other systems).
 
@@ -833,7 +833,7 @@ but we have a dummy module that can be used to demonstrate how it
 works. Also this one is mostly used for testing the auth mechanisms in
 Okapi itself.
 
-The dummy module supports two functions: `/login` is, as its name implies,
+The dummy module supports two functions: `/authn/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
 returns a token in a HTTP header. Any other path goes through the check
 function that checks that we have a valid token in the HTTP request
@@ -1172,7 +1172,7 @@ cat > /tmp/okapi-module-auth.json <<END
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/login"
+          "pathPattern": "/authn/login"
         }
       ]
     }
@@ -1188,7 +1188,7 @@ cat > /tmp/okapi-module-auth.json <<END
 }
 END
 ```
-The module has one handler, for the `/login` path. It also has a filter that
+The module has one handler, for the `/authn/login` path. It also has a filter that
 connects with every incoming request. That is where it decides if the user will
 be allowed to make the request. This one has a type "headers", which means that
 Okapi does not pass the whole request to it, just the headers.
@@ -1228,7 +1228,7 @@ Content-Length: 345
     "version" : "3.4",
     "handlers" : [ {
       "methods" : [ "POST" ],
-      "pathPattern" : "/login"
+      "pathPattern" : "/authn/login"
     } ]
   } ],
   "filters" : [ {
@@ -1337,12 +1337,12 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant: testlib" \
   -d @/tmp/okapi-login.json \
-  http://localhost:9130/login
+  http://localhost:9130/authn/login
 
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/login : 200 159251us
+X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/authn/login : 200 159251us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}

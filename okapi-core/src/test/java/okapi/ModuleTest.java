@@ -1,6 +1,23 @@
 package okapi;
 
+import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+
 import org.folio.okapi.MainVerticle;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Response;
+import com.jayway.restassured.response.ValidatableResponse;
+
+import guru.nidi.ramltester.RamlDefinition;
+import guru.nidi.ramltester.RamlLoaders;
+import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -10,19 +27,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import com.jayway.restassured.RestAssured;
-import static com.jayway.restassured.RestAssured.*;
-import static org.hamcrest.Matchers.*;
-import com.jayway.restassured.response.Response;
-import com.jayway.restassured.response.ValidatableResponse;
-import guru.nidi.ramltester.RamlDefinition;
-import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
 
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
@@ -814,7 +818,7 @@ public class ModuleTest {
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  }, {"
       + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/login\"," + LS
+      + "    \"path\" : \"/authn/login\"," + LS
       + "    \"level\" : \"20\"," + LS
       + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
@@ -862,7 +866,7 @@ public class ModuleTest {
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  }, {"
       + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/login\"," + LS
+      + "    \"path\" : \"/authn/login\"," + LS
       + "    \"level\" : \"20\"," + LS
       + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
@@ -1200,7 +1204,7 @@ public class ModuleTest {
       + "  \"password\" : \"peter-wrong-password\"" + LS
       + "}";
     given().header("Content-Type", "application/json").body(docWrongLogin)
-      .header("X-Okapi-Tenant", okapiTenant).post("/login")
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
       .then().statusCode(401);
 
     // Ok login, get token
@@ -1210,7 +1214,7 @@ public class ModuleTest {
       + "  \"password\" : \"peter-password\"" + LS
       + "}";
     okapiToken = given().header("Content-Type", "application/json").body(docLogin)
-      .header("X-Okapi-Tenant", okapiTenant).post("/login")
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Actual requests to the module
