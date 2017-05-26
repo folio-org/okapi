@@ -1,5 +1,14 @@
 package org.folio.okapi.auth;
 
+import static org.folio.okapi.common.HttpResponse.responseError;
+import static org.folio.okapi.common.HttpResponse.responseJson;
+import static org.folio.okapi.common.HttpResponse.responseText;
+
+import java.util.Base64;
+import java.util.HashMap;
+
+import org.folio.okapi.common.XOkapiHeaders;
+
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -7,10 +16,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Base64;
-import static org.folio.okapi.common.HttpResponse.*;
-import java.util.HashMap;
-import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -62,7 +67,7 @@ public class Auth {
     final String json = ctx.getBodyAsString();
     if (json.length() == 0) {
       logger.debug("test-auth: accept OK in login");
-      responseText(ctx, 202).end("Auth accept in /login");
+      responseText(ctx, 202).end("Auth accept in /authn/login");
       return;
     }
     LoginParameters p;
@@ -184,7 +189,7 @@ public class Auth {
   }
 
   /**
-   * Accept a request. Gets called with anything else than a POST to "/login".
+   * Accept a request. Gets called with anything else than a POST to "/authn/login".
    * These need to be accepted, so we can do a pre-check before the proper POST.
    *
    * @param ctx
