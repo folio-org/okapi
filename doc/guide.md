@@ -859,8 +859,8 @@ with a known clean state without any modules or tenants defined.
 
 Okapi lists its PID (process ID) and says `API Gateway started`.
 That means it is running, and listening on the default port
-which happens to be 9130, and using in-memory storage. (To use MongoDB
-storage instead, add `-Dstorage=mongo` to the command line.)
+which happens to be 9130, and using in-memory storage. (To use PostgreSQL
+storage instead, add `-Dstorage=postgres` to the [command line](#java--d-options).)
 
 At the moment Okapi does not know of any module or tenant. But it does
 have its own web services enabled. We can verify both by asking Okapi
