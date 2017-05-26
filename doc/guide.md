@@ -1789,10 +1789,10 @@ prints some stuff. Those two are connecting, and talking to each other.
 
 
 Now you can ask Okapi to list the known nodes. On a third console window try this:
-```
-curl -w '\n' -D - \
-   http://localhost:9130/_/discovery/nodes
 
+```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
+
+```
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 186
@@ -1804,8 +1804,8 @@ Content-Length: 186
   "nodeId" : "6f8053e1-bc55-48b4-87ef-932ad370081b",
   "url" : "http://localhost:9130"
 } ]
-
 ```
+
 Indeed, it lists two nodes. They each have a URL they can be reached on, and
 a nodeId that is some random UUID string.
 
@@ -1845,10 +1845,10 @@ Start Okapi up on a second machine that is on the same network. Be careful to
 use the proper IP address on the command line. If all goes well, the machines
 should see each other. You can see it in the log on both machines. Now you can
 ask Okapi (any Okapi in the cluster) to list all nodes:
-```
-curl -w '\n' -D - \
-   http://localhost:9130/_/discovery/nodes
 
+```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
+
+```
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 186
@@ -1876,10 +1876,9 @@ java -Dhost=tapas -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-hos
 Instead of "tapas", use the name of the machine you are starting on, or even the
 IP address. Again, list the nodes:
 
-```
-curl -w '\n' -D - \
-   http://localhost:9130/_/discovery/nodes
+```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
 
+```
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 178
@@ -1894,8 +1893,10 @@ Content-Length: 178
 ```
 
 You can verify that the URLs work:
+
+```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes```
+
 ```
-curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes
 HTTP/1.1 200 OK
 Content-Type: application/json
 Content-Length: 178
