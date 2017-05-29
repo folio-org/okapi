@@ -1416,7 +1416,7 @@ cat > /tmp/okapi-proxy-test-basic.2.json <<END
     },
     {
       "id": "_tenant",
-      "version": "1.0.0",
+      "version": "1.0",
       "interfaceType": "system",
       "handlers": [
         {
@@ -1590,7 +1590,7 @@ repeat all the `curl` commands.
     },
     {
       "id": "_tenant",
-      "version": "1.0.0",
+      "version": "1.0",
       "interfaceType": "system",
       "handlers": [
         {
@@ -1601,7 +1601,7 @@ repeat all the `curl` commands.
     },
     {
       "id": "_tenantPermissions",
-      "version": "1.0.0",
+      "version": "1.0",
       "interfaceType": "system",
       "handlers": [
         {
