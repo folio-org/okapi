@@ -1,4 +1,4 @@
-## 1.2.6 2017-05-29
+## 1.3.0 2017-05-29
 
  * Pass visibility flag from MD to tenantPermissions OKAPI-341
  * Log all traffic on TRACE level OKAPI-328
