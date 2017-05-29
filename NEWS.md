@@ -1,3 +1,17 @@
+## 1.2.6 2017-05-29
+
+ * Pass visibility flag from MD to tenantPermissions OKAPI-341
+ * Log all traffic on TRACE level OKAPI-328
+ * Describe clustered operations better in the guide OKAPI-315
+ * Fix OKAPI allow empty srvcId for discovery endpoint OKAPI-319
+ * Fix Okapi should abort operation if cluster-host is invalid OKAPI-320
+ * Log Okapi's own operations like we log proxying ops OKAPI-323
+ * Okapi raml specifies "additionalProperties": false OKAPI-326
+ * Fix Missing exception handler for http response read stream OKAPI-331
+ * Fix dockerArgs not mentioned in RAML/JSON definition OKAPI-333
+ * Fix Tenant and Permissions interface version in guide OKAPI-334
+ * Fix Okapi performance test (-Pperformance) OKAPI-338
+
 ## 1.2.5 2017-04-28
 
  * Okapi initdatabase hangs when pg db is unavailable OKAPI-255
