@@ -137,17 +137,20 @@ public class TenantManager {
         ModuleInterface[] provides = rm.getProvides();
         if (provides != null) {
           for (ModuleInterface pi : provides) {
-            logger.debug("Checking conflict of " + mod_to.getId() + ": "
-              + prov.getId() + " " + prov.getVersion()
-              + " against " + pi.getId() + " " + pi.getVersion());
-            if (prov.getId().equals(pi.getId())) {
-              String msg = "Can not enable module '" + mod_to.getId() + "'"
-                + " for tenant '" + tenant.getId() + "'"
-                + " because of conflict:"
-                + " Interface '" + prov.getId() + "' already provided by module '"
-                + enabledModule + "'";
-              logger.debug(msg);
-              return msg;
+            final String t = pi.getInterfaceType();
+            if (t == null || "proxy".equals(t)) {
+              logger.debug("Checking conflict of " + mod_to.getId() + ": "
+                + prov.getId() + " " + prov.getVersion()
+                + " against " + pi.getId() + " " + pi.getVersion());
+              if (prov.getId().equals(pi.getId())) {
+                String msg = "Can not enable module '" + mod_to.getId() + "'"
+                  + " for tenant '" + tenant.getId() + "'"
+                  + " because of conflict:"
+                  + " Interface '" + prov.getId() + "' already provided by module '"
+                  + enabledModule + "'";
+                logger.debug(msg);
+                return msg;
+              }
             }
           }
         }

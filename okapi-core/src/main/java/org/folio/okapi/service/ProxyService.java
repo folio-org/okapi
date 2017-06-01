@@ -143,6 +143,7 @@ public class ProxyService {
   public List<ModuleInstance> getModulesForRequest( ProxyContext pc, Tenant t) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
+    final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
     pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
     for (String mod : modules.list()) {
       pc.debug("getMods:  looking at " + mod);
@@ -154,6 +155,17 @@ public class ProxyService {
               return null;
             }
             pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
+          }
+        }
+        if (id != null && id.equals(mod)) {
+          List<RoutingEntry> rr1 = modules.get(mod).getMultiRoutingEntries();
+          for (RoutingEntry re : rr1) {
+            if (match(re, req)) {
+              if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
+                return null;
+              }
+              pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
+            }
           }
         }
       }

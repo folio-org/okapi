@@ -130,18 +130,6 @@ public class ModuleDescriptor {
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
-    return getAllRoutingEntries("proxy");
-  }
-
-  /**
-   * Get all routingEntries of given type.
-   *
-   * @param type "proxy" or "system" or "" for all types
-   * @param globaltoo true: include the global-level entries too
-   * @return a list of RoutingEntries
-   */
-  @JsonIgnore
-  private List<RoutingEntry> getAllRoutingEntries(String type) {
     List<RoutingEntry> all = new ArrayList<>();
     if (routingEntries != null) {
       Collections.addAll(all, routingEntries);
@@ -153,10 +141,21 @@ public class ModuleDescriptor {
     if (prov != null) {
       for (ModuleInterface mi : prov) {
         String t = mi.getInterfaceType();
-        if (t == null || t.isEmpty()) {
-          t = "proxy";
+        if (t == null || t.equals("proxy")) {
+          all.addAll(mi.getAllRoutingEntries());
         }
-        if (type.isEmpty() || type.equals(t)) {
+      }
+    }
+    return all;
+  }
+
+  @JsonIgnore
+  public List<RoutingEntry> getMultiRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    ModuleInterface[] prov = getProvides();
+    if (prov != null) {
+      for (ModuleInterface mi : prov) {
+        if ("multiple".equals(mi.getInterfaceType())) {
           all.addAll(mi.getAllRoutingEntries());
         }
       }
