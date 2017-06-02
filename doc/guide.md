@@ -1945,6 +1945,129 @@ would typically be a node that is visible from outside. This kind of division
 starts to make sense when there is so much traffic that the proxying alone will
 keep a node fully occupied.
 
+### Multiple interfaces
+
+Normally, Okapi proxy, allows exactly one module at once to
+provide a given interface. This, in principle, means that
+Okapi will be able to redirect traffict to exactly one handler at
+a time. By using interfaceType multiple in the provides section Okapi
+allows any number of modules to implement the same interface.
+
+Let's try to perform that with the test module:
+
+
+```
+cat > /tmp/okapi-proxy-foo.json <<END
+{
+  "id": "test-foo-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "interfaceType": "multiple",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+END
+```
+Register it:
+
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-foo.json \
+  http://localhost:9130/_/proxy/modules
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/proxy/modules/test-foo-1.0.0
+Content-Length: 382
+
+{
+  "id" : "test-foo-1.0.0",
+  "name" : "Okapi test module",
+  "provides" : [ {
+    "id" : "test-basic",
+    "version" : "2.2",
+    "interfaceType" : "multiple",
+    "handlers" : [ {
+      "methods" : [ "GET", "POST" ],
+      "pathPattern" : "/testb"
+    } ]
+  } ],
+  "launchDescriptor" : {
+    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+```
+
+We now register another module, bar:
+
+```
+cat > /tmp/okapi-proxy-bar.json <<END
+{
+  "id": "test-bar-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "interfaceType": "multiple",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+END
+```
+Register it:
+
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-bar.json \
+  http://localhost:9130/_/proxy/modules
+
+HTTP/1.1 201 Created
+Content-Type: application/json
+Location: /_/proxy/modules/test-bar-1.0.0
+Content-Length: 382
+
+{
+  "id" : "test-bar-1.0.0",
+  "name" : "Okapi test module",
+  "provides" : [ {
+    "id" : "test-basic",
+    "version" : "2.2",
+    "interfaceType" : "multiple",
+    "handlers" : [ {
+      "methods" : [ "GET", "POST" ],
+      "pathPattern" : "/testb"
+    } ]
+  } ],
+  "launchDescriptor" : {
+    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+```
+
 ## Reference
 
 ### Okapi program
