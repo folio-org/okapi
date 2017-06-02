@@ -329,6 +329,7 @@ public class MainVerticle extends AbstractVerticle {
       router.post("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
       router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
       router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
+      router.get("/_/proxy/tenants/:id/interfaces/:int").handler(tenantWebService::listModulesFromInterface);
       router.getWithRegex("/_/proxy/health").handler(healthService::get);
     }
     // Endpoints for internal testing only.

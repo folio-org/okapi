@@ -349,6 +349,27 @@ public class TenantManager {
     return null;
   }
 
+  public List<ModuleDescriptor> listModulesFromInterface(String tenantId, String interfaceName) {
+    Tenant tenant = tenants.get(tenantId);
+    if (tenant == null) {
+      return null;
+    }
+    ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
+    Set<String> modlist = this.moduleManager.list();
+    for (String m : modlist) {
+      ModuleDescriptor md = this.moduleManager.get(m);
+      if (tenant.isEnabled(m)) {
+        for (ModuleInterface provide : md.getProvides()) {
+          if (interfaceName.equals(provide.getId())) {
+            mdList.add(md);
+            break;
+          }
+        }
+      }
+    }
+    return mdList;
+  }
+
   /**
    * List modules for a given tenant.
    *

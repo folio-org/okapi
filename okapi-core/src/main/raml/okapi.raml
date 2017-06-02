@@ -415,6 +415,26 @@ schemas:
           description: remove particular module selection
           responses:
             204:
+    /interfaces/{interface_id}:
+      get:
+        description: get modules that provides some interface
+        responses:
+          200:
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
 /_/proxy/health:
   get:
     description: Check health of all modules

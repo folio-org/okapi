@@ -2415,6 +2415,24 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + "foo" + "/interfaces/sample")
+      .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/bar")
+      .then().statusCode(200).body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
     r = c.given().delete(locEnable1)
       .then().statusCode(204).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2494,11 +2512,27 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule4 = r.getHeader("Location");
 
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     final String locEnable3 = enableModule("sample-module-3");
     this.locationSampleDeployment = deployModule("sample-module-3");
 
     final String locEnable4 = enableModule("sample-module-4");
     this.locationHeaderDeployment = deployModule("sample-module-4");
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ {" + LS
+      + "  \"id\" : \"sample-module-3\"" + LS
+      + "}, {" + LS
+      + "  \"id\" : \"sample-module-4\"" + LS
+      + "} ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
