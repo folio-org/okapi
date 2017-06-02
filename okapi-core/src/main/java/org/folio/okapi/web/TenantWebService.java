@@ -112,6 +112,38 @@ public class TenantWebService {
     return ts;
   }
 
+  /**
+   * Dirty hack to create a record in memory and storage. To be used in the
+   * boot-up process.
+   *
+   * TODO - Refactor all this stuff into the tenantManager, maybe using a shared
+   * memory map instead of reloading databases.
+   *
+   * @param td
+   * @param fut
+   */
+  public void createInternally(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
+    final String id = td.getId();
+    Tenant t = new Tenant(td);
+    final long ts = getTimestamp();
+    if (tenants.insert(t)) {
+      tenantStore.insert(t, res -> {
+        if (res.succeeded()) {
+          fut.handle(new Success<>());
+          sendReloadSignal(id, ts);
+        } else {
+          // This should never happen in a well behaving system. It is
+          // possible with some race conditions etc. Hard to test.
+          tenants.delete(id); // Take it away from the runtime, since it was no good.
+          fut.handle(new Failure<>(INTERNAL, "Failed to create tenant " + id));
+        }
+      });
+    } else {
+      fut.handle(new Failure<>(USER, "Duplicate tenant " + id));
+    }
+
+  }
+
   public void create(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.create");
     try {
@@ -217,6 +249,10 @@ public class TenantWebService {
   public void delete(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.delete");
     final String id = ctx.request().getParam("id");
+    if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
+      pc.responseError(403, "Can not delete the superTenant " + id);
+      return;
+    }
     if (tenants.delete(id)) {
       tenantStore.delete(id, res -> {
         if (res.succeeded()) {

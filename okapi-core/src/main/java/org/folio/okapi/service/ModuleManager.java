@@ -197,4 +197,7 @@ public class ModuleManager {
     return modules.keySet();
   }
 
+  public boolean isEmpty() {
+    return modules.isEmpty();
+  }
 } // class

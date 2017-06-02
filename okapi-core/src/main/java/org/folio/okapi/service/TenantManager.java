@@ -66,8 +66,9 @@ public class TenantManager {
     return true;
   }
 
-  public Set<String> getIds() {
-    Set<String> ids = tenants.keySet();
+  public List<String> getIds() {
+    List<String> ids = new ArrayList<String>(tenants.keySet());
+    ids.sort(null);
     return ids;
   }
 

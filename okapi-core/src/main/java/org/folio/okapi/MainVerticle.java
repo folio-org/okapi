@@ -9,6 +9,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -23,6 +24,7 @@ import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.web.HealthService;
 import org.folio.okapi.service.ModuleStore;
@@ -49,6 +51,7 @@ public class MainVerticle extends AbstractVerticle {
 
   HealthService healthService;
   ModuleManager moduleManager;
+  TenantManager tenantManager;
   EnvService envService;
   EnvManager envManager;
   ModuleWebService moduleWebService;
@@ -62,6 +65,7 @@ public class MainVerticle extends AbstractVerticle {
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
+
 
   // Little helper to get a config value:
   // First from System (-D on command line),
@@ -168,18 +172,22 @@ public class MainVerticle extends AbstractVerticle {
       discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
       moduleManager = new ModuleManager(vertx);
-      TenantManager tenantManager = new TenantManager(moduleManager);
+      tenantManager = new TenantManager(moduleManager);
       moduleManager.setTenantManager(tenantManager);
-      envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
+      final String okapiUrl_f = okapiUrl;
+      envService = new EnvService(envManager);
       storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       TenantStore tenantStore = storage.getTenantStore();
       logger.info("Proxy using " + storageType + " storage");
-      moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
-      tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
-      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
+      moduleWebService = new ModuleWebService(vertx, moduleManager,
+        moduleStore, timeStampStore);
+      tenantWebService = new TenantWebService(vertx,
+        tenantManager, tenantStore, discoveryManager);
+      proxyService = new ProxyService(vertx, moduleManager,
+        tenantManager, discoveryManager, okapiUrl_f);
     }
   }
 
@@ -231,11 +239,11 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startTenants(Future<Void> fut) {
     if (tenantWebService == null) {
-      startEnv(fut);
+      checkSuperTenant(fut);
     } else {
       tenantWebService.loadTenants(res -> {
         if (res.succeeded()) {
-          startEnv(fut);
+          checkSuperTenant(fut);
         } else {
           logger.fatal("load tenants failed: " + res.cause().getMessage());
           fut.fail(res.cause());
@@ -244,6 +252,59 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  /**
+   * Create the super tenant, if not already there.
+   *
+   * @param fut
+   */
+  private void checkSuperTenant(Future<Void> fut) {
+    if (tenantWebService == null
+      || tenantManager.get(XOkapiHeaders.SUPERTENANT_ID) != null) {
+      startEnv(fut);
+    } else { // need to create it
+      logger.debug("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
+      final String docTenant = "{"
+        + "\"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+        + "\"name\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+        + "\"description\" : \"Okapi built-in super tenant\""
+        + "}";
+      final TenantDescriptor td = Json.decodeValue(docTenant,
+        TenantDescriptor.class);
+      tenantWebService.createInternally(td, res -> {
+        if (res.succeeded()) {
+          startEnv(fut);
+        } else {
+          logger.fatal("Create SuperTenant " + XOkapiHeaders.SUPERTENANT_ID
+            + " failed: " + res.cause().getMessage());
+          fut.fail(res.cause());
+        }
+      });
+    }
+  }
+
+  /**
+   * Create the internal ModuleDescriptors, if not already there.
+   */
+  /*
+   private void createInternalModuleDescriptors(ModuleManager moduleManager,
+   Handler<ExtendedAsyncResult<Void>> fut) {
+   if (!moduleManager.isEmpty()) {
+   // modules already there, do not create any
+   logger.debug("createInt: We already have modules");
+   fut.handle(new Success<>());
+   } else {
+   logger.debug("createInt: Creating internal module");
+   final String mdjson = "{"
+   + "  \"id\" : \"okapi.proxy\","
+   + "  \"name\" : \"Okapi proxy\","
+   + "  \"provides\" : [ ]"
+   + "}";
+   final ModuleDescriptor md = Json.decodeValue(mdjson,
+   ModuleDescriptor.class);
+   moduleManager.create(md, fut);
+   }
+   }
+   */
   private void startEnv(Future<Void> fut) {
     if (envManager == null) {
       startDiscovery(fut);
@@ -389,5 +450,6 @@ public class MainVerticle extends AbstractVerticle {
                     }
             );
   }
+
 
 }

@@ -135,6 +135,11 @@ public class ModuleTest {
 
     String emptyListDoc = "[ ]";
 
+    String superTenantDoc = "[ {" + LS
+      + "  \"id\" : \"okapi.supertenant\"," + LS
+      + "  \"name\" : \"okapi.supertenant\"," + LS
+      + "  \"description\" : \"Okapi built-in super tenant\"" + LS
+      + "} ]";
     given().get("/_/deployment/modules").then()
       .log().ifError().statusCode(200)
       .body(equalTo(emptyListDoc));
@@ -147,7 +152,7 @@ public class ModuleTest {
     given().get("/_/proxy/modules").then()
       .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
     given().get("/_/proxy/tenants").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+      .log().ifError().statusCode(200).body(equalTo(superTenantDoc));
     logger.debug("Db check '" + label + "' OK");
 
   }

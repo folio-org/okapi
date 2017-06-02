@@ -338,7 +338,10 @@ schemas:
       description: remove a tenant
       responses:
         204:
-
+        403:
+          description: Forbidden
+          body:
+            text/plain:
     /modules:
       get:
         description: selection of modules by the tenant

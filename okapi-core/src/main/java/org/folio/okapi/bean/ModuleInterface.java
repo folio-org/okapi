@@ -21,7 +21,7 @@ public class ModuleInterface {
 
   private String id;
   private String version;
-  private String interfaceType; // enum "proxy" (default), or "system"
+  private String interfaceType; // enum "proxy" (default), "system", "internal"
   private RoutingEntry[] routingEntries;
   private RoutingEntry[] handlers;
   private final Logger logger = LoggerFactory.getLogger("okapi");
