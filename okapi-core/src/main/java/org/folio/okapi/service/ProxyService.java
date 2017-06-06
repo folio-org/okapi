@@ -149,15 +149,16 @@ public class ProxyService {
       pc.debug("getMods:  looking at " + mod);
       if (t.isEnabled(mod)) {
         List<RoutingEntry> rr = modules.get(mod).getProxyRoutingEntries();
-        for (RoutingEntry re : rr) {
-          if (match(re, req)) {
-            if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
-              return null;
+        if (id == null) {
+          for (RoutingEntry re : rr) {
+            if (match(re, req)) {
+              if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
+                return null;
+              }
+              pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
             }
-            pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
           }
-        }
-        if (id != null && id.equals(mod)) {
+        } else if (id.equals(mod)) {
           List<RoutingEntry> rr1 = modules.get(mod).getMultiRoutingEntries();
           for (RoutingEntry re : rr1) {
             if (match(re, req)) {
