@@ -1948,22 +1948,23 @@ keep a node fully occupied.
 ### Multiple interfaces
 
 Normally, Okapi proxy, allows exactly one module at once to
-provide a given interface. This, in principle, means that
-Okapi will be able to redirect traffict to exactly one handler at
-a time. By using interfaceType multiple in the provides section Okapi
-allows any number of modules to implement the same interface.
+provide a given interface. By using interfaceType multiple in the provides
+section Okapi allows any number of modules to implement the same interface.
+The consequence, however, is that the user of the interface must
+choose which module to call.
 
-Let's try to perform that with the test module:
-
+Let's try to define a Module Descriptor for our test module used earlier.
+This time, however, we use the interfaceType multiple, so that
+Okapi allows multiple modules of interface test-basic to co-exist.
 
 ```
 cat > /tmp/okapi-proxy-foo.json <<END
 {
   "id": "test-foo-1.0.0",
-  "name": "Okapi test module",
+  "name": "Okapi module foo",
   "provides": [
     {
-      "id": "test-basic",
+      "id": "test-multi",
       "interfaceType": "multiple",
       "version": "2.2",
       "handlers": [
@@ -1980,7 +1981,7 @@ cat > /tmp/okapi-proxy-foo.json <<END
 }
 END
 ```
-Register it:
+Register and deploy foo:
 
 ```
 curl -w '\n' -X POST -D - \
@@ -1988,39 +1989,36 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/okapi-proxy-foo.json \
   http://localhost:9130/_/proxy/modules
 
-HTTP/1.1 201 Created
-Content-Type: application/json
-Location: /_/proxy/modules/test-foo-1.0.0
-Content-Length: 382
-
-{
-  "id" : "test-foo-1.0.0",
-  "name" : "Okapi test module",
-  "provides" : [ {
-    "id" : "test-basic",
-    "version" : "2.2",
-    "interfaceType" : "multiple",
-    "handlers" : [ {
-      "methods" : [ "GET", "POST" ],
-      "pathPattern" : "/testb"
-    } ]
-  } ],
-  "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
-  }
-}
 ```
 
-We now register another module, bar:
+```
+cat > /tmp/okapi-deploy-foo.json <<END
+{
+  "srvcId": "test-foo-1.0.0",
+  "nodeId": "localhost"
+}
+END
+```
+
+```
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-deploy-foo.json \
+  http://localhost:9130/_/discovery/modules
+```
+
+
+We now define another module, bar:
 
 ```
 cat > /tmp/okapi-proxy-bar.json <<END
 {
   "id": "test-bar-1.0.0",
-  "name": "Okapi test module",
+  "name": "Okapi module bar",
   "provides": [
     {
-      "id": "test-basic",
+      "id": "test-multi",
       "interfaceType": "multiple",
       "version": "2.2",
       "handlers": [
@@ -2037,7 +2035,7 @@ cat > /tmp/okapi-proxy-bar.json <<END
 }
 END
 ```
-Register it:
+Register and deploy bar:
 
 ```
 curl -w '\n' -X POST -D - \
@@ -2045,28 +2043,84 @@ curl -w '\n' -X POST -D - \
   -d @/tmp/okapi-proxy-bar.json \
   http://localhost:9130/_/proxy/modules
 
-HTTP/1.1 201 Created
-Content-Type: application/json
-Location: /_/proxy/modules/test-bar-1.0.0
-Content-Length: 382
-
-{
-  "id" : "test-bar-1.0.0",
-  "name" : "Okapi test module",
-  "provides" : [ {
-    "id" : "test-basic",
-    "version" : "2.2",
-    "interfaceType" : "multiple",
-    "handlers" : [ {
-      "methods" : [ "GET", "POST" ],
-      "pathPattern" : "/testb"
-    } ]
-  } ],
-  "launchDescriptor" : {
-    "exec" : "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
-  }
-}
 ```
+
+```
+cat > /tmp/okapi-deploy-bar.json <<END
+{
+  "srvcId": "test-bar-1.0.0",
+  "nodeId": "localhost"
+}
+END
+```
+```
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-deploy-bar.json \
+  http://localhost:9130/_/discovery/modules
+```
+
+And now, enable both modules foo and bar for testlib tenant:
+
+```
+cat > /tmp/okapi-enable-foo.json <<END
+{
+  "id": "test-foo-1.0.0"
+}
+END
+
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-enable-foo.json \
+  http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.0.0
+```
+
+```
+cat > /tmp/okapi-enable-bar.json <<END
+{
+  "id": "test-bar-1.0.0"
+}
+END
+
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-enable-bar.json \
+  http://localhost:9130/_/proxy/tenants/testlib/modules
+```
+
+We can ask Okapi about what modules implement interface test-multi as
+follows:
+
+
+```
+curl -w '\n' -D - \
+  http://localhost:9130/_/proxy/tenants/testlib/interfaces/test-multi
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 64
+
+[ {
+  "id" : "test-foo-1.0.0"
+}, {
+  "id" : "test-bar-1.0.0"
+} ]
+```
+
+Let's call module bar:
+
+```
+curl -D - -w '\n' \
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  -H "X-Okapi-Module-Id: test-bar-1.0.0" \
+  http://localhost:9130/testb
+
+```
+
+
+
 
 ## Reference
 
