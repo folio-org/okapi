@@ -2319,5 +2319,297 @@ public class ModuleTest {
     async.complete();
 
   }
+  @Test
+  public void testMultipleInterface(TestContext context) {
+    logger.info("Redirect test starting");
+    async = context.async();
+    RestAssuredClient c;
+    Response r;
 
+    Assert.assertNull("locationSampleDeployment", locationSampleDeployment);
+    Assert.assertNull("locationHeaderDeployment", locationHeaderDeployment);
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule1 = "{" + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"name\" : \"sample module 1\"," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"helloGreeting1\"" + LS
+      + "  } ]," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"interfaceType\" : \"proxy\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule1)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule1 = r.getHeader("Location");
+
+    final String docSampleModule2 = "{" + LS
+      + "  \"id\" : \"sample-module-2\"," + LS
+      + "  \"name\" : \"sample module 2\"," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"helloGreeting1\"" + LS
+      + "  } ]," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"interfaceType\" : \"proxy\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    // Create and deploy the sample module
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule2)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule2 = r.getHeader("Location");
+
+    final String locTenant = createTenant();
+    final String locEnable1 = enableModule("sample-module-1");
+
+    final String docEnable2 = "{" + LS
+      + "  \"id\" : \"" + "sample-module2" + "\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnable2)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(400)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + "foo" + "/interfaces/sample")
+      .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/bar")
+      .then().statusCode(200).body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locEnable1)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locationSampleModule1)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locationSampleModule2)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docSampleModule3 = "{" + LS
+      + "  \"id\" : \"sample-module-3\"," + LS
+      + "  \"name\" : \"sample module 3\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"interfaceType\" : \"multiple\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule3)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule3 = r.getHeader("Location");
+
+    final String docSampleModule4 = "{" + LS
+      + "  \"id\" : \"sample-module-4\"," + LS
+      + "  \"name\" : \"sample module 4\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"interfaceType\" : \"multiple\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"," + LS
+      + "    \"env\" : [ {" + LS
+      + "      \"name\" : \"helloGreeting\"," + LS
+      + "      \"value\" : \"hej\"" + LS
+      + "    } ]" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule4)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule4 = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String locEnable3 = enableModule("sample-module-3");
+    this.locationSampleDeployment = deployModule("sample-module-3");
+
+    final String locEnable4 = enableModule("sample-module-4");
+    this.locationHeaderDeployment = deployModule("sample-module-4");
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+      .then().statusCode(200).body(equalTo("[ {" + LS
+      + "  \"id\" : \"sample-module-3\"" + LS
+      + "}, {" + LS
+      + "  \"id\" : \"sample-module-4\"" + LS
+      + "} ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(404);
+
+    given()
+      .header("X-Okapi-Module-Id", "sample-module-u")
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(404);
+
+    given()
+      .header("X-Okapi-Module-Id", "sample-module-3")
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(200);
+
+    given()
+      .header("X-Okapi-Module-Id", "sample-module-4")
+      .header("X-Okapi-Tenant", okapiTenant)
+      .get("/testb")
+      .then().statusCode(200);
+
+    given().header("X-Okapi-Module-Id", "sample-module-3")
+      .header("X-Okapi-Tenant", okapiTenant)
+      .body("OkapiX").post("/testb")
+      .then()
+      .log().ifError()
+      .statusCode(200)
+      .body(equalTo("Hello OkapiX"));
+
+    given().header("X-Okapi-Module-Id", "sample-module-4")
+      .header("X-Okapi-Tenant", okapiTenant)
+      .body("OkapiX").post("/testb")
+      .then()
+      .log().ifError()
+      .statusCode(200)
+      .body(equalTo("hej OkapiX"));
+
+    // cleanup
+    c = api.createRestAssured();
+    r = c.given().delete(locEnable3)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    c = api.createRestAssured();
+    r = c.given().delete(locEnable4)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locationSampleModule3)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    c = api.createRestAssured();
+    r = c.given().delete(locationSampleModule4)
+      .then().statusCode(204).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locationSampleDeployment)
+      .then().statusCode(204).extract().response();
+    locationSampleDeployment = null;
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given().delete(locationHeaderDeployment)
+      .then().statusCode(204).extract().response();
+    locationHeaderDeployment = null;
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    async.complete();
+  }
 }

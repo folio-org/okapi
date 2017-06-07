@@ -270,7 +270,7 @@ public class ModuleInterface {
    */
   private String validateGeneral(ProxyContext pc, String mod) {
     String it = getInterfaceType();
-    if (it != null && !it.equals("proxy") && !it.equals("system")) {
+    if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
       return "Bad interface type '" + it + "'";
     }
     if (!validateVersion(version)) {

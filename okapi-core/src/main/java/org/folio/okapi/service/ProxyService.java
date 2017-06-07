@@ -143,17 +143,30 @@ public class ProxyService {
   public List<ModuleInstance> getModulesForRequest( ProxyContext pc, Tenant t) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
+    final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
     pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
     for (String mod : modules.list()) {
       pc.debug("getMods:  looking at " + mod);
       if (t.isEnabled(mod)) {
         List<RoutingEntry> rr = modules.get(mod).getProxyRoutingEntries();
-        for (RoutingEntry re : rr) {
-          if (match(re, req)) {
-            if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
-              return null;
+        if (id == null) {
+          for (RoutingEntry re : rr) {
+            if (match(re, req)) {
+              if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
+                return null;
+              }
+              pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
             }
-            pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
+          }
+        } else if (id.equals(mod)) {
+          List<RoutingEntry> rr1 = modules.get(mod).getMultiRoutingEntries();
+          for (RoutingEntry re : rr1) {
+            if (match(re, req)) {
+              if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
+                return null;
+              }
+              pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
+            }
           }
         }
       }

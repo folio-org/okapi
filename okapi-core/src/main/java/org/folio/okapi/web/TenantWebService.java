@@ -597,6 +597,25 @@ public class TenantWebService {
     });
   }
 
+  public void listModulesFromInterface(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.listmodulesfrominterface");
+    final String intId = ctx.request().getParam("int");
+    final String id = ctx.request().getParam("id");
+    List<ModuleDescriptor> mdL = tenants.listModulesFromInterface(id, intId);
+    if (mdL == null) {
+      pc.responseError(404, id);
+    } else {
+      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
+      for (ModuleDescriptor md : mdL) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setId(md.getId());
+        ta.add(tmd);
+      }
+      String s = Json.encodePrettily(ta);
+      pc.responseJson(200, s);
+    }
+  }
+
   public void reloadTenant(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.reload");
     final String id = ctx.request().getParam("id");

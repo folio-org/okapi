@@ -137,17 +137,20 @@ public class TenantManager {
         ModuleInterface[] provides = rm.getProvides();
         if (provides != null) {
           for (ModuleInterface pi : provides) {
-            logger.debug("Checking conflict of " + mod_to.getId() + ": "
-              + prov.getId() + " " + prov.getVersion()
-              + " against " + pi.getId() + " " + pi.getVersion());
-            if (prov.getId().equals(pi.getId())) {
-              String msg = "Can not enable module '" + mod_to.getId() + "'"
-                + " for tenant '" + tenant.getId() + "'"
-                + " because of conflict:"
-                + " Interface '" + prov.getId() + "' already provided by module '"
-                + enabledModule + "'";
-              logger.debug(msg);
-              return msg;
+            final String t = pi.getInterfaceType();
+            if (t == null || "proxy".equals(t)) {
+              logger.debug("Checking conflict of " + mod_to.getId() + ": "
+                + prov.getId() + " " + prov.getVersion()
+                + " against " + pi.getId() + " " + pi.getVersion());
+              if (prov.getId().equals(pi.getId())) {
+                String msg = "Can not enable module '" + mod_to.getId() + "'"
+                  + " for tenant '" + tenant.getId() + "'"
+                  + " because of conflict:"
+                  + " Interface '" + prov.getId() + "' already provided by module '"
+                  + enabledModule + "'";
+                logger.debug(msg);
+                return msg;
+              }
             }
           }
         }
@@ -344,6 +347,27 @@ public class TenantManager {
       }
     }
     return null;
+  }
+
+  public List<ModuleDescriptor> listModulesFromInterface(String tenantId, String interfaceName) {
+    Tenant tenant = tenants.get(tenantId);
+    if (tenant == null) {
+      return null;
+    }
+    ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
+    Set<String> modlist = this.moduleManager.list();
+    for (String m : modlist) {
+      ModuleDescriptor md = this.moduleManager.get(m);
+      if (tenant.isEnabled(m)) {
+        for (ModuleInterface provide : md.getProvides()) {
+          if (interfaceName.equals(provide.getId())) {
+            mdList.add(md);
+            break;
+          }
+        }
+      }
+    }
+    return mdList;
   }
 
   /**
