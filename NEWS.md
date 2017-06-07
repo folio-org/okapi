@@ -1,3 +1,8 @@
+## 1.4.0 2017-06-07
+
+ * Multiple interfaces facility OKAPI-337
+ * Configurable Docker pull OKAPI-345
+
 ## 1.3.0 2017-05-29
 
  * Pass visibility flag from MD to tenantPermissions OKAPI-341
