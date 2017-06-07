@@ -2061,7 +2061,10 @@ terminates the corresponding service.
 * Docker: The `dockerImage` property specifies an existing
 image. Okapi manages a container based on this image. This option
 requires that the `dockerUrl` points to a Docker Daemon accessible via
-HTTP. The Dockerfile's `CMD` directive may be changed with property
+HTTP. By default Okapi will attempt to pull the image before starting
+it. This can be changed with boolean property `dockerPull` which
+can be set to false to prevent pull from taking place.
+The Dockerfile's `CMD` directive may be changed with property
 `dockerCMD`. This assumes that `ENTRYPOINT` is the full invocation of
 the module and that `CMD` is either default settings or, preferably,
 empty. Finally, the property `dockerArgs` may be used to pass
