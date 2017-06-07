@@ -282,29 +282,10 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  /**
-   * Create the internal ModuleDescriptors, if not already there.
+
+  /* TODO - Create internal module(s) and enable for the superTenant
    */
-  /*
-   private void createInternalModuleDescriptors(ModuleManager moduleManager,
-   Handler<ExtendedAsyncResult<Void>> fut) {
-   if (!moduleManager.isEmpty()) {
-   // modules already there, do not create any
-   logger.debug("createInt: We already have modules");
-   fut.handle(new Success<>());
-   } else {
-   logger.debug("createInt: Creating internal module");
-   final String mdjson = "{"
-   + "  \"id\" : \"okapi.proxy\","
-   + "  \"name\" : \"Okapi proxy\","
-   + "  \"provides\" : [ ]"
-   + "}";
-   final ModuleDescriptor md = Json.decodeValue(mdjson,
-   ModuleDescriptor.class);
-   moduleManager.create(md, fut);
-   }
-   }
-   */
+  /**/
   private void startEnv(Future<Void> fut) {
     if (envManager == null) {
       startDiscovery(fut);
