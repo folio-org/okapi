@@ -1726,20 +1726,20 @@ the RAML and JSON schemas in the [Reference](#web-service) section.
 
 ### Multiple interfaces
 
-Normally, Okapi proxy, allows exactly one module at once to
+Normally, Okapi proxy allows exactly one module at once to
 provide a given interface. By using `interfaceType` `multiple` in the
-`provides` section Okapi allows any number of modules to implement the
+`provides` section, Okapi allows any number of modules to implement the
 same interface. The consequence, however, is that the user of the interface
 must choose which module to call by specifying HTTP header
 `X-Okapi-Module-Id`.
 Okapi offers a facility which returns list of modules that implement
 a given interface for a tenant
-( _/proxy/tenants/{tenant}/interfaces/{interface} ). Normally the
-tenant will be the same as "current" tenant (header `X-Okapi-Tenant`)
+( `_/proxy/tenants/{tenant}/interfaces/{interface}` ). Normally the
+tenant will be the same as the "current" tenant (header `X-Okapi-Tenant`).
 
 Let's go through this by an example. We'll define two modules that
-implement same interface and call one of them.
-We assume that tenant testlib from previous example is still present
+implement the same interface and call one of them.
+We assume that tenant testlib from the previous example is still present,
 as well as the auth module.
 Let's try to define a Module Descriptor for our test module used earlier.
 The ModuleDescriptor below uses `interfaceType` set to `multiple`, so that
