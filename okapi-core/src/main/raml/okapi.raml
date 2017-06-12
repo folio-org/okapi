@@ -447,6 +447,7 @@ schemas:
       500:
         description: Server Error
 
+# Environment service
 /_/env:
   post:
     description: add environment entry
@@ -509,5 +510,23 @@ schemas:
       description: remove environment variable
       responses:
         204:
+
+# Version service
+/_/version:
+  get:
+    description: get Okapi version
+    responses:
+      200:
+        description: OK
+        body:
+          text/plain:
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
 
 #TODO implement single module health check

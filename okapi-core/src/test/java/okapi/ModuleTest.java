@@ -2612,4 +2612,22 @@ public class ModuleTest {
 
     async.complete();
   }
+
+  @Test
+  public void testVersion(TestContext context) {
+    logger.info("testVersion starting");
+    async = context.async();
+    RestAssuredClient c;
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    c = api.createRestAssured();
+    r = c.given().get("/_/version").then().statusCode(200).log().ifError().extract().response();
+
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    async.complete();
+  }
 }
