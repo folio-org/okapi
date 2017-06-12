@@ -62,6 +62,7 @@ public class MainVerticle extends AbstractVerticle {
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
+  private String okapiVersion = null;
 
   // Little helper to get a config value:
   // First from System (-D on command line),
@@ -77,7 +78,21 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
-    InputStream in = getClass().getClassLoader().getResourceAsStream("git.properties");
+    InputStream in = getClass().getClassLoader().
+      getResourceAsStream("META-INF/maven/org.folio.okapi/okapi-core/pom.properties");
+    if (in != null) {
+      try {
+        Properties prop = new Properties();
+        prop.load(in);
+        in.close();
+        okapiVersion = prop.getProperty("version");
+        logger.info(prop.getProperty("artifactId") + " " + okapiVersion);
+      } catch (Exception e) {
+        logger.warn(e);
+      }
+    }
+
+    in = getClass().getClassLoader().getResourceAsStream("git.properties");
     if (in != null) {
       try {
         Properties prop = new Properties();
@@ -89,6 +104,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.warn(e);
       }
     }
+
     boolean enableProxy = false;
     boolean enableDeployment = false;
 
@@ -286,6 +302,11 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  private void getVersion(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(vertx, ctx);
+    pc.responseText(200, okapiVersion == null ? "null" : okapiVersion);
+  }
+
   private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
 
@@ -366,6 +387,7 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/env").handler(envService::getAll);
       router.get("/_/env/:id").handler(envService::get);
     }
+    router.get("/_/version").handler(this::getVersion);
     router.route("/_*").handler(this::NotFound);
 
     // everything else gets proxified to modules

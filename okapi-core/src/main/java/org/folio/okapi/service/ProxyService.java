@@ -79,7 +79,7 @@ public class ProxyService {
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getNameOrId() + " "
-      + url + " : " + statusCode + " " + pc.timeDiff());
+      + url + " : " + statusCode + pc.timeDiff());
     pc.addTraceHeaders(ctx);
     pc.logResponse(mi.getModuleDescriptor().getNameOrId(), url, statusCode);
   }
