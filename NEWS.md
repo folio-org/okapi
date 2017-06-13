@@ -1,6 +1,6 @@
 ## 1.5.0 2017-06-12
 
- * Service /_/version returns Okapi version OKAPI-346
+ * Service `/_/version` returns Okapi version OKAPI-346
  * Allow multiple versions in requires OKAPI-330
  * Minor tweak in HTTP logging to avoid double blank
 
