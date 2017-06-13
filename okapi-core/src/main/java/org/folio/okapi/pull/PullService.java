@@ -28,7 +28,7 @@ public class PullService {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
         } else {
-          pc.responseJson(200, Json.encodePrettily(res.result()));
+          pc.responseJson(200, "null");
         }
       });
     } catch (DecodeException ex) {

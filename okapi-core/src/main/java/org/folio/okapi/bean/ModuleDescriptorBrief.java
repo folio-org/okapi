@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
@@ -8,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
  *
  */
 @JsonInclude(Include.NON_NULL)
-public class ModuleDescriptorBrief {
+public class ModuleDescriptorBrief implements Comparable {
 
   private String id;
   private String name;
@@ -37,4 +38,10 @@ public class ModuleDescriptorBrief {
     this.name = name;
   }
 
+  @JsonIgnore
+  @Override
+  public int compareTo(Object o) {
+    ModuleDescriptorBrief m = (ModuleDescriptorBrief) o;
+    return this.getId().compareTo(m.getId());
+  }
 }
