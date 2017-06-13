@@ -40,7 +40,7 @@ public class Storage {
         break;
       case "inmemory":
         moduleStore = new ModuleStoreMemory(vertx);
-        tenantStore = new TenantStoreMemory();
+        tenantStore = null; 
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);

@@ -41,18 +41,16 @@ public class TenantWebService {
 
   final private Vertx vertx;
   TenantManager tenants;
-  TenantStore tenantStore;
   private long lastTimestamp = 0;
   private DiscoveryManager discoveryManager;
 
 
 
 
-  public TenantWebService(Vertx vertx, TenantManager tenantManager, TenantStore tenantStore,
+  public TenantWebService(Vertx vertx, TenantManager tenantManager,
                           DiscoveryManager discoveryManager ) {
     this.vertx = vertx;
     this.tenants = tenantManager;
-    this.tenantStore = tenantStore;
     this.discoveryManager = discoveryManager;
   }
 
@@ -144,7 +142,7 @@ public class TenantWebService {
   public void get(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.get");
     final String id = ctx.request().getParam("id");
-    tenantStore.get(id, res -> {
+    tenants.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();
         String s = Json.encodePrettily(t.getDescriptor());
@@ -527,7 +525,7 @@ public class TenantWebService {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.getmodule");
     final String id = ctx.request().getParam("id");
     final String mod = ctx.request().getParam("mod");
-    tenantStore.get(id, res -> {
+    tenants.get(id, res -> {
       if (res.succeeded()) {
         Tenant t = res.result();
         Set<String> ml = t.listModules();  // Convert the list of module names

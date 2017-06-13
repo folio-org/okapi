@@ -178,7 +178,7 @@ public class MainVerticle extends AbstractVerticle {
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
-      tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
+      tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
     }
   }

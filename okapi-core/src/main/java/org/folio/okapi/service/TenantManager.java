@@ -66,7 +66,11 @@ public class TenantManager {
             logger.warn("TenantManager: Adding " + id + " FAILED: ", res);
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
-            tenantStore.insert(t, fut);
+            if (tenantStore != null) {
+              tenantStore.insert(t, fut);
+            } else {
+              fut.handle(new Success<>(id));
+            }
           }
         });
       }
@@ -304,10 +308,9 @@ public class TenantManager {
   public void updateModuleCommit(String id, long timestamp,
     String module_from, String module_to,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    tenantStore.get(id, gres -> {
+    tenants.get(id, gres -> {
       if (gres.failed()) {
-        logger.warn("TenantManager updateModuleCommit: Db get " + id + " FAILED: ", gres);
-        fut.handle(new Failure<>(INTERNAL, gres.cause()));
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
       Tenant t = gres.result();
@@ -317,18 +320,22 @@ public class TenantManager {
       if (module_to != null) {
         t.enableModule(module_to);
       }
-      tenantStore.updateModules(id, t.getEnabled(), timestamp, ures -> {
-        if (ures.failed()) {
-          fut.handle(new Failure<>(INTERNAL, ures.cause()));
+      tenants.put(id, t, pres -> {
+        if (pres.failed()) {
+          fut.handle(new Failure<>(INTERNAL, pres.cause()));
           return;
         }
-        tenants.put(id, t, pres -> {
-          if (pres.failed()) {
-            fut.handle(new Failure<>(pres.getType(), pres.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
+        if (tenantStore != null) {
+          tenantStore.updateModules(id, t.getEnabled(), timestamp, ures -> {
+            if (ures.failed()) {
+              fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            } else {
+              fut.handle(new Success<>());
+            }
+          });
+        } else {
+          fut.handle(new Success<>());
+        }
       });
     });
   }
@@ -555,6 +562,7 @@ public class TenantManager {
     if (tenantStore == null) {  // no storage, we are done.
       logger.info("No storage to load tenants from starting with empty");
       fut.handle(new Success<>());
+      return;
     }
     tenants.getKeys(gres -> {
       if (gres.failed()) {
