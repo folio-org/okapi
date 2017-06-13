@@ -164,8 +164,8 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
-    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
+//    c = api.createRestAssured();
+//    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
 
     c = api.createRestAssured();
     c.given().delete(location3).then().statusCode(204);

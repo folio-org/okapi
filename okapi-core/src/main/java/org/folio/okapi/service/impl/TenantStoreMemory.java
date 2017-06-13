@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -105,7 +106,18 @@ public class TenantStoreMemory implements TenantStore {
       t.disableModule(module);
       fut.handle(new Success<>());
     }
-
   }
+
+  public void updateModules(String id, TreeMap<String, Boolean> enabled, long timestamp, Handler<ExtendedAsyncResult<Void>> fut) {
+    Tenant t = tenants.get(id);
+    if (t == null) {
+      fut.handle(new Failure<>(USER, "Tenant " + id + " not found"));
+    } else {
+      t.setTimestamp(timestamp);
+      t.setEnabled(enabled);
+      fut.handle(new Success<>());
+    }
+  }
+
 
 }

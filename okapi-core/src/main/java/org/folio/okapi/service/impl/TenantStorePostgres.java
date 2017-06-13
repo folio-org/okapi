@@ -13,6 +13,7 @@ import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -290,23 +291,28 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModuleR(SQLConnection conn, String id, String module,
-          long timestamp, Boolean enable, Iterator<JsonObject> it,
-          Handler<ExtendedAsyncResult<Void>> fut) {
+    long timestamp, Boolean enable, TreeMap<String, Boolean> enabled,
+    Iterator<JsonObject> it,          Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + jsonColumn + " = ? WHERE " + idSelect;
       String tj = r.getString(jsonColumn);
       Tenant t = Json.decodeValue(tj, Tenant.class);
       t.setTimestamp(timestamp);
-      if (enable)
-        t.enableModule(module);
-      else if (!t.isEnabled(module)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
-                + id + " not found, can not disable"));
-        pg.closeConnection(conn);
-        return;
-      } else
-        t.disableModule(module);
+      if (enabled != null) {
+        t.setEnabled(enabled);
+      } else {
+        if (enable) {
+          t.enableModule(module);
+        } else if (!t.isEnabled(module)) {
+          fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
+            + id + " not found, can not disable"));
+          pg.closeConnection(conn);
+          return;
+        } else {
+          t.disableModule(module);
+        }
+      }
       String s = Json.encode(t);
       JsonObject doc = new JsonObject(s);
       JsonArray jsa = new JsonArray();
@@ -318,7 +324,7 @@ public class TenantStorePostgres implements TenantStore {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
           pg.closeConnection(conn);
         } else {
-          updateModuleR(conn, id, module, timestamp, enable, it, fut);
+          updateModuleR(conn, id, module, timestamp, enable, enabled, it, fut);
         }
       });
     } else {
@@ -328,7 +334,8 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModule(String id, String module, long timestamp,
-          Boolean enable, Handler<ExtendedAsyncResult<Void>> fut) {
+    Boolean enable, TreeMap<String, Boolean> enabled,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("updateModule: getConnection() failed: "
@@ -351,8 +358,8 @@ public class TenantStorePostgres implements TenantStore {
               pg.closeConnection(conn);
             } else {
               logger.debug("update: replace");
-              updateModuleR(conn, id, module, timestamp, enable,
-                      rs.getRows().iterator(), fut);
+              updateModuleR(conn, id, module, timestamp, enable, enabled,
+                rs.getRows().iterator(), fut);
             }
           }
         });
@@ -361,16 +368,24 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
+  public void updateModules(String id, TreeMap<String, Boolean> enabled,
+    long timestamp, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("updateModules " + Json.encode(enabled.keySet()));
+    updateModule(id, "", timestamp, null, enabled, fut);
+
+  }
+
+  @Override
   public void enableModule(String id, String module, long timestamp,
           Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("enableModule");
-    updateModule(id, module, timestamp, true, fut);
+    updateModule(id, module, timestamp, true, null, fut);
   }
 
   @Override
   public void disableModule(String id, String module, long timestamp,
           Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("disableModule");
-    updateModule(id, module, timestamp, false, fut);
+    updateModule(id, module, timestamp, false, null, fut);
   }
 }

@@ -168,14 +168,14 @@ public class MainVerticle extends AbstractVerticle {
       discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
       moduleManager = new ModuleManager(vertx);
-      TenantManager tenantManager = new TenantManager(moduleManager);
+      storage = new Storage(vertx, storageType, config);
+      TenantStore tenantStore = storage.getTenantStore();
+      TenantManager tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
-      storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
-      TenantStore tenantStore = storage.getTenantStore();
       logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
       tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
@@ -233,7 +233,7 @@ public class MainVerticle extends AbstractVerticle {
     if (tenantWebService == null) {
       startEnv(fut);
     } else {
-      tenantWebService.loadTenants(res -> {
+      tenantWebService.init(vertx, res -> {
         if (res.succeeded()) {
           startEnv(fut);
         } else {
@@ -336,7 +336,7 @@ public class MainVerticle extends AbstractVerticle {
     // test that verifies that changes propagate across a cluster...
     if (moduleWebService != null) {
       router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
-      router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
+      //router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
       router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
       router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
     }

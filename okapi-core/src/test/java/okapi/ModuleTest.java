@@ -450,6 +450,17 @@ public class ModuleTest {
     final String locTenant = createTenant();
     final String locEnable = enableModule("sample-module");
 
+    // Try to enable a non-existing module
+    final String docEnableNonExisting = "{" + LS
+      + "  \"id\" : \"UnknownModule\"" + LS
+      + "}";
+    given()
+      .header("Content-Type", "application/json")
+      .body(docEnableNonExisting)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(400);
+
      // Make a simple request to the module
     given()
       .header("X-Okapi-Tenant", okapiTenant)

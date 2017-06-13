@@ -17,13 +17,13 @@ public class Tenant {
   // id and name, and that kind of stuff
 
   @JsonProperty
-  final private TreeMap<String, Boolean> enabled;
+  private TreeMap<String, Boolean> enabled;
   // Note that this can not just be a Map, or the order of enabled modules
   // will be undefined. That should not harm in real life, but it messes up
   // our tests!
 
   @JsonIgnore
-  private long timestamp;
+  private long timestamp;  // DEPRECATED - not needed any more
 
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;
@@ -84,6 +84,10 @@ public class Tenant {
 
   public TreeMap<String, Boolean> getEnabled() {
     return enabled;
+  }
+
+  public void setEnabled(TreeMap<String, Boolean> enabled) {
+    this.enabled = enabled;
   }
 
   public void enableModule(String n) {

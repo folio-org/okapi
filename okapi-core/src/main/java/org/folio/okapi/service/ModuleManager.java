@@ -151,14 +151,21 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
       return;
     }
-    String ten = tenantManager.getModuleUser(id);
-    if (!ten.isEmpty()) {
-      fut.handle(new Failure<>(USER, "update: module " + id
-              + " is used by tenant " + ten));
-      return;
-    }
-    modules.put(id, md);
-    fut.handle(new Success<>());
+    tenantManager.getModuleUser(id, ures -> {
+      if (ures.failed()) {
+        if (ures.getType() == ANY) {
+          String ten = ures.cause().getMessage();
+          fut.handle(new Failure<>(USER, "update: module " + id
+            + " is used by tenant " + ten));
+          return;
+        } else {
+          fut.handle(new Failure<>(ures.getType(), ures.cause()));
+        }
+      } else {
+        modules.put(id, md);
+        fut.handle(new Success<>());
+      }
+    });
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -174,14 +181,21 @@ public class ModuleManager {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return;
     }
-    String ten = tenantManager.getModuleUser(id);
-    if (!ten.isEmpty()) {
-      fut.handle(new Failure<>(USER, "delete: module " + id
-              + " is used by tenant " + ten));
-      return;
-    }
-    modules.remove(id);
-    fut.handle(new Success<>());
+    tenantManager.getModuleUser(id, ures -> {
+      if (ures.failed()) {
+        if (ures.getType() == ANY) {
+          String ten = ures.cause().getMessage();
+          fut.handle(new Failure<>(USER, "delete: module " + id
+            + " is used by tenant " + ten));
+          return;
+        } else {
+          fut.handle(new Failure<>(ures.getType(), ures.cause()));
+        }
+      } else {
+        modules.remove(id);
+        fut.handle(new Success<>());
+      }
+    });
   }
 
   public void deleteAll(Handler<ExtendedAsyncResult<Void>> fut) {

@@ -33,9 +33,11 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
+import static org.folio.okapi.common.ErrorType.ANY;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import static org.folio.okapi.common.ErrorType.USER;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
@@ -394,39 +396,44 @@ public class ProxyService {
       return; // Error code already set in ctx
     }
     ReadStream<Buffer> content = ctx.request();
-    Tenant tenant = tenantManager.get(tenant_id);
-    if (tenant == null) {
-      pc.responseText(400, "No such Tenant " + tenant_id);
-      return;
-    }
-    // Pause the request data stream before doing any slow ops, otherwise
-    // it will get read into a buffer somewhere.
-    content.pause();
-
-    String metricKey = "proxy." + tenant_id + "."
-      + ctx.request().method() + "." + ctx.normalisedPath();
-    DropwizardHelper.markEvent(metricKey);
-
-
-    String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    List<ModuleInstance> l = getModulesForRequest( pc, tenant);
-    if (l == null) {
-      content.resume();
-      return; // error already in ctx
-    }
-    pc.setModList(l);
-
-    pc.logRequest(ctx, tenant_id);
-
-    ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
-    authHeaders(l, ctx.request().headers(), authToken, pc);
-
-    resolveUrls(l.iterator(), res -> {
-      if (res.failed()) {
-        content.resume();
-        pc.responseError(res.getType(), res.cause());
+    tenantManager.get(tenant_id, gres -> {
+      if (gres.failed()) {
+        pc.responseText(400, "No such Tenant " + tenant_id);
+        return;
       } else {
-        proxyR(l.iterator(), pc, content, null);
+        Tenant tenant = gres.result();
+
+        // Pause the request data stream before doing any slow ops, otherwise
+        // it will get read into a buffer somewhere.
+        // TODO - Should this not be earlier??!!
+        content.pause();
+
+        String metricKey = "proxy." + tenant_id + "."
+          + ctx.request().method() + "." + ctx.normalisedPath();
+        DropwizardHelper.markEvent(metricKey);
+
+
+        String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+        List<ModuleInstance> l = getModulesForRequest(pc, tenant);
+        if (l == null) {
+          content.resume();
+          return; // error already in ctx
+        }
+        pc.setModList(l);
+
+        pc.logRequest(ctx, tenant_id);
+
+        ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
+        authHeaders(l, ctx.request().headers(), authToken, pc);
+
+        resolveUrls(l.iterator(), res -> {
+          if (res.failed()) {
+            content.resume();
+            pc.responseError(res.getType(), res.cause());
+          } else {
+            proxyR(l.iterator(), pc, content, null);
+          }
+        });
       }
     });
   }
