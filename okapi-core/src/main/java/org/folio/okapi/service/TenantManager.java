@@ -305,7 +305,7 @@ public class TenantManager {
    * @param module_to - module to be enabled
    * @param fut callback for errors.
    */
-  public void updateModuleCommit(String id, long timestamp,
+  public void updateModuleCommit(String id,
     String module_from, String module_to,
     Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.get(id, gres -> {
@@ -326,7 +326,7 @@ public class TenantManager {
           return;
         }
         if (tenantStore != null) {
-          tenantStore.updateModules(id, t.getEnabled(), timestamp, ures -> {
+          tenantStore.updateModules(id, t.getEnabled(), ures -> {
             if (ures.failed()) {
               fut.handle(new Failure<>(ures.getType(), ures.cause()));
             } else {
@@ -386,7 +386,7 @@ public class TenantManager {
    * @param id
    * @param module
    */
-  public void disableModule(String id, String module, long timestamp,
+  public void disableModule(String id, String module,
     Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.get(id, gres -> {
       if (gres.failed()) {
@@ -400,7 +400,7 @@ public class TenantManager {
         fut.handle(new Failure<>(USER, gres.cause()));
         return;
       }
-      updateModuleCommit(id, timestamp, module, null, fut);
+      updateModuleCommit(id, module, null, fut);
     });
   }
 

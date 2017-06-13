@@ -148,7 +148,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void enableModule(String id, String module, long timestamp,
+  public void enableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
@@ -164,7 +164,6 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
-          t.setTimestamp(timestamp);
           t.enableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
@@ -183,7 +182,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void disableModule(String id, String module, long timestamp,
+  public void disableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
@@ -199,7 +198,6 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
-          t.setTimestamp(timestamp);
           t.disableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
@@ -218,7 +216,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, TreeMap<String, Boolean> enabled, long timestamp, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateModules(String id, TreeMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
       if (gres.failed()) {
@@ -233,7 +231,6 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
-          t.setTimestamp(timestamp);
           t.setEnabled(enabled);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);

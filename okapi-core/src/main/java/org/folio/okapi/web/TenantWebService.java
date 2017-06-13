@@ -26,7 +26,6 @@ import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
-import org.folio.okapi.service.TenantStore;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.OkapiClient;
@@ -41,10 +40,7 @@ public class TenantWebService {
 
   final private Vertx vertx;
   TenantManager tenants;
-  private long lastTimestamp = 0;
   private DiscoveryManager discoveryManager;
-
-
 
 
   public TenantWebService(Vertx vertx, TenantManager tenantManager,
@@ -54,21 +50,6 @@ public class TenantWebService {
     this.discoveryManager = discoveryManager;
   }
 
-  /**
-   * Get a timestamp value. Checks that it is always increasing, even if the
-   * clock goes backwards as it will do with daylight saving time etc.
-   *
-   * @return
-   */
-  private long getTimestamp() {
-    long ts = System.currentTimeMillis();
-    if (ts < lastTimestamp) // the clock jumping backwards, or something
-    {
-      ts = lastTimestamp + 1;
-    }
-    lastTimestamp = ts;
-    return ts;
-  }
 
   public void create(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.create");
@@ -83,8 +64,6 @@ public class TenantWebService {
         pc.responseError(400, "Invalid id");
       } else {
         Tenant t = new Tenant(td);
-        final long ts = getTimestamp();
-        t.setTimestamp(ts);
         tenants.insert(t, res -> {
           if (res.failed()) {
             pc.responseError(res.getType(), res.cause());
@@ -111,8 +90,6 @@ public class TenantWebService {
         return;
       }
       Tenant t = new Tenant(td);
-      final long ts = getTimestamp();
-      t.setTimestamp(ts);
       tenants.updateDescriptor(td, res -> {
         if (res.succeeded()) {
           final String s = Json.encodePrettily(t.getDescriptor());
@@ -286,7 +263,6 @@ public class TenantWebService {
     String id, String module_from, String module_to) {
     logger.debug("enablePermissions: t=" + id + " f=" + module_from + " t=" + module_to);
     RoutingContext ctx = pc.getCtx();
-    // TODO - Use the same pc for the whole chain, log repsonses
     ModuleManager modMan = tenants.getModuleManager();
     if (modMan == null) { // Should never happen
       pc.responseError(500, "enablePermissions: No moduleManager found. "
@@ -407,9 +383,8 @@ public class TenantWebService {
   private void enableTenantManager(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
     RoutingContext ctx = pc.getCtx();
-    final long ts = getTimestamp();
     logger.debug("enableTenantManager: " + module_from + " " + module_to);
-    tenants.updateModuleCommit(id, lastTimestamp, module_from, module_to, ures -> {
+    tenants.updateModuleCommit(id, module_from, module_to, ures -> {
       if (ures.failed()) {
         pc.responseError(ures.getType(), ures.cause());
         return;
@@ -486,9 +461,8 @@ public class TenantWebService {
     try {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
-      final long ts = getTimestamp();
       pc.debug("disablemodule t=" + id + " m=" + module);
-      tenants.disableModule(id, module, ts, res -> {
+      tenants.disableModule(id, module, res -> {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
         } else {
@@ -547,41 +521,4 @@ public class TenantWebService {
     tenants.init(vertx, fut);
   }
 
-  /*
-   public void reloadTenant(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.reload");
-    final String id = ctx.request().getParam("id");
-    reloadTenant(id, res -> {
-      if (res.succeeded()) {
-        pc.responseText(204, "");
-      } else {
-        pc.responseError(500, res.cause());
-      }
-    });
-  }
-
-  public void reloadTenant(String id,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    tenantStore.get(id, res -> {
-      if (res.succeeded()) {
-        Tenant t = res.result();
-        tenants.delete(id);
-        if (tenants.insert(t)) {
-          logger.debug("Reloaded tenant " + id);
-          fut.handle(new Success<>());
-        } else {
-          logger.error("Reloading of tenant " + id + " FAILED");
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        }
-      } else if (res.getType() == NOT_FOUND) {  // that's OK, it has been deleted
-        tenants.delete(id); // ignore result code, ok to delete nonexisting
-        logger.debug("reload deleted tenant " + id);
-        fut.handle(new Success<>());
-      } else {
-        logger.error("Reload tenant " + id + "Failed: " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      }
-    });
-  }
-*/
 } // class

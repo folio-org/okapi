@@ -291,14 +291,13 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModuleR(SQLConnection conn, String id, String module,
-    long timestamp, Boolean enable, TreeMap<String, Boolean> enabled,
+    Boolean enable, TreeMap<String, Boolean> enabled,
     Iterator<JsonObject> it,          Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + jsonColumn + " = ? WHERE " + idSelect;
       String tj = r.getString(jsonColumn);
       Tenant t = Json.decodeValue(tj, Tenant.class);
-      t.setTimestamp(timestamp);
       if (enabled != null) {
         t.setEnabled(enabled);
       } else {
@@ -324,7 +323,7 @@ public class TenantStorePostgres implements TenantStore {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
           pg.closeConnection(conn);
         } else {
-          updateModuleR(conn, id, module, timestamp, enable, enabled, it, fut);
+          updateModuleR(conn, id, module, enable, enabled, it, fut);
         }
       });
     } else {
@@ -333,7 +332,7 @@ public class TenantStorePostgres implements TenantStore {
     }
   }
 
-  private void updateModule(String id, String module, long timestamp,
+  private void updateModule(String id, String module,
     Boolean enable, TreeMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
     pg.getConnection(gres -> {
@@ -358,7 +357,7 @@ public class TenantStorePostgres implements TenantStore {
               pg.closeConnection(conn);
             } else {
               logger.debug("update: replace");
-              updateModuleR(conn, id, module, timestamp, enable, enabled,
+              updateModuleR(conn, id, module, enable, enabled,
                 rs.getRows().iterator(), fut);
             }
           }
@@ -369,23 +368,23 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void updateModules(String id, TreeMap<String, Boolean> enabled,
-    long timestamp, Handler<ExtendedAsyncResult<Void>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("updateModules " + Json.encode(enabled.keySet()));
-    updateModule(id, "", timestamp, null, enabled, fut);
+    updateModule(id, "", null, enabled, fut);
 
   }
 
   @Override
-  public void enableModule(String id, String module, long timestamp,
+  public void enableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("enableModule");
-    updateModule(id, module, timestamp, true, null, fut);
+    updateModule(id, module, true, null, fut);
   }
 
   @Override
-  public void disableModule(String id, String module, long timestamp,
+  public void disableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("disableModule");
-    updateModule(id, module, timestamp, false, null, fut);
+    updateModule(id, module, false, null, fut);
   }
 }
