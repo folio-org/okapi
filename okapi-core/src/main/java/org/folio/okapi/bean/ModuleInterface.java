@@ -180,7 +180,14 @@ public class ModuleInterface {
    */
   public String validate(ProxyContext pc, String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
+    if (id == null) {
+      return "id is missing";
+    }
     String prefix = "Module '" + mod + "' interface '" + id + "': ";
+    if (version == null) {
+      return "version is missing";
+    }
+
     String err;
     err = validateGeneral(pc, mod);
     if (!err.isEmpty()) {
