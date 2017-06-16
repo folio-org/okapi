@@ -222,7 +222,8 @@ public class ModuleWebService {
     final String id = ctx.request().getParam("id");
     moduleManager.delete(id, sres -> {
       if (sres.failed()) {
-        pc.error("delete (runtime) failed: " + sres.getType()                + ":" + sres.cause().getMessage());
+        pc.error("delete (runtime) failed: " + sres.getType()
+          + ":" + sres.cause().getMessage());
         pc.responseError(sres.getType(), sres.cause());
       } else {
         moduleStore.delete(id, rres -> {

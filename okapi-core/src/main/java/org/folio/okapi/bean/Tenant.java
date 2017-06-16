@@ -24,6 +24,7 @@ public class Tenant {
 
   @JsonIgnore
   private long timestamp;  // DEPRECATED - not needed any more
+  // TODO - Remove when going to Okapi 2.0
 
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;

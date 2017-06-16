@@ -206,11 +206,26 @@ public class MainVerticle extends AbstractVerticle {
             logger.info("Database operation " + initMode.toString() + " done. Exiting");
             System.exit(0);
           }
-          startModules(fut);
+          initModmanager(fut);
         }
       });
     } else {
+      initModmanager(fut);
+    }
+  }
+
+  private void initModmanager(Future<Void> fut) {
+    if (moduleManager == null) {
       startModules(fut);
+    } else {
+      moduleManager.init(vertx, res -> {
+        if (res.succeeded()) {
+          startModules(fut);
+        } else {
+          logger.fatal("ModuleManager init: " + res.cause().getMessage());
+          fut.fail(res.cause());
+        }
+      });
     }
   }
 

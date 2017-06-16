@@ -459,7 +459,8 @@ public class ModuleTest {
       .body(docEnableNonExisting)
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
-      .statusCode(400);
+      .statusCode(404)
+      .log().ifError();
 
      // Make a simple request to the module
     given()
@@ -1083,7 +1084,7 @@ public class ModuleTest {
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(400);
+      .then().statusCode(404);
 
     final String docEnableAuth = "{" + LS
       + "  \"id\" : \"auth\"" + LS
@@ -1542,9 +1543,10 @@ public class ModuleTest {
       .header("X-Okapi-Stop", "Enough!")
       .body(equalTo("hej OkapiX")); // only one "Hello"
 
-    given().get("/_/test/reloadmodules")
+    /*
+     given().get("/_/test/reloadmodules")
       .then().statusCode(204);
-
+*/
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/xml")

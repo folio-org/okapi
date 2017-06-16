@@ -5,17 +5,22 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeMap;
 import org.folio.okapi.bean.ModuleInterface;
-import org.folio.okapi.util.DropwizardHelper;
+import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.util.LockedTypedMap1;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -27,16 +32,26 @@ public class ModuleManager {
   final private Vertx vertx;
   private TenantManager tenantManager = null;
 
+  LockedTypedMap1<ModuleDescriptor> modules
+    = new LockedTypedMap1<>(ModuleDescriptor.class);
+
   public void setTenantManager(TenantManager tenantManager) {
     this.tenantManager = tenantManager;
   }
 
-  LinkedHashMap<String, ModuleDescriptor> modules = new LinkedHashMap<>();
-
   public ModuleManager(Vertx vertx) {
-    String metricKey = "modules.count";
-    DropwizardHelper.registerGauge(metricKey, () -> modules.size());
     this.vertx = vertx;
+  }
+
+  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+    modules.init(vertx, "modules", ires -> {
+      if (ires.failed()) {
+        fut.handle(new Failure<>(ires.getType(), ires.cause()));
+      } else {
+        fut.handle(new Success<>());
+        //loadModules(fut);
+      }
+    });
   }
 
   /**
@@ -124,91 +139,203 @@ public class ModuleManager {
   }
 
   public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
-    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    for (ModuleDescriptor md : list) {
-      final String id = md.getId();
-      if (modules.containsKey(id)) {
-        fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+    modules.getAll(ares -> {
+      if (ares.failed()) {
+        fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
-      tempList.put(id, md);
-    }
-    String res = checkAllDependencies(tempList);
-    if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, res));
-    } else {
-      modules = tempList;
+      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      for (ModuleDescriptor md : list) {
+        final String id = md.getId();
+        if (tempList.containsKey(id)) {
+          fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+          return;
+        }
+        tempList.put(id, md);
+      }
+      String res = checkAllDependencies(tempList);
+      if (!res.isEmpty()) {
+        fut.handle(new Failure<>(USER, res));
+        return;
+      }
+      Iterator<ModuleDescriptor> it = list.iterator();
+      createListR(it, fut);
+    });
+  }
+
+  private void createListR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!it.hasNext()) {
       fut.handle(new Success<>());
+      return;
     }
+    ModuleDescriptor md = it.next();
+    String id = md.getId();
+    modules.add(id, md, ares -> {
+      if (ares.failed()) {
+        fut.handle(new Failure<>(ares.getType(), ares.cause()));
+        return;
+      }
+      createListR(it, fut);
+    });
   }
 
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
-    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.put(id, md);
-    String res = checkAllDependencies(tempList);
-    if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
-      return;
-    }
-    tenantManager.getModuleUser(id, ures -> {
-      if (ures.failed()) {
-        if (ures.getType() == ANY) {
-          String ten = ures.cause().getMessage();
-          fut.handle(new Failure<>(USER, "update: module " + id
-            + " is used by tenant " + ten));
-          return;
-        } else {
-          fut.handle(new Failure<>(ures.getType(), ures.cause()));
-        }
-      } else {
-        modules.put(id, md);
-        fut.handle(new Success<>());
+    modules.getAll(ares -> {
+      if (ares.failed()) {
+        fut.handle(new Failure<>(ares.getType(), ares.cause()));
+        return;
       }
+      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      tempList.put(id, md);
+      String res = checkAllDependencies(tempList);
+      if (!res.isEmpty()) {
+        fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
+        return;
+      }
+      tenantManager.getModuleUser(id, ures -> {
+        if (ures.failed()) {
+          if (ures.getType() == ANY) {
+            String ten = ures.cause().getMessage();
+            fut.handle(new Failure<>(USER, "update: module " + id
+              + " is used by tenant " + ten));
+            return;
+          } else { // any other error
+            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            return;
+          }
+        }
+        // all ok, we can update it
+        modules.put(id, md, fut); // handles success or its own erros
+      });
     });
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!modules.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
-      return;
-    }
-
-    LinkedHashMap<String, ModuleDescriptor> tempList = new LinkedHashMap<>(modules);
-    tempList.remove(id);
-    String res = checkAllDependencies(tempList);
-    if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
-      return;
-    }
-    tenantManager.getModuleUser(id, ures -> {
-      if (ures.failed()) {
-        if (ures.getType() == ANY) {
-          String ten = ures.cause().getMessage();
-          fut.handle(new Failure<>(USER, "delete: module " + id
-            + " is used by tenant " + ten));
-          return;
-        } else {
-          fut.handle(new Failure<>(ures.getType(), ures.cause()));
-        }
-      } else {
-        modules.remove(id);
-        fut.handle(new Success<>());
+    modules.getAll(ares -> {
+      if (ares.failed()) {
+        fut.handle(new Failure<>(ares.getType(), ares.cause()));
+        return;
       }
+      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      if (!tempList.containsKey(id)) {
+        fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
+        return;
+      }
+      tempList.remove(id);
+      String res = checkAllDependencies(tempList);
+      if (!res.isEmpty()) {
+        fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
+        return;
+      }
+      tenantManager.getModuleUser(id, ures -> {
+        if (ures.failed()) {
+          if (ures.getType() == ANY) {
+            String ten = ures.cause().getMessage();
+            fut.handle(new Failure<>(USER, "delete: module " + id
+              + " is used by tenant " + ten));
+            return;
+          } else {
+            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            return;
+          }
+        }
+        modules.remove(id, dres -> {
+          if (dres.failed()) {
+            fut.handle(new Failure<>(dres.getType(), dres.cause()));
+            return;
+          }
+          fut.handle(new Success<>());
+        });
+      });
     });
   }
 
   public void deleteAll(Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.clear();
-    fut.handle(new Success<>());
+    modules.clear(fut);
   }
 
-  public ModuleDescriptor get(String name) {
-    return modules.getOrDefault(name, null);
+  /**
+   * Get a module.
+   *
+   * @param id to get. If null, returns a null.
+   * @param fut
+   */
+  public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+    if (id != null) {
+      modules.get(id, fut);
+      return;
+    }
+    fut.handle(new Success<>(null));
   }
 
-  public Set<String> list() {
-    return modules.keySet();
+  public void list(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+    modules.getKeys(fut);
+  }
+
+  /**
+   * Get all ModuleDescriptors known to the system.
+   *
+   * @param fut
+   */
+  public void getAllModules(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    modules.getKeys(kres -> {
+      if (kres.failed()) {
+        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+        return;
+      }
+      Collection<String> keys = kres.result();
+      getModules(keys, fut);
+    });
+  }
+
+  /**
+   * Get all modules that are enabled for the given tenant.
+   *
+   * @param ten tenant to check for
+   * @param fut callback with a list of ModuleDescriptors (may be empty list)
+   */
+  public void getEnabledModules(Tenant ten,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    getModules(ten.getEnabled().keySet(), fut);
+  }
+
+  /**
+   * Get ModuleDescriptors from a list of Ids.
+   *
+   * @param ids to get
+   * @param fut
+   */
+  public void getModules(Collection<String> ids,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    List<ModuleDescriptor> mdl = new ArrayList<>(ids.size());
+    Iterator<String> it = ids.iterator();
+    getModulesR(it, mdl, fut);
+  }
+
+  /**
+   * Recursive helper to get modules from an iterator of ids.
+   *
+   * @param it
+   * @param mdl
+   * @param fut
+   */
+  private void getModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(mdl));
+      return;
+    }
+    String id = it.next();
+    modules.get(id, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
+      }
+      ModuleDescriptor md = gres.result();
+      mdl.add(md);
+      getModulesR(it, mdl, fut);
+    });
   }
 
 } // class

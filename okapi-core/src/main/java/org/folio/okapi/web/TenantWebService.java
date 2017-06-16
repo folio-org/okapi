@@ -144,12 +144,14 @@ public class TenantWebService {
 
   public void enableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
+    pc.debug("enableModule XXX");
     enableTenantInt(pc, null);
   }
 
   public void updateModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.updatemodule");
     final String module_from = ctx.request().getParam("mod");
+    pc.debug("enableModule XXX fr=" + module_from);
     enableTenantInt(pc, module_from);
   }
 
@@ -184,69 +186,74 @@ public class TenantWebService {
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
         TenantModuleDescriptor.class);
       final String module_to = td.getId();
+      pc.debug("enableTenantInt: id=" + id + " to=" + module_to + " fr=" + module_from);
       tenants.get(id, res -> {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
           return;
         }
         Tenant tenant = res.result();
-        /*  Probabaly not needed, get fails w NOTFOUND above.
-         if (tenant == null) {
-         String err = "tenant " + id + " not found";
-         pc.responseError(404, err);
-         return;
-         }
-         */
-        String err = tenants.updateModuleDepCheck(tenant, module_from, module_to);
-        if (!err.isEmpty()) {
-          pc.responseError(400, err);
-          return;
-        }
-        String tenInt = tenants.getTenantInterface(module_to);
-        if (tenInt == null || tenInt.isEmpty()) {
-          pc.debug("enableModule: " + module_to + " has no support for tenant init");
-          enablePermissions(pc, td, id, module_from, module_to);
-        } else { // We have an init interface, invoke it
-          // TODO - Use the proxy to invoke the interface on a given module
-          discoveryManager.get(module_to, gres -> {
-            if (gres.failed()) {
-              pc.responseError(gres.getType(), gres.cause());
-              return;
-            } else {
-              List<DeploymentDescriptor> instances = gres.result();
-              if (instances.isEmpty()) {
-                pc.responseError(400, "No running instances for module " + module_to
-                  + ". Can not invoke tenant init");
+        tenants.updateModuleDepCheck(tenant, module_from, module_to, tres -> {
+          if (tres.failed()) {
+            pc.responseError(tres.getType(), tres.cause());
+            return;
+          }
+          logger.debug("enableTenantInt: depcheck ok");
+          tenants.getTenantInterface(module_to, ires -> {
+            if (ires.failed()) {
+              if (ires.getType() == NOT_FOUND) {
+                pc.debug("enableModule: " + module_to + " has no support for tenant init");
+                enablePermissions(pc, td, id, module_from, module_to);
                 return;
-              } else { // TODO - Don't just take the first. Pick one by random.
-                String baseurl = instances.get(0).getUrl();
-                pc.debug("enableModule Url: " + baseurl + " and " + tenInt);
-                Map<String, String> headers = reqHeaders(ctx, id);
-                JsonObject jo = new JsonObject();
-                jo.put("module_to", module_to);
-                if (module_from != null) {
-                  jo.put("module_from", module_from);
-                }
-                OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-                cli.newReqId("tenant");
-                cli.enableInfoLog();
-                cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
-                  if (cres.failed()) {
-                    pc.warn("Tenant init request for "
-                      + module_to + " failed with " + cres.cause().getMessage());
-                    pc.responseError(500, "Post to " + tenInt
-                      + " on " + module_to + " failed with "
-                      + cres.cause().getMessage());
-                  } else { // All well, we can finally enable it
-                    pc.debug("enableModule: Tenant init request to "
-                      + module_to + " succeeded");
-                    enablePermissions(pc, td, id, module_from, module_to);
-                  }
-                });
+              } else {
+                pc.responseError(ires.getType(), ires.cause());
+                return;
               }
             }
+            String tenInt = ires.result();
+            logger.debug("enableTenantInt: tenint=" + tenInt);
+            discoveryManager.get(module_to, gres -> {
+              if (gres.failed()) {
+                pc.responseError(gres.getType(), gres.cause());
+                return;
+              } else {
+                List<DeploymentDescriptor> instances = gres.result();
+                if (instances.isEmpty()) {
+                  pc.responseError(400, "No running instances for module " + module_to
+                    + ". Can not invoke tenant init");
+                  return;
+                } else { // TODO - Don't just take the first. Pick one by random.
+                  String baseurl = instances.get(0).getUrl();
+                  pc.debug("enableModule Url: " + baseurl + " and " + tenInt);
+                  Map<String, String> headers = reqHeaders(ctx, id);
+                  JsonObject jo = new JsonObject();
+                  jo.put("module_to", module_to);
+                  if (module_from != null) {
+                    jo.put("module_from", module_from);
+                  }
+                  OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+                  cli.newReqId("tenant");
+                  cli.enableInfoLog();
+                  cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
+                    if (cres.failed()) {
+                      pc.warn("Tenant init request for "
+                        + module_to + " failed with " + cres.cause().getMessage());
+                      pc.responseError(500, "Post to " + tenInt
+                        + " on " + module_to + " failed with "
+                        + cres.cause().getMessage());
+                    } else { // All well, we can finally enable it
+                      pc.debug("enableModule: Tenant init request to "
+                        + module_to + " succeeded");
+                      enablePermissions(pc, td, id, module_from, module_to);
+                    }
+                  });
+                }
+              }
+            });
+
           });
-        }
+        });
+
       });
     } catch (DecodeException ex) {
       pc.responseError(400, ex);
@@ -270,29 +277,35 @@ public class TenantWebService {
       return;
     }
     // TODO - check if we have no permissions, skip the rest
-    ModuleDescriptor md = modMan.get(module_to);
-    if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
-      pc.warn("Using the tenantPermissions of this module itself");
-      enablePermissionsPart2(pc, td, id, module_from, module_to, md, md, modMan);
-      return;
-    } else {
-      tenants.findSystemInterface(id, "_tenantPermissions", res -> {
-        if (res.failed()) {
-          if (res.getType() == NOT_FOUND) { // no perms interface
-            // just continue with the process. Should probably trigger an error
-            logger.debug("enablePermissions: No tenantPermissions interface found. "
-              + "Carrying on without it.");
-            enableTenantManager(pc, td, id, module_from, module_to);
+    modMan.get(module_to, mres -> {
+      if (mres.failed() && mres.getType() != NOT_FOUND) { // something really wrong
+        pc.responseError(mres.getType(), mres.cause());
+        return;
+      }
+      ModuleDescriptor md = mres.result();
+      if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
+        pc.debug("Using the tenantPermissions of this module itself");
+        enablePermissionsPart2(pc, td, id, module_from, module_to, md, md, modMan);
+        return;
+      } else {
+        tenants.findSystemInterface(id, "_tenantPermissions", res -> {
+          if (res.failed()) {
+            if (res.getType() == NOT_FOUND) { // no perms interface
+              // just continue with the process. Should probably trigger an error
+              logger.debug("enablePermissions: No tenantPermissions interface found. "
+                + "Carrying on without it.");
+              enableTenantManager(pc, td, id, module_from, module_to);
+              return;
+            }
+            pc.responseError(res.getType(), res.cause());
             return;
           }
-          pc.responseError(res.getType(), res.cause());
+          ModuleDescriptor permsMod = res.result();
+          enablePermissionsPart2(pc, td, id, module_from, module_to, md, permsMod, modMan);
           return;
-        }
-        ModuleDescriptor permsMod = res.result();
-        enablePermissionsPart2(pc, td, id, module_from, module_to, md, permsMod, modMan);
-        return;
-      });
-    }
+        });
+      }
+    });
   }
 
   /**
@@ -407,54 +420,61 @@ public class TenantWebService {
    */
   private void destroyTenant(RoutingContext ctx, String module, String id) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.destroy");
-    String tenInt = tenants.getTenantInterface(module);
-    if (tenInt == null || tenInt.isEmpty()) {
-      pc.debug("disableModule: " + module + " has no support for tenant destroy");
-      pc.responseText(204, "");
-      return;
-    }
-    // We have a tenant interface, invoke DELETE on it
-    discoveryManager.get(module, gres -> {
-      if (gres.failed()) {
-        pc.responseError(gres.getType(), gres.cause());
-      } else {
-        List<DeploymentDescriptor> instances = gres.result();
-        if (instances.isEmpty()) {
-          pc.responseError(400, "No running instances for module " + module
-            + ". Can not invoke tenant destroy");
-        } else { // TODO - Don't just take the first. Pick one by random.
-          String baseurl = instances.get(0).getUrl();
-          pc.debug("disableModule Url: " + baseurl + " and " + tenInt);
-          Map<String, String> headers = new HashMap<>();
-          for (String hdr : ctx.request().headers().names()) {
-            if (hdr.matches("^X-.*$")) {
-              headers.put(hdr, ctx.request().headers().get(hdr));
-            }
-          }
-          if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-            headers.put(XOkapiHeaders.TENANT, id);
-            pc.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
-          }
-          headers.put("Accept", "*/*");
-          //headers.put("Content-Type", "application/json; charset=UTF-8");
-          String body = ""; // dummy
-          OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-          cli.request(HttpMethod.DELETE, tenInt, body, cres -> {
-            if (cres.failed()) {
-              pc.warn("Tenant destroy request for " + module
-                + " failed with " + cres.cause().getMessage());
-              pc.responseError(500, "DELETE to " + tenInt
-                + " on " + module + " failed with "
-                + cres.cause().getMessage());
-            } else { // All well, we can finally enable it
-              pc.debug("disableModule: destroy request to " + module + " succeeded");
-              pc.responseText(204, "");  // finally we are done
-            }
-          });
+    tenants.getTenantInterface(module, ires -> {
+      if (ires.failed()) {
+        if (ires.getType() == NOT_FOUND) {
+          pc.debug("enableModule: " + module + " has no support for tenant init");
+          pc.responseText(204, "");
+          return;
+        } else {
+          pc.responseError(ires.getType(), ires.cause());
+          return;
         }
       }
-    });
-  }
+      // We have a tenant interface, invoke DELETE on it
+      String tenInt = ires.result();
+      discoveryManager.get(module, gres -> {
+        if (gres.failed()) {
+          pc.responseError(gres.getType(), gres.cause());
+        } else {
+          List<DeploymentDescriptor> instances = gres.result();
+          if (instances.isEmpty()) {
+            pc.responseError(400, "No running instances for module " + module
+              + ". Can not invoke tenant destroy");
+          } else { // TODO - Don't just take the first. Pick one by random.
+            String baseurl = instances.get(0).getUrl();
+            pc.debug("disableModule Url: " + baseurl + " and " + tenInt);
+            Map<String, String> headers = new HashMap<>();
+            for (String hdr : ctx.request().headers().names()) {
+              if (hdr.matches("^X-.*$")) {
+                headers.put(hdr, ctx.request().headers().get(hdr));
+              }
+            }
+            if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+              headers.put(XOkapiHeaders.TENANT, id);
+              pc.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
+            }
+            headers.put("Accept", "*/*");
+            //headers.put("Content-Type", "application/json; charset=UTF-8");
+            String body = ""; // dummy
+            OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+            cli.request(HttpMethod.DELETE, tenInt, body, cres -> {
+              if (cres.failed()) {
+                pc.warn("Tenant destroy request for " + module
+                  + " failed with " + cres.cause().getMessage());
+                pc.responseError(500, "DELETE to " + tenInt
+                  + " on " + module + " failed with "
+                  + cres.cause().getMessage());
+              } else { // All well, we can finally enable it
+                pc.debug("disableModule: destroy request to " + module + " succeeded");
+                pc.responseText(204, "");  // finally we are done
+              }
+            }); // cli.request
+          }
+        } // got module
+      });
+    }); // tenantInterface
+  } //destroyTenant
 
   public void disableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.disable");

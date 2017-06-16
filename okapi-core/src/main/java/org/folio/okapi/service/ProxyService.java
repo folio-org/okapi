@@ -93,33 +93,33 @@ public class ProxyService {
 
   private boolean resolveRedirects(ProxyContext pc,
     List<ModuleInstance> mods,
-    final String mod, RoutingEntry re, Tenant t,
+    RoutingEntry re,
+    ModuleDescriptor md,
+    List<ModuleDescriptor> enabledModules,
     final String loop, final String uri, final String origMod) {
     RoutingContext ctx = pc.getCtx();
     // add the module to the pipeline in any case
-    ModuleInstance mi = new ModuleInstance(modules.get(mod), re, uri);
+    ModuleInstance mi = new ModuleInstance(md, re, uri);
     mods.add(mi);
     if (re.getProxyType() == ProxyType.REDIRECT) { // resolve redirects
       boolean found = false;
       final String redirectPath = re.getRedirectPath();
-      for (String trymod : modules.list()) {
-        if (t.isEnabled(trymod)) {
-          List<RoutingEntry> rr = modules.get(trymod).getProxyRoutingEntries();
-          for (RoutingEntry tryre : rr) {
-            if (tryre.match(redirectPath, ctx.request().method().name())) {
-              final String newUri = re.getRedirectUri(uri);
-              found = true;
-              pc.debug("resolveRedirects: "
-                + ctx.request().method() + " " + uri
-                + " => " + trymod + " " + newUri);
-              if (loop.contains(redirectPath + " ")) {
-                pc.responseError(500, "Redirect loop: " + loop + " -> " + redirectPath);
-                return false;
-              }
-              if (!resolveRedirects( pc, mods, trymod, tryre, t,
-                loop + " -> " + redirectPath, newUri, origMod)) {
-                return false;
-              }
+      for (ModuleDescriptor trymod : enabledModules) {
+        List<RoutingEntry> rr = trymod.getProxyRoutingEntries();
+        for (RoutingEntry tryre : rr) {
+          if (tryre.match(redirectPath, ctx.request().method().name())) {
+            final String newUri = re.getRedirectUri(uri);
+            found = true;
+            pc.debug("resolveRedirects: "
+              + ctx.request().method() + " " + uri
+              + " => " + trymod + " " + newUri);
+            if (loop.contains(redirectPath + " ")) {
+              pc.responseError(500, "Redirect loop: " + loop + " -> " + redirectPath);
+              return false;
+            }
+            if (!resolveRedirects(pc, mods, tryre, trymod, enabledModules,
+              loop + " -> " + redirectPath, newUri, origMod)) {
+              return false;
             }
           }
         }
@@ -142,21 +142,21 @@ public class ProxyService {
    * @return a list of ModuleInstances. In case of error, sets up ctx and
    * returns null.
    */
-  public List<ModuleInstance> getModulesForRequest( ProxyContext pc, Tenant t) {
+  public List<ModuleInstance> getModulesForRequest(ProxyContext pc,
+    List<ModuleDescriptor> enabledModules) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
-    for (String mod : modules.list()) {
-      pc.debug("getMods:  looking at " + mod);
-      if (t.isEnabled(mod)) {
-        List<RoutingEntry> rr = modules.get(mod).getProxyRoutingEntries();
-        for (RoutingEntry re : rr) {
-          if (match(re, req)) {
-            if (!resolveRedirects(pc, mods, mod, re, t, "", req.uri(), "")) {
-              return null;
-            }
-            pc.debug("getMods:   Added " + mod + " " + re.getPathPattern() + " " + re.getPath());
+    for (ModuleDescriptor md : enabledModules) {
+      pc.debug("getMods:  looking at " + md.getNameOrId());
+      List<RoutingEntry> rr = md.getProxyRoutingEntries();
+      for (RoutingEntry re : rr) {
+        if (match(re, req)) {
+          if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
+            return null;
           }
+          pc.debug("getMods:   Added " + md.getNameOrId()
+            + " " + re.getPathPattern() + " " + re.getPath());
         }
       }
     }
@@ -400,24 +400,31 @@ public class ProxyService {
       if (gres.failed()) {
         pc.responseText(400, "No such Tenant " + tenant_id);
         return;
-      } else {
-        Tenant tenant = gres.result();
+      }
+      Tenant tenant = gres.result();
 
-        // Pause the request data stream before doing any slow ops, otherwise
-        // it will get read into a buffer somewhere.
-        // TODO - Should this not be earlier??!!
-        content.pause();
+      // Pause the request data stream before doing any slow ops, otherwise
+      // it will get read into a buffer somewhere.
+      // TODO - Should this not be earlier??!!
+      content.pause();
+
+      modules.getEnabledModules(tenant, mres -> {
+        if (mres.failed()) {
+          content.resume();
+          pc.responseError(mres.getType(), mres.cause());
+          return;
+        }
+        List<ModuleDescriptor> enabledModules = mres.result();
 
         String metricKey = "proxy." + tenant_id + "."
           + ctx.request().method() + "." + ctx.normalisedPath();
         DropwizardHelper.markEvent(metricKey);
-
-
         String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-        List<ModuleInstance> l = getModulesForRequest(pc, tenant);
+
+        List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
-          content.resume();
-          return; // error already in ctx
+            content.resume();
+          return; // ctx already set up
         }
         pc.setModList(l);
 
@@ -434,7 +441,8 @@ public class ProxyService {
             proxyR(l.iterator(), pc, content, null);
           }
         });
-      }
+      });
+
     });
   }
 
