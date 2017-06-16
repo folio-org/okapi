@@ -165,19 +165,19 @@ public class MainVerticle extends AbstractVerticle {
       });
     }
     if (enableProxy) {
+      storage = new Storage(vertx, storageType, config);
       discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
-      moduleManager = new ModuleManager(vertx);
-      storage = new Storage(vertx, storageType, config);
+      ModuleStore moduleStore = storage.getModuleStore();
+      moduleManager = new ModuleManager(vertx, moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
       TenantManager tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
-      ModuleStore moduleStore = storage.getModuleStore();
       TimeStampStore timeStampStore = storage.getTimeStampStore();
       logger.info("Proxy using " + storageType + " storage");
-      moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
+      moduleWebService = new ModuleWebService(vertx, moduleManager);
       tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
     }
@@ -216,11 +216,11 @@ public class MainVerticle extends AbstractVerticle {
 
   private void initModmanager(Future<Void> fut) {
     if (moduleManager == null) {
-      startModules(fut);
+      startTenants(fut);
     } else {
       moduleManager.init(vertx, res -> {
         if (res.succeeded()) {
-          startModules(fut);
+          startTenants(fut);
         } else {
           logger.fatal("ModuleManager init: " + res.cause().getMessage());
           fut.fail(res.cause());
@@ -229,21 +229,20 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  private void startModules(Future<Void> fut) {
+  /*
+   private void startModules(Future<Void> fut) {
     if (moduleWebService == null) {
       startTenants(fut);
-    } else {
-      moduleWebService.loadModules(res -> {
+    } else {          moduleWebService.loadModules(res -> {
         if (res.succeeded()) {
           startTenants(fut);
         } else {
           logger.fatal("load modules: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
-      });
-    }
-  }
-
+      });    }
+ }
+   */
   private void startTenants(Future<Void> fut) {
     if (tenantWebService == null) {
       startEnv(fut);
@@ -350,8 +349,6 @@ public class MainVerticle extends AbstractVerticle {
     // The reload points can be removed as soon as we have a good integration
     // test that verifies that changes propagate across a cluster...
     if (moduleWebService != null) {
-      router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
-      //router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
       router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
       router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
     }

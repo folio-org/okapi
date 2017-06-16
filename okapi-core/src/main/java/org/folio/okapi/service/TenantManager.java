@@ -707,7 +707,7 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      List<String> tl = new ArrayList(t.listModules());
+      List<String> tl = new ArrayList<>(t.listModules());
       tl.sort(null);
       fut.handle(new Success<>(tl));
     });
@@ -792,17 +792,17 @@ public class TenantManager {
     if (!it.hasNext()) {
       logger.info("All tenants deployed");
       fut.handle(new Success<>());
-    } else {
-      Tenant t = it.next();
-      String id = t.getId();
-      tenants.add(id, t, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          loadR(it, fut);
-        }
-      });
+      return;
     }
+    Tenant t = it.next();
+    String id = t.getId();
+    tenants.add(id, t, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        loadR(it, fut);
+      }
+    });
   }
 
 } // class

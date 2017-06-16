@@ -12,8 +12,6 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeMap;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.*;
@@ -34,13 +32,15 @@ public class ModuleManager {
 
   LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
+  ModuleStore moduleStore;
 
   public void setTenantManager(TenantManager tenantManager) {
     this.tenantManager = tenantManager;
   }
 
-  public ModuleManager(Vertx vertx) {
+  public ModuleManager(Vertx vertx, ModuleStore moduleStore) {
     this.vertx = vertx;
+    this.moduleStore = moduleStore;
   }
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -48,10 +48,62 @@ public class ModuleManager {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
       } else {
-        fut.handle(new Success<>());
-        //loadModules(fut);
+        loadModules(fut);
       }
     });
+  }
+
+  /**
+   * Load the modules from the database, if not already loaded.
+   *
+   * @param fut
+   */
+  private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+    if (moduleStore == null) {
+      logger.debug("No ModuleStorage to load from, starting with empty");
+      fut.handle(new Success<>());
+      return;
+    }
+    modules.getKeys(kres -> {
+      if (kres.failed()) {
+        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+        return;
+      }
+      Collection<String> keys = kres.result();
+      if (!keys.isEmpty()) {
+        logger.debug("Not loading modules, looks like someone already did");
+        fut.handle(new Success<>());
+        return;
+      }
+      moduleStore.getAll(mres -> {
+        if (mres.failed()) {
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        Iterator<ModuleDescriptor> it = mres.result().iterator();
+        loadR(it, fut);
+      });
+    });
+  }
+
+  /**
+   * Recursive helper to load all modules.
+   *
+   * @param it
+   * @param fut
+   */
+  private void loadR(Iterator<ModuleDescriptor> it,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!it.hasNext()) {
+      logger.info("All modules loaded");
+      fut.handle(new Success<>());
+      return;
+    }
+    ModuleDescriptor md = it.next();
+    String id = md.getId();
+    logger.debug("Loaded module " + id);
+    modules.add(id, md, fut);
+    loadR(it, fut);
   }
 
   /**
@@ -175,6 +227,12 @@ public class ModuleManager {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
+      moduleStore.insert(md, ires -> {
+        if (ires.failed()) {
+          fut.handle(new Failure<>(ires.getType(), ires.cause()));
+          return;
+        }
+      });
       createListR(it, fut);
     });
   }
@@ -193,20 +251,32 @@ public class ModuleManager {
         fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
         return;
       }
-      tenantManager.getModuleUser(id, ures -> {
-        if (ures.failed()) {
-          if (ures.getType() == ANY) {
-            String ten = ures.cause().getMessage();
+      tenantManager.getModuleUser(id, gres -> {
+        if (gres.failed()) {
+          if (gres.getType() == ANY) {
+            String ten = gres.cause().getMessage();
             fut.handle(new Failure<>(USER, "update: module " + id
               + " is used by tenant " + ten));
             return;
           } else { // any other error
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            fut.handle(new Failure<>(gres.getType(), gres.cause()));
             return;
           }
         }
         // all ok, we can update it
-        modules.put(id, md, fut); // handles success or its own erros
+        moduleStore.update(md, ures -> {
+          if (ures.failed()) {
+            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            return;
+          }
+          modules.put(id, md, mres -> {
+            if (ures.failed()) {
+              fut.handle(new Failure<>(ures.getType(), ures.cause()));
+              return;
+            }
+            fut.handle(new Success<>());
+          });
+        });
       });
     });
   }
@@ -240,12 +310,18 @@ public class ModuleManager {
             return;
           }
         }
-        modules.remove(id, dres -> {
-          if (dres.failed()) {
-            fut.handle(new Failure<>(dres.getType(), dres.cause()));
+        moduleStore.delete(id, sres -> {
+          if (sres.failed()) {
+            fut.handle(new Failure<>(sres.getType(), sres.cause()));
             return;
           }
-          fut.handle(new Success<>());
+          modules.remove(id, dres -> {
+            if (dres.failed()) {
+              fut.handle(new Failure<>(dres.getType(), dres.cause()));
+              return;
+            }
+            fut.handle(new Success<>());
+          });
         });
       });
     });
