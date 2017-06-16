@@ -297,7 +297,7 @@ public class TenantManager {
         return;
       }
       ModuleDescriptor rm = gres.result();
-      if (mod_from != rm) {
+      if (mod_from == null || !mod_from.getId().equals(rm.getId())) {
         ModuleInterface[] provides = rm.getProvides();
         if (provides != null) {
           for (ModuleInterface pi : provides) {
