@@ -91,11 +91,7 @@ public class PullManager {
           ModuleDescriptorBrief ml[] = Json.decodeValue(body.toString(),
             ModuleDescriptorBrief[].class);
           for (ModuleDescriptorBrief mdb : ml) {
-            logger.info("md1 " + mdb.getId());
-          }
-          Arrays.sort(ml);
-          for (ModuleDescriptorBrief mdb : ml) {
-            logger.info("md2 " + mdb.getId());
+            logger.info("getList " + urlBase + " " + mdb.getId());
           }
           fut.handle(new Success<>(ml));
         }
@@ -183,7 +179,7 @@ public class PullManager {
       logger.warn("exception handler 2");
       fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
     });
-    req.end("doc");
+    req.end(Json.encodePrettily(ml));
   }
 
   private void addList(TreeMap<String, Boolean> enabled, Iterator<ModuleDescriptor> it, int added, int failed,
@@ -206,6 +202,7 @@ public class PullManager {
       }
     } else {
       final ModuleDescriptor mdf = md;
+      logger.info("adding " + md.getId() + " to " + okapiUrl);
       addFull(okapiUrl, md, res -> {
         if (res.failed()) {
           addList(enabled, it, added, failed + 1, fut);

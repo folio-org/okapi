@@ -37,7 +37,8 @@ public class PullTest {
   private String locationSampleModule2;
   private String vert1;
   private String vert2;
-  private final int port = 9131;
+  private final int port1 = 9131; // where we define MDs
+  private final int port2 = 9130; // where we pull
 
   public PullTest() {
   }
@@ -79,7 +80,7 @@ public class PullTest {
 
   private void td(TestContext context, Async async) {
     if (locationSampleDeployment1 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment1, response -> {
+      httpClient.delete(port1, "localhost", locationSampleDeployment1, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSampleDeployment1 = null;
@@ -89,7 +90,7 @@ public class PullTest {
       return;
     }
     if (locationSampleDeployment2 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment2, response -> {
+      httpClient.delete(port1, "localhost", locationSampleDeployment2, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSampleDeployment2 = null;
@@ -122,27 +123,41 @@ public class PullTest {
 
   @Test
   public void test1() {
-    RestAssured.port = port;
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-            .assumingBaseUri("https://okapi.cloud");
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")            .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     Response r;
 
     c = api.createRestAssured();
-    c.given().get("/_/env").then().statusCode(200).body(equalTo("[ ]"));
+    c.given().port(port1).get("/_/version").then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().port(port2).get("/_/version").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
   }
 
   @Test
   public void test2() {
-    RestAssured.port = port;
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-            .assumingBaseUri("https://okapi.cloud");
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")            .assumingBaseUri("https://okapi.cloud");
     RestAssuredClient c;
     Response r;
+
+    final String pullDoc = "{" + LS
+      + "\"urls\" : [" + LS
+      + "  \"http://localhost:" + port1 + "\"" + LS
+      + "  ]" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200).extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     final String docModuleA = "{" + LS
       + "  \"id\" : \"module-a-1.0.0\"," + LS
@@ -153,13 +168,23 @@ public class PullTest {
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured();
-    r = c.given()
+    r = c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleA).post("/_/proxy/modules").then().statusCode(201).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    /*
+    DOES NOT PARSE NOW .. something that they share MD lists between Okapi instances
+    c = api.createRestAssured();
+    r = c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200).extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+*/
     final String docModuleB = "{" + LS
       + "  \"id\" : \"module-b-1.0.0\"," + LS
       + "  \"name\" : \"B\"," + LS
@@ -173,7 +198,7 @@ public class PullTest {
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured();
-    r = c.given()
+    r = c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleB).post("/_/proxy/modules").then().statusCode(201).extract().response();
     Assert.assertTrue(
@@ -193,11 +218,12 @@ public class PullTest {
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured();
-    r = c.given()
+    r = c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleC).post("/_/proxy/modules").then().statusCode(201).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
   }
 }
