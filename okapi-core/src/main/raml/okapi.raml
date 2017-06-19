@@ -22,6 +22,7 @@ schemas:
   - EnvEntry: !include EnvEntry.json
   - EnvEntryList: !include EnvEntryList.json
   - Permission: !include Permission.json
+  - PullDescriptor: !include PullDescriptor.json
 
 # DEPLOYMENT SERVICE
 /_/deployment/modules:
@@ -446,6 +447,30 @@ schemas:
             schema: HealthStatusList
       500:
         description: Server Error
+
+/_/proxy/pull/modules:
+  post:
+    description: pull modules - returns list of modules pulled
+    body:
+      application/json:
+        schema: PullDescriptor
+    responses:
+      200:
+        description: OK
+        headers:
+          Location:
+            description:
+        body:
+          application/json:
+            schema: ModuleList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
 
 # Environment service
 /_/env:
