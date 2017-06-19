@@ -237,8 +237,8 @@ public class TenantStoreMongo implements TenantStore {
           document.put("_id", id);
           cli.save(collection, document, sres -> {
             if (sres.failed()) {
-              logger.debug("TenantStoreMongo: disable: saving failed: " + gres.cause().getMessage());
-              fut.handle(new Failure<>(INTERNAL, gres.cause()));
+              logger.debug("TenantStoreMongo: disable: saving failed: " + sres.cause().getMessage());
+              fut.handle(new Failure<>(INTERNAL, sres.cause()));
             } else {
               fut.handle(new Success<>());
             }

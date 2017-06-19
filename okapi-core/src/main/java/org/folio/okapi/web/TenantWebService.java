@@ -63,15 +63,17 @@ public class TenantWebService {
       if (!id.matches("^[a-z0-9._-]+$")) {
         pc.responseError(400, "Invalid id");
       } else {
+        logger.debug("XXXX Creating tenant " + id);
         Tenant t = new Tenant(td);
         tenants.insert(t, res -> {
           if (res.failed()) {
             pc.responseError(res.getType(), res.cause());
-          } else {
-            final String uri = ctx.request().uri() + "/" + id;
-            final String s = Json.encodePrettily(t.getDescriptor());
-            pc.responseJson(201, s, uri);
+            return;
           }
+          logger.debug("XXXX Created tenant " + id);
+          final String uri = ctx.request().uri() + "/" + id;
+          final String s = Json.encodePrettily(t.getDescriptor());
+          pc.responseJson(201, s, uri);
         });
       }
     } catch (DecodeException ex) {

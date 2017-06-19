@@ -1,13 +1,11 @@
 package org.folio.okapi.web;
 
-import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -15,12 +13,6 @@ import java.util.List;
 import java.util.UUID;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
 import org.folio.okapi.service.ModuleManager;
-import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.service.TimeStampStore;
-import static org.folio.okapi.common.ErrorType.*;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.util.ProxyContext;
 
 /**

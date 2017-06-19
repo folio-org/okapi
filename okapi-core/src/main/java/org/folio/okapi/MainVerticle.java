@@ -30,7 +30,6 @@ import org.folio.okapi.web.ModuleWebService;
 import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.service.TimeStampStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
@@ -175,7 +174,6 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
-      TimeStampStore timeStampStore = storage.getTimeStampStore();
       logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager);
       tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
@@ -196,6 +194,7 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
+    logger.debug("starting");
     if (storage != null) {
       storage.prepareDatabases(initMode, res -> {
         if (res.failed()) {
@@ -218,6 +217,7 @@ public class MainVerticle extends AbstractVerticle {
     if (moduleManager == null) {
       startTenants(fut);
     } else {
+      logger.debug("Starting modules");
       moduleManager.init(vertx, res -> {
         if (res.succeeded()) {
           startTenants(fut);
@@ -229,24 +229,11 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  /*
-   private void startModules(Future<Void> fut) {
-    if (moduleWebService == null) {
-      startTenants(fut);
-    } else {          moduleWebService.loadModules(res -> {
-        if (res.succeeded()) {
-          startTenants(fut);
-        } else {
-          logger.fatal("load modules: " + res.cause().getMessage());
-          fut.fail(res.cause());
-        }
-      });    }
- }
-   */
   private void startTenants(Future<Void> fut) {
     if (tenantWebService == null) {
       startEnv(fut);
     } else {
+      logger.debug("Startting tenants");
       tenantWebService.init(vertx, res -> {
         if (res.succeeded()) {
           startEnv(fut);
@@ -262,6 +249,7 @@ public class MainVerticle extends AbstractVerticle {
     if (envManager == null) {
       startDiscovery(fut);
     } else {
+      logger.debug("starting Env");
       envManager.init(vertx, res -> {
         if (res.succeeded()) {
           startDiscovery(fut);
@@ -276,6 +264,7 @@ public class MainVerticle extends AbstractVerticle {
     if (discoveryManager == null) {
       startDeployment(fut);
     } else {
+      logger.debug("Starting discovery");
       discoveryManager.init(vertx, res -> {
         if (res.succeeded()) {
           startDeployment(fut);
@@ -290,6 +279,7 @@ public class MainVerticle extends AbstractVerticle {
     if (deploymentManager == null) {
       startListening(fut);
     } else {
+      logger.debug("Starting discovery");
       deploymentManager.init(res -> {
         if (res.succeeded()) {
           startListening(fut);
@@ -302,7 +292,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
-
+    logger.debug("Setting up routes");
     //handle CORS
     router.route().handler(CorsHandler.create("*")
             .allowedMethod(HttpMethod.PUT)
@@ -383,6 +373,7 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }
+    logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)

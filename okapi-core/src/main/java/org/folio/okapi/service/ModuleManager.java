@@ -101,9 +101,14 @@ public class ModuleManager {
     }
     ModuleDescriptor md = it.next();
     String id = md.getId();
-    logger.debug("Loaded module " + id);
-    modules.add(id, md, fut);
-    loadR(it, fut);
+    modules.add(id, md, mres -> {
+      if (mres.failed()) {
+        fut.handle(new Failure<>(mres.getType(), mres.cause()));
+        return;
+      }
+      logger.debug("Loaded module " + id);
+      loadR(it, fut);
+    });
   }
 
   /**
@@ -222,20 +227,28 @@ public class ModuleManager {
     }
     ModuleDescriptor md = it.next();
     String id = md.getId();
-    modules.add(id, md, ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
+    if (moduleStore == null) {
+      modules.add(id, md, ares -> {
+        if (ares.failed()) {
+          fut.handle(new Failure<>(ares.getType(), ares.cause()));
+          return;
+        }
+        createListR(it, fut);
+      });
+      return;
+    }
+    moduleStore.insert(md, ires -> {
+      if (ires.failed()) {
+        fut.handle(new Failure<>(ires.getType(), ires.cause()));
         return;
       }
-      if (moduleStore != null) {
-        moduleStore.insert(md, ires -> {
-          if (ires.failed()) {
-            fut.handle(new Failure<>(ires.getType(), ires.cause()));
-            return;
-          }
-        });
-      }
-      createListR(it, fut);
+      modules.add(id, md, ares -> {
+        if (ares.failed()) {
+          fut.handle(new Failure<>(ares.getType(), ares.cause()));
+          return;
+        }
+        createListR(it, fut);
+      });
     });
   }
 
@@ -266,25 +279,32 @@ public class ModuleManager {
           }
         }
         // all ok, we can update it
-        modules.put(id, md, mres -> {
-          if (mres.failed()) {
-            fut.handle(new Failure<>(mres.getType(), mres.cause()));
-            return;
-          }
-          if (moduleStore == null) {
-            fut.handle(new Success<>());
-            return;
-          }
-          moduleStore.update(md, ures -> {
-            if (ures.failed()) {
-              fut.handle(new Failure<>(ures.getType(), ures.cause()));
+        if (moduleStore == null) { // no db, just upd shared memory
+          modules.put(id, md, mres -> {
+            if (mres.failed()) {
+              fut.handle(new Failure<>(mres.getType(), mres.cause()));
               return;
             }
             fut.handle(new Success<>());
           });
+          return;
+        }
+        moduleStore.update(md, ures -> { // store in db first,
+          if (ures.failed()) {
+            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            return;
+          }
+          modules.put(id, md, mres -> { // then in shared mem
+            if (mres.failed()) {
+              fut.handle(new Failure<>(mres.getType(), mres.cause()));
+              return;
+            }
+            fut.handle(new Success<>());
+            return;
+          });
         });
-      });
-    });
+      }); // getModuleUser
+    }); // get
   }
 
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -316,18 +336,24 @@ public class ModuleManager {
             return;
           }
         }
-        modules.remove(id, dres -> {
+        if (moduleStore == null) {
+          modules.remove(id, sres -> {
+            if (sres.failed()) {
+              fut.handle(new Failure<>(sres.getType(), sres.cause()));
+              return;
+            }
+            fut.handle(new Success<>());
+          });
+          return;
+        }
+        moduleStore.delete(id, dres -> {
           if (dres.failed()) {
             fut.handle(new Failure<>(dres.getType(), dres.cause()));
             return;
           }
-          if (moduleStore == null) {
-            fut.handle(new Success<>());
-            return;
-          }
-          moduleStore.delete(id, sres -> {
-            if (sres.failed()) {
-              fut.handle(new Failure<>(sres.getType(), sres.cause()));
+          modules.remove(id, rres -> {
+            if (rres.failed()) {
+              fut.handle(new Failure<>(rres.getType(), rres.cause()));
               return;
             }
             fut.handle(new Success<>());

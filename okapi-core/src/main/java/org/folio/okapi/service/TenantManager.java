@@ -36,46 +36,75 @@ public class TenantManager {
     this.tenantStore = tenantStore;
   }
 
+  /**
+   * Initialize the TenantManager.
+   *
+   * @param vertx
+   * @param fut
+   */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.init(vertx, "tenants", ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
-      } else {
-        loadTenants(fut);
+        return;
       }
+      loadTenants(fut);
     });
   }
 
   /**
    * Get the moduleManager.
+   * @return
    */
   public ModuleManager getModuleManager() {
     return moduleManager;
   }
 
+  /**
+   * Insert a tenant.
+   *
+   * @param t
+   * @param fut
+   */
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
     tenants.get(id, gres -> {
       if (gres.failed() && gres.getType() != NOT_FOUND) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
       } else if (gres.succeeded() && gres.result() != null) {
         fut.handle(new Failure<>(USER, "Duplicate tenant id " + id));
-      } else {
-        tenants.add(id, t, res -> {
+        return;
+      }
+      if (tenantStore == null) { // no db, just add it to shared mem
+        logger.debug("XXXX No db, just adding " + id);
+        tenants.add(id, t, ares -> {
+          if (ares.failed()) {
+            fut.handle(new Failure<>(ares.getType(), ares.cause()));
+            return;
+          }
+          fut.handle(new Success<>(id));
+        });
+      } else { // insert into db first
+        logger.debug("XXXX Have db, inserting first " + id);
+        tenantStore.insert(t, res -> {
           if (res.failed()) {
             logger.warn("TenantManager: Adding " + id + " FAILED: ", res);
             fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            if (tenantStore != null) {
-              tenantStore.insert(t, fut);
-            } else {
-              fut.handle(new Success<>(id));
-            }
+            return;
           }
+          logger.debug("XXXX Db insert OK " + id);
+          tenants.add(id, t, ares -> { // and then into shared memory
+            if (ares.failed()) {
+              fut.handle(new Failure<>(ares.getType(), ares.cause()));
+              return;
+            }
+            fut.handle(new Success<>(id));
+          });
         });
-      }
+      } // have db
     });
-  }
+  } // insert
 
   public void updateDescriptor(TenantDescriptor td,
     Handler<ExtendedAsyncResult<Void>> fut) {
@@ -93,18 +122,18 @@ public class TenantManager {
       } else {
         t = new Tenant(td, oldT.getEnabled());
       }
-      if (tenantStore != null) {
-        tenantStore.updateDescriptor(td, upres -> {
-          if (upres.failed()) {
-            logger.warn("TenantManager: Updating database for " + id + " FAILED: ", upres);
-            fut.handle(new Failure<>(INTERNAL, ""));
-            return;
-          }
-          tenants.add(id, t, fut); // handles success
-        });
-      } else { // no database
-        tenants.add(id, t, fut); // handles success
+      if (tenantStore == null) {
+        tenants.add(id, t, fut); // no database. handles success directly
+        return;
       }
+      tenantStore.updateDescriptor(td, upres -> {
+        if (upres.failed()) {
+          logger.warn("TenantManager: Updating database for " + id + " FAILED: ", upres);
+          fut.handle(new Failure<>(INTERNAL, ""));
+          return;
+        }
+        tenants.add(id, t, fut); // handles success
+      });
     });
   }
 
@@ -434,33 +463,39 @@ public class TenantManager {
       if (module_to != null) {
         t.enableModule(module_to);
       }
-      tenants.put(id, t, pres -> {
-        if (pres.failed()) {
-          fut.handle(new Failure<>(INTERNAL, pres.cause()));
+      if (tenantStore == null) {
+        tenants.put(id, t, pres -> {
+          if (pres.failed()) {
+            fut.handle(new Failure<>(INTERNAL, pres.cause()));
+            return;
+          }
+          fut.handle(new Success<>());
           return;
-        }
-        if (tenantStore != null) {
+        });
+      } else {
           tenantStore.updateModules(id, t.getEnabled(), ures -> {
             if (ures.failed()) {
               fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            } else {
-              fut.handle(new Success<>());
+              return;
             }
+            tenants.put(id, t, pres -> {
+              if (pres.failed()) {
+                fut.handle(new Failure<>(INTERNAL, pres.cause()));
+                return;
+              }
+              fut.handle(new Success<>());
           });
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
+        });
+      }
     });
   }
-
   /**
    * Check that no enabled module depends on any service provided by this
    * module.
    *
    * @param tenant
    * @param module
-   * @return "" if it is ok to delete the module, or an error message
+   * @param fut
    */
   public void checkNoDependency(Tenant tenant, String module,
     Handler<ExtendedAsyncResult<Void>> fut) {
@@ -602,6 +637,7 @@ public class TenantManager {
                 for (RoutingEntry re : res) {
                   if (re.match(null, "POST")) {
                     if (re.getPath() != null) {
+                      // TODO - Remove this in version 2.0
                       logger.debug("findTenantInterface: found path " + re.getPath());
                       fut.handle(new Success<>(re.getPath()));
                       return;
@@ -640,7 +676,9 @@ public class TenantManager {
    * Find (the first) module that provides a given system interface. Module must
    * be enabled for the tenant.
    *
-   * @return ModuleDescriptor for the module, or null if none found.
+   * @param tenantId tenant to check for
+   * @param interfaceName interface name to look for
+   * @param fut callback with a @return ModuleDescriptor for the module
    *
    * TODO - Take a version too, pass it to getSystemInterface, check there
    */
@@ -698,7 +736,7 @@ public class TenantManager {
    * List modules for a given tenant.
    *
    * @param id
-   * @return null if no such tenant, or a list (possibly empty)
+   * @param fut calbback with a list of moduleIds
    */
   public void listModules(String id, Handler<ExtendedAsyncResult<List<String>>> fut) {
     tenants.get(id, gres -> {
@@ -721,7 +759,6 @@ public class TenantManager {
    * @param fut - Succeeds if not in use. Fails with ANY and the module name
    */
   public void getModuleUser(String mod, Handler<ExtendedAsyncResult<Void>> fut) {
-
     tenants.getKeys(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(INTERNAL, kres.cause()));
@@ -768,29 +805,29 @@ public class TenantManager {
     tenants.getKeys(gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        Collection<String> keys = gres.result();
-        if (!keys.isEmpty()) {
-          logger.info("Not loading tenants, looks like someone already did");
-          fut.handle(new Success<>());
-        } else {
-          tenantStore.listTenants(lres -> {
-            if (lres.failed()) {
-              fut.handle(new Failure<>(INTERNAL, lres.cause()));
-            } else {
-              Iterator<Tenant> it = lres.result().iterator();
-              loadR(it, fut);
-            }
-          });
-        }
+        return;
       }
+      Collection<String> keys = gres.result();
+      if (!keys.isEmpty()) {
+        logger.info("Not loading tenants, looks like someone already did");
+        fut.handle(new Success<>());
+        return;
+      }
+      tenantStore.listTenants(lres -> {
+        if (lres.failed()) {
+          fut.handle(new Failure<>(INTERNAL, lres.cause()));
+          return;
+        }
+        Iterator<Tenant> it = lres.result().iterator();
+        loadR(it, fut);
+      });
     });
   }
 
   private void loadR(Iterator<Tenant> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
-      logger.info("All tenants deployed");
+      logger.info("All tenants loaded");
       fut.handle(new Success<>());
       return;
     }
@@ -799,9 +836,10 @@ public class TenantManager {
     tenants.add(id, t, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        loadR(it, fut);
+        return;
       }
+      logger.debug("Loaded tenant " + t.getId());
+      loadR(it, fut);
     });
   }
 

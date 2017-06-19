@@ -11,14 +11,12 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.service.TimeStampStore;
 
 public class Storage {
 
   private MongoHandle mongo;
   private PostgresHandle postgres;
   private ModuleStore moduleStore;
-  private TimeStampStore timeStampStore;
   private TenantStore tenantStore;
 
   public enum InitMode {
@@ -30,7 +28,6 @@ public class Storage {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public Storage(Vertx vertx, String type, JsonObject config) {
-    timeStampStore = new TimeStampMemory(vertx);
     this.config = config;
     switch (type) {
       case "mongo":
@@ -96,7 +93,4 @@ public class Storage {
     return tenantStore;
   }
 
-  public TimeStampStore getTimeStampStore() {
-    return timeStampStore;
-  }
 }
