@@ -1,3 +1,8 @@
+## 1.6.0 2017-06-19
+
+ * Service `/_/proxy/pull/modules` syncs remote Okapi with local one OKAPI-347
+ * Fix empty routing entry throws exception OKAPI-348
+
 ## 1.5.0 2017-06-12
 
  * Service `/_/version` returns Okapi version OKAPI-346
