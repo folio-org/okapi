@@ -38,6 +38,8 @@ import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.env.EnvService;
+import org.folio.okapi.pull.PullManager;
+import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ProxyContext;
@@ -59,6 +61,8 @@ public class MainVerticle extends AbstractVerticle {
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
+  PullManager pullManager;
+  PullService pullService;
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
@@ -196,6 +200,8 @@ public class MainVerticle extends AbstractVerticle {
       moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
       tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
+      pullManager = new PullManager(vertx, okapiUrl);
+      pullService = new PullService(pullManager);
     }
   }
 
@@ -352,6 +358,9 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
       router.get("/_/proxy/tenants/:id/interfaces/:int").handler(tenantWebService::listModulesFromInterface);
       router.getWithRegex("/_/proxy/health").handler(healthService::get);
+    }
+    if (pullService != null) {
+      router.postWithRegex("/_/proxy/pull/modules").handler(pullService::create);
     }
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
