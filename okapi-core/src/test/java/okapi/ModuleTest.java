@@ -889,11 +889,13 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule2).put(locationAuthModule2).then().statusCode(200)
+      .body(docAuthModule2).put(locationAuthModule2)
+      .then().statusCode(200)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    logger.debug("Deleting " + locationAuthModule2 + " XXXX");
     c = api.createRestAssured();
     c.given().delete(locationAuthModule2).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),

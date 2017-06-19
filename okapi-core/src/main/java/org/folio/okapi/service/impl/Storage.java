@@ -39,8 +39,8 @@ public class Storage {
         tenantStore = new TenantStoreMongo(mongo.getClient());
         break;
       case "inmemory":
-        moduleStore = new ModuleStoreMemory(vertx);
-        tenantStore = null; 
+        moduleStore = null;
+        tenantStore = null;
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);

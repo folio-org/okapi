@@ -275,7 +275,7 @@ public class EnvTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  }, {" + LS
-      + "    \"id\" : \"myintX\"," + LS
+      + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -318,8 +318,6 @@ public class EnvTest {
     final String docEnableSample2 = "{" + LS
             + "  \"id\" : \"sample-module2\"" + LS
             + "}";
-
-    logger.debug("XXXXX");
 
     logger.info("locationTenantModule: " + locationTenantModule);
     c = api.createRestAssured();

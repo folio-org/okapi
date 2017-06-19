@@ -227,12 +227,14 @@ public class ModuleManager {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
-      moduleStore.insert(md, ires -> {
-        if (ires.failed()) {
-          fut.handle(new Failure<>(ires.getType(), ires.cause()));
-          return;
-        }
-      });
+      if (moduleStore != null) {
+        moduleStore.insert(md, ires -> {
+          if (ires.failed()) {
+            fut.handle(new Failure<>(ires.getType(), ires.cause()));
+            return;
+          }
+        });
+      }
       createListR(it, fut);
     });
   }
@@ -264,12 +266,16 @@ public class ModuleManager {
           }
         }
         // all ok, we can update it
-        moduleStore.update(md, ures -> {
-          if (ures.failed()) {
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
+        modules.put(id, md, mres -> {
+          if (mres.failed()) {
+            fut.handle(new Failure<>(mres.getType(), mres.cause()));
             return;
           }
-          modules.put(id, md, mres -> {
+          if (moduleStore == null) {
+            fut.handle(new Success<>());
+            return;
+          }
+          moduleStore.update(md, ures -> {
             if (ures.failed()) {
               fut.handle(new Failure<>(ures.getType(), ures.cause()));
               return;
@@ -310,14 +316,18 @@ public class ModuleManager {
             return;
           }
         }
-        moduleStore.delete(id, sres -> {
-          if (sres.failed()) {
-            fut.handle(new Failure<>(sres.getType(), sres.cause()));
+        modules.remove(id, dres -> {
+          if (dres.failed()) {
+            fut.handle(new Failure<>(dres.getType(), dres.cause()));
             return;
           }
-          modules.remove(id, dres -> {
-            if (dres.failed()) {
-              fut.handle(new Failure<>(dres.getType(), dres.cause()));
+          if (moduleStore == null) {
+            fut.handle(new Success<>());
+            return;
+          }
+          moduleStore.delete(id, sres -> {
+            if (sres.failed()) {
+              fut.handle(new Failure<>(sres.getType(), sres.cause()));
               return;
             }
             fut.handle(new Success<>());
