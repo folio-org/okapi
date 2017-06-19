@@ -46,7 +46,6 @@ public class PullManager {
       }
       url += "_/version";
       Buffer body = Buffer.buffer();
-      logger.info("get " + url);
       HttpClientRequest req = httpClient.getAbs(url, res -> {
         res.handler(x -> {
           body.appendBuffer(x);
@@ -59,12 +58,10 @@ public class PullManager {
           }
         });
         res.exceptionHandler(x -> {
-          logger.warn("exception handler 1");
           fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
         });
       });
       req.exceptionHandler(res -> {
-        logger.warn("exception handler 2");
         getRemoteUrl(it, fut);
       });
       req.end();
@@ -79,7 +76,6 @@ public class PullManager {
     }
     url += "_/proxy/modules";
     Buffer body = Buffer.buffer();
-    logger.info("get " + url);
     HttpClientRequest req = httpClient.getAbs(url, res -> {
       res.handler(x -> {
         body.appendBuffer(x);
@@ -91,7 +87,6 @@ public class PullManager {
           ModuleDescriptorBrief ml[] = Json.decodeValue(body.toString(),
             ModuleDescriptorBrief[].class);
           for (ModuleDescriptorBrief mdb : ml) {
-            logger.info("getList " + urlBase + " " + mdb.getId());
           }
           fut.handle(new Success<>(ml));
         }
@@ -120,7 +115,6 @@ public class PullManager {
       }
       url += "_/proxy/modules/" + it.next().getId();
       Buffer body = Buffer.buffer();
-      logger.info("get " + url);
       HttpClientRequest req = httpClient.getAbs(url, res -> {
         res.handler(x -> {
           body.appendBuffer(x);
@@ -156,7 +150,6 @@ public class PullManager {
     }
     url += "_/proxy/modules";
     Buffer body = Buffer.buffer();
-    logger.info("get " + url);
     HttpClientRequest req = httpClient.postAbs(url, res -> {
       res.handler(x -> {
         body.appendBuffer(x);
@@ -191,6 +184,7 @@ public class PullManager {
       if (enabled.get(id) == null) {
         break;
       }
+      md = null;
     }
     if (md == null) {
       if (failed == 0 && added == 0) {
@@ -202,7 +196,6 @@ public class PullManager {
       }
     } else {
       final ModuleDescriptor mdf = md;
-      logger.info("adding " + md.getId() + " to " + okapiUrl);
       addFull(okapiUrl, md, res -> {
         if (res.failed()) {
           addList(enabled, it, added, failed + 1, fut);
@@ -230,7 +223,7 @@ public class PullManager {
   }
 
   private void merge(String urlBase, ModuleDescriptorBrief[] mlLocal,
-    ModuleDescriptorBrief[] mlRemote, Handler<ExtendedAsyncResult<Void>> fut) {
+    ModuleDescriptorBrief[] mlRemote, Handler<ExtendedAsyncResult<List<ModuleDescriptorBrief>>> fut) {
 
     TreeMap<String, Boolean> enabled = new TreeMap<>();
     for (ModuleDescriptorBrief md : mlLocal) {
@@ -248,12 +241,18 @@ public class PullManager {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        addRepeat(enabled, mlList, fut);
+        addRepeat(enabled, mlList, res1 -> {
+          if (res1.failed()) {
+            fut.handle(new Failure<>(res1.getType(), res1.cause()));
+          } else {
+            fut.handle(new Success<>(mlAdd));
+          }
+        });
       }
     });
   }
 
-  public void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptorBrief>>> fut) {
     getRemoteUrl(Arrays.asList(pd.getUrls()).iterator(), resUrl -> {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));

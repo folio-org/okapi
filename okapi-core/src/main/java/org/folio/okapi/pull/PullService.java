@@ -18,17 +18,15 @@ public class PullService {
   }
 
   public void create(RoutingContext ctx) {
-    logger.info("pull create");
     ProxyContext pc = new ProxyContext(ctx, "okapi.pull.modules");
     try {
-      logger.info("GETTING: " + ctx.getBodyAsString());
       final PullDescriptor pmd = Json.decodeValue(ctx.getBodyAsString(),
         PullDescriptor.class);
       pm.pull(pmd, res -> {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
         } else {
-          pc.responseJson(200, "null");
+          pc.responseJson(200, Json.encodePrettily(res.result()));
         }
       });
     } catch (DecodeException ex) {

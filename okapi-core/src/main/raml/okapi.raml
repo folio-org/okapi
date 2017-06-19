@@ -450,7 +450,7 @@ schemas:
 
 /_/proxy/pull/modules:
   post:
-    description: pull modules
+    description: pull modules - returns list of modules pulled
     body:
       application/json:
         schema: PullDescriptor
@@ -462,6 +462,7 @@ schemas:
             description:
         body:
           application/json:
+            schema: ModuleList
       400:
         description: Bad Request
         body:
