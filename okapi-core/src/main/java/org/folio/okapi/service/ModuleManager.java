@@ -131,9 +131,7 @@ public class ModuleManager {
                   + req.getId() + " " + req.getVersion()
                   + " against " + pi.getId() + " " + pi.getVersion());
           if (req.getId().equals(pi.getId())) {
-            if (seenversion == null || pi.compare(req) > 0) {
-              seenversion = pi;
-            }
+            seenversion = pi;
             if (pi.isCompatible(req)) {
               logger.debug("Dependency OK");
               return "";  // ok

@@ -81,7 +81,7 @@ public class ProxyService {
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getNameOrId() + " "
-      + url + " : " + statusCode + " " + pc.timeDiff());
+      + url + " : " + statusCode + pc.timeDiff());
     pc.addTraceHeaders(ctx);
     pc.logResponse(mi.getModuleDescriptor().getNameOrId(), url, statusCode);
   }
@@ -138,7 +138,7 @@ public class ProxyService {
    * Builds the pipeline of modules to be invoked for a request.
    *
    * @param pc
-   * @param t The current tenant
+   * @param enabledModules modules enabled for the current tenant
    * @return a list of ModuleInstances. In case of error, sets up ctx and
    * returns null.
    */
@@ -146,17 +146,32 @@ public class ProxyService {
     List<ModuleDescriptor> enabledModules) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
+    final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
     pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
+
     for (ModuleDescriptor md : enabledModules) {
       pc.debug("getMods:  looking at " + md.getNameOrId());
       List<RoutingEntry> rr = md.getProxyRoutingEntries();
-      for (RoutingEntry re : rr) {
-        if (match(re, req)) {
-          if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
-            return null;
+      if (id == null) {
+        for (RoutingEntry re : rr) {
+          if (match(re, req)) {
+            if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
+              return null;
+            }
+            pc.debug("getMods:   Added " + md.getId() + " "
+              + re.getPathPattern() + " " + re.getPath());
           }
-          pc.debug("getMods:   Added " + md.getNameOrId()
-            + " " + re.getPathPattern() + " " + re.getPath());
+        }
+      } else if (id.equals(md.getId())) {
+        List<RoutingEntry> rr1 = md.getMultiRoutingEntries();
+        for (RoutingEntry re : rr1) {
+          if (match(re, req)) {
+            if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
+              return null;
+            }
+            pc.debug("getMods:   Added " + md.getId() + " "
+              + re.getPathPattern() + " " + re.getPath());
+          }
         }
       }
     }

@@ -77,7 +77,6 @@ public class TenantManager {
         return;
       }
       if (tenantStore == null) { // no db, just add it to shared mem
-        logger.debug("XXXX No db, just adding " + id);
         tenants.add(id, t, ares -> {
           if (ares.failed()) {
             fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -86,14 +85,12 @@ public class TenantManager {
           fut.handle(new Success<>(id));
         });
       } else { // insert into db first
-        logger.debug("XXXX Have db, inserting first " + id);
         tenantStore.insert(t, res -> {
           if (res.failed()) {
             logger.warn("TenantManager: Adding " + id + " FAILED: ", res);
             fut.handle(new Failure<>(res.getType(), res.cause()));
             return;
           }
-          logger.debug("XXXX Db insert OK " + id);
           tenants.add(id, t, ares -> { // and then into shared memory
             if (ares.failed()) {
               fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -226,7 +223,7 @@ public class TenantManager {
     ModuleInterface seenversion = null;
     Set<String> enabledModules = tenant.listModules();
     Iterator<String> it = enabledModules.iterator();
-    checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, null, fut);
+    checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, fut);
   }
 
   /**
@@ -241,18 +238,11 @@ public class TenantManager {
    */
   private void checkOneDependencyAgainstOneModule(ModuleDescriptor mod_from,
     ModuleDescriptor mod_to, ModuleInterface req,
-    Iterator<String> it, ModuleInterface seenversion,
+    Iterator<String> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) { // did not find it
-      String msg;
-      if (seenversion == null) {
-        msg = "Can not enable module '" + mod_to.getId() + "'"
-          + ", missing dependency " + req.getId() + ": " + req.getVersion();
-      } else {
-        msg = "Can not enable module '" + mod_to.getId() + "'"
-          + "Incompatible version for " + req.getId() + ". "
-          + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
-      }
+      String msg = "Can not enable module '" + mod_to.getId() + "'"
+        + ", missing dependency " + req.getId() + ": " + req.getVersion();
       fut.handle(new Failure<>(USER, msg));
       return;
     }
@@ -263,10 +253,9 @@ public class TenantManager {
         return;
       }
       ModuleDescriptor rm = gres.result();
-      if (rm != mod_from) {
+      if (rm != mod_from) { // XXX check IDs, not MDs
         ModuleInterface[] provides = rm.getProvides();
         if (provides != null) {
-          ModuleInterface sv = seenversion; // seenversion needs to be final...
           for (ModuleInterface pi : provides) {
             logger.debug("Checking dependency of " + mod_to.getId()
               + ": " + req.getId() + " " + req.getVersion()
@@ -275,13 +264,8 @@ public class TenantManager {
               fut.handle(new Success<>());  // Found it!
               return;
             }
-            if (req.getId().equals(pi.getId())) {
-              if (sv == null || pi.compare(req) > 0) {
-                sv = pi;
-              }
-            }
           }
-          checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, sv, fut);
+          checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, fut);
         }
       }
     });
@@ -374,7 +358,9 @@ public class TenantManager {
     ModuleInterface[] requires, int i,
     Handler<ExtendedAsyncResult<Void>> fut) {
     if (requires == null || i >= requires.length || requires[i] == null) {
-      checkDependenciesOneConflict(tenant, mod_from, mod_to, mod_to.getProvides(), 0, fut);
+      // List<RoutingEntry> pxre = mod_to.getProxyRoutingEntries();   !! ???
+      checkDependenciesOneConflict(tenant, mod_from, mod_to,
+        mod_to.getProvides(), 0, fut);
     } else {
       checkOneDependency(tenant, mod_from, mod_to, requires[i], res -> {
         if (res.failed()) {
@@ -422,6 +408,11 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Void>> fut) {
     moduleManager.get(module_to, tres -> {
       if (tres.failed()) {
+        if (tres.getType() == NOT_FOUND) {
+          fut.handle(new Failure<>(NOT_FOUND,
+            "Module (t)" + module_to + " not found"));
+          return;
+        }
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
         // return "module " + module_to + " not found";  // Old error message
@@ -429,6 +420,11 @@ public class TenantManager {
       ModuleDescriptor mod_to = tres.result();
       moduleManager.get(module_from, fres -> {
         if (fres.failed()) {
+          if (tres.getType() == NOT_FOUND) {
+            fut.handle(new Failure<>(NOT_FOUND,
+              "Module (f)" + module_from + " not found"));
+            return;
+          }
           fut.handle(new Failure<>(fres.getType(), fres.cause()));
           return;
         }
@@ -731,6 +727,34 @@ public class TenantManager {
     });
   }
 
+// TODO - Make this work with a callback
+  public void listModulesFromInterface(String tenantId,
+    String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    tenants.get(tenantId, tres -> {
+      if (tres.failed()) {
+        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        return;
+      }
+      Tenant tenant = tres.result();
+      ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
+      moduleManager.getEnabledModules(tenant, mres -> {
+        if (mres.failed()) {
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        List<ModuleDescriptor> modlist = mres.result();
+        for (ModuleDescriptor md : modlist) {
+          for (ModuleInterface provide : md.getProvides()) {
+            if (interfaceName.equals(provide.getId())) {
+              mdList.add(md);
+              break;
+            }
+          }
+        }
+        fut.handle(new Success<>(mdList));
+      }); // modlist
+    }); // tenant
+  }
 
   /**
    * List modules for a given tenant.

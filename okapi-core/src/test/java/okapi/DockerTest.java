@@ -165,6 +165,7 @@ public class DockerTest {
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"dockerImage\" : \"okapi-test-module\"," + LS
+      + "    \"dockerPull\" : false," + LS
       + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
       + "    \"dockerArgs\" : {" + LS
       + "      \"StopTimeout\" : 12" + LS

@@ -37,6 +37,8 @@ import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.env.EnvService;
+import org.folio.okapi.pull.PullManager;
+import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ProxyContext;
@@ -58,9 +60,12 @@ public class MainVerticle extends AbstractVerticle {
   DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
+  PullManager pullManager;
+  PullService pullService;
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
+  private String okapiVersion = null;
 
   // Little helper to get a config value:
   // First from System (-D on command line),
@@ -76,7 +81,21 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
-    InputStream in = getClass().getClassLoader().getResourceAsStream("git.properties");
+    InputStream in = getClass().getClassLoader().
+      getResourceAsStream("META-INF/maven/org.folio.okapi/okapi-core/pom.properties");
+    if (in != null) {
+      try {
+        Properties prop = new Properties();
+        prop.load(in);
+        in.close();
+        okapiVersion = prop.getProperty("version");
+        logger.info(prop.getProperty("artifactId") + " " + okapiVersion);
+      } catch (Exception e) {
+        logger.warn(e);
+      }
+    }
+
+    in = getClass().getClassLoader().getResourceAsStream("git.properties");
     if (in != null) {
       try {
         Properties prop = new Properties();
@@ -88,6 +107,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.warn(e);
       }
     }
+
     boolean enableProxy = false;
     boolean enableDeployment = false;
 
@@ -178,6 +198,8 @@ public class MainVerticle extends AbstractVerticle {
       moduleWebService = new ModuleWebService(vertx, moduleManager);
       tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
+      pullManager = new PullManager(vertx, okapiUrl);
+      pullService = new PullService(pullManager);
     }
   }
 
@@ -290,6 +312,11 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  private void getVersion(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(vertx, ctx);
+    pc.responseText(200, okapiVersion == null ? "null" : okapiVersion);
+  }
+
   private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
     logger.debug("Setting up routes");
@@ -333,7 +360,11 @@ public class MainVerticle extends AbstractVerticle {
       router.post("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
       router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
       router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
+      router.get("/_/proxy/tenants/:id/interfaces/:int").handler(tenantWebService::listModulesFromInterface);
       router.getWithRegex("/_/proxy/health").handler(healthService::get);
+    }
+    if (pullService != null) {
+      router.postWithRegex("/_/proxy/pull/modules").handler(pullService::create);
     }
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
@@ -367,6 +398,7 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/env").handler(envService::getAll);
       router.get("/_/env/:id").handler(envService::get);
     }
+    router.get("/_/version").handler(this::getVersion);
     router.route("/_*").handler(this::NotFound);
 
     // everything else gets proxified to modules

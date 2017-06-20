@@ -1,3 +1,19 @@
+## 1.6.0 2017-06-19
+
+ * Service `/_/proxy/pull/modules` syncs remote Okapi with local one OKAPI-347
+ * Fix empty routing entry throws exception OKAPI-348
+
+## 1.5.0 2017-06-12
+
+ * Service `/_/version` returns Okapi version OKAPI-346
+ * Allow multiple versions in requires OKAPI-330
+ * Minor tweak in HTTP logging to avoid double blank
+
+## 1.4.0 2017-06-07
+
+ * Multiple interfaces facility OKAPI-337
+ * Configurable Docker pull OKAPI-345
+
 ## 1.3.0 2017-05-29
 
  * Pass visibility flag from MD to tenantPermissions OKAPI-341

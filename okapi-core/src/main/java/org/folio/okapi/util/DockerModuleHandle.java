@@ -32,6 +32,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String dockerUrl;
   private final EnvEntry[] env;
   private final AnyDescriptor dockerArgs;
+  private final boolean dockerPull;
 
   private String containerId;
 
@@ -44,6 +45,12 @@ public class DockerModuleHandle implements ModuleHandle {
     this.cmd = desc.getDockerCMD();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
+    Boolean b = desc.getDockerPull();
+    if (b != null && b.booleanValue() == false) {
+      this.dockerPull = false;
+    } else {
+      this.dockerPull = true;
+    }
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -297,46 +304,55 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end(doc);
   }
 
-  @Override
-  public void start(Handler<AsyncResult<Void>> startFuture) {
-    pullImage(res0 -> {
-      getImage(res1 -> {
-        if (res1.failed()) {
-          startFuture.handle(Future.failedFuture(res1.cause()));
-        } else {
-          JsonObject b = res1.result();
-          JsonObject config = b.getJsonObject("Config");
-          JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-          Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
-          int exposedPort = 0;
-          while (iterator.hasNext()) {
-            Map.Entry<String, Object> next = iterator.next();
-            String key = next.getKey();
-            String sPort = key.split("/")[0];
-            if (exposedPort == 0) {
-              exposedPort = Integer.valueOf(sPort);
-            }
-          }
-          if (hostPort == 0) {
-            startFuture.handle(Future.failedFuture("No exposedPorts in image"));
-          } else {
-            createContainer(exposedPort, res2 -> {
-              if (res2.failed()) {
-                startFuture.handle(Future.failedFuture(res2.cause()));
-              } else {
-                startContainer(res3 -> {
-                  if (res3.failed()) {
-                    startFuture.handle(Future.failedFuture(res3.cause()));
-                  } else {
-                    getContainerLog(startFuture);
-                  }
-                });
-              }
-            });
+  private void prepareContainer(Handler<AsyncResult<Void>> startFuture) {
+    getImage(res1 -> {
+      if (res1.failed()) {
+        logger.warn("getImage failed 1 : " + res1.cause().getMessage());
+        startFuture.handle(Future.failedFuture(res1.cause()));
+      } else {
+        JsonObject b = res1.result();
+        JsonObject config = b.getJsonObject("Config");
+        JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
+        Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
+        int exposedPort = 0;
+        while (iterator.hasNext()) {
+          Map.Entry<String, Object> next = iterator.next();
+          String key = next.getKey();
+          String sPort = key.split("/")[0];
+          if (exposedPort == 0) {
+            exposedPort = Integer.valueOf(sPort);
           }
         }
-      });
+        if (hostPort == 0) {
+          startFuture.handle(Future.failedFuture("No exposedPorts in image"));
+        } else {
+          createContainer(exposedPort, res2 -> {
+            if (res2.failed()) {
+              startFuture.handle(Future.failedFuture(res2.cause()));
+            } else {
+              startContainer(res3 -> {
+                if (res3.failed()) {
+                  startFuture.handle(Future.failedFuture(res3.cause()));
+                } else {
+                  getContainerLog(startFuture);
+                }
+              });
+            }
+          });
+        }
+      }
     });
+  }
+
+  @Override
+  public void start(Handler<AsyncResult<Void>> startFuture) {
+    if (dockerPull) {
+      pullImage(res -> {
+        prepareContainer(startFuture);
+      });
+    } else {
+      prepareContainer(startFuture);
+    }
   }
 
   @Override

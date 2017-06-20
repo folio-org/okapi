@@ -50,6 +50,9 @@ public class TenantWebService {
     this.discoveryManager = discoveryManager;
   }
 
+   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+     tenants.init(vertx, fut);
+  }
 
   public void create(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.create");
@@ -63,14 +66,12 @@ public class TenantWebService {
       if (!id.matches("^[a-z0-9._-]+$")) {
         pc.responseError(400, "Invalid id");
       } else {
-        logger.debug("XXXX Creating tenant " + id);
         Tenant t = new Tenant(td);
         tenants.insert(t, res -> {
           if (res.failed()) {
             pc.responseError(res.getType(), res.cause());
             return;
           }
-          logger.debug("XXXX Created tenant " + id);
           final String uri = ctx.request().uri() + "/" + id;
           final String s = Json.encodePrettily(t.getDescriptor());
           pc.responseJson(201, s, uri);
@@ -146,14 +147,12 @@ public class TenantWebService {
 
   public void enableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
-    pc.debug("enableModule XXX");
     enableTenantInt(pc, null);
   }
 
   public void updateModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.updatemodule");
     final String module_from = ctx.request().getParam("mod");
-    pc.debug("enableModule XXX fr=" + module_from);
     enableTenantInt(pc, module_from);
   }
 
@@ -197,6 +196,7 @@ public class TenantWebService {
         Tenant tenant = res.result();
         tenants.updateModuleDepCheck(tenant, module_from, module_to, tres -> {
           if (tres.failed()) {
+            logger.debug("enableTenantInt: depcheck fail: " + tres.cause().getMessage());
             pc.responseError(tres.getType(), tres.cause());
             return;
           }
@@ -539,8 +539,28 @@ public class TenantWebService {
     });
   }
 
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.init(vertx, fut);
+  public void listModulesFromInterface(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.listmodulesfrominterface");
+    final String intId = ctx.request().getParam("int");
+    final String id = ctx.request().getParam("id");
+    tenants.listModulesFromInterface(id, intId, lres -> {
+      if (lres.failed()) {
+        pc.responseError(lres.getType(), lres.cause());
+        return;
+      }
+      List<ModuleDescriptor> mdL = lres.result();
+
+      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
+      for (ModuleDescriptor md : mdL) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setId(md.getId());
+        ta.add(tmd);
+      }
+      String s = Json.encodePrettily(ta);
+      pc.responseJson(200, s);
+    });
   }
+
+
 
 } // class

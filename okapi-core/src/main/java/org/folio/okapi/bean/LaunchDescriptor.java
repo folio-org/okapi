@@ -16,6 +16,7 @@ public class LaunchDescriptor {
   private String cmdlineStop;
   private String exec;
   private String dockerImage;
+  private Boolean dockerPull;
   private String[] dockerCMD;
   private EnvEntry[] env;
   private AnyDescriptor dockerArgs;
@@ -53,6 +54,14 @@ public class LaunchDescriptor {
 
   public void setDockerImage(String dockerImage) {
     this.dockerImage = dockerImage;
+  }
+
+  public Boolean getDockerPull() {
+    return dockerPull;
+  }
+
+  public void setDockerPull(Boolean dockerPull) {
+    this.dockerPull = dockerPull;
   }
 
   public String[] getDockerCMD() {
