@@ -7,6 +7,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -208,135 +209,9 @@ public class TenantManager {
     });
   }
 
-  /**
-   * Check that some (enabled) module provides the required interface.
-   *
-   * @param tenant to have the module enabled
-   * @param mod_from module to be disabled. Does not count as provides
-   * @param mod_to module to be enabled. The one that needs the interface.
-   * @param req required interface.
-   * @param fut callback with an error message,
-   */
-  private void checkOneDependency(Tenant tenant, ModuleDescriptor mod_from,
-    ModuleDescriptor mod_to, ModuleInterface req,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    ModuleInterface seenversion = null;
-    Set<String> enabledModules = tenant.listModules();
-    Iterator<String> it = enabledModules.iterator();
-    checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, fut);
-  }
 
   /**
-   * Recursive helper to check dependencies.
-   *
-   * @param mod_from
-   * @param mod_to
-   * @param req
-   * @param it
-   * @param seenversion for error messages
-   * @param fut
-   */
-  private void checkOneDependencyAgainstOneModule(ModuleDescriptor mod_from,
-    ModuleDescriptor mod_to, ModuleInterface req,
-    Iterator<String> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) { // did not find it
-      String msg = "Can not enable module '" + mod_to.getId() + "'"
-        + ", missing dependency " + req.getId() + ": " + req.getVersion();
-      fut.handle(new Failure<>(USER, msg));
-      return;
-    }
-    String enabledModule = it.next();
-    moduleManager.get(enabledModule, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      ModuleDescriptor rm = gres.result();
-      if (rm != mod_from) { // XXX check IDs, not MDs
-        ModuleInterface[] provides = rm.getProvides();
-        if (provides != null) {
-          for (ModuleInterface pi : provides) {
-            logger.debug("Checking dependency of " + mod_to.getId()
-              + ": " + req.getId() + " " + req.getVersion()
-              + " against " + pi.getId() + " " + pi.getVersion());
-            if (pi.isCompatible(req)) {
-              fut.handle(new Success<>());  // Found it!
-              return;
-            }
-          }
-          checkOneDependencyAgainstOneModule(mod_from, mod_to, req, it, fut);
-        }
-      }
-    });
-  }
-
-  /**
-   * Check that nobody else provides the same interface.
-   *
-   * @param tenant to check for
-   * @param mod_from module to be disabled. Not checked against.
-   * @param mod_to module to be enabled, provider of the interface
-   * @param prov interface that we are about to provide
-   * @param fut Success, or error with message.
-   */
-  private void checkOneConflict(Tenant tenant, ModuleDescriptor mod_from,
-    ModuleDescriptor mod_to, ModuleInterface prov,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (prov.getId().startsWith("_")) {
-      logger.debug("Not checking old-style system interface " + prov.getId());
-      fut.handle(new Success<>());
-      return;
-    }
-    Set<String> enabledModules = tenant.listModules();
-    Iterator<String> it = enabledModules.iterator();
-    checkOneConflictingModule(tenant, mod_from, mod_to, prov, it, fut);
-  }
-
-  /**
-   * Recursive helper for checkOneConflict
-   */
-  private void checkOneConflictingModule(Tenant tenant, ModuleDescriptor mod_from,
-    ModuleDescriptor mod_to, ModuleInterface prov, Iterator<String> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>());  // nobody conflicted, declare success
-      return;
-    }
-    String enabledModule = it.next();
-    moduleManager.get(enabledModule, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      ModuleDescriptor rm = gres.result();
-      if (mod_from == null || !mod_from.getId().equals(rm.getId())) {
-        ModuleInterface[] provides = rm.getProvides();
-        if (provides != null) {
-          for (ModuleInterface pi : provides) {
-            logger.debug("Checking conflict of " + mod_to.getId() + ": "
-              + prov.getId() + " " + prov.getVersion()
-              + " against " + pi.getId() + " " + pi.getVersion());
-            if (prov.getId().equals(pi.getId())) {
-              String msg = "Can not enable module '" + mod_to.getId() + "'"
-                + " for tenant '" + tenant.getId() + "'"
-                + " because of conflict:"
-                + " Interface '" + prov.getId() + "' already provided by module '"
-                + enabledModule + "'";
-              logger.debug(msg);
-              fut.handle(new Failure<>(USER, msg));
-              return;
-            }
-          }
-        }
-      }
-      logger.debug("checkOneConflictingModule: " + enabledModule + " ok");
-      checkOneConflictingModule(tenant, mod_from, mod_to, prov, it, fut);
-    });
-  }
-
-  /**
-   * Check module dependencies. Part 1, set up recursion
+   * Check module dependencies and conflicts.
    *
    * @param tenant to check for
    * @param mod_from module to be removed. Ignored in the checks
@@ -346,52 +221,39 @@ public class TenantManager {
   private void checkDependencies(Tenant tenant,
     ModuleDescriptor mod_from, ModuleDescriptor mod_to,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    ModuleInterface[] requires = mod_to.getRequires();
-    checkDependenciesOneReq(tenant, mod_from, mod_to, requires, 0, fut);
-  }
 
-  /**
-   * First of the recursive helper for checkDependencies. Checks one dependency.
-   */
-  private void checkDependenciesOneReq(Tenant tenant,
-    ModuleDescriptor mod_from, ModuleDescriptor mod_to,
-    ModuleInterface[] requires, int i,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (requires == null || i >= requires.length || requires[i] == null) {
-      // List<RoutingEntry> pxre = mod_to.getProxyRoutingEntries();   !! ???
-      checkDependenciesOneConflict(tenant, mod_from, mod_to,
-        mod_to.getProvides(), 0, fut);
-    } else {
-      checkOneDependency(tenant, mod_from, mod_to, requires[i], res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
-        checkDependenciesOneReq(tenant, mod_from, mod_to, requires, i + 1, fut);
-      });
-    }
-  }
-
-  /**
-   * Second of the recursive helpers for checkDependencies. Checks one conflict.
-   */
-  private void checkDependenciesOneConflict(Tenant tenant,
-    ModuleDescriptor mod_from, ModuleDescriptor mod_to,
-    ModuleInterface[] provides, int i,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (provides == null || i >= provides.length || provides[i] == null) {
-      // all checks ok, finally!
-      fut.handle(new Success<>());
-      return;
-    }
-    checkOneConflict(tenant, mod_from, mod_to, provides[i], res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+    moduleManager.getEnabledModules(tenant, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
-      checkDependenciesOneConflict(tenant, mod_from, mod_to, provides, i + 1, fut);
+      List<ModuleDescriptor> modlist = gres.result();
+      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
+      for (ModuleDescriptor md : modlist) {
+        mods.put(md.getId(), md);
+      }
+      if (mod_from != null) {
+        mods.remove(mod_from.getId());
+      }
+      if (mod_to != null) {
+        ModuleDescriptor already = mods.get(mod_to.getId());
+        if (already != null) {
+          fut.handle(new Failure<>(USER,
+            "Module " + mod_to.getId() + " already provided"));
+          return;
+        }
+        mods.put(mod_to.getId(), mod_to);
+      }
+      String conflicts = moduleManager.checkAllConflicts(mods);
+      String deps = moduleManager.checkAllDependencies(mods);
+      if (conflicts.isEmpty() && deps.isEmpty()) {
+        fut.handle(new Success<>());
+        return;
+      }
+      fut.handle(new Failure<>(USER, conflicts + " " + deps));
     });
   }
+
 
 
   /**
@@ -401,7 +263,7 @@ public class TenantManager {
    * @param tenant to operate on
    * @param module_from module to be removed
    * @param module_to module to be added
-   * @return Error message string, or "" if all is well
+   * @param fut callback with error message string, or success
    */
   public void updateModuleDepCheck(Tenant tenant,
     String module_from, String module_to,
@@ -410,19 +272,18 @@ public class TenantManager {
       if (tres.failed()) {
         if (tres.getType() == NOT_FOUND) {
           fut.handle(new Failure<>(NOT_FOUND,
-            "Module (t)" + module_to + " not found"));
+            "Module " + module_to + " not found (t)"));
           return;
         }
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
-        // return "module " + module_to + " not found";  // Old error message
       }
       ModuleDescriptor mod_to = tres.result();
       moduleManager.get(module_from, fres -> {
         if (fres.failed()) {
           if (tres.getType() == NOT_FOUND) {
             fut.handle(new Failure<>(NOT_FOUND,
-              "Module (f)" + module_from + " not found"));
+              "Module " + module_from + " not found (f)"));
             return;
           }
           fut.handle(new Failure<>(fres.getType(), fres.cause()));
@@ -727,7 +588,6 @@ public class TenantManager {
     });
   }
 
-// TODO - Make this work with a callback
   public void listModulesFromInterface(String tenantId,
     String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     tenants.get(tenantId, tres -> {

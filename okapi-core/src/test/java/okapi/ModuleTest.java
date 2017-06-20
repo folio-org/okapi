@@ -1415,6 +1415,7 @@ public class ModuleTest {
     final String locationSample2Module = r.getHeader("Location");
 
     // enable sample2
+    logger.debug("XXXX Enabling sample-module2");
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module2\"" + LS
       + "}";

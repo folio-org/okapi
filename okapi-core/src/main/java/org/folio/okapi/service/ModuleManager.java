@@ -175,9 +175,9 @@ public class ModuleManager {
    * the modules list, after making some change.
    *
    * @param modlist list to check
-   * @return true if no problems
+   * @return error message, or "" if all is ok
    */
-  private String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist) {
+  public String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist) {
     for (ModuleDescriptor md : modlist.values()) {
       String res = checkDependencies(md, modlist);
       if (!res.isEmpty()) {
@@ -185,6 +185,36 @@ public class ModuleManager {
       }
     }
     return "";
+  }
+
+  /**
+   * Check a module list for conflicts.
+   *
+   * @param modlist modules to be checked
+   * @return error message listing conflicts, or "" if no problems
+   */
+  public String checkAllConflicts(HashMap<String, ModuleDescriptor> modlist) {
+    HashMap<String, String> provs = new HashMap<>(); // interface name to module name
+    String conflicts = "";
+    for (ModuleDescriptor md : modlist.values()) {
+      ModuleInterface[] provides = md.getProvides();
+      if (provides != null) {
+        for (ModuleInterface mi : provides) {
+          if (mi.isRegularHandler()) {
+            String confl = provs.get(mi.getId());
+            if (confl == null || confl.isEmpty()) {
+              provs.put(mi.getId(), md.getId());
+            } else {
+              String msg = "Interface " + mi.getId()
+                + " is provided by " + md.getId() + " and " + confl + ". ";
+              conflicts += msg;
+            }
+          }
+        }
+      }
+    }
+    logger.debug("checkAllConflicts: " + conflicts);
+    return conflicts;
   }
 
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
