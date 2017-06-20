@@ -30,7 +30,6 @@ import org.folio.okapi.web.ModuleWebService;
 import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.service.TimeStampStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentWebService;
@@ -185,20 +184,19 @@ public class MainVerticle extends AbstractVerticle {
       });
     }
     if (enableProxy) {
+      storage = new Storage(vertx, storageType, config);
       discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
-      moduleManager = new ModuleManager(vertx);
-      TenantManager tenantManager = new TenantManager(moduleManager);
+      ModuleStore moduleStore = storage.getModuleStore();
+      moduleManager = new ModuleManager(vertx, moduleStore);
+      TenantStore tenantStore = storage.getTenantStore();
+      TenantManager tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
-      storage = new Storage(vertx, storageType, config);
-      ModuleStore moduleStore = storage.getModuleStore();
-      TimeStampStore timeStampStore = storage.getTimeStampStore();
-      TenantStore tenantStore = storage.getTenantStore();
       logger.info("Proxy using " + storageType + " storage");
-      moduleWebService = new ModuleWebService(vertx, moduleManager, moduleStore, timeStampStore);
-      tenantWebService = new TenantWebService(vertx, tenantManager, tenantStore, discoveryManager);
+      moduleWebService = new ModuleWebService(vertx, moduleManager);
+      tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
       pullManager = new PullManager(vertx, okapiUrl);
       pullService = new PullService(pullManager);
@@ -218,6 +216,7 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
+    logger.debug("starting");
     if (storage != null) {
       storage.prepareDatabases(initMode, res -> {
         if (res.failed()) {
@@ -228,23 +227,24 @@ public class MainVerticle extends AbstractVerticle {
             logger.info("Database operation " + initMode.toString() + " done. Exiting");
             System.exit(0);
           }
-          startModules(fut);
+          initModmanager(fut);
         }
       });
     } else {
-      startModules(fut);
+      initModmanager(fut);
     }
   }
 
-  private void startModules(Future<Void> fut) {
-    if (moduleWebService == null) {
+  private void initModmanager(Future<Void> fut) {
+    if (moduleManager == null) {
       startTenants(fut);
     } else {
-      moduleWebService.loadModules(res -> {
+      logger.debug("Starting modules");
+      moduleManager.init(vertx, res -> {
         if (res.succeeded()) {
           startTenants(fut);
         } else {
-          logger.fatal("load modules: " + res.cause().getMessage());
+          logger.fatal("ModuleManager init: " + res.cause().getMessage());
           fut.fail(res.cause());
         }
       });
@@ -255,7 +255,8 @@ public class MainVerticle extends AbstractVerticle {
     if (tenantWebService == null) {
       startEnv(fut);
     } else {
-      tenantWebService.loadTenants(res -> {
+      logger.debug("Startting tenants");
+      tenantWebService.init(vertx, res -> {
         if (res.succeeded()) {
           startEnv(fut);
         } else {
@@ -270,6 +271,7 @@ public class MainVerticle extends AbstractVerticle {
     if (envManager == null) {
       startDiscovery(fut);
     } else {
+      logger.debug("starting Env");
       envManager.init(vertx, res -> {
         if (res.succeeded()) {
           startDiscovery(fut);
@@ -284,6 +286,7 @@ public class MainVerticle extends AbstractVerticle {
     if (discoveryManager == null) {
       startDeployment(fut);
     } else {
+      logger.debug("Starting discovery");
       discoveryManager.init(vertx, res -> {
         if (res.succeeded()) {
           startDeployment(fut);
@@ -298,6 +301,7 @@ public class MainVerticle extends AbstractVerticle {
     if (deploymentManager == null) {
       startListening(fut);
     } else {
+      logger.debug("Starting discovery");
       deploymentManager.init(res -> {
         if (res.succeeded()) {
           startListening(fut);
@@ -315,7 +319,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
-
+    logger.debug("Setting up routes");
     //handle CORS
     router.route().handler(CorsHandler.create("*")
             .allowedMethod(HttpMethod.PUT)
@@ -366,8 +370,6 @@ public class MainVerticle extends AbstractVerticle {
     // The reload points can be removed as soon as we have a good integration
     // test that verifies that changes propagate across a cluster...
     if (moduleWebService != null) {
-      router.getWithRegex("/_/test/reloadmodules").handler(moduleWebService::reloadModules);
-      router.get("/_/test/reloadtenant/:id").handler(tenantWebService::reloadTenant);
       router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
       router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
     }
@@ -403,6 +405,7 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }
+    logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)

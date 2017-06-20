@@ -10,6 +10,7 @@ import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.MongoClientUpdateResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -147,7 +148,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void enableModule(String id, String module, long timestamp,
+  public void enableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
@@ -163,7 +164,6 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
-          t.setTimestamp(timestamp);
           t.enableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
@@ -182,7 +182,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void disableModule(String id, String module, long timestamp,
+  public void disableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
@@ -198,7 +198,6 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject d = l.get(0);
           d.remove("_id");
           final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
-          t.setTimestamp(timestamp);
           t.disableModule(module);
           String s = Json.encodePrettily(t);
           JsonObject document = new JsonObject(s);
@@ -207,6 +206,39 @@ public class TenantStoreMongo implements TenantStore {
             if (sres.failed()) {
               logger.debug("TenantStoreMongo: disable: saving failed: " + gres.cause().getMessage());
               fut.handle(new Failure<>(INTERNAL, gres.cause()));
+            } else {
+              fut.handle(new Success<>());
+            }
+          });
+        }
+      }
+    });
+  }
+
+  @Override
+  public void updateModules(String id, TreeMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
+    JsonObject jq = new JsonObject().put("_id", id);
+    cli.find(collection, jq, gres -> {
+      if (gres.failed()) {
+        logger.debug("disableModule: find failed: " + gres.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL, gres.cause()));
+      } else {
+        List<JsonObject> l = gres.result();
+        if (l.isEmpty()) {
+          logger.debug("disableModule: not found: " + id);
+          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+        } else {
+          JsonObject d = l.get(0);
+          d.remove("_id");
+          final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
+          t.setEnabled(enabled);
+          String s = Json.encodePrettily(t);
+          JsonObject document = new JsonObject(s);
+          document.put("_id", id);
+          cli.save(collection, document, sres -> {
+            if (sres.failed()) {
+              logger.debug("TenantStoreMongo: disable: saving failed: " + sres.cause().getMessage());
+              fut.handle(new Failure<>(INTERNAL, sres.cause()));
             } else {
               fut.handle(new Success<>());
             }

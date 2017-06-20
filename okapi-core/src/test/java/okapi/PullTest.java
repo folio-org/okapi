@@ -147,7 +147,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port1)
       .header("Content-Type", "application/json")
-      .body(docModuleA).post("/_/proxy/modules").then().statusCode(201);
+      .body(docModuleA).post("/_/proxy/modules")
+      .then().statusCode(201);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());

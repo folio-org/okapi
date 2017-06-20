@@ -54,6 +54,16 @@ public class LockedStringMap {
     });
   }
 
+  public void clear(Handler<ExtendedAsyncResult<Void>> fut) {
+    list.clear(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
   public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -135,6 +145,7 @@ public class LockedStringMap {
       }
     });
   }
+
 
   private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
     KeyList klist = new KeyList();

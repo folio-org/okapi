@@ -27,7 +27,12 @@ public class AsyncMapFactory {
         }
       });
     } else {
-      AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx, mapName);
+      // Dirty trickery to make sure we can run two verticles in our tests,
+      // without them sharing the 'shared' memory. Only when running in non-
+      // clustered mode, of course.
+      int rnd = (int) (Math.random() * 1000000000);
+      String newid = String.format("%09d", rnd);
+      AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx, mapName + newid);
       fut.handle(new Success<>(l));
     }
   }

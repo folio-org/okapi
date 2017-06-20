@@ -21,7 +21,7 @@ public class ModuleInterface {
 
   private String id;
   private String version;
-  private String interfaceType; // enum "proxy" (default), or "system"
+  private String interfaceType; // enum "proxy" (default), or "system", "multiple"
   private RoutingEntry[] routingEntries;
   private RoutingEntry[] handlers;
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -140,6 +140,23 @@ public class ModuleInterface {
 
   public void setInterfaceType(String interfaceType) {
     this.interfaceType = interfaceType;
+  }
+
+  /**
+   * Checks if the interface is a regular handler. Not a system interface, not
+   * multiple, and not old-fashioned _tenant. Used to skip conflict checks.
+   *
+   * @return
+   */
+  @JsonIgnore
+  public boolean isRegularHandler() {
+    if (interfaceType != null && !"proxy".equals(interfaceType)) {
+      return false; // explicitly some other type, like "multiple" or "system"
+    }
+    if (this.id.startsWith("_")) {
+      return false; // old-fashioned _tenant etc. DEPRECATED
+    }
+    return true;
   }
 
   public RoutingEntry[] getRoutingEntries() {

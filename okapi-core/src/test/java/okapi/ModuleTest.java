@@ -450,6 +450,18 @@ public class ModuleTest {
     final String locTenant = createTenant();
     final String locEnable = enableModule("sample-module");
 
+    // Try to enable a non-existing module
+    final String docEnableNonExisting = "{" + LS
+      + "  \"id\" : \"UnknownModule\"" + LS
+      + "}";
+    given()
+      .header("Content-Type", "application/json")
+      .body(docEnableNonExisting)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(404)
+      .log().ifError();
+
      // Make a simple request to the module
     given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -877,7 +889,8 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule2).put(locationAuthModule2).then().statusCode(200)
+      .body(docAuthModule2).put(locationAuthModule2)
+      .then().statusCode(200)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1072,7 +1085,7 @@ public class ModuleTest {
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(400);
+      .then().statusCode(404);
 
     final String docEnableAuth = "{" + LS
       + "  \"id\" : \"auth\"" + LS
@@ -1531,9 +1544,10 @@ public class ModuleTest {
       .header("X-Okapi-Stop", "Enough!")
       .body(equalTo("hej OkapiX")); // only one "Hello"
 
-    given().get("/_/test/reloadmodules")
+    /*
+     given().get("/_/test/reloadmodules")
       .then().statusCode(204);
-
+*/
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/xml")
@@ -2400,8 +2414,9 @@ public class ModuleTest {
     final String locTenant = createTenant();
     final String locEnable1 = enableModule("sample-module-1");
 
+    // Same interface defined twice.
     final String docEnable2 = "{" + LS
-      + "  \"id\" : \"" + "sample-module2" + "\"" + LS
+      + "  \"id\" : \"" + "sample-module-2" + "\"" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -2416,7 +2431,8 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
-      .then().statusCode(200).body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -2533,7 +2549,6 @@ public class ModuleTest {
       + "} ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
@@ -2579,12 +2594,11 @@ public class ModuleTest {
       .then().statusCode(204).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    c = api.createRestAssured();
+     c = api.createRestAssured();
     r = c.given().delete(locEnable4)
       .then().statusCode(204).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
     c = api.createRestAssured();
     r = c.given().delete(locationSampleModule3)
       .then().statusCode(204).extract().response();
@@ -2602,14 +2616,12 @@ public class ModuleTest {
     locationSampleDeployment = null;
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
-    c = api.createRestAssured();
+     c = api.createRestAssured();
     r = c.given().delete(locationHeaderDeployment)
       .then().statusCode(204).extract().response();
     locationHeaderDeployment = null;
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
     async.complete();
   }
 
