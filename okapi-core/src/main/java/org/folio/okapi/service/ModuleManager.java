@@ -22,7 +22,8 @@ import org.folio.okapi.util.LockedTypedMap1;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
- * checks on module versions, etc.
+ * checks on module versions, etc. Stores them in the database too, if we have
+ * one.
  */
 public class ModuleManager {
 
@@ -34,13 +35,13 @@ public class ModuleManager {
     = new LockedTypedMap1<>(ModuleDescriptor.class);
   ModuleStore moduleStore;
 
-  public void setTenantManager(TenantManager tenantManager) {
-    this.tenantManager = tenantManager;
-  }
-
   public ModuleManager(Vertx vertx, ModuleStore moduleStore) {
     this.vertx = vertx;
     this.moduleStore = moduleStore;
+  }
+
+  public void setTenantManager(TenantManager tenantManager) {
+    this.tenantManager = tenantManager;
   }
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -154,6 +155,9 @@ public class ModuleManager {
    *
    * @param md Module to be checked
    * @return "" if no problems, or an error message
+   *
+   * This could be done like we do conflicts, by building a map and checking
+   * against that...
    */
   private String checkDependencies(ModuleDescriptor md,
           HashMap<String, ModuleDescriptor> modlist) {
@@ -217,12 +221,24 @@ public class ModuleManager {
     return conflicts;
   }
 
+  /**
+   * Create a module.
+   *
+   * @param md
+   * @param fut
+   */
   public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
     createList(l, fut);
   }
 
+  /**
+   * Create a whole list of modules.
+   *
+   * @param list
+   * @param fut
+   */
   public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
@@ -248,6 +264,12 @@ public class ModuleManager {
     });
   }
 
+  /**
+   * Recursive helper for createList.
+   *
+   * @param it iterator of the module to be created
+   * @param fut
+   */
   private void createListR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>());
@@ -280,6 +302,12 @@ public class ModuleManager {
     });
   }
 
+  /**
+   * Update a module.
+   *
+   * @param md
+   * @param fut
+   */
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
     modules.getAll(ares -> {
@@ -335,6 +363,12 @@ public class ModuleManager {
     }); // get
   }
 
+  /**
+   * Delete a module.
+   *
+   * @param id
+   * @param fut
+   */
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
@@ -391,9 +425,6 @@ public class ModuleManager {
     });
   }
 
-  public void deleteAll(Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.clear(fut);
-  }
 
   /**
    * Get a module.
@@ -409,6 +440,11 @@ public class ModuleManager {
     fut.handle(new Success<>(null));
   }
 
+  /**
+   * List the ids of all modules.
+   *
+   * @param fut
+   */
   public void list(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     modules.getKeys(fut);
   }

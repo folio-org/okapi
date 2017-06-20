@@ -214,6 +214,7 @@ public class TenantWebService {
             }
             String tenInt = ires.result();
             logger.debug("enableTenantInt: tenint=" + tenInt);
+            // TODO - Use the proxy service for making the call!
             discoveryManager.get(module_to, gres -> {
               if (gres.failed()) {
                 pc.responseError(gres.getType(), gres.cause());
@@ -255,7 +256,6 @@ public class TenantWebService {
 
           });
         });
-
       });
     } catch (DecodeException ex) {
       pc.responseError(400, ex);
@@ -292,7 +292,7 @@ public class TenantWebService {
       } else {
         tenants.findSystemInterface(id, "_tenantPermissions", res -> {
           if (res.failed()) {
-            if (res.getType() == NOT_FOUND) { // no perms interface
+            if (res.getType() == NOT_FOUND) { // no perms interface. TODO
               // just continue with the process. Should probably trigger an error
               logger.debug("enablePermissions: No tenantPermissions interface found. "
                 + "Carrying on without it.");
@@ -320,7 +320,8 @@ public class TenantWebService {
     ModuleDescriptor permsModule, ModuleManager modMan) {
     RoutingContext ctx = pc.getCtx();
 
-    pc.debug("enablePermissionsPart2: Perms interface found in " + permsModule.getNameOrId());
+    pc.debug("enablePermissionsPart2: Perms interface found in "
+      + permsModule.getNameOrId());
     PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
     discoveryManager.get(permsModule.getId(), gres -> {
       if (gres.failed()) {
@@ -393,7 +394,8 @@ public class TenantWebService {
   }
 
   /**
-   * Enable tenant, part 3: enable in the tenant manager.
+   * Enable tenant, part 3: enable in the tenant manager. It stores it in the
+   * database too.
    */
   private void enableTenantManager(ProxyContext pc, TenantModuleDescriptor td,
     String id, String module_from, String module_to) {
@@ -549,7 +551,6 @@ public class TenantWebService {
         return;
       }
       List<ModuleDescriptor> mdL = lres.result();
-
       ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
       for (ModuleDescriptor md : mdL) {
         TenantModuleDescriptor tmd = new TenantModuleDescriptor();
@@ -560,7 +561,5 @@ public class TenantWebService {
       pc.responseJson(200, s);
     });
   }
-
-
 
 } // class

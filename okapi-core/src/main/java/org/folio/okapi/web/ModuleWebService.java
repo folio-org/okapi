@@ -30,7 +30,6 @@ public class ModuleWebService {
     this.moduleManager = moduleService;
   }
 
-
   public void create(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.modules.create");
     try {
@@ -115,7 +114,6 @@ public class ModuleWebService {
         pc.responseError(res.getType(), res.cause());
       }
     });
-    // moduleManager.listIds(ctx);
   }
 
   /**
@@ -136,6 +134,5 @@ public class ModuleWebService {
       pc.responseText(204, "");
     });
   }
-
 
 } // class

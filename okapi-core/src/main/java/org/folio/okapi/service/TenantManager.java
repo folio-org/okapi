@@ -135,23 +135,27 @@ public class TenantManager {
     });
   }
 
+  /**
+   * List the Ids of all tenants.
+   *
+   * @param fut
+   */
   public void getIds(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     tenants.getKeys(res -> {
       if (res.failed()) {
         logger.warn("TenantManager: Getting keys FAILED: ", res);
-        fut.handle(new Failure<>(INTERNAL, ""));
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
         return;
       }
       fut.handle(new Success<>(res.result()));
     });
   }
 
-
   public void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     tenants.getKeys(lres -> {
       if (lres.failed()) {
         logger.warn("TenantManager list: Getting keys FAILED: ", lres);
-        fut.handle(new Failure<>(INTERNAL, ""));
+        fut.handle(new Failure<>(INTERNAL, lres.cause()));
         return;
       }
       List<String> ids = new ArrayList<>(lres.result());
@@ -163,6 +167,13 @@ public class TenantManager {
     });
   }
 
+  /**
+   * Recursive helper to list tenants.
+   *
+   * @param it iterator to recurse through
+   * @param tdl list to build
+   * @param fut
+   */
   private void list_r(Iterator<String> it, List<TenantDescriptor> tdl,
     Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     if (!it.hasNext()) {
@@ -184,6 +195,12 @@ public class TenantManager {
     }
   }
 
+  /**
+   * Get a tenant.
+   *
+   * @param id
+   * @param fut
+   */
   public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
     tenants.get(id, fut);
   }
@@ -192,7 +209,8 @@ public class TenantManager {
    * Delete a tenant.
    *
    * @param id
-   * @returns a Boolean in the callback, true if done, false if not there
+   * @param fut callback with a boolean, true if actually deleted, false if not
+   * there.
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
     if (tenantStore == null) { // no db, just do it
@@ -300,7 +318,6 @@ public class TenantManager {
    * checked.
    *
    * @param id - tenant to update for
-   * @param timestamp
    * @param module_from - module to be disabled
    * @param module_to - module to be enabled
    * @param fut callback for errors.
@@ -346,84 +363,6 @@ public class TenantManager {
       }
     });
   }
-  /**
-   * Check that no enabled module depends on any service provided by this
-   * module.
-   *
-   * @param tenant
-   * @param module
-   * @param fut
-   */
-  public void checkNoDependency(Tenant tenant, String module,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    moduleManager.get(module, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      ModuleDescriptor mod = gres.result();
-      logger.debug("Checking that we can delete " + module);
-      ModuleInterface[] provides = mod.getProvides();
-      if (provides == null) { // nothing can depend on a module that provides nothing
-        fut.handle(new Success<>());
-        return;
-      }
-      Set<String> enabledModules = tenant.listModules();
-
-      checkNoOneDep(tenant, enabledModules, mod, provides, 0, fut);
-    });
-  }
-
-  private void checkNoOneDep(Tenant tenant, Set<String> enabledModules,
-    ModuleDescriptor module,
-    ModuleInterface[] provides, int i,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (i >= provides.length || provides[i] == null) {
-      fut.handle(new Success<>()); // all checks out
-      return;
-    }
-    ModuleInterface prov = provides[i];
-    logger.debug("Checking provided service " + prov.getId());
-    Iterator<String> it = enabledModules.iterator();
-    checkNoOneDepEn(tenant, it, module, prov, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      checkNoOneDep(tenant, enabledModules, module, provides, i + 1, fut);
-    });
-  }
-
-  private void checkNoOneDepEn(Tenant tenant, Iterator<String> it,
-    ModuleDescriptor module, ModuleInterface prov,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>());
-      return;
-    }
-    String enabledModuleId = it.next();
-    moduleManager.get(enabledModuleId, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      ModuleDescriptor em = gres.result();
-      ModuleInterface[] req = em.getRequires();
-      logger.debug("Checking provided service " + prov.getId()
-        + " against " + enabledModuleId);
-      if (req != null) {
-        for (ModuleInterface ri : req) {
-          if (prov.getId().equals(ri.getId())) {
-            String err = "Module " + prov.getId() + " is used by " + enabledModuleId;
-            logger.debug("checkNoDependency: " + err);
-            fut.handle(new Failure<>(USER, err));
-            return;
-          }
-        }
-      }
-      checkNoOneDepEn(tenant, it, module, prov, fut);
-    });
-  }
 
   /**
    * Disable a module for a given tenant.
@@ -440,7 +379,7 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      checkNoDependency(t, moduleId, cres -> {
+      updateModuleDepCheck(t, moduleId, null, cres -> {
         if (cres.failed()) {
           logger.debug("disableModule: Dependency error " + cres.cause().getMessage());
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
