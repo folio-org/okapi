@@ -153,8 +153,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    /* XXX
-     c = api.createRestAssured();
+    c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules").then().statusCode(200).body(equalTo("[ ]"));
@@ -163,7 +162,7 @@ public class PullTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-     c.given().port(port2)
+    c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200)
       .body(equalTo("[ " + docBriefModuleA + " ]"));
@@ -229,7 +228,6 @@ public class PullTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-XXX */
 
   }
 }

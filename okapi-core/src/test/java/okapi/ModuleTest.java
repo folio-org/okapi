@@ -1415,7 +1415,6 @@ public class ModuleTest {
     final String locationSample2Module = r.getHeader("Location");
 
     // enable sample2
-    logger.debug("XXXX Enabling sample-module2");
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module2\"" + LS
       + "}";
@@ -2538,8 +2537,7 @@ public class ModuleTest {
     final String locEnable3 = enableModule("sample-module-3");
     this.locationSampleDeployment = deployModule("sample-module-3");
 
-    /* XXX Disabled while refactoring
-     final String locEnable4 = enableModule("sample-module-4");
+    final String locEnable4 = enableModule("sample-module-4");
     this.locationHeaderDeployment = deployModule("sample-module-4");
 
     c = api.createRestAssured();
@@ -2589,7 +2587,6 @@ public class ModuleTest {
       .log().ifError()
       .statusCode(200)
       .body(equalTo("hej OkapiX"));
-*/
 
     // cleanup
     c = api.createRestAssured();
@@ -2597,13 +2594,11 @@ public class ModuleTest {
       .then().statusCode(204).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    /* XXX
      c = api.createRestAssured();
     r = c.given().delete(locEnable4)
       .then().statusCode(204).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-*/
     c = api.createRestAssured();
     r = c.given().delete(locationSampleModule3)
       .then().statusCode(204).extract().response();
@@ -2621,14 +2616,12 @@ public class ModuleTest {
     locationSampleDeployment = null;
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    /* XXX
      c = api.createRestAssured();
     r = c.given().delete(locationHeaderDeployment)
       .then().statusCode(204).extract().response();
     locationHeaderDeployment = null;
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-*/
     async.complete();
   }
 
