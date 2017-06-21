@@ -82,7 +82,7 @@ public class ProxyContext {
    */
   public String timeDiff() {
     if (timer != null) {
-      return (timer.stop() / 1000) + "us";
+      return " " + (timer.stop() / 1000) + "us";
     } else {
       return "";
     }
@@ -159,7 +159,7 @@ public class ProxyContext {
 
   public void logResponse(String module, String url, int statusCode) {
     logger.info(reqId
-      + " RES " + statusCode + " " + timeDiff() + " "
+      + " RES " + statusCode + timeDiff() + " "
       + module + " " + url);
   }
 
@@ -175,7 +175,11 @@ public class ProxyContext {
   }
 
   public void responseError(int code, Throwable cause) {
-    responseError(code, cause.getMessage());
+    if (cause != null && cause.getMessage() != null) {
+      responseError(code, cause.getMessage());
+    } else {
+      responseError(code, "(null cause!!??)");
+    }
   }
 
   public void responseError(int code, String msg) {

@@ -8,6 +8,7 @@
     "cmdlineStart": {"type": ["string", "null"]},
     "cmdlineStop": {"type": ["string", "null"]},
     "dockerImage": {"type": ["string", "null"]},
+    "dockerPull": {"type": "boolean"},
     "dockerCMD": {
       "type": ["array", "null"],
       "items": {"type": "string"}

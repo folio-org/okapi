@@ -26,6 +26,8 @@ managing and running microservices.
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
     * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
+    * [Multiple interfaces](#multiple-interfaces)
+    * [Cleaning up](#cleaning-up)
     * [Running in cluster mode](#running-in-cluster-mode)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
@@ -1722,19 +1724,209 @@ For example ModulePermissions and RoutingEntries on the top level of the
 descriptor. For the fully up-to-date definition, you should always refer to
 the RAML and JSON schemas in the [Reference](#web-service) section.
 
-#### Cleaning up
+### Multiple interfaces
+
+Normally, Okapi proxy allows exactly one module at once to
+provide a given interface. By using `interfaceType` `multiple` in the
+`provides` section, Okapi allows any number of modules to implement the
+same interface. The consequence, however, is that the user of the interface
+must choose which module to call by specifying HTTP header
+`X-Okapi-Module-Id`.
+Okapi offers a facility which returns list of modules that implement
+a given interface for a tenant
+( `_/proxy/tenants/{tenant}/interfaces/{interface}` ). Normally the
+tenant will be the same as the "current" tenant (header `X-Okapi-Tenant`).
+
+Let's go through this by an example. We'll define two modules that
+implement the same interface and call one of them.
+We assume that tenant testlib from the previous example is still present,
+as well as the auth module.
+Let's try to define a Module Descriptor for our test module used earlier.
+The ModuleDescriptor below uses `interfaceType` set to `multiple`, so that
+Okapi allows multiple modules of interface `test-multi` to co-exist.
+
+```
+cat > /tmp/okapi-proxy-foo.json <<END
+{
+  "id": "test-foo-1.0.0",
+  "name": "Okapi module foo",
+  "provides": [
+    {
+      "id": "test-multi",
+      "interfaceType": "multiple",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+END
+```
+Register and deploy `foo`:
+
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-foo.json \
+  http://localhost:9130/_/proxy/modules
+
+```
+
+```
+cat > /tmp/okapi-deploy-foo.json <<END
+{
+  "srvcId": "test-foo-1.0.0",
+  "nodeId": "localhost"
+}
+END
+```
+
+```
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-deploy-foo.json \
+  http://localhost:9130/_/discovery/modules
+```
+
+
+We now define another module, `bar`:
+
+```
+cat > /tmp/okapi-proxy-bar.json <<END
+{
+  "id": "test-bar-1.0.0",
+  "name": "Okapi module bar",
+  "provides": [
+    {
+      "id": "test-multi",
+      "interfaceType": "multiple",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    }
+  ],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
+  }
+}
+END
+```
+Register and deploy `bar`:
+
+```
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-proxy-bar.json \
+  http://localhost:9130/_/proxy/modules
+
+```
+
+```
+cat > /tmp/okapi-deploy-bar.json <<END
+{
+  "srvcId": "test-bar-1.0.0",
+  "nodeId": "localhost"
+}
+END
+```
+```
+curl -w '\n' -D - -s \
+  -X POST \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-deploy-bar.json \
+  http://localhost:9130/_/discovery/modules
+```
+
+And now, enable both modules `foo` and `bar` for tenant `testlib`:
+
+```
+cat > /tmp/okapi-enable-foo.json <<END
+{
+  "id": "test-foo-1.0.0"
+}
+END
+
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-enable-foo.json \
+  http://localhost:9130/_/proxy/tenants/testlib/modules
+```
+
+```
+cat > /tmp/okapi-enable-bar.json <<END
+{
+  "id": "test-bar-1.0.0"
+}
+END
+
+curl -w '\n' -X POST -D - \
+  -H "Content-type: application/json" \
+  -d @/tmp/okapi-enable-bar.json \
+  http://localhost:9130/_/proxy/tenants/testlib/modules
+```
+
+We can ask Okapi about which modules implement interface `test-multi`
+with:
+
+
+```
+curl -w '\n' -D - \
+  http://localhost:9130/_/proxy/tenants/testlib/interfaces/test-multi
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+Content-Length: 64
+
+[ {
+  "id" : "test-foo-1.0.0"
+}, {
+  "id" : "test-bar-1.0.0"
+} ]
+```
+
+Let's call module `bar`:
+
+```
+curl -D - -w '\n' \
+  -H "X-Okapi-Tenant: testlib" \
+  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+  -H "X-Okapi-Module-Id: test-bar-1.0.0" \
+  http://localhost:9130/testb
+
+It works
+```
+
+### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
 installed:
 
 ```
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.2.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-foo-1.0.0
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-bar-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.0.0/localhost-9131
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.2.0/localhost-9133
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-foo-1.0.0/localhost-9134
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-bar-1.0.0/localhost-9135
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.2.0
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-foo-1.0.0
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-bar-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth
 ```
 
@@ -1748,6 +1940,7 @@ Content-Length: 0
 
 Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
 command.
+
 
 ### Running in cluster mode
 
@@ -2061,7 +2254,10 @@ terminates the corresponding service.
 * Docker: The `dockerImage` property specifies an existing
 image. Okapi manages a container based on this image. This option
 requires that the `dockerUrl` points to a Docker Daemon accessible via
-HTTP. The Dockerfile's `CMD` directive may be changed with property
+HTTP. By default Okapi will attempt to pull the image before starting
+it. This can be changed with boolean property `dockerPull` which
+can be set to false to prevent pull from taking place.
+The Dockerfile's `CMD` directive may be changed with property
 `dockerCMD`. This assumes that `ENTRYPOINT` is the full invocation of
 the module and that `CMD` is either default settings or, preferably,
 empty. Finally, the property `dockerArgs` may be used to pass

@@ -22,6 +22,7 @@ schemas:
   - EnvEntry: !include EnvEntry.json
   - EnvEntryList: !include EnvEntryList.json
   - Permission: !include Permission.json
+  - PullDescriptor: !include PullDescriptor.json
 
 # DEPLOYMENT SERVICE
 /_/deployment/modules:
@@ -364,6 +365,10 @@ schemas:
             body:
               application/json:
                 schema: TenantModuleDescriptor
+          400:
+            description: Bad Request
+            body:
+              text/plain:
           404:
             description: Not Found
             body:
@@ -414,6 +419,26 @@ schemas:
           description: remove particular module selection
           responses:
             204:
+    /interfaces/{interface_id}:
+      get:
+        description: get modules that provides some interface
+        responses:
+          200:
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
 /_/proxy/health:
   get:
     description: Check health of all modules
@@ -426,6 +451,31 @@ schemas:
       500:
         description: Server Error
 
+/_/proxy/pull/modules:
+  post:
+    description: pull modules - returns list of modules pulled
+    body:
+      application/json:
+        schema: PullDescriptor
+    responses:
+      200:
+        description: OK
+        headers:
+          Location:
+            description:
+        body:
+          application/json:
+            schema: ModuleList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
+# Environment service
 /_/env:
   post:
     description: add environment entry
@@ -488,5 +538,23 @@ schemas:
       description: remove environment variable
       responses:
         204:
+
+# Version service
+/_/version:
+  get:
+    description: get Okapi version
+    responses:
+      200:
+        description: OK
+        body:
+          text/plain:
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
 
 #TODO implement single module health check

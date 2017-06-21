@@ -132,9 +132,11 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-    final String tenantList = "[ " + doc + ", " + superTenantDoc + " ]";
+    final String tenantList = "[ " + superTenantDoc + ", " + doc + " ]";
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo(tenantList));
+    c.given().get("/_/proxy/tenants")
+      .then().statusCode(200)
+      .body(equalTo(tenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
@@ -163,7 +165,7 @@ public class TenantRATest {
     String location3 = r3.getHeader("Location");
     logger.debug("location3 = " + location3);
 
-    final String tenantList3 = "[ " + doc3 + ", " + superTenantDoc + " ]";
+    final String tenantList3 = "[ " + superTenantDoc + ", " + doc3 + " ]";
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo(tenantList3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -181,8 +183,8 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
-    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
+//    c = api.createRestAssured();
+//    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
 
     c = api.createRestAssured();
     c.given().delete(location3).then().statusCode(204);

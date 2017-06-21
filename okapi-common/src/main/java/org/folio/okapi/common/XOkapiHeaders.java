@@ -55,6 +55,11 @@ public class XOkapiHeaders {
   public static final String TRACE = "X-Okapi-Trace";
 
   /**
+   * X-Okapi-Module-Id Explicit call to module
+   */
+  public static final String MODULE_ID = "X-Okapi-Module-Id";
+
+  /**
    * X-Okapi-Request-Id. Identifies the original request to Okapi. Useful for
    * logging.
    *

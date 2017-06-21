@@ -21,7 +21,7 @@ public class ModuleInterface {
 
   private String id;
   private String version;
-  private String interfaceType; // enum "proxy" (default), "system", "internal"
+  private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] routingEntries;
   private RoutingEntry[] handlers;
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -64,24 +64,11 @@ public class ModuleInterface {
    * @return true if a good version number
    */
   public static boolean validateVersion(String version) {
-    return version.matches("\\d+\\.\\d+(\\.\\d+)?");
-  }
-
-  /**
-   * Helper to get a part of the version. part 0 is XX, the major version of the
-   * interface, part 1 is YY, the minor version of the interface, and part 2 is
-   * ZZ, the software version. Returns -1 for unspecified parts.
-   */
-  private int versionPart(String version, int part) {
-    int parts[] = versionParts(version);
-    if (part < 0) // just to be sure
-    {
-      return -1;
+    int[] p = versionParts(version, 0);
+    if (p == null) {
+      return false;
     }
-    if (part >= parts.length) {
-      return -1;
-    }
-    return parts[part];
+    return true;
   }
 
   /**
@@ -90,42 +77,28 @@ public class ModuleInterface {
    * @param version
    * @return an array of 3 elements, XX, YY, ZZ, with -1 for missing parts
    */
-  private int[] versionParts(String version) {
-    String[] parts = version.split("\\.");
+  private static int[] versionParts(String version, int idx) {
+    final String[] verComp = version.split(" ");
+    if (verComp.length <= idx) {
+      return null;
+    }
+    final String[] parts = verComp[idx].split("\\.");
+    if (parts.length < 2 || parts.length > 3) {
+      return null;
+    }
     int[] p = new int[3];
     for (int i = 0; i < 3; i++) {
-      int pi;
       if (i < parts.length) {
-        p[i] = Integer.parseInt(parts[i]);
+        try {
+          p[i] = Integer.parseInt(parts[i]);
+        } catch (NumberFormatException ex) {
+          return null;
+        }
       } else {
         p[i] = -1;
       }
     }
     return p;
-  }
-
-  /**
-   *
-   * @return XX, the major interface version
-   */
-  public int majorInterfaceVersion() {
-    return versionPart(version, 0);
-  }
-
-  /**
-   *
-   * @return YY, the minor interface version
-   */
-  public int minorInterfaceVersion() {
-    return versionPart(version, 1);
-  }
-
-  /**
-   *
-   * @return ZZ, the software version
-   */
-  public int softwareVersion() {
-    return versionPart(version, 2);
   }
 
   /**
@@ -138,50 +111,27 @@ public class ModuleInterface {
     if (!this.getId().equals(required.getId())) {
       return false; // not the same interface at all
     }
-    int[] t = this.versionParts(this.version);
-    int[] r = this.versionParts(required.version);
-    // major version has to match exactly
-    if (t[0] != r[0]) {
-      return false;
+    int[] t = this.versionParts(this.version, 0);
+    for (int idx = 0;; idx++) {
+      int[] r = this.versionParts(required.version, idx);
+      if (r == null) {
+        break;
+      }
+      // major version has to match exactly
+      if (t[0] != r[0]) {
+        continue;
+      }
+      // minor version has to be at least the same
+      if (t[1] < r[1]) {
+        continue;
+      }
+      // if minor equals, and we have sw req, check sw
+      if (t[1] == r[1] && r[2] >= 0 && t[2] < r[2]) {
+        continue;
+      }
+      return true;
     }
-    // minor version has to be at least the same
-    if (t[1] < r[1]) {
-      return false;
-    }
-    // if minor equals, and we have sw req, check sw
-    if (t[1] == r[1] && r[2] >= 0 && t[2] < r[2]) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Compare to another ModuleInterface.
-   *
-   * @param other
-   * @return 0 if equal, -1 if this.id < other.id
-   *   +1 id this.id > other.id +/- 2 if major versions differ +/- 3 if minor
-   * versions differ +/- 4 if sw versions differ
-   */
-  public int compare(ModuleInterface other) {
-    int cmp = this.id.compareTo(other.id);
-    if (cmp > 0) {
-      return 1;
-    } else if (cmp < 0) {
-      return -1;
-    }
-    int[] t = this.versionParts(this.version);
-    int[] r = this.versionParts(other.version);
-    if (t[0] != r[0]) {
-      return Integer.signum(t[0] - r[0]) * 2;
-    }
-    if (t[1] != r[1]) {
-      return Integer.signum(t[1] - r[1]) * 3;
-    }
-    if (t[2] != r[2]) {
-      return Integer.signum(t[2] - r[2]) * 4;
-    }
-    return 0;
+    return false;
   }
 
   public String getInterfaceType() {
@@ -190,6 +140,23 @@ public class ModuleInterface {
 
   public void setInterfaceType(String interfaceType) {
     this.interfaceType = interfaceType;
+  }
+
+  /**
+   * Checks if the interface is a regular handler. Not a system interface, not
+   * multiple, and not old-fashioned _tenant. Used to skip conflict checks.
+   *
+   * @return
+   */
+  @JsonIgnore
+  public boolean isRegularHandler() {
+    if (interfaceType != null && !"proxy".equals(interfaceType)) {
+      return false; // explicitly some other type, like "multiple" or "system"
+    }
+    if (this.id.startsWith("_")) {
+      return false; // old-fashioned _tenant etc. DEPRECATED
+    }
+    return true;
   }
 
   public RoutingEntry[] getRoutingEntries() {
@@ -230,7 +197,14 @@ public class ModuleInterface {
    */
   public String validate(ProxyContext pc, String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
+    if (id == null) {
+      return "id is missing";
+    }
     String prefix = "Module '" + mod + "' interface '" + id + "': ";
+    if (version == null) {
+      return "version is missing";
+    }
+
     String err;
     err = validateGeneral(pc, mod);
     if (!err.isEmpty()) {
@@ -270,7 +244,7 @@ public class ModuleInterface {
    */
   private String validateGeneral(ProxyContext pc, String mod) {
     String it = getInterfaceType();
-    if (it != null && !it.equals("proxy") && !it.equals("system")) {
+    if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
       return "Bad interface type '" + it + "'";
     }
     if (!validateVersion(version)) {

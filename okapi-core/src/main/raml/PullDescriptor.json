@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "PullDescriptor",
+  "type": "object",
+  "properties": {
+    "urls": {
+      "type": "array",
+      "items" : {
+         "type" : "string"
+      }
+    }
+  }
+}
