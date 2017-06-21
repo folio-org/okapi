@@ -39,6 +39,7 @@ public class OkapiClient {
   private MultiMap respHeaders;
   private String reqId;
   private boolean logInfo; // t: log requests on INFO. f: on DEBUG
+  private String responsebody;
 
   /**
    * Constructor from a vert.x ctx.
@@ -168,16 +169,16 @@ public class OkapiClient {
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
-        String reply = buf.toString();
+        responsebody = buf.toString();
         if (postres.statusCode() >= 200 && postres.statusCode() <= 299) {
-          fut.handle(new Success<>(reply));
+          fut.handle(new Success<>(responsebody));
         } else {
           if (postres.statusCode() == 404) {
-            fut.handle(new Failure<>(NOT_FOUND, "404 " + reply + ": " + url ));
+            fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
           } else if (postres.statusCode() == 400) {
-            fut.handle(new Failure<>(USER, reply));
+            fut.handle(new Failure<>(USER, responsebody));
           } else {
-            fut.handle(new Failure<>(INTERNAL, reply));
+            fut.handle(new Failure<>(INTERNAL, responsebody));
           }
         }
       });
@@ -227,6 +228,16 @@ public class OkapiClient {
    */
   public MultiMap getRespHeaders() {
     return respHeaders;
+  }
+
+  /**
+   * Get the response body. Same string as returned in the callback from
+   * request().
+   *
+   * @return
+   */
+  public String getResponsebody() {
+    return responsebody;
   }
 
   /**

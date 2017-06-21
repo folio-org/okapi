@@ -145,6 +145,26 @@ public class TenantWebService {
     });
   }
 
+  public void disableModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.disable");
+    try {
+      final String id = ctx.request().getParam("id");
+      final String module = ctx.request().getParam("mod");
+      pc.debug("disablemodule t=" + id + " m=" + module);
+      //tenants.disableModule(id, module, res -> {
+      tenants.enableAndDisableModule(id, module, null, pc, res -> {
+      if (res.failed()) {
+        pc.responseError(res.getType(), res.cause());
+      } else {
+        pc.responseText(204, "");
+      }
+    });
+  }
+  catch (DecodeException ex ) {
+    pc.responseError(400, ex);
+  }
+}
+
   public void enableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
     enableTenantInt(pc, null);
@@ -156,25 +176,11 @@ public class TenantWebService {
     enableTenantInt(pc, module_from);
   }
 
-  /**
-   * Helper to make request headers for the system requests we make.
-   */
-  private Map<String, String> reqHeaders(RoutingContext ctx, String tenantId) {
-    Map<String, String> headers = new HashMap<>();
-    for (String hdr : ctx.request().headers().names()) {
-      if (hdr.matches("^X-.*$")) {
-        headers.put(hdr, ctx.request().headers().get(hdr));
-      }
-    }
-    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-      headers.put(XOkapiHeaders.TENANT, tenantId);
-      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
-    }
-    headers.put("Accept", "*/*");
-    headers.put("Content-Type", "application/json; charset=UTF-8");
-    return headers;
-  }
+  private void enableAndDisableModule(String tenantId,
+    String module_from, String module_to, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
+  }
   /**
    * Enable tenant, part 1: Dependency check and call the tenant interface. This
    * is done first, as it is the most likely to fail. The tenant interface
@@ -194,223 +200,20 @@ public class TenantWebService {
           return;
         }
         Tenant tenant = res.result();
-        tenants.updateModuleDepCheck(tenant, module_from, module_to, tres -> {
-          if (tres.failed()) {
-            logger.debug("enableTenantInt: depcheck fail: " + tres.cause().getMessage());
-            pc.responseError(tres.getType(), tres.cause());
+        tenants.enableAndDisableModule(id, module_from, module_to, pc, eres -> {
+          if (eres.failed()) {
+            pc.debug("enableTenantInt: failed");
+            pc.responseError(eres.getType(), eres.cause());
             return;
           }
-          logger.debug("enableTenantInt: depcheck ok");
-          tenants.getTenantInterface(module_to, ires -> {
-            if (ires.failed()) {
-              if (ires.getType() == NOT_FOUND) {
-                pc.debug("enableModule: " + module_to + " has no support for tenant init");
-                enablePermissions(pc, td, id, module_from, module_to);
-                return;
-              } else {
-                pc.responseError(ires.getType(), ires.cause());
-                return;
-              }
-            }
-            String tenInt = ires.result();
-            logger.debug("enableTenantInt: tenint=" + tenInt);
-            // TODO - Use the proxy service for making the call!
-            discoveryManager.get(module_to, gres -> {
-              if (gres.failed()) {
-                pc.responseError(gres.getType(), gres.cause());
-                return;
-              } else {
-                List<DeploymentDescriptor> instances = gres.result();
-                if (instances.isEmpty()) {
-                  pc.responseError(400, "No running instances for module " + module_to
-                    + ". Can not invoke tenant init");
-                  return;
-                } else { // TODO - Don't just take the first. Pick one by random.
-                  String baseurl = instances.get(0).getUrl();
-                  pc.debug("enableModule Url: " + baseurl + " and " + tenInt);
-                  Map<String, String> headers = reqHeaders(ctx, id);
-                  JsonObject jo = new JsonObject();
-                  jo.put("module_to", module_to);
-                  if (module_from != null) {
-                    jo.put("module_from", module_from);
-                  }
-                  OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-                  cli.newReqId("tenant");
-                  cli.enableInfoLog();
-                  cli.request(HttpMethod.POST, tenInt, jo.encodePrettily(), cres -> {
-                    if (cres.failed()) {
-                      pc.warn("Tenant init request for "
-                        + module_to + " failed with " + cres.cause().getMessage());
-                      pc.responseError(500, "Post to " + tenInt
-                        + " on " + module_to + " failed with "
-                        + cres.cause().getMessage());
-                    } else { // All well, we can finally enable it
-                      pc.debug("enableModule: Tenant init request to "
-                        + module_to + " succeeded");
-                      enablePermissions(pc, td, id, module_from, module_to);
-                    }
-                  });
-                }
-              }
-            });
-
-          });
+          final String uri = ctx.request().uri() + "/" + module_to;
+          pc.responseJson(201, Json.encodePrettily(td), uri);
         });
       });
     } catch (DecodeException ex) {
       pc.responseError(400, ex);
     }
   }
-
-  /**
-   * Enable tenant, part 2: Pass the module permission(set)s to perms. Part 1 of
-   * the permission stuff, decide which module to invoke. Usually the one that
-   * provides tenantPermissions, unless the module to be enabled itself provides
-   * it, in which case we go straight to it.
-   */
-  private void enablePermissions(ProxyContext pc, TenantModuleDescriptor td,
-    String id, String module_from, String module_to) {
-    logger.debug("enablePermissions: t=" + id + " f=" + module_from + " t=" + module_to);
-    RoutingContext ctx = pc.getCtx();
-    ModuleManager modMan = tenants.getModuleManager();
-    if (modMan == null) { // Should never happen
-      pc.responseError(500, "enablePermissions: No moduleManager found. "
-        + "Can not make _tenantPermissions request");
-      return;
-    }
-    // TODO - check if we have no permissions, skip the rest
-    modMan.get(module_to, mres -> {
-      if (mres.failed() && mres.getType() != NOT_FOUND) { // something really wrong
-        pc.responseError(mres.getType(), mres.cause());
-        return;
-      }
-      ModuleDescriptor md = mres.result();
-      if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
-        pc.debug("Using the tenantPermissions of this module itself");
-        enablePermissionsPart2(pc, td, id, module_from, module_to, md, md, modMan);
-        return;
-      } else {
-        tenants.findSystemInterface(id, "_tenantPermissions", res -> {
-          if (res.failed()) {
-            if (res.getType() == NOT_FOUND) { // no perms interface. TODO
-              // just continue with the process. Should probably trigger an error
-              logger.debug("enablePermissions: No tenantPermissions interface found. "
-                + "Carrying on without it.");
-              enableTenantManager(pc, td, id, module_from, module_to);
-              return;
-            }
-            pc.responseError(res.getType(), res.cause());
-            return;
-          }
-          ModuleDescriptor permsMod = res.result();
-          enablePermissionsPart2(pc, td, id, module_from, module_to, md, permsMod, modMan);
-          return;
-        });
-      }
-    });
-  }
-
-  /**
-   * Part 2 of enablePermissions. Needs to be a separate function, because of
-   * vert.x callback hell.
-   */
-  private void enablePermissionsPart2(ProxyContext pc, TenantModuleDescriptor td,
-    String id, String module_from, String module_to,
-    ModuleDescriptor md,
-    ModuleDescriptor permsModule, ModuleManager modMan) {
-    RoutingContext ctx = pc.getCtx();
-
-    pc.debug("enablePermissionsPart2: Perms interface found in "
-      + permsModule.getNameOrId());
-    PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
-    discoveryManager.get(permsModule.getId(), gres -> {
-      if (gres.failed()) {
-        pc.responseError(gres.getType(), gres.cause());
-        return;
-      } else {
-        List<DeploymentDescriptor> instances = gres.result();
-        if (instances.isEmpty()) {
-          pc.responseError(400,
-            "No running instances for module " + permsModule.getId()
-            + ". Can not invoke _tenantPermissions");
-          return;
-        } else { // TODO - Don't just take the first. Pick one by random.
-          String baseurl = instances.get(0).getUrl();
-          ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
-          String findPermPath = "";
-          List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
-          if (!routingEntries.isEmpty()) {
-            for (RoutingEntry re : routingEntries) {
-              if (re.match(null, "POST")) {
-                findPermPath = re.getPath();
-                if (findPermPath == null || findPermPath.isEmpty()) {
-                  findPermPath = re.getPathPattern();
-                }
-              }
-            }
-          }
-          if (findPermPath == null || findPermPath.isEmpty()) {
-            pc.responseError(400,
-              "Bad _tenantPermissions interface in module " + permsModule.getNameOrId()
-              + ". No path to POST to");
-            return;
-          }
-          final String permPath = findPermPath; // needs to be final
-          pc.debug("enablePermissions Url: " + baseurl + " and " + permPath);
-          String pljson = Json.encodePrettily(pl);
-          pc.debug("enablePermissions Req: " + pljson);
-          Map<String, String> headers = reqHeaders(ctx, id);
-          OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-          cli.newReqId("tenantPermissions");
-          cli.enableInfoLog();
-          cli.request(HttpMethod.POST, permPath, pljson, cres -> {
-            if (cres.failed()) {
-              pc.warn("_tenantPermissions request for "
-                + module_to + " failed with " + cres.cause().getMessage());
-              pc.responseError(500, "Permissions post for " + module_to
-                + " to " + permPath
-                + " on " + permsModule.getNameOrId()
-                + " failed with " + cres.cause().getMessage());
-            } else { // All well
-              // Pass response headers - needed for unit test, if nothing else
-              MultiMap respHeaders = cli.getRespHeaders();
-              if (respHeaders != null) {
-                for (String hdr : respHeaders.names()) {
-                  if (hdr.matches("^X-.*$")) {
-                    ctx.response().headers().add(hdr, respHeaders.get(hdr));
-                    pc.debug("enablePermissions: response header "
-                      + hdr + " " + respHeaders.get(hdr));
-                  }
-                }
-              }
-              pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
-                + " succeeded for module " + module_to + " and tenant " + id);
-              enableTenantManager(pc, td, id, module_from, module_to);
-            }
-          });
-        }
-      }
-    });
-  }
-
-  /**
-   * Enable tenant, part 3: enable in the tenant manager. It stores it in the
-   * database too.
-   */
-  private void enableTenantManager(ProxyContext pc, TenantModuleDescriptor td,
-    String id, String module_from, String module_to) {
-    RoutingContext ctx = pc.getCtx();
-    logger.debug("enableTenantManager: " + module_from + " " + module_to);
-    tenants.updateModuleCommit(id, module_from, module_to, ures -> {
-      if (ures.failed()) {
-        pc.responseError(ures.getType(), ures.cause());
-        return;
-      }
-      final String uri = ctx.request().uri() + "/" + module_to;
-      pc.responseJson(201, Json.encodePrettily(td), uri);
-    });
-  }
-
 
   /**
    * Helper to make a DELETE request to the module's tenant interface.
@@ -480,23 +283,6 @@ public class TenantWebService {
     }); // tenantInterface
   } //destroyTenant
 
-  public void disableModule(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.disable");
-    try {
-      final String id = ctx.request().getParam("id");
-      final String module = ctx.request().getParam("mod");
-      pc.debug("disablemodule t=" + id + " m=" + module);
-      tenants.disableModule(id, module, res -> {
-        if (res.failed()) {
-          pc.responseError(res.getType(), res.cause());
-        } else {
-          pc.responseText(204, "");
-        }
-      });
-    } catch (DecodeException ex) {
-      pc.responseError(400, ex);
-    }
-  }
 
   public void listModules(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.listmodules");
