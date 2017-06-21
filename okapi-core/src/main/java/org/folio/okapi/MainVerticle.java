@@ -18,6 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.InputStream;
+import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
@@ -130,6 +131,11 @@ public class MainVerticle extends AbstractVerticle {
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
       logHelper.setRootLogLevel(loglevel);
+    } else {
+      String lev = getenv("OKAPI_LOGLEVEL");
+      if (lev != null && !lev.isEmpty()) {
+        logHelper.setRootLogLevel(loglevel);
+      }
     }
     String mode = config.getString("mode", "cluster");
     switch (mode) {
