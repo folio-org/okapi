@@ -1512,7 +1512,7 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0/test-basic-1.2.0
+Location: /_/proxy/tenants/testlib/modules/test-basic-1.2.0
 Content-Length: 31
 
 {

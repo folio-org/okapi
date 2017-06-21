@@ -406,8 +406,11 @@ public class TenantWebService {
         pc.responseError(ures.getType(), ures.cause());
         return;
       }
-      final String uri = ctx.request().uri() + "/" + module_to;
-      pc.responseJson(201, Json.encodePrettily(td), uri);
+      String uri = ctx.request().uri();
+      if (module_from != null) { // strip off module_from in result
+        uri = uri.substring(0, uri.lastIndexOf('/'));
+      }
+      pc.responseJson(201, Json.encodePrettily(td), uri + "/" + module_to);
     });
   }
 
