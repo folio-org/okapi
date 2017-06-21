@@ -384,32 +384,6 @@ public class TenantManager {
   }
 
   /**
-   * Disable a module for a given tenant.
-   *
-   * @param tenantId
-   * @param moduleId
-   * @param fut
-   */
-  private void disableModule(String tenantId, String moduleId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.get(tenantId, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      Tenant t = gres.result();
-      updateModuleDepCheck(t, moduleId, null, cres -> {
-        if (cres.failed()) {
-          logger.debug("disableModule: Dependency error " + cres.cause().getMessage());
-          fut.handle(new Failure<>(cres.getType(), cres.cause()));
-          return;
-        }
-        updateModuleCommit(tenantId, moduleId, null, fut);
-      });
-    });
-  }
-
-  /**
    * Enable a module for a tenant and disable another. Checks dependencies,
    * invokes the tenant interface, and the tenantPermissions interface, and
    * finally marks the modules as enabled and disabled.
@@ -588,18 +562,6 @@ public class TenantManager {
       if (cres.failed()) {
         fut.handle(new Failure<>(cres.getType(), cres.cause()));
         return;
-      }
-      OkapiClient cli = cres.result();
-      // Pass response headers - needed for unit test, if nothing else
-      MultiMap respHeaders = cli.getRespHeaders();
-      if (respHeaders != null) {
-        for (String hdr : respHeaders.names()) {
-          if (hdr.matches("^X-.*$")) {
-            pc.getCtx().response().headers().add(hdr, respHeaders.get(hdr));
-            pc.debug("enablePermissions: response header "
-              + hdr + " " + respHeaders.get(hdr));
-          }
-        }
       }
       pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
         + " succeeded for module " + module_to + " and tenant " + tenant.getId());

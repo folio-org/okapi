@@ -750,27 +750,18 @@ public class ProxyService {
   }
 
   /**
-   * Helper to make request headers for the system requests we make.
+   * Make a request to a system interface, like _tenant.
+   *
+   * @param tenantId to make the request for
+   * @param module id of the module to invoke
+   * @param path of the system service
+   * @param request body to send in the request
+   * @param pc ProxyContext for logging, and returning resp headers
+   * @param fut Callback with the response body, or various errors
    */
-  private Map<String, String> sysReqHeaders(RoutingContext ctx, String tenantId) {
-    Map<String, String> headers = new HashMap<>();
-    for (String hdr : ctx.request().headers().names()) {
-      if (hdr.matches("^X-.*$")) {
-        headers.put(hdr, ctx.request().headers().get(hdr));
-      }
-    }
-    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-      headers.put(XOkapiHeaders.TENANT, tenantId);
-      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
-    }
-    headers.put("Accept", "*/*");
-    headers.put("Content-Type", "application/json; charset=UTF-8");
-    return headers;
-  }
-
   public void callSystemInterface(String tenantId, String module, String path,
     String request, ProxyContext pc,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
 
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
@@ -799,11 +790,42 @@ public class ProxyService {
           fut.handle(new Failure<>(INTERNAL, msg));
           return;
         }
-        // All well, we can finally enable it
+        // Pass response headers - needed for unit test, if nothing else
         pc.debug("Request for " + module + " " + path + " ok");
-        fut.handle(new Success<>(cli));
+        if (pc.getCtx() != null) {
+          MultiMap respHeaders = cli.getRespHeaders();
+          if (respHeaders != null) {
+            for (String hdr : respHeaders.names()) {
+              if (hdr.matches("^X-.*$")) {
+                pc.getCtx().response().headers().add(hdr, respHeaders.get(hdr));
+                pc.debug("callSystemInterface: response header "
+                  + hdr + " " + respHeaders.get(hdr));
+              }
+            }
+          }
+        }
+        fut.handle(new Success<>(cli.getResponsebody()));
       });
     });
+  }
+
+  /**
+   * Helper to make request headers for the system requests we make.
+   */
+  private Map<String, String> sysReqHeaders(RoutingContext ctx, String tenantId) {
+    Map<String, String> headers = new HashMap<>();
+    for (String hdr : ctx.request().headers().names()) {
+      if (hdr.matches("^X-.*$")) {
+        headers.put(hdr, ctx.request().headers().get(hdr));
+      }
+    }
+    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+      headers.put(XOkapiHeaders.TENANT, tenantId);
+      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    }
+    headers.put("Accept", "*/*");
+    headers.put("Content-Type", "application/json; charset=UTF-8");
+    return headers;
   }
 
 
