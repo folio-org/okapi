@@ -192,8 +192,10 @@ public class TenantWebService {
           pc.responseError(eres.getType(), eres.cause());
           return;
         }
-        final String uri = ctx.request().uri() + "/" + module_to + "/XXXX";
-        pc.responseJson(201, Json.encodePrettily(td), uri);
+        final String uri = ctx.request().uri();
+        final String regex = "^(.*)/" + module_from + "$";
+        final String newuri = uri.replaceAll(regex, "$1/" + module_to);
+        pc.responseJson(201, Json.encodePrettily(td), newuri);
       });
 
     } catch (DecodeException ex) {
