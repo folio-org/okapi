@@ -1,8 +1,11 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
@@ -10,17 +13,22 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Manages the tenants in the shared map, and passes updates to the database.
@@ -29,6 +37,7 @@ public class TenantManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private ModuleManager moduleManager = null;
+  ProxyService proxyService = null;
   TenantStore tenantStore = null;
   LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
 
@@ -43,7 +52,7 @@ public class TenantManager {
    * @param vertx
    * @param fut
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void init(Vertx vertx,  Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.init(vertx, "tenants", ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
@@ -51,6 +60,16 @@ public class TenantManager {
       }
       loadTenants(fut);
     });
+  }
+
+  /**
+   * Set the proxyService. So that we can use it to call the tenant interface,
+   * etc.
+   *
+   * @param px
+   */
+  public void setProxyService(ProxyService px) {
+    this.proxyService = px;
   }
 
   /**
@@ -318,8 +337,8 @@ public class TenantManager {
    * checked.
    *
    * @param id - tenant to update for
-   * @param module_from - module to be disabled
-   * @param module_to - module to be enabled
+   * @param module_from - module to be disabled, may be null if none
+   * @param module_to - module to be enabled, may be null if none
    * @param fut callback for errors.
    */
   public void updateModuleCommit(String id,
@@ -365,31 +384,208 @@ public class TenantManager {
   }
 
   /**
-   * Disable a module for a given tenant.
+   * Enable a module for a tenant and disable another. Checks dependencies,
+   * invokes the tenant interface, and the tenantPermissions interface, and
+   * finally marks the modules as enabled and disabled.
    *
-   * @param tenantId
-   * @param moduleId
-   * @param fut
+   * @param tenantId - id of the the tenant in question
+   * @param module_from id of the module to be disabled, or null
+   * @param module_to id of the module to be enabled, or null
+   * @param pc proxyContext for proper logging, etc
+   * @param fut callback with success, or various errors
+   *
+   * To avoid too much callback hell, this has been split into several helpers.
    */
-  public void disableModule(String tenantId, String moduleId,
+  public void enableAndDisableModule(String tenantId,
+    String module_from, String module_to, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.get(tenantId, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    pc.debug("enableAndDisableModule for " + tenantId
+      + " fr=" + module_from + " to=" + module_to);
+    tenants.get(tenantId, tres -> {
+      if (tres.failed()) {
+        fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
       }
-      Tenant t = gres.result();
-      updateModuleDepCheck(t, moduleId, null, cres -> {
+      Tenant tenant = tres.result();
+      updateModuleDepCheck(tenant, module_from, module_to, cres -> {
         if (cres.failed()) {
-          logger.debug("disableModule: Dependency error " + cres.cause().getMessage());
+          pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;
         }
-        updateModuleCommit(tenantId, moduleId, null, fut);
+        pc.debug("enableAndDisableModule: depcheck ok");
+        if (module_to == null || module_to.isEmpty()) {
+          ead4commit(tenant, module_from, module_to, pc, fut);
+          return;
+        } else {
+          ead1TenantInterface(tenant, module_from, module_to, pc, fut);
+          return;
+        }
       });
     });
   }
 
+  /**
+   * enableAndDisable helper 1: call the tenant interface.
+   *
+   * @param tenant
+   * @param module_from
+   * @param module_to
+   * @param fut
+   */
+  private void ead1TenantInterface(Tenant tenant,
+    String module_from, String module_to, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    getTenantInterface(module_to, ires -> {
+      if (ires.failed()) {
+        if (ires.getType() == NOT_FOUND) {
+          logger.debug("eadTenantInterface: "
+            + module_to + " has no support for tenant init");
+          ead2PermMod(tenant, module_from, module_to, pc, fut);
+          return;
+        }
+        fut.handle(new Failure<>(ires.getType(), ires.cause()));
+        return;
+      }
+      String tenInt = ires.result();
+      logger.debug("eadTenantInterface: tenint=" + tenInt);
+      JsonObject jo = new JsonObject();
+      jo.put("module_to", module_to);
+      if (module_from != null) {
+        jo.put("module_from", module_from);
+      }
+      String req = jo.encodePrettily();
+      proxyService.callSystemInterface(tenant.getId(),
+        module_to, tenInt, req, pc, cres -> {
+        if (cres.failed()) {
+          fut.handle(new Failure<>(cres.getType(), cres.cause()));
+          return;
+        }
+        // TODO - Copy X-headers over to ctx.resp
+        ead2PermMod(tenant, module_from, module_to, pc, fut);
+      });
+    });
+  }
+
+  /**
+   * enableAndDisable helper 2: Choose which permission module to invoke.
+   *
+   * @param tenant
+   * @param module_from
+   * @param module_to
+   * @param pc
+   * @param fut
+   */
+  private void ead2PermMod(Tenant tenant,
+    String module_from, String module_to, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    ModuleManager modMan = getModuleManager();
+    if (modMan == null) { // Should never happen
+      fut.handle(new Failure<>(INTERNAL,
+        "eadTenantPermissions: No moduleManager found. "
+        + "Can not make _tenantPermissions request"));
+      return;
+    }
+    // TODO - check if we have no permissions, skip the rest
+    modMan.get(module_to, mres -> {
+      if (mres.failed() && mres.getType() != NOT_FOUND) { // something really wrong
+        fut.handle(new Failure<>(mres.getType(), mres.cause()));
+        return;
+      }
+      ModuleDescriptor md = mres.result();
+      if (md != null && md.getSystemInterface("_tenantPermissions") != null) {
+        pc.debug("Using the tenantPermissions of this module itself");
+        ead3Permissions(tenant, module_from, module_to, md, md, pc, fut);
+        return;
+      }
+      findSystemInterface(tenant.getId(), "_tenantPermissions", res -> {
+        if (res.failed()) {
+          if (res.getType() == NOT_FOUND) { // no perms interface. TODO
+            // just continue with the process. Should probably trigger an error
+            pc.debug("enablePermissions: No tenantPermissions interface found. "
+              + "Carrying on without it.");
+            ead4commit(tenant, module_from, module_to, pc, fut);
+            return;
+          }
+          pc.responseError(res.getType(), res.cause());
+          return;
+        }
+        ModuleDescriptor permsMod = res.result();
+        ead3Permissions(tenant, module_from, module_to, md, permsMod, pc, fut);
+        return;
+      });
+    });
+  }
+
+  /**
+   * enableAndDisable helper 2: Make the tenantPermissions call.
+   *
+   * @param tenant
+   * @param module_from
+   * @param module_to
+   * @param md
+   * @param permsModule
+   * @param pc
+   * @param fut
+   */
+  private void ead3Permissions(Tenant tenant,
+    String module_from, String module_to,
+    ModuleDescriptor md, ModuleDescriptor permsModule,
+    ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    pc.debug("ead3Permissions: Perms interface found in "
+      + permsModule.getId());
+    PermissionList pl = new PermissionList(module_to, md.getPermissionSets());
+    String pljson = Json.encodePrettily(pl);
+    pc.debug("ead3Permissions Req: " + pljson);
+
+    ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+    String PermPath = "";
+    List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
+    if (!routingEntries.isEmpty()) {
+      for (RoutingEntry re : routingEntries) {
+        if (re.match(null, "POST")) {
+          PermPath = re.getPath();
+          if (PermPath == null || PermPath.isEmpty()) {
+            PermPath = re.getPathPattern();
+          }
+        }
+      }
+    }
+    if (PermPath == null || PermPath.isEmpty()) {
+      fut.handle(new Failure<>(USER,
+        "Bad _tenantPermissions interface in module " + permsModule.getId()
+        + ". No path to POST to"));
+      return;
+    }
+    pc.debug("ead3Permissions: " + permsModule.getId() + " and " + PermPath);
+    proxyService.callSystemInterface(tenant.getId(),
+      permsModule.getId(), PermPath, pljson, pc, cres -> {
+      if (cres.failed()) {
+        fut.handle(new Failure<>(cres.getType(), cres.cause()));
+        return;
+      }
+      pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
+        + " succeeded for module " + module_to + " and tenant " + tenant.getId());
+      ead4commit(tenant, module_from, module_to, pc, fut);
+    });
+  }
+
+  private void ead4commit(Tenant tenant,
+    String module_from, String module_to, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    pc.debug("ead4commit: " + module_from + " " + module_to);
+    updateModuleCommit(tenant.getId(), module_from, module_to, ures -> {
+      if (ures.failed()) {
+        pc.responseError(ures.getType(), ures.cause());
+        return;
+      }
+      pc.debug("ead4commit done");
+      fut.handle(new Success<>());
+    });
+  }
+
+  //
   /**
    * Find the tenant API interface. Supports several deprecated versions of the
    * tenant interface: the 'tenantInterface' field in MD; if the module provides

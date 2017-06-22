@@ -239,6 +239,7 @@ public class ModuleDescriptor {
    * In case of Deprecated things, writes warnings in the log.
    * TODO: Turn these into errors when releasing 2.0
    *
+   * @param pc
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate(ProxyContext pc) {
