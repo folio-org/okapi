@@ -197,80 +197,10 @@ public class TenantWebService {
         final String newuri = uri.replaceAll(regex, "$1/" + module_to);
         pc.responseJson(201, Json.encodePrettily(td), newuri);
       });
-
     } catch (DecodeException ex) {
       pc.responseError(400, ex);
     }
   }
-
-  /**
-   * Helper to make a DELETE request to the module's tenant interface.
-   * Sets up
-   * the response in ctx. NOTE - This is not used at the moment. It used to be
-   * called from disableModule, but that was too drastic. We will need a way to
-   * invoke this, in some future version.
-   *
-   * @param ctx
-   * @param module
-   */
-  private void destroyTenant(RoutingContext ctx, String module, String id) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.destroy");
-    tenants.getTenantInterface(module, ires -> {
-      if (ires.failed()) {
-        if (ires.getType() == NOT_FOUND) {
-          pc.debug("enableModule: " + module + " has no support for tenant init");
-          pc.responseText(204, "");
-          return;
-        } else {
-          pc.responseError(ires.getType(), ires.cause());
-          return;
-        }
-      }
-      // We have a tenant interface, invoke DELETE on it
-      String tenInt = ires.result();
-      discoveryManager.get(module, gres -> {
-        if (gres.failed()) {
-          pc.responseError(gres.getType(), gres.cause());
-        } else {
-          List<DeploymentDescriptor> instances = gres.result();
-          if (instances.isEmpty()) {
-            pc.responseError(400, "No running instances for module " + module
-              + ". Can not invoke tenant destroy");
-          } else { // TODO - Don't just take the first. Pick one by random.
-            String baseurl = instances.get(0).getUrl();
-            pc.debug("disableModule Url: " + baseurl + " and " + tenInt);
-            Map<String, String> headers = new HashMap<>();
-            for (String hdr : ctx.request().headers().names()) {
-              if (hdr.matches("^X-.*$")) {
-                headers.put(hdr, ctx.request().headers().get(hdr));
-              }
-            }
-            if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-              headers.put(XOkapiHeaders.TENANT, id);
-              pc.debug("Added " + XOkapiHeaders.TENANT + " : " + id);
-            }
-            headers.put("Accept", "*/*");
-            //headers.put("Content-Type", "application/json; charset=UTF-8");
-            String body = ""; // dummy
-            OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-            cli.request(HttpMethod.DELETE, tenInt, body, cres -> {
-              if (cres.failed()) {
-                pc.warn("Tenant destroy request for " + module
-                  + " failed with " + cres.cause().getMessage());
-                pc.responseError(500, "DELETE to " + tenInt
-                  + " on " + module + " failed with "
-                  + cres.cause().getMessage());
-              } else { // All well, we can finally enable it
-                pc.debug("disableModule: destroy request to " + module + " succeeded");
-                pc.responseText(204, "");  // finally we are done
-              }
-            }); // cli.request
-          }
-        } // got module
-      });
-    }); // tenantInterface
-  } //destroyTenant
-
 
   public void listModules(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.listmodules");
