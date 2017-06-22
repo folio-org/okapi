@@ -210,6 +210,7 @@ public class MainVerticle extends AbstractVerticle {
       moduleWebService = new ModuleWebService(vertx, moduleManager);
       tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
+      tenantManager.setProxyService(proxyService);
       pullManager = new PullManager(vertx, okapiUrl);
       pullService = new PullService(pullManager);
     }

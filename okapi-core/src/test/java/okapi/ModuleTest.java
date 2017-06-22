@@ -482,6 +482,9 @@ public class ModuleTest {
     // the auth module would have handled those, and indicated to Okapi that
     // these are no longer needed, and Okapi would not pass them to regular
     // modules.
+    // TODO - The auth stuff should only be passed to an auth filter, now
+    // that we have such defined. This check should be DEPRECATED and fixed
+    // when releasing v2.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "H") // ask sample to report all headers
@@ -513,8 +516,8 @@ public class ModuleTest {
     // Test a moduleDescriptor with empty arrays
     // We have seen errors with such before.
     final String docEmptyModule = "{" + LS
-      + "  \"id\" : \"empty-module\"," + LS
-      + "  \"name\" : \"empty module\"," + LS
+      + "  \"id\" : \"empty-module-1.0\"," + LS
+      + "  \"name\" : \"empty module-1.0\"," + LS
       + "  \"tags\" : [ ]," + LS
       + "  \"env\" : [ ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -538,12 +541,30 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locEmptyModule = r.getHeader("Location");
-    // Create a tenant and enable the module
-    final String locEnableEmpty = enableModule("empty-module");
+    final String locEnableEmpty = enableModule("empty-module-1.0");
+
+    // Create another empty module
+    final String docEmptyModule2 = docEmptyModule
+      .replaceAll("empty-module-1.0", "empty-module-1.1");
+    final String locEmptyModule2 = createModule(docEmptyModule2);
+    // upgrade our tenant to use the new version
+    final String docEnableUpg = "{" + LS
+      + "  \"id\" : \"empty-module-1.1\"" + LS
+      + "}";
+    final String locUpgEmpty = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableUpg)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules/empty-module-1.0")
+      .then()
+      .statusCode(201)
+      .header("Location", "/_/proxy/tenants/roskilde/modules/empty-module-1.1")
+      .extract().header("Location");
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testOneModule cleaning up");
-    given().delete(locEnableEmpty).then().log().ifError().statusCode(204);
+    given().delete(locUpgEmpty).then().log().ifError().statusCode(204);
+    //given().delete(locEnableEmpty).then().log().ifError().statusCode(204);
+    given().delete(locEmptyModule2).then().log().ifError().statusCode(204);
     given().delete(locEmptyModule).then().log().ifError().statusCode(204);
     given().delete(locEnable).then().log().ifError().statusCode(204);
     given().delete(locTenant).then().log().ifError().statusCode(204);

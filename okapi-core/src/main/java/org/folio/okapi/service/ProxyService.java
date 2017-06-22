@@ -1,6 +1,5 @@
 package org.folio.okapi.service;
 
-import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -33,13 +32,14 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
-import static org.folio.okapi.common.ErrorType.ANY;
+import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import static org.folio.okapi.common.ErrorType.USER;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
@@ -746,5 +746,85 @@ public class ProxyService {
       }
     }
   }
+
+  /**
+   * Make a request to a system interface, like _tenant.
+   *
+   * @param tenantId to make the request for
+   * @param module id of the module to invoke
+   * @param path of the system service
+   * @param request body to send in the request
+   * @param pc ProxyContext for logging, and returning resp headers
+   * @param fut Callback with the response body, or various errors
+   */
+  public void callSystemInterface(String tenantId, String module, String path,
+    String request, ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    discoveryManager.get(module, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
+      }
+      List<DeploymentDescriptor> instances = gres.result();
+      if (instances.isEmpty()) {
+        fut.handle(new Failure<>(USER, "No running instances for module "
+          + module + ". Can not invoke " + path));
+        return;
+      }
+      // TODO - Don't just take the first. Pick one by random.
+      String baseurl = instances.get(0).getUrl();
+      pc.debug("callSystemInterface Url: " + baseurl + " and " + path);
+      Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId);
+      OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+      cli.newReqId("tenant");
+      cli.enableInfoLog();
+      cli.request(HttpMethod.POST, path, request, cres -> {
+        if (cres.failed()) {
+          String msg = "Request for "
+            + module + " " + path
+            + " failed with " + cres.cause().getMessage();
+          pc.warn(msg);
+          fut.handle(new Failure<>(INTERNAL, msg));
+          return;
+        }
+        // Pass response headers - needed for unit test, if nothing else
+        pc.debug("Request for " + module + " " + path + " ok");
+        if (pc.getCtx() != null) {
+          MultiMap respHeaders = cli.getRespHeaders();
+          if (respHeaders != null) {
+            for (String hdr : respHeaders.names()) {
+              if (hdr.matches("^X-.*$")) {
+                pc.getCtx().response().headers().add(hdr, respHeaders.get(hdr));
+                pc.debug("callSystemInterface: response header "
+                  + hdr + " " + respHeaders.get(hdr));
+              }
+            }
+          }
+        }
+        fut.handle(new Success<>(cli.getResponsebody()));
+      });
+    });
+  }
+
+  /**
+   * Helper to make request headers for the system requests we make.
+   */
+  private Map<String, String> sysReqHeaders(RoutingContext ctx, String tenantId) {
+    Map<String, String> headers = new HashMap<>();
+    for (String hdr : ctx.request().headers().names()) {
+      if (hdr.matches("^X-.*$")) {
+        headers.put(hdr, ctx.request().headers().get(hdr));
+      }
+    }
+    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
+      headers.put(XOkapiHeaders.TENANT, tenantId);
+      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    }
+    headers.put("Accept", "*/*");
+    headers.put("Content-Type", "application/json; charset=UTF-8");
+    return headers;
+  }
+
 
 } // class
