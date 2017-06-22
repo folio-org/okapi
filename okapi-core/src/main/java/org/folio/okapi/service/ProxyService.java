@@ -1,6 +1,5 @@
 package org.folio.okapi.service;
 
-import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -33,7 +32,6 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
-import static org.folio.okapi.common.ErrorType.ANY;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;

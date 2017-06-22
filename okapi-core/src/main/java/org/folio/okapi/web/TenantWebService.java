@@ -1,7 +1,6 @@
 package org.folio.okapi.web;
 
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -9,7 +8,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -22,16 +20,12 @@ import java.util.Set;
 import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInterface;
-import org.folio.okapi.bean.PermissionList;
-import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.service.TenantManager;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
-import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.util.ProxyContext;
 
 public class TenantWebService {
@@ -40,7 +34,7 @@ public class TenantWebService {
 
   final private Vertx vertx;
   TenantManager tenants;
-  private DiscoveryManager discoveryManager;
+  private final DiscoveryManager discoveryManager;
 
 
   public TenantWebService(Vertx vertx, TenantManager tenantManager,
@@ -151,7 +145,6 @@ public class TenantWebService {
       final String id = ctx.request().getParam("id");
       final String module = ctx.request().getParam("mod");
       pc.debug("disablemodule t=" + id + " m=" + module);
-      //tenants.disableModule(id, module, res -> {
       tenants.enableAndDisableModule(id, module, null, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -159,57 +152,50 @@ public class TenantWebService {
         pc.responseText(204, "");
       }
     });
+    } catch (DecodeException ex) {
+      pc.responseError(400, ex);
+    }
   }
-  catch (DecodeException ex ) {
-    pc.responseError(400, ex);
-  }
-}
 
   public void enableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
-    enableTenantInt(pc, null);
-  }
-
-  public void updateModule(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.updatemodule");
-    final String module_from = ctx.request().getParam("mod");
-    enableTenantInt(pc, module_from);
-  }
-
-  private void enableAndDisableModule(String tenantId,
-    String module_from, String module_to, ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
-  }
-  /**
-   * Enable tenant, part 1: Dependency check and call the tenant interface. This
-   * is done first, as it is the most likely to fail. The tenant interface
-   * service should be idempotent, so in case of failures, we can call it again.
-   */
-  private void enableTenantInt(ProxyContext pc, String module_from) {
-    RoutingContext ctx = pc.getCtx();
     try {
       final String id = ctx.request().getParam("id");
       final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
         TenantModuleDescriptor.class);
       final String module_to = td.getId();
-      pc.debug("enableTenantInt: id=" + id + " to=" + module_to + " fr=" + module_from);
-      tenants.get(id, res -> {
-        if (res.failed()) {
-          pc.responseError(res.getType(), res.cause());
+      tenants.enableAndDisableModule(id, null, module_to, pc, eres -> {
+        if (eres.failed()) {
+          pc.responseError(eres.getType(), eres.cause());
           return;
         }
-        Tenant tenant = res.result();
-        tenants.enableAndDisableModule(id, module_from, module_to, pc, eres -> {
-          if (eres.failed()) {
-            pc.debug("enableTenantInt: failed");
-            pc.responseError(eres.getType(), eres.cause());
-            return;
-          }
-          final String uri = ctx.request().uri() + "/" + module_to;
-          pc.responseJson(201, Json.encodePrettily(td), uri);
-        });
+        final String uri = ctx.request().uri() + "/" + module_to;
+        pc.responseJson(201, Json.encodePrettily(td), uri);
       });
+
+    } catch (DecodeException ex) {
+      pc.responseError(400, ex);
+    }
+  }
+
+  public void updateModule(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.updatemodule");
+    //enableTenantInt(pc, module_from);
+    try {
+      final String id = ctx.request().getParam("id");
+      final String module_from = ctx.request().getParam("mod");
+      final TenantModuleDescriptor td = Json.decodeValue(ctx.getBodyAsString(),
+        TenantModuleDescriptor.class);
+      final String module_to = td.getId();
+      tenants.enableAndDisableModule(id, module_from, module_to, pc, eres -> {
+        if (eres.failed()) {
+          pc.responseError(eres.getType(), eres.cause());
+          return;
+        }
+        final String uri = ctx.request().uri() + "/" + module_to + "/XXXX";
+        pc.responseJson(201, Json.encodePrettily(td), uri);
+      });
+
     } catch (DecodeException ex) {
       pc.responseError(400, ex);
     }

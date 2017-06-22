@@ -477,6 +477,9 @@ public class ModuleTest {
     // the auth module would have handled those, and indicated to Okapi that
     // these are no longer needed, and Okapi would not pass them to regular
     // modules.
+    // TODO - The auth stuff should only be passed to an auth filter, now
+    // that we have such defined. This check should be DEPRECATED and fixed
+    // when releasing v2.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "H") // ask sample to report all headers

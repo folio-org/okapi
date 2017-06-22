@@ -399,6 +399,8 @@ public class TenantManager {
   public void enableAndDisableModule(String tenantId,
     String module_from, String module_to, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
+    pc.debug("enableAndDisableModule for " + tenantId
+      + " fr=" + module_from + " to=" + module_to);
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
@@ -407,11 +409,11 @@ public class TenantManager {
       Tenant tenant = tres.result();
       updateModuleDepCheck(tenant, module_from, module_to, cres -> {
         if (cres.failed()) {
-          pc.debug("enableTenantInt: depcheck fail: " + cres.cause().getMessage());
+          pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;
         }
-        pc.debug("enableTenantInt: depcheck ok");
+        pc.debug("enableAndDisableModule: depcheck ok");
         if (module_to == null || module_to.isEmpty()) {
           ead4commit(tenant, module_from, module_to, pc, fut);
           return;
