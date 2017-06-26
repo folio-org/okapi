@@ -411,18 +411,17 @@ public class ProxyService {
       return; // Error code already set in ctx
     }
     ReadStream<Buffer> content = ctx.request();
+    // Pause the request data stream before doing any slow ops, otherwise
+    // it will get read into a buffer somewhere.
+    content.pause();
+
     tenantManager.get(tenant_id, gres -> {
       if (gres.failed()) {
+        content.resume();
         pc.responseText(400, "No such Tenant " + tenant_id);
         return;
       }
       Tenant tenant = gres.result();
-
-      // Pause the request data stream before doing any slow ops, otherwise
-      // it will get read into a buffer somewhere.
-      // TODO - Should this not be earlier??!!
-      content.pause();
-
       modules.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
           content.resume();
