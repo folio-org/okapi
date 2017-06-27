@@ -842,9 +842,9 @@ public class ProxyService {
     ProxyContext pc = new ProxyContext(vertx, ctx);
     final String origPath = ctx.request().path();
     String tid = origPath
-      .replaceFirst("^/_/proxy/tenants/([^/ ]+)/services/.*$", "$1");
+      .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
-      .replaceFirst("^/_/proxy/tenants/[^/ ]+/services(/.*$)", "$1");
+      .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
     ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
     pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
     ctx.reroute(newPath);

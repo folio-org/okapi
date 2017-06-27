@@ -500,20 +500,20 @@ public class ModuleTest {
 
     // Call the module via the redirect-url. No tenant header!
     given()
-      .get("/_/proxy/tenants/" + okapiTenant + "/services/testb")
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb")
       .then().statusCode(200)
       .body(containsString("It works"));
     given()
-      .get("/_/proxy/tenants/" + okapiTenant + "/services/testb/foo/bar")
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb/foo/bar")
       .then().statusCode(404);
     given()
       .header("X-all-headers", "H") // ask sample to report all headers
-      .get("/_/proxy/tenants/" + okapiTenant + "/services/testb?query=foo")
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
     given()
       .header("Content-Type", "application/json")
       .body("Testing testb")
-      .post("/_/proxy/tenants/" + okapiTenant + "/services/testb?query=foo")
+      .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
 
     // Check that the tenant API got called (exactly once)

@@ -347,7 +347,7 @@ public class MainVerticle extends AbstractVerticle {
     );
 
     if (proxyService != null) {
-      router.routeWithRegex("/_/proxy/tenants/[^/ ]+/services/.*")
+      router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
         .handler(proxyService::redirectProxy);
       // Note: this has to be before the BodyHandler.create() for "/_*"
     }
