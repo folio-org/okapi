@@ -498,6 +498,24 @@ public class ModuleTest {
       .then().statusCode(200)
       .body(containsString("5 4 3 2 1 Recursion done"));
 
+    // Call the module via the redirect-url. No tenant header!
+    given()
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb")
+      .then().statusCode(200)
+      .body(containsString("It works"));
+    given()
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb/foo/bar")
+      .then().statusCode(404);
+    given()
+      .header("X-all-headers", "H") // ask sample to report all headers
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
+      .then().statusCode(200);
+    given()
+      .header("Content-Type", "application/json")
+      .body("Testing testb")
+      .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
+      .then().statusCode(200);
+
     // Check that the tenant API got called (exactly once)
     given()
       .header("X-Okapi-Tenant", okapiTenant)
