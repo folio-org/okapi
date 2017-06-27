@@ -1,3 +1,10 @@
+## 1.6.1 2017-06-27
+
+ * Fix incorrect location of uprading module for Tenant OKAPI-351
+ * Environment variable OKAPI_LOGLEVEL sets log level - Command line
+   still takes precedence
+ * Refactor Modules and Tenants to use shared memory OKAPI-196 , OKAPI-354
+
 ## 1.6.0 2017-06-19
 
  * Service `/_/proxy/pull/modules` syncs remote Okapi with local one OKAPI-347
