@@ -404,11 +404,8 @@ public class ProxyService {
     return mi.getUrl() + mi.getUri();
   }
 
-  public void proxy(RoutingContext ctx) {
-    proxy(ctx, null);
-  }
 
-  public void proxy(RoutingContext ctx, Buffer bcontent) {
+  public void proxy(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(vertx, ctx);
     String tenant_id = tenantHeader(pc);
     if (tenant_id == null) {
@@ -456,7 +453,7 @@ public class ProxyService {
             content.resume();
             pc.responseError(res.getType(), res.cause());
           } else {
-            proxyR(l.iterator(), pc, content, bcontent);
+            proxyR(l.iterator(), pc, content, null);
           }
         });
       });
