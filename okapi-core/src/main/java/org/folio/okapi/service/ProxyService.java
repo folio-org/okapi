@@ -404,6 +404,7 @@ public class ProxyService {
     return mi.getUrl() + mi.getUri();
   }
 
+
   public void proxy(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(vertx, ctx);
     String tenant_id = tenantHeader(pc);
@@ -411,18 +412,17 @@ public class ProxyService {
       return; // Error code already set in ctx
     }
     ReadStream<Buffer> content = ctx.request();
+    // Pause the request data stream before doing any slow ops, otherwise
+    // it will get read into a buffer somewhere.
+    content.pause();
+
     tenantManager.get(tenant_id, gres -> {
       if (gres.failed()) {
+        content.resume();
         pc.responseText(400, "No such Tenant " + tenant_id);
         return;
       }
       Tenant tenant = gres.result();
-
-      // Pause the request data stream before doing any slow ops, otherwise
-      // it will get read into a buffer somewhere.
-      // TODO - Should this not be earlier??!!
-      content.pause();
-
       modules.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
           content.resume();
@@ -826,5 +826,25 @@ public class ProxyService {
     return headers;
   }
 
+  /**
+   * Extract tenantId from the request, rewrite the path, and proxy it. Expects
+   * a request to something like /_/proxy/tenant/{tid}/service/mod-something.
+   * Rewrites that to /mod-something, with the tenantId passed in the proper
+   * header. As there is no authtoken, this will not work for many things, but
+   * is needed for callbacks in the SSO systems, and who knows what else.
+   *
+   * @param ctx
+   */
+  public void redirectProxy(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(vertx, ctx);
+    final String origPath = ctx.request().path();
+    String tid = origPath
+      .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
+    String newPath = origPath
+      .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
+    ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
+    pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
+    ctx.reroute(newPath);
+  }
 
 } // class

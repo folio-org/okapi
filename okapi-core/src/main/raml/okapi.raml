@@ -557,4 +557,14 @@ schemas:
         body:
           text/plain:
 
+# A roundabout way to invoke any service
+/_/invoke/tenant/{id}:
+  get:
+    description: Invoke any service (the rest of the path, any method, any response)
+    responses:
+      200:
+        description: OK
+        body:
+          text/plain:
+
 #TODO implement single module health check

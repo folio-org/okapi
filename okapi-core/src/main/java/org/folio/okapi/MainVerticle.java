@@ -401,7 +401,13 @@ public class MainVerticle extends AbstractVerticle {
       .exposedHeader(XOkapiHeaders.REQUEST_ID)
     );
 
-    // Paths that start with /_/ are okapi internal configuration
+    if (proxyService != null) {
+      router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
+        .handler(proxyService::redirectProxy);
+      // Note: this has to be before the BodyHandler.create() for "/_*"
+    }
+
+    // Paths that start with /_/ are often okapi internal configuration
     router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
 
     if (moduleWebService != null) {

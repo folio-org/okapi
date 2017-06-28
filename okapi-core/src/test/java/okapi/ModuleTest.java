@@ -503,6 +503,26 @@ public class ModuleTest {
       .then().statusCode(200)
       .body(containsString("5 4 3 2 1 Recursion done"));
 
+    // Call the module via the redirect-url. No tenant header!
+    // The RAML can not express this way of calling things, so there can not be
+    // any tests for that...
+    given()
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb")
+      .then().statusCode(200)
+      .body(containsString("It works"));
+    given()
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb/foo/bar")
+      .then().statusCode(404);
+    given()
+      .header("X-all-headers", "H") // ask sample to report all headers
+      .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
+      .then().statusCode(200);
+    given()
+      .header("Content-Type", "application/json")
+      .body("Testing testb")
+      .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
+      .then().statusCode(200);
+
     // Check that the tenant API got called (exactly once)
     given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -2666,6 +2686,71 @@ public class ModuleTest {
 
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    async.complete();
+  }
+
+  @Test
+  public void testSemVer(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    c = api.createRestAssured();
+
+    String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-alpha.1\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-SNAPSHOT.5\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-alpha.1+2017\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     async.complete();
   }
 }

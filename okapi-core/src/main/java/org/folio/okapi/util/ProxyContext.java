@@ -136,7 +136,6 @@ public class ProxyContext {
     } else {
       reqId = curid + ";" + newid;
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Appended a reqId " + newid);
     }
   }
