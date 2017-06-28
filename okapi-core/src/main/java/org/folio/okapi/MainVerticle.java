@@ -24,6 +24,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -288,13 +289,13 @@ public class MainVerticle extends AbstractVerticle {
   private void checkSuperTenant(Future<Void> fut) {
     if (tenantManager == null) {
       logger.debug("checkSuperTenant: Skipping, no tenantManager");
-      startEnv(fut);
+      checkInternalModules(fut);
       return;
     }
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
-        startEnv(fut);
+        checkInternalModules(fut);
         return;
       }
       if (gres.getType() != NOT_FOUND) {
@@ -319,15 +320,59 @@ public class MainVerticle extends AbstractVerticle {
           fut.fail(ires.cause()); // something went badly wrong
           return;
         }
-        startEnv(fut);
+        checkInternalModules(fut);
+        return;
       });
     });
   }
 
 
-  /* TODO - Create internal module(s) and enable for the superTenant
-   */
-  /**/
+  private void checkInternalModules(Future<Void> fut) {
+    if (moduleManager == null) {
+      logger.debug("checkInternalModules: skipping, no moduleManager");
+      startEnv(fut);
+      return;
+    }
+    String v = okapiVersion;
+    if (v == null) {  // happens at compile time,
+      v = "0.0.0";   // unit tests can just check for this
+    }
+    String okapiModule = XOkapiHeaders.OKAPI_MODULE + "-" + v;
+    String interfaceVersion = v.replaceFirst("^(\\d+)\\.(\\d+)\\.(\\d*).*$", "$1.$2");
+    moduleManager.get(okapiModule, gres -> {
+      if (gres.succeeded()) { // we already have one, go on
+        logger.debug("checkInternalModules: Already have " + okapiModule
+          + " with interface version " + interfaceVersion);
+        startEnv(fut);
+        return;
+      }
+      if (gres.getType() != NOT_FOUND) {
+        logger.warn("checkInternalModules: Could not get "
+          + okapiModule + ": " + gres.cause());
+        fut.fail(gres.cause()); // something went badly wrong
+        return;
+      }
+      logger.debug("Creating the internal Okapi module " + okapiModule
+        + " with interface version " + interfaceVersion);
+      final String doc = "{"
+        + " \"id\" : \"" + okapiModule + "\","
+        + " \"name\" : \"" + okapiModule + "\""
+        + "}";
+      final ModuleDescriptor md = Json.decodeValue(doc, ModuleDescriptor.class);
+      moduleManager.create(md, ires -> {
+        if (ires.failed()) {
+          logger.warn("Failed to create the internal Okapi module"
+            + okapiModule + " " + ires.cause());
+          fut.fail(ires.cause()); // something went badly wrong
+          return;
+        }
+        startEnv(fut);
+      });
+
+    });
+
+  }
+
   private void startEnv(Future<Void> fut) {
     if (envManager == null) {
       logger.debug("startEnv: no envManager, skipping");

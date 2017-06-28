@@ -121,4 +121,9 @@ public class XOkapiHeaders {
    */
   public static final String SUPERTENANT_ID = "okapi.supertenant";
 
+  /**
+   * The name of the internal Okapi module. Version will be copied from software
+   * version.
+   */
+  public static final String OKAPI_MODULE = "okapi";
 }

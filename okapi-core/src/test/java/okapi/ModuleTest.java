@@ -45,6 +45,12 @@ public class ModuleTest {
   private static final String LS = System.lineSeparator();
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
+  // the one module that's always there.
+  private static final String internalModuleDoc = "{" + LS
+    + "  \"id\" : \"okapi-0.0.0\"," + LS
+    + "  \"name\" : \"okapi-0.0.0\"" + LS
+    + "}";
+
   public ModuleTest() {
   }
 
@@ -150,7 +156,7 @@ public class ModuleTest {
       .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
 
     given().get("/_/proxy/modules").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+      .log().ifError().statusCode(200).body(equalTo("[ " + internalModuleDoc + " ]"));
     given().get("/_/proxy/tenants").then()
       .log().ifError().statusCode(200).body(equalTo(superTenantDoc));
     logger.debug("Db check '" + label + "' OK");
@@ -263,13 +269,13 @@ public class ModuleTest {
     Response r;
     checkDbIsEmpty("testOneModule starting", context);
 
-    // Get an empty list of modules
+    // Get a list of the one built-in module, and nothing else.
     c = api.createRestAssured();
     c.given()
       .get("/_/proxy/modules")
       .then()
       .statusCode(200)
-      .body(equalTo("[ ]"));
+      .body(equalTo("[ " + internalModuleDoc + " ]"));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     // Check that we refuse the request with a trailing slash
@@ -422,11 +428,12 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // List the one module
+    // List the one module, and the built-in.
     final String expOneModList = "[ {" + LS
       + "  \"id\" : \"sample-module\"," + LS
       + "  \"name\" : \"sample module\"" + LS
-      + "} ]";
+      + "}, " + internalModuleDoc
+      + " ]";
     c = api.createRestAssured();
     c.given()
       .get("/_/proxy/modules")
