@@ -2681,4 +2681,69 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     async.complete();
   }
+
+  @Test
+  public void testSemVer(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    c = api.createRestAssured();
+
+    String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-alpha.1\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-SNAPSHOT.5\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-1.2.3-alpha.1+2017\"," + LS
+      + "  \"name\" : \"sample module 3\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .log().ifError()
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    async.complete();
+  }
 }

@@ -246,8 +246,8 @@ public class ModuleDescriptor {
     if (getId() == null || getId().isEmpty()) {
       return "No Id in module";
     }
-    if (!getId().matches("^[a-z0-9._-]+$")) {
-      return "Invalid id";
+    if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
+      return "Invalid id: " + getId();
     }
     String mod = getNameOrId();
     if (provides != null) {
