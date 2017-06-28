@@ -23,6 +23,7 @@ schemas:
   - EnvEntryList: !include EnvEntryList.json
   - Permission: !include Permission.json
   - PullDescriptor: !include PullDescriptor.json
+  - TenantModuleUpgrade: !include TenantModuleUpgrade.json
 
 # DEPLOYMENT SERVICE
 /_/deployment/modules:
@@ -340,6 +341,51 @@ schemas:
       responses:
         204:
 
+    # Bundle upgrade.. TODO: dry-run
+    /upgrade:
+      get:
+        description: check for module upgrade
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleUpgrade
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
+      post:
+        description: enable and disable a set of modules
+        body:
+          application/json:
+            schema: TenantModuleUpgrade
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleUpgrade
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
     /modules:
       get:
         description: selection of modules by the tenant
@@ -387,7 +433,7 @@ schemas:
               body:
                 text/plain:
         post:
-          description: update a module for a specified tenant.
+          description: enable new and disable current (new ID in body, old ID in path)
           body:
             application/json:
               schema: TenantModuleDescriptor
