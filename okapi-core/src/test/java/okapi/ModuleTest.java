@@ -499,6 +499,8 @@ public class ModuleTest {
       .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Call the module via the redirect-url. No tenant header!
+    // The RAML can not express this way of calling things, so there can not be
+    // any tests for that...
     given()
       .get("/_/invoke/tenant/" + okapiTenant + "/testb")
       .then().statusCode(200)
