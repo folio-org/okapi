@@ -1,3 +1,10 @@
+## 1.7.0 2017-06-28
+
+ * Tenant ID may be passed part of path. This is to facilitate "callback"
+   for some remote systems. Format is:
+   `/_/invoke/tenant/{id}/module-path-and-parms` OKAPI-355
+ * Fix Okapi doesn't accept Semver "pre-release" version syntax from MD 'id' field. OKAPI-356
+
 ## 1.6.1 2017-06-27
 
  * Fix incorrect location of uprading module for Tenant OKAPI-351
