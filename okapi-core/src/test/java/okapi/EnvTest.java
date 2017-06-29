@@ -248,8 +248,8 @@ public class EnvTest {
     final String locationTenantRoskilde = r.getHeader("Location");
     // associate tenant for module
     final String docEnableSample = "{" + LS
-            + "  \"id\" : \"sample-module1\"" + LS
-            + "}";
+      + "  \"id\" : \"sample-module1\"" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")

@@ -23,7 +23,6 @@ schemas:
   - EnvEntryList: !include EnvEntryList.json
   - Permission: !include Permission.json
   - PullDescriptor: !include PullDescriptor.json
-  - TenantModuleUpgrade: !include TenantModuleUpgrade.json
 
 # DEPLOYMENT SERVICE
 /_/deployment/modules:
@@ -350,7 +349,7 @@ schemas:
             description: OK
             body:
               application/json:
-                schema: TenantModuleUpgrade
+                schema: TenantModuleDescriptorList
           400:
             description: Bad Request
             body:
@@ -367,13 +366,13 @@ schemas:
         description: enable and disable a set of modules
         body:
           application/json:
-            schema: TenantModuleUpgrade
+            schema: TenantModuleDescriptorList
         responses:
           200:
             description: OK
             body:
               application/json:
-                schema: TenantModuleUpgrade
+                schema: TenantModuleDescriptorList
           400:
             description: Bad Request
             body:
