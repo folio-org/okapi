@@ -461,6 +461,13 @@ schemas:
           description: remove particular module selection
           responses:
             204:
+              description: Gone
+              body:
+                text/plain:
+            400:
+              description: Client Error
+              body:
+                text/plain:
     /interfaces/{interface_id}:
       get:
         description: get modules that provides some interface

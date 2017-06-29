@@ -157,6 +157,16 @@ public class TenantWebService {
     }
   }
 
+  public void enableModules(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodules");
+    pc.responseError(500, "not implemented");
+  }
+
+  public void upgradeModules(RoutingContext ctx) {
+    ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.upgrademodules");
+    pc.responseError(500, "not implemented");
+  }
+
   public void enableModule(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodule");
     try {
