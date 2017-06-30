@@ -141,7 +141,7 @@ public class ModuleDescriptor {
     if (prov != null) {
       for (ModuleInterface mi : prov) {
         String t = mi.getInterfaceType();
-        if (t == null || t.equals("proxy")) {
+        if (t == null || t.equals("proxy") || t.equals("internal")) {
           all.addAll(mi.getAllRoutingEntries());
         }
       }

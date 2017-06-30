@@ -317,7 +317,8 @@ public class MainVerticle extends AbstractVerticle {
         + "   \"interfaceType\" : \"internal\","
         + "   \"handlers\" : [ {"
         + "    \"methods\" :  [ \"GET\", \"POST\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/foo\","
+        + "    \"pathPattern\" : \"/__/proxy/tenants*\","
+        // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ]"
@@ -466,7 +467,7 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     // Paths that start with /_/ are often okapi internal configuration
-    router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
+    router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
 
     if (moduleWebService != null) {
       router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
@@ -525,7 +526,7 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/env/:id").handler(envService::get);
     }
     router.get("/_/version").handler(this::getVersion);
-    router.route("/_*").handler(this::NotFound);
+    router.route("/_/*").handler(this::NotFound);
 
     // everything else gets proxified to modules
     if (proxyService != null) {

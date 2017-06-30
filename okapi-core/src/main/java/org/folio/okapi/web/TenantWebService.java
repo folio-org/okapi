@@ -48,7 +48,6 @@ public class TenantWebService {
      tenants.init(vertx, fut);
   }
 
-
   public void create(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.create");
     try {

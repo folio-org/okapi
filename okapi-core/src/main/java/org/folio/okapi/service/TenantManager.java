@@ -8,6 +8,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -860,6 +861,35 @@ public class TenantManager {
       logger.debug("Loaded tenant " + t.getId());
       loadR(it, fut);
     });
+  }
+
+  /**
+   * Handler for the internal module web service.
+   *
+   * @param path of the request
+   * @param req The request
+   * @param pc
+   * @param fut callback with the response, as a Json string
+   */
+  public void internalTenantModule(String path, String req,
+    ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    RoutingContext ctx = pc.getCtx();
+    pc.debug("internalTenantModule '" + ctx.request().method() + "' '" + path + "'");
+    if (ctx.request().method() == HttpMethod.GET
+      && path.equals("/__/proxy/tenants")) {
+      list(res -> {
+        if (res.succeeded()) {
+          List<TenantDescriptor> tdl = res.result();
+          String s = Json.encodePrettily(tdl);
+          fut.handle(new Success<>(s));
+        } else {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        }
+      });
+    } else {
+      fut.handle(new Failure<>(USER, "Only listing supported for now"));
+    }
   }
 
 } // class
