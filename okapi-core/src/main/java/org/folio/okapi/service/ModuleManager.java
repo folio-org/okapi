@@ -174,6 +174,79 @@ public class ModuleManager {
     return "";  // ok
   }
 
+  private int checkInterfaceDependency(ModuleDescriptor md, ModuleInterface req,
+    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
+    ModuleInterface seenversion = null;
+    logger.info("checkInterfaceDependency");
+    for (String runningmodule : modsEnabled.keySet()) {
+      ModuleDescriptor rm = modsEnabled.get(runningmodule);
+      ModuleInterface[] provides = rm.getProvides();
+      if (provides != null) {
+        for (ModuleInterface pi : provides) {
+          logger.info("Checking dependency of " + md.getId() + ": "
+            + req.getId() + " " + req.getVersion()
+            + " against " + pi.getId() + " " + pi.getVersion());
+          if (req.getId().equals(pi.getId())) {
+            seenversion = pi;
+            if (pi.isCompatible(req)) {
+              logger.debug("Dependency OK");
+              return 0;
+            }
+          }
+        }
+      }
+    }
+    logger.info("checkInterfaceDependency2");
+    ModuleDescriptor foundMd = null;
+    for (String runningmodule : modsAvailable.keySet()) {
+      ModuleDescriptor rm = modsAvailable.get(runningmodule);
+      ModuleInterface[] provides = rm.getProvides();
+      if (provides != null) {
+        for (ModuleInterface pi : provides) {
+          logger.info("Checking dependency of " + md.getId() + ": "
+            + req.getId() + " " + req.getVersion()
+            + " against " + pi.getId() + " " + pi.getVersion());
+          if (req.getId().equals(pi.getId())) {
+            seenversion = pi;
+            if (pi.isCompatible(req)) {
+              logger.info("Dependency OK");
+              // should probably select the one with newest interface
+              foundMd = rm;
+            }
+          }
+        }
+      }
+    }
+
+    if (foundMd == null) {
+      return -1;
+    }
+    int v = addModuleDependencies(foundMd, modsAvailable, modsEnabled);
+    if (v == -1) {
+      return -1;
+    }
+    return v;
+  }
+
+  int addModuleDependencies(ModuleDescriptor md,
+    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
+    int sum = 0;
+    logger.info("addModuleDependencies of " + md.getId());
+    ModuleInterface[] requires = md.getRequires();
+    if (requires != null) {
+      for (ModuleInterface req : requires) {
+        int v = checkInterfaceDependency(md, req, modsAvailable, modsEnabled);
+        if (v == -1) {
+          return v;
+        }
+        sum += v;
+      }
+    }
+    logger.info("addModuleDependencies - add " + md.getId());
+    modsEnabled.put(md.getId(), md);
+    return sum + 1;
+  }
+
   /**
    * Check that all dependencies are satisfied. Usually called with a copy of
    * the modules list, after making some change.

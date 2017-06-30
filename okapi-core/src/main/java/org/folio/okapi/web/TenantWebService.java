@@ -5,26 +5,20 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.service.TenantManager;
-import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.OkapiClient;
-import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.ProxyContext;
 
@@ -159,7 +153,25 @@ public class TenantWebService {
 
   public void enableModules(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodules");
-    pc.responseError(500, "not implemented");
+    try {
+      final String id = ctx.request().getParam("id");
+      final TenantModuleDescriptor[] tml = Json.decodeValue(ctx.getBodyAsString(),
+        TenantModuleDescriptor[].class);
+      List<TenantModuleDescriptor> tm = new LinkedList<>();
+      for (int i = 0; i < tml.length; i++) {
+        tm.add(tml[i]);
+      }
+      tenants.enableModules(id, pc, true, tm, res -> {
+        if (res.failed()) {
+          pc.responseError(res.getType(), res.cause());
+        } else {
+          logger.info("enableModules\n" + Json.encodePrettily(res.result()));
+          pc.responseJson(200, Json.encodePrettily(res.result()));
+        }
+      });
+    } catch (DecodeException ex) {
+      pc.responseError(400, ex);
+    }
   }
 
   public void upgradeModules(RoutingContext ctx) {

@@ -386,12 +386,42 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // enable modules: not implemented
+    // enable modules -- wrong type
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ ]").post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
-      .then().statusCode(500);
+      .body("{ \"foo\" : \"bar\"}").post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(400);
+
+    // enable modules: post unknown module
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-foo-1.2.3\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // enable modules: post known module
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(200);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // enable modules: post known module which require basic
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(200);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -404,6 +434,5 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
   }
 }

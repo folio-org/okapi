@@ -1,9 +1,7 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -14,14 +12,14 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor;
+import org.folio.okapi.common.ErrorType;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -751,11 +749,99 @@ public class TenantManager {
     }); // tenant
   }
 
+  private void enable2(HashMap<String, ModuleDescriptor> modsAvailable,
+    HashMap<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+
+    Map<String, TenantModuleDescriptor> tm2 = new HashMap<>();
+    for (TenantModuleDescriptor tm : tml) {
+      String id = tm.getId();
+      tm2.put(id, tm);
+      if ("enable".equals(tm.getAction())) {
+        if (modsEnabled.containsKey(id)) {
+          tm.setAction("up2date");
+        } else if (!modsAvailable.containsKey(id)) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+          return;
+        } else {
+          int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
+            modsAvailable, modsEnabled);
+        }
+      } else if ("up2date".equals(tm.getAction())) {
+        ;
+      } else {
+        fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));
+        return;
+      }
+    }
+    logger.info("modsEnabled:");
+    for (String id : modsEnabled.keySet()) {
+      logger.info("  id " + id);
+    }
+    for (TenantModuleDescriptor tm : tml) {
+      String id = tm.getId();
+      if (modsEnabled.get(tm.getId()) == null) {
+        tm.setAction("disable");
+      }
+    }
+    for (String id : modsEnabled.keySet()) {
+      if (!tm2.containsKey(id)) {
+        TenantModuleDescriptor tm = new TenantModuleDescriptor();
+        tm.setAction("enable");
+        tm.setId(id);
+        tml.add(tm);
+        tm2.put(id, tm);
+      }
+    }
+    fut.handle(new Success<>(Boolean.TRUE));
+  }
+
+  public void enableModules(String id, ProxyContext pc,
+    boolean dryRun, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+    if (!dryRun) {
+      fut.handle(new Failure<>(ErrorType.INTERNAL, "Only dry-run supported"));
+      return;
+    }
+    tenants.get(id, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
+      }
+      Tenant t = gres.result();
+      moduleManager.getAllModules(mres -> {
+        if (mres.failed()) {
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        List<ModuleDescriptor> modResult = mres.result();
+        HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modResult.size());
+        HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+        for (ModuleDescriptor md : modResult) {
+          modsAvailable.put(md.getId(), md);
+          logger.info("mod available: " + md.getId());
+          if (t.isEnabled(md.getId())) {
+            logger.info("mod enabled: " + md.getId());
+            modsEnabled.put(md.getId(), md);
+          }
+        }
+        enable2(modsAvailable, modsEnabled, tml, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+            return;
+          }
+          fut.handle(new Success<>(tml));
+        });
+      });
+    });
+  }
+
   /**
    * List modules for a given tenant.
    *
-   * @param id
-   * @param fut calbback with a list of moduleIds
+   * @param id Tenant ID
+   * @param fut callback with a list of moduleIds
    */
   public void listModules(String id, Handler<ExtendedAsyncResult<List<String>>> fut) {
     tenants.get(id, gres -> {
