@@ -44,6 +44,10 @@ Since we will have access control, we need to design which permissions are
 needed for all the operations. Things to consider:
 * The UI may need to make some calls, for example for the `about` page. Most
 users should be allowed to see that, maybe it could be left totally unprotected?
+* Make an explicit list of the permissions for various operations
+* We can not make the ModulePermissions call for the internal modules, since
+we don't have mod-perms available at the time. What we can do instead, we can
+create a separate module, okapi-permsets, just for loading the permission sets.
 
 ### Starting up a fresh installation
 There is a bit of a chicken-and-egg problem when starting from fresh. The order
@@ -82,6 +86,12 @@ any auth token, from which the tenant could be deduced), we must not fail it
 immediately. Instead we must run as the super-tenant. That way, all the examples
 in our guide will work, and it will be possible to start up an installation.
 
+### Calling an internal module
+The code in ProxyService is fairly complex, with buffered and streamed requests
+and responses. The internal type module interfaces must be compatible with that.
+I am currently (29-Jun-2017) looking into this... I think we need to make the
+interface trickery in ProxyService, so that the individual services will just
+receive a request buffer, headers, and produce a response buffer.
 
 
 
