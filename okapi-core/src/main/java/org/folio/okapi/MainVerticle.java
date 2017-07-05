@@ -48,6 +48,7 @@ import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.web.InternalModule;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -210,7 +211,10 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("Proxy using " + storageType + " storage");
       moduleWebService = new ModuleWebService(vertx, moduleManager);
       tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
-      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
+      InternalModule internalModule = new InternalModule(moduleManager, tenantManager);
+      proxyService = new ProxyService(vertx,
+        moduleManager, tenantManager, discoveryManager,
+        internalModule, okapiUrl);
       tenantManager.setProxyService(proxyService);
       pullManager = new PullManager(vertx, okapiUrl);
       pullService = new PullService(pullManager);

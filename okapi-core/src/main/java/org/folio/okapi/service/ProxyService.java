@@ -44,6 +44,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.web.InternalModule;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -53,17 +54,19 @@ public class ProxyService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private final ModuleManager modules;
+  private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
   private final DiscoveryManager discoveryManager;
+  private final InternalModule internalModule;
   private final String okapiUrl;
   final private Vertx vertx;
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
-    DiscoveryManager dm, String okapiUrl) {
+    DiscoveryManager dm, InternalModule im, String okapiUrl) {
     this.vertx = vertx;
-    this.modules = modules;
+    this.moduleManager = modules;
     this.tenantManager = tm;
+    this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
   }
@@ -190,10 +193,9 @@ public class ProxyService {
     }
     if (!found) {
       if ("-".equals(pc.getTenant())) { // If we defaulted to supertenant,
-        pc.responseText(403, "Missing Tenant"); // we must return the same
-        return null; // message as before.
+        pc.responseText(403, "Missing Tenant");
+        return null;
       } else {
-        pc.debug("404-case: t=" + pc.getTenant());
         pc.responseError(404, "No suitable module found for "
           + req.absoluteURI());
         return null;
@@ -441,7 +443,7 @@ public class ProxyService {
         return;
       }
       Tenant tenant = gres.result();
-      modules.getEnabledModules(tenant, mres -> {
+      moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
           content.resume();
           pc.responseError(mres.getType(), mres.cause());
@@ -746,35 +748,25 @@ public class ProxyService {
     if (miPath == null) {
       miPath = mi.getRoutingEntry().getPath();
     }
-    if (miPath.startsWith("/__/proxy/tenants")) {
-      tenantManager.internalTenantModule(req, pc, res -> {
-        if (res.failed()) {
-          pc.responseError(res.getType(), res.cause());
-          return;
-        }
-        String resp = res.result();
-        int statusCode = pc.getCtx().response().getStatusCode();
-        proxyInternalResult(it, pc, bcontent, mi, statusCode, resp);
+    internalModule.internalService(req, pc, res -> {
+      if (res.failed()) {
+        pc.responseError(res.getType(), res.cause());
         return;
-      });
-    } // TODO - Same for /modules, and a fail on anything else
+      }
+      String resp = res.result();
+      int statusCode = pc.getCtx().response().getStatusCode();
+      Buffer respBuf = Buffer.buffer(resp);
+      if (it.hasNext()) { // carry on with the pipeline
+        pc.closeTimer();
+        proxyR(it, pc, null, respBuf);
+      } else { // produce a result
+        makeTraceHeader(mi, statusCode, pc);
+        ctx.response().setChunked(false);
+        ctx.response().end(respBuf);
+      }
+    });
   }
 
-  private void proxyInternalResult(Iterator<ModuleInstance> it,
-    ProxyContext pc, Buffer bcontent, ModuleInstance mi,
-    int statusCode, String resp) {
-    RoutingContext ctx = pc.getCtx();
-    Buffer respBuf = Buffer.buffer(resp);
-    if (it.hasNext()) { // carry on with the pipeline
-      pc.closeTimer();
-      proxyR(it, pc, null, respBuf);
-    } else { // produce a result
-      makeTraceHeader(mi, statusCode, pc);
-      ctx.response().setChunked(false);
-      ctx.response().end(respBuf);
-    }
-
-  }
 
   private void proxyR( Iterator<ModuleInstance> it,
     ProxyContext pc,

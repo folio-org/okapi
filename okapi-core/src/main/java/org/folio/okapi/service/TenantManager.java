@@ -863,39 +863,5 @@ public class TenantManager {
     });
   }
 
-  /**
-   * Handler for the internal module web service.
-   *
-   * @param req The request body
-   * @param pc proxy context, gives a ctx, path, and method
-   * @param fut callback with the response, as a Json string
-   *
-   * Note that there are restrictions what we can do with the ctx. We can set a
-   * result code (defaults to 200 OK) in successful operations, but be aware
-   * that only if this is the last module in the pipeline, will this code be
-   * returned to the caller. Often that is the case. We can look at the request,
-   * at least the (normalized) path and method, but the previous filters may
-   * have done something to them already.
-   */
-  public void internalTenantModule(String req, ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
-    RoutingContext ctx = pc.getCtx();
-    String path = ctx.normalisedPath();
-    pc.debug("internalTenantModule '" + ctx.request().method() + "' '" + path + "'");
-    if (ctx.request().method() == HttpMethod.GET
-      && path.equals("/__/proxy/tenants")) {
-      list(res -> {
-        if (res.succeeded()) {
-          List<TenantDescriptor> tdl = res.result();
-          String s = Json.encodePrettily(tdl);
-          fut.handle(new Success<>(s));
-        } else {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        }
-      });
-    } else {
-      fut.handle(new Failure<>(USER, "Only listing supported for now"));
-    }
-  }
 
 } // class
