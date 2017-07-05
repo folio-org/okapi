@@ -189,9 +189,15 @@ public class ProxyService {
       } // Works for auth, but may fail later.
     }
     if (!found) {
-      pc.responseError(404, "No suitable module found for "
-        + req.absoluteURI());
-      return null;
+      if ("-".equals(pc.getTenant())) { // If we defaulted to supertenant,
+        pc.responseText(403, "Missing Tenant"); // we must return the same
+        return null; // message as before.
+      } else {
+        pc.debug("404-case: t=" + pc.getTenant());
+        pc.responseError(404, "No suitable module found for "
+          + req.absoluteURI());
+        return null;
+      }
     }
     return mods;
   }
@@ -242,8 +248,10 @@ public class ProxyService {
     }
 
     if (tenantId == null) {
-      pc.responseText(403, "Missing Tenant");
-      return null;
+      //pc.responseText(403, "Missing Tenant");
+      //return null;
+      logger.info("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
+      return XOkapiHeaders.SUPERTENANT_ID;
     }
     pc.setTenant(tenantId);
     return tenantId;
@@ -739,8 +747,7 @@ public class ProxyService {
       miPath = mi.getRoutingEntry().getPath();
     }
     if (miPath.startsWith("/__/proxy/tenants")) {
-      String reqPath = ctx.normalisedPath();
-      tenantManager.internalTenantModule(reqPath, req, pc, res -> {
+      tenantManager.internalTenantModule(req, pc, res -> {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
           return;
@@ -750,7 +757,7 @@ public class ProxyService {
         proxyInternalResult(it, pc, bcontent, mi, statusCode, resp);
         return;
       });
-    } // TODO - Same for /modules
+    } // TODO - Same for /modules, and a fail on anything else
   }
 
   private void proxyInternalResult(Iterator<ModuleInstance> it,
