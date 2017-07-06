@@ -104,13 +104,6 @@ public class ProxyContext {
     return tenant;
   }
 
-  public String getTenantOrDefault() {
-    if (tenant != null) {
-      return tenant;
-    }
-    return XOkapiHeaders.SUPERTENANT_ID;
-  }
-
   public void setTenant(String tenant) {
     this.tenant = tenant;
   }

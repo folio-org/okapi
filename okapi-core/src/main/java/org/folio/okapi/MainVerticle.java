@@ -320,7 +320,7 @@ public class MainVerticle extends AbstractVerticle {
         + "   \"version\" : \"" + interfaceVersion + "\","
         + "   \"interfaceType\" : \"internal\","
         + "   \"handlers\" : [ {"
-        + "    \"methods\" :  [ \"GET\", \"POST\" ],"
+        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
         + "    \"pathPattern\" : \"/__/proxy/tenants*\","
         // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "

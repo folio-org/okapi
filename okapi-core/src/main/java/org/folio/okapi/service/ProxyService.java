@@ -250,10 +250,8 @@ public class ProxyService {
     }
 
     if (tenantId == null) {
-      //pc.responseText(403, "Missing Tenant");
-      //return null;
       logger.info("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
-      return XOkapiHeaders.SUPERTENANT_ID;
+      return XOkapiHeaders.SUPERTENANT_ID; // without setting it in pc
     }
     pc.setTenant(tenantId);
     return tenantId;
@@ -744,10 +742,6 @@ public class ProxyService {
     String req = bcontent.toString();
     pc.debug("proxyInternalBuffer " + req);
     RoutingContext ctx = pc.getCtx();
-    String miPath = mi.getRoutingEntry().getPathPattern();
-    if (miPath == null) {
-      miPath = mi.getRoutingEntry().getPath();
-    }
     internalModule.internalService(req, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
