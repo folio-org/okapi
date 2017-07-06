@@ -6,10 +6,15 @@ import static io.vertx.core.http.HttpMethod.*;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.RoutingContext;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import static org.folio.okapi.common.ErrorType.USER;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -127,6 +132,127 @@ public class InternalModule {
       }
     });
   }
+  public void enableModuleForTenant(ProxyContext pc, String id, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final TenantModuleDescriptor td = Json.decodeValue(body,
+              TenantModuleDescriptor.class);
+      final String module_to = td.getId();
+      tenantManager.enableAndDisableModule(id, null, module_to, pc, eres -> {
+        if (eres.failed()) {
+          fut.handle(new Failure<>(eres.getType(), eres.cause()));
+          return;
+        }
+        final String uri = pc.getCtx().request().uri() + "/" + module_to;
+        //pc.responseJson(201, Json.encodePrettily(td), uri);
+        pc.getCtx().response().putHeader("Location", uri);
+        pc.getCtx().response().setStatusCode(201);
+        fut.handle(new Success<>(Json.encodePrettily(td)));
+      });
+
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+
+  public void disableModuleForTenant(ProxyContext pc, String id, String module,
+    Handler<ExtendedAsyncResult<String>> fut) {
+      pc.debug("disablemodule t=" + id + " m=" + module);
+      tenantManager.enableAndDisableModule(id, module, null, pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        pc.getCtx().response().setStatusCode(204);
+        fut.handle(new Success<>(""));
+      }
+    });
+  }
+
+  public void updateModuleForTenant(ProxyContext pc, String id, String mod, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final String module_from = mod;
+      final TenantModuleDescriptor td = Json.decodeValue(body,
+              TenantModuleDescriptor.class);
+      final String module_to = td.getId();
+      tenantManager.enableAndDisableModule(id, module_from, module_to, pc, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        final String uri = pc.getCtx().request().uri();
+        final String regex = "^(.*)/" + module_from + "$";
+        final String newuri = uri.replaceAll(regex, "$1/" + module_to);
+        pc.getCtx().response().setStatusCode(201);
+        pc.getCtx().response().putHeader("Location", newuri);
+        fut.handle(new Success<>(Json.encodePrettily(td)));
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+  public void listModulesForTenant(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    tenantManager.listModules(id, res -> {
+      if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+      }
+      List<String> ml = res.result();
+      Iterator<String> mli = ml.iterator();  // into a list of objects
+      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
+      while (mli.hasNext()) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setId(mli.next());
+        ta.add(tmd);
+      }
+      String s = Json.encodePrettily(ta);
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  public void getModuleForTenant(ProxyContext pc, String id, String mod,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    tenantManager.get(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      Tenant t = res.result();
+      Set<String> ml = t.listModules();  // Convert the list of module names
+      if (ml.contains(mod)) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setId(mod);
+        String s = Json.encodePrettily(tmd);
+        fut.handle(new Success<>(s));
+      } else {
+        fut.handle(new Failure<>(NOT_FOUND, mod));
+      }
+    });
+  }
+
+  public void listModulesFromInterface(ProxyContext pc, String id, String intId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    tenantManager.listModulesFromInterface(id, intId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      List<ModuleDescriptor> mdL = res.result();
+      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
+      for (ModuleDescriptor md : mdL) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setId(md.getId());
+        ta.add(tmd);
+      }
+      String s = Json.encodePrettily(ta);
+      fut.handle(new Success<>(s));
+    });
+  }
+
+
 
   /**
    * Dispatcher for all the built-in services.
@@ -166,6 +292,7 @@ public class InternalModule {
             createTenant(pc, req, fut);
             return;
         }
+        // /_/proxy/tenants/:id
         if (n == 5 && m.equals(GET) ) {
             getTenant(pc, segments[4], fut);
             return;
@@ -178,7 +305,33 @@ public class InternalModule {
             deleteTenant(pc, segments[4], fut);
             return;
         }
-
+        // /_/proxy/tenants/:id/modules
+        if (n==6 && m.equals(GET)&& segments[5].equals("modules")) {
+          listModulesForTenant(pc, segments[4], fut);
+          return;
+        }
+        if (n==6 && m.equals(POST)&& segments[5].equals("modules")) {
+          enableModuleForTenant(pc, segments[4], req, fut);
+          return;
+        }
+        // /_/proxy/tenants/:id/modules/:mod
+        if (n == 7 && m.equals(GET) && segments[5].equals("modules")){
+          getModuleForTenant(pc, segments[4], segments[6], fut);
+          return;
+        }
+        if (n == 7 && m.equals(PUT) && segments[5].equals("modules")){
+          updateModuleForTenant(pc,  segments[4], segments[6], req, fut);
+          return;
+        }
+        if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")){
+          disableModuleForTenant(pc, segments[4], segments[6], fut);
+          return;
+        }
+        // /_/proxy/tenants/:id/interfaces/:int
+        if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")){
+          listModulesFromInterface(pc, segments[4], segments[6], fut);
+          return;
+        }
       } // tenants
 
     }

@@ -728,6 +728,7 @@ public class TenantManager {
     String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
+        logger.debug("listModulesFromInterface: tenant " + tenantId + " not found");
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
       }
@@ -735,6 +736,7 @@ public class TenantManager {
       ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
       moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
+          logger.debug("listModulesFromInterface: enabledModules failed for " + tenantId);
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
