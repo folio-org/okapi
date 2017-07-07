@@ -324,6 +324,10 @@ public class MainVerticle extends AbstractVerticle {
         + "    \"pathPattern\" : \"/__/proxy/tenants*\","
         // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/__/proxy/modules*\","
+        + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ]"
         + "}";
