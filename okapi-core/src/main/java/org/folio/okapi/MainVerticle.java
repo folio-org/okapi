@@ -1,7 +1,6 @@
 package org.folio.okapi;
 
 import org.folio.okapi.service.ModuleManager;
-import org.folio.okapi.web.TenantWebService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -27,12 +26,10 @@ import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.web.HealthService;
 import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.web.ModuleWebService;
 import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
@@ -60,9 +57,7 @@ public class MainVerticle extends AbstractVerticle {
   TenantManager tenantManager;
   EnvService envService;
   EnvManager envManager;
-  ModuleWebService moduleWebService;
   ProxyService proxyService;
-  TenantWebService tenantWebService;
   DeploymentWebService deploymentWebService;
   DeploymentManager deploymentManager;
   DiscoveryService discoveryService;
@@ -209,8 +204,6 @@ public class MainVerticle extends AbstractVerticle {
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
-      moduleWebService = new ModuleWebService(vertx, moduleManager);
-      tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
       InternalModule internalModule = new InternalModule(moduleManager, tenantManager);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
@@ -270,11 +263,11 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void startTenants(Future<Void> fut) {
-    if (tenantWebService == null) {
+    if (tenantManager == null) {
       checkInternalModules(fut);
     } else {
       logger.debug("Startting tenants");
-      tenantWebService.init(vertx, res -> {
+      tenantManager.init(vertx, res -> {
         if (res.succeeded()) {
           checkInternalModules(fut);
         } else {
@@ -485,27 +478,7 @@ public class MainVerticle extends AbstractVerticle {
     // Paths that start with /_/ are often okapi internal configuration
     router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
 
-    if (moduleWebService != null) {
-/*
-      router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
-      router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
-      router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
-      router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
-      router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
-*/
-    }
-    if (tenantWebService != null) {
-      router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
-      router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
-      router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
-      router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
-      router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
-      router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
-      router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-      router.post("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
-      router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
-      router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
-      router.get("/_/proxy/tenants/:id/interfaces/:int").handler(tenantWebService::listModulesFromInterface);
+    if (tenantManager != null) { // TODO - why does this depend on tenant?
       router.getWithRegex("/_/proxy/health").handler(healthService::get);
     }
     if (pullService != null) {
@@ -514,7 +487,7 @@ public class MainVerticle extends AbstractVerticle {
     // Endpoints for internal testing only.
     // The reload points can be removed as soon as we have a good integration
     // test that verifies that changes propagate across a cluster...
-    if (moduleWebService != null) {
+    if (moduleManager != null) {
       router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
       router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
     }
