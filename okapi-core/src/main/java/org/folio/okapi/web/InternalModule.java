@@ -382,7 +382,9 @@ public class InternalModule {
     if (p.endsWith("/")) {
       n = 0; // force a notfound error for trailing slash
     }
-    if (n >= 4 && p.startsWith("/__/proxy/")){ // need at least /__/proxy/something
+    // default to json replies, error code overrides to text/plain
+    pc.getCtx().response().putHeader("Content-Type", "application/json");
+    if (n >= 4 && p.startsWith("/_/proxy/")){ // need at least /_/proxy/something
       if (segments[3].equals("modules")
               && moduleManager != null) {
         // /_/proxy/modules
@@ -408,7 +410,7 @@ public class InternalModule {
             return;
         }
       } // modules
-      
+
       if (segments[3].equals("tenants")
               && tenantManager != null) {
         // /_/proxy/tenants
@@ -448,6 +450,10 @@ public class InternalModule {
           return;
         }
         if (n == 7 && m.equals(PUT) && segments[5].equals("modules")){
+          updateModuleForTenant(pc,  segments[4], segments[6], req, fut);
+          return;
+        }
+        if (n == 7 && m.equals(POST) && segments[5].equals("modules")){
           updateModuleForTenant(pc,  segments[4], segments[6], req, fut);
           return;
         }

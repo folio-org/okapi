@@ -321,12 +321,12 @@ public class MainVerticle extends AbstractVerticle {
         + "   \"interfaceType\" : \"internal\","
         + "   \"handlers\" : [ {"
         + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
-        + "    \"pathPattern\" : \"/__/proxy/tenants*\","
+        + "    \"pathPattern\" : \"/_/proxy/tenants*\","
         // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
-        + "    \"pathPattern\" : \"/__/proxy/modules*\","
+        + "    \"pathPattern\" : \"/_/proxy/modules*\","
         + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ]"
@@ -474,15 +474,25 @@ public class MainVerticle extends AbstractVerticle {
       // Note: this has to be before the BodyHandler.create() for "/_*"
     }
 
+    // Dirty hack to get selected /_/... urls to the proxy, and the internal module
+    // Can be removed when all ops go that way, and we no longer need the bodyHandler below
+    if (proxyService != null) {
+      router.route("/_/proxy/modules*").handler(proxyService::proxy);
+      router.route("/_/proxy/tenants*").handler(proxyService::proxy);
+    }
+
+
     // Paths that start with /_/ are often okapi internal configuration
     router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
 
     if (moduleWebService != null) {
+/*
       router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
       router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
       router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
       router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
       router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
+*/
     }
     if (tenantWebService != null) {
       router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
