@@ -39,7 +39,6 @@ import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
-import org.folio.okapi.env.EnvService;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
@@ -55,7 +54,6 @@ public class MainVerticle extends AbstractVerticle {
   HealthService healthService;
   ModuleManager moduleManager;
   TenantManager tenantManager;
-  EnvService envService;
   EnvManager envManager;
   ProxyService proxyService;
   DeploymentWebService deploymentWebService;
@@ -201,7 +199,6 @@ public class MainVerticle extends AbstractVerticle {
       TenantStore tenantStore = storage.getTenantStore();
       tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
-      envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
       InternalModule internalModule = new InternalModule(moduleManager, 
@@ -519,12 +516,6 @@ public class MainVerticle extends AbstractVerticle {
       router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
       router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
       router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
-    }
-    if (envService != null) {
-      router.postWithRegex("/_/env").handler(envService::create);
-      router.delete("/_/env/:id").handler(envService::delete);
-      router.get("/_/env").handler(envService::getAll);
-      router.get("/_/env/:id").handler(envService::get);
     }
     router.get("/_/version").handler(this::getVersion);
     router.route("/_/*").handler(this::NotFound);
