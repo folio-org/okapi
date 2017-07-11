@@ -533,6 +533,8 @@ schemas:
         headers:
           Location:
             description: URI to the environment entry instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: EnvEntry
@@ -551,6 +553,9 @@ schemas:
         body:
           application/json:
             schema: EnvEntryList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -567,6 +572,9 @@ schemas:
           body:
             application/json:
               schema: EnvEntry
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -583,6 +591,9 @@ schemas:
       description: remove environment variable
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 # Version service
 /_/version:

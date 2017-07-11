@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
 import org.folio.okapi.bean.Tenant;
@@ -22,6 +23,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.ProxyContext;
@@ -32,10 +34,13 @@ import org.folio.okapi.util.ProxyContext;
 public class InternalModule {
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
+  private final EnvManager envManager;
 
-  public InternalModule(ModuleManager modules, TenantManager tenantManager) {
+  public InternalModule(ModuleManager modules, 
+          TenantManager tenantManager, EnvManager envManager) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
+    this.envManager = envManager;
   }
 
 
@@ -146,7 +151,6 @@ public class InternalModule {
           return;
         }
         final String uri = pc.getCtx().request().uri() + "/" + module_to;
-        //pc.responseJson(201, Json.encodePrettily(td), uri);
         pc.getCtx().response().putHeader("Location", uri);
         pc.getCtx().response().setStatusCode(201);
         fut.handle(new Success<>(Json.encodePrettily(td)));
@@ -354,6 +358,70 @@ public class InternalModule {
   }
 
 
+  public void listEnv(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    envManager.get(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      }
+    });
+  }
+
+  public void getEnv(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (id == null) {
+      fut.handle(new Failure<>(USER, "id missing"));
+      return;
+    }
+    envManager.get(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        final String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      }
+    });
+  }
+
+  public void createEnv(ProxyContext pc, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
+      envManager.add(pmd, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          final String js = Json.encodePrettily(pmd);
+          final String uri = pc.getCtx().request().uri() + "/" + pmd.getName();
+          pc.getCtx().response().putHeader("Location", uri);
+          pc.getCtx().response().setStatusCode(201);
+          fut.handle(new Success<>(js));
+        }
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+  public void deleteEnv(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (id == null) {
+      fut.handle(new Failure<>(USER, "id missing"));
+      return;
+    }
+    envManager.remove(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        pc.getCtx().response().setStatusCode(204);
+        fut.handle(new Success<>(""));
+      }
+    });
+  }
+
 
   /**
    * Dispatcher for all the built-in services.
@@ -469,6 +537,30 @@ public class InternalModule {
       } // tenants
 
     }
+    if (n >= 2 && p.startsWith("/_/env") 
+            && segments[2].equals("env")){ // not envXX or such
+
+      // /_/env
+      if (n == 3 && m.equals(GET)  ) {
+        listEnv(pc, fut);
+        return;
+      }
+      if (n == 3 && m.equals(POST)  ) {
+        createEnv(pc, req, fut);
+        return;
+      }
+      // /_/env/name
+      if (n == 4 && m.equals(GET)  ) {
+        getEnv(pc, segments[3], fut);
+        return;
+      }
+      if (n == 4 && m.equals(DELETE)  ) {
+        deleteEnv(pc, segments[3], fut);
+        return;
+      }
+
+    } // env
+
     String slash = "";
     if (p.endsWith("/")) {
       slash = " (try without a trailing slash)";

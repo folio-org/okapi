@@ -204,7 +204,8 @@ public class MainVerticle extends AbstractVerticle {
       envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
-      InternalModule internalModule = new InternalModule(moduleManager, tenantManager);
+      InternalModule internalModule = new InternalModule(moduleManager, 
+              tenantManager, envManager);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
@@ -318,12 +319,17 @@ public class MainVerticle extends AbstractVerticle {
         // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "
         + "   }, {"
-        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
+        + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/proxy/modules*\","
+        + "    \"type\" : \"internal\" "
+        + "   } , {"
+        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/env*\","
         + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ]"
         + "}";
+
       final ModuleDescriptor md = Json.decodeValue(doc, ModuleDescriptor.class);
       moduleManager.create(md, ires -> {
         if (ires.failed()) {
@@ -465,6 +471,9 @@ public class MainVerticle extends AbstractVerticle {
       router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
         .handler(proxyService::redirectProxy);
       // Note: this has to be before the BodyHandler.create() for "/_*"
+      // Note: This can not go into the InternalModule, it reads the req body,
+      // and then we can not ctx.reroute(). Unless we do something trickier,
+      // like a new HTTP request.
     }
 
     // Dirty hack to get selected /_/... urls to the proxy, and the internal module
@@ -472,6 +481,7 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.route("/_/proxy/modules*").handler(proxyService::proxy);
       router.route("/_/proxy/tenants*").handler(proxyService::proxy);
+      router.route("/_/env*").handler(proxyService::proxy);
     }
 
 

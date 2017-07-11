@@ -892,7 +892,7 @@ public class ProxyService {
 
   /**
    * Extract tenantId from the request, rewrite the path, and proxy it. Expects
-   * a request to something like /_/proxy/tenant/{tid}/service/mod-something.
+   * a request to something like /_/proxy/tenant/{tid}/mod-something.
    * Rewrites that to /mod-something, with the tenantId passed in the proper
    * header. As there is no authtoken, this will not work for many things, but
    * is needed for callbacks in the SSO systems, and who knows what else.
