@@ -26,21 +26,42 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
+import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.ProxyContext;
 
 /**
- * Okapi's build-in module. Managing tenants, modules, etc.
+ * Okapi's build-in module. Managing /_/ endpoints.
+ * 
+ * /_/proxy/modules
+ * /_/proxy/tenants
+ * /_/env
+ * /_/test loglevel etc
+ *
+ * TODO
+ * /_/proxy/health
+ * /_/proxy/pull
+ * /_/deployment
+ * /_/discovery
+ * /_/version
+ *
+ * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
+ * must read the request body before invoking this built-in module, and
+ * /_/invoke uses ctx.reroute(), which assumes the body has not been read.
+ *
+ *
  */
 public class InternalModule {
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
   private final EnvManager envManager;
-
+  private final LogHelper logHelper;
+  
   public InternalModule(ModuleManager modules, 
           TenantManager tenantManager, EnvManager envManager) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.envManager = envManager;
+    logHelper = new LogHelper();
   }
 
 
@@ -422,6 +443,33 @@ public class InternalModule {
     });
   }
 
+  /**
+   * Pretty simplistic health check.
+   */
+  private void getHealth(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    fut.handle(new Success<>("[ ]"));
+  }
+
+
+  private void getRootLogLevel(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    String lev = logHelper.getRootLogLevel();
+    LogHelper.LogLevelInfo li = new LogHelper.LogLevelInfo(lev);
+    String rj = Json.encode(li);
+    fut.handle(new Success<>(rj));
+  }
+
+  public void setRootLogLevel(ProxyContext pc, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
+            LogHelper.LogLevelInfo.class);
+    logHelper.setRootLogLevel(inf.getLevel());
+    fut.handle(new Success<>(body));
+    // Should at least return the actual log level, not whatever we post
+    // We can post FOOBAR, and nothing changes...
+  }
+
 
   /**
    * Dispatcher for all the built-in services.
@@ -477,7 +525,7 @@ public class InternalModule {
             deleteModule(pc, segments[4], fut);
             return;
         }
-      } // modules
+      } // /_/proxy/modules
 
       if (segments[3].equals("tenants")
               && tenantManager != null) {
@@ -534,9 +582,16 @@ public class InternalModule {
           listModulesFromInterface(pc, segments[4], segments[6], fut);
           return;
         }
-      } // tenants
+      } // /_/proxy/tenants
 
-    }
+      // /_/proxy/health
+      if (n == 4 && segments[3].equals("health") && m.equals(GET)){
+        getHealth(pc, fut);
+        return;
+      }
+
+    } // _/proxy
+
     if (n >= 2 && p.startsWith("/_/env") 
             && segments[2].equals("env")){ // not envXX or such
 
@@ -561,11 +616,23 @@ public class InternalModule {
 
     } // env
 
+
+    if (n >= 2 && p.startsWith("/_/test/")){
+      if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
+        getRootLogLevel(pc,fut);
+        return;
+      }
+      if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
+        setRootLogLevel(pc,req,fut);
+        return;
+      }
+    }
+
+    // If we get here, nothing matched.
     String slash = "";
     if (p.endsWith("/")) {
       slash = " (try without a trailing slash)";
     }
-
     fut.handle(new Failure<>(NOT_FOUND, "No internal module found for "
             + m + " " + p + slash));
   }

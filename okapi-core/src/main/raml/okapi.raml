@@ -493,6 +493,9 @@ schemas:
         body:
           application/json:
             schema: HealthStatusList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       500:
         description: Server Error
 

@@ -311,17 +311,24 @@ public class MainVerticle extends AbstractVerticle {
         + "   \"version\" : \"" + interfaceVersion + "\","
         + "   \"interfaceType\" : \"internal\","
         + "   \"handlers\" : [ {"
-        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
+        + "    \"methods\" :  [ \"*\" ],"  // TODO - set them up one by one, with permissions
         + "    \"pathPattern\" : \"/_/proxy/tenants*\","
-        // Can not use the _ prefix while developing, routes differently
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/proxy/modules*\","
         + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/health*\","
+        + "    \"type\" : \"internal\" "
         + "   } , {"
-        + "    \"methods\" :  [ \"GET\", \"POST\", \"PUT\", \"DELETE\" ],"
+        + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/env*\","
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\", \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/test*\","
         + "    \"type\" : \"internal\" "
         + "   } ]"
         + " } ]"
@@ -478,7 +485,9 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.route("/_/proxy/modules*").handler(proxyService::proxy);
       router.route("/_/proxy/tenants*").handler(proxyService::proxy);
+      router.route("/_/proxy/health*").handler(proxyService::proxy);
       router.route("/_/env*").handler(proxyService::proxy);
+      router.route("/_/test*").handler(proxyService::proxy);
     }
 
 
@@ -486,17 +495,10 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
 
     if (tenantManager != null) { // TODO - why does this depend on tenant?
-      router.getWithRegex("/_/proxy/health").handler(healthService::get);
+      //router.getWithRegex("/_/proxy/health").handler(healthService::get);
     }
     if (pullService != null) {
       router.postWithRegex("/_/proxy/pull/modules").handler(pullService::create);
-    }
-    // Endpoints for internal testing only.
-    // The reload points can be removed as soon as we have a good integration
-    // test that verifies that changes propagate across a cluster...
-    if (moduleManager != null) {
-      router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
-      router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
     }
 
     if (deploymentWebService != null) {
