@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
+import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -24,6 +25,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.env.EnvManager;
+import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.LogHelper;
@@ -54,13 +56,16 @@ public class InternalModule {
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
   private final EnvManager envManager;
+  private final PullManager pullManager;
   private final LogHelper logHelper;
   
   public InternalModule(ModuleManager modules, 
-          TenantManager tenantManager, EnvManager envManager) {
+          TenantManager tenantManager, EnvManager envManager,
+          PullManager pullManager) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.envManager = envManager;
+    this.pullManager = pullManager;
     logHelper = new LogHelper();
   }
 
@@ -443,6 +448,23 @@ public class InternalModule {
     });
   }
 
+  public void pullModules(ProxyContext pc, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
+      pullManager.pull(pmd, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          fut.handle(new Success<>(Json.encodePrettily(res.result())));
+        }
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+
   /**
    * Pretty simplistic health check.
    */
@@ -584,6 +606,12 @@ public class InternalModule {
         }
       } // /_/proxy/tenants
 
+      // /_/proxy/pull/modules
+      if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
+              && m.equals(POST) && pullManager != null){
+        pullModules(pc, req, fut);
+        return;
+      }
       // /_/proxy/health
       if (n == 4 && segments[3].equals("health") && m.equals(GET)){
         getHealth(pc, fut);

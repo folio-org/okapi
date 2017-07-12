@@ -40,7 +40,6 @@ import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
-import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ProxyContext;
@@ -62,7 +61,6 @@ public class MainVerticle extends AbstractVerticle {
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
   PullManager pullManager;
-  PullService pullService;
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
@@ -201,14 +199,13 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
+      pullManager = new PullManager(vertx, okapiUrl);
       InternalModule internalModule = new InternalModule(moduleManager, 
-              tenantManager, envManager);
+              tenantManager, envManager, pullManager);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
       tenantManager.setProxyService(proxyService);
-      pullManager = new PullManager(vertx, okapiUrl);
-      pullService = new PullService(pullManager);
     }
   }
 
@@ -317,6 +314,10 @@ public class MainVerticle extends AbstractVerticle {
         + "   }, {"
         + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/proxy/modules*\","
+        + "    \"type\" : \"internal\" "
+        + "   },{"
+        + "    \"methods\" :  [ \"POST\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/pull*\","
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"GET\" ],"
@@ -483,9 +484,13 @@ public class MainVerticle extends AbstractVerticle {
     // Dirty hack to get selected /_/... urls to the proxy, and the internal module
     // Can be removed when all ops go that way, and we no longer need the bodyHandler below
     if (proxyService != null) {
+      router.route("/_/proxy/*").handler(proxyService::proxy);
+      /*
       router.route("/_/proxy/modules*").handler(proxyService::proxy);
       router.route("/_/proxy/tenants*").handler(proxyService::proxy);
       router.route("/_/proxy/health*").handler(proxyService::proxy);
+      router.route("/_/proxy/pull*").handler(proxyService::proxy);
+              */
       router.route("/_/env*").handler(proxyService::proxy);
       router.route("/_/test*").handler(proxyService::proxy);
     }
@@ -493,13 +498,6 @@ public class MainVerticle extends AbstractVerticle {
 
     // Paths that start with /_/ are often okapi internal configuration
     router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
-
-    if (tenantManager != null) { // TODO - why does this depend on tenant?
-      //router.getWithRegex("/_/proxy/health").handler(healthService::get);
-    }
-    if (pullService != null) {
-      router.postWithRegex("/_/proxy/pull/modules").handler(pullService::create);
-    }
 
     if (deploymentWebService != null) {
       router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
