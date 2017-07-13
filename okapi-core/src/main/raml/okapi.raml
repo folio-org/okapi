@@ -609,6 +609,9 @@ schemas:
         description: OK
         body:
           text/plain:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:

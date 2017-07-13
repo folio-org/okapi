@@ -201,7 +201,7 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("Proxy using " + storageType + " storage");
       pullManager = new PullManager(vertx, okapiUrl);
       InternalModule internalModule = new InternalModule(moduleManager, 
-              tenantManager, envManager, pullManager);
+              tenantManager, envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
@@ -273,7 +273,9 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+
   private void checkInternalModules(Future<Void> fut) {
+    // TODO - Refactor most of this into InternalModule.
     String v = okapiVersion;
     if (v == null) {  // happens at compile time,
       v = "0.0.0";   // unit tests can just check for this
@@ -289,6 +291,7 @@ public class MainVerticle extends AbstractVerticle {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have " + okapiModule
           + " with interface version " + interfaceVersion);
+        // TODO - What if it is a wrong version?
         checkSuperTenant(okapiModule, fut);
         return;
       }
@@ -315,7 +318,7 @@ public class MainVerticle extends AbstractVerticle {
         + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/proxy/modules*\","
         + "    \"type\" : \"internal\" "
-        + "   },{"
+        + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
         + "    \"pathPattern\" : \"/_/proxy/pull*\","
         + "    \"type\" : \"internal\" "
@@ -323,9 +326,13 @@ public class MainVerticle extends AbstractVerticle {
         + "    \"methods\" :  [ \"GET\" ],"
         + "    \"pathPattern\" : \"/_/proxy/health*\","
         + "    \"type\" : \"internal\" "
-        + "   } , {"
+        + "   }, {"
         + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/env*\","
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/version*\","
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"GET\", \"POST\" ],"
@@ -445,11 +452,6 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  private void getVersion(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(vertx, ctx);
-    pc.responseText(200, okapiVersion == null ? "null" : okapiVersion);
-  }
-
   private void startListening(Future<Void> fut) {
     Router router = Router.router(vertx);
     logger.debug("Setting up routes");
@@ -475,37 +477,22 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
         .handler(proxyService::redirectProxy);
-      // Note: this has to be before the BodyHandler.create() for "/_*"
       // Note: This can not go into the InternalModule, it reads the req body,
       // and then we can not ctx.reroute(). Unless we do something trickier,
       // like a new HTTP request.
     }
 
-    // Dirty hack to get selected /_/... urls to the proxy, and the internal module
-    // Can be removed when all ops go that way, and we no longer need the bodyHandler below
-    if (proxyService != null) {
-      router.route("/_/proxy/*").handler(proxyService::proxy);
-      /*
-      router.route("/_/proxy/modules*").handler(proxyService::proxy);
-      router.route("/_/proxy/tenants*").handler(proxyService::proxy);
-      router.route("/_/proxy/health*").handler(proxyService::proxy);
-      router.route("/_/proxy/pull*").handler(proxyService::proxy);
-              */
-      router.route("/_/env*").handler(proxyService::proxy);
-      router.route("/_/test*").handler(proxyService::proxy);
-    }
 
-
-    // Paths that start with /_/ are often okapi internal configuration
-    router.route("/_/*").handler(BodyHandler.create()); //enable reading body to string
-
+    // TODO - Refactor these into InternalModule too
     if (deploymentWebService != null) {
+      router.route("/_/deployment/*").handler(BodyHandler.create()); //enable reading body to string
       router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
       router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
       router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
       router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
     }
     if (discoveryService != null) {
+    router.route("/_/discovery/*").handler(BodyHandler.create()); //enable reading body to string
       router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
       router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
       router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
@@ -517,8 +504,8 @@ public class MainVerticle extends AbstractVerticle {
       router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
       router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
     }
-    router.get("/_/version").handler(this::getVersion);
-    router.route("/_/*").handler(this::NotFound);
+
+    //router.route("/_/*").handler(this::NotFound);
 
     // everything else gets proxified to modules
     if (proxyService != null) {

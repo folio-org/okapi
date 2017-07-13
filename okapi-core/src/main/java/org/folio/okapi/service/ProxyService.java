@@ -192,7 +192,9 @@ public class ProxyService {
       } // Works for auth, but may fail later.
     }
     if (!found) {
-      if ("-".equals(pc.getTenant())) { // If we defaulted to supertenant,
+      if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
+        && !req.path().startsWith("/_/")  ) {  // and not wrong okapi request
+           // The /_/ test is to make sure we report same errors as before internalModule stuff
         pc.responseText(403, "Missing Tenant");
         return null;
       } else {

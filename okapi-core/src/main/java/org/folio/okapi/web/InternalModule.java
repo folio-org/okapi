@@ -5,6 +5,8 @@ import io.vertx.core.http.HttpMethod;
 import static io.vertx.core.http.HttpMethod.*;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -36,15 +38,16 @@ import org.folio.okapi.util.ProxyContext;
  * 
  * /_/proxy/modules
  * /_/proxy/tenants
+ * /_/proxy/health
+ * /_/proxy/pull
  * /_/env
+ * /_/version
  * /_/test loglevel etc
  *
  * TODO
- * /_/proxy/health
- * /_/proxy/pull
  * /_/deployment
  * /_/discovery
- * /_/version
+ * ModuleDescriptor, maybe even the whole internal module check.
  *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
  * must read the request body before invoking this built-in module, and
@@ -53,20 +56,26 @@ import org.folio.okapi.util.ProxyContext;
  *
  */
 public class InternalModule {
+  private final Logger logger = LoggerFactory.getLogger("okapi");
+  
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
   private final EnvManager envManager;
   private final PullManager pullManager;
   private final LogHelper logHelper;
+  private final String okapiVersion;
   
   public InternalModule(ModuleManager modules, 
           TenantManager tenantManager, EnvManager envManager,
-          PullManager pullManager) {
+          PullManager pullManager, String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
     logHelper = new LogHelper();
+    this.okapiVersion = okapiVersion;
+    logger.warn("InternalModule starting: " + okapiVersion);
+
   }
 
 
@@ -473,6 +482,15 @@ public class InternalModule {
     fut.handle(new Success<>("[ ]"));
   }
 
+  private void getVersion(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    String v = okapiVersion;
+    if ( v == null) {
+      v = "(null)";
+    }
+    pc.getCtx().response().putHeader("Content-Type", "text/plain"); // !!
+    fut.handle(new Success<>(v));
+  }
 
   private void getRootLogLevel(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
@@ -644,6 +662,10 @@ public class InternalModule {
 
     } // env
 
+    if (p.equals("/_/version") && m.equals(GET)) {
+      getVersion(pc,fut);
+      return;
+    }
 
     if (n >= 2 && p.startsWith("/_/test/")){
       if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
