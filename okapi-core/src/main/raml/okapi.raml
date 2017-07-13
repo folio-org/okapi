@@ -39,6 +39,9 @@ schemas:
         headers:
           Location:
             description: URI to the descriptor of the deployed instance
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -57,6 +60,9 @@ schemas:
         body:
           application/json:
             schema: DeploymentDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
 
   /{instance_id}:
     get:
@@ -66,10 +72,16 @@ schemas:
           body:
             application/json:
               schema: DeploymentDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     delete:
       description: shutdown instance
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 
 # DISCOVERY SERVICE

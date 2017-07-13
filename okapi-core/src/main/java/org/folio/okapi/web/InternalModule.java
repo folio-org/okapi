@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
@@ -20,12 +21,12 @@ import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
-import static org.folio.okapi.common.ErrorType.USER;
+import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.ModuleManager;
@@ -48,6 +49,8 @@ import org.folio.okapi.util.ProxyContext;
  * /_/deployment
  * /_/discovery
  * ModuleDescriptor, maybe even the whole internal module check.
+ * Check that all private funcs are really private
+ * Check that we always check failure first, and return immediately
  *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
  * must read the request body before invoking this built-in module, and
@@ -60,16 +63,18 @@ public class InternalModule {
   
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
+  private final DeploymentManager md;
   private final EnvManager envManager;
   private final PullManager pullManager;
   private final LogHelper logHelper;
   private final String okapiVersion;
   
-  public InternalModule(ModuleManager modules, 
-          TenantManager tenantManager, EnvManager envManager,
+  public InternalModule(ModuleManager modules,  TenantManager tenantManager, 
+          DeploymentManager deploymentManager, EnvManager envManager,
           PullManager pullManager, String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
+    this.md = deploymentManager;   // TODO - rename md
     this.envManager = envManager;
     this.pullManager = pullManager;
     logHelper = new LogHelper();
@@ -293,7 +298,7 @@ public class InternalModule {
     });
   }
 
-  public void createModule(ProxyContext pc, String body,
+  private void createModule(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
@@ -322,7 +327,7 @@ public class InternalModule {
     }
   }
 
-  public void getModule(ProxyContext pc, String id,
+  private void getModule(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     final String q = "{ \"id\": \"" + id + "\"}";
     moduleManager.get(id, res -> {
@@ -335,7 +340,7 @@ public class InternalModule {
     });
   }
 
-  public void listModules(ProxyContext pc, 
+  private void listModules(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.getAllModules(res -> {
       if (res.failed()) {
@@ -351,7 +356,7 @@ public class InternalModule {
     });
   }
 
-  public void updateModule(ProxyContext pc, String id, String body,
+  private void updateModule(ProxyContext pc, String id, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
@@ -378,7 +383,7 @@ public class InternalModule {
     }
   }
 
-  public void deleteModule(ProxyContext pc, String id,
+  private void deleteModule(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.delete(id, res -> {
         if (res.failed()) {
@@ -393,7 +398,65 @@ public class InternalModule {
   }
 
 
-  public void listEnv(ProxyContext pc,
+  private void getDeployment(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    md.get(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void listDeployments(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    md.list(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      } 
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void createDeployment(ProxyContext pc, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final DeploymentDescriptor pmd = Json.decodeValue(body,
+              DeploymentDescriptor.class);
+      md.deploy(pmd, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        } 
+        final String s = Json.encodePrettily(res.result());
+        final String url = pc.getCtx().request().uri() + "/" + res.result().getInstId();
+        pc.getCtx().response().setStatusCode(201);
+        pc.getCtx().response().putHeader("Location", url);
+        fut.handle(new Success<>(s));
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+  private void deleteDeployment(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    md.undeploy(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      pc.getCtx().response().setStatusCode(204);
+      fut.handle(new Success<>(""));
+    });
+  }
+
+  private void listEnv(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     envManager.get(res -> {
       if (res.failed()) {
@@ -405,7 +468,7 @@ public class InternalModule {
     });
   }
 
-  public void getEnv(ProxyContext pc, String id,
+  private void getEnv(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
@@ -421,7 +484,7 @@ public class InternalModule {
     });
   }
 
-  public void createEnv(ProxyContext pc, String body,
+  private void createEnv(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
@@ -441,7 +504,7 @@ public class InternalModule {
     }
   }
 
-  public void deleteEnv(ProxyContext pc, String id,
+  private void deleteEnv(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
@@ -457,7 +520,7 @@ public class InternalModule {
     });
   }
 
-  public void pullModules(ProxyContext pc, String body,
+  private void pullModules(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
@@ -500,7 +563,7 @@ public class InternalModule {
     fut.handle(new Success<>(rj));
   }
 
-  public void setRootLogLevel(ProxyContext pc, String body,
+  private void setRootLogLevel(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
             LogHelper.LogLevelInfo.class);
@@ -637,6 +700,31 @@ public class InternalModule {
       }
 
     } // _/proxy
+
+    // /_/deployment/modules
+    if (n >= 4 && p.startsWith("/_/deployment/" )
+            && segments[3].equals("modules")){
+      // /_/deployment/modules
+      if (n == 4 && m.equals(GET)) {
+        listDeployments(pc,fut);
+        return;
+      }
+      if (n == 4 && m.equals(POST)) {
+        createDeployment(pc,req,fut);
+        return;
+      }
+      // /_/deployment/modules/:id:
+      if (n == 5 && m.equals(GET)) {
+        getDeployment(pc,segments[4],fut);
+        return;
+      }
+      if (n == 5 && m.equals(DELETE)) {
+        deleteDeployment(pc,segments[4],fut);
+        return;
+      }
+
+    } // deployment
+
 
     if (n >= 2 && p.startsWith("/_/env") 
             && segments[2].equals("env")){ // not envXX or such

@@ -201,7 +201,7 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("Proxy using " + storageType + " storage");
       pullManager = new PullManager(vertx, okapiUrl);
       InternalModule internalModule = new InternalModule(moduleManager, 
-              tenantManager, envManager, pullManager,okapiVersion);
+              tenantManager, deploymentManager, envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
@@ -329,6 +329,10 @@ public class MainVerticle extends AbstractVerticle {
         + "   }, {"
         + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/env*\","
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"*\" ],"  
+        + "    \"pathPattern\" : \"/_/deployment*\","
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"GET\" ],"
@@ -484,7 +488,8 @@ public class MainVerticle extends AbstractVerticle {
 
 
     // TODO - Refactor these into InternalModule too
-    if (deploymentWebService != null) {
+    if (false && deploymentWebService != null) {
+      // Refactoring!
       router.route("/_/deployment/*").handler(BodyHandler.create()); //enable reading body to string
       router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
       router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
