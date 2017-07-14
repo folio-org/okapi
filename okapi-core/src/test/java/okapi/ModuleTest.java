@@ -182,6 +182,7 @@ public class ModuleTest {
       .post("/_/proxy/tenants")
       .then()
       .statusCode(201)
+      .header("Location",containsString("/_/proxy/tenants"))
       .log().ifError()
       .extract().header("Location");
     return loc;
@@ -200,6 +201,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
+      .header("Location",containsString("/_/proxy/modules"))
       .log().ifError()
       .extract().header("Location");
     return loc;
@@ -225,6 +227,7 @@ public class ModuleTest {
       .post("/_/discovery/modules")
       .then()
       .statusCode(201)
+      .header("Location",containsString("/_/discovery/modules"))
       .log().ifError()
       .extract().header("Location");
     return loc;
@@ -246,6 +249,7 @@ public class ModuleTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
       .statusCode(201)
+      .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
     return location;
   }
