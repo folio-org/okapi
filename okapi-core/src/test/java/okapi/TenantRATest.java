@@ -76,7 +76,7 @@ public class TenantRATest {
      // Check that we can not delete the superTenant
     c = api.createRestAssured();
     c.given().delete("/_/proxy/tenants/okapi.supertenant")
-      .then().statusCode(403);
+      .then().statusCode(400);
      Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
