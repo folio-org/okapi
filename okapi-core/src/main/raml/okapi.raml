@@ -98,6 +98,8 @@ schemas:
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -113,10 +115,12 @@ schemas:
     description: return all instances
     responses:
       200:
-        description: Created
+        description: Ok
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptorList
@@ -136,6 +140,9 @@ schemas:
           body:
             application/json:
               schema: DeploymentDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -152,6 +159,9 @@ schemas:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       put:
         description: update registration of a specified instance
         responses:
@@ -159,10 +169,16 @@ schemas:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       delete:
         description: remove registration for a given instance
         responses:
           204:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 
 /_/discovery/health:
   get:
@@ -172,6 +188,9 @@ schemas:
         body:
           application/json:
             schema: HealthDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -188,6 +207,9 @@ schemas:
           body:
             application/json:
               schema: HealthDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     /{instance_id}:
       get:
         description: get health for a particular instance
@@ -196,6 +218,9 @@ schemas:
             body:
               application/json:
                 schema: HealthDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 /_/discovery/nodes:
   get:
     description: get list of all nodes
@@ -204,6 +229,9 @@ schemas:
         body:
           application/json:
             schema: NodeDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -220,6 +248,9 @@ schemas:
           body:
             application/json:
               schema: NodeDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:

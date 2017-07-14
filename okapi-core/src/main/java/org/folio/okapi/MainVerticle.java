@@ -35,9 +35,7 @@ import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
-import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.impl.Storage;
@@ -55,9 +53,7 @@ public class MainVerticle extends AbstractVerticle {
   TenantManager tenantManager;
   EnvManager envManager;
   ProxyService proxyService;
-  DeploymentWebService deploymentWebService;
   DeploymentManager deploymentManager;
-  DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
   PullManager pullManager;
@@ -171,7 +167,6 @@ public class MainVerticle extends AbstractVerticle {
       Ports ports = new Ports(port_start, port_end);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
               host, ports, port);
-      deploymentWebService = new DeploymentWebService(deploymentManager);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);
@@ -190,7 +185,6 @@ public class MainVerticle extends AbstractVerticle {
     }
     if (enableProxy) {
       storage = new Storage(vertx, storageType, config);
-      discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(vertx, moduleStore);
@@ -201,7 +195,8 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("Proxy using " + storageType + " storage");
       pullManager = new PullManager(vertx, okapiUrl);
       InternalModule internalModule = new InternalModule(moduleManager, 
-              tenantManager, deploymentManager, envManager, pullManager,okapiVersion);
+              tenantManager, deploymentManager, discoveryManager,
+              envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
@@ -331,8 +326,12 @@ public class MainVerticle extends AbstractVerticle {
         + "    \"pathPattern\" : \"/_/env*\","
         + "    \"type\" : \"internal\" "
         + "   }, {"
-        + "    \"methods\" :  [ \"*\" ],"  
+        + "    \"methods\" :  [ \"*\" ],"
         + "    \"pathPattern\" : \"/_/deployment*\","
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"*\" ],"
+        + "    \"pathPattern\" : \"/_/discovery*\","
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"GET\" ],"
@@ -486,36 +485,15 @@ public class MainVerticle extends AbstractVerticle {
       // like a new HTTP request.
     }
 
-
-    // TODO - Refactor these into InternalModule too
-    if (false && deploymentWebService != null) {
-      // Refactoring!
-      router.route("/_/deployment/*").handler(BodyHandler.create()); //enable reading body to string
-      router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
-      router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
-      router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
-      router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
-    }
-    if (discoveryService != null) {
-    router.route("/_/discovery/*").handler(BodyHandler.create()); //enable reading body to string
-      router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
-      router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
-      router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
-      router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
-      router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
-      router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
-      router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
-      router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
-      router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
-      router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
-    }
-
-    //router.route("/_/*").handler(this::NotFound);
-
     // everything else gets proxified to modules
+    // Even internal functions, they are in the InternalModule
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }
+
+    // A fallback for a notfound response
+    router.route("/*").handler(this::NotFound);
+
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);

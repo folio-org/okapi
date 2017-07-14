@@ -27,6 +27,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentManager;
+import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.ModuleManager;
@@ -41,17 +42,19 @@ import org.folio.okapi.util.ProxyContext;
  * /_/proxy/tenants
  * /_/proxy/health
  * /_/proxy/pull
+ * /_/deployment
  * /_/env
  * /_/version
  * /_/test loglevel etc
  *
  * TODO
- * /_/deployment
- * /_/discovery
- * ModuleDescriptor, maybe even the whole internal module check.
+ * /_/discovery   !!!
+ * ModuleDescriptor
  * Check that all private funcs are really private
  * Check that we always check failure first, and return immediately
- *
+ * Check that nothing uses pc.responseError and suchlike
+ * Check TODO comments
+ * 
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
  * must read the request body before invoking this built-in module, and
  * /_/invoke uses ctx.reroute(), which assumes the body has not been read.
@@ -63,24 +66,25 @@ public class InternalModule {
   
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
-  private final DeploymentManager md;
+  private final DeploymentManager deploymentManager;
+  private final DiscoveryManager dm; // TODO Rename this!
   private final EnvManager envManager;
   private final PullManager pullManager;
   private final LogHelper logHelper;
   private final String okapiVersion;
   
   public InternalModule(ModuleManager modules,  TenantManager tenantManager, 
-          DeploymentManager deploymentManager, EnvManager envManager,
-          PullManager pullManager, String okapiVersion) {
+          DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
+          EnvManager envManager, PullManager pullManager, String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
-    this.md = deploymentManager;   // TODO - rename md
+    this.deploymentManager = deploymentManager;
+    this.dm = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
     logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
     logger.warn("InternalModule starting: " + okapiVersion);
-
   }
 
 
@@ -400,7 +404,7 @@ public class InternalModule {
 
   private void getDeployment(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
-    md.get(id, res -> {
+    deploymentManager.get(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -412,7 +416,7 @@ public class InternalModule {
 
   private void listDeployments(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
-    md.list(res -> {
+    deploymentManager.list(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -427,7 +431,7 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
               DeploymentDescriptor.class);
-      md.deploy(pmd, res -> {
+      deploymentManager.deploy(pmd, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
@@ -445,7 +449,7 @@ public class InternalModule {
 
   private void deleteDeployment(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
-    md.undeploy(id, res -> {
+    deploymentManager.undeploy(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -453,6 +457,177 @@ public class InternalModule {
       final String s = Json.encodePrettily(res.result());
       pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
+    });
+  }
+
+  public void getDiscoveryNode(ProxyContext pc, String id,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (id == null) {
+      fut.handle(new Failure<>(USER,  "id missing"));
+      return;
+    }
+    dm.getNode(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void listDiscoveryNodes(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    dm.getNodes(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      } 
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void listDiscoveryModules(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    dm.get(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void discoveryGetSrvcId(ProxyContext pc,String srvcId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (srvcId == null) {
+      fut.handle(new Failure<>(USER, "srvcId missing"));
+      return;
+    }
+    dm.get(srvcId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      List<DeploymentDescriptor> result = res.result();
+      if (result.isEmpty()) {
+        fut.handle(new Failure<>(NOT_FOUND, "srvcId " + srvcId + " not found"));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void discoveryGetInstId(ProxyContext pc, String srvcId, String instId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (srvcId == null || srvcId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "srvcId missing"));
+      return;
+    }
+    if (instId == null || instId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "instId missing"));
+      return;
+    }
+    dm.get(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      } 
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void discoveryDeploy(ProxyContext pc, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      final DeploymentDescriptor pmd = Json.decodeValue(body,
+              DeploymentDescriptor.class);
+      dm.addAndDeploy(pmd, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          DeploymentDescriptor md = res.result();
+          final String s = Json.encodePrettily(md);
+          final String uri = pc.getCtx().request().uri()
+            + "/" + md.getSrvcId() + "/" + md.getInstId();
+          pc.getCtx().response().setStatusCode(201);
+          pc.getCtx().response().putHeader("Location", uri);
+          fut.handle(new Success<>(s));
+        }
+      });
+    } catch (DecodeException ex) {
+      pc.responseError(400, ex);
+    }
+  }
+
+  private void discoveryUndeploy(ProxyContext pc, String srvcId, String instId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (srvcId == null || srvcId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "srvcId missing"));
+      return;
+    }
+    if (instId == null || instId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "instId missing"));
+      return;
+    }
+    dm.removeAndUndeploy(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      } 
+      pc.getCtx().response().setStatusCode(204);
+      fut.handle(new Success<>(""));
+    });
+  }
+
+  private void discoveryHealthAll(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    dm.health(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+  private void discoveryHealthSrvcId(ProxyContext pc, String srvcId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (srvcId == null || srvcId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "srvcId missing"));
+      return;
+    }
+    dm.health(srvcId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void discoveryHealthOne(ProxyContext pc, String srvcId, String instId,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (srvcId == null || srvcId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "srvcId missing"));
+      return;
+    }
+    if (instId == null || instId.isEmpty()) {
+      fut.handle(new Failure<>(USER, "instId missing"));
+      return;
+    }
+    dm.health(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
     });
   }
 
@@ -701,9 +876,10 @@ public class InternalModule {
 
     } // _/proxy
 
-    // /_/deployment/modules
+    // deployment
     if (n >= 4 && p.startsWith("/_/deployment/" )
-            && segments[3].equals("modules")){
+            && segments[3].equals("modules")
+            && deploymentManager != null){
       // /_/deployment/modules
       if (n == 4 && m.equals(GET)) {
         listDeployments(pc,fut);
@@ -722,9 +898,60 @@ public class InternalModule {
         deleteDeployment(pc,segments[4],fut);
         return;
       }
-
     } // deployment
 
+    if (n >= 4 && p.startsWith("/_/discovery/" )
+            && dm != null){
+      // /_/discovery/nodes
+      if (n==4 && segments[3].equals("nodes") && m.equals(GET)) {
+        listDiscoveryNodes(pc, fut);
+        return;
+      }
+      // /_/discovery/nodes/:nodeid
+      if (n==5 && segments[3].equals("nodes") && m.equals(GET)) {
+        getDiscoveryNode(pc, segments[4],fut);
+        return;
+      }
+
+      // /_/discovery/modules
+      if (n==4 && segments[3].equals("modules") && m.equals(GET)) {
+        listDiscoveryModules(pc, fut);
+        return;
+      }
+      if (n==4 && segments[3].equals("modules") && m.equals(POST)) {
+        discoveryDeploy(pc, req, fut);
+        return;
+      }
+      // /_/discovery/modules/:srvcid
+      if (n==5 && segments[3].equals("modules") && m.equals(GET)) {
+        discoveryGetSrvcId(pc, segments[4], fut);
+        return;
+      }
+      // /_/discovery/modules/:srvcid/:instid"
+      if (n==6 && segments[3].equals("modules") && m.equals(GET)) {
+        discoveryGetInstId(pc, segments[4], segments[5], fut);
+        return;
+      }
+      if (n==6 && segments[3].equals("modules") && m.equals(DELETE)) {
+        discoveryUndeploy(pc, segments[4], segments[5], fut);
+        return;
+      }
+      // /_/discovery/health
+      if (n==4 && segments[3].equals("health") && m.equals(GET)) {
+        discoveryHealthAll(pc, fut);
+        return;
+      }
+      // /_/discovery/health/:srvcId
+      if (n==5 && segments[3].equals("health") && m.equals(GET)) {
+        discoveryHealthSrvcId(pc, segments[4], fut);
+        return;
+      }
+      // /_/discovery/health/:srvcId/:instid
+      if (n==6 && segments[3].equals("health") && m.equals(GET)) {
+        discoveryHealthOne(pc, segments[4], segments[5], fut);
+        return;
+      }
+    } // discovery
 
     if (n >= 2 && p.startsWith("/_/env") 
             && segments[2].equals("env")){ // not envXX or such
