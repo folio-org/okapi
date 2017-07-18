@@ -228,7 +228,7 @@ public class ModuleManager {
     return v;
   }
 
-  int addModuleDependencies(ModuleDescriptor md,
+  public int addModuleDependencies(ModuleDescriptor md,
     HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
     int sum = 0;
     logger.info("addModuleDependencies of " + md.getId());
