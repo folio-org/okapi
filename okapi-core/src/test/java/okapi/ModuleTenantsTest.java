@@ -100,6 +100,7 @@ public class ModuleTenantsTest {
     RestAssuredClient c;
     Response r;
 
+    // deploy basic 1.0.0
     final String docBasicDeployment1 = "{" + LS
       + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -118,6 +119,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationBasicDeployment1 = r.getHeader("Location");
 
+    // create basic 1.0.0
     final String docBasicModule1 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
@@ -149,6 +151,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     final String locationBasicModule = r.getHeader("Location");
 
+    // deploy sample 1.0.0
     final String docSampleDeployment = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -166,7 +169,7 @@ public class ModuleTenantsTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     locationSampleDeployment1 = r.getHeader("Location");
-    // proxy module
+    // create sample 1.0.0
     final String docSampleModule1 = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
@@ -236,6 +239,7 @@ public class ModuleTenantsTest {
       .then().statusCode(200)
       .body(equalTo("Hello Okapi"));
 
+    // create sample 1.2.0
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-1.2.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
@@ -268,6 +272,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationSampleModule2 = r.getHeader("Location");
 
+    // deploy sample 1.2.0
     final String docSampleDeployment2 = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.2.0\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -286,7 +291,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationSampleDeployment2 = r.getHeader("Location");
 
-    // Upgrade from 1.0.0 to 1.2.0
+    // Upgrade from sample 1.0.0 to 1.2.0
     // supply the new ID in the body and the old ID in the header.
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module-1.2.0\"" + LS
@@ -300,7 +305,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // remedy the situation by enabling basic which provides bint
+    // remedy the situation by enabling basic 1.0.0 which provides bint
     final String docEnableBasic = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"" + LS
       + "}";
@@ -315,7 +320,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     String locationBasicTenantModule = r.getHeader("Location");
 
-    // Upgrade from 1.0.0 to 1.2.0
+    // Upgrade from sample 1.0.0 to sample 1.2.0
     // supply the new ID in the body and the old ID in the header.
     c = api.createRestAssured();
     r = c.given()
@@ -348,7 +353,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // undeploy 1.2.0 is OK
+    // undeploy sample 1.2.0 is OK
     c = api.createRestAssured();
     r = c.given()
       .delete(locationTenantModule)
@@ -410,7 +415,11 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
-      .then().statusCode(200);
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -421,7 +430,14 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
-      .then().statusCode(200);
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+      + "  \"action\" : \"enable\"" + LS
+      + "}, {" + LS
+      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"action\" : \"enable\"" + LS
+      + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
