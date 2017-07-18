@@ -194,7 +194,7 @@ public class MainVerticle extends AbstractVerticle {
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
       pullManager = new PullManager(vertx, okapiUrl);
-      InternalModule internalModule = new InternalModule(moduleManager, 
+      InternalModule internalModule = new InternalModule(moduleManager,
               tenantManager, deploymentManager, discoveryManager,
               envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
@@ -270,13 +270,9 @@ public class MainVerticle extends AbstractVerticle {
 
 
   private void checkInternalModules(Future<Void> fut) {
-    // TODO - Refactor most of this into InternalModule.
-    String v = okapiVersion;
-    if (v == null) {  // happens at compile time,
-      v = "0.0.0";   // unit tests can just check for this
-    }
-    String okapiModule = XOkapiHeaders.OKAPI_MODULE + "-" + v;
-    String interfaceVersion = v.replaceFirst("^(\\d+)\\.(\\d+)\\.(\\d*).*$", "$1.$2");
+    final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
+    final String okapiModule = md.getId();
+    final String interfaceVersion = md.getProvides()[0].getVersion();
     if (moduleManager == null) {
       logger.debug("checkInternalModules: skipping, no moduleManager");
       checkSuperTenant(okapiModule, fut);
@@ -287,6 +283,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.debug("checkInternalModules: Already have " + okapiModule
           + " with interface version " + interfaceVersion);
         // TODO - What if it is a wrong version?
+        // See Okapi-359 about version checks across the cluster
         checkSuperTenant(okapiModule, fut);
         return;
       }
@@ -298,54 +295,6 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.debug("Creating the internal Okapi module " + okapiModule
         + " with interface version " + interfaceVersion);
-      final String doc = "{"
-        + " \"id\" : \"" + okapiModule + "\","
-        + " \"name\" : \"" + okapiModule + "\","
-        + " \"provides\" : [ {"
-        + "   \"id\" : \"okapi\","
-        + "   \"version\" : \"" + interfaceVersion + "\","
-        + "   \"interfaceType\" : \"internal\","
-        + "   \"handlers\" : [ {"
-        + "    \"methods\" :  [ \"*\" ],"  // TODO - set them up one by one, with permissions
-        + "    \"pathPattern\" : \"/_/proxy/tenants*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"*\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/modules*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"POST\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/pull*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"GET\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/health*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"*\" ],"
-        + "    \"pathPattern\" : \"/_/env*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"*\" ],"
-        + "    \"pathPattern\" : \"/_/deployment*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"*\" ],"
-        + "    \"pathPattern\" : \"/_/discovery*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"GET\" ],"
-        + "    \"pathPattern\" : \"/_/version*\","
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
-        + "    \"methods\" :  [ \"GET\", \"POST\" ],"
-        + "    \"pathPattern\" : \"/_/test*\","
-        + "    \"type\" : \"internal\" "
-        + "   } ]"
-        + " } ]"
-        + "}";
-
-      final ModuleDescriptor md = Json.decodeValue(doc, ModuleDescriptor.class);
       moduleManager.create(md, ires -> {
         if (ires.failed()) {
           logger.warn("Failed to create the internal Okapi module"

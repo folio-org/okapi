@@ -37,7 +37,7 @@ import org.folio.okapi.util.ProxyContext;
 
 /**
  * Okapi's build-in module. Managing /_/ endpoints.
- * 
+ *
  * /_/proxy/modules
  * /_/proxy/tenants
  * /_/proxy/health
@@ -50,8 +50,7 @@ import org.folio.okapi.util.ProxyContext;
  *
  * TODO
  * ModuleDescriptor
- * Check TODO comments
- * 
+ *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
  * must read the request body before invoking this built-in module, and
  * /_/invoke uses ctx.reroute(), which assumes the body has not been read.
@@ -60,17 +59,17 @@ import org.folio.okapi.util.ProxyContext;
  */
 public class InternalModule {
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  
+
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
   private final DeploymentManager deploymentManager;
-  private final DiscoveryManager discoveryManager; 
+  private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
   private final PullManager pullManager;
   private final LogHelper logHelper;
   private final String okapiVersion;
-  
-  public InternalModule(ModuleManager modules,  TenantManager tenantManager, 
+
+  public InternalModule(ModuleManager modules,  TenantManager tenantManager,
           DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
           EnvManager envManager, PullManager pullManager, String okapiVersion) {
     this.moduleManager = modules;
@@ -84,6 +83,62 @@ public class InternalModule {
     logger.warn("InternalModule starting: " + okapiVersion);
   }
 
+  static public ModuleDescriptor moduleDescriptor(String okapiVersion) {
+    String v = okapiVersion;
+    if (v == null) {  // happens at compile time,
+      v = "0.0.0";   // unit tests can just check for this
+    }
+    String okapiModule = XOkapiHeaders.OKAPI_MODULE + "-" + v;
+    String interfaceVersion = v.replaceFirst("^(\\d+)\\.(\\d+)\\.(\\d*).*$", "$1.$2");
+    final String doc = "{"
+      + " \"id\" : \"" + okapiModule + "\","
+      + " \"name\" : \"" + okapiModule + "\","
+      + " \"provides\" : [ {"
+      + "   \"id\" : \"okapi\","
+      + "   \"version\" : \"" + interfaceVersion + "\","
+      + "   \"interfaceType\" : \"internal\","
+      + "   \"handlers\" : [ {"
+      + "    \"methods\" :  [ \"*\" ]," // TODO - set them up one by one, with permissions
+      + "    \"pathPattern\" : \"/_/proxy/tenants*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"*\" ],"
+      + "    \"pathPattern\" : \"/_/proxy/modules*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"POST\" ],"
+      + "    \"pathPattern\" : \"/_/proxy/pull*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"GET\" ],"
+      + "    \"pathPattern\" : \"/_/proxy/health*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"*\" ],"
+      + "    \"pathPattern\" : \"/_/env*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"*\" ],"
+      + "    \"pathPattern\" : \"/_/deployment*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"*\" ],"
+      + "    \"pathPattern\" : \"/_/discovery*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"GET\" ],"
+      + "    \"pathPattern\" : \"/_/version*\","
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"GET\", \"POST\" ],"
+      + "    \"pathPattern\" : \"/_/test*\","
+      + "    \"type\" : \"internal\" "
+      + "   } ]"
+      + " } ]"
+      + "}";
+    final ModuleDescriptor md = Json.decodeValue(doc, ModuleDescriptor.class);
+    return md;
+  }
 
   private void createTenant(ProxyContext pc, String body,
       Handler<ExtendedAsyncResult<String>> fut ) {
@@ -96,7 +151,7 @@ public class InternalModule {
       if (!id.matches("^[a-z0-9._-]+$")) {
         fut.handle(new Failure<>(USER, "Invalid tenant id '" + id + "'"));
         return;
-      } 
+      }
       Tenant t = new Tenant(td);
       tenantManager.insert(t, res -> {
         if (res.failed()) {
@@ -211,7 +266,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
@@ -416,7 +471,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });
@@ -431,7 +486,7 @@ public class InternalModule {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
-        } 
+        }
         final String s = Json.encodePrettily(res.result());
         final String url = pc.getCtx().request().uri() + "/" + res.result().getInstId();
         pc.getCtx().response().setStatusCode(201);
@@ -478,7 +533,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });
@@ -531,7 +586,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });
@@ -546,7 +601,7 @@ public class InternalModule {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
-        } 
+        }
         DeploymentDescriptor md = res.result();
         final String s = Json.encodePrettily(md);
         final String uri = pc.getCtx().request().uri()
@@ -574,7 +629,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
@@ -633,7 +688,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });
@@ -663,7 +718,7 @@ public class InternalModule {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
-        } 
+        }
         final String js = Json.encodePrettily(pmd);
         final String uri = pc.getCtx().request().uri() + "/" + pmd.getName();
         pc.getCtx().response().putHeader("Location", uri);
@@ -685,7 +740,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
-      } 
+      }
       pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
@@ -699,7 +754,7 @@ public class InternalModule {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
-        } 
+        }
         fut.handle(new Success<>(Json.encodePrettily(res.result())));
       });
     } catch (DecodeException ex) {
@@ -949,7 +1004,7 @@ public class InternalModule {
       }
     } // discovery
 
-    if (n >= 2 && p.startsWith("/_/env") 
+    if (n >= 2 && p.startsWith("/_/env")
             && segments[2].equals("env")){ // not envXX or such
 
       // /_/env
