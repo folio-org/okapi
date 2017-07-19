@@ -201,7 +201,23 @@ public class MainVerticle extends AbstractVerticle {
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
       tenantManager.setProxyService(proxyService);
+    } else { // not really proxying, except to /_/deployment
+      storage = new Storage(vertx, "inmemory", config);
+      ModuleStore moduleStore = storage.getModuleStore();
+      moduleManager = new ModuleManager(vertx, moduleStore);
+      TenantStore tenantStore = storage.getTenantStore();
+      tenantManager = new TenantManager(moduleManager, tenantStore);
+      moduleManager.setTenantManager(tenantManager);
+      discoveryManager.setModuleManager(moduleManager);
+      InternalModule internalModule = new InternalModule(
+        null, null, deploymentManager, null,
+        envManager, null, okapiVersion);
+      // no modules, tenants, or discovery. Only deployment and env.
+      proxyService = new ProxyService(vertx,
+        moduleManager, tenantManager, discoveryManager,
+        internalModule, okapiUrl);
     }
+
   }
 
   public void NotFound(RoutingContext ctx) {
