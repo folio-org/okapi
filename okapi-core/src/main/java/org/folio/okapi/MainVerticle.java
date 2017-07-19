@@ -202,11 +202,10 @@ public class MainVerticle extends AbstractVerticle {
         internalModule, okapiUrl);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
-      storage = new Storage(vertx, "inmemory", config);
-      ModuleStore moduleStore = storage.getModuleStore();
-      moduleManager = new ModuleManager(vertx, moduleStore);
-      TenantStore tenantStore = storage.getTenantStore();
-      tenantManager = new TenantManager(moduleManager, tenantStore);
+      moduleManager = new ModuleManager(vertx, null);
+      moduleManager.forceLocalMap();
+      tenantManager = new TenantManager(moduleManager, null);
+      tenantManager.forceLocalMap();
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(

@@ -30,7 +30,7 @@ public class ModuleManager {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   final private Vertx vertx;
   private TenantManager tenantManager = null;
-
+  private String mapName = "modules";
   LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
   ModuleStore moduleStore;
@@ -40,12 +40,22 @@ public class ModuleManager {
     this.moduleStore = moduleStore;
   }
 
+  /**
+   * Force the map to be local. Even in cluster mode, will use a local memory
+   * map. This way, the node will not share tenants with the cluster, and can
+   * not proxy requests for anyone but the superTenant, to the InternalModule.
+   * Which is just enough to act in the deployment mode.
+   */
+  public void forceLocalMap() {
+    mapName = null;
+  }
+
   public void setTenantManager(TenantManager tenantManager) {
     this.tenantManager = tenantManager;
   }
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.init(vertx, "modules", ires -> {
+    modules.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
       } else {

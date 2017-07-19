@@ -1,22 +1,16 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
@@ -26,7 +20,6 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ProxyContext;
@@ -41,10 +34,21 @@ public class TenantManager {
   ProxyService proxyService = null;
   TenantStore tenantStore = null;
   LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
+  String mapName = "tenants";
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
     this.tenantStore = tenantStore;
+  }
+
+  /**
+   * Force the map to be local. Even in cluster mode, will use a local memory
+   * map. This way, the node will not share tenants with the cluster, and can
+   * not proxy requests for anyone but the superTenant, to the InternalModule.
+   * Which is just enough to act in the deployment mode.
+   */
+  public void forceLocalMap() {
+    mapName = null;
   }
 
   /**
@@ -54,7 +58,7 @@ public class TenantManager {
    * @param fut
    */
   public void init(Vertx vertx,  Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.init(vertx, "tenants", ires -> {
+    tenants.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
         return;
