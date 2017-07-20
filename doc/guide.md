@@ -2165,6 +2165,44 @@ would typically be a node that is visible from outside. This kind of division
 starts to make sense when there is so much traffic that the proxying alone will
 keep a node fully occupied.
 
+
+### Securing Okapi
+
+In the examples above, we just fired commands to Okapi, and it happily deployed
+and enabled modules for us, without any kind of checking. In a production system
+this is not acceptable. Okapi is designed to be easy to secure. Actually, there
+are several little hacks in place to make it possible to use Okapi without the
+checks, for example the fact that Okapi defaults to the `okapi.supertenant` if
+none is specified, and that this tenant has the internal module enabled by
+default.
+
+In principle, securing Okapi itself is done the same way as securing access to
+any module: Install a auth check filter for the `okapi.supertenant`, and that
+one will not let people in without them having authenticated themselves. The
+auth sample module is a bit simplistic for this, in real life we would like a
+system that can handle different permissions for different users, etc.
+
+The exact details about securing Okapi will depend on the nature of the auth
+modules used. In any case, we have to be careful not to lock ourself out before
+we have everything set up so that we can get in again. Something along the line
+of the following:
+
+ * When Okapi starts up, it creates the internal module, the supertenant, and
+enables the module for the tenant. All operations are possible, without any
+checks.
+ * The admin installs and deploys the necessary auth modules
+ * The admin enables the storage ends of the auth module(s).
+ * The admin posts suitable credentials and permissions into the auth module(s).
+ * The admin enables the auth-check filter. Now nothing is allowed.
+ * The admin logs in with the previously loaded credentials, and gets a token.
+ * This token gives the admin right to do further operations in Okapi
+
+Note that it is possible to enable the internal module for other tenants too,
+if that should be required. Normally that should not be the case.
+
+The ModuleDescriptor will have to define suitable permissions for fine-grained
+access control to its functions. These have not yet been designed.
+
 ## Reference
 
 ### Okapi program
