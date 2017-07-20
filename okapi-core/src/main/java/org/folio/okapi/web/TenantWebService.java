@@ -155,17 +155,23 @@ public class TenantWebService {
     ProxyContext pc = new ProxyContext(ctx, "okapi.tenants.enablemodules");
     try {
       final String id = ctx.request().getParam("id");
+      final String simulateStr = ctx.request().getParam("simulate");
+      boolean simulate = false;
+      if ("1".equals(simulateStr) || "true".equals(simulateStr)) {
+        simulate = true;
+      }
       final TenantModuleDescriptor[] tml = Json.decodeValue(ctx.getBodyAsString(),
         TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       for (int i = 0; i < tml.length; i++) {
         tm.add(tml[i]);
       }
-      tenants.enableModules(id, pc, true, tm, res -> {
+      logger.info("simulate = " + simulate);
+      tenants.enableModules(id, pc, simulate, tm, res -> {
         if (res.failed()) {
           pc.responseError(res.getType(), res.cause());
         } else {
-          logger.info("enableModules\n" + Json.encodePrettily(res.result()));
+          logger.info("enableModules returns:\n" + Json.encodePrettily(res.result()));
           pc.responseJson(200, Json.encodePrettily(res.result()));
         }
       });

@@ -798,10 +798,10 @@ public class TenantManager {
   }
 
   public void enableModules(String id, ProxyContext pc,
-    boolean dryRun, List<TenantModuleDescriptor> tml,
+    boolean simulate, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
-    if (!dryRun) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, "Only dry-run supported"));
+    if (!simulate) {
+      fut.handle(new Failure<>(ErrorType.INTERNAL, "Only simulate=true supported"));
       return;
     }
     tenants.get(id, gres -> {

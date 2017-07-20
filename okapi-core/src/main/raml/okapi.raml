@@ -340,10 +340,13 @@ schemas:
       responses:
         204:
 
-    # Bundle upgrade.. TODO: dry-run
     /upgrade:
       get:
-        description: check for module upgrade
+        description: Module upgrade
+        queryParameters:
+          simulate:
+            description: whether the upgrade is simulated
+            type: boolean
         responses:
           200:
             description: OK
@@ -364,6 +367,10 @@ schemas:
               text/plain:
       post:
         description: enable and disable a set of modules
+        queryParameters:
+          simulate:
+            description: whether the upgrade is simulated
+            type: boolean
         body:
           application/json:
             schema: TenantModuleDescriptorList
