@@ -231,7 +231,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }
@@ -267,7 +266,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }
@@ -447,7 +445,6 @@ public class InternalModule {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
         }
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }
@@ -506,7 +503,6 @@ public class InternalModule {
         return;
       }
       final String s = Json.encodePrettily(res.result());
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }
@@ -630,7 +626,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }
@@ -741,7 +736,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      pc.getCtx().response().setStatusCode(204);
       fut.handle(new Success<>(""));
     });
   }

@@ -751,7 +751,10 @@ public class ProxyService {
       }
       String resp = res.result();
       int statusCode = pc.getCtx().response().getStatusCode();
-      // TODO - Catch empty response and 200, make a 204. Remove 204-codes from internalModule
+      if (statusCode == 200 && resp.isEmpty()) {
+        // Say "no content", if there isn't any
+        pc.getCtx().response().setStatusCode(204);
+      }
       Buffer respBuf = Buffer.buffer(resp);
       if (it.hasNext()) { // carry on with the pipeline
         pc.closeTimer();

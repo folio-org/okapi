@@ -203,7 +203,7 @@ public class MainVerticle extends AbstractVerticle {
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(vertx, null);
-      moduleManager.forceLocalMap();
+      moduleManager.forceLocalMap(); // make sure it is not shared
       tenantManager = new TenantManager(moduleManager, null);
       tenantManager.forceLocalMap();
       moduleManager.setTenantManager(tenantManager);
