@@ -864,20 +864,44 @@ That means it is running, and listening on the default port
 which happens to be 9130, and using in-memory storage. (To use PostgreSQL
 storage instead, add `-Dstorage=postgres` to the [command line](#java--d-options).)
 
-At the moment Okapi does not know of any module or tenant. But it does
-have its own web services enabled. We can verify both by asking Okapi
-to list modules and tenants.
+When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
+for the internal module that implements all the endpoints we use in this example,
+If not, it will create it for us, so that we can use Okapi itself. We can ask
+Okapi to list the known modules:
 ```
-curl -w '\n' http://localhost:9130/_/proxy/modules
-curl -w '\n' http://localhost:9130/_/proxy/tenants
-```
-Both of these return lists in the form of JSON structures. At present,
-because we have just started running, it is an empty list in both
-cases:
+curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/modules : 200 12710us
+Content-Length: 74
+
+[ {
+  "id" : "okapi-1.7.1-SNAPSHOT",
+  "name" : "okapi-1.7.1-SNAPSHOT"
+} ]
 ```
-[ ]
+
+The version number will change over time. This example was run on a development
+branch, so the version has the -SNAPSHOT suffix.
+
+Since all Okapi operations are done on behalf of a tenant, Okapi will make sure
+that we have at least one defined when we start up. Again, you can see it with
 ```
+curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 200 7080us
+Content-Length: 117
+
+[ {
+  "id" : "okapi.supertenant",
+  "name" : "okapi.supertenant",
+  "description" : "Okapi built-in super tenant"
+} ]
+
+
 
 ### Example 1: Deploying and using a simple module
 
@@ -920,7 +944,7 @@ The id is what we will be using to refer to this module later. The version numbe
 is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
 UUIDs or other things, as long as they are truly unique, but we have decided to
-recommend this naming scheme for all modules.)
+use this naming scheme for all modules.)
 
 This module provides just one interface, called `test-basic`. It has one handler
 that indicates that the interface is interested in GET and POST requests to the
@@ -974,6 +998,9 @@ We can also ask Okapi to list all known modules, like we did in the beginning:
 ```
 curl -w '\n' http://localhost:9130/_/proxy/modules
 ```
+This shows a short list of two modules, the internal one, and the one we just
+posted.
+
 Note that Okapi gives us less details about the modules, for in the real life this
 could be quite a long list.
 
@@ -1080,8 +1107,8 @@ Missing Tenant
 ```
 
 Okapi is a multi-tenant system, so each request must be done on behalf of some
-tenant. And we have not even created any tenants yet. Let's do that now. It is
-not very difficult:
+tenant. We could use the supertenant, but that would be bad practice. Let's
+create a test tenant for this example. It is not very difficult:
 
 ```
 cat > /tmp/okapi-tenant.json <<END
@@ -1167,7 +1194,7 @@ As before, the first thing we create is a ModuleDescriptor:
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
-  "id": "test-auth",
+  "id": "test-auth-3.4.1",
   "name": "Okapi test auth module",
   "provides": [
     {
@@ -1221,11 +1248,11 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/test-auth
+Location: /_/proxy/modules/test-auth-3.4.1
 Content-Length: 345
 
 {
-  "id" : "test-auth",
+  "id" : "test-auth-3.4.1",
   "name" : "Okapi test auth module",
   "provides" : [ {
     "id" : "test-auth",
@@ -1250,7 +1277,7 @@ in the moduleDescriptor, we need to provide one here.
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId": "test-auth",
+  "srvcId": "test-auth-3.4.1",
   "nodeId": "localhost",
   "descriptor": {
     "exec": "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
@@ -1271,7 +1298,7 @@ Content-Length: 240
 
 {
   "instId" : "localhost-9132",
-  "srvcId" : "test-auth",
+  "srvcId" : "test-auth-3.4.1",
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
@@ -1286,7 +1313,7 @@ And we enable the module for our tenant:
 ```
 cat > /tmp/okapi-enable-auth.json <<END
 {
-  "id": "test-auth"
+  "id": "test-auth-3.4.1"
 }
 END
 
@@ -1297,11 +1324,11 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/tenants/testlib/modules/test-auth
+Location: /_/proxy/tenants/testlib/modules/test-auth-3.4.1
 Content-Length: 24
 
 {
-  "id" : "test-auth"
+  "id" : "test-auth-3.4.1"
 }
 ```
 
@@ -1914,11 +1941,11 @@ installed:
 
 ```
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.2.0
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth-3.4.1
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-foo-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-bar-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth-3.4.1/localhost-9132
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.0.0/localhost-9131
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.2.0/localhost-9133
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-foo-1.0.0/localhost-9134
@@ -1927,7 +1954,7 @@ curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.2.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-foo-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-bar-1.0.0
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth-3.4.1
 ```
 
 Okapi responds to each of these with a simple:
