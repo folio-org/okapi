@@ -177,7 +177,7 @@ public class ModuleManager {
   private int checkInterfaceDependency(ModuleDescriptor md, ModuleInterface req,
     HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
     ModuleInterface seenversion = null;
-    logger.info("checkInterfaceDependency");
+    logger.info("checkInterfaceDependency1");
     for (String runningmodule : modsEnabled.keySet()) {
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
       ModuleInterface[] provides = rm.getProvides();
@@ -228,6 +228,29 @@ public class ModuleManager {
     return v;
   }
 
+  public int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled) {
+    int v = 0;
+    for (String runningmodule : modsEnabled.keySet()) {
+      ModuleDescriptor rm = modsEnabled.get(runningmodule);
+      ModuleInterface[] provides = rm.getProvides();
+      if (provides != null) {
+        for (ModuleInterface pi : provides) {
+          if (pi.isRegularHandler()) {
+            String confl = pi.getId();
+            for (ModuleInterface mi : md.getProvides()) {
+              if (mi.getId().equals(confl)) {
+                logger.info("resolveModuleConflicts remove " + runningmodule);
+                modsEnabled.remove(runningmodule);
+                v++;
+              }
+            }
+          }
+        }
+      }
+    }
+    return v;
+  }
+
   public int addModuleDependencies(ModuleDescriptor md,
     HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
     int sum = 0;
@@ -242,6 +265,8 @@ public class ModuleManager {
         sum += v;
       }
     }
+    resolveModuleConflicts(md, modsEnabled);
+    // check for conflict here!
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
     return sum + 1;

@@ -9,9 +9,11 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
@@ -755,12 +757,19 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     Map<String, TenantModuleDescriptor> tm2 = new HashMap<>();
+
+    HashSet<String> orgEnabled = new HashSet<>();
+
+    for (String id : modsEnabled.keySet()) {
+      orgEnabled.add(id);
+    }
+
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
       tm2.put(id, tm);
       if ("enable".equals(tm.getAction())) {
         if (modsEnabled.containsKey(id)) {
-          tm.setAction("up2date");
+          tm.setAction("uptodate");
         } else if (!modsAvailable.containsKey(id)) {
           fut.handle(new Failure<>(NOT_FOUND, id));
           return;
@@ -768,7 +777,7 @@ public class TenantManager {
           int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
             modsAvailable, modsEnabled);
         }
-      } else if ("up2date".equals(tm.getAction())) {
+      } else if ("uptodate".equals(tm.getAction())) {
         ;
       } else {
         fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));
@@ -780,7 +789,6 @@ public class TenantManager {
       logger.info("  id " + id);
     }
     for (TenantModuleDescriptor tm : tml) {
-      String id = tm.getId();
       if (modsEnabled.get(tm.getId()) == null) {
         tm.setAction("disable");
       }
@@ -792,6 +800,17 @@ public class TenantManager {
         tm.setId(id);
         tml.add(tm);
         tm2.put(id, tm);
+      }
+    }
+    for (String id : orgEnabled) {
+      if (!modsEnabled.containsKey(id)) {
+        if (!tm2.containsKey(id)) {
+          TenantModuleDescriptor tm = new TenantModuleDescriptor();
+          tm.setAction("disable");
+          tm.setId(id);
+          tml.add(tm);
+          tm2.put(id, tm);
+        }
       }
     }
     fut.handle(new Success<>(Boolean.TRUE));

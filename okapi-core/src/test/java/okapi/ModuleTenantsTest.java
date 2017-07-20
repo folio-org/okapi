@@ -425,7 +425,6 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // we simulated above.. Now actually insert it with old style enable
-    /*
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -435,8 +434,23 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    */
-    // enable modules again: post known module which require basic
+
+    // enable modules again: post known module
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"uptodate\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // upgrade from 1.0.0 to 1.2.0 - post known module which require basic
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -449,6 +463,9 @@ public class ModuleTenantsTest {
         + "}, {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
