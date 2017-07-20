@@ -1,3 +1,9 @@
+ * Refactor internal operations to go through the internal module
+ * Create okapi.supertenant and the internal module when starting up, if not
+   already there.
+ * If no tenant specified, default to the okapi.supertenant, so we can get to
+   the internal endpoints.
+
 ## 1.7.0 2017-06-28
 
  * Tenant ID may be passed part of path. This is to facilitate "callback"

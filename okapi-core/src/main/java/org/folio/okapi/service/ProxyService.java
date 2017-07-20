@@ -83,10 +83,9 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
-      + mi.getModuleDescriptor().getNameOrId() + " "
+      + mi.getModuleDescriptor().getId() + " "
       + url + " : " + statusCode + pc.timeDiff());
-    pc.addTraceHeaders(ctx);
-    pc.logResponse(mi.getModuleDescriptor().getNameOrId(), url, statusCode);
+    pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
 
@@ -153,7 +152,7 @@ public class ProxyService {
     pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
 
     for (ModuleDescriptor md : enabledModules) {
-      pc.debug("getMods:  looking at " + md.getNameOrId());
+      pc.debug("getMods:  looking at " + md.getId());
       List<RoutingEntry> rr = md.getProxyRoutingEntries();
       if (id == null) {
         for (RoutingEntry re : rr) {
@@ -352,7 +351,7 @@ public class ProxyService {
           if (l.size() < 1) {
             fut.handle(new Failure<>(NOT_FOUND,
               "No running module instance found for "
-              + mi.getModuleDescriptor().getNameOrId()));
+              + mi.getModuleDescriptor().getId()));
             return;
           }
           mi.setUrl(l.get(0).getUrl());
@@ -525,7 +524,7 @@ public class ProxyService {
     c_req.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
       pc.responseText(500, "proxyRequestHttpClient failure: "
-        + mi.getModuleDescriptor().getNameOrId() + " "
+        + mi.getModuleDescriptor().getId() + " "
         + meth + " " + url + ": " + e + " " + e.getMessage());
     });
     c_req.setChunked(true);
@@ -774,7 +773,6 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     if (!it.hasNext()) {
       content.resume();
-      pc.addTraceHeaders(ctx);
       pc.debug("proxyR: Not found");
       pc.responseText(404, ""); // Should have been caught earlier
     } else {
@@ -794,7 +792,7 @@ public class ProxyService {
       }
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
-        pc.debug("Invoking module " + mi.getModuleDescriptor().getNameOrId()
+        pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
           + " type " + pType
           + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getUri()
@@ -812,7 +810,7 @@ public class ProxyService {
         proxyInternal(it, pc, content, bcontent, mi);
       } else {// Should not happen
         pc.responseText(500, "Bad proxy type '" + pType
-          + "' in module " + mi.getModuleDescriptor().getNameOrId());
+          + "' in module " + mi.getModuleDescriptor().getId());
       }
     }
   }
