@@ -616,50 +616,45 @@ public class TenantManager {
         fut.handle(new Success<>(ti)); // DEPRECATED - warned when POSTing a ModuleDescriptor
         return;
       }
-      ModuleInterface[] prov = md.getProvides();
+      ModuleInterface[] prov = md.getProvidesList();
       logger.debug("findTenantInterface: prov: " + Json.encode(prov));
-      if (prov != null) {
-        for (ModuleInterface pi : prov) {
-          logger.debug("findTenantInterface: Looking at " + pi.getId());
-          if ("_tenant".equals(pi.getId())) {
-            if ("system".equals(pi.getInterfaceType())) { // looks like a new type
-              List<RoutingEntry> res = pi.getAllRoutingEntries();
-              if (!res.isEmpty()) {
-                // TODO - Check the version of the interface. Must be 1.0
-                for (RoutingEntry re : res) {
-                  if (re.match(null, "POST")) {
-                    if (re.getPath() != null) {
-                      // TODO - Remove this in version 2.0
-                      logger.debug("findTenantInterface: found path " + re.getPath());
-                      fut.handle(new Success<>(re.getPath()));
-                      return;
-                    }
-                    if (re.getPathPattern() != null) {
-                      logger.debug("findTenantInterface: found pattern " + re.getPathPattern());
-                      fut.handle(new Success<>(re.getPathPattern()));
-                      return;
-                    }
+      for (ModuleInterface pi : prov) {
+        logger.debug("findTenantInterface: Looking at " + pi.getId());
+        if ("_tenant".equals(pi.getId())) {
+          if ("system".equals(pi.getInterfaceType())) { // looks like a new type
+            List<RoutingEntry> res = pi.getAllRoutingEntries();
+            if (!res.isEmpty()) {
+              // TODO - Check the version of the interface. Must be 1.0
+              for (RoutingEntry re : res) {
+                if (re.match(null, "POST")) {
+                  if (re.getPath() != null) {
+                    // TODO - Remove this in version 2.0
+                    logger.debug("findTenantInterface: found path " + re.getPath());
+                    fut.handle(new Success<>(re.getPath()));
+                    return;
+                  }
+                  if (re.getPathPattern() != null) {
+                    logger.debug("findTenantInterface: found pattern " + re.getPathPattern());
+                    fut.handle(new Success<>(re.getPathPattern()));
+                    return;
                   }
                 }
               }
-              logger.warn("Tenant interface for module '" + module + "' "
-                + "has no suitable RoutingEntry. Can not call the Tenant API");
-              fut.handle(new Success<>(""));
-              return; // TODO Process this as an error!
             }
-            logger.warn("Module '" + module + "' uses old-fashioned tenant "
-              + "interface. Define InterfaceType=system, and add a RoutingEntry."
-              + " Falling back to calling /_/tenant.");
-            fut.handle(new Success<>("/_/tenant"));
-            return;
+            logger.warn("Tenant interface for module '" + module + "' "
+              + "has no suitable RoutingEntry. Can not call the Tenant API");
+            fut.handle(new Success<>(""));
+            return; // TODO Process this as an error!
           }
+          logger.warn("Module '" + module + "' uses old-fashioned tenant "
+            + "interface. Define InterfaceType=system, and add a RoutingEntry."
+            + " Falling back to calling /_/tenant.");
+          fut.handle(new Success<>("/_/tenant"));
+          return;
         }
-        fut.handle(new Failure<>(NOT_FOUND, "No _tenant interface found for "
-          + module));
-        return;
       }
       fut.handle(new Failure<>(NOT_FOUND, "No _tenant interface found for "
-        + module + " (it provides nothing at all?)"));
+        + module));
       return;
     });
   }
@@ -739,7 +734,7 @@ public class TenantManager {
         }
         List<ModuleDescriptor> modlist = mres.result();
         for (ModuleDescriptor md : modlist) {
-          for (ModuleInterface provide : md.getProvides()) {
+          for (ModuleInterface provide : md.getProvidesList()) {
             if (interfaceName.equals(provide.getId())) {
               mdList.add(md);
               break;
@@ -767,25 +762,39 @@ public class TenantManager {
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
       tm2.put(id, tm);
+      if (!modsAvailable.containsKey(id)) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
+        return;
+      }
       if ("enable".equals(tm.getAction())) {
         if (modsEnabled.containsKey(id)) {
           tm.setAction("uptodate");
-        } else if (!modsAvailable.containsKey(id)) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return;
         } else {
           int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
             modsAvailable, modsEnabled);
         }
       } else if ("uptodate".equals(tm.getAction())) {
-        ;
+        if (!modsEnabled.containsKey(id)) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+          return;
+        }
+      } else if ("disable".equals(tm.getAction())) {
+        if (!modsEnabled.containsKey(id)) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+          return;
+        }
+        int v = moduleManager.removeModuleDependencies(modsAvailable.get(id),
+          modsEnabled);
       } else {
         fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));
         return;
       }
     }
-    logger.info("modsEnabled:");
-    for (String id : modsEnabled.keySet()) {
+
+    logger.info(
+      "modsEnabled:");
+    for (String id
+      : modsEnabled.keySet()) {
       logger.info("  id " + id);
     }
     for (TenantModuleDescriptor tm : tml) {
@@ -795,16 +804,19 @@ public class TenantManager {
     }
     for (String id : modsEnabled.keySet()) {
       if (!tm2.containsKey(id)) {
-        TenantModuleDescriptor tm = new TenantModuleDescriptor();
-        tm.setAction("enable");
-        tm.setId(id);
-        tml.add(tm);
-        tm2.put(id, tm);
+        if (!orgEnabled.contains(id)) { // added ID
+          TenantModuleDescriptor tm = new TenantModuleDescriptor();
+          tm.setAction("enable");
+          tm.setId(id);
+          tml.add(tm);
+          tm2.put(id, tm);
+        }
       }
     }
+
     for (String id : orgEnabled) {
-      if (!modsEnabled.containsKey(id)) {
-        if (!tm2.containsKey(id)) {
+      if (!tm2.containsKey(id)) {
+        if (!modsEnabled.containsKey(id)) { // removed ID
           TenantModuleDescriptor tm = new TenantModuleDescriptor();
           tm.setAction("disable");
           tm.setId(id);

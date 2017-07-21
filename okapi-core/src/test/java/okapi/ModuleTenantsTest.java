@@ -476,7 +476,21 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
-      .then().statusCode(500);
+      .then().statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());

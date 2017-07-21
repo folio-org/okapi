@@ -121,22 +121,19 @@ public class ModuleManager {
    * @return "" if ok, or error message
    */
   private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-          HashMap<String, ModuleDescriptor> modlist) {
+    HashMap<String, ModuleDescriptor> modlist) {
     ModuleInterface seenversion = null;
     for (String runningmodule : modlist.keySet()) {
       ModuleDescriptor rm = modlist.get(runningmodule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          logger.debug("Checking dependency of " + md.getId() + ": "
-                  + req.getId() + " " + req.getVersion()
-                  + " against " + pi.getId() + " " + pi.getVersion());
-          if (req.getId().equals(pi.getId())) {
-            seenversion = pi;
-            if (pi.isCompatible(req)) {
-              logger.debug("Dependency OK");
-              return "";  // ok
-            }
+      for (ModuleInterface pi : rm.getProvidesList()) {
+        logger.debug("Checking dependency of " + md.getId() + ": "
+          + req.getId() + " " + req.getVersion()
+          + " against " + pi.getId() + " " + pi.getVersion());
+        if (req.getId().equals(pi.getId())) {
+          seenversion = pi;
+          if (pi.isCompatible(req)) {
+            logger.debug("Dependency OK");
+            return "";  // ok
           }
         }
       }
@@ -162,13 +159,10 @@ public class ModuleManager {
   private String checkDependencies(ModuleDescriptor md,
           HashMap<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
-    ModuleInterface[] requires = md.getRequires();
-    if (requires != null) {
-      for (ModuleInterface req : requires) {
-        String res = checkOneDependency(md, req, modlist);
-        if (!res.isEmpty()) {
-          return res;
-        }
+    for (ModuleInterface req : md.getRequiresList()) {
+      String res = checkOneDependency(md, req, modlist);
+      if (!res.isEmpty()) {
+        return res;
       }
     }
     return "";  // ok
@@ -180,18 +174,15 @@ public class ModuleManager {
     logger.info("checkInterfaceDependency1");
     for (String runningmodule : modsEnabled.keySet()) {
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          logger.info("Checking dependency of " + md.getId() + ": "
-            + req.getId() + " " + req.getVersion()
-            + " against " + pi.getId() + " " + pi.getVersion());
-          if (req.getId().equals(pi.getId())) {
-            seenversion = pi;
-            if (pi.isCompatible(req)) {
-              logger.debug("Dependency OK");
-              return 0;
-            }
+      for (ModuleInterface pi : rm.getProvidesList()) {
+        logger.info("Checking dependency of " + md.getId() + ": "
+          + req.getId() + " " + req.getVersion()
+          + " against " + pi.getId() + " " + pi.getVersion());
+        if (req.getId().equals(pi.getId())) {
+          seenversion = pi;
+          if (pi.isCompatible(req)) {
+            logger.debug("Dependency OK");
+            return 0;
           }
         }
       }
@@ -200,19 +191,16 @@ public class ModuleManager {
     ModuleDescriptor foundMd = null;
     for (String runningmodule : modsAvailable.keySet()) {
       ModuleDescriptor rm = modsAvailable.get(runningmodule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          logger.info("Checking dependency of " + md.getId() + ": "
-            + req.getId() + " " + req.getVersion()
-            + " against " + pi.getId() + " " + pi.getVersion());
-          if (req.getId().equals(pi.getId())) {
-            seenversion = pi;
-            if (pi.isCompatible(req)) {
-              logger.info("Dependency OK");
-              // should probably select the one with newest interface
-              foundMd = rm;
-            }
+      for (ModuleInterface pi : rm.getProvidesList()) {
+        logger.info("Checking dependency of " + md.getId() + ": "
+          + req.getId() + " " + req.getVersion()
+          + " against " + pi.getId() + " " + pi.getVersion());
+        if (req.getId().equals(pi.getId())) {
+          seenversion = pi;
+          if (pi.isCompatible(req)) {
+            logger.info("Dependency OK");
+            // should probably select the one with newest interface
+            foundMd = rm;
           }
         }
       }
@@ -232,14 +220,13 @@ public class ModuleManager {
     int v = 0;
     for (String runningmodule : modsEnabled.keySet()) {
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      ModuleInterface[] provides = rm.getProvides();
-      if (provides != null) {
-        for (ModuleInterface pi : provides) {
-          if (pi.isRegularHandler()) {
-            String confl = pi.getId();
-            for (ModuleInterface mi : md.getProvides()) {
-              if (mi.getId().equals(confl)) {
-                logger.info("resolveModuleConflicts remove " + runningmodule);
+      for (ModuleInterface pi : rm.getProvidesList()) {
+        if (pi.isRegularHandler()) {
+          String confl = pi.getId();
+          for (ModuleInterface mi : md.getProvidesList()) {
+            if (mi.getId().equals(confl)) {
+              logger.info("resolveModuleConflicts remove " + runningmodule);
+              if (modsEnabled.containsKey(runningmodule)) {
                 modsEnabled.remove(runningmodule);
                 v++;
               }
@@ -254,21 +241,44 @@ public class ModuleManager {
   public int addModuleDependencies(ModuleDescriptor md,
     HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
     int sum = 0;
-    logger.info("addModuleDependencies of " + md.getId());
-    ModuleInterface[] requires = md.getRequires();
-    if (requires != null) {
-      for (ModuleInterface req : requires) {
-        int v = checkInterfaceDependency(md, req, modsAvailable, modsEnabled);
-        if (v == -1) {
-          return v;
-        }
-        sum += v;
+    logger.info("addModuleDependencies " + md.getId());
+    for (ModuleInterface req : md.getRequiresList()) {
+      int v = checkInterfaceDependency(md, req, modsAvailable, modsEnabled);
+      if (v == -1) {
+        return v;
       }
+      sum += v;
     }
     resolveModuleConflicts(md, modsEnabled);
     // check for conflict here!
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
+    return sum + 1;
+  }
+
+  public int removeModuleDependencies(ModuleDescriptor md,
+    HashMap<String, ModuleDescriptor> modsEnabled) {
+    int sum = 0;
+    logger.info("removeModuleDependencies " + md.getId());
+
+    if (!modsEnabled.containsKey(md.getId())) {
+      return 0;
+    }
+    ModuleInterface[] provides = md.getProvidesList();
+    for (ModuleInterface prov : provides) {
+      if (prov.isRegularHandler()) {
+        for (String runningmodule : modsEnabled.keySet()) {
+          ModuleDescriptor rm = modsEnabled.get(runningmodule);
+          ModuleInterface[] requires = rm.getRequiresList();
+          for (ModuleInterface ri : requires) {
+            if (prov.getId().equals(ri.getId())) {
+              sum += removeModuleDependencies(rm, modsEnabled);
+            }
+          }
+        }
+      }
+    }
+    modsEnabled.remove(md.getId());
     return sum + 1;
   }
 
@@ -299,18 +309,16 @@ public class ModuleManager {
     HashMap<String, String> provs = new HashMap<>(); // interface name to module name
     String conflicts = "";
     for (ModuleDescriptor md : modlist.values()) {
-      ModuleInterface[] provides = md.getProvides();
-      if (provides != null) {
-        for (ModuleInterface mi : provides) {
-          if (mi.isRegularHandler()) {
-            String confl = provs.get(mi.getId());
-            if (confl == null || confl.isEmpty()) {
-              provs.put(mi.getId(), md.getId());
-            } else {
-              String msg = "Interface " + mi.getId()
-                + " is provided by " + md.getId() + " and " + confl + ". ";
-              conflicts += msg;
-            }
+      ModuleInterface[] provides = md.getProvidesList();
+      for (ModuleInterface mi : provides) {
+        if (mi.isRegularHandler()) {
+          String confl = provs.get(mi.getId());
+          if (confl == null || confl.isEmpty()) {
+            provs.put(mi.getId(), md.getId());
+          } else {
+            String msg = "Interface " + mi.getId()
+              + " is provided by " + md.getId() + " and " + confl + ". ";
+            conflicts += msg;
           }
         }
       }
