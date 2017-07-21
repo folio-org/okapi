@@ -153,10 +153,18 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // list of the one module that's always there.
+    final String internalModuleDoc = "[ {" + LS
+      + "  \"id\" : \"okapi-0.0.0\"," + LS
+      + "  \"name\" : \"okapi-0.0.0\"" + LS
+      + "} ]";
+
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .get("/_/proxy/modules").then().statusCode(200).body(equalTo("[ ]"));
+      .get("/_/proxy/modules")
+      .then().statusCode(200)
+      .body(equalTo(internalModuleDoc));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());

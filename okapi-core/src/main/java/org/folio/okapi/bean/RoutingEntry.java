@@ -39,7 +39,8 @@ public class RoutingEntry {
     REQUEST_RESPONSE,
     REQUEST_ONLY,
     HEADERS,
-    REDIRECT
+    REDIRECT,
+    INTERNAL
   };
 
   @JsonIgnore
@@ -89,6 +90,8 @@ public class RoutingEntry {
       proxyType = ProxyType.REDIRECT;
     } else if ("system".equals(type)) {
       proxyType = ProxyType.REQUEST_RESPONSE;
+    } else if ("internal".equals(type)) {
+      proxyType = ProxyType.INTERNAL;
     } else {
       throw new DecodeException("Invalid entry type: " + type);
     }

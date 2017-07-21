@@ -29,6 +29,7 @@ managing and running microservices.
     * [Multiple interfaces](#multiple-interfaces)
     * [Cleaning up](#cleaning-up)
     * [Running in cluster mode](#running-in-cluster-mode)
+    * [Securing Okapi](#securing-okapi)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -864,20 +865,44 @@ That means it is running, and listening on the default port
 which happens to be 9130, and using in-memory storage. (To use PostgreSQL
 storage instead, add `-Dstorage=postgres` to the [command line](#java--d-options).)
 
-At the moment Okapi does not know of any module or tenant. But it does
-have its own web services enabled. We can verify both by asking Okapi
-to list modules and tenants.
+When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
+for the internal module that implements all the endpoints we use in this example,
+If not, it will create it for us, so that we can use Okapi itself. We can ask
+Okapi to list the known modules:
 ```
-curl -w '\n' http://localhost:9130/_/proxy/modules
-curl -w '\n' http://localhost:9130/_/proxy/tenants
-```
-Both of these return lists in the form of JSON structures. At present,
-because we have just started running, it is an empty list in both
-cases:
+curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/modules : 200 12710us
+Content-Length: 74
+
+[ {
+  "id" : "okapi-1.7.1-SNAPSHOT",
+  "name" : "okapi-1.7.1-SNAPSHOT"
+} ]
 ```
-[ ]
+
+The version number will change over time. This example was run on a development
+branch, so the version has the -SNAPSHOT suffix.
+
+Since all Okapi operations are done on behalf of a tenant, Okapi will make sure
+that we have at least one defined when we start up. Again, you can see it with
 ```
+curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
+
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 200 7080us
+Content-Length: 117
+
+[ {
+  "id" : "okapi.supertenant",
+  "name" : "okapi.supertenant",
+  "description" : "Okapi built-in super tenant"
+} ]
+
+
 
 ### Example 1: Deploying and using a simple module
 
@@ -920,7 +945,7 @@ The id is what we will be using to refer to this module later. The version numbe
 is included in the id, so that the id uniquely identifies exactly what module
 we are talking about. (Okapi does not enforce this, it is also possible to use
 UUIDs or other things, as long as they are truly unique, but we have decided to
-recommend this naming scheme for all modules.)
+use this naming scheme for all modules.)
 
 This module provides just one interface, called `test-basic`. It has one handler
 that indicates that the interface is interested in GET and POST requests to the
@@ -974,6 +999,9 @@ We can also ask Okapi to list all known modules, like we did in the beginning:
 ```
 curl -w '\n' http://localhost:9130/_/proxy/modules
 ```
+This shows a short list of two modules, the internal one, and the one we just
+posted.
+
 Note that Okapi gives us less details about the modules, for in the real life this
 could be quite a long list.
 
@@ -1080,8 +1108,8 @@ Missing Tenant
 ```
 
 Okapi is a multi-tenant system, so each request must be done on behalf of some
-tenant. And we have not even created any tenants yet. Let's do that now. It is
-not very difficult:
+tenant. We could use the supertenant, but that would be bad practice. Let's
+create a test tenant for this example. It is not very difficult:
 
 ```
 cat > /tmp/okapi-tenant.json <<END
@@ -1167,7 +1195,7 @@ As before, the first thing we create is a ModuleDescriptor:
 ```
 cat > /tmp/okapi-module-auth.json <<END
 {
-  "id": "test-auth",
+  "id": "test-auth-3.4.1",
   "name": "Okapi test auth module",
   "provides": [
     {
@@ -1221,11 +1249,11 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/modules/test-auth
+Location: /_/proxy/modules/test-auth-3.4.1
 Content-Length: 345
 
 {
-  "id" : "test-auth",
+  "id" : "test-auth-3.4.1",
   "name" : "Okapi test auth module",
   "provides" : [ {
     "id" : "test-auth",
@@ -1250,7 +1278,7 @@ in the moduleDescriptor, we need to provide one here.
 ```
 cat > /tmp/okapi-deploy-test-auth.json <<END
 {
-  "srvcId": "test-auth",
+  "srvcId": "test-auth-3.4.1",
   "nodeId": "localhost",
   "descriptor": {
     "exec": "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
@@ -1271,7 +1299,7 @@ Content-Length: 240
 
 {
   "instId" : "localhost-9132",
-  "srvcId" : "test-auth",
+  "srvcId" : "test-auth-3.4.1",
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
   "descriptor" : {
@@ -1286,7 +1314,7 @@ And we enable the module for our tenant:
 ```
 cat > /tmp/okapi-enable-auth.json <<END
 {
-  "id": "test-auth"
+  "id": "test-auth-3.4.1"
 }
 END
 
@@ -1297,11 +1325,11 @@ curl -w '\n' -X POST -D - \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/proxy/tenants/testlib/modules/test-auth
+Location: /_/proxy/tenants/testlib/modules/test-auth-3.4.1
 Content-Length: 24
 
 {
-  "id" : "test-auth"
+  "id" : "test-auth-3.4.1"
 }
 ```
 
@@ -1914,11 +1942,11 @@ installed:
 
 ```
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-basic-1.2.0
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-auth-3.4.1
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-foo-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib/modules/test-bar-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/tenants/testlib
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth/localhost-9132
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-auth-3.4.1/localhost-9132
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.0.0/localhost-9131
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-basic-1.2.0/localhost-9133
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/discovery/modules/test-foo-1.0.0/localhost-9134
@@ -1927,7 +1955,7 @@ curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-basic-1.2.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-foo-1.0.0
 curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-bar-1.0.0
-curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth
+curl -X DELETE -D - -w '\n' http://localhost:9130/_/proxy/modules/test-auth-3.4.1
 ```
 
 Okapi responds to each of these with a simple:
@@ -2137,6 +2165,44 @@ that receives all requests, and passes them on to the 'deployment' nodes. That
 would typically be a node that is visible from outside. This kind of division
 starts to make sense when there is so much traffic that the proxying alone will
 keep a node fully occupied.
+
+
+### Securing Okapi
+
+In the examples above, we just fired commands to Okapi, and it happily deployed
+and enabled modules for us, without any kind of checking. In a production system
+this is not acceptable. Okapi is designed to be easy to secure. Actually, there
+are several little hacks in place to make it possible to use Okapi without the
+checks, for example the fact that Okapi defaults to the `okapi.supertenant` if
+none is specified, and that this tenant has the internal module enabled by
+default.
+
+In principle, securing Okapi itself is done the same way as securing access to
+any module: Install a auth check filter for the `okapi.supertenant`, and that
+one will not let people in without them having authenticated themselves. The
+auth sample module is a bit simplistic for this, in real life we would like a
+system that can handle different permissions for different users, etc.
+
+The exact details about securing Okapi will depend on the nature of the auth
+modules used. In any case, we have to be careful not to lock ourself out before
+we have everything set up so that we can get in again. Something along the line
+of the following:
+
+ * When Okapi starts up, it creates the internal module, the supertenant, and
+enables the module for the tenant. All operations are possible, without any
+checks.
+ * The admin installs and deploys the necessary auth modules
+ * The admin enables the storage ends of the auth module(s).
+ * The admin posts suitable credentials and permissions into the auth module(s).
+ * The admin enables the auth-check filter. Now nothing is allowed.
+ * The admin logs in with the previously loaded credentials, and gets a token.
+ * This token gives the admin right to do further operations in Okapi
+
+Note that it is possible to enable the internal module for other tenants too,
+if that should be required. Normally that should not be the case.
+
+The ModuleDescriptor will have to define suitable permissions for fine-grained
+access control to its functions. These have not yet been designed.
 
 ## Reference
 

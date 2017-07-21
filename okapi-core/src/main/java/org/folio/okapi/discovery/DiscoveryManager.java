@@ -248,7 +248,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  public void get(String srvcId, String instId,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
