@@ -98,12 +98,30 @@ public class ModuleDescriptor {
     this.env = env;
   }
 
+  @JsonIgnore
+  public ModuleInterface[] getRequiresList() {
+    if (requires == null) {
+      return new ModuleInterface[0];
+    } else {
+      return requires;
+    }
+  }
+
   public ModuleInterface[] getRequires() {
     return requires;
   }
 
   public void setRequires(ModuleInterface[] requires) {
     this.requires = requires;
+  }
+
+  @JsonIgnore
+  public ModuleInterface[] getProvidesList() {
+    if (provides == null) {
+      return new ModuleInterface[0];
+    } else {
+      return provides;
+    }
   }
 
   public ModuleInterface[] getProvides() {
@@ -137,13 +155,10 @@ public class ModuleDescriptor {
     if (filters != null) {
       Collections.addAll(all, filters);
     }
-    ModuleInterface[] prov = getProvides();
-    if (prov != null) {
-      for (ModuleInterface mi : prov) {
-        String t = mi.getInterfaceType();
-        if (t == null || t.equals("proxy") || t.equals("internal")) {
-          all.addAll(mi.getAllRoutingEntries());
-        }
+    for (ModuleInterface mi : getProvidesList()) {
+      String t = mi.getInterfaceType();
+      if (t == null || t.equals("proxy") || t.equals("internal")) {
+        all.addAll(mi.getAllRoutingEntries());
       }
     }
     return all;
@@ -152,12 +167,9 @@ public class ModuleDescriptor {
   @JsonIgnore
   public List<RoutingEntry> getMultiRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    ModuleInterface[] prov = getProvides();
-    if (prov != null) {
-      for (ModuleInterface mi : prov) {
-        if ("multiple".equals(mi.getInterfaceType())) {
-          all.addAll(mi.getAllRoutingEntries());
-        }
+    for (ModuleInterface mi : getProvidesList()) {
+      if ("multiple".equals(mi.getInterfaceType())) {
+        all.addAll(mi.getAllRoutingEntries());
       }
     }
     return all;
@@ -173,13 +185,10 @@ public class ModuleDescriptor {
    */
   @JsonIgnore
   public ModuleInterface getSystemInterface(String interfaceId) {
-    ModuleInterface[] provlist = getProvides();
-    if (provlist != null) {
-      for (ModuleInterface prov : provlist) {
+    for (ModuleInterface prov : getProvidesList()) {
       if ("system".equals(prov.getInterfaceType())
         && interfaceId.equals(prov.getId())) {
         return prov;
-        }
       }
     }
     return null;

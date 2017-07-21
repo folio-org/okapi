@@ -39,7 +39,6 @@ schemas:
         headers:
           Location:
             description: URI to the descriptor of the deployed instance
-        headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
         body:
@@ -419,6 +418,61 @@ schemas:
           description: Forbidden
           body:
             text/plain:
+    /upgrade:
+      get:
+        description: Module upgrade
+        queryParameters:
+          simulate:
+            description: whether the upgrade is simulated
+            type: boolean
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
+      post:
+        description: enable and disable a set of modules
+        queryParameters:
+          simulate:
+            description: whether the upgrade is simulated
+            type: boolean
+        body:
+          application/json:
+            schema: TenantModuleDescriptorList
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
     /modules:
       get:
         description: selection of modules by the tenant
@@ -474,7 +528,7 @@ schemas:
               body:
                 text/plain:
         post:
-          description: update a module for a specified tenant.
+          description: enable new and disable current (new ID in body, old ID in path)
           body:
             application/json:
               schema: TenantModuleDescriptor
@@ -505,9 +559,14 @@ schemas:
           description: remove particular module selection
           responses:
             204:
+              description: Gone
               headers:
                 X-Okapi-Trace:
                   description: Okapi trace and timing
+            400:
+              description: Client Error
+              body:
+                text/plain:
     /interfaces/{interface_id}:
       get:
         description: get modules that provides some interface

@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
  *
  */
 @JsonInclude(Include.NON_NULL)
-public class ModuleDescriptorBrief implements Comparable {
+public class ModuleDescriptorBrief {
 
   private String id;
   private String name;
@@ -36,12 +36,5 @@ public class ModuleDescriptorBrief implements Comparable {
 
   public void setName(String name) {
     this.name = name;
-  }
-
-  @JsonIgnore
-  @Override
-  public int compareTo(Object o) {
-    ModuleDescriptorBrief m = (ModuleDescriptorBrief) o;
-    return this.getId().compareTo(m.getId());
   }
 }

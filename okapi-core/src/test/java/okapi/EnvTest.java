@@ -32,9 +32,7 @@ public class EnvTest {
 
   private static final String LS = System.lineSeparator();
   private String locationSampleDeployment1;
-  private String locationSampleDeployment2;
   private String locationSampleModule;
-  private String locationSampleModule2;
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   public EnvTest() {
@@ -60,16 +58,6 @@ public class EnvTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSampleDeployment1 = null;
-          td(context, async);
-        });
-      }).end();
-      return;
-    }
-    if (locationSampleDeployment2 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment2, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment2 = null;
           td(context, async);
         });
       }).end();
@@ -184,8 +172,7 @@ public class EnvTest {
     String locationName1 = r.getHeader("Location");
     // deploy module
     final String docSampleDeployment = "{" + LS
-            + "  \"srvcId\" : \"sample-module1\"," + LS
-            + "  \"descriptor\" : {" + LS
+      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS            + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
             + "  }" + LS
@@ -202,23 +189,25 @@ public class EnvTest {
     locationSampleDeployment1 = r.getHeader("Location");
     // proxy module
     final String docSampleModule1 = "{" + LS
-      + "  \"id\" : \"sample-module1\"," + LS
+      + "  \"id\" : \"sample-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"31\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]," + LS
-      + "  \"tenantInterface\" : \"/tenant\"" + LS
+      + "  \"requires\" : [ ]" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -248,8 +237,8 @@ public class EnvTest {
     final String locationTenantRoskilde = r.getHeader("Location");
     // associate tenant for module
     final String docEnableSample = "{" + LS
-            + "  \"id\" : \"sample-module1\"" + LS
-            + "}";
+      + "  \"id\" : \"sample-module-1.0.0\"" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")
@@ -266,69 +255,6 @@ public class EnvTest {
     c.given().header("X-Okapi-Tenant", okapiTenant)
             .body("Okapi").post("/testb")
             .then().statusCode(200)
-            .body(equalTo("hejsa Okapi"));
-
-    final String docSampleModule2 = "{" + LS
-      + "  \"id\" : \"sample-module2\"," + LS
-      + "  \"name\" : \"this module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"myint\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"31\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]," + LS
-      + "  \"tenantInterface\" : \"/tenant\"" + LS
-      + "}";
-    c = api.createRestAssured();
-    r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docSampleModule2).post("/_/proxy/modules").then().statusCode(201)
-            .extract().response();
-    Assert.assertTrue(
-            "raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
-    locationSampleModule2 = r.getHeader("Location");
-
-    final String docSampleDeployment2 = "{" + LS
-            + "  \"srvcId\" : \"sample-module2\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
-    c = api.createRestAssured();
-    r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docSampleDeployment2).post("/_/deployment/modules")
-            .then()
-            .statusCode(201)
-            .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
-    locationSampleDeployment2 = r.getHeader("Location");
-
-    final String docEnableSample2 = "{" + LS
-            + "  \"id\" : \"sample-module2\"" + LS
-            + "}";
-
-    logger.info("locationTenantModule: " + locationTenantModule);
-    c = api.createRestAssured();
-    r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docEnableSample2).post(locationTenantModule)
-            .then()
-            .statusCode(201)
-            .extract().response();
-    Assert.assertTrue(
-            "raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
+      .body(equalTo("hejsa Okapi"));
   }
 }

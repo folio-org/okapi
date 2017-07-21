@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -270,7 +271,34 @@ public class InternalModule {
     });
   }
 
-  private void updateModuleForTenant(ProxyContext pc, String id, String mod, String body,
+  private void enableModulesForTenant(ProxyContext pc, String id, String simulateStr,
+    String body, Handler<ExtendedAsyncResult<String>> fut) {
+    try {
+      boolean simulate = false;
+      if ("1".equals(simulateStr) || "true".equals(simulateStr)) {
+        simulate = true;
+      }
+      final TenantModuleDescriptor[] tml = Json.decodeValue(body,
+        TenantModuleDescriptor[].class);
+      List<TenantModuleDescriptor> tm = new LinkedList<>();
+      for (int i = 0; i < tml.length; i++) {
+        tm.add(tml[i]);
+      }
+      logger.info("simulate = " + simulate);
+      tenantManager.enableModules(id, pc, simulate, tm, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          logger.info("enableModules returns:\n" + Json.encodePrettily(res.result()));
+          fut.handle(new Success<>(Json.encodePrettily(res.result())));
+        }
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+  private void upgradeModulesForTenant(ProxyContext pc, String id, String mod, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final String module_from = mod;
@@ -889,17 +917,23 @@ public class InternalModule {
           return;
         }
         if (n == 7 && m.equals(PUT) && segments[5].equals("modules")){
-          updateModuleForTenant(pc,  segments[4], segments[6], req, fut);
+          upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
           return;
         }
         if (n == 7 && m.equals(POST) && segments[5].equals("modules")){
-          updateModuleForTenant(pc,  segments[4], segments[6], req, fut);
+          upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
           return;
         }
         if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")){
           disableModuleForTenant(pc, segments[4], segments[6], fut);
           return;
         }
+        // /_/proxy/tenants/:id/upgrade
+        if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
+          enableModulesForTenant(pc, segments[4], pc.getCtx().request().getParam("simulate"), req, fut);
+          return;
+        }
+
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")){
           listModulesFromInterface(pc, segments[4], segments[6], fut);
