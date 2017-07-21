@@ -24,7 +24,6 @@ public class ProxyContext {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final HttpClient httpClient;
   private List<ModuleInstance> modList;
-  private final List<String> traceHeaders;
   private String reqId;
   private String tenant;
   private final RoutingContext ctx;
@@ -41,7 +40,6 @@ public class ProxyContext {
     this.ctx = ctx;
     this.tenant = "-";
     this.modList = null;
-    traceHeaders = new ArrayList<>();
     httpClient = vertx.createHttpClient();
     reqidHeader(ctx);
     timer = null;
@@ -55,7 +53,6 @@ public class ProxyContext {
   public ProxyContext(RoutingContext ctx, String timerKey ) {
     this.ctx = ctx;
     modList = null;
-    traceHeaders = new ArrayList<>();
     httpClient = null;
     reqidHeader(ctx);
     logRequest(ctx, "-");
@@ -146,7 +143,7 @@ public class ProxyContext {
     String mods = "";
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {
-        mods += " " + mi.getModuleDescriptor().getNameOrId();
+        mods += " " + mi.getModuleDescriptor().getId();
       }
     }
     logger.info(reqId + " REQ "
@@ -202,17 +199,9 @@ public class ProxyContext {
       .end(json);
   }
 
-  /**
-   * Add the trace headers to the response.
-   */
-  public void addTraceHeaders(RoutingContext ctx) {
-    for (String th : traceHeaders) {
-      ctx.response().headers().add(XOkapiHeaders.TRACE, th);
-    }
-  }
 
   public void addTraceHeaderLine(String h) {
-    traceHeaders.add(h);
+    ctx.response().headers().add(XOkapiHeaders.TRACE, h);
   }
 
   public void fatal(String msg) {

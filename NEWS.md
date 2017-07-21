@@ -1,3 +1,9 @@
+ * Refactor internal operations to go through the internal module
+ * Create okapi.supertenant and the internal module when starting up, if not
+   already there.
+ * If no tenant specified, default to the okapi.supertenant, so we can get to
+   the internal endpoints.
+
 ## 1.7.0 2017-06-28
 
  * Tenant ID may be passed part of path. This is to facilitate "callback"
@@ -7,10 +13,10 @@
 
 ## 1.6.1 2017-06-27
 
- * Fix incorrect location of uprading module for Tenant OKAPI-351
+ * Fix incorrect location of upgrading module for Tenant OKAPI-351
  * Environment variable OKAPI_LOGLEVEL sets log level - Command line
    still takes precedence
- * Refactor Modules and Tenants to use shared memory OKAPI-196 , OKAPI-354
+ * Refactor Modules and Tenants to use shared memory OKAPI-196, OKAPI-354
 
 ## 1.6.0 2017-06-19
 

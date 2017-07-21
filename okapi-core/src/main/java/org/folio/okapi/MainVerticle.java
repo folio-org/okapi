@@ -1,7 +1,6 @@
 package org.folio.okapi;
 
 import org.folio.okapi.service.ModuleManager;
-import org.folio.okapi.web.TenantWebService;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -9,13 +8,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.InputStream;
 import static java.lang.System.getenv;
@@ -23,26 +22,25 @@ import java.lang.management.ManagementFactory;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.bean.Tenant;
+import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.web.HealthService;
 import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.web.ModuleWebService;
 import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.deployment.DeploymentWebService;
 import org.folio.okapi.discovery.DiscoveryManager;
-import org.folio.okapi.discovery.DiscoveryService;
 import org.folio.okapi.env.EnvManager;
-import org.folio.okapi.env.EnvService;
 import org.folio.okapi.pull.PullManager;
-import org.folio.okapi.pull.PullService;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.web.InternalModule;
 
 public class MainVerticle extends AbstractVerticle {
 
@@ -51,22 +49,18 @@ public class MainVerticle extends AbstractVerticle {
 
   HealthService healthService;
   ModuleManager moduleManager;
-  EnvService envService;
+  TenantManager tenantManager;
   EnvManager envManager;
-  ModuleWebService moduleWebService;
   ProxyService proxyService;
-  TenantWebService tenantWebService;
-  DeploymentWebService deploymentWebService;
   DeploymentManager deploymentManager;
-  DiscoveryService discoveryService;
   DiscoveryManager discoveryManager;
   ClusterManager clusterManager;
   PullManager pullManager;
-  PullService pullService;
   private Storage storage;
   Storage.InitMode initMode = NORMAL;
   private int port;
   private String okapiVersion = null;
+
 
   // Little helper to get a config value:
   // First from System (-D on command line),
@@ -172,7 +166,6 @@ public class MainVerticle extends AbstractVerticle {
       Ports ports = new Ports(port_start, port_end);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
               host, ports, port);
-      deploymentWebService = new DeploymentWebService(deploymentManager);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);
@@ -191,23 +184,38 @@ public class MainVerticle extends AbstractVerticle {
     }
     if (enableProxy) {
       storage = new Storage(vertx, storageType, config);
-      discoveryService = new DiscoveryService(discoveryManager);
       healthService = new HealthService();
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(vertx, moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
-      TenantManager tenantManager = new TenantManager(moduleManager, tenantStore);
+      tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
-      envService = new EnvService(envManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
-      moduleWebService = new ModuleWebService(vertx, moduleManager);
-      tenantWebService = new TenantWebService(vertx, tenantManager, discoveryManager);
-      proxyService = new ProxyService(vertx, moduleManager, tenantManager, discoveryManager, okapiUrl);
-      tenantManager.setProxyService(proxyService);
       pullManager = new PullManager(vertx, okapiUrl);
-      pullService = new PullService(pullManager);
+      InternalModule internalModule = new InternalModule(moduleManager,
+              tenantManager, deploymentManager, discoveryManager,
+              envManager, pullManager,okapiVersion);
+      proxyService = new ProxyService(vertx,
+        moduleManager, tenantManager, discoveryManager,
+        internalModule, okapiUrl);
+      tenantManager.setProxyService(proxyService);
+    } else { // not really proxying, except to /_/deployment
+      moduleManager = new ModuleManager(vertx, null);
+      moduleManager.forceLocalMap(); // make sure it is not shared
+      tenantManager = new TenantManager(moduleManager, null);
+      tenantManager.forceLocalMap();
+      moduleManager.setTenantManager(tenantManager);
+      discoveryManager.setModuleManager(moduleManager);
+      InternalModule internalModule = new InternalModule(
+        null, null, deploymentManager, null,
+        envManager, null, okapiVersion);
+      // no modules, tenants, or discovery. Only deployment and env.
+      proxyService = new ProxyService(vertx,
+        moduleManager, tenantManager, discoveryManager,
+        internalModule, okapiUrl);
     }
+
   }
 
   public void NotFound(RoutingContext ctx) {
@@ -234,15 +242,15 @@ public class MainVerticle extends AbstractVerticle {
             logger.info("Database operation " + initMode.toString() + " done. Exiting");
             System.exit(0);
           }
-          initModmanager(fut);
+          startModmanager(fut);
         }
       });
     } else {
-      initModmanager(fut);
+      startModmanager(fut);
     }
   }
 
-  private void initModmanager(Future<Void> fut) {
+  private void startModmanager(Future<Void> fut) {
     if (moduleManager == null) {
       startTenants(fut);
     } else {
@@ -259,13 +267,13 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void startTenants(Future<Void> fut) {
-    if (tenantWebService == null) {
-      startEnv(fut);
+    if (tenantManager == null) {
+      checkInternalModules(fut);
     } else {
       logger.debug("Startting tenants");
-      tenantWebService.init(vertx, res -> {
+      tenantManager.init(vertx, res -> {
         if (res.succeeded()) {
-          startEnv(fut);
+          checkInternalModules(fut);
         } else {
           logger.fatal("load tenants failed: " + res.cause().getMessage());
           fut.fail(res.cause());
@@ -274,8 +282,99 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+
+  private void checkInternalModules(Future<Void> fut) {
+    final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
+    final String okapiModule = md.getId();
+    final String interfaceVersion = md.getProvides()[0].getVersion();
+    if (moduleManager == null) {
+      logger.debug("checkInternalModules: skipping, no moduleManager");
+      checkSuperTenant(okapiModule, fut);
+      return;
+    }
+    moduleManager.get(okapiModule, gres -> {
+      if (gres.succeeded()) { // we already have one, go on
+        logger.debug("checkInternalModules: Already have " + okapiModule
+          + " with interface version " + interfaceVersion);
+        // TODO - What if it is a wrong version?
+        // See Okapi-359 about version checks across the cluster
+        checkSuperTenant(okapiModule, fut);
+        return;
+      }
+      if (gres.getType() != NOT_FOUND) {
+        logger.warn("checkInternalModules: Could not get "
+          + okapiModule + ": " + gres.cause());
+        fut.fail(gres.cause()); // something went badly wrong
+        return;
+      }
+      logger.debug("Creating the internal Okapi module " + okapiModule
+        + " with interface version " + interfaceVersion);
+      moduleManager.create(md, ires -> {
+        if (ires.failed()) {
+          logger.warn("Failed to create the internal Okapi module"
+            + okapiModule + " " + ires.cause());
+          fut.fail(ires.cause()); // something went badly wrong
+          return;
+        }
+        checkSuperTenant(okapiModule, fut);
+      });
+
+    });
+
+  }
+
+  /**
+   * Create the super tenant, if not already there.
+   *
+   * @param fut
+   */
+  private void checkSuperTenant(String okapiModule, Future<Void> fut) {
+    if (tenantManager == null) {
+      logger.debug("checkSuperTenant: Skipping, no tenantManager");
+      startEnv(fut);
+      return;
+    }
+    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
+      if (gres.succeeded()) { // we already have one, go on
+        logger.debug("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
+        startEnv(fut);
+        return;
+      }
+      if (gres.getType() != NOT_FOUND) {
+        logger.warn("checkSuperTenant: Could not get "
+          + XOkapiHeaders.SUPERTENANT_ID + ": " + gres.cause());
+        fut.fail(gres.cause()); // something went badly wrong
+        return;
+      }
+      logger.debug("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
+      final String docTenant = "{"
+        + "\"descriptor\" : {"
+        + " \"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+        + " \"name\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+        + " \"description\" : \"Okapi built-in super tenant\""
+        + " },"
+        + "\"enabled\" : {"
+        + "\"" + okapiModule + "\" : true"
+        + "}"
+        + "}";
+      final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
+      tenantManager.insert(ten, ires -> {
+        if (ires.failed()) {
+          logger.warn("Failed to create the superTenant "
+            + XOkapiHeaders.SUPERTENANT_ID + " " + ires.cause());
+          fut.fail(ires.cause()); // something went badly wrong
+          return;
+        }
+        startEnv(fut);
+        return;
+      });
+    });
+  }
+
+
   private void startEnv(Future<Void> fut) {
     if (envManager == null) {
+      logger.debug("startEnv: no envManager, skipping");
       startDiscovery(fut);
     } else {
       logger.debug("starting Env");
@@ -308,7 +407,7 @@ public class MainVerticle extends AbstractVerticle {
     if (deploymentManager == null) {
       startListening(fut);
     } else {
-      logger.debug("Starting discovery");
+      logger.debug("Starting deployment");
       deploymentManager.init(res -> {
         if (res.succeeded()) {
           startListening(fut);
@@ -317,11 +416,6 @@ public class MainVerticle extends AbstractVerticle {
         }
       });
     }
-  }
-
-  private void getVersion(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(vertx, ctx);
-    pc.responseText(200, okapiVersion == null ? "null" : okapiVersion);
   }
 
   private void startListening(Future<Void> fut) {
@@ -349,79 +443,20 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
         .handler(proxyService::redirectProxy);
-      // Note: this has to be before the BodyHandler.create() for "/_*"
+      // Note: This can not go into the InternalModule, it reads the req body,
+      // and then we can not ctx.reroute(). Unless we do something trickier,
+      // like a new HTTP request.
     }
-
-    // Paths that start with /_/ are often okapi internal configuration
-    router.route("/_*").handler(BodyHandler.create()); //enable reading body to string
-
-    if (moduleWebService != null) {
-      router.postWithRegex("/_/proxy/modules").handler(moduleWebService::create);
-      router.delete("/_/proxy/modules/:id").handler(moduleWebService::delete);
-      router.get("/_/proxy/modules/:id").handler(moduleWebService::get);
-      router.getWithRegex("/_/proxy/modules").handler(moduleWebService::list);
-      router.put("/_/proxy/modules/:id").handler(moduleWebService::update);
-    }
-    if (tenantWebService != null) {
-      router.postWithRegex("/_/proxy/tenants").handler(tenantWebService::create);
-      router.getWithRegex("/_/proxy/tenants").handler(tenantWebService::list);
-      router.get("/_/proxy/tenants/:id").handler(tenantWebService::get);
-      router.put("/_/proxy/tenants/:id").handler(tenantWebService::update);
-      router.delete("/_/proxy/tenants/:id").handler(tenantWebService::delete);
-
-      router.post("/_/proxy/tenants/:id/upgrade").handler(tenantWebService::enableModules);
-      router.get("/_/proxy/tenants/:id/upgrade").handler(tenantWebService::upgradeModules);
-
-      router.post("/_/proxy/tenants/:id/modules").handler(tenantWebService::enableModule);
-      router.delete("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::disableModule);
-      router.post("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::updateModule);
-      router.get("/_/proxy/tenants/:id/modules").handler(tenantWebService::listModules);
-      router.get("/_/proxy/tenants/:id/modules/:mod").handler(tenantWebService::getModule);
-      router.get("/_/proxy/tenants/:id/interfaces/:int").handler(tenantWebService::listModulesFromInterface);
-      router.getWithRegex("/_/proxy/health").handler(healthService::get);
-    }
-    if (pullService != null) {
-      router.postWithRegex("/_/proxy/pull/modules").handler(pullService::create);
-    }
-    // Endpoints for internal testing only.
-    // The reload points can be removed as soon as we have a good integration
-    // test that verifies that changes propagate across a cluster...
-    if (moduleWebService != null) {
-      router.getWithRegex("/_/test/loglevel").handler(logHelper::getRootLogLevel);
-      router.postWithRegex("/_/test/loglevel").handler(logHelper::setRootLogLevel);
-    }
-
-    if (deploymentWebService != null) {
-      router.postWithRegex("/_/deployment/modules").handler(deploymentWebService::create);
-      router.delete("/_/deployment/modules/:instid").handler(deploymentWebService::delete);
-      router.getWithRegex("/_/deployment/modules").handler(deploymentWebService::list);
-      router.get("/_/deployment/modules/:instid").handler(deploymentWebService::get);
-    }
-    if (discoveryService != null) {
-      router.postWithRegex("/_/discovery/modules").handler(discoveryService::create);
-      router.delete("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::delete);
-      router.get("/_/discovery/modules/:srvcid/:instid").handler(discoveryService::get);
-      router.get("/_/discovery/modules/:srvcid").handler(discoveryService::getSrvcId);
-      router.getWithRegex("/_/discovery/modules").handler(discoveryService::getAll);
-      router.get("/_/discovery/health/:srvcid/:instid").handler(discoveryService::health);
-      router.get("/_/discovery/health/:srvcid").handler(discoveryService::healthSrvcId);
-      router.getWithRegex("/_/discovery/health").handler(discoveryService::healthAll);
-      router.get("/_/discovery/nodes/:id").handler(discoveryService::getNode);
-      router.getWithRegex("/_/discovery/nodes").handler(discoveryService::getNodes);
-    }
-    if (envService != null) {
-      router.postWithRegex("/_/env").handler(envService::create);
-      router.delete("/_/env/:id").handler(envService::delete);
-      router.get("/_/env").handler(envService::getAll);
-      router.get("/_/env/:id").handler(envService::get);
-    }
-    router.get("/_/version").handler(this::getVersion);
-    router.route("/_*").handler(this::NotFound);
 
     // everything else gets proxified to modules
+    // Even internal functions, they are in the InternalModule
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }
+
+    // A fallback for a notfound response
+    router.route("/*").handler(this::NotFound);
+
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
             .setHandle100ContinueAutomatically(true);
@@ -441,5 +476,6 @@ public class MainVerticle extends AbstractVerticle {
                     }
             );
   }
+
 
 }

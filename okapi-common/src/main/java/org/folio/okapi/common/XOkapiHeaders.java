@@ -3,7 +3,9 @@ package org.folio.okapi.common;
 /**
  * X-Okapi Headers used in the system. Some are needed by every module, and some
  * are only used between Okapi itself and the authorization/authentication
- * modules.
+ * modules. Also contains the ids for the built-in supertenant and Okapi's
+ * internal module(s)
+ *
  * @author heikki
  */
 public class XOkapiHeaders {
@@ -114,5 +116,14 @@ public class XOkapiHeaders {
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
 
+  /**
+   * The id of the always-present super tenant.
+   */
+  public static final String SUPERTENANT_ID = "okapi.supertenant";
 
+  /**
+   * The name of the internal Okapi module. Version will be copied from software
+   * version.
+   */
+  public static final String OKAPI_MODULE = "okapi";
 }

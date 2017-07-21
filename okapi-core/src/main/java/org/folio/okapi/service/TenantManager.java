@@ -25,7 +25,6 @@ import org.folio.okapi.common.ErrorType;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ProxyContext;
@@ -40,10 +39,21 @@ public class TenantManager {
   ProxyService proxyService = null;
   TenantStore tenantStore = null;
   LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
+  String mapName = "tenants";
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
     this.tenantStore = tenantStore;
+  }
+
+  /**
+   * Force the map to be local. Even in cluster mode, will use a local memory
+   * map. This way, the node will not share tenants with the cluster, and can
+   * not proxy requests for anyone but the superTenant, to the InternalModule.
+   * Which is just enough to act in the deployment mode.
+   */
+  public void forceLocalMap() {
+    mapName = null;
   }
 
   /**
@@ -53,7 +63,7 @@ public class TenantManager {
    * @param fut
    */
   public void init(Vertx vertx,  Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.init(vertx, "tenants", ires -> {
+    tenants.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
         return;
@@ -722,6 +732,7 @@ public class TenantManager {
     String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
+        logger.debug("listModulesFromInterface: tenant " + tenantId + " not found");
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
       }
@@ -729,6 +740,7 @@ public class TenantManager {
       ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
       moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
+          logger.debug("listModulesFromInterface: enabledModules failed for " + tenantId);
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
@@ -978,5 +990,6 @@ public class TenantManager {
       loadR(it, fut);
     });
   }
+
 
 } // class

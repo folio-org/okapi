@@ -494,14 +494,5 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
-    // upgrade: not implemented
-    c = api.createRestAssured();
-    c.given()
-      .get("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
-      .then().statusCode(500);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
   }
 }

@@ -24,6 +24,7 @@ schemas:
   - Permission: !include Permission.json
   - PullDescriptor: !include PullDescriptor.json
 
+
 # DEPLOYMENT SERVICE
 /_/deployment/modules:
   post:
@@ -38,6 +39,8 @@ schemas:
         headers:
           Location:
             description: URI to the descriptor of the deployed instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -56,6 +59,9 @@ schemas:
         body:
           application/json:
             schema: DeploymentDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
 
   /{instance_id}:
     get:
@@ -65,10 +71,16 @@ schemas:
           body:
             application/json:
               schema: DeploymentDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     delete:
       description: shutdown instance
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 
 # DISCOVERY SERVICE
@@ -85,6 +97,8 @@ schemas:
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -100,10 +114,12 @@ schemas:
     description: return all instances
     responses:
       200:
-        description: Created
+        description: Ok
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptorList
@@ -123,6 +139,9 @@ schemas:
           body:
             application/json:
               schema: DeploymentDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -139,6 +158,9 @@ schemas:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       put:
         description: update registration of a specified instance
         responses:
@@ -146,10 +168,16 @@ schemas:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       delete:
         description: remove registration for a given instance
         responses:
           204:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 
 /_/discovery/health:
   get:
@@ -159,6 +187,9 @@ schemas:
         body:
           application/json:
             schema: HealthDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -175,6 +206,9 @@ schemas:
           body:
             application/json:
               schema: HealthDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     /{instance_id}:
       get:
         description: get health for a particular instance
@@ -183,6 +217,9 @@ schemas:
             body:
               application/json:
                 schema: HealthDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 /_/discovery/nodes:
   get:
     description: get list of all nodes
@@ -191,6 +228,9 @@ schemas:
         body:
           application/json:
             schema: NodeDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -207,6 +247,9 @@ schemas:
           body:
             application/json:
               schema: NodeDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -233,6 +276,8 @@ schemas:
       201:
         description: Created
         headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
           Location:
             description: URI to the created module instance
         body:
@@ -250,6 +295,9 @@ schemas:
     description: list all available modules
     responses:
       200:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: ModuleList
@@ -259,6 +307,9 @@ schemas:
       description: retrieve descriptor for a particular module
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: ModuleDescriptor
@@ -269,6 +320,9 @@ schemas:
           schema: ModuleDescriptor
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: ModuleDescriptor
@@ -277,6 +331,9 @@ schemas:
         will no longer be selectable by tenants
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 /_/proxy/tenants:
   post:
@@ -288,6 +345,8 @@ schemas:
       201:
         description: tenant has been created
         headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
           Location:
             description: URI to the created tenant
         body:
@@ -302,6 +361,9 @@ schemas:
     responses:
       200:
         description: list of tenants in a brief format
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: TenantList
@@ -310,6 +372,9 @@ schemas:
       description: retrieve a tenant
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: TenantDescriptor
@@ -324,6 +389,9 @@ schemas:
           schema: TenantDescriptor
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: TenantDescriptor
@@ -339,7 +407,17 @@ schemas:
       description: remove a tenant
       responses:
         204:
-
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+        403:
+          description: Forbidden
+          body:
+            text/plain:
     /upgrade:
       get:
         description: Module upgrade
@@ -380,6 +458,9 @@ schemas:
             body:
               application/json:
                 schema: TenantModuleDescriptorList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Bad Request
             body:
@@ -397,6 +478,9 @@ schemas:
         description: selection of modules by the tenant
         responses:
           200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
             body:
               application/json:
                 schema: TenantModuleDescriptorList
@@ -409,6 +493,8 @@ schemas:
           201:
             description: Created
             headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
               Location:
                 description: URI to the created tenant
             body:
@@ -431,6 +517,9 @@ schemas:
           description: look up particular module selection
           responses:
             200:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
               body:
                 application/json:
                   schema: TenantModuleDescriptor
@@ -447,6 +536,8 @@ schemas:
             201:
               description: Created
               headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
                 Location:
                   description: URI to the created tenant
               body:
@@ -469,8 +560,9 @@ schemas:
           responses:
             204:
               description: Gone
-              body:
-                text/plain:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
             400:
               description: Client Error
               body:
@@ -480,6 +572,9 @@ schemas:
         description: get modules that provides some interface
         responses:
           200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
             body:
               application/json:
                 schema: TenantModuleDescriptorList
@@ -504,6 +599,9 @@ schemas:
         body:
           application/json:
             schema: HealthStatusList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       500:
         description: Server Error
 
@@ -519,6 +617,8 @@ schemas:
         headers:
           Location:
             description:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: ModuleList
@@ -544,6 +644,8 @@ schemas:
         headers:
           Location:
             description: URI to the environment entry instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: EnvEntry
@@ -562,6 +664,9 @@ schemas:
         body:
           application/json:
             schema: EnvEntryList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -578,6 +683,9 @@ schemas:
           body:
             application/json:
               schema: EnvEntry
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -594,6 +702,9 @@ schemas:
       description: remove environment variable
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 # Version service
 /_/version:
@@ -604,6 +715,9 @@ schemas:
         description: OK
         body:
           text/plain:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:

@@ -60,16 +60,31 @@ public class TenantRATest {
 
     RestAssuredClient c;
 
+    String superTenantDoc = "{" + LS
+      + "  \"id\" : \"okapi.supertenant\"," + LS
+      + "  \"name\" : \"okapi.supertenant\"," + LS
+      + "  \"description\" : \"Okapi built-in super tenant\"" + LS
+      + "}";
+    String superTenantList = "[ " + superTenantDoc + " ]";
+
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    c.given().get("/_/proxy/tenants")
+      .then().statusCode(200).body(equalTo(superTenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
+     // Check that we can not delete the superTenant
+    c = api.createRestAssured();
+    c.given().delete("/_/proxy/tenants/okapi.supertenant")
+      .then().statusCode(400);
+     Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     String badId = "{" + LS
-            + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\"," + LS
-            + "  \"name\" : \"roskilde\"," + LS
-            + "  \"description\" : \"Roskilde bibliotek\"" + LS
-            + "}";
+      + "  \"id\" : \"Bad Id with Spaces and Specials: ?%!\"," + LS
+      + "  \"name\" : \"roskilde\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json").body(badId)
@@ -78,10 +93,10 @@ public class TenantRATest {
              c.getLastReport().isEmpty());
 
     String doc = "{" + LS
-            + "  \"id\" : \"roskilde\"," + LS
-            + "  \"name\" : \"roskilde\"," + LS
-            + "  \"description\" : \"Roskilde bibliotek\"" + LS
-            + "}";
+      + "  \"id\" : \"roskilde\"," + LS
+      + "  \"name\" : \"roskilde\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
 
     c = api.createRestAssured();
     Response r = c.given()
@@ -117,8 +132,11 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
+    final String tenantList = "[ " + superTenantDoc + ", " + doc + " ]";
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ " + doc + " ]"));
+    c.given().get("/_/proxy/tenants")
+      .then().statusCode(200)
+      .body(equalTo(tenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
@@ -128,7 +146,7 @@ public class TenantRATest {
              c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo(superTenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
@@ -147,8 +165,9 @@ public class TenantRATest {
     String location3 = r3.getHeader("Location");
     logger.debug("location3 = " + location3);
 
+    final String tenantList3 = "[ " + superTenantDoc + ", " + doc3 + " ]";
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo("[ " + doc3 + " ]"));
+    c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo(tenantList3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
@@ -182,6 +201,31 @@ public class TenantRATest {
             .header("Content-Type", "application/json").body(doc5)
             .put(location3).then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-             c.getLastReport().isEmpty());
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(location3).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    String superdoc2 = "{" + LS
+      + "  \"id\" : \"okapi.supertenant\"," + LS
+      + "  \"name\" : \"The Real Super Tenant\"," + LS
+      + "  \"description\" : \"With a better description\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(superdoc2)
+      .put("/_/proxy/tenants/okapi.supertenant").then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    c = api.createRestAssured();
+    c.given()
+      .get("/_/proxy/tenants")
+      .then().statusCode(200)
+      .body(equalTo("[ " + superdoc2 + " ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
   }
 }
