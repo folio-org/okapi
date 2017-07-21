@@ -29,6 +29,7 @@ managing and running microservices.
     * [Multiple interfaces](#multiple-interfaces)
     * [Cleaning up](#cleaning-up)
     * [Running in cluster mode](#running-in-cluster-mode)
+    * [Securing Okapi](#securing-okapi)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
