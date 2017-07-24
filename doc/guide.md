@@ -869,6 +869,7 @@ When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
 for the internal module that implements all the endpoints we use in this example,
 If not, it will create it for us, so that we can use Okapi itself. We can ask
 Okapi to list the known modules:
+
 ```
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
@@ -884,10 +885,11 @@ Content-Length: 74
 ```
 
 The version number will change over time. This example was run on a development
-branch, so the version has the -SNAPSHOT suffix.
+branch, so the version has the `-SNAPSHOT` suffix.
 
 Since all Okapi operations are done on behalf of a tenant, Okapi will make sure
-that we have at least one defined when we start up. Again, you can see it with
+that we have at least one defined when we start up. Again, you can see it with:
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 
@@ -901,8 +903,7 @@ Content-Length: 117
   "name" : "okapi.supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
-
-
+```
 
 ### Example 1: Deploying and using a simple module
 
@@ -2178,25 +2179,25 @@ none is specified, and that this tenant has the internal module enabled by
 default.
 
 In principle, securing Okapi itself is done the same way as securing access to
-any module: Install a auth check filter for the `okapi.supertenant`, and that
+any module: Install an auth check filter for the `okapi.supertenant`, and that
 one will not let people in without them having authenticated themselves. The
-auth sample module is a bit simplistic for this, in real life we would like a
+auth sample module is a bit simplistic for this -- in real life we would like a
 system that can handle different permissions for different users, etc.
 
 The exact details about securing Okapi will depend on the nature of the auth
 modules used. In any case, we have to be careful not to lock ourself out before
-we have everything set up so that we can get in again. Something along the line
+we have everything set up so that we can get in again. Something along the lines
 of the following:
 
  * When Okapi starts up, it creates the internal module, the supertenant, and
 enables the module for the tenant. All operations are possible, without any
 checks.
- * The admin installs and deploys the necessary auth modules
+ * The admin installs and deploys the necessary auth modules.
  * The admin enables the storage ends of the auth module(s).
  * The admin posts suitable credentials and permissions into the auth module(s).
  * The admin enables the auth-check filter. Now nothing is allowed.
  * The admin logs in with the previously loaded credentials, and gets a token.
- * This token gives the admin right to do further operations in Okapi
+ * This token gives the admin right to do further operations in Okapi.
 
 Note that it is possible to enable the internal module for other tenants too,
 if that should be required. Normally that should not be the case.
