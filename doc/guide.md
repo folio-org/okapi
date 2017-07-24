@@ -866,7 +866,7 @@ which happens to be 9130, and using in-memory storage. (To use PostgreSQL
 storage instead, add `-Dstorage=postgres` to the [command line](#java--d-options).)
 
 When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
-for the internal module that implements all the endpoints we use in this example,
+for the internal module that implements all the endpoints we use in this example.
 If not, it will create it for us, so that we can use Okapi itself. We can ask
 Okapi to list the known modules:
 
