@@ -62,7 +62,8 @@ Here is my idea of how things could work:
 * Admin posts credentials for the superuser into mod-login, and initial permissions to mod-perms
 * Admin enables mod-authtoken. Now the system is locked.
 * Admin logs in with the credentials just posted
-* Admin installs and deploys the rest of the modules needed for the installation
+
+Admin installs and deploys the rest of the modules needed for the installation:
 
 * Admin creates a real tenant
 * Admin enables mod-perms and mod-login for the new tenant
