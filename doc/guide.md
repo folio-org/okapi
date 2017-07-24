@@ -969,6 +969,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic-1.0.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 12074us
 Content-Length: 350
 
 {
@@ -1061,6 +1062,7 @@ Okapi responds with
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-basic-1.0.0/localhost-9131
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
 Content-Length: 237
 
 {
@@ -1129,6 +1131,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 201 1704us
 Content-Length: 91
 
 {
@@ -1156,6 +1159,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 16025us
 Content-Length: 31
 
 {
@@ -1176,7 +1180,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 11152us
+X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 5632us
 Transfer-Encoding: chunked
 
 It works
@@ -1251,7 +1255,8 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth-3.4.1
-Content-Length: 345
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 5634us
+Content-Length: 357
 
 {
   "id" : "test-auth-3.4.1",
@@ -1295,8 +1300,9 @@ curl -w '\n' -D - -s \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/test-auth/localhost-9132
-Content-Length: 240
+Location: /_/discovery/modules/test-auth-3.4.1/localhost-9132
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
+Content-Length: 246
 
 {
   "instId" : "localhost-9132",
@@ -1307,7 +1313,6 @@ Content-Length: 240
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
-
 ```
 
 And we enable the module for our tenant:
@@ -1327,7 +1332,8 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-auth-3.4.1
-Content-Length: 24
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 1727us
+Content-Length: 30
 
 {
   "id" : "test-auth-3.4.1"
@@ -1345,7 +1351,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test auth module http://localhost:9132/testb : 401 68987us
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 84118us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
@@ -1373,9 +1379,10 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/authn/login
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 202 7235us
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/authn/login : 200 159251us
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 200 232721us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
@@ -1402,8 +1409,9 @@ curl -D - -w '\n' \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 202 18179us
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 1567us
+X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 3172us
 Transfer-Encoding: chunked
 
 It works
@@ -1542,12 +1550,12 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.2.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
 Content-Length: 31
 
 {
   "id" : "test-basic-1.2.0"
 }
-
 ```
 
 Now the new module is enabled for our tenant, and the old one is not, as can
@@ -1574,8 +1582,9 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/testb : 202 4325us
 Content-Type: text/plain
-X-Okapi-Trace: POST Okapi test module, improved http://localhost:9133/testb : 200 4260us
+X-Okapi-Trace: POST test-basic-1.2.0 http://localhost:9133/testb : 200 3141us
 Transfer-Encoding: chunked
 
 Hi there { "foo":"bar"}
@@ -1916,6 +1925,7 @@ curl -w '\n' -D - \
 
 HTTP/1.1 200 OK
 Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/interfaces/test-multi : 200 1496us
 Content-Length: 64
 
 [ {
