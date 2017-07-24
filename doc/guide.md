@@ -869,6 +869,7 @@ When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
 for the internal module that implements all the endpoints we use in this example,
 If not, it will create it for us, so that we can use Okapi itself. We can ask
 Okapi to list the known modules:
+
 ```
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
@@ -884,10 +885,11 @@ Content-Length: 74
 ```
 
 The version number will change over time. This example was run on a development
-branch, so the version has the -SNAPSHOT suffix.
+branch, so the version has the `-SNAPSHOT` suffix.
 
 Since all Okapi operations are done on behalf of a tenant, Okapi will make sure
-that we have at least one defined when we start up. Again, you can see it with
+that we have at least one defined when we start up. Again, you can see it with:
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 
@@ -901,8 +903,7 @@ Content-Length: 117
   "name" : "okapi.supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
-
-
+```
 
 ### Example 1: Deploying and using a simple module
 
