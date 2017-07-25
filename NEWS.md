@@ -1,3 +1,5 @@
+## 1.8.0 2017-07-25
+
  * Refactor internal operations to go through the internal module
  * Create okapi.supertenant and the internal module when starting up, if not
    already there.
