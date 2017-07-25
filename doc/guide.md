@@ -866,9 +866,10 @@ which happens to be 9130, and using in-memory storage. (To use PostgreSQL
 storage instead, add `-Dstorage=postgres` to the [command line](#java--d-options).)
 
 When Okapi starts up for the first time, it checks if we have a ModuleDescriptor
-for the internal module that implements all the endpoints we use in this example,
+for the internal module that implements all the endpoints we use in this example.
 If not, it will create it for us, so that we can use Okapi itself. We can ask
 Okapi to list the known modules:
+
 ```
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
@@ -884,10 +885,11 @@ Content-Length: 74
 ```
 
 The version number will change over time. This example was run on a development
-branch, so the version has the -SNAPSHOT suffix.
+branch, so the version has the `-SNAPSHOT` suffix.
 
 Since all Okapi operations are done on behalf of a tenant, Okapi will make sure
-that we have at least one defined when we start up. Again, you can see it with
+that we have at least one defined when we start up. Again, you can see it with:
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 
@@ -901,8 +903,7 @@ Content-Length: 117
   "name" : "okapi.supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
-
-
+```
 
 ### Example 1: Deploying and using a simple module
 
@@ -968,6 +969,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic-1.0.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 12074us
 Content-Length: 350
 
 {
@@ -1060,6 +1062,7 @@ Okapi responds with
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-basic-1.0.0/localhost-9131
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
 Content-Length: 237
 
 {
@@ -1128,6 +1131,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 201 1704us
 Content-Length: 91
 
 {
@@ -1155,6 +1159,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 16025us
 Content-Length: 31
 
 {
@@ -1175,7 +1180,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 200 OK
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 11152us
+X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 5632us
 Transfer-Encoding: chunked
 
 It works
@@ -1250,7 +1255,8 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth-3.4.1
-Content-Length: 345
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 5634us
+Content-Length: 357
 
 {
   "id" : "test-auth-3.4.1",
@@ -1294,8 +1300,9 @@ curl -w '\n' -D - -s \
 
 HTTP/1.1 201 Created
 Content-Type: application/json
-Location: /_/discovery/modules/test-auth/localhost-9132
-Content-Length: 240
+Location: /_/discovery/modules/test-auth-3.4.1/localhost-9132
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
+Content-Length: 246
 
 {
   "instId" : "localhost-9132",
@@ -1306,7 +1313,6 @@ Content-Length: 240
     "exec" : "java -Dport=%p -jar okapi-test-auth-module/target/okapi-test-auth-module-fat.jar"
   }
 }
-
 ```
 
 And we enable the module for our tenant:
@@ -1326,7 +1332,8 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-auth-3.4.1
-Content-Length: 24
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 1727us
+Content-Length: 30
 
 {
   "id" : "test-auth-3.4.1"
@@ -1344,7 +1351,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test auth module http://localhost:9132/testb : 401 68987us
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 84118us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
@@ -1372,9 +1379,10 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/authn/login
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 202 7235us
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST - Okapi test auth module http://localhost:9132/authn/login : 200 159251us
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 200 232721us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
@@ -1401,8 +1409,9 @@ curl -D - -w '\n' \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 202 18179us
 Content-Type: text/plain
-X-Okapi-Trace: GET - Okapi test module http://localhost:9131/testb : 200 1567us
+X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 3172us
 Transfer-Encoding: chunked
 
 It works
@@ -1541,12 +1550,12 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.2.0
+X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
 Content-Length: 31
 
 {
   "id" : "test-basic-1.2.0"
 }
-
 ```
 
 Now the new module is enabled for our tenant, and the old one is not, as can
@@ -1573,8 +1582,9 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/testb : 202 4325us
 Content-Type: text/plain
-X-Okapi-Trace: POST Okapi test module, improved http://localhost:9133/testb : 200 4260us
+X-Okapi-Trace: POST test-basic-1.2.0 http://localhost:9133/testb : 200 3141us
 Transfer-Encoding: chunked
 
 Hi there { "foo":"bar"}
@@ -1915,6 +1925,7 @@ curl -w '\n' -D - \
 
 HTTP/1.1 200 OK
 Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/interfaces/test-multi : 200 1496us
 Content-Length: 64
 
 [ {
@@ -2178,25 +2189,25 @@ none is specified, and that this tenant has the internal module enabled by
 default.
 
 In principle, securing Okapi itself is done the same way as securing access to
-any module: Install a auth check filter for the `okapi.supertenant`, and that
+any module: Install an auth check filter for the `okapi.supertenant`, and that
 one will not let people in without them having authenticated themselves. The
-auth sample module is a bit simplistic for this, in real life we would like a
+auth sample module is a bit simplistic for this -- in real life we would like a
 system that can handle different permissions for different users, etc.
 
 The exact details about securing Okapi will depend on the nature of the auth
 modules used. In any case, we have to be careful not to lock ourself out before
-we have everything set up so that we can get in again. Something along the line
+we have everything set up so that we can get in again. Something along the lines
 of the following:
 
  * When Okapi starts up, it creates the internal module, the supertenant, and
 enables the module for the tenant. All operations are possible, without any
 checks.
- * The admin installs and deploys the necessary auth modules
+ * The admin installs and deploys the necessary auth modules.
  * The admin enables the storage ends of the auth module(s).
  * The admin posts suitable credentials and permissions into the auth module(s).
  * The admin enables the auth-check filter. Now nothing is allowed.
  * The admin logs in with the previously loaded credentials, and gets a token.
- * This token gives the admin right to do further operations in Okapi
+ * This token gives the admin right to do further operations in Okapi.
 
 Note that it is possible to enable the internal module for other tenants too,
 if that should be required. Normally that should not be the case.

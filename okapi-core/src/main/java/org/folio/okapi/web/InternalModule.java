@@ -37,7 +37,7 @@ import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.ProxyContext;
 
 /**
- * Okapi's build-in module. Managing /_/ endpoints.
+ * Okapi's built-in module. Managing /_/ endpoints.
  *
  * /_/proxy/modules
  * /_/proxy/tenants

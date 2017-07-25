@@ -28,7 +28,7 @@ documentation...
 
 
 ## How to get there
-* Make sure Okapi creates the super tenant and internal ModuleDewcriptors at
+* Make sure Okapi creates the super tenant and internal ModuleDescriptors at
 startup, if needed
 * Define the "internal" module type
 * Make proxy route requests to the internal type
@@ -51,8 +51,8 @@ create a separate module, okapi-permsets, just for loading the permission sets.
 
 ### Starting up a fresh installation
 There is a bit of a chicken-and-egg problem when starting from fresh. The order
-of things is critical, we should not enable login checks, before we have created
-enough data so that we can log in.
+of things is critical. We should not enable login checks before we have created
+enough data, so that we can log in.
 
 Here is my idea of how things could work:
 
@@ -62,7 +62,8 @@ Here is my idea of how things could work:
 * Admin posts credentials for the superuser into mod-login, and initial permissions to mod-perms
 * Admin enables mod-authtoken. Now the system is locked.
 * Admin logs in with the credentials just posted
-* Admin installs and deploys the rest of the modules needed for the installation
+
+Admin installs and deploys the rest of the modules needed for the installation:
 
 * Admin creates a real tenant
 * Admin enables mod-perms and mod-login for the new tenant
