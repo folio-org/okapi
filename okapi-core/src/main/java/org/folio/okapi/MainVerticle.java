@@ -19,10 +19,8 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.io.InputStream;
 import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
-import java.util.List;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -348,14 +346,41 @@ public class MainVerticle extends AbstractVerticle {
           return;
         }
         // Check version compatibility
-        String ev = "";
+        String enver = "";
         for (String emod : enabledMods) {
-          if (emod.startsWith("^okapi-")) {
-            ev = emod;
+          if (emod.startsWith("okapi-")) {
+            enver = emod;
           }
         }
+        final String ev = enver;
         logger.debug("checkSuperTenant: Enabled version is '" + ev
-          + "', not '" + okapiVersion + "'");
+          + "', not '" + okapiModule + "'");
+        // TODO - Use semver comparision
+        if (ev.compareTo(okapiModule) > 0) {
+          logger.fatal("checkSuperTenant: This Okapi is too old, "
+            + okapiVersion + " we already have " + ev + " in the database. "
+            + " Use that!");
+          fut.fail("Too old Okapi, " + okapiVersion
+            + " Need " + ev);
+          return;
+        } else {
+          logger.debug("checkSuperTenant: Need to upgrade the stored version");
+          // Use the commit, easier interface.
+          // the internal module can not have dependencies
+          // TODO - What if someone depends on given Okapi version?
+          tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
+            ev, okapiModule, ures -> {
+              if (ures.failed()) {
+                logger.debug("checkSuperTenant: "
+                  + "Updating enabled internalModule failed: " + ures.cause());
+                fut.fail(ures.cause());
+                return;
+              }
+            logger.info("Upgraded the InternalModule version"
+              + " from '" + ev + "' to '" + okapiModule + "'"
+              + "for " + XOkapiHeaders.SUPERTENANT_ID);
+            });
+        }
         startEnv(fut);
         return;
       }
