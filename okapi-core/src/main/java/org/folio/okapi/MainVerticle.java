@@ -19,7 +19,10 @@ import io.vertx.ext.web.handler.CorsHandler;
 import java.io.InputStream;
 import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -337,6 +340,22 @@ public class MainVerticle extends AbstractVerticle {
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
+        Tenant st = gres.result();
+        Set<String> enabledMods = st.getEnabled().keySet();
+        if (enabledMods.contains(okapiModule)) {
+          logger.debug("checkSuperTenant: enabled version is OK");
+          startEnv(fut);
+          return;
+        }
+        // Check version compatibility
+        String ev = "";
+        for (String emod : enabledMods) {
+          if (emod.startsWith("^okapi-")) {
+            ev = emod;
+          }
+        }
+        logger.debug("checkSuperTenant: Enabled version is '" + ev
+          + "', not '" + okapiVersion + "'");
         startEnv(fut);
         return;
       }
