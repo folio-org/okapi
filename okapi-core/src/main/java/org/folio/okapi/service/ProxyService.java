@@ -498,6 +498,7 @@ public class ProxyService {
             pc.closeTimer();
             ctx.response().end();
             pc.trace("ProxyRequestHttpClient response end");
+            pc.getHttpClient().close();
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyRequestHttpClient: res exception (a)", e);
@@ -515,6 +516,7 @@ public class ProxyService {
             pc.trace("ProxyRequestHttpClient final response buf '"
               + bcontent + "'");
             ctx.response().end(bcontent);
+            pc.getHttpClient().close();
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyRequestHttpClient: res exception (b)", e);
@@ -583,6 +585,7 @@ public class ProxyService {
             pc.closeTimer();
             ctx.response().end();
             pc.trace("ProxyRequestResponse response end");
+            pc.getHttpClient().close();
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyRequestResponse: res exception ", e);
@@ -635,6 +638,7 @@ public class ProxyService {
           res.endHandler(v -> {
             ctx.response().end();
             pc.trace("ProxyHeaders response end");
+            pc.getHttpClient().close();
           });
           res.exceptionHandler(e -> {
             pc.warn("proxyHeaders: res exception ", e);
@@ -657,6 +661,7 @@ public class ProxyService {
             content.endHandler(v -> {
               ctx.response().end();
               pc.trace("ProxyHeaders request end");
+              pc.getHttpClient().close();
             });
             content.exceptionHandler(e -> {
               pc.warn("proxyHeaders: content exception ", e);
@@ -665,6 +670,7 @@ public class ProxyService {
           } else {
             pc.trace("ProxyHeaders request buf '" + bcontent + "'");
             ctx.response().end(bcontent);
+            pc.getHttpClient().close();
           }
         }
       });
@@ -702,6 +708,7 @@ public class ProxyService {
           pc.closeTimer();
           pc.trace("ProxyNull response end");
           ctx.response().end();
+          pc.getHttpClient().close();
         });
         content.exceptionHandler(e -> {
           pc.warn("proxyNull: content exception ", e);
@@ -711,6 +718,7 @@ public class ProxyService {
         pc.closeTimer();
         pc.trace("ProxyNull response buf '" + bcontent + "'");
         ctx.response().end(bcontent);
+        pc.getHttpClient().close();
       }
     }
   }
@@ -762,6 +770,7 @@ public class ProxyService {
         makeTraceHeader(mi, statusCode, pc);
         ctx.response().setChunked(false);
         ctx.response().end(respBuf);
+        pc.getHttpClient().close();
       }
     });
   }
