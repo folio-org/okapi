@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.util.SemVer;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -16,7 +17,7 @@ import org.folio.okapi.util.ProxyContext;
  *
  */
 @JsonInclude(Include.NON_NULL)
-public class ModuleDescriptor {
+public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String id;
@@ -25,6 +26,7 @@ public class ModuleDescriptor {
   private String[] tags;
   private EnvEntry[] env;
 
+  private SemVer semVer;
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
   private RoutingEntry[] routingEntries; //DEPRECATED
@@ -44,6 +46,7 @@ public class ModuleDescriptor {
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
+    this.semVer = other.semVer;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
@@ -64,6 +67,12 @@ public class ModuleDescriptor {
   }
 
   public void setId(String id) {
+    try {
+      semVer = new SemVer('-', id);
+    } catch (IllegalArgumentException e) {
+      logger.warn("SemVer exception: " + id + " msg: " + e.getMessage());
+      semVer = null;
+    }
     this.id = id;
   }
   public String getName() {
@@ -258,6 +267,9 @@ public class ModuleDescriptor {
     if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
       return "Invalid id: " + getId();
     }
+    if (semVer == null) {
+      pc.warn("Missing or invalid semantic version: " + getId());
+    }
     String mod = getNameOrId();
     if (provides != null) {
       for (ModuleInterface pr : provides) {
@@ -310,4 +322,15 @@ public class ModuleDescriptor {
     return "";
   }
 
+  public int compareTo(ModuleDescriptor other) {
+    if (this.semVer != null && other.semVer == null) {
+      return this.semVer.compareTo(other.semVer);
+    } else if (this.semVer != null && other.semVer == null) {
+      return 1;
+    } else if (this.semVer == null && other.semVer != null) {
+      return -1;
+    } else {
+      return 0;
+    }
+  }
 }
