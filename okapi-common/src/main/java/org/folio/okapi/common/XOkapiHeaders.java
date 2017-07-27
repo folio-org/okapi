@@ -49,6 +49,14 @@ public class XOkapiHeaders {
    */
   public static final String TENANT = "X-Okapi-Tenant";
 
+  /**
+   * X-Okapi-User-Id. Tells the user id of the logged-in user. Modules can pass
+   * this around, but that is not necessary if we have a good token,
+   * mod-authtoken extracts the userId from the token and returns it to Okapi,
+   * and Okapi passes it to all modules it invokes.
+   */
+  public static final String USER_ID = "X-Okapi-User-Id";
+
   /** X-Okapi-Trace. Will be added to the responses from Okapi, to help
    * debugging where the request actually went, and how long did it take.
    */
