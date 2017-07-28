@@ -7,25 +7,13 @@ import java.util.List;
 public class SemVer implements Comparable<SemVer> {
 
   private String version;
-  private String product;
   private List<String> preRelease = new LinkedList<>();
   private List<String> versions = new LinkedList();
   private String metadata;
 
-  public SemVer(char sep, String s) {
-    for (int i = 0; i < s.length() - 1; i++) {
-      if (s.charAt(i) == sep && Character.isDigit(s.charAt(i + 1))) {
-        product = s.substring(0, i);
-        setVersion(s.substring(i + 1));
-        return;
-      }
-    }
-    throw new IllegalArgumentException("missing semantic version: " + s);
-  }
-
   public SemVer(String v) {
-    product = null;
-    setVersion(v);
+    parseVersion(v);
+    this.version = v;
   }
 
   private int compareComp(String c1, String c2) {
@@ -154,16 +142,10 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   private void setVersion(String v) {
-    parseVersion(v);
-    this.version = v;
   }
 
   public String getVersion() {
     return version;
-  }
-
-  public String getProduct() {
-    return product;
   }
 
   public String toString() {
