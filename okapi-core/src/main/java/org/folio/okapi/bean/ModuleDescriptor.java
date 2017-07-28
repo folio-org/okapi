@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
-import org.folio.okapi.util.SemVer;
+import org.folio.okapi.util.ModuleId;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -26,7 +26,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private String[] tags;
   private EnvEntry[] env;
 
-  private SemVer semVer;
+  private ModuleId moduleId;
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
   private RoutingEntry[] routingEntries; //DEPRECATED
@@ -46,7 +46,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
-    this.semVer = other.semVer;
+    this.moduleId = other.moduleId;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
@@ -68,10 +68,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setId(String id) {
     try {
-      semVer = new SemVer('-', id);
+      moduleId = new ModuleId(id);
     } catch (IllegalArgumentException e) {
-      logger.warn("SemVer exception: " + id + " msg: " + e.getMessage());
-      semVer = null;
+      logger.warn("ModuleId exception: " + id + " msg: " + e.getMessage());
+      moduleId = null;
     }
     this.id = id;
   }
@@ -267,8 +267,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
       return "Invalid id: " + getId();
     }
-    if (semVer == null) {
-      pc.warn("Missing or invalid semantic version: " + getId());
+    if (moduleId == null) {
+      pc.warn("Missing or invalid semantic version for module id: " + getId());
     }
     String mod = getNameOrId();
     if (provides != null) {
@@ -323,11 +323,11 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public int compareTo(ModuleDescriptor other) {
-    if (this.semVer != null && other.semVer != null) {
-      return this.semVer.compareTo(other.semVer);
-    } else if (this.semVer != null && other.semVer == null) {
+    if (this.moduleId != null && other.moduleId != null) {
+      return this.moduleId.compareTo(other.moduleId);
+    } else if (this.moduleId != null && other.moduleId == null) {
       return 1;
-    } else if (this.semVer == null && other.semVer != null) {
+    } else if (this.moduleId == null && other.moduleId != null) {
       return -1;
     } else {
       return 0;
