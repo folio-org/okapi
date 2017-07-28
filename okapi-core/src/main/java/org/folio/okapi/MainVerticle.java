@@ -40,6 +40,7 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
+import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.web.InternalModule;
 
@@ -356,7 +357,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.debug("checkSuperTenant: Enabled version is '" + ev
           + "', not '" + okapiModule + "'");
         // TODO - Use semver comparision
-        if (ev.compareTo(okapiModule) > 0) {
+        if (ModuleId.compare(ev, okapiModule) > 0) {
           logger.fatal("checkSuperTenant: This Okapi is too old, "
             + okapiVersion + " we already have " + ev + " in the database. "
             + " Use that!");
