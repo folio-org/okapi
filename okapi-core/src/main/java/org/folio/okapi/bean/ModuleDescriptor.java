@@ -323,7 +323,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public int compareTo(ModuleDescriptor other) {
-    if (this.semVer != null && other.semVer == null) {
+    if (this.semVer != null && other.semVer != null) {
       return this.semVer.compareTo(other.semVer);
     } else if (this.semVer != null && other.semVer == null) {
       return 1;
