@@ -161,6 +161,8 @@ public class Auth {
 
     String decodedJson = new String(Base64.getDecoder().decode(payload));
     logger.debug("test-auth: check payload: " + decodedJson);
+    JsonObject jtok = new JsonObject(decodedJson);
+    String userId = jtok.getString("sub", "");
 
     // Fake some desired permissions
     String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
@@ -172,7 +174,8 @@ public class Auth {
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
       .add(XOkapiHeaders.TOKEN, tok)
-      .add(XOkapiHeaders.MODULE_TOKENS, modTok);
+      .add(XOkapiHeaders.MODULE_TOKENS, modTok)
+      .add(XOkapiHeaders.USER_ID, userId);
     responseText(ctx, 202); // Abusing 202 to say check OK
     echo(ctx);
   }
