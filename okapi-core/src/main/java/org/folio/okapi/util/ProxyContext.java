@@ -22,7 +22,6 @@ import org.folio.okapi.common.XOkapiHeaders;
 public class ProxyContext {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private final HttpClient httpClient;
   private List<ModuleInstance> modList;
   private String reqId;
   private String tenant;
@@ -40,7 +39,6 @@ public class ProxyContext {
     this.ctx = ctx;
     this.tenant = "-";
     this.modList = null;
-    httpClient = vertx.createHttpClient();
     reqidHeader(ctx);
     timer = null;
   }
@@ -53,7 +51,6 @@ public class ProxyContext {
   public ProxyContext(RoutingContext ctx, String timerKey ) {
     this.ctx = ctx;
     modList = null;
-    httpClient = null;
     reqidHeader(ctx);
     logRequest(ctx, "-");
     timer = null;
@@ -83,10 +80,6 @@ public class ProxyContext {
     } else {
       return "";
     }
-  }
-
-  public HttpClient getHttpClient() {
-    return httpClient;
   }
 
   public List<ModuleInstance> getModList() {

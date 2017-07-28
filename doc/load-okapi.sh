@@ -23,25 +23,25 @@ do
   for I in 1 2 3 4 5 6 7 8 9 10
   do
 
-    curl -s -w '\n' -D -  \
-      -H "X-Okapi-Tenant: testlib" \
-      -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
-      $OKAPI/$MODULE
+    #curl -s -w '\n'  \
+    #  -H "X-Okapi-Tenant: testlib" \
+    #  -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
+    #  $OKAPI/$MODULE
 
-    curl -s -w '\n' -D -  \
+    curl -s -w '\n'  \
       -H "Content-type: application/json" \
       -H "X-Okapi-Tenant: testlib" \
-      -H "X-Okapi-Token: testlib:peter:6f9e37fbe472e570a7e5b4b0a28140f8" \
+      -H "X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig" \
       -X POST -d @$temp_file \
       $OKAPI/$MODULE
 
   done
 
 
-  curl -s -w '\n' -D -  \
-    -H "X-Okapi-Tenant: testlib" \
-    -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
-    $OKAPI/$MODULE
+  #curl -s -w '\n' -D -  \
+  #  -H "X-Okapi-Tenant: testlib" \
+  #  -H "X-Okapi-Token: other:peter:BAD-TOKEN" \
+  #  $OKAPI/$MODULE
 
   sleep 0.1
   date

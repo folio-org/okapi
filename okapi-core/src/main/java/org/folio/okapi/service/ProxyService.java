@@ -6,6 +6,8 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.Tenant;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -60,6 +62,7 @@ public class ProxyService {
   private final InternalModule internalModule;
   private final String okapiUrl;
   final private Vertx vertx;
+  private final HttpClient httpClient;
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
     DiscoveryManager dm, InternalModule im, String okapiUrl) {
@@ -69,6 +72,9 @@ public class ProxyService {
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
+    HttpClientOptions opt = new HttpClientOptions();
+    opt.setMaxPoolSize(1000);
+    httpClient = vertx.createHttpClient(opt);
   }
 
   /**
@@ -485,7 +491,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(ctx, mi);
     HttpMethod meth = ctx.request().method();
-    HttpClientRequest c_req = pc.getHttpClient().requestAbs(meth, url, res -> {
+    HttpClientRequest c_req = httpClient.requestAbs(meth, url, res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
           makeTraceHeader(mi, res.statusCode(), pc);
@@ -562,7 +568,7 @@ public class ProxyService {
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi) {
     RoutingContext ctx = pc.getCtx();
-    HttpClientRequest c_req = pc.getHttpClient().requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
@@ -622,7 +628,7 @@ public class ProxyService {
     ReadStream<Buffer> content, Buffer bcontent,
     ModuleInstance mi) {
     RoutingContext ctx = pc.getCtx();
-    HttpClientRequest c_req = pc.getHttpClient().requestAbs(ctx.request().method(),
+    HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
       makeUrl(ctx, mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
