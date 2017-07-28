@@ -20,6 +20,7 @@ import java.io.InputStream;
 import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -39,6 +40,7 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
+import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.web.InternalModule;
 
@@ -337,6 +339,49 @@ public class MainVerticle extends AbstractVerticle {
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
+        Tenant st = gres.result();
+        Set<String> enabledMods = st.getEnabled().keySet();
+        if (enabledMods.contains(okapiModule)) {
+          logger.debug("checkSuperTenant: enabled version is OK");
+          startEnv(fut);
+          return;
+        }
+        // Check version compatibility
+        String enver = "";
+        for (String emod : enabledMods) {
+          if (emod.startsWith("okapi-")) {
+            enver = emod;
+          }
+        }
+        final String ev = enver;
+        logger.debug("checkSuperTenant: Enabled version is '" + ev
+          + "', not '" + okapiModule + "'");
+        // TODO - Use semver comparision
+        if (ModuleId.compare(ev, okapiModule) > 0) {
+          logger.fatal("checkSuperTenant: This Okapi is too old, "
+            + okapiVersion + " we already have " + ev + " in the database. "
+            + " Use that!");
+          fut.fail("Too old Okapi, " + okapiVersion
+            + " Need " + ev);
+          return;
+        } else {
+          logger.debug("checkSuperTenant: Need to upgrade the stored version");
+          // Use the commit, easier interface.
+          // the internal module can not have dependencies
+          // TODO - What if someone depends on given Okapi version?
+          tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
+            ev, okapiModule, ures -> {
+              if (ures.failed()) {
+                logger.debug("checkSuperTenant: "
+                  + "Updating enabled internalModule failed: " + ures.cause());
+                fut.fail(ures.cause());
+                return;
+              }
+            logger.info("Upgraded the InternalModule version"
+              + " from '" + ev + "' to '" + okapiModule + "'"
+              + "for " + XOkapiHeaders.SUPERTENANT_ID);
+            });
+        }
         startEnv(fut);
         return;
       }
