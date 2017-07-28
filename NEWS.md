@@ -1,3 +1,10 @@
+## 1.8.1 2017-07-28
+
+ * Okapi internal modules gets updated automatically OKAPI-364
+ * Fix leak WRT socket usage OKAPI-370
+ * Pass X-Okapi-User-Id to modules OKAPI-367
+ * Add utilities for handling semantic versions OKAPI-366, OKAPI-371, OKAPI-372
+
 ## 1.8.0 2017-07-25
 
  * Refactor internal operations to go through the internal module
