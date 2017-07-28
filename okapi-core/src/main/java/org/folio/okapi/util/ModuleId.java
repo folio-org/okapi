@@ -17,11 +17,18 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   public int compareTo(ModuleId other) {
-    return semVer.compareTo(other.semVer);
+    int cmp = product.compareTo(other.product);
+    if (cmp == 0) {
+      return semVer.compareTo(other.semVer);
+    } else if (cmp < 0) {
+      return -4;
+    } else {
+      return 4;
+    }
   }
 
   public String toString() {
-    return "product: " + product + semVer.toString();
+    return "module: " + product + " " + semVer.toString();
   }
 
   public static int compare(String i1, String i2) {
