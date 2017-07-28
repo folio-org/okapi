@@ -6,14 +6,42 @@ import java.util.List;
 
 public class SemVer implements Comparable<SemVer> {
 
-  private String version;
-  private List<String> preRelease = new LinkedList<>();
-  private List<String> versions = new LinkedList();
+  private final List<String> preRelease = new LinkedList<>();
+  private final List<String> versions = new LinkedList();
   private String metadata;
 
   public SemVer(String v) {
-    parseVersion(v);
-    this.version = v;
+    int offset = 0;
+
+    offset = parseComp(v, offset, versions);
+    if (offset == -1) {
+      throw new IllegalArgumentException("missing major version: " + v);
+    }
+    while (offset < v.length() && v.charAt(offset) == '.') {
+      offset = parseComp(v, offset + 1, versions);
+      if (offset == -1) {
+        throw new IllegalArgumentException("missing version");
+      }
+    }
+    if (offset < v.length() && v.charAt(offset) == '-') {
+      offset = parseComp(v, offset + 1, preRelease);
+      if (offset == -1) {
+        throw new IllegalArgumentException("missing pre-release version");
+      }
+      while (offset < v.length() && v.charAt(offset) == '.') {
+        offset = parseComp(v, offset + 1, preRelease);
+        if (offset == -1) {
+          throw new IllegalArgumentException("missing pre-release version");
+        }
+      }
+    }
+    if (offset == v.length()) {
+      metadata = null;
+    } else if (v.charAt(offset) == '+') {
+      metadata = v.substring(offset + 1);
+    } else {
+      throw new IllegalArgumentException("invalid semver: " + v);
+    }
   }
 
   private int compareComp(String c1, String c2) {
@@ -47,41 +75,6 @@ public class SemVer implements Comparable<SemVer> {
     }
     result.add(v.substring(offset, i));
     return i;
-  }
-
-  private void parseVersion(String v) {
-    int offset = 0;
-    String result = "0";
-
-    offset = parseComp(v, offset, versions);
-    if (offset == -1) {
-      throw new IllegalArgumentException("missing major version: " + v);
-    }
-    while (offset < v.length() && v.charAt(offset) == '.') {
-      offset = parseComp(v, offset + 1, versions);
-      if (offset == -1) {
-        throw new IllegalArgumentException("missing version");
-      }
-    }
-    if (offset < v.length() && v.charAt(offset) == '-') {
-      offset = parseComp(v, offset + 1, preRelease);
-      if (offset == -1) {
-        throw new IllegalArgumentException("missing pre-release version");
-      }
-      while (offset < v.length() && v.charAt(offset) == '.') {
-        offset = parseComp(v, offset + 1, preRelease);
-        if (offset == -1) {
-          throw new IllegalArgumentException("missing pre-release version");
-        }
-      }
-    }
-    if (offset == v.length()) {
-      metadata = null;
-    } else if (v.charAt(offset) == '+') {
-      metadata = v.substring(offset + 1);
-    } else {
-      throw new IllegalArgumentException("invalid semver: " + v);
-    }
   }
 
   public int compareTo(SemVer other) {
@@ -141,18 +134,11 @@ public class SemVer implements Comparable<SemVer> {
     return 0;
   }
 
-  private void setVersion(String v) {
-  }
-
-  public String getVersion() {
-    return version;
-  }
-
   public String toString() {
     StringBuilder b = new StringBuilder();
     Iterator<String> it = this.versions.iterator();
     if (it.hasNext()) {
-      b.append("versions:");
+      b.append("version:");
       while (it.hasNext()) {
         b.append(" ");
         b.append(it.next());
