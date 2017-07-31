@@ -228,7 +228,9 @@ public class ModuleManager {
 
   public int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled) {
     int v = 0;
-    for (String runningmodule : modsEnabled.keySet()) {
+    Iterator<String> it = modsEnabled.keySet().iterator();
+    while (it.hasNext()) {
+      String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
       for (ModuleInterface pi : rm.getProvidesList()) {
         if (pi.isRegularHandler()) {
@@ -238,6 +240,7 @@ public class ModuleManager {
               logger.info("resolveModuleConflicts remove " + runningmodule);
               if (modsEnabled.containsKey(runningmodule)) {
                 modsEnabled.remove(runningmodule);
+                it = modsEnabled.keySet().iterator();
                 v++;
               }
             }
