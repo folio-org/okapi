@@ -39,26 +39,19 @@ import org.folio.okapi.util.ProxyContext;
 /**
  * Okapi's built-in module. Managing /_/ endpoints.
  *
- * /_/proxy/modules
- * /_/proxy/tenants
- * /_/proxy/health
- * /_/proxy/pull
- * /_/deployment
- * /_/discovery
- * /_/env
- * /_/version
- * /_/test loglevel etc
+ * /_/proxy/modules /_/proxy/tenants /_/proxy/health /_/proxy/pull
+ * /_/deployment /_/discovery /_/env /_/version /_/test loglevel etc
  *
- * TODO
- * ModuleDescriptor
+ * TODO ModuleDescriptor
  *
- * Note that the endpoint /_/invoke/ can not be handled here, as the proxy
- * must read the request body before invoking this built-in module, and
- * /_/invoke uses ctx.reroute(), which assumes the body has not been read.
+ * Note that the endpoint /_/invoke/ can not be handled here, as the proxy must
+ * read the request body before invoking this built-in module, and /_/invoke
+ * uses ctx.reroute(), which assumes the body has not been read.
  *
  *
  */
 public class InternalModule {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final ModuleManager moduleManager;
@@ -70,9 +63,9 @@ public class InternalModule {
   private final LogHelper logHelper;
   private final String okapiVersion;
 
-  public InternalModule(ModuleManager modules,  TenantManager tenantManager,
-          DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
-          EnvManager envManager, PullManager pullManager, String okapiVersion) {
+  public InternalModule(ModuleManager modules, TenantManager tenantManager,
+    DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
+    EnvManager envManager, PullManager pullManager, String okapiVersion) {
     this.moduleManager = modules;
     this.tenantManager = tenantManager;
     this.deploymentManager = deploymentManager;
@@ -142,7 +135,7 @@ public class InternalModule {
   }
 
   private void createTenant(ProxyContext pc, String body,
-      Handler<ExtendedAsyncResult<String>> fut ) {
+    Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
@@ -171,18 +164,18 @@ public class InternalModule {
     }
   }
 
-  private void updateTenant (ProxyContext pc, String id, String body,
-      Handler<ExtendedAsyncResult<String>> fut) {
+  private void updateTenant(ProxyContext pc, String id, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(USER, "Tenant.id=" + td.getId() + " id=" + id ));
+        fut.handle(new Failure<>(USER, "Tenant.id=" + td.getId() + " id=" + id));
         return;
       }
       Tenant t = new Tenant(td);
       tenantManager.updateDescriptor(td, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(NOT_FOUND, res.cause() ));
+          fut.handle(new Failure<>(NOT_FOUND, res.cause()));
           return;
         }
         final String s = Json.encodePrettily(t.getDescriptor());
@@ -223,7 +216,7 @@ public class InternalModule {
   private void deleteTenant(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(USER,"Can not delete the superTenant " + id));
+      fut.handle(new Failure<>(USER, "Can not delete the superTenant " + id));
       // Change of behavior, used to return 403
       return;
     }
@@ -240,7 +233,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final TenantModuleDescriptor td = Json.decodeValue(body,
-              TenantModuleDescriptor.class);
+        TenantModuleDescriptor.class);
       final String module_to = td.getId();
       tenantManager.enableAndDisableModule(id, null, module_to, pc, eres -> {
         if (eres.failed()) {
@@ -258,11 +251,10 @@ public class InternalModule {
     }
   }
 
-
   private void disableModuleForTenant(ProxyContext pc, String id, String module,
     Handler<ExtendedAsyncResult<String>> fut) {
-      pc.debug("disablemodule t=" + id + " m=" + module);
-      tenantManager.enableAndDisableModule(id, module, null, pc, res -> {
+    pc.debug("disablemodule t=" + id + " m=" + module);
+    tenantManager.enableAndDisableModule(id, module, null, pc, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -303,7 +295,7 @@ public class InternalModule {
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
-              TenantModuleDescriptor.class);
+        TenantModuleDescriptor.class);
       final String module_to = td.getId();
       tenantManager.enableAndDisableModule(id, module_from, module_to, pc, res -> {
         if (res.failed()) {
@@ -326,8 +318,8 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     tenantManager.listModules(id, res -> {
       if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
       }
       List<String> ml = res.result();
       Iterator<String> mli = ml.iterator();  // into a list of objects
@@ -468,16 +460,15 @@ public class InternalModule {
   private void deleteModule(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.delete(id, res -> {
-        if (res.failed()) {
-          pc.error("delete moduile failed: " + res.getType()
-            + ":" + res.cause().getMessage());
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
+      if (res.failed()) {
+        pc.error("delete moduile failed: " + res.getType()
+          + ":" + res.cause().getMessage());
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
       fut.handle(new Success<>(""));
     });
   }
-
 
   private void getDeployment(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
@@ -507,7 +498,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       deploymentManager.deploy(pmd, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -539,7 +530,7 @@ public class InternalModule {
   private void getDiscoveryNode(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (id == null) {
-      fut.handle(new Failure<>(USER,  "id missing"));
+      fut.handle(new Failure<>(USER, "id missing"));
       return;
     }
     discoveryManager.getNode(id, res -> {
@@ -576,7 +567,7 @@ public class InternalModule {
     });
   }
 
-  private void discoveryGetSrvcId(ProxyContext pc,String srvcId,
+  private void discoveryGetSrvcId(ProxyContext pc, String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (srvcId == null) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
@@ -621,7 +612,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       discoveryManager.addAndDeploy(pmd, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -636,7 +627,7 @@ public class InternalModule {
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER,ex));
+      fut.handle(new Failure<>(USER, ex));
     }
   }
 
@@ -670,6 +661,7 @@ public class InternalModule {
       fut.handle(new Success<>(s));
     });
   }
+
   private void discoveryHealthSrvcId(ProxyContext pc, String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (srvcId == null || srvcId.isEmpty()) {
@@ -785,7 +777,6 @@ public class InternalModule {
     }
   }
 
-
   /**
    * Pretty simplistic health check.
    */
@@ -797,7 +788,7 @@ public class InternalModule {
   private void getVersion(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     String v = okapiVersion;
-    if ( v == null) {
+    if (v == null) {
       v = "(null)";
     }
     pc.getCtx().response().putHeader("Content-Type", "text/plain"); // !!
@@ -815,13 +806,12 @@ public class InternalModule {
   private void setRootLogLevel(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
-            LogHelper.LogLevelInfo.class);
+      LogHelper.LogLevelInfo.class);
     logHelper.setRootLogLevel(inf.getLevel());
     fut.handle(new Success<>(body));
     // Should at least return the actual log level, not whatever we post
     // We can post FOOBAR, and nothing changes...
   }
-
 
   /**
    * Dispatcher for all the built-in services.
@@ -852,80 +842,80 @@ public class InternalModule {
     }
     // default to json replies, error code overrides to text/plain
     pc.getCtx().response().putHeader("Content-Type", "application/json");
-    if (n >= 4 && p.startsWith("/_/proxy/")){ // need at least /_/proxy/something
+    if (n >= 4 && p.startsWith("/_/proxy/")) { // need at least /_/proxy/something
       if (segments[3].equals("modules")
-              && moduleManager != null) {
+        && moduleManager != null) {
         // /_/proxy/modules
         if (n == 4 && m.equals(GET)) {
-            listModules(pc, fut);
-            return;
+          listModules(pc, fut);
+          return;
         }
         if (n == 4 && m.equals(POST)) {
-            createModule(pc, req, fut);
-            return;
+          createModule(pc, req, fut);
+          return;
         }
         // /_/proxy/modules/:id
-        if (n == 5 && m.equals(GET) ) {
-            getModule(pc, segments[4], fut);
-            return;
+        if (n == 5 && m.equals(GET)) {
+          getModule(pc, segments[4], fut);
+          return;
         }
-        if (n == 5 && m.equals(PUT) ) {
-            updateModule(pc, segments[4], req, fut);
-            return;
+        if (n == 5 && m.equals(PUT)) {
+          updateModule(pc, segments[4], req, fut);
+          return;
         }
-        if (n == 5 && m.equals(DELETE) ) {
-            deleteModule(pc, segments[4], fut);
-            return;
+        if (n == 5 && m.equals(DELETE)) {
+          deleteModule(pc, segments[4], fut);
+          return;
         }
       } // /_/proxy/modules
 
       if (segments[3].equals("tenants")
-              && tenantManager != null) {
+        && tenantManager != null) {
         // /_/proxy/tenants
-        if (n == 4 && m.equals(GET) ) {
-            listTenants(pc, fut);
-            return;
+        if (n == 4 && m.equals(GET)) {
+          listTenants(pc, fut);
+          return;
         }
         if (n == 4 && m.equals(POST)) {
-            createTenant(pc, req, fut);
-            return;
+          createTenant(pc, req, fut);
+          return;
         }
         // /_/proxy/tenants/:id
-        if (n == 5 && m.equals(GET) ) {
-            getTenant(pc, segments[4], fut);
-            return;
+        if (n == 5 && m.equals(GET)) {
+          getTenant(pc, segments[4], fut);
+          return;
         }
-        if (n == 5 && m.equals(PUT) ) {
-            updateTenant(pc, segments[4], req, fut);
-            return;
+        if (n == 5 && m.equals(PUT)) {
+          updateTenant(pc, segments[4], req, fut);
+          return;
         }
-        if (n == 5 && m.equals(DELETE) ) {
-            deleteTenant(pc, segments[4], fut);
-            return;
+        if (n == 5 && m.equals(DELETE)) {
+          deleteTenant(pc, segments[4], fut);
+          return;
         }
         // /_/proxy/tenants/:id/modules
-        if (n==6 && m.equals(GET)&& segments[5].equals("modules")) {
+        if (n == 6 && m.equals(GET) && segments[5].equals("modules")) {
           listModulesForTenant(pc, segments[4], fut);
           return;
         }
-        if (n==6 && m.equals(POST)&& segments[5].equals("modules")) {
+        if (n == 6 && m.equals(POST) && segments[5].equals("modules")) {
           enableModuleForTenant(pc, segments[4], req, fut);
           return;
         }
         // /_/proxy/tenants/:id/modules/:mod
-        if (n == 7 && m.equals(GET) && segments[5].equals("modules")){
+        if (n == 7 && m.equals(GET) && segments[5].equals("modules")) {
           getModuleForTenant(pc, segments[4], segments[6], fut);
           return;
         }
-        if (n == 7 && m.equals(PUT) && segments[5].equals("modules")){
+        if (n == 7 && m.equals(PUT) && segments[5].equals("modules")) {
           upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
           return;
         }
-        if (n == 7 && m.equals(POST) && segments[5].equals("modules")){
+        if (n == 7 && m.equals(POST) && segments[5].equals("modules")) {
           upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
           return;
         }
-        if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")){
+        if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")) {
           disableModuleForTenant(pc, segments[4], segments[6], fut);
           return;
         }
@@ -936,7 +926,7 @@ public class InternalModule {
         }
 
         // /_/proxy/tenants/:id/interfaces/:int
-        if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")){
+        if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")) {
           listModulesFromInterface(pc, segments[4], segments[6], fut);
           return;
         }
@@ -944,12 +934,12 @@ public class InternalModule {
 
       // /_/proxy/pull/modules
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
-              && m.equals(POST) && pullManager != null){
+        && m.equals(POST) && pullManager != null) {
         pullModules(pc, req, fut);
         return;
       }
       // /_/proxy/health
-      if (n == 4 && segments[3].equals("health") && m.equals(GET)){
+      if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
         getHealth(pc, fut);
         return;
       }
@@ -957,100 +947,100 @@ public class InternalModule {
     } // _/proxy
 
     // deployment
-    if (n >= 4 && p.startsWith("/_/deployment/" )
-            && segments[3].equals("modules")
-            && deploymentManager != null){
+    if (n >= 4 && p.startsWith("/_/deployment/")
+      && segments[3].equals("modules")
+      && deploymentManager != null) {
       // /_/deployment/modules
       if (n == 4 && m.equals(GET)) {
-        listDeployments(pc,fut);
+        listDeployments(pc, fut);
         return;
       }
       if (n == 4 && m.equals(POST)) {
-        createDeployment(pc,req,fut);
+        createDeployment(pc, req, fut);
         return;
       }
       // /_/deployment/modules/:id:
       if (n == 5 && m.equals(GET)) {
-        getDeployment(pc,segments[4],fut);
+        getDeployment(pc, segments[4], fut);
         return;
       }
       if (n == 5 && m.equals(DELETE)) {
-        deleteDeployment(pc,segments[4],fut);
+        deleteDeployment(pc, segments[4], fut);
         return;
       }
     } // deployment
 
-    if (n >= 4 && p.startsWith("/_/discovery/" )
-            && discoveryManager != null){
+    if (n >= 4 && p.startsWith("/_/discovery/")
+      && discoveryManager != null) {
       // /_/discovery/nodes
-      if (n==4 && segments[3].equals("nodes") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("nodes") && m.equals(GET)) {
         listDiscoveryNodes(pc, fut);
         return;
       }
       // /_/discovery/nodes/:nodeid
-      if (n==5 && segments[3].equals("nodes") && m.equals(GET)) {
-        getDiscoveryNode(pc, segments[4],fut);
+      if (n == 5 && segments[3].equals("nodes") && m.equals(GET)) {
+        getDiscoveryNode(pc, segments[4], fut);
         return;
       }
 
       // /_/discovery/modules
-      if (n==4 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("modules") && m.equals(GET)) {
         listDiscoveryModules(pc, fut);
         return;
       }
-      if (n==4 && segments[3].equals("modules") && m.equals(POST)) {
+      if (n == 4 && segments[3].equals("modules") && m.equals(POST)) {
         discoveryDeploy(pc, req, fut);
         return;
       }
       // /_/discovery/modules/:srvcid
-      if (n==5 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 5 && segments[3].equals("modules") && m.equals(GET)) {
         discoveryGetSrvcId(pc, segments[4], fut);
         return;
       }
       // /_/discovery/modules/:srvcid/:instid"
-      if (n==6 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 6 && segments[3].equals("modules") && m.equals(GET)) {
         discoveryGetInstId(pc, segments[4], segments[5], fut);
         return;
       }
-      if (n==6 && segments[3].equals("modules") && m.equals(DELETE)) {
+      if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
         discoveryUndeploy(pc, segments[4], segments[5], fut);
         return;
       }
       // /_/discovery/health
-      if (n==4 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
         discoveryHealthAll(pc, fut);
         return;
       }
       // /_/discovery/health/:srvcId
-      if (n==5 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 5 && segments[3].equals("health") && m.equals(GET)) {
         discoveryHealthSrvcId(pc, segments[4], fut);
         return;
       }
       // /_/discovery/health/:srvcId/:instid
-      if (n==6 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 6 && segments[3].equals("health") && m.equals(GET)) {
         discoveryHealthOne(pc, segments[4], segments[5], fut);
         return;
       }
     } // discovery
 
     if (n >= 2 && p.startsWith("/_/env")
-            && segments[2].equals("env")){ // not envXX or such
+      && segments[2].equals("env")) { // not envXX or such
 
       // /_/env
-      if (n == 3 && m.equals(GET)  ) {
+      if (n == 3 && m.equals(GET)) {
         listEnv(pc, fut);
         return;
       }
-      if (n == 3 && m.equals(POST)  ) {
+      if (n == 3 && m.equals(POST)) {
         createEnv(pc, req, fut);
         return;
       }
       // /_/env/name
-      if (n == 4 && m.equals(GET)  ) {
+      if (n == 4 && m.equals(GET)) {
         getEnv(pc, segments[3], fut);
         return;
       }
-      if (n == 4 && m.equals(DELETE)  ) {
+      if (n == 4 && m.equals(DELETE)) {
         deleteEnv(pc, segments[3], fut);
         return;
       }
@@ -1058,17 +1048,17 @@ public class InternalModule {
     } // env
 
     if (p.equals("/_/version") && m.equals(GET)) {
-      getVersion(pc,fut);
+      getVersion(pc, fut);
       return;
     }
 
-    if (n >= 2 && p.startsWith("/_/test/")){
+    if (n >= 2 && p.startsWith("/_/test/")) {
       if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
-        getRootLogLevel(pc,fut);
+        getRootLogLevel(pc, fut);
         return;
       }
       if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
-        setRootLogLevel(pc,req,fut);
+        setRootLogLevel(pc, req, fut);
         return;
       }
     }
@@ -1079,7 +1069,7 @@ public class InternalModule {
       slash = " (try without a trailing slash)";
     }
     fut.handle(new Failure<>(NOT_FOUND, "No internal module found for "
-            + m + " " + p + slash));
+      + m + " " + p + slash));
   }
 
 }
