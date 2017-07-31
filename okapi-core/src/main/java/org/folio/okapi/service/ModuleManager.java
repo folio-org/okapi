@@ -208,9 +208,10 @@ public class ModuleManager {
         if (req.getId().equals(pi.getId())) {
           seenversion = pi;
           if (pi.isCompatible(req)) {
-            logger.info("Dependency OK");
-            // should probably select the one with newest interface
-            foundMd = rm;
+            if (foundMd == null || rm.compareTo(foundMd) > 0) {// newest module
+              logger.info("Picking " + rm.getId());
+              foundMd = rm;
+            }
           }
         }
       }
