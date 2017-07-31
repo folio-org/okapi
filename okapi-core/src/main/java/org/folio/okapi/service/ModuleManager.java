@@ -270,12 +270,15 @@ public class ModuleManager {
     ModuleInterface[] provides = md.getProvidesList();
     for (ModuleInterface prov : provides) {
       if (prov.isRegularHandler()) {
-        for (String runningmodule : modsEnabled.keySet()) {
+        Iterator<String> it = modsEnabled.keySet().iterator();
+        while (it.hasNext()) {
+          String runningmodule = it.next();
           ModuleDescriptor rm = modsEnabled.get(runningmodule);
           ModuleInterface[] requires = rm.getRequiresList();
           for (ModuleInterface ri : requires) {
             if (prov.getId().equals(ri.getId())) {
               sum += removeModuleDependencies(rm, modsEnabled);
+              it = modsEnabled.keySet().iterator();
             }
           }
         }
