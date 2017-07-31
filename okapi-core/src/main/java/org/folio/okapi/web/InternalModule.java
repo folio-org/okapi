@@ -353,6 +353,7 @@ public class InternalModule {
       Set<String> ml = t.listModules();  // Convert the list of module names
       if (!ml.contains(mod)) {
         fut.handle(new Failure<>(NOT_FOUND, mod));
+        return;
       }
       TenantModuleDescriptor tmd = new TenantModuleDescriptor();
       tmd.setId(mod);
