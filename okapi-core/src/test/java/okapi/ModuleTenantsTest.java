@@ -32,6 +32,7 @@ public class ModuleTenantsTest {
 
   private static final String LS = System.lineSeparator();
   private String locationBasicDeployment1;
+  private String locationBasicDeployment2;
   private String locationSampleDeployment1;
   private String locationSampleDeployment2;
   private String locationSampleModule;
@@ -86,6 +87,16 @@ public class ModuleTenantsTest {
       }).end();
       return;
     }
+    if (locationBasicDeployment2 != null) {
+      httpClient.delete(port, "localhost", locationBasicDeployment2, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationBasicDeployment2 = null;
+          td(context, async);
+        });
+      }).end();
+      return;
+    }
     vertx.close(x -> {
       async.complete();
     });
@@ -100,9 +111,9 @@ public class ModuleTenantsTest {
     RestAssuredClient c;
     Response r;
 
-    // deploy basic 1.0.0
+    // deploy basic 0.9.0
     final String docBasicDeployment1 = "{" + LS
-      + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
+      + "  \"srvcId\" : \"basic-module-0.9.0\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -119,8 +130,59 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationBasicDeployment1 = r.getHeader("Location");
 
+    // deploy basic 1.0.0
+    final String docBasicDeployment2 = "{" + LS
+      + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasicDeployment2).post("/_/deployment/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationBasicDeployment2 = r.getHeader("Location");
+
+    // create basic 0.9.0
+    final String docBasidModule1 = "{" + LS
+      + "  \"id\" : \"basic-module-0.9.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"bint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasidModule1).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationBasicModule1 = r.getHeader("Location");
+
     // create basic 1.0.0
-    final String docBasicModule1 = "{" + LS
+    final String docBasidModule2 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -144,12 +206,12 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docBasicModule1).post("/_/proxy/modules").then().statusCode(201)
+      .body(docBasidModule2).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationBasicModule = r.getHeader("Location");
+    final String locationBasicModule2 = r.getHeader("Location");
 
     // deploy sample 1.0.0
     final String docSampleDeployment = "{" + LS
@@ -434,6 +496,7 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    locationTenantModule = r.getHeader("Location");
 
     // enable modules again: post known module
     c = api.createRestAssured();
@@ -471,10 +534,33 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // enable basic-module-1.0.0 again
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableBasic).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(201)
+      .body(equalTo(docEnableBasic)).extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableSample2).post(locationTenantModule)
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationTenantModule = r.getHeader("Location");
+
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
       .then().statusCode(404);
     Assert.assertTrue(
@@ -484,11 +570,28 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")
+      .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "} ]"));
     Assert.assertTrue(

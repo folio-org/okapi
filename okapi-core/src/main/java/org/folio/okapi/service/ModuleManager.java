@@ -178,18 +178,13 @@ public class ModuleManager {
     return "";  // ok
   }
 
-  private int checkInterfaceDependency(ModuleDescriptor md, ModuleInterface req,
+  private int checkInterfaceDependency(ModuleInterface req,
     HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
-    ModuleInterface seenversion = null;
     logger.info("checkInterfaceDependency1");
     for (String runningmodule : modsEnabled.keySet()) {
-      ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      for (ModuleInterface pi : rm.getProvidesList()) {
-        logger.info("Checking dependency of " + md.getId() + ": "
-          + req.getId() + " " + req.getVersion()
-          + " against " + pi.getId() + " " + pi.getVersion());
+      ModuleDescriptor md = modsEnabled.get(runningmodule);
+      for (ModuleInterface pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId())) {
-          seenversion = pi;
           if (pi.isCompatible(req)) {
             logger.debug("Dependency OK");
             return 0;
@@ -200,22 +195,17 @@ public class ModuleManager {
     logger.info("checkInterfaceDependency2");
     ModuleDescriptor foundMd = null;
     for (String runningmodule : modsAvailable.keySet()) {
-      ModuleDescriptor rm = modsAvailable.get(runningmodule);
-      for (ModuleInterface pi : rm.getProvidesList()) {
-        logger.info("Checking dependency of " + md.getId() + ": "
-          + req.getId() + " " + req.getVersion()
-          + " against " + pi.getId() + " " + pi.getVersion());
+      ModuleDescriptor md = modsAvailable.get(runningmodule);
+      for (ModuleInterface pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId())) {
-          seenversion = pi;
           if (pi.isCompatible(req)) {
-            logger.info("Dependency OK");
-            // should probably select the one with newest interface
-            foundMd = rm;
+            if (foundMd == null || md.compareTo(foundMd) > 0) {// newest module
+              foundMd = md;
+            }
           }
         }
       }
     }
-
     if (foundMd == null) {
       return -1;
     }
@@ -226,9 +216,11 @@ public class ModuleManager {
     return v;
   }
 
-  public int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled) {
+  private int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled) {
     int v = 0;
-    for (String runningmodule : modsEnabled.keySet()) {
+    Iterator<String> it = modsEnabled.keySet().iterator();
+    while (it.hasNext()) {
+      String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
       for (ModuleInterface pi : rm.getProvidesList()) {
         if (pi.isRegularHandler()) {
@@ -238,6 +230,7 @@ public class ModuleManager {
               logger.info("resolveModuleConflicts remove " + runningmodule);
               if (modsEnabled.containsKey(runningmodule)) {
                 modsEnabled.remove(runningmodule);
+                it = modsEnabled.keySet().iterator();
                 v++;
               }
             }
@@ -253,7 +246,7 @@ public class ModuleManager {
     int sum = 0;
     logger.info("addModuleDependencies " + md.getId());
     for (ModuleInterface req : md.getRequiresList()) {
-      int v = checkInterfaceDependency(md, req, modsAvailable, modsEnabled);
+      int v = checkInterfaceDependency(req, modsAvailable, modsEnabled);
       if (v == -1) {
         return v;
       }
@@ -277,12 +270,15 @@ public class ModuleManager {
     ModuleInterface[] provides = md.getProvidesList();
     for (ModuleInterface prov : provides) {
       if (prov.isRegularHandler()) {
-        for (String runningmodule : modsEnabled.keySet()) {
+        Iterator<String> it = modsEnabled.keySet().iterator();
+        while (it.hasNext()) {
+          String runningmodule = it.next();
           ModuleDescriptor rm = modsEnabled.get(runningmodule);
           ModuleInterface[] requires = rm.getRequiresList();
           for (ModuleInterface ri : requires) {
             if (prov.getId().equals(ri.getId())) {
               sum += removeModuleDependencies(rm, modsEnabled);
+              it = modsEnabled.keySet().iterator();
             }
           }
         }
