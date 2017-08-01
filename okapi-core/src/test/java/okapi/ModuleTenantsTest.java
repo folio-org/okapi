@@ -581,6 +581,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // simulate removal of basic 1.0.0
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -597,5 +598,24 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    // downgrade sample from 1.2.0 to 1.0.0
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
   }
 }
