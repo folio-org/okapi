@@ -11,6 +11,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -763,27 +764,23 @@ public class TenantManager {
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
-    Map<String, TenantModuleDescriptor> tm2 = new HashMap<>();
-
-    HashSet<String> orgEnabled = new HashSet<>();
-
-    for (String id : modsEnabled.keySet()) {
-      orgEnabled.add(id);
-    }
+    List<TenantModuleDescriptor> tml2 = new LinkedList<TenantModuleDescriptor>();
 
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
-      tm2.put(id, tm);
       if (!modsAvailable.containsKey(id)) {
         fut.handle(new Failure<>(NOT_FOUND, id));
         return;
       }
       if ("enable".equals(tm.getAction())) {
         if (modsEnabled.containsKey(id)) {
-          tm.setAction("uptodate");
+          TenantModuleDescriptor tmu = new TenantModuleDescriptor();
+          tmu.setAction("uptodate");
+          tmu.setId(id);
+          tml2.add(tmu);
         } else {
           int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
-            modsAvailable, modsEnabled);
+            modsAvailable, modsEnabled, tml2);
         }
       } else if ("uptodate".equals(tm.getAction())) {
         if (!modsEnabled.containsKey(id)) {
@@ -796,46 +793,16 @@ public class TenantManager {
           return;
         }
         int v = moduleManager.removeModuleDependencies(modsAvailable.get(id),
-          modsEnabled);
+          modsEnabled, tml2);
       } else {
         fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));
         return;
       }
     }
 
-    logger.info(
-      "modsEnabled:");
-    for (String id
-      : modsEnabled.keySet()) {
-      logger.info("  id " + id);
-    }
-    for (TenantModuleDescriptor tm : tml) {
-      if (modsEnabled.get(tm.getId()) == null) {
-        tm.setAction("disable");
-      }
-    }
-    for (String id : modsEnabled.keySet()) {
-      if (!tm2.containsKey(id)) {
-        if (!orgEnabled.contains(id)) { // added ID
-          TenantModuleDescriptor tm = new TenantModuleDescriptor();
-          tm.setAction("enable");
-          tm.setId(id);
-          tml.add(tm);
-          tm2.put(id, tm);
-        }
-      }
-    }
-
-    for (String id : orgEnabled) {
-      if (!tm2.containsKey(id)) {
-        if (!modsEnabled.containsKey(id)) { // removed ID
-          TenantModuleDescriptor tm = new TenantModuleDescriptor();
-          tm.setAction("disable");
-          tm.setId(id);
-          tml.add(tm);
-          tm2.put(id, tm);
-        }
-      }
+    tml.clear();
+    for (TenantModuleDescriptor tm : tml2) {
+      tml.add(tm);
     }
     fut.handle(new Success<>(Boolean.TRUE));
   }

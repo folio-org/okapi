@@ -521,14 +521,14 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"sample-module-1.2.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -588,10 +588,10 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"id\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"disable\"" + LS
         + "} ]"));
     Assert.assertTrue(

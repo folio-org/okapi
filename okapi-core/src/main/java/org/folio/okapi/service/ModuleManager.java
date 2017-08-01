@@ -14,6 +14,7 @@ import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -179,7 +180,8 @@ public class ModuleManager {
   }
 
   private int checkInterfaceDependency(ModuleInterface req,
-    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
+    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml) {
     logger.info("checkInterfaceDependency1");
     for (String runningmodule : modsEnabled.keySet()) {
       ModuleDescriptor md = modsEnabled.get(runningmodule);
@@ -209,14 +211,15 @@ public class ModuleManager {
     if (foundMd == null) {
       return -1;
     }
-    int v = addModuleDependencies(foundMd, modsAvailable, modsEnabled);
+    int v = addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
     if (v == -1) {
       return -1;
     }
     return v;
   }
 
-  private int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled) {
+  private int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml) {
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
     while (it.hasNext()) {
@@ -230,6 +233,10 @@ public class ModuleManager {
               logger.info("resolveModuleConflicts remove " + runningmodule);
               if (modsEnabled.containsKey(runningmodule)) {
                 modsEnabled.remove(runningmodule);
+                TenantModuleDescriptor tm = new TenantModuleDescriptor();
+                tm.setAction("disable");
+                tm.setId(runningmodule);
+                tml.add(tm);
                 it = modsEnabled.keySet().iterator();
                 v++;
               }
@@ -242,25 +249,30 @@ public class ModuleManager {
   }
 
   public int addModuleDependencies(ModuleDescriptor md,
-    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled) {
+    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("addModuleDependencies " + md.getId());
     for (ModuleInterface req : md.getRequiresList()) {
-      int v = checkInterfaceDependency(req, modsAvailable, modsEnabled);
+      int v = checkInterfaceDependency(req, modsAvailable, modsEnabled, tml);
       if (v == -1) {
         return v;
       }
       sum += v;
     }
-    resolveModuleConflicts(md, modsEnabled);
-    // check for conflict here!
+    resolveModuleConflicts(md, modsEnabled, tml);
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction("enable");
+    tm.setId(md.getId());
+    tml.add(tm);
     return sum + 1;
   }
 
   public int removeModuleDependencies(ModuleDescriptor md,
-    HashMap<String, ModuleDescriptor> modsEnabled) {
+    HashMap<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("removeModuleDependencies " + md.getId());
 
@@ -277,7 +289,7 @@ public class ModuleManager {
           ModuleInterface[] requires = rm.getRequiresList();
           for (ModuleInterface ri : requires) {
             if (prov.getId().equals(ri.getId())) {
-              sum += removeModuleDependencies(rm, modsEnabled);
+              sum += removeModuleDependencies(rm, modsEnabled, tml);
               it = modsEnabled.keySet().iterator();
             }
           }
@@ -285,6 +297,10 @@ public class ModuleManager {
       }
     }
     modsEnabled.remove(md.getId());
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction("disable");
+    tm.setId(md.getId());
+    tml.add(tm);
     return sum + 1;
   }
 
