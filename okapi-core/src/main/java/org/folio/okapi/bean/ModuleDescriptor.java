@@ -268,7 +268,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       return "Invalid id: " + getId();
     }
     if (moduleId == null) {
-      pc.warn("Missing or invalid semantic version for module id: " + getId());
+      pc.warn("Invalid semantic version for module Id: " + getId());
+    } else if (!moduleId.hasSemVer()) {
+      pc.warn("Missing semantic version for module Id: " + getId());
     }
     String mod = getNameOrId();
     if (provides != null) {

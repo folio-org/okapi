@@ -17,6 +17,10 @@ public class ModuleId implements Comparable<ModuleId> {
     semVer = null;
   }
 
+  public boolean hasSemVer() {
+    return semVer != null;
+  }
+
   public int compareTo(ModuleId other) {
     int cmp = product.compareTo(other.product);
     if (cmp > 0) {
