@@ -77,10 +77,51 @@ public class SemVer implements Comparable<SemVer> {
     return i;
   }
 
+  public boolean hasPrefix(SemVer other) {
+    Iterator<String> i1 = this.versions.iterator();
+    Iterator<String> i2 = other.versions.iterator();
+    int level = 4; // major returns +-4, minor +-3, patch +- 2, rest +-1.
+    while (i1.hasNext() && i2.hasNext()) {
+      int v = compareComp(i1.next(), i2.next());
+      if (v != 0) {
+        return false;
+      }
+    }
+    if (!i1.hasNext() && i2.hasNext()) {
+      return false;
+    }
+    else if (i1.hasNext() && !i2.hasNext()) {
+      return true;
+    }
+    i1 = this.preRelease.iterator();
+    i2 = other.preRelease.iterator();
+    while (i1.hasNext() && i2.hasNext()) {
+      int v = compareComp(i1.next(), i2.next());
+      if (v != 0) {
+        return false;
+      }
+    }
+    if (!i1.hasNext() && i2.hasNext()) {
+      return false;
+    }
+    else if (i1.hasNext() && !i2.hasNext()) {
+      return true;
+    }
+    if (this.metadata != null && other.metadata != null) {
+      int v = this.metadata.compareTo(other.metadata);
+      if (v != 0) {
+        return false;
+      }
+    } else if (this.metadata == null && other.metadata != null) {
+      return false;
+    }
+    return true;
+  }
+
   public int compareTo(SemVer other) {
     Iterator<String> i1 = this.versions.iterator();
     Iterator<String> i2 = other.versions.iterator();
-    int level = 3; // major returns +-3, minor +-2, rest +-1.
+    int level = 4; // major returns +-4, minor +-3, patch +- 2, rest +-1.
     while (i1.hasNext() && i2.hasNext()) {
       int v = compareComp(i1.next(), i2.next());
       if (v > 0) {
@@ -88,7 +129,7 @@ public class SemVer implements Comparable<SemVer> {
       } else if (v < 0) {
         return -level;
       }
-      if (level > 1) {
+      if (level > 2) {
         level--;
       }
     }
@@ -134,6 +175,7 @@ public class SemVer implements Comparable<SemVer> {
     return 0;
   }
 
+  @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
     Iterator<String> it = this.versions.iterator();

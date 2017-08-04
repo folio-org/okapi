@@ -7,6 +7,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -20,6 +21,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ModuleId;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -578,18 +580,20 @@ public class ModuleManager {
   }
 
   /**
-   * Get all ModuleDescriptors known to the system.
+   * Get all ModuleDescriptors that obey filter (possibly all)
    *
+   * @param filter
    * @param fut
    */
-  public void getAllModules(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public void getModulesWithFilter(ModuleId filter,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getKeys(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
         return;
       }
       Collection<String> keys = kres.result();
-      getModules(keys, fut);
+      getModulesFromCollection(keys, filter, fut);
     });
   }
 
@@ -601,7 +605,7 @@ public class ModuleManager {
    */
   public void getEnabledModules(Tenant ten,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    getModules(ten.getEnabled().keySet(), fut);
+    getModulesFromCollection(ten.getEnabled().keySet(), null, fut);
   }
 
   /**
@@ -610,11 +614,12 @@ public class ModuleManager {
    * @param ids to get
    * @param fut
    */
-  public void getModules(Collection<String> ids,
+  private void getModulesFromCollection(Collection<String> ids,
+    ModuleId filter,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    List<ModuleDescriptor> mdl = new ArrayList<>(ids.size());
+    List<ModuleDescriptor> mdl = new LinkedList<>();
     Iterator<String> it = ids.iterator();
-    getModulesR(it, mdl, fut);
+    getModulesR(it, mdl, filter, fut);
   }
 
   /**
@@ -625,12 +630,20 @@ public class ModuleManager {
    * @param fut
    */
   private void getModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
+    ModuleId filter,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(mdl));
       return;
     }
     String id = it.next();
+    if (filter != null) {
+      ModuleId idThis = new ModuleId(id);
+      if (!idThis.hasPrefix(filter)) {
+        getModulesR(it, mdl, filter, fut);
+        return;
+      }
+    }
     modules.get(id, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
@@ -638,7 +651,7 @@ public class ModuleManager {
       }
       ModuleDescriptor md = gres.result();
       mdl.add(md);
-      getModulesR(it, mdl, fut);
+      getModulesR(it, mdl, filter, fut);
     });
   }
 

@@ -11,25 +11,39 @@ public class ModuleIdTest {
 
   @Test
   public void test() {
-    ModuleId m1 = new ModuleId("module-1");
-    assertEquals("module: module version: 1", m1.toString());
+    ModuleId module_1 = new ModuleId("module-1");
+    assertEquals("module: module version: 1", module_1.toString());
 
-    ModuleId m2 = new ModuleId("foo-bar1-1.2");
-    assertEquals("module: foo-bar1 version: 1 2", m2.toString());
+    ModuleId foobar_1_2 = new ModuleId("foo-bar1-1.2");
+    assertEquals("module: foo-bar1 version: 1 2", foobar_1_2.toString());
 
-    ModuleId m3 = new ModuleId("module-1.9");
-    assertEquals("module: module version: 1 9", m3.toString());
+    ModuleId module_1_9 = new ModuleId("module-1.9");
+    assertEquals("module: module version: 1 9", module_1_9.toString());
 
-    assertEquals(m1.compareTo(m2), 4);
-    assertEquals(m2.compareTo(m1), -4);
+    ModuleId module = new ModuleId("module");
+    assertEquals("module: module", module.toString());
 
-    assertEquals(m1.compareTo(m3), -2);
-    assertEquals(m3.compareTo(m1), 2);
+    assertTrue(module_1.hasPrefix(module));
+    assertFalse(module.hasPrefix(module_1));
+    assertTrue(module_1_9.hasPrefix(module));
+    assertTrue(module_1_9.hasPrefix(module_1));
+    assertFalse(module_1.hasPrefix(module_1_9));
+    assertFalse(foobar_1_2.hasPrefix(module));
 
-    assertEquals(m2.compareTo(m3), -4);
-    assertEquals(m3.compareTo(m2), 4);
+    assertEquals(5, module_1.compareTo(foobar_1_2));
+    assertEquals(-5, foobar_1_2.compareTo(module_1));
 
-    assertEquals(ModuleId.compare("abc-2.9", "abc-3.5"), -3);
-    assertEquals(ModuleId.compare("abc-2", "abcd-3"), -4);
+    assertEquals(-3, module_1.compareTo(module_1_9));
+    assertEquals(3, module_1_9.compareTo(module_1));
+
+    assertEquals(-5, foobar_1_2.compareTo(module_1_9));
+    assertEquals(5, module_1_9.compareTo(foobar_1_2));
+
+    assertEquals(-4, module.compareTo(module_1));
+    assertEquals(4, module_1.compareTo(module));
+    assertEquals(0, module.compareTo(module));
+
+    assertEquals(-4, ModuleId.compare("abc-2.9", "abc-3.5"));
+    assertEquals(-5, ModuleId.compare("abc-2", "abcd-3"));
   }
 }
