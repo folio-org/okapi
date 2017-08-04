@@ -9,6 +9,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,6 +35,7 @@ import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.LogHelper;
+import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -263,9 +265,11 @@ public class InternalModule {
     });
   }
 
-  private void enableModulesForTenant(ProxyContext pc, String id, String simulateStr,
+  private void enableModulesForTenant(ProxyContext pc, String id,
     String body, Handler<ExtendedAsyncResult<String>> fut) {
+
     try {
+      final String simulateStr = pc.getCtx().request().getParam("simulate");
       boolean simulate = false;
       if ("1".equals(simulateStr) || "true".equals(simulateStr)) {
         simulate = true;
@@ -417,13 +421,38 @@ public class InternalModule {
 
   private void listModules(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.getAllModules(res -> {
+    ModuleId filter = null;
+    String filterStr = pc.getCtx().request().getParam("filter");
+    if (filterStr != null) {
+      filter = new ModuleId(filterStr);
+    }
+    final String orderByStr = pc.getCtx().request().getParam("orderBy");
+    final String orderStr = pc.getCtx().request().getParam("order");
+
+    moduleManager.getModulesWithFilter(filter, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      List<ModuleDescriptorBrief> ml = new ArrayList<>(res.result().size());
-      for (ModuleDescriptor md : res.result()) {
+      List<ModuleDescriptor> mdl = res.result();
+      if (orderByStr != null) {
+        if (!"id".equals(orderByStr)) {
+          logger.warn("unknown orderBy field: " + orderByStr);
+          fut.handle(new Failure<>(USER, "unknown orderBy field: " + orderByStr));
+          return;
+        }
+        if (orderStr == null || "asc".equals(orderStr)) {
+          Collections.sort(mdl);
+        } else if ("desc".equals(orderStr)) {
+          Collections.sort(mdl, Collections.reverseOrder());
+        } else {
+          logger.warn("invalid order value: " + orderStr);
+          fut.handle(new Failure<>(USER, "invalid order value: " + orderStr));
+          return;
+        }
+      }
+      List<ModuleDescriptorBrief> ml = new ArrayList<>(mdl.size());
+      for (ModuleDescriptor md : mdl) {
         ml.add(new ModuleDescriptorBrief(md));
       }
       String s = Json.encodePrettily(ml);
@@ -921,7 +950,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
-          enableModulesForTenant(pc, segments[4], pc.getCtx().request().getParam("simulate"), req, fut);
+          enableModulesForTenant(pc, segments[4], req, fut);
           return;
         }
 

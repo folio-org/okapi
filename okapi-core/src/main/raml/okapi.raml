@@ -293,6 +293,19 @@ schemas:
           text/plain:
   get:
     description: list all available modules
+    queryParameters:
+      filter:
+        description: filter by module ID
+        type: string
+        required: false
+      orderBy:
+        description: order by field
+        type: string
+        required: false
+      order:
+        description: Order
+        enum: [desc, asc]
+        required: false
     responses:
       200:
         headers:
@@ -301,7 +314,14 @@ schemas:
         body:
           application/json:
             schema: ModuleList
-
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   /{module_id}:
     get:
       description: retrieve descriptor for a particular module
