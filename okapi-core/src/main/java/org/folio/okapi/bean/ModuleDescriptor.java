@@ -83,14 +83,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.name = name;
   }
 
-  @JsonIgnore
-  public String getNameOrId() {
-    if (name != null && !name.isEmpty()) {
-      return name;
-    }
-    return id;
-  }
-
   public String[] getTags() {
     return tags;
   }
@@ -272,7 +264,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     } else if (!moduleId.hasSemVer()) {
       pc.warn("Missing semantic version for module Id: " + getId());
     }
-    String mod = getNameOrId();
+    String mod = getId();
     if (provides != null) {
       for (ModuleInterface pr : provides) {
         String err = pr.validate(pc, "provides", mod);
@@ -289,7 +281,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
         }
       }
     } else {
-      pc.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + mod + "' "
         + "has no Requires section. If the module really does not require "
         + "any other interfaces, provide an empty array to be explicit about it.");
     }
@@ -302,7 +294,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     }
     if (routingEntries != null) {
-      pc.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + mod + "' "
         + " uses DEPRECATED top-level routingEntries. Use handlers instead");
       for (RoutingEntry re : routingEntries) {
         String err = re.validate(pc, "toplevel", mod);
@@ -312,12 +304,12 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     }
     if (getEnv() != null) {
-      pc.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + mod + "' "
         + " uses DEPRECATED top-level environment settings. Put those "
         + "in the launchDescriptor instead.");
     }
     if (getTenantInterface() != null) {
-      pc.warn("Module '" + this.getNameOrId() + "' "
+      pc.warn("Module '" + mod + "' "
         + "uses DEPRECATED tenantInterface field."
         + " Provide a '_tenant' system interface instead");
     }

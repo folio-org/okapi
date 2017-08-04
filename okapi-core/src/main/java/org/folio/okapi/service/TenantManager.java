@@ -576,7 +576,7 @@ public class TenantManager {
         fut.handle(new Failure<>(cres.getType(), cres.cause()));
         return;
       }
-      pc.debug("enablePermissions: request to " + permsModule.getNameOrId()
+      pc.debug("enablePermissions: request to " + permsModule.getId()
         + " succeeded for module " + module_to + " and tenant " + tenant.getId());
       ead4commit(tenant, module_from, module_to, pc, fut);
     });
