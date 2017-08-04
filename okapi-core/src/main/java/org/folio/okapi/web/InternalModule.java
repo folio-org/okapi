@@ -441,15 +441,17 @@ public class InternalModule {
           fut.handle(new Failure<>(USER, "unknown orderBy field: " + orderByStr));
           return;
         }
-        if (orderStr == null || "asc".equals(orderStr)) {
-          Collections.sort(mdl);
-        } else if ("desc".equals(orderStr)) {
+        if (orderStr == null || "desc".equals(orderStr)) {
           Collections.sort(mdl, Collections.reverseOrder());
+        } else if ("asc".equals(orderStr)) {
+          Collections.sort(mdl);
         } else {
           logger.warn("invalid order value: " + orderStr);
           fut.handle(new Failure<>(USER, "invalid order value: " + orderStr));
           return;
         }
+      } else {
+        Collections.sort(mdl, Collections.reverseOrder());
       }
       List<ModuleDescriptorBrief> ml = new ArrayList<>(mdl.size());
       for (ModuleDescriptor md : mdl) {
