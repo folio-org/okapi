@@ -1,3 +1,18 @@
+## 1.9.0 2017-08-04
+
+ * Add facility to sort and retrieve latest MDs OKAPI-376
+   Okapi by default will sort on semVer order - descending when
+   retrieving MDs with `/_/proxy/modules` . It is also possible to filter
+   to a particular module prefix. This allows to pick all versions of
+   a module or all versions with a particular version prefix (say same
+   major version).  The filter looks like a semVer on its own.
+ * Fix Vertx exception: request has already been written OKAPI-374
+   (issue appeared in 1.8.0)
+ * Log Module ID rather than module Name OKAPI-365
+ * New feature Enable modules with dependencies for Tenant OKAPI-349 is
+   merged within this release but it is subject to change. Do not use
+   except if you are curious. Is is not documented and not complete.
+
 ## 1.8.1 2017-07-28
 
  * Okapi internal modules gets updated automatically OKAPI-364
