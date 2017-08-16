@@ -10,5 +10,6 @@
        "enum" : [ "enable", "disable", "uptodate", "suggest" ]
     },
     "message": {"type": "string"}
-  }
+  },
+  "required" : ["id"]
 }
