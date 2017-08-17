@@ -115,7 +115,9 @@ public class ProxyContext {
     if (path == null) { // defensive coding, should always be there
       path = "";
     }
-    path = path.replaceFirst("(^/[^/]+).*$", "$1");
+    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
+      // when rerouting, the query appears as part of the path, so we kill it
+    // here with the '?'.
     int rnd = (int) (Math.random() * 1000000);
     String newid = String.format("%06d", rnd);
     newid += path;

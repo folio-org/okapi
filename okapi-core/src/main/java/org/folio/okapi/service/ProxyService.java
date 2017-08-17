@@ -912,13 +912,19 @@ public class ProxyService {
   public void redirectProxy(RoutingContext ctx) {
     ProxyContext pc = new ProxyContext(vertx, ctx);
     final String origPath = ctx.request().path();
+    String qry = ctx.request().query();
     String tid = origPath
       .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
       .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
+    if (qry != null && !qry.isEmpty()) {
+      newPath += "?" + qry;
+    }
     ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
     pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
     ctx.reroute(newPath);
+    logger.debug("redirectProxy: After rerouting: "
+      + ctx.request().path() + " " + ctx.request().query());
   }
 
 } // class

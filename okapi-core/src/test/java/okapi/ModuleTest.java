@@ -525,9 +525,12 @@ public class ModuleTest {
       .get("/_/invoke/tenant/" + okapiTenant + "/testb/foo/bar")
       .then().statusCode(404);
     given()
-      .header("X-all-headers", "H") // ask sample to report all headers
+      .header("X-all-headers", "HB") // ask sample to report all headers
       .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
-      .then().statusCode(200);
+      .then()
+      .log().ifError()
+      .header("X-Url-Params", "query=foo")
+      .statusCode(200);
     given()
       .header("Content-Type", "application/json")
       .body("Testing testb")
