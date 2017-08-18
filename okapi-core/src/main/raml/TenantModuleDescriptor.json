@@ -5,10 +5,12 @@
   "additionalProperties" : false,
   "properties": {
     "id": {"type": "string"},
+    "from": {"type": "string"},
     "action" : {
        "type" : "string",
        "enum" : [ "enable", "disable", "uptodate", "suggest" ]
     },
     "message": {"type": "string"}
-  }
+  },
+  "required" : ["id"]
 }

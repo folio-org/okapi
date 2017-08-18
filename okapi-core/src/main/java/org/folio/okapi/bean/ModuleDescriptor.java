@@ -327,4 +327,13 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       return 0;
     }
   }
+
+  @JsonIgnore
+  public String getProduct() {
+    if (this.moduleId != null) {
+      return this.moduleId.getProduct();
+    } else {
+      return id;
+    }
+  }
 }

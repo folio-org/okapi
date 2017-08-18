@@ -950,8 +950,8 @@ public class InternalModule {
           disableModuleForTenant(pc, segments[4], segments[6], fut);
           return;
         }
-        // /_/proxy/tenants/:id/upgrade
-        if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
+        // /_/proxy/tenants/:id/install
+        if (n == 6 && m.equals(POST) && segments[5].equals("install")) {
           enableModulesForTenant(pc, segments[4], req, fut);
           return;
         }

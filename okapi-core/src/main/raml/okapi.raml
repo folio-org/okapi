@@ -439,8 +439,8 @@ schemas:
           body:
             text/plain:
     /upgrade:
-      get:
-        description: Module upgrade
+      post:
+        description: Check if newer modules of exist and upgrade for tenant
         queryParameters:
           simulate:
             description: whether the upgrade is simulated
@@ -463,11 +463,12 @@ schemas:
             description: Server error
             body:
               text/plain:
+    /install:
       post:
         description: enable and disable a set of modules
         queryParameters:
           simulate:
-            description: whether the upgrade is simulated
+            description: whether the installation is simulated
             type: boolean
         body:
           application/json:
