@@ -457,7 +457,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body("{ \"foo\" : \"bar\"}").post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .body("{ \"foo\" : \"bar\"}").post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400);
 
     // enable modules: post unknown module
@@ -465,7 +465,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo-1.2.3\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(404);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -476,7 +476,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -503,7 +503,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -518,16 +518,14 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"sample-module-1.0.0\"," + LS
-        + "  \"action\" : \"disable\"" + LS
-        + "}, {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"from\" : \"sample-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(
@@ -561,7 +559,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(404);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -571,7 +569,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -586,7 +584,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-1.0.0\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -604,13 +602,11 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"sample-module-1.2.0\"," + LS
-        + "  \"action\" : \"disable\"" + LS
-        + "}, {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"from\" : \"sample-module-1.2.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(

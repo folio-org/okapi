@@ -221,7 +221,7 @@ public class ModuleManager {
   }
 
   private int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
+    List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
     while (it.hasNext()) {
@@ -232,13 +232,18 @@ public class ModuleManager {
           String confl = pi.getId();
           for (ModuleInterface mi : md.getProvidesList()) {
             if (mi.getId().equals(confl)) {
-              logger.info("resolveModuleConflicts remove " + runningmodule);
               if (modsEnabled.containsKey(runningmodule)) {
+                if (md.getProduct().equals(rm.getProduct())) {
+                  logger.info("resolveModuleConflicts from " + runningmodule);
+                  fromModule.add(rm);
+                } else {
+                  logger.info("resolveModuleConflicts remove " + runningmodule);
+                  TenantModuleDescriptor tm = new TenantModuleDescriptor();
+                  tm.setAction("disable");
+                  tm.setId(runningmodule);
+                  tml.add(tm);
+                }
                 modsEnabled.remove(runningmodule);
-                TenantModuleDescriptor tm = new TenantModuleDescriptor();
-                tm.setAction("disable");
-                tm.setId(runningmodule);
-                tml.add(tm);
                 it = modsEnabled.keySet().iterator();
                 v++;
               }
@@ -262,11 +267,16 @@ public class ModuleManager {
       }
       sum += v;
     }
-    resolveModuleConflicts(md, modsEnabled, tml);
+    List<ModuleDescriptor> fromModule = new LinkedList<ModuleDescriptor>();
+    sum += resolveModuleConflicts(md, modsEnabled, tml, fromModule);
+
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction("enable");
+    if (!fromModule.isEmpty()) {
+      tm.setFrom(fromModule.get(0).getId());
+    }
     tm.setId(md.getId());
     tml.add(tm);
     return sum + 1;

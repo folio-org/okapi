@@ -15,6 +15,7 @@ public class TenantModuleDescriptor {
 
   private String id; // For practical reasons, the UI folks prefer this to be
   // called 'id'. It is the id of a module.
+  private String from;
 
   private String message;
 
@@ -24,6 +25,14 @@ public class TenantModuleDescriptor {
 
   public void setId(String id) {
     this.id = id;
+  }
+
+  public String getFrom() {
+    return from;
+  }
+
+  public void setFrom(String id) {
+    this.from = id;
   }
 
   enum Action {
