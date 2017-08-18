@@ -84,14 +84,6 @@ public class TenantManager {
   }
 
   /**
-   * Get the moduleManager.
-   * @return
-   */
-  public ModuleManager getModuleManager() {
-    return moduleManager;
-  }
-
-  /**
    * Insert a tenant.
    *
    * @param t
@@ -313,7 +305,7 @@ public class TenantManager {
    * @param module_to module to be added
    * @param fut callback with error message string, or success
    */
-  public void updateModuleDepCheck(Tenant tenant,
+  private void updateModuleDepCheck(Tenant tenant,
     String module_from, String module_to,
     Handler<ExtendedAsyncResult<Void>> fut) {
     moduleManager.get(module_to, tres -> {
@@ -408,31 +400,41 @@ public class TenantManager {
    * To avoid too much callback hell, this has been split into several helpers.
    */
   public void enableAndDisableModule(String tenantId,
-    String module_from, String module_to, ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    pc.debug("enableAndDisableModule for " + tenantId
-      + " fr=" + module_from + " to=" + module_to);
-    tenants.get(tenantId, tres -> {
-      if (tres.failed()) {
-        fut.handle(new Failure<>(tres.getType(), tres.cause()));
-        return;
+    String module_from, String module_to1, ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    moduleManager.getLatest(module_to1, res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      } else {
+        ModuleDescriptor md = res1.result();
+        final String module_to2 = md != null ? md.getId() : null;
+
+        pc.debug("enableAndDisableModule for " + tenantId
+          + " fr=" + module_from + " to=" + module_to2);
+        tenants.get(tenantId, tres -> {
+          if (tres.failed()) {
+            fut.handle(new Failure<>(tres.getType(), tres.cause()));
+            return;
+          }
+          Tenant tenant = tres.result();
+          updateModuleDepCheck(tenant, module_from, module_to2, cres -> {
+            if (cres.failed()) {
+              pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
+              fut.handle(new Failure<>(cres.getType(), cres.cause()));
+              return;
+            }
+            pc.debug("enableAndDisableModule: depcheck ok");
+            ead1TenantInterface(tenant, module_from, module_to2, pc, res2 -> {
+              if (res2.failed()) {
+                fut.handle(new Failure<>(res2.getType(), res2.cause()));
+              } else {
+                fut.handle(new Success<>(module_to2));
+              }
+            });
+          });
+        });
       }
-      Tenant tenant = tres.result();
-      updateModuleDepCheck(tenant, module_from, module_to, cres -> {
-        if (cres.failed()) {
-          pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
-          fut.handle(new Failure<>(cres.getType(), cres.cause()));
-          return;
-        }
-        pc.debug("enableAndDisableModule: depcheck ok");
-        if (module_to == null || module_to.isEmpty()) {
-          ead4commit(tenant, module_from, module_to, pc, fut);
-          return;
-        } else {
-          ead1TenantInterface(tenant, module_from, module_to, pc, fut);
-          return;
-        }
-      });
     });
   }
 
@@ -447,6 +449,12 @@ public class TenantManager {
   private void ead1TenantInterface(Tenant tenant,
     String module_from, String module_to, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
+
+    if (module_to == null) {
+      // disable only
+      ead4commit(tenant, module_from, module_to, pc, fut);
+      return;
+    }
     getTenantInterface(module_to, ires -> {
       if (ires.failed()) {
         if (ires.getType() == NOT_FOUND) {
@@ -490,15 +498,8 @@ public class TenantManager {
   private void ead2PermMod(Tenant tenant,
     String module_from, String module_to, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    ModuleManager modMan = getModuleManager();
-    if (modMan == null) { // Should never happen
-      fut.handle(new Failure<>(INTERNAL,
-        "eadTenantPermissions: No moduleManager found. "
-        + "Can not make _tenantPermissions request"));
-      return;
-    }
     // TODO - check if we have no permissions, skip the rest
-    modMan.get(module_to, mres -> {
+    moduleManager.get(module_to, mres -> {
       if (mres.failed() && mres.getType() != NOT_FOUND) { // something really wrong
         fut.handle(new Failure<>(mres.getType(), mres.cause()));
         return;

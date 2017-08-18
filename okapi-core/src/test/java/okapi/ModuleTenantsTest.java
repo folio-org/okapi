@@ -280,13 +280,16 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
     // associate tenant for module
+    final String docEnableSampleNoSemVer = "{" + LS
+      + "  \"id\" : \"sample-module\"" + LS
+      + "}";
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .body(docEnableSampleNoSemVer).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .body(equalTo(docEnableSample)).extract().response();
     Assert.assertTrue(
