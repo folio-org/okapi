@@ -89,8 +89,8 @@ public class EnvTest {
             c.getLastReport().isEmpty());
 
     final String badDoc = "{" + LS
-            + "  \"name\" : \"mame1\"," + LS // the comma here makes it bad json!
-            + "}";
+      + "  \"name\" : \"BADJSON\"," + LS // the comma here makes it bad json!
+      + "}";
     c = api.createRestAssured();
     c.given()
             .header("Content-Type", "application/json")
