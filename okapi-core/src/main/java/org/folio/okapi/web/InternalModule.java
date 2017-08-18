@@ -236,13 +236,14 @@ public class InternalModule {
     try {
       final TenantModuleDescriptor td = Json.decodeValue(body,
         TenantModuleDescriptor.class);
-      final String module_to = td.getId();
+      String module_to = td.getId();
       tenantManager.enableAndDisableModule(id, null, module_to, pc, eres -> {
         if (eres.failed()) {
           fut.handle(new Failure<>(eres.getType(), eres.cause()));
           return;
         }
-        final String uri = pc.getCtx().request().uri() + "/" + module_to;
+        td.setId(eres.result());
+        final String uri = pc.getCtx().request().uri() + "/" + td.getId();
         pc.getCtx().response().putHeader("Location", uri);
         pc.getCtx().response().setStatusCode(201);
         fut.handle(new Success<>(Json.encodePrettily(td)));
@@ -294,8 +295,8 @@ public class InternalModule {
     }
   }
 
-  private void upgradeModulesForTenant(ProxyContext pc, String id, String mod, String body,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void upgradeModulesForTenant(ProxyContext pc, String id, String mod,
+    String body, Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
@@ -306,9 +307,10 @@ public class InternalModule {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
         }
+        td.setId(res.result());
         final String uri = pc.getCtx().request().uri();
         final String regex = "^(.*)/" + module_from + "$";
-        final String newuri = uri.replaceAll(regex, "$1/" + module_to);
+        final String newuri = uri.replaceAll(regex, "$1/" + td.getId());
         pc.getCtx().response().setStatusCode(201);
         pc.getCtx().response().putHeader("Location", newuri);
         fut.handle(new Success<>(Json.encodePrettily(td)));
@@ -408,7 +410,6 @@ public class InternalModule {
 
   private void getModule(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
-    final String q = "{ \"id\": \"" + id + "\"}";
     moduleManager.get(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
