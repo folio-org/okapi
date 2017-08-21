@@ -64,6 +64,7 @@ public class DeploymentManager {
 
   private void shutdownR(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
+      logger.info("All modules shut down");
       fut.handle(new Success<>());
     } else {
       DeploymentDescriptor md = list.get(it.next());

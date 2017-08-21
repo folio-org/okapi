@@ -179,6 +179,7 @@ public class MainVerticle extends AbstractVerticle {
               logger.error("Timed out waiting to undeploy all");
             }
           } catch (InterruptedException e) {
+            logger.error("Exception while shutting down");
             throw new IllegalStateException(e);
           }
         }
