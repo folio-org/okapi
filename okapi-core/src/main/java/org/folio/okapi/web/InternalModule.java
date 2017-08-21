@@ -64,6 +64,7 @@ public class InternalModule {
   private final PullManager pullManager;
   private final LogHelper logHelper;
   private final String okapiVersion;
+  private static final String interfaceVersion = "1.9";
 
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
     DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
@@ -85,7 +86,6 @@ public class InternalModule {
       v = "0.0.0";   // unit tests can just check for this
     }
     String okapiModule = XOkapiHeaders.OKAPI_MODULE + "-" + v;
-    String interfaceVersion = v.replaceFirst("^(\\d+)\\.(\\d+)\\.(\\d*).*$", "$1.$2");
     final String doc = "{"
       // Try to keep these in the same order as the RAML
       // Read-only operations should (normally?) not require permissions
@@ -94,6 +94,11 @@ public class InternalModule {
       + " \"id\" : \"" + okapiModule + "\","
       + " \"name\" : \"" + okapiModule + "\","
       + " \"provides\" : [ {"
+      + "   \"id\" : \"okapi-proxy\","
+      + "   \"version\" : \"" + interfaceVersion + "\","
+      + "   \"interfaceType\" : \"internal\"," // actually, null. 
+      + "   \"handlers\" : [ ]"
+      + " }, {"
       + "   \"id\" : \"okapi\","
       + "   \"version\" : \"" + interfaceVersion + "\","
       + "   \"interfaceType\" : \"internal\","
