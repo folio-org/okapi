@@ -474,10 +474,6 @@ to its caller.
 
 ### Login
 
-NOTE: I have just come up with a simplified way to do the login. What is described
-below is not exactly what has been implemented, or described elsewhere. (Remove
-this note when things are up to date!)
-
 Here is a quick outline of what happens when a user wants to log in to the system.
 The tediously detailed handshakes come later.
 

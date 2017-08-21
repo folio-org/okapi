@@ -1167,6 +1167,7 @@ Content-Length: 31
 }
 ```
 
+
 #### Calling the module
 
 So, now we have a tenant, and it has a module enabled. Last time we tried to
@@ -1185,6 +1186,24 @@ Transfer-Encoding: chunked
 
 It works
 ```
+
+#### Another way
+
+There is another way to invoke a module for a given tenant, as shown below:
+
+```
+curl -w '\n' -D - \
+  http://localhost:9130/_/invoke/tenant/testlib/testb
+
+It works!
+```
+This is a bit of a hack, for some special cases where we can not control the
+headers in the request, for example a callback from a SSO service. This is
+quite limited, it will fail for calls that require an auth token (see below).
+We may add a path to `/_/invoke/token/xxxxxxx/....` later for such cases.
+
+The invoke endpoint was added in Okapi 1.7.0
+
 
 ### Example 2: Adding the Auth module
 
@@ -1762,6 +1781,8 @@ For example ModulePermissions and RoutingEntries on the top level of the
 descriptor. For the fully up-to-date definition, you should always refer to
 the RAML and JSON schemas in the [Reference](#web-service) section.
 
+
+
 ### Multiple interfaces
 
 Normally, Okapi proxy allows exactly one module at once to
@@ -1814,7 +1835,6 @@ curl -w '\n' -X POST -D - \
   -H "Content-type: application/json" \
   -d @/tmp/okapi-proxy-foo.json \
   http://localhost:9130/_/proxy/modules
-
 ```
 
 ```
@@ -1946,6 +1966,7 @@ curl -D - -w '\n' \
 
 It works
 ```
+
 
 ### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
@@ -2209,11 +2230,14 @@ checks.
  * The admin logs in with the previously loaded credentials, and gets a token.
  * This token gives the admin right to do further operations in Okapi.
 
-Note that it is possible to enable the internal module for other tenants too,
-if that should be required. Normally that should not be the case.
+The ModuleDescriptor defines suitable permissions for fine-grained access
+control to its functions. At the moment most read-only operations are open to
+anyone, but operations that change things require a permission.
 
-The ModuleDescriptor will have to define suitable permissions for fine-grained
-access control to its functions. These have not yet been designed.
+If regular clients need access to the Okapi admin functions, for example to list
+what modules they have available, the internal module needs to be made available
+for them, and if needed, some permissions assigned to some admin user.
+
 
 ## Reference
 
@@ -2309,6 +2333,19 @@ in the [RAML](http://raml.org/) syntax.
   * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
   * [API reference documentation](http://dev.folio.org/doc/api/) generated from those files
+
+### Internal Module
+
+When Okapi starts up, it has one internal module defined. This provides two
+interfaces: `okapi` and `okapi-proxy`. The 'okapi' interface covers all the
+administrative functions, as defined in the RAML (see above). The `okapi-proxy`
+interface refers to the proxying functions. It can not be defined in the RAML,
+since it depends on what the modules provide. Its main use is that modules can
+depend on it, especially if they require some new prosying functionality. It is
+expected that this interface will remain fairly stable over time.
+
+The internal module was introduced in okapi version 1.9.0, and a fully detailed
+ModuleDescriptor in version 1.10.0.
 
 ### Deployment
 
