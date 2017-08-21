@@ -56,12 +56,6 @@ public class ProcessModuleHandle implements ModuleHandle {
     return pb;
   }
 
-  private void serviceFailed(Handler<AsyncResult<Void>> startFuture, int exitValue) {
-    logger.warn("Service returned with exit code " + p.exitValue());
-    startFuture.handle(Future.failedFuture("Service returned with exit code "
-      + exitValue));
-  }
-
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
     NetClient c = vertx.createNetClient(options);

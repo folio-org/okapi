@@ -144,6 +144,7 @@ public class DeploymentManager {
           } else {
             tim.close();
             ports.free(use_port);
+            logger.warn("Deploying " + md1.getSrvcId() + " failed");
             fut.handle(new Failure<>(INTERNAL, future.cause()));
           }
         });
