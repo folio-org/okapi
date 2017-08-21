@@ -1295,10 +1295,6 @@ public class InternalModule {
           getModuleForTenant(pc, segments[4], segments[6], fut);
           return;
         }
-        if (n == 7 && m.equals(PUT) && segments[5].equals("modules")) {
-          upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
-          return;
-        }
         if (n == 7 && m.equals(POST) && segments[5].equals("modules")) {
           upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
           return;
