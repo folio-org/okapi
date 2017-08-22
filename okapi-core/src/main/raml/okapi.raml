@@ -549,7 +549,7 @@ schemas:
           TenantModuleDescriptorList. This list includes one or more
           modules to be enabled, disabled or upgraded. The request is the
           initial desired changes and the response is the list of changes
-          that must be fullfilled to satisfy dependencies.
+          that must be fulfilled to satisfy dependencies.
           This service will eventually partially replace
           /_/proxy/tenants/{tenant}/modules . It also allows
           enabling multiple modules in in one transaction.
@@ -590,7 +590,7 @@ schemas:
       post:
         description: Check if newer modules of exist and upgrade for tenant.
           The response is a list of modules that should be enabled, disabled
-          or upgraeded to perform the upgrade.
+          or upgraded to perform the upgrade.
           Note that this service is NOT yet implemented.
         queryParameters:
           simulate:
@@ -616,7 +616,7 @@ schemas:
               text/plain:
     /interfaces/{interface_id}:
       get:
-        description: Get all modules that provides specified interface ID
+        description: Get all modules that provide the specified interface ID
         responses:
           200:
             headers:
@@ -656,9 +656,9 @@ schemas:
 /_/proxy/pull/modules:
   description: Pull module descriptors from a remote repository
   post:
-    description: Pull modules, ie Module Descriptors, from a remote
-      respository. The PullDescriptor includes one or more URLs. And
-      the operation will try all URLs in order until one succeed. Hence,
+    description: Pull modules (i.e. Module Descriptors) from a remote
+      repository. The PullDescriptor includes one or more URLs. And
+      the operation will try all URLs in order until one succeeds. Hence,
       the URLs should be pointing to identical remote repositories.
     body:
       application/json:
@@ -685,7 +685,7 @@ schemas:
 
 /_/env:
   description: Environment service. Environment variables are system
-    variables that allows us to configure modules in an uniform way.
+    variables that allows us to configure modules in a uniform way.
     They can hold fundamental database configuration, etc.
   post:
     description: Add environment entry
@@ -766,7 +766,7 @@ schemas:
     description: get Okapi version
     responses:
       200:
-        description: OK with version in body
+        description: OK, with version in body
         body:
           text/plain:
         headers:

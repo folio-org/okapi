@@ -96,7 +96,7 @@ public class InternalModule {
       + " \"provides\" : [ {"
       + "   \"id\" : \"okapi-proxy\","
       + "   \"version\" : \"" + interfaceVersion + "\","
-      + "   \"interfaceType\" : \"internal\"," // actually, null. 
+      + "   \"interfaceType\" : \"internal\"," // actually, null.
       + "   \"handlers\" : [ ]"
       + " }, {"
       + "   \"id\" : \"okapi\","
@@ -849,7 +849,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.delete(id, res -> {
       if (res.failed()) {
-        pc.error("delete moduile failed: " + res.getType()
+        pc.error("delete module failed: " + res.getType()
           + ":" + res.cause().getMessage());
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;

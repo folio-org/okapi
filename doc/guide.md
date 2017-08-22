@@ -2341,7 +2341,7 @@ interfaces: `okapi` and `okapi-proxy`. The 'okapi' interface covers all the
 administrative functions, as defined in the RAML (see above). The `okapi-proxy`
 interface refers to the proxying functions. It can not be defined in the RAML,
 since it depends on what the modules provide. Its main use is that modules can
-depend on it, especially if they require some new prosying functionality. It is
+depend on it, especially if they require some new proxying functionality. It is
 expected that this interface will remain fairly stable over time.
 
 The internal module was introduced in okapi version 1.9.0, and a fully detailed
