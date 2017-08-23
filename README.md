@@ -1,4 +1,3 @@
-
 Okapi — a multitenant API Gateway
 =================================
 
