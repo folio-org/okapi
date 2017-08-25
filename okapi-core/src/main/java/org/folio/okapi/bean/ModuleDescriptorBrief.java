@@ -3,6 +3,7 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import org.folio.okapi.util.ModuleId;
 
 /**
  * A brief view of a ModuleDescriptor.
@@ -36,5 +37,10 @@ public class ModuleDescriptorBrief {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  @JsonIgnore
+  public String getProduct() {
+    return new ModuleId(id).getProduct();
   }
 }
