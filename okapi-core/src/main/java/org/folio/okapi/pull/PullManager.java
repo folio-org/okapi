@@ -37,7 +37,7 @@ public class PullManager {
   private void getRemoteUrl(Iterator<String> it,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, "pull: none of remote URls work"));
+      fut.handle(new Failure<>(ErrorType.NOT_FOUND, "pull: none of remote URLs work"));
     } else {
       final String baseUrl = it.next();
       String url = baseUrl;
@@ -52,6 +52,8 @@ public class PullManager {
         });
         res.endHandler(x -> {
           if (res.statusCode() != 200) {
+            logger.info("pull for " + baseUrl + " failed with status "
+                    + res.statusCode());
             fut.handle(new Failure<>(ErrorType.USER, body.toString()));
           } else {
             fut.handle(new Success<>(baseUrl));
@@ -62,6 +64,8 @@ public class PullManager {
         });
       });
       req.exceptionHandler(res -> {
+        logger.info("pull for " + baseUrl + " failed with status "
+                + res.getMessage());
         getRemoteUrl(it, fut);
       });
       req.end();
@@ -195,11 +199,14 @@ public class PullManager {
         fut.handle(new Failure<>(ErrorType.INTERNAL, "pull: cannot add list"));
       }
     } else {
+      final String id = md.getId();
       final ModuleDescriptor mdf = md;
       addFull(okapiUrl, md, res -> {
         if (res.failed()) {
+          logger.info("adding md " + id + " failed: " + res.cause().getMessage());
           addList(enabled, it, added, failed + 1, fut);
         } else {
+          logger.info("adding md " + id + " OK");
           enabled.put(mdf.getId(), true);
           addList(enabled, it, added + 1, failed, fut);
         }
@@ -232,15 +239,17 @@ public class PullManager {
 
     List<ModuleDescriptorBrief> mlAdd = new LinkedList<>();
     for (ModuleDescriptorBrief md : mlRemote) {
-      if (enabled.get(md.getId()) == null) {
+      if (!md.getProduct().equals("okapi") && enabled.get(md.getId()) == null) {
         mlAdd.add(md);
       }
     }
+    logger.info("pull: " + mlAdd.size() + " MDs to fetch");
     List<ModuleDescriptor> mlList = new LinkedList<>();
     getFull(urlBase, mlAdd.iterator(), mlList, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
+        logger.info("pull: local insert");
         addRepeat(enabled, mlList, res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
