@@ -54,7 +54,8 @@ public class OkapiClient {
       this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     }
     for (String hdr : ctx.request().headers().names()) {
-      if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
+      if (hdr.startsWith(XOkapiHeaders.PREFIX)
+        || hdr.startsWith("Accept")) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr, hv);
         if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
