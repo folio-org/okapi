@@ -257,7 +257,7 @@ public class ProxyService {
     }
 
     if (tenantId == null) {
-      logger.info("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
+      logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
       return XOkapiHeaders.SUPERTENANT_ID; // without setting it in pc
     }
     pc.setTenant(tenantId);
