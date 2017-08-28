@@ -31,6 +31,7 @@ managing and running microservices.
     * [Running in cluster mode](#running-in-cluster-mode)
     * [Securing Okapi](#securing-okapi)
     * [Module Descriptor Sharing](#module-descriptor-sharing)
+    * [Enabling modules per tenant (install operation)](#enabling-modules-per-tenant-install-operation)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -40,7 +41,6 @@ managing and running microservices.
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
     * [Instrumentation](#instrumentation)
-
 ## Introduction
 
 This document aims to provide an overview of concepts that relate to Okapi and
@@ -2242,7 +2242,7 @@ for them, and if needed, some permissions assigned to some admin user.
 
 ### Module Descriptor Sharing
 
-Okapi installations may share their module descriptors. With a 'pull'
+Okapi installations may share their module descriptors. With a "pull"
 operation the modules for the Okapi proxy can be fetched from another
 Okapi proxy instance. The name "pull" is used here because it is similar
 to Git SCM's pull operation. The remote proxy instance that Okapi pulls from
@@ -2258,9 +2258,12 @@ include further information in the Pull Descriptor for authentication
 or other. The path to be invoked for the local Okapi instance
 is `/_/proxy/pull/modules`.
 
-#### Pull Example
+The pull operation returns an array of modules that were fetched
+and installed locally.
 
-In this example we pull twice. The second pulli should be much faster
+#### Pull Operation Example
+
+In this example we pull twice. The second pull should be much faster
 than the pull, because all/most modules have already been fetched.
 
 ```
@@ -2271,6 +2274,70 @@ END
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
 ```
+
+### Enabling modules per tenant (install operation)
+
+Until now - in this guide - we have installed only a few modules
+and we were able to track dependencies and ensure that they were in order.
+For example,  the `test-basic'  required `test-auth` interface that we
+knew was offered by module 'test-auth` module. It is a coincidence that
+those names match by the way. Not to mention, that a module may require
+many interfaces.
+
+Okapi 1.10 and later offers the `/_/proxy/tenant/id/install` call
+to remedy the situation. This call takes one or more modules to
+be enabled/upgraded/disabled and responds with a similar list that
+respects dependencies. For details, refer to the JSON schema
+TenantModuleDescriptorList and the RAML definition in general.
+
+As of Okapi 1.10, the install operation is simulate *only*.
+
+
+#### Install Operation Example
+
+We must create a tenant first. This is all a per-tenant operation.
+```
+```
+
+Suppose we have pulled descriptors from the remote repo from "Pull Example",
+and know with to enable `md mod-users-bl-2.0.1` for our tenant.
+
+
+
+```
+cat > /tmp/okapi-tenant.json <<END
+{
+  "id": "testlib",
+  "name": "Test Library",
+  "description": "Our Own Test Library"
+}
+END
+curl -w '\n' -X POST -D - \
+  -d @/tmp/okapi-tenant.json \
+  http://localhost:9130/_/proxy/tenants
+cat >/tmp/tmdl.json <<END
+[ { "id" : "mod-users-bl-2.0.1" , "action" : "enable" } ]
+END
+curl -w '\n' -X POST -d@/tmp/tmdl.json \
+ http://localhost:9130/_/proxy/tenants/testlib/install?simulate=true
+[ {
+  "id" : "mod-users-14.2.1-SNAPSHOT.299",
+  "action" : "enable"
+}, {
+  "id" : "permissions-module-4.0.4",
+  "action" : "enable"
+}, {
+  "id" : "mod-login-3.1.1-SNAPSHOT.42",
+  "action" : "enable"
+}, {
+  "id" : "mod-users-bl-2.0.1",
+  "action" : "enable"
+} ]
+
+```
+
+A set of 4 modules was required. This list, of course, may change depending
+on the current set of modules in the remote repository.
 
 ## Reference
 
