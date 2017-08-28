@@ -2295,13 +2295,9 @@ As of Okapi 1.10, the install operation is simulate *only*.
 
 #### Install Operation Example
 
-We must create a tenant first. This is all a per-tenant operation.
-```
-```
-
-Suppose we have pulled descriptors from the remote repo from "Pull Example",
-and know with to enable `md mod-users-bl-2.0.1` for our tenant.
-
+Suppose we have pulled module descriptors from the remote repo from
+"Pull Example", and now would like to enable `md mod-users-bl-2.0.1`
+for our tenant.
 
 
 ```
@@ -2315,6 +2311,7 @@ END
 curl -w '\n' -X POST -D - \
   -d @/tmp/okapi-tenant.json \
   http://localhost:9130/_/proxy/tenants
+
 cat >/tmp/tmdl.json <<END
 [ { "id" : "mod-users-bl-2.0.1" , "action" : "enable" } ]
 END
