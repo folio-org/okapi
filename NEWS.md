@@ -1,3 +1,24 @@
+## 1.10.0 2017-08-28
+
+ * Fix pull fails with internal modules OKAPI-393
+ * Fix OkapiClient doesn't send Accept header OKAPI-391
+ * Separate interface versions for Okapi admin and Okapi proxy OKAPI-390
+ * Internal module interface version is fixed and not changed
+   with Okapi version OKAPI-387
+ * Enable module for tenant may take module ID without version
+   in which case latest version of module is picked. This should make
+   it a little easier to make scripts for backend modules OKAPI-386
+ * Fix Query parameters erased via `/_/invoke` endpoint OKAPI-384
+ * Add log message for when all is closed down OKAPI-383
+ * Better error message for missing jar in deployment OKAPI-382
+ * Update secuity documenation a bit OKAPI-377
+ * Set up permissions for internal module OKAPI-362
+ * New install call `/_/proxy/tenant/id/install` which changes
+   modules in use by tenant. Since it acts on multiple modules at once
+   it can report about all necessary dependencies and conflicts . The
+   operation is simulate-only at this stage, so admin users will have to
+   enable modules per tenant as usual - one by one. OKAPI-349
+
 ## 1.9.0 2017-08-04
 
  * Add facility to sort and retrieve latest MDs OKAPI-376
