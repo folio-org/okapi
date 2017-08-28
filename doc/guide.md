@@ -30,10 +30,12 @@ managing and running microservices.
     * [Cleaning up](#cleaning-up)
     * [Running in cluster mode](#running-in-cluster-mode)
     * [Securing Okapi](#securing-okapi)
+    * [Module Descriptor Sharing](#module-descriptor-sharing)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
     * [Web Service](#web-service)
+    * [Internal Module](#internal-module)
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
@@ -2238,6 +2240,37 @@ If regular clients need access to the Okapi admin functions, for example to list
 what modules they have available, the internal module needs to be made available
 for them, and if needed, some permissions assigned to some admin user.
 
+### Module Descriptor Sharing
+
+Okapi installations may share their module descriptors. With a 'pull'
+operation the modules for the Okapi proxy can be fetched from another
+Okapi proxy instance. The name "pull" is used here because it is similar
+to Git SCM's pull operation. The remote proxy instance that Okapi pulls from
+(or peer) does not need any modules deployed.
+All that is necessary is that the /_/proxy/modules operation is available.
+The pull installs all module descriptors from the remote that is not
+available already. It is based on the module descriptor id, which is
+supposed to represent a unique implementation of a module.
+
+For the pull operation Okapi takes a Pull Descriptor. At this stage it
+includes the URL the remote instance. Future versions of Okapi may
+include further information in the Pull Descriptor for authentication
+or other. The path to be invoked for the local Okapi instance
+is `/_/proxy/pull/modules`.
+
+#### Pull Example
+
+In this example we pull twice. The second pulli should be much faster
+than the pull, because all/most modules have already been fetched.
+
+```
+cat > /tmp/pull.json <<END
+{"urls" : [ "http://folio-registry.aws.indexdata.com:9130" ]}
+END
+
+curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
+curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
+```
 
 ## Reference
 
