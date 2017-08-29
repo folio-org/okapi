@@ -2296,10 +2296,10 @@ As of Okapi 1.10, the install operation is simulate *only*.
 
 #### Install Operation Example
 
-Suppose we have pulled module descriptors from the remote repo from
-"Pull Example", and now would like to enable `md mod-users-bl-2.0.1`
+Suppose we have pulled module descriptors from the remote repo
+(e.g. using [Pull Operation Example](#pull-operation-example) above)
+and now would like to enable `mod-users-bl-2.0.1`
 for our tenant.
-
 
 ```
 cat > /tmp/okapi-tenant.json <<END
@@ -2318,6 +2318,7 @@ cat >/tmp/tmdl.json <<END
 END
 curl -w '\n' -X POST -d@/tmp/tmdl.json \
  http://localhost:9130/_/proxy/tenants/testlib/install?simulate=true
+
 [ {
   "id" : "mod-users-14.2.1-SNAPSHOT.299",
   "action" : "enable"
@@ -2331,7 +2332,6 @@ curl -w '\n' -X POST -d@/tmp/tmdl.json \
   "id" : "mod-users-bl-2.0.1",
   "action" : "enable"
 } ]
-
 ```
 
 A set of 4 modules was required. This list, of course, may change depending
