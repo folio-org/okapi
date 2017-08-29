@@ -41,6 +41,7 @@ managing and running microservices.
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
     * [Instrumentation](#instrumentation)
+
 ## Introduction
 
 This document aims to provide an overview of concepts that relate to Okapi and
@@ -2247,12 +2248,12 @@ operation the modules for the Okapi proxy can be fetched from another
 Okapi proxy instance. The name "pull" is used here because it is similar
 to Git SCM's pull operation. The remote proxy instance that Okapi pulls from
 (or peer) does not need any modules deployed.
-All that is necessary is that the /_/proxy/modules operation is available.
-The pull installs all module descriptors from the remote that is not
+All that is necessary is that the `/_/proxy/modules` operation is available.
+The pull installs all module descriptors from the remote that are not
 available already. It is based on the module descriptor id, which is
 supposed to represent a unique implementation of a module.
 
-For the pull operation Okapi takes a Pull Descriptor. At this stage it
+For the pull operation, Okapi takes a Pull Descriptor. At this stage it
 includes the URL the remote instance. Future versions of Okapi may
 include further information in the Pull Descriptor for authentication
 or other. The path to be invoked for the local Okapi instance
@@ -2279,9 +2280,9 @@ curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/module
 
 Until now - in this guide - we have installed only a few modules
 and we were able to track dependencies and ensure that they were in order.
-For example,  the `test-basic'  required `test-auth` interface that we
-knew was offered by module 'test-auth` module. It is a coincidence that
-those names match by the way. Not to mention, that a module may require
+For example,  the 'test-basic'  required 'test-auth' interface that we
+knew was offered by the 'test-auth' module. It is a coincidence that
+those names match by the way. Not to mention that a module may require
 many interfaces.
 
 Okapi 1.10 and later offers the `/_/proxy/tenant/id/install` call
