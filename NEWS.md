@@ -11,7 +11,7 @@
  * Fix Query parameters erased via `/_/invoke` endpoint OKAPI-384
  * Add log message for when all is closed down OKAPI-383
  * Better error message for missing jar in deployment OKAPI-382
- * Update secuity documenation a bit OKAPI-377
+ * Update security documentation a bit OKAPI-377
  * Set up permissions for internal module OKAPI-362
  * New install call `/_/proxy/tenant/id/install` which changes
    modules in use by tenant. Since it acts on multiple modules at once
