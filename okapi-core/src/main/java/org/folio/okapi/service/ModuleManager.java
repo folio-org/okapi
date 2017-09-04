@@ -585,25 +585,13 @@ public class ModuleManager {
     if (moduleId == null || moduleId.hasSemVer()) {
       get(id, fut);
     } else {
-      final String product = moduleId.getProduct();
       modules.getKeys(res2 -> {
         if (res2.failed()) {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
         } else {
-          ModuleId bModule = null;
-          String bId = null;
-          Collection<String> l = res2.result();
-          for (String cId : l) {
-            ModuleId cModule = new ModuleId(cId);
-            if (product.equals(cModule.getProduct())) {
-              if (bModule == null || cModule.compareTo(bModule) > 0) {
-                bId = cId;
-                bModule = cModule;
-              }
-            }
-          }
-          if (bModule != null && bId != null) {
-            get(bId, fut);
+          String latest = moduleId.getLatest(res2.result());
+          if (latest != null) {
+            get(latest, fut);
           } else {
             fut.handle(new Failure<>(NOT_FOUND, id));
           }
