@@ -1,4 +1,5 @@
 package org.folio.okapi.util;
+import java.util.Collection;
 
 public class ModuleId implements Comparable<ModuleId> {
 
@@ -25,6 +26,7 @@ public class ModuleId implements Comparable<ModuleId> {
     return product;
   }
 
+  @Override
   public int compareTo(ModuleId other) {
     int cmp = product.compareTo(other.product);
     if (cmp > 0) {
@@ -58,6 +60,21 @@ public class ModuleId implements Comparable<ModuleId> {
     ModuleId m1 = new ModuleId(i1);
     ModuleId m2 = new ModuleId(i2);
     return m1.compareTo(m2);
+  }
+
+  public String getLatest(Collection<String> l) {
+    ModuleId bModule = null;
+    String bId = null;
+    for (String cId : l) {
+      ModuleId cModule = new ModuleId(cId);
+      if (product.equals(cModule.getProduct())) {
+        if (bModule == null || cModule.compareTo(bModule) > 0) {
+          bId = cId;
+          bModule = cModule;
+        }
+      }
+    }
+    return bId;
   }
 
   public boolean hasPrefix(ModuleId other) {

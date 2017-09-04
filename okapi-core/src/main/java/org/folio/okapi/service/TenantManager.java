@@ -28,6 +28,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -767,13 +768,22 @@ public class TenantManager {
 
     List<TenantModuleDescriptor> tml2 = new LinkedList<TenantModuleDescriptor>();
 
+    Collection<String> l = modsAvailable.keySet();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
-      if (!modsAvailable.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return;
-      }
       if ("enable".equals(tm.getAction())) {
+        ModuleId moduleId = new ModuleId(id);
+        if (!moduleId.hasSemVer()) {
+          id = moduleId.getLatest(l);
+          if (id == null) {
+            fut.handle(new Failure<>(NOT_FOUND, id));
+            return;
+          }
+        }
+        if (!modsAvailable.containsKey(id)) {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+          return;
+        }
         if (modsEnabled.containsKey(id)) {
           TenantModuleDescriptor tmu = new TenantModuleDescriptor();
           tmu.setAction("uptodate");
