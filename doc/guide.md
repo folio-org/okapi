@@ -2337,6 +2337,12 @@ curl -w '\n' -X POST -d@/tmp/tmdl.json \
 A set of 4 modules was required. This list, of course, may change depending
 on the current set of modules in the remote repository.
 
+For Okapi version 1.11.0 and later the modules may be referred to
+without version. In the example above, we could have used `mod-users-bl`.
+In this case, the latest available module will be picked for action=enable
+and the installed module  will be picked for action=disable.
+Okapi will always respond with the complete - resulting - module IDs.
+
 ## Reference
 
 ### Okapi program
