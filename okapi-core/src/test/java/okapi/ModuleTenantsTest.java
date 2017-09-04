@@ -619,6 +619,24 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // simulate removal of basic with product only (moduleId without version)
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"basic-module\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.2.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // downgrade sample from 1.2.0 to 1.0.0
     c = api.createRestAssured();
     c.given()
