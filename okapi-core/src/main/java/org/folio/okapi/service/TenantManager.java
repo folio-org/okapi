@@ -768,13 +768,12 @@ public class TenantManager {
 
     List<TenantModuleDescriptor> tml2 = new LinkedList<TenantModuleDescriptor>();
 
-    Collection<String> l = modsAvailable.keySet();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
       if ("enable".equals(tm.getAction())) {
         ModuleId moduleId = new ModuleId(id);
         if (!moduleId.hasSemVer()) {
-          id = moduleId.getLatest(l);
+          id = moduleId.getLatest(modsAvailable.keySet());
           if (id == null) {
             fut.handle(new Failure<>(NOT_FOUND, id));
             return;
@@ -799,6 +798,14 @@ public class TenantManager {
           return;
         }
       } else if ("disable".equals(tm.getAction())) {
+        ModuleId moduleId = new ModuleId(id);
+        if (!moduleId.hasSemVer()) {
+          id = moduleId.getLatest(modsEnabled.keySet());
+          if (id == null) {
+            fut.handle(new Failure<>(NOT_FOUND, id));
+            return;
+          }
+        }
         if (!modsEnabled.containsKey(id)) {
           fut.handle(new Failure<>(NOT_FOUND, id));
           return;
