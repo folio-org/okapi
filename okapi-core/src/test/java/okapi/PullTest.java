@@ -239,7 +239,7 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .get("/_/proxy/modules?orderBy=id&order=desc").then().statusCode(200)
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true").then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
         + "  \"name\" : \"okapi-0.0.0\"" + LS

@@ -307,6 +307,10 @@ schemas:
         description: Order
         enum: [desc, asc]
         required: false
+      preRelease:
+        description: whether to include modules with pre-release info
+        type: string
+        required: false
     responses:
       200:
         headers:
@@ -561,6 +565,10 @@ schemas:
         queryParameters:
           simulate:
             description: Whether the installation is simulated
+            type: boolean
+          preRelease:
+            description: Whether pre-releases should be consider for
+              installation.
             type: boolean
         body:
           application/json:

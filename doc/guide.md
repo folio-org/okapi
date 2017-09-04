@@ -2343,6 +2343,11 @@ In this case, the latest available module will be picked for action=enable
 and the installed module  will be picked for action=disable.
 Okapi will always respond with the complete - resulting - module IDs.
 
+By default all modules are considered for install - whether pre-releases
+or not. For Okapi 1.11.0, it is possible to add filter `preRelease` which
+takes a boolean value. If false, the install will only consider modules
+without pre-release information.
+
 ## Reference
 
 ### Okapi program
