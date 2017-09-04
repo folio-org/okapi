@@ -826,7 +826,7 @@ public class TenantManager {
   }
 
   public void enableModules(String id, ProxyContext pc,
-    boolean simulate, List<TenantModuleDescriptor> tml,
+    boolean simulate, boolean preRelease, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
     if (!simulate) {
       fut.handle(new Failure<>(ErrorType.INTERNAL, "Only simulate=true supported"));
@@ -838,7 +838,7 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      moduleManager.getModulesWithFilter(null, mres -> {
+      moduleManager.getModulesWithFilter(null, preRelease, mres -> {
         if (mres.failed()) {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;

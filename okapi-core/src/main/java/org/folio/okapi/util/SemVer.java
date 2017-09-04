@@ -77,6 +77,10 @@ public class SemVer implements Comparable<SemVer> {
     return i;
   }
 
+  public boolean hasPreRelease() {
+    return !preRelease.isEmpty();
+  }
+
   public boolean hasPrefix(SemVer other) {
     Iterator<String> i1 = this.versions.iterator();
     Iterator<String> i2 = other.versions.iterator();

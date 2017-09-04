@@ -631,6 +631,16 @@ public class InternalModule {
       if ("1".equals(simulateStr) || "true".equals(simulateStr)) {
         simulate = true;
       }
+      boolean preRelease = true;
+      final String preReleaseStr = pc.getCtx().request().getParam("preRelease");
+      if (preReleaseStr != null) {
+        if ("1".equals(preReleaseStr) || "true".equals(preReleaseStr)) {
+          preRelease = true;
+        } else {
+          preRelease = false;
+        }
+      }
+
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
         TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
@@ -638,7 +648,7 @@ public class InternalModule {
         tm.add(tml[i]);
       }
       logger.info("simulate = " + simulate);
-      tenantManager.enableModules(id, pc, simulate, tm, res -> {
+      tenantManager.enableModules(id, pc, simulate, preRelease, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
@@ -786,7 +796,17 @@ public class InternalModule {
     final String orderByStr = pc.getCtx().request().getParam("orderBy");
     final String orderStr = pc.getCtx().request().getParam("order");
 
-    moduleManager.getModulesWithFilter(filter, res -> {
+    boolean preRelease = true;
+    final String preReleaseStr = pc.getCtx().request().getParam("preRelease");
+    if (preReleaseStr != null) {
+      if ("1".equals(preReleaseStr) || "true".equals(preReleaseStr)) {
+        preRelease = true;
+      } else {
+        preRelease = false;
+      }
+    }
+
+    moduleManager.getModulesWithFilter(filter, preRelease, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;

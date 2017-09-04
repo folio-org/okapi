@@ -479,7 +479,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&preRelease=false")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS

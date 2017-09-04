@@ -615,7 +615,7 @@ public class ModuleManager {
    * @param filter
    * @param fut
    */
-  public void getModulesWithFilter(ModuleId filter,
+  public void getModulesWithFilter(ModuleId filter, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getKeys(kres -> {
       if (kres.failed()) {
@@ -623,7 +623,7 @@ public class ModuleManager {
         return;
       }
       Collection<String> keys = kres.result();
-      getModulesFromCollection(keys, filter, fut);
+      getModulesFromCollection(keys, filter, preRelease, fut);
     });
   }
 
@@ -635,7 +635,7 @@ public class ModuleManager {
    */
   public void getEnabledModules(Tenant ten,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    getModulesFromCollection(ten.getEnabled().keySet(), null, fut);
+    getModulesFromCollection(ten.getEnabled().keySet(), null, true, fut);
   }
 
   /**
@@ -645,11 +645,11 @@ public class ModuleManager {
    * @param fut
    */
   private void getModulesFromCollection(Collection<String> ids,
-    ModuleId filter,
+    ModuleId filter, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     List<ModuleDescriptor> mdl = new LinkedList<>();
     Iterator<String> it = ids.iterator();
-    getModulesR(it, mdl, filter, fut);
+    getModulesR(it, mdl, filter, preRelease, fut);
   }
 
   /**
@@ -660,19 +660,24 @@ public class ModuleManager {
    * @param fut
    */
   private void getModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
-    ModuleId filter,
+    ModuleId filter, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(mdl));
       return;
     }
     String id = it.next();
+    ModuleId idThis = new ModuleId(id);
     if (filter != null) {
-      ModuleId idThis = new ModuleId(id);
       if (!idThis.hasPrefix(filter)) {
-        getModulesR(it, mdl, filter, fut);
+        getModulesR(it, mdl, filter, preRelease, fut);
         return;
       }
+    }
+    if (preRelease == false && idThis.hasPreRelease()) {
+      logger.info("skipping " + id);
+      getModulesR(it, mdl, filter, preRelease, fut);
+      return;
     }
     modules.get(id, gres -> {
       if (gres.failed()) {
@@ -681,7 +686,7 @@ public class ModuleManager {
       }
       ModuleDescriptor md = gres.result();
       mdl.add(md);
-      getModulesR(it, mdl, filter, fut);
+      getModulesR(it, mdl, filter, preRelease, fut);
     });
   }
 

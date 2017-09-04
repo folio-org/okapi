@@ -22,6 +22,13 @@ public class ModuleId implements Comparable<ModuleId> {
     return semVer != null;
   }
 
+  public boolean hasPreRelease() {
+    if (semVer != null && semVer.hasPreRelease()) {
+      return true;
+    }
+    return false;
+  }
+
   public String getProduct() {
     return product;
   }
