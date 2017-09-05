@@ -150,7 +150,7 @@ public class ModuleTenantsTest {
     locationBasicDeployment2 = r.getHeader("Location");
 
     // create basic 0.9.0
-    final String docBasidModule1 = "{" + LS
+    final String docBasicModule1 = "{" + LS
       + "  \"id\" : \"basic-module-0.9.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -174,7 +174,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docBasidModule1).post("/_/proxy/modules").then().statusCode(201)
+      .body(docBasicModule1).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -182,7 +182,7 @@ public class ModuleTenantsTest {
     final String locationBasicModule1 = r.getHeader("Location");
 
     // create basic 1.0.0
-    final String docBasidModule2 = "{" + LS
+    final String docBasicModule2 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -206,7 +206,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docBasidModule2).post("/_/proxy/modules").then().statusCode(201)
+      .body(docBasicModule2).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
