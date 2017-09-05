@@ -761,7 +761,7 @@ public class TenantManager {
     }); // tenant
   }
 
-  private void enable2(HashMap<String, ModuleDescriptor> modsAvailable,
+  private void installModules(HashMap<String, ModuleDescriptor> modsAvailable,
     HashMap<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
@@ -825,14 +825,14 @@ public class TenantManager {
     fut.handle(new Success<>(Boolean.TRUE));
   }
 
-  public void enableModules(String id, ProxyContext pc,
+  public void installUpgradeModules(String tenantId, ProxyContext pc,
     boolean simulate, boolean preRelease, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
     if (!simulate) {
       fut.handle(new Failure<>(ErrorType.INTERNAL, "Only simulate=true supported"));
       return;
     }
-    tenants.get(id, gres -> {
+    tenants.get(tenantId, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
@@ -854,13 +854,35 @@ public class TenantManager {
             modsEnabled.put(md.getId(), md);
           }
         }
-        enable2(modsAvailable, modsEnabled, tml, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-            return;
+        if (tml == null) {
+          List<TenantModuleDescriptor> tml2 = new LinkedList<TenantModuleDescriptor>();
+          for (String fId : modsEnabled.keySet()) {
+            ModuleId moduleId = new ModuleId(fId);
+            String uId = moduleId.getLatest(modsAvailable.keySet());
+            if (!uId.equals(fId)) {
+              TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+              tmd.setAction("enable");
+              tmd.setId(uId);
+              tmd.setFrom(fId);
+              tml2.add(tmd);
+            }
           }
-          fut.handle(new Success<>(tml));
-        });
+          installModules(modsAvailable, modsEnabled, tml2, res -> {
+            if (res.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+              return;
+            }
+            fut.handle(new Success<>(tml2));
+          });
+        } else {
+          installModules(modsAvailable, modsEnabled, tml, res -> {
+            if (res.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+              return;
+            }
+            fut.handle(new Success<>(tml));
+          });
+        }
       });
     });
   }
