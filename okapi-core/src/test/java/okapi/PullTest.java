@@ -286,6 +286,12 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // no RAML check below because preRelease value is invalid
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?preRelease=sandt").then().statusCode(400);
+
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
