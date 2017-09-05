@@ -635,7 +635,7 @@ public class InternalModule {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
-  private void enableModulesForTenant(ProxyContext pc, String id,
+  private void installModulesForTenant(ProxyContext pc, String id,
     String body, Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
@@ -648,11 +648,11 @@ public class InternalModule {
       for (int i = 0; i < tml.length; i++) {
         tm.add(tml[i]);
       }
-      tenantManager.enableModules(id, pc, simulate, preRelease, tm, res -> {
+      tenantManager.installUpgradeModules(id, pc, simulate, preRelease, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          logger.info("enableModules returns:\n" + Json.encodePrettily(res.result()));
+          logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
           fut.handle(new Success<>(Json.encodePrettily(res.result())));
         }
       });
@@ -661,7 +661,27 @@ public class InternalModule {
     }
   }
 
-  private void upgradeModulesForTenant(ProxyContext pc, String id, String mod,
+  private void upgradeModulesForTenant(ProxyContext pc, String id,
+    String body, Handler<ExtendedAsyncResult<String>> fut) {
+
+    try {
+      final boolean simulate = getParamBoolean(pc.getCtx().request(), "simulate", false);
+      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+
+      tenantManager.installUpgradeModules(id, pc, simulate, preRelease, null, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
+          fut.handle(new Success<>(Json.encodePrettily(res.result())));
+        }
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
+  }
+
+  private void upgradeModuleForTenant(ProxyContext pc, String id, String mod,
     String body, Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final String module_from = mod;
@@ -1310,7 +1330,7 @@ public class InternalModule {
           return;
         }
         if (n == 7 && m.equals(POST) && segments[5].equals("modules")) {
-          upgradeModulesForTenant(pc, segments[4], segments[6], req, fut);
+          upgradeModuleForTenant(pc, segments[4], segments[6], req, fut);
           return;
         }
         if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")) {
@@ -1319,7 +1339,12 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(POST) && segments[5].equals("install")) {
-          enableModulesForTenant(pc, segments[4], req, fut);
+          installModulesForTenant(pc, segments[4], req, fut);
+          return;
+        }
+        // /_/proxy/tenants/:id/upgrade
+        if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
+          upgradeModulesForTenant(pc, segments[4], req, fut);
           return;
         }
 

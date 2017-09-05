@@ -599,10 +599,13 @@ schemas:
         description: Check if newer modules of exist and upgrade for tenant.
           The response is a list of modules that should be enabled, disabled
           or upgraded to perform the upgrade.
-          Note that this service is NOT yet implemented.
         queryParameters:
           simulate:
             description: whether the upgrade is simulated
+            type: boolean
+          preRelease:
+            description: Whether pre-releases should be considered for
+              installation.
             type: boolean
         responses:
           200:
@@ -610,6 +613,9 @@ schemas:
             body:
               application/json:
                 schema: TenantModuleDescriptorList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Bad Request
             body:
