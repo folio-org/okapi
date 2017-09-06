@@ -467,16 +467,6 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // upgrade service: simulate false is unsupported
-    c = api.createRestAssured();
-    c.given()
-      .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false")
-      .then().statusCode(500);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
     // enable modules -- wrong type
     c = api.createRestAssured();
     c.given()
@@ -556,7 +546,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // upgrade modules: post module without version (product only)
+    // simulate upgrade modules: post module without version (product only)
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -579,7 +569,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -593,29 +583,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // enable basic-module-1.0.0 again
-    c = api.createRestAssured();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docEnableBasic).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(201)
-      .body(equalTo(docEnableBasic)).extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    c = api.createRestAssured();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docEnableSample2).post(locationTenantModule)
-      .then()
-      .statusCode(201)
-      .extract().response();
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    locationTenantModule = r.getHeader("Location");
-
+    // try remove sample 1.0.0 which does not exist (removed earlier)
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -626,6 +594,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // simulate removal of sample 1.2.0
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -658,12 +627,12 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // simulate removal of basic with product only (moduleId without version)
+    // removal of basic with product only (moduleId without version)
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -675,22 +644,5 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
-    // downgrade sample from 1.2.0 to 1.0.0
-    c = api.createRestAssured();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS
-        + "  \"id\" : \"sample-module-1.0.0\"," + LS
-        + "  \"from\" : \"sample-module-1.2.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "} ]"));
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
   }
 }

@@ -354,39 +354,45 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      if (module_from != null) {
-        t.disableModule(module_from);
-      }
-      if (module_to != null) {
-        t.enableModule(module_to);
-      }
-      if (tenantStore == null) {
+      updateModuleCommit(gres.result(), module_from, module_to, fut);
+    });
+  }
+
+  private void updateModuleCommit(Tenant t,
+    String module_from, String module_to,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    String id = t.getId();
+    if (module_from != null) {
+      t.disableModule(module_from);
+    }
+    if (module_to != null) {
+      t.enableModule(module_to);
+    }
+    if (tenantStore == null) {
+      tenants.put(id, t, pres -> {
+        if (pres.failed()) {
+          fut.handle(new Failure<>(INTERNAL, pres.cause()));
+          return;
+        }
+        fut.handle(new Success<>());
+        return;
+      });
+    } else {
+      tenantStore.updateModules(id, t.getEnabled(), ures -> {
+        if (ures.failed()) {
+          fut.handle(new Failure<>(ures.getType(), ures.cause()));
+          return;
+        }
         tenants.put(id, t, pres -> {
           if (pres.failed()) {
             fut.handle(new Failure<>(INTERNAL, pres.cause()));
             return;
           }
           fut.handle(new Success<>());
-          return;
         });
-      } else {
-          tenantStore.updateModules(id, t.getEnabled(), ures -> {
-            if (ures.failed()) {
-              fut.handle(new Failure<>(ures.getType(), ures.cause()));
-              return;
-            }
-            tenants.put(id, t, pres -> {
-              if (pres.failed()) {
-                fut.handle(new Failure<>(INTERNAL, pres.cause()));
-                return;
-              }
-              fut.handle(new Success<>());
-          });
-        });
-      }
-    });
+      });
+    }
   }
-
   /**
    * Enable a module for a tenant and disable another. Checks dependencies,
    * invokes the tenant interface, and the tenantPermissions interface, and
@@ -418,24 +424,29 @@ public class TenantManager {
             fut.handle(new Failure<>(tres.getType(), tres.cause()));
             return;
           }
-          Tenant tenant = tres.result();
-          updateModuleDepCheck(tenant, module_from, module_to2, cres -> {
-            if (cres.failed()) {
-              pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
-              fut.handle(new Failure<>(cres.getType(), cres.cause()));
-              return;
-            }
-            pc.debug("enableAndDisableModule: depcheck ok");
-            ead1TenantInterface(tenant, module_from, module_to2, pc, res2 -> {
-              if (res2.failed()) {
-                fut.handle(new Failure<>(res2.getType(), res2.cause()));
-              } else {
-                fut.handle(new Success<>(module_to2));
-              }
-            });
-          });
+          enableAndDisableModule2(tres.result(), module_from, module_to2, pc, fut);
         });
       }
+    });
+  }
+
+  private void enableAndDisableModule2(Tenant tenant,
+    String module_from, String module_to, ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    updateModuleDepCheck(tenant, module_from, module_to, cres -> {
+      if (cres.failed()) {
+        pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
+        fut.handle(new Failure<>(cres.getType(), cres.cause()));
+        return;
+      }
+      pc.debug("enableAndDisableModule: depcheck ok");
+      ead1TenantInterface(tenant, module_from, module_to, pc, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          fut.handle(new Success<>(module_to));
+        }
+      });
     });
   }
 
@@ -588,7 +599,7 @@ public class TenantManager {
     String module_from, String module_to, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
     pc.debug("ead4commit: " + module_from + " " + module_to);
-    updateModuleCommit(tenant.getId(), module_from, module_to, ures -> {
+    updateModuleCommit(tenant, module_from, module_to, ures -> {
       if (ures.failed()) {
         pc.responseError(ures.getType(), ures.cause());
         return;
@@ -825,13 +836,37 @@ public class TenantManager {
     fut.handle(new Success<>(Boolean.TRUE));
   }
 
+  private void installCommit(Tenant tenant, ProxyContext pc,
+    List<TenantModuleDescriptor> tml, Iterator<TenantModuleDescriptor> it,
+    boolean simulate,
+    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+    if (!simulate && it.hasNext()) {
+      TenantModuleDescriptor tm = it.next();
+      String module_from = null;
+      String module_to = null;
+      if ("enable".equals(tm.getAction())) {
+        module_from = tm.getFrom();
+        module_to = tm.getId();
+      } else if ("disable".equals(tm.getAction())) {
+        module_from = tm.getId();
+      }
+      if (module_from != null || module_to != null) {
+        enableAndDisableModule2(tenant, module_from, module_to, pc, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            installCommit(tenant, pc, tml, it, simulate, fut);
+          }
+        });
+      }
+    } else {
+      fut.handle(new Success<>(tml));
+    }
+  }
+
   public void installUpgradeModules(String tenantId, ProxyContext pc,
     boolean simulate, boolean preRelease, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
-    if (!simulate) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, "Only simulate=true supported"));
-      return;
-    }
     tenants.get(tenantId, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
@@ -872,7 +907,7 @@ public class TenantManager {
               fut.handle(new Failure<>(res.getType(), res.cause()));
               return;
             }
-            fut.handle(new Success<>(tml2));
+            installCommit(t, pc, tml2, tml2.iterator(), simulate, fut);
           });
         } else {
           installModules(modsAvailable, modsEnabled, tml, res -> {
@@ -880,7 +915,7 @@ public class TenantManager {
               fut.handle(new Failure<>(res.getType(), res.cause()));
               return;
             }
-            fut.handle(new Success<>(tml));
+            installCommit(t, pc, tml, tml.iterator(), simulate, fut);
           });
         }
       });

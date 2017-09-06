@@ -2291,9 +2291,6 @@ be enabled/upgraded/disabled and responds with a similar list that
 respects dependencies. For details, refer to the JSON schema
 TenantModuleDescriptorList and the RAML definition in general.
 
-As of Okapi 1.10, the install operation is simulate *only*.
-
-
 #### Install Operation Example
 
 Suppose we have pulled module descriptors from the remote repo
