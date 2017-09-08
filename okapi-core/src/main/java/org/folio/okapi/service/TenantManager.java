@@ -805,6 +805,8 @@ public class TenantManager {
             installCommit(tenant, pc, tml, it, simulate, fut);
           }
         });
+      } else {
+        installCommit(tenant, pc, tml, it, simulate, fut);
       }
     } else {
       fut.handle(new Success<>(tml));
