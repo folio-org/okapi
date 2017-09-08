@@ -420,8 +420,8 @@ public class TenantManager {
    * enableAndDisable helper 1: call the tenant interface.
    *
    * @param tenant
-   * @param module_from
-   * @param module_to
+   * @param md_from
+   * @param md_to
    * @param fut
    */
   private void ead1TenantInterface(Tenant tenant,
@@ -742,10 +742,18 @@ public class TenantManager {
           return;
         }
         if (modsEnabled.containsKey(id)) {
-          TenantModuleDescriptor tmu = new TenantModuleDescriptor();
-          tmu.setAction("uptodate");
-          tmu.setId(id);
-          tml2.add(tmu);
+          boolean alreadyEnabled = false;
+          for (TenantModuleDescriptor tm2 : tml2) {
+            if (tm2.getId().equals(id)) {
+              alreadyEnabled = true;
+            }
+          }
+          if (!alreadyEnabled) {
+            TenantModuleDescriptor tmu = new TenantModuleDescriptor();
+            tmu.setAction("uptodate");
+            tmu.setId(id);
+            tml2.add(tmu);
+          }
         } else {
           int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
             modsAvailable, modsEnabled, tml2);
@@ -775,36 +783,48 @@ public class TenantManager {
         return;
       }
     }
+    String s = moduleManager.checkAllDependencies(modsEnabled);
+    if (!s.isEmpty()) {
+      logger.warn("installModules.checkAllDependencies: " + s);
+      fut.handle(new Failure<>(USER, s));
+      return;
+    }
 
     tml.clear();
     for (TenantModuleDescriptor tm : tml2) {
       tml.add(tm);
     }
+    logger.info("installModules.returning OK");
     fut.handle(new Success<>(Boolean.TRUE));
   }
 
   private void installCommit(Tenant tenant, ProxyContext pc,
+    HashMap<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml, Iterator<TenantModuleDescriptor> it,
     boolean simulate,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
     if (!simulate && it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
-      String module_from = null;
-      String module_to = null;
+      ModuleDescriptor md_from = null;
+      ModuleDescriptor md_to = null;
       if ("enable".equals(tm.getAction())) {
-        module_from = tm.getFrom();
-        module_to = tm.getId();
+        if (tm.getFrom() != null) {
+          md_from = modsAvailable.get(tm.getFrom());
+        }
+        md_to = modsAvailable.get(tm.getId());
       } else if ("disable".equals(tm.getAction())) {
-        module_from = tm.getId();
+        md_from = modsAvailable.get(tm.getId());
       }
-      if (module_from != null || module_to != null) {
-        enableAndDisableModule(tenant, module_from, module_to, pc, res -> {
+      if (md_from != null || md_to != null) {
+        ead1TenantInterface(tenant, md_from, md_to, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
-            installCommit(tenant, pc, tml, it, simulate, fut);
+            installCommit(tenant, pc, modsAvailable, tml, it, simulate, fut);
           }
         });
+      } else {
+        installCommit(tenant, pc, modsAvailable, tml, it, simulate, fut);
       }
     } else {
       fut.handle(new Success<>(tml));
@@ -846,6 +866,7 @@ public class TenantManager {
               TenantModuleDescriptor tmd = new TenantModuleDescriptor();
               tmd.setAction("enable");
               tmd.setId(uId);
+              logger.info("upgrade.. enable " + uId);
               tmd.setFrom(fId);
               tml2.add(tmd);
             }
@@ -855,7 +876,7 @@ public class TenantManager {
               fut.handle(new Failure<>(res.getType(), res.cause()));
               return;
             }
-            installCommit(t, pc, tml2, tml2.iterator(), simulate, fut);
+            installCommit(t, pc, modsAvailable, tml2, tml2.iterator(), simulate, fut);
           });
         } else {
           installModules(modsAvailable, modsEnabled, tml, res -> {
@@ -863,7 +884,7 @@ public class TenantManager {
               fut.handle(new Failure<>(res.getType(), res.cause()));
               return;
             }
-            installCommit(t, pc, tml, tml.iterator(), simulate, fut);
+            installCommit(t, pc, modsAvailable, tml, tml.iterator(), simulate, fut);
           });
         }
       });

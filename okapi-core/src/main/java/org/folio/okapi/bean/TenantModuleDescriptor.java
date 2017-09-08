@@ -17,6 +17,12 @@ public class TenantModuleDescriptor {
   // called 'id'. It is the id of a module.
   private String from;
 
+  enum Action {
+    enable, disable, uptodate, suggest, conflict
+  };
+
+  private Action action;
+
   private String message;
 
   public String getId() {
@@ -34,12 +40,6 @@ public class TenantModuleDescriptor {
   public void setFrom(String id) {
     this.from = id;
   }
-
-  enum Action {
-    enable, disable, uptodate, suggest
-  };
-
-  private Action action;
 
   public String getAction() {
     if (action == null) {
