@@ -1,3 +1,14 @@
+## 1.11.0 2017-09-08
+
+ * Install facility can do full enable (simulate=false) OKAPI-399
+ * Add upgrade facility OKAPI-350
+ * `preRelease` parameter for install and upgrade facilities OKAPI-397
+ * Install facility for action=enable may take a module ID without
+   semVer OKAPI-395 . In this case module with highest semVer is
+   picked from available modules.
+ * Install facility for action=disable may take a module ID without
+   semVer OKAPI-396 .
+
 ## 1.10.0 2017-08-28
 
  * Fix pull fails with internal modules OKAPI-393
