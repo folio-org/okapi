@@ -8,7 +8,7 @@
     "from": {"type": "string"},
     "action" : {
        "type" : "string",
-       "enum" : [ "enable", "disable", "uptodate", "suggest" ]
+       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
     "message": {"type": "string"}
   },
