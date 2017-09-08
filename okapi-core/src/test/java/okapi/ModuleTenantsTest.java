@@ -585,11 +585,11 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // upgrade service simulate: will return same as previous one
+    // upgrade service: will return same as previous one
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -599,6 +599,17 @@ public class ModuleTenantsTest {
         + "  \"from\" : \"sample-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // upgrade service: nothing to be done
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false")
+      .then().statusCode(200)
+      .body(equalTo("[ ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -652,28 +663,21 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationBasic_2_0_0 = r.getHeader("Location");    
+    final String locationBasic_2_0_0 = r.getHeader("Location");
 
     // upgrade service simulate: will return same as previous one
     // basic 2.0.0 should not be included because bint 2.0 is not used
+    // it could be nice to return conflict.. But that is difficult to do.
+    // for now 400 ..
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS
-        + "  \"id\" : \"basic-module-1.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
-        + "  \"id\" : \"sample-module-1.2.0\"," + LS
-        + "  \"from\" : \"sample-module-1.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "} ]"));
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    
     // create sample 2.0.0
     final String docSampleModule_2_0_0 = "{" + LS
       + "  \"id\" : \"sample-module-2.0.0\"," + LS
@@ -733,10 +737,11 @@ public class ModuleTenantsTest {
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-2.0.0\"," + LS
+        + "  \"from\" : \"basic-module-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-2.0.0\"," + LS
-        + "  \"from\" : \"sample-module-1.0.0\"," + LS
+        + "  \"from\" : \"sample-module-1.2.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(
@@ -747,7 +752,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")
+      .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(404);
     Assert.assertTrue(
