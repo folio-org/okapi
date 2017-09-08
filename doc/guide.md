@@ -31,7 +31,8 @@ managing and running microservices.
     * [Running in cluster mode](#running-in-cluster-mode)
     * [Securing Okapi](#securing-okapi)
     * [Module Descriptor Sharing](#module-descriptor-sharing)
-    * [Enabling modules per tenant (install operation)](#enabling-modules-per-tenant-install-operation)
+    * [Install modules per tenant](#install-modules-per-tenant)
+    * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -40,7 +41,6 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
-    * [Instrumentation](#instrumentation)
 
 ## Introduction
 
@@ -2276,14 +2276,14 @@ curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/module
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
 ```
 
-### Enabling modules per tenant (install operation)
+### Install modules per tenant
 
-Until now - in this guide - we have installed only a few modules
-and we were able to track dependencies and ensure that they were in order.
-For example,  the 'test-basic'  required 'test-auth' interface that we
-knew was offered by the 'test-auth' module. It is a coincidence that
-those names match by the way. Not to mention that a module may require
-many interfaces.
+Until now - in this guide - we have installed only a few modules one
+at a time and we were able to track dependencies and ensure that they
+were in order. For example,  the 'test-basic'  required 'test-auth'
+interface that we knew was offered by the 'test-auth' module.
+It is a coincidence that those names match by the way. Not to mention
+that a module may require many interfaces.
 
 Okapi 1.10 and later offers the `/_/proxy/tenant/id/install` call
 to remedy the situation. This call takes one or more modules to
@@ -2344,6 +2344,18 @@ By default all modules are considered for install - whether pre-releases
 or not. For Okapi 1.11.0, it is possible to add filter `preRelease` which
 takes a boolean value. If false, the install will only consider modules
 without pre-release information.
+
+### Upgrading modules per tenant
+
+The upgrade facility consists of a POST request with ignored body
+(should be empty) and a response that is otherwise similar to the
+install facility. The call has the path `/_/proxy/tenant/id/upgrade`.
+Like the install facility, there is a simulate optional parameter, which
+if true will simulate the upgrade. Also the `preRelease` parameter
+is recognized which controls whether module IDs with pre-release info
+should be considered.
+
+The upgrade facility is part of Okapi version 1.11.0 and later.
 
 ## Reference
 
