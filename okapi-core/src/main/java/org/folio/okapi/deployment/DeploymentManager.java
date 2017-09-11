@@ -33,28 +33,31 @@ import org.folio.okapi.env.EnvManager;
 public class DeploymentManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
-  Vertx vertx;
-  Ports ports;
-  String host;
-  DiscoveryManager dm;
-  EnvManager em;
+  private final LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
+  private final Vertx vertx;
+  private final Ports ports;
+  private final String host;
+  private final DiscoveryManager dm;
+  private final EnvManager em;
   private final int listenPort;
+  private final String nodeName;
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
-          String host, Ports ports, int listenPort) {
+    String host, Ports ports, int listenPort, String nodeName) {
     this.dm = dm;
     this.em = em;
     this.vertx = vertx;
     this.host = host;
     this.listenPort = listenPort;
     this.ports = ports;
+    this.nodeName = nodeName;
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
     NodeDescriptor nd = new NodeDescriptor();
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
+    nd.setNodeName(nodeName);
     dm.addNode(nd, fut);
   }
 

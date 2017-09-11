@@ -29,10 +29,10 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 
 /**
- * Keeps track of which modules are running where.
- * Uses a shared map to list running modules on the different nodes.
- * Maps a SrvcId to a DeploymentDescriptor. Can also invoke deployment,
- * and record the result in its map.
+ * Keeps track of which modules are running where. Uses a shared map to list
+ * running modules on the different nodes. Maps a SrvcId to a
+ * DeploymentDescriptor. Can also invoke deployment, and record the result in
+ * its map.
  */
 public class DiscoveryManager implements NodeListener {
 
@@ -425,6 +425,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
+    logger.debug("Discovery. addNode: " + Json.encode(nd));
     nodes.put(nd.getNodeId(), nd, fut);
   }
 
@@ -516,6 +517,7 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeAdded(String nodeID) {
+    logger.info("node.add " + nodeID);
   }
 
   @Override

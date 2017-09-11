@@ -7,7 +7,7 @@ import java.util.List;
 public class SemVer implements Comparable<SemVer> {
 
   private final List<String> preRelease = new LinkedList<>();
-  private final List<String> versions = new LinkedList();
+  private final List<String> versions = new LinkedList<>();
   private String metadata;
 
   public SemVer(String v) {
