@@ -955,6 +955,7 @@ public class InternalModule {
       fut.handle(new Failure<>(USER, "id missing"));
       return;
     }
+    logger.debug("Int: getDiscoveryNode: " + id);
     discoveryManager.getNode(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
