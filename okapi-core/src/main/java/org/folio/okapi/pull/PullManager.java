@@ -27,6 +27,9 @@ public class PullManager {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
+  private int concurrent_runs;
+  private final int concurrent_max = 10;
+  private boolean concurrent_complete;
 
   public PullManager(Vertx vertx, String okapiUrl) {
     this.okapiUrl = okapiUrl;
@@ -110,9 +113,9 @@ public class PullManager {
   private void getFull(String urlBase, Iterator<ModuleDescriptorBrief> it,
     List<ModuleDescriptor> ml,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(ml));
-    } else {
+
+    while (!concurrent_complete && concurrent_runs < concurrent_max && it.hasNext()) {
+      ++concurrent_runs;
       String url = urlBase;
       if (!url.endsWith("/")) {
         url += "/";
@@ -124,8 +127,14 @@ public class PullManager {
           body.appendBuffer(x);
         });
         res.endHandler(x -> {
+          if (concurrent_runs > 0) {
+            concurrent_runs--;
+          }
           if (res.statusCode() != 200) {
-            fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+            if (!concurrent_complete) {
+              concurrent_complete = true;
+              fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+            }
           } else {
             ModuleDescriptor md = Json.decodeValue(body.toString(),
               ModuleDescriptor.class);
@@ -135,14 +144,30 @@ public class PullManager {
         });
         res.exceptionHandler(x -> {
           logger.warn("exception handler 1");
-          fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+          if (concurrent_runs > 0) {
+            concurrent_runs--;
+          }
+          if (!concurrent_complete) {
+            concurrent_complete = true;
+            fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+          }
         });
       });
       req.exceptionHandler(x -> {
+        if (concurrent_runs > 0) {
+          concurrent_runs--;
+        }
         logger.warn("exception handler 2");
-        fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+        if (!concurrent_complete) {
+          concurrent_complete = true;
+          fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+        }
       });
       req.end();
+    }
+    if (!it.hasNext() && !concurrent_complete && concurrent_runs == 0) {
+      concurrent_complete = true;
+      fut.handle(new Success<>(ml));
     }
   }
 
@@ -245,6 +270,8 @@ public class PullManager {
     }
     logger.info("pull: " + mlAdd.size() + " MDs to fetch");
     List<ModuleDescriptor> mlList = new LinkedList<>();
+    concurrent_runs = 0;
+    concurrent_complete = false;
     getFull(urlBase, mlAdd.iterator(), mlList, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
