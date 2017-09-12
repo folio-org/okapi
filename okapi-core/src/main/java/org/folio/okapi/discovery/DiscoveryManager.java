@@ -489,6 +489,40 @@ public class DiscoveryManager implements NodeListener {
     nodes.get(nodeId, fut);
   }
 
+  public void updateNode(String nodeId, NodeDescriptor nd,
+    Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    if (clusterManager != null) {
+      List<String> n = clusterManager.getNodes();
+      if (!n.contains(nodeId)) {
+        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        return;
+      }
+    }
+    nodes.get(nodeId, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        NodeDescriptor old = gres.result();
+        if (!old.getNodeId().equals(nd.getNodeId())) {
+          fut.handle(new Failure<>(USER, "Can not change nodeId for node " + nodeId));
+          return;
+        }
+        if (!old.getUrl().equals(nd.getUrl())) {
+          fut.handle(new Failure<>(USER, "Can not change the URL for node " + nodeId));
+          return;
+        }
+        nodes.put(nodeId, nd, pres -> {
+          if (pres.failed()) {
+            fut.handle(new Failure<>(pres.getType(), pres.cause()));
+          } else {
+            fut.handle(new Success<>(nd));
+          }
+        });
+      }
+    });
+
+  }
+
   void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
     Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
     if (!it.hasNext()) {

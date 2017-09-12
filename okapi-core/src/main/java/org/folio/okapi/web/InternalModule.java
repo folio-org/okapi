@@ -20,6 +20,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
+import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -178,6 +179,11 @@ public class InternalModule {
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/nodes\","
       + "    \"permissionsRequired\" : [ ], "
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"PUT\" ],"
+      + "    \"pathPattern\" : \"/_/discovery/nodes/{nodeId}\","
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.put\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
@@ -356,6 +362,10 @@ public class InternalModule {
       + "   \"permissionName\" : \"okapi.discovery.delete\", "
       + "   \"displayName\" : \"Okapi - undeploy a module instance\", "
       + "   \"description\" : \"Undeploy a given instance of a module\" "
+      + " }, { "
+      + "   \"permissionName\" : \"okapi.discovery.nodes.put\", "
+      + "   \"displayName\" : \"Okapi - Update a node descriptor\", "
+      + "   \"description\" : \"Update a node descriptor, usually to give it a new name\" "
       + " }, "
       + " { "
       + "   \"permissionName\" : \"okapi.proxy.modules.post\", "
@@ -434,7 +444,7 @@ public class InternalModule {
       + "   \"subPermissions\" : [ "
       + "     \"okapi.deployment.post\", \"okapi.deployment.delete\", "
       + "     \"okapi.discovery.post\", \"okapi.discovery.put\", "
-      + "     \"okapi.discovery.delete\" "
+      + "     \"okapi.discovery.delete\", \"okapi.discovery.nodes.put\" "
       + "   ]"
       + " }, "
       + " { "
@@ -966,6 +976,28 @@ public class InternalModule {
     });
   }
 
+  private void putDiscoveryNode(ProxyContext pc, String id, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (id == null) {
+      fut.handle(new Failure<>(USER, "id missing"));
+      return;
+    }
+    logger.debug("Int: putDiscoveryNode: " + id + " " + body);
+    final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
+    if (!id.equals(nd.getNodeId())) {
+      fut.handle(new Failure<>(USER, "Module.id=" + nd.getNodeId() + " id=" + id));
+      return;
+    }
+    discoveryManager.updateNode(id, nd, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
   private void listDiscoveryNodes(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.getNodes(res -> {
@@ -1404,6 +1436,11 @@ public class InternalModule {
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(GET)) {
         getDiscoveryNode(pc, segments[4], fut);
+        return;
+      }
+      // /_/discovery/nodes/:nodeid
+      if (n == 5 && segments[3].equals("nodes") && m.equals(PUT)) {
+        putDiscoveryNode(pc, segments[4], req, fut);
         return;
       }
 
