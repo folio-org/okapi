@@ -17,20 +17,20 @@ public class BeanTest {
   public void testDeploymentDescriptor1() {
     int fail = 0;
     final String docSampleDeployment = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
-            + "    \"env\" : [ {" + LS
-            + "      \"name\" : \"helloGreeting\"," + LS
-            + "      \"value\" : \"hej\"" + LS
-            + "    } ]" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+      + "    \"env\" : [ {" + LS
+      + "      \"name\" : \"helloGreeting\"," + LS
+      + "      \"value\" : \"hej\"" + LS
+      + "    } ]" + LS
+      + "  }" + LS
+      + "}";
 
     try {
       final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       String pretty = Json.encodePrettily(md);
       assertEquals(docSampleDeployment, pretty);
     } catch (DecodeException ex) {
@@ -44,19 +44,19 @@ public class BeanTest {
   public void testDeploymentDescriptor2() {
     int fail = 0;
     final String docSampleDeployment = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
-            + "    \"env\" : [ {" + LS
-            + "      \"name\" : \"helloGreeting\"" + LS
-            + "    } ]" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
+      + "    \"env\" : [ {" + LS
+      + "      \"name\" : \"helloGreeting\"" + LS
+      + "    } ]" + LS
+      + "  }" + LS
+      + "}";
 
     try {
       final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       String pretty = Json.encodePrettily(md);
       assertEquals(docSampleDeployment, pretty);
     } catch (DecodeException ex) {
@@ -64,23 +64,22 @@ public class BeanTest {
       fail = 400;
     }
     assertEquals(fail, 0);
-
   }
 
   @Test
   public void testDeploymentDescriptor3() {
     int fail = 0;
     final String docSampleDeployment = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
 
     try {
       final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       String pretty = Json.encodePrettily(md);
       assertEquals(docSampleDeployment, pretty);
     } catch (DecodeException ex) {
@@ -94,19 +93,19 @@ public class BeanTest {
   public void testDeploymentDescriptor4() {
     int fail = 0;
     final String docSampleDeployment = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
-            + "  \"descriptor\" : {" + LS
-            + "    \"dockerImage\" : \"my-image\"," + LS
-            + "    \"dockerArgs\" : {" + LS
-            + "      \"Hostname\" : \"localhost\"," + LS
-            + "      \"User\" : \"nobody\"" + LS
-            + "    }" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"dockerImage\" : \"my-image\"," + LS
+      + "    \"dockerArgs\" : {" + LS
+      + "      \"Hostname\" : \"localhost\"," + LS
+      + "      \"User\" : \"nobody\"" + LS
+      + "    }" + LS
+      + "  }" + LS
+      + "}";
 
     try {
       final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
-              DeploymentDescriptor.class);
+        DeploymentDescriptor.class);
       String pretty = Json.encodePrettily(md);
       assertEquals(docSampleDeployment, pretty);
     } catch (DecodeException ex) {
@@ -121,7 +120,7 @@ public class BeanTest {
     int fail = 0;
 
     final String docModuleDescriptor = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"helloGreeting\"" + LS

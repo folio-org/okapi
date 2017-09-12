@@ -153,7 +153,7 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
@@ -186,7 +186,7 @@ public class DockerTest {
 
     logger.info("deploy 1");
     final String doc1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
@@ -209,7 +209,7 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"mod-users\"," + LS
+      + "  \"id\" : \"mod-users-1\"," + LS
       + "  \"name\" : \"users\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"users\"," + LS
@@ -236,7 +236,7 @@ public class DockerTest {
     locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
-      + "  \"srvcId\" : \"mod-users\"," + LS
+      + "  \"srvcId\" : \"mod-users-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
