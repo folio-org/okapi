@@ -559,7 +559,6 @@ public class ModuleTest {
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ ]," + LS
       + "  \"filters\" : [ ]," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"modulePermissions\" : [ ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
       + "  \"launchDescriptor\" : { }" + LS
@@ -964,19 +963,20 @@ public class ModuleTest {
       + "  \"name\" : \"auth\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2\"" + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
-      + "  }, {"
-      + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/authn/login\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
@@ -1012,19 +1012,20 @@ public class ModuleTest {
       + "  \"name\" : \"auth2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth2\"," + LS
-      + "    \"version\" : \"1.2\"" + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
-      + "  }, {"
-      + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/authn/login\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
@@ -1120,19 +1121,19 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+      + "       \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
+      + "      } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"," + LS
-      + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
-      + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
-      + "  } ]," + LS // no 'requires' - generates a warning
       + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS
@@ -1542,7 +1543,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
@@ -1609,7 +1610,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"05\"," + LS
@@ -1887,16 +1888,16 @@ public class ModuleTest {
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -1999,7 +2000,7 @@ public class ModuleTest {
 
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"20\"," + LS
@@ -2014,7 +2015,7 @@ public class ModuleTest {
 
     final String docHeaderModule = "{" + LS
       + "  \"id\" : \"header-module-1\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"10\"," + LS
@@ -2071,7 +2072,7 @@ public class ModuleTest {
 
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"5\"," + LS
@@ -2125,7 +2126,6 @@ public class ModuleTest {
     final String docUiModuleInput = "{" + LS
       + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
       + "    \"npm\" : \"name-of-module-in-npm\"" + LS
       + "  }" + LS
@@ -2134,7 +2134,6 @@ public class ModuleTest {
     final String docUiModuleOutput = "{" + LS
       + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
       + "    \"npm\" : \"name-of-module-in-npm\"" + LS
       + "  }" + LS
@@ -2209,7 +2208,7 @@ public class ModuleTest {
     // Set up, deploy, and enable a sample module
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"50\"," + LS
