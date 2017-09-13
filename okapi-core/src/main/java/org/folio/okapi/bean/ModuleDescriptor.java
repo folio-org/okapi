@@ -62,6 +62,25 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.tenantInterface = other.tenantInterface;
   }
 
+  public ModuleDescriptor(ModuleDescriptor other, boolean full) {
+    this.moduleId = other.moduleId;
+    this.id = other.id;
+    this.name = other.name;
+    this.tags = other.tags;
+    if (full) {
+      this.env = other.env;
+      this.routingEntries = other.routingEntries;
+      this.filters = other.filters;
+      this.requires = other.requires;
+      this.provides = other.provides;
+      this.permissionSets = other.permissionSets;
+      this.modulePermissions = other.modulePermissions;
+      this.uiDescriptor = other.uiDescriptor;
+      this.launchDescriptor = other.launchDescriptor;
+      this.tenantInterface = other.tenantInterface;
+    }
+  }
+
   public String getId() {
     return id;
   }
