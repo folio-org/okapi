@@ -22,7 +22,6 @@ public class ModuleInterface {
   private String id;
   private String version;
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
-  private RoutingEntry[] routingEntries;
   private RoutingEntry[] handlers;
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
@@ -159,24 +158,13 @@ public class ModuleInterface {
     return true;
   }
 
-  public RoutingEntry[] getRoutingEntries() {
-    return routingEntries;
-  }
-
   @JsonIgnore
   public List<RoutingEntry> getAllRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    if (routingEntries != null) {
-      Collections.addAll(all, routingEntries);
-    }
     if (handlers != null) {
       Collections.addAll(all, handlers);
     }
     return all;
-  }
-
-  public void setRoutingEntries(RoutingEntry[] routingEntries) {
-    this.routingEntries = routingEntries;
   }
 
   public RoutingEntry[] getHandlers() {
@@ -257,12 +245,6 @@ public class ModuleInterface {
    * Validate those things that apply to the "provides" section.
    */
   private String validateProvides(ProxyContext pc, String section, String mod) {
-    if (getRoutingEntries() != null) {
-      pc.warn("Module '" + mod + "':"
-        + "Provided interface " + getId()
-        + " uses DEPRECATED RoutingEntries. "
-        + "Use handlers instead");
-    }
     RoutingEntry[] handlers = getHandlers();
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
@@ -279,10 +261,6 @@ public class ModuleInterface {
    * Validate those things that apply to the "requires" section.
    */
   private String validateRequires(ProxyContext pc, String section, String mod) {
-    RoutingEntry[] oldRoutingEntries = getRoutingEntries();
-    if (oldRoutingEntries != null) {
-      return "No RoutingEntries allowed in 'requires' section";
-    }
     RoutingEntry[] handlers1 = getHandlers();
     if (handlers != null && handlers.length > 0) {
       return "No handlers allowed in 'requires' section";

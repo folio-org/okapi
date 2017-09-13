@@ -29,7 +29,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private ModuleId moduleId;
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
-  private RoutingEntry[] routingEntries; //DEPRECATED
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
   private String[] modulePermissions; // DEPRECATED
@@ -51,7 +50,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.name = other.name;
     this.tags = other.tags;
     this.env = other.env;
-    this.routingEntries = other.routingEntries;
     this.filters = other.filters;
     this.requires = other.requires;
     this.provides = other.provides;
@@ -133,14 +131,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.provides = provides;
   }
 
-  public RoutingEntry[] getRoutingEntries() {
-    return routingEntries;
-  }
-
-  public void setRoutingEntries(RoutingEntry[] routingEntries) {
-    this.routingEntries = routingEntries;
-  }
-
   /**
    * Get all RoutingEntries that are type proxy. Either from provided
    * interfaces, or from the global level RoutingEntries.
@@ -150,9 +140,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    if (routingEntries != null) {
-      Collections.addAll(all, routingEntries);
-    }
     if (filters != null) {
       Collections.addAll(all, filters);
     }
@@ -288,16 +275,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (filters != null) {
       for (RoutingEntry fe : filters) {
         String err = fe.validate(pc, "filters", mod);
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-    if (routingEntries != null) {
-      pc.warn("Module '" + mod + "' "
-        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate(pc, "toplevel", mod);
         if (!err.isEmpty()) {
           return err;
         }
