@@ -32,7 +32,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private String[] modulePermissions; // DEPRECATED
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
-  private String tenantInterface; // DEPRECATED
 
   public ModuleDescriptor() {
   }
@@ -53,7 +52,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
-    this.tenantInterface = other.tenantInterface;
   }
 
   public String getId() {
@@ -192,14 +190,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.launchDescriptor = launchDescriptor;
   }
 
-  public String getTenantInterface() {
-    return tenantInterface;
-  }
-
-  public void setTenantInterface(String tenantInterface) {
-    this.tenantInterface = tenantInterface;
-  }
-
   public Permission[] getPermissionSets() {
     return permissionSets;
   }
@@ -263,11 +253,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
           return err;
         }
       }
-    }
-    if (getTenantInterface() != null) {
-      pc.warn("Module '" + mod + "' "
-        + "uses DEPRECATED tenantInterface field."
-        + " Provide a '_tenant' system interface instead");
     }
     return "";
   }
