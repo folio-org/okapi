@@ -9,14 +9,11 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
-import io.vertx.ext.web.impl.Utils;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -446,8 +443,7 @@ public class DiscoveryManager implements NodeListener {
    * @param fut
    */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    String nurl = Utils.urlDecode(nodeId, true);
-    logger.debug("Discovery: nodeUrl: " + nurl);
+    logger.debug("Discovery: nodeUrl: " + nodeId);
     getNodes(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -456,13 +452,13 @@ public class DiscoveryManager implements NodeListener {
         Iterator<NodeDescriptor> iterator = result.iterator();
         while (iterator.hasNext()) {
           NodeDescriptor nd = iterator.next();
-          logger.debug("Discovery: nodeUrl: " + nurl + " nd=" + Json.encode(nd));
-          if (nurl.compareTo(nd.getUrl()) == 0) {
+          logger.debug("Discovery: nodeUrl: " + nodeId + " nd=" + Json.encode(nd));
+          if (nodeId.compareTo(nd.getUrl()) == 0) {
             fut.handle(new Success<>(nd.getNodeId()));
             return;
           }
           String nm = nd.getNodeName();
-          if (nm != null && nurl.compareTo(nm) == 0) {
+          if (nm != null && nodeId.compareTo(nm) == 0) {
             fut.handle(new Success<>(nd.getNodeId()));
             return;
           }
