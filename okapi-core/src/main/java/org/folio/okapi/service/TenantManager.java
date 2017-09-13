@@ -584,11 +584,6 @@ public class TenantManager {
    * behavior, don't do while refactoring the rest...
    */
   private void getTenantInterface(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut) {
-    String ti = md.getTenantInterface();
-    if (ti != null && !ti.isEmpty()) {
-      fut.handle(new Success<>(ti)); // DEPRECATED - warned when POSTing a ModuleDescriptor
-      return;
-    }
     ModuleInterface[] prov = md.getProvidesList();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));
     for (ModuleInterface pi : prov) {
