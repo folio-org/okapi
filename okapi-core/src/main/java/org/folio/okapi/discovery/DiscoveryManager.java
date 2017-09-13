@@ -10,11 +10,13 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import io.vertx.ext.web.impl.Utils;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -275,7 +277,8 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Get the list for one srvcId. May return an empty list.
    */
-  public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  public void get(String srvcId,
+    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -436,7 +439,8 @@ public class DiscoveryManager implements NodeListener {
 
 
   /**
-   * Translate node url or node name to its id.
+   * Translate node url or node name to its id. If not found, returns the id
+   * itself.
    *
    * @param nodeId
    * @param fut

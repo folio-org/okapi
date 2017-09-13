@@ -2413,6 +2413,8 @@ Okapi. These must be at the beginning of the command line, before the
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
 Defaults to `localhost`
+* `nodename`: Node name of this instance. Can be used instead of the
+system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are
