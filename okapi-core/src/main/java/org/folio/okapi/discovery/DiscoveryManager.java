@@ -9,11 +9,14 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
+import io.vertx.ext.web.impl.Utils;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -29,10 +32,10 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 
 /**
- * Keeps track of which modules are running where.
- * Uses a shared map to list running modules on the different nodes.
- * Maps a SrvcId to a DeploymentDescriptor. Can also invoke deployment,
- * and record the result in its map.
+ * Keeps track of which modules are running where. Uses a shared map to list
+ * running modules on the different nodes. Maps a SrvcId to a
+ * DeploymentDescriptor. Can also invoke deployment, and record the result in
+ * its map.
  */
 public class DiscoveryManager implements NodeListener {
 
@@ -274,7 +277,8 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Get the list for one srvcId. May return an empty list.
    */
-  public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  public void get(String srvcId,
+    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -425,6 +429,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
+    logger.debug("Discovery. addNode: " + Json.encode(nd));
     nodes.put(nd.getNodeId(), nd, fut);
   }
 
@@ -432,45 +437,39 @@ public class DiscoveryManager implements NodeListener {
     nodes.remove(nd.getNodeId(), fut);
   }
 
-  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
-          Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(all));
-    } else {
-      String srvcId = it.next();
-      getNode(srvcId, resGet -> {
-        if (resGet.failed()) {
-          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-        } else {
-          NodeDescriptor dpl = resGet.result();
-          all.add(dpl);
-          getNodes_r(it, all, fut);
-        }
-      });
-    }
-  }
 
+  /**
+   * Translate node url or node name to its id. If not found, returns the id
+   * itself.
+   *
+   * @param nodeId
+   * @param fut
+   */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    if (nodeId.startsWith("http://")) {
-      getNodes(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          List<NodeDescriptor> result = res.result();
-          Iterator<NodeDescriptor> iterator = result.iterator();
-          while (iterator.hasNext()) {
-            NodeDescriptor next = iterator.next();
-            if (nodeId.compareTo(next.getUrl()) == 0) {
-              fut.handle(new Success<>(next.getNodeId()));
-              return;
-            }
+    String nurl = Utils.urlDecode(nodeId, true);
+    logger.debug("Discovery: nodeUrl: " + nurl);
+    getNodes(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        List<NodeDescriptor> result = res.result();
+        Iterator<NodeDescriptor> iterator = result.iterator();
+        while (iterator.hasNext()) {
+          NodeDescriptor nd = iterator.next();
+          logger.debug("Discovery: nodeUrl: " + nurl + " nd=" + Json.encode(nd));
+          if (nurl.compareTo(nd.getUrl()) == 0) {
+            fut.handle(new Success<>(nd.getNodeId()));
+            return;
           }
-          fut.handle(new Failure<>(NOT_FOUND, nodeId));
+          String nm = nd.getNodeName();
+          if (nm != null && nurl.compareTo(nm) == 0) {
+            fut.handle(new Success<>(nd.getNodeId()));
+            return;
+          }
         }
-      });
-    } else {
-      fut.handle(new Success<>(nodeId));
-    }
+        fut.handle(new Success<>(nodeId)); // try with the original id
+      }
+    });
   }
 
   public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
@@ -487,11 +486,63 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, nodeId));
+        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
         return;
       }
     }
     nodes.get(nodeId, fut);
+  }
+
+  public void updateNode(String nodeId, NodeDescriptor nd,
+    Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    if (clusterManager != null) {
+      List<String> n = clusterManager.getNodes();
+      if (!n.contains(nodeId)) {
+        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        return;
+      }
+    }
+    nodes.get(nodeId, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        NodeDescriptor old = gres.result();
+        if (!old.getNodeId().equals(nd.getNodeId())) {
+          fut.handle(new Failure<>(USER, "Can not change nodeId for node " + nodeId));
+          return;
+        }
+        if (!old.getUrl().equals(nd.getUrl())) {
+          fut.handle(new Failure<>(USER, "Can not change the URL for node " + nodeId));
+          return;
+        }
+        nodes.put(nodeId, nd, pres -> {
+          if (pres.failed()) {
+            fut.handle(new Failure<>(pres.getType(), pres.cause()));
+          } else {
+            fut.handle(new Success<>(nd));
+          }
+        });
+      }
+    });
+
+  }
+
+  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
+    Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      String nodeId = it.next();
+      getNode1(nodeId, resGet -> {
+        if (resGet.failed()) {
+          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        } else {
+          NodeDescriptor dpl = resGet.result();
+          all.add(dpl);
+          getNodes_r(it, all, fut);
+        }
+      });
+    }
   }
 
   public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
@@ -516,6 +567,7 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeAdded(String nodeID) {
+    logger.info("node.add " + nodeID);
   }
 
   @Override

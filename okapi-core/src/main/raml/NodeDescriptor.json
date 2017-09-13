@@ -4,8 +4,15 @@
   "type": "object",
   "additionalProperties" : false,
   "properties": {
-    "nodeId": {"type": "string"},
-    "url": {"type": "string"}
+    "nodeId": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "nodeName": {
+      "type": "string"
+    }
   },
   "required": ["nodeId", "url"]
 }

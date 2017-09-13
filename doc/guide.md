@@ -2000,7 +2000,7 @@ HTTP/1.1 204 No Content
 Content-Type: text/plain
 Content-Length: 0
 ```
-
+<!-- STOP-EXAMPLE-RUN -->
 Finally we can stop the Okapi instance we had running, with a simple `Ctrl-C`
 command.
 
@@ -2165,6 +2165,37 @@ Content-Length: 178
   "url" : "http://tapas:9130"
 } ]
 ```
+#### Naming nodes
+
+As mentioned, the Hazelcast system allocates UUIDs for the nodeIds. That is all
+fine, but they are clumsy to use, and they change every time you run things, so
+it is not so easy to refer to nodes in your scripts etc. We have added a feature
+to give the node a name on the commandd line, like this:
+```
+java -Dhost=tapas -Dnodename=MyFirstNode \
+  -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-host 10.0.0.2
+```
+
+If you now list your nodes, you should see something like this:
+```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes```
+
+```
+HTTP/1.1 200 OK
+Content-Type: application/json
+X-Okapi-Trace: GET okapi-1.11.1-SNAPSHOT /_/discovery/nodes : 200
+Content-Length: 120
+
+[ {
+  "nodeId" : "7d6dc0e7-c163-4bbd-ab48-a5d7fa6c4ce4",
+  "url" : "http://tapas:9130",
+  "nodeName" : "MyFirstNode"
+} ]
+```
+
+You can use the name instead of the nodeId in many places, for example
+```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes/myFirstNode```
+
+
 
 #### So, you have a cluster
 
@@ -2382,6 +2413,8 @@ Okapi. These must be at the beginning of the command line, before the
 `port`+1 to `port`+10, normally 9131 to 9141
 * `host`: Hostname to be used in the URLs returned by the deployment service.
 Defaults to `localhost`
+* `nodename`: Node name of this instance. Can be used instead of the
+system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are

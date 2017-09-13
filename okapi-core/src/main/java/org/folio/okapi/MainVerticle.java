@@ -123,6 +123,7 @@ public class MainVerticle extends AbstractVerticle {
     final String host = conf("host", "localhost", config);
     String okapiUrl = conf("okapiurl", "http://localhost:" + port , config);
     okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
+    final String nodeName = conf("nodename", null, config);
     String storageType = conf("storage", "inmemory", config);
     String loglevel = conf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
@@ -167,7 +168,7 @@ public class MainVerticle extends AbstractVerticle {
     if (enableDeployment) {
       Ports ports = new Ports(port_start, port_end);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
-              host, ports, port);
+        host, ports, port, nodeName);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);

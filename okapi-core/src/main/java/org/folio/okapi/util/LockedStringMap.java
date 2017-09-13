@@ -197,7 +197,8 @@ public class LockedStringMap {
     });
   }
 
-  public void addOrReplace(boolean allowReplace, String k, String k2, String value, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void addOrReplace(boolean allowReplace, String k, String k2, String value,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));

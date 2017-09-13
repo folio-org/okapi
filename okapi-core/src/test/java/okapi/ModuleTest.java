@@ -58,7 +58,8 @@ public class ModuleTest {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     JsonObject conf = new JsonObject()
-      .put("storage", "inmemory");
+      .put("storage", "inmemory")
+      .put("nodename", "node1");
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
@@ -289,7 +290,7 @@ public class ModuleTest {
       .statusCode(404);
 
     // Check that we refuse the request to unknown okapi service
-    // (also check that the parameters do not end in the log)
+    // (also check (manually!) that the parameters do not end in the log)
     given()
       .get("/_/foo?q=bar")
       .then()
@@ -446,11 +447,12 @@ public class ModuleTest {
       .body(equalTo(expOneModList));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    // Deploy the module
+    // Deploy the module - use the node name, not node id
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"sample-inst\"," + LS
       + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"" + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"nodeId\" : \"node1\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -781,6 +783,87 @@ public class ModuleTest {
     async.complete();
   }
 
+  /**
+   * Test the vartious ways we can interaxct with /_/discovery/nodes.
+   *
+   * @param context
+   */
+  @Test
+  public void testDiscoveryNodes(TestContext context) {
+    async = context.async();
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    checkDbIsEmpty("testDiscoveryNodes starting", context);
+
+    String nodeListDoc = "[ {" + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"node1\"" + LS
+      + "} ]";
+
+    String nodeDoc = "{" + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"NewName\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes").then().statusCode(200)
+      .body(equalTo(nodeListDoc));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .body(nodeDoc)
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .log().ifError()
+      .statusCode(200);
+
+    given().get("/_/discovery/nodes")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeListDoc.replaceFirst("node1", "NewName")))
+      .log().ifError();
+
+    // Test some bad PUTs
+    given()
+      .body(nodeDoc.replaceFirst("localhost", "MayNotChangeId"))
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(400);
+    given()
+      .body(nodeDoc.replaceFirst("http://localhost:9130", "MayNotChangeUrl"))
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(400);
+
+    // Get it in various ways
+    given().get("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+    given().get("/_/discovery/nodes/NewName")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+    given().get("/_/discovery/nodes/http://localhost:9130")
+      .then() // Note that get() encodes the url.
+      .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+
+    checkDbIsEmpty("testDiscoveryNodes done", context);
+    async.complete();
+  }
+
   // TODO - This function is way too long and confusing
   // Create smaller functions that test one thing at a time
   // Later, move them into separate files
@@ -796,7 +879,8 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"" + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
     c = api.createRestAssured();
@@ -1836,14 +1920,17 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
+    // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"" + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
     final String DeployResp = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"," + LS
+      //+ "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"nodeId\" : \"http://localhost:9130\"," + LS
       + "  \"url\" : \"http://localhost:9131\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS

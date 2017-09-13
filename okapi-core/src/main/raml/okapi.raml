@@ -241,6 +241,19 @@ schemas:
         description: Server Error
         body:
           text/plain:
+  put:
+    description: Update descriptor of a particular node, only the name can be changed
+    body:
+      application/json:
+        schema: NodeDescriptor
+    responses:
+      200:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+        body:
+          application/json:
+            schema: NodeDescriptor
   /{node_id}:
     get:
       description: Get info for one node
