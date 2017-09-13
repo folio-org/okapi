@@ -300,7 +300,7 @@ public class ModuleTest {
     // replaced out. Still some old-style fields here and there...
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"helloGreeting\"" + LS
@@ -358,7 +358,7 @@ public class ModuleTest {
       .statusCode(400);
 
     // Bad module id
-    String docBadId = docSampleModule.replace("sample-module", "bad module id?!");
+    String docBadId = docSampleModule.replace("sample-module-1", "bad module id?!");
     given()
       .header("Content-Type", "application/json")
       .body(docBadId)
@@ -435,7 +435,7 @@ public class ModuleTest {
 
     // List the one module, and the built-in.
     final String expOneModList = "[ {" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"" + LS
       + "}, " + internalModuleDoc
       + " ]";
@@ -450,8 +450,8 @@ public class ModuleTest {
     // Deploy the module - use the node name, not node id
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"sample-inst\"," + LS
-      + "  \"srvcId\" : \"sample-module\"," + LS
-      //   + "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
       + "  \"nodeId\" : \"node1\"" + LS
       + "}";
     r = c.given()
@@ -466,7 +466,7 @@ public class ModuleTest {
 
     // Create a tenant and enable the module
     final String locTenant = createTenant();
-    final String locEnable = enableModule("sample-module");
+    final String locEnable = enableModule("sample-module-1");
 
     // Try to enable a non-existing module
     final String docEnableNonExisting = "{" + LS
@@ -506,7 +506,7 @@ public class ModuleTest {
       .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
       .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
+      .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
 
     // Check that the module can call itself recursively, 5 time
@@ -638,7 +638,7 @@ public class ModuleTest {
     // this.
     final String testHdrJar = "../okapi-test-header-module/target/okapi-test-header-module-fat.jar";
     final String docHdrModule = "{" + LS
-      + "  \"id\" : \"header\"," + LS
+      + "  \"id\" : \"header-1\"," + LS
       + "  \"name\" : \"header-module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
@@ -656,15 +656,15 @@ public class ModuleTest {
       + "}";
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
-    locationHeaderDeployment = deployModule("header");
-    final String locHdrEnable = enableModule("header");
+    locationHeaderDeployment = deployModule("header-1");
+    final String locHdrEnable = enableModule("header-1");
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
     // Enabling it will end up invoking the _tenantPermissions in header-module
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"helloGreeting\"" + LS
@@ -705,15 +705,15 @@ public class ModuleTest {
       + "}";
     // Create and deploy the sample module
     final String locSampleModule = createModule(docSampleModule);
-    locationSampleDeployment = deployModule("sample-module");
+    locationSampleDeployment = deployModule("sample-module-1");
 
     // Enable the sample module. Verify that the _tenantPermissions gets
     // invoked.
     final String docEnable = "{" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     final String expPerms = "{ "
-      + "\"moduleId\" : \"sample-module\", "
+      + "\"moduleId\" : \"sample-module-1\", "
       + "\"perms\" : [ { "
       + "\"permissionName\" : \"everything\", "
       + "\"displayName\" : \"every possible permission\", "
@@ -734,7 +734,7 @@ public class ModuleTest {
 
     // Try with a minimal MD, to see we don't have null pointers hanging around
     final String docSampleModule2 = "{" + LS
-      + "  \"id\" : \"sample-module2\"," + LS
+      + "  \"id\" : \"sample-module2-1\"," + LS
       + "  \"name\" : \"sample module2\"," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
@@ -742,15 +742,15 @@ public class ModuleTest {
       + "}";
     // Create the sample module
     final String locSampleModule2 = createModule(docSampleModule2);
-    final String locationSampleDeployment2 = deployModule("sample-module2");
+    final String locationSampleDeployment2 = deployModule("sample-module2-1");
 
     // Enable the small module. Verify that the _tenantPermissions gets
     // invoked.
     final String docEnable2 = "{" + LS
-      + "  \"id\" : \"sample-module2\"" + LS
+      + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
     final String expPerms2 = "{ "
-      + "\"moduleId\" : \"sample-module2\", "
+      + "\"moduleId\" : \"sample-module2-1\", "
       + "\"perms\" : null }";
 
     final String locSampleEnable2 = given()
@@ -917,7 +917,7 @@ public class ModuleTest {
       .then().statusCode(400);
 
     final String docUnknownJar = "{" + LS
-      + "  \"srvcId\" : \"auth\"," + LS
+      + "  \"srvcId\" : \"auth-1\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-unknown.jar\"" + LS
@@ -935,7 +935,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String docAuthDeployment = "{" + LS
-      + "  \"srvcId\" : \"auth\"," + LS
+      + "  \"srvcId\" : \"auth-1\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
@@ -960,7 +960,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String docAuthModule = "{" + LS
-      + "  \"id\" : \"auth\"," + LS
+      + "  \"id\" : \"auth-1\"," + LS
       + "  \"name\" : \"auth\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
@@ -1008,7 +1008,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String docAuthModule2 = "{" + LS
-      + "  \"id\" : \"auth2\"," + LS
+      + "  \"id\" : \"auth2-1\"," + LS
       + "  \"name\" : \"auth2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth2\"," + LS
@@ -1029,7 +1029,7 @@ public class ModuleTest {
       + "  \"requires\" : [ ]" + LS
       + "}";
 
-    final String locationAuthModule2 = locationAuthModule + "2";
+    final String locationAuthModule2 = locationAuthModule.replace("auth-1", "auth2-1");
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -1045,7 +1045,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"," + LS
@@ -1073,7 +1073,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String docSampleModuleBadRequire = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"SOMETHINGWEDONOTHAVE\"," + LS
@@ -1089,7 +1089,7 @@ public class ModuleTest {
       .extract().response();
 
     final String docSampleModuleBadVersion = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
@@ -1109,7 +1109,7 @@ public class ModuleTest {
       .extract().response();
 
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"helloGreeting\"" + LS
@@ -1214,7 +1214,7 @@ public class ModuleTest {
 
     // Try to enable sample without the auth that it requires
     final String docEnableWithoutDep = "{" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     c.given()
       .header("Content-Type", "application/json")
@@ -1223,7 +1223,7 @@ public class ModuleTest {
 
     // try to enable a module we don't know
     final String docEnableAuthBad = "{" + LS
-      + "  \"id\" : \"UnknonwModule\"" + LS
+      + "  \"id\" : \"UnknonwModule-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -1232,7 +1232,7 @@ public class ModuleTest {
       .then().statusCode(404);
 
     final String docEnableAuth = "{" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -1256,7 +1256,7 @@ public class ModuleTest {
     // Get the list of one enabled module
     c = api.createRestAssured();
     final String exp1 = "[ {" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "} ]";
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo(exp1));
@@ -1265,17 +1265,17 @@ public class ModuleTest {
 
     // get the auth enabled record
     final String expAuthEnabled = "{" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "}";
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(200).body(equalTo(expAuthEnabled));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
     // Enablæe the sample
     final String docEnableSample = "{" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -1299,9 +1299,9 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     final String expEnabledBoth = "[ {" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "} ]";
     c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).body(equalTo(expEnabledBoth));
@@ -1310,7 +1310,7 @@ public class ModuleTest {
 
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
-    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth")
+    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(400);
 
     // Update the tenant
@@ -1384,7 +1384,7 @@ public class ModuleTest {
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
       .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module\":[\"sample.modperm\"]}")
+      .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
       .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
       .header("X-Okapi-User-Id", "peter")
       .header("X-Url-Params", "query=foo&limit=10")
@@ -1484,7 +1484,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
-      + "  \"srvcId\" : \"sample-module2\"," + LS
+      + "  \"srvcId\" : \"sample-module2-1\"," + LS
       // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
       + "  \"url\" : \"http://localhost:9132\"" + LS
       + "}";
@@ -1499,7 +1499,7 @@ public class ModuleTest {
 
     // Get the sample-2
     c = api.createRestAssured();
-    c.given().get("/_/discovery/modules/sample-module2")
+    c.given().get("/_/discovery/modules/sample-module2-1")
       .then().statusCode(200)
       .log().ifError();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -1507,7 +1507,7 @@ public class ModuleTest {
 
     // and its instance
     c = api.createRestAssured();
-    c.given().get("/_/discovery/modules/sample-module2/sample2-inst")
+    c.given().get("/_/discovery/modules/sample-module2-1/sample2-inst")
       .then().statusCode(200)
       .log().ifError();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -1522,21 +1522,21 @@ public class ModuleTest {
 
     // health for sample2
     c = api.createRestAssured();
-    c.given().get("/_/discovery/health/sample-module2")
+    c.given().get("/_/discovery/health/sample-module2-1")
       .then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
     // health for an instance
     c = api.createRestAssured();
-    c.given().get("/_/discovery/health/sample-module2/sample2-inst")
+    c.given().get("/_/discovery/health/sample-module2-1/sample2-inst")
       .then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
     // Declare sample2
     final String docSample2Module = "{" + LS
-      + "  \"id\" : \"sample-module2\"," + LS
+      + "  \"id\" : \"sample-module2-1\"," + LS
       + "  \"name\" : \"another-sample-module2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1561,7 +1561,7 @@ public class ModuleTest {
 
     // enable sample2
     final String docEnableSample2 = "{" + LS
-      + "  \"id\" : \"sample-module2\"" + LS
+      + "  \"id\" : \"sample-module2-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -1576,7 +1576,7 @@ public class ModuleTest {
     // Later we will check that we got the right calls in its
     // tenant interface.
     given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2-1")
       .then().statusCode(204);
     given()
       .header("Content-Type", "application/json")
@@ -1589,7 +1589,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
-      + "  \"srvcId\" : \"sample-module3\"," + LS
+      + "  \"srvcId\" : \"sample-module3-1\"," + LS
       + "  \"url\" : \"http://localhost:9132\"" + LS
       + "}";
     r = c.given()
@@ -1603,7 +1603,7 @@ public class ModuleTest {
     logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
 
     final String docSample3Module = "{" + LS
-      + "  \"id\" : \"sample-module3\"," + LS
+      + "  \"id\" : \"sample-module3-1\"," + LS
       + "  \"name\" : \"sample-module3\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1636,14 +1636,14 @@ public class ModuleTest {
     final String locationSample3Module = r.getHeader("Location");
 
     final String docEnableSample3 = "{" + LS
-      + "  \"id\" : \"sample-module3\"" + LS
+      + "  \"id\" : \"sample-module3-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
-      .header("Location", equalTo("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module3"))
+      .header("Location", equalTo("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module3-1"))
       .log().ifError()
       .body(equalTo(docEnableSample3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -1701,13 +1701,13 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     final String exp4Modules = "[ {" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module2\"" + LS
+      + "  \"id\" : \"sample-module2-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module3\"" + LS
+      + "  \"id\" : \"sample-module3-1\"" + LS
       + "} ]";
     c.given().get(locationTenantRoskilde + "/modules")
       .then().statusCode(200)
@@ -1716,17 +1716,17 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().delete(locationTenantRoskilde + "/modules/sample-module3")
+    c.given().delete(locationTenantRoskilde + "/modules/sample-module3-1")
       .then().statusCode(204);
     Assert.assertTrue(c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     final String exp3Modules = "[ {" + LS
-      + "  \"id\" : \"auth\"" + LS
+      + "  \"id\" : \"auth-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}, {" + LS
-      + "  \"id\" : \"sample-module2\"" + LS
+      + "  \"id\" : \"sample-module2-1\"" + LS
       + "} ]";
     c.given().get(locationTenantRoskilde + "/modules")
       .then().statusCode(200)
@@ -1762,13 +1762,13 @@ public class ModuleTest {
 
     // Disable the sample module. No tenant-destroy for sample
     given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module")
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1")
       .then().statusCode(204);
 
     // Disable the sample2 module. It has a tenant request handler which is
     // no longer invoked, so it does not matter we don't have a running instance
     given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2")
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2-1")
       .then().statusCode(204);
 
     c = api.createRestAssured();
@@ -1781,9 +1781,9 @@ public class ModuleTest {
     logger.debug("testproxy cleaning up");
     given().delete(locationSample3Inst).then().log().ifError().statusCode(204);
     given().delete(locationSample3Module).then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/sample-module").then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/sample-module2").then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/auth").then().log().ifError().statusCode(204);
+    given().delete("/_/proxy/modules/sample-module-1").then().log().ifError().statusCode(204);
+    given().delete("/_/proxy/modules/sample-module2-1").then().log().ifError().statusCode(204);
+    given().delete("/_/proxy/modules/auth-1").then().log().ifError().statusCode(204);
     given().delete(locationAuthDeployment).then().log().ifError().statusCode(204);
     locationAuthDeployment = null;
     given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
@@ -1883,7 +1883,7 @@ public class ModuleTest {
 
     // Deploy a module via its own LaunchDescriptor
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-depl\"," + LS
+      + "  \"id\" : \"sample-module-depl-1\"," + LS
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
@@ -1922,13 +1922,13 @@ public class ModuleTest {
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
-      + "  \"srvcId\" : \"sample-module-depl\"," + LS
-      //  + "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
       + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
     final String DeployResp = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
-      + "  \"srvcId\" : \"sample-module-depl\"," + LS
+      + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
       //+ "  \"nodeId\" : \"localhost\"," + LS
       + "  \"nodeId\" : \"http://localhost:9130\"," + LS
       + "  \"url\" : \"http://localhost:9131\"," + LS
@@ -1968,7 +1968,7 @@ public class ModuleTest {
     ValidatableResponse then;
 
     final String docLaunch1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -1983,7 +1983,7 @@ public class ModuleTest {
     locationSampleDeployment = r.getHeader("Location");
 
     final String docLaunch2 = "{" + LS
-      + "  \"srvcId\" : \"header-module\"," + LS
+      + "  \"srvcId\" : \"header-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -1998,7 +1998,7 @@ public class ModuleTest {
     locationHeaderDeployment = r.getHeader("Location");
 
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module5\"," + LS
+      + "  \"id\" : \"sample-module-5\"," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -2013,7 +2013,7 @@ public class ModuleTest {
     final String locationSampleModule = r.getHeader("Location");
 
     final String docHeaderModule = "{" + LS
-      + "  \"id\" : \"header-module\"," + LS
+      + "  \"id\" : \"header-module-1\"," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -2041,7 +2041,7 @@ public class ModuleTest {
     final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docEnableSample = "{" + LS
-      + "  \"id\" : \"sample-module5\"" + LS
+      + "  \"id\" : \"sample-module-5\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")
@@ -2050,7 +2050,7 @@ public class ModuleTest {
       .body(equalTo(docEnableSample));
 
     final String docEnableHeader = "{" + LS
-      + "  \"id\" : \"header-module\"" + LS
+      + "  \"id\" : \"header-module-1\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")
@@ -2063,14 +2063,14 @@ public class ModuleTest {
       .then().statusCode(200).body(equalTo("Hello foobar"))
       .extract().response();
 
-    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module5")
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-5")
       .then().statusCode(204);
 
     given().delete(locationSampleModule)
       .then().statusCode(204);
 
     final String docSampleModule2 = "{" + LS
-      + "  \"id\" : \"sample-module5\"," + LS
+      + "  \"id\" : \"sample-module-5\"," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -2123,7 +2123,7 @@ public class ModuleTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docUiModuleInput = "{" + LS
-      + "  \"id\" : \"11-22-11-22-11\"," + LS
+      + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
       + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
@@ -2132,7 +2132,7 @@ public class ModuleTest {
       + "}";
 
     final String docUiModuleOutput = "{" + LS
-      + "  \"id\" : \"11-22-11-22-11\"," + LS
+      + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
       + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
@@ -2208,7 +2208,7 @@ public class ModuleTest {
 
     // Set up, deploy, and enable a sample module
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"routingEntries\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -2248,7 +2248,7 @@ public class ModuleTest {
     final String locationSampleModule = r.getHeader("Location");
 
     final String docSampleDeploy = "{" + LS
-      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
@@ -2262,7 +2262,7 @@ public class ModuleTest {
     locationSampleDeployment = r.getHeader("Location");
 
     final String docEnableSample = "{" + LS
-      + "  \"id\" : \"sample-module\"" + LS
+      + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -2281,7 +2281,7 @@ public class ModuleTest {
 
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
-      + "  \"id\" : \"header-module\"," + LS
+      + "  \"id\" : \"header-module-1\"," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -2352,7 +2352,7 @@ public class ModuleTest {
     final String locationHeaderModule = r.getHeader("Location");
 
     final String docHeaderDeploy = "{" + LS
-      + "  \"srvcId\" : \"header-module\"," + LS
+      + "  \"srvcId\" : \"header-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
@@ -2366,7 +2366,7 @@ public class ModuleTest {
     locationHeaderDeployment = r.getHeader("Location");
 
     final String docEnableHeader = "{" + LS
-      + "  \"id\" : \"header-module\"" + LS
+      + "  \"id\" : \"header-module-1\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
@@ -2389,7 +2389,7 @@ public class ModuleTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .header("X-Okapi-Trace", containsString("GET sample-module http://localhost:9131/testr"))
+      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9131/testr"))
       .log().ifError();
 
     // Bad redirect
@@ -2451,7 +2451,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
-      .header("X-Okapi-Trace", containsString("sample-module http://localhost:9131/testrlight : 404"))
+      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9131/testrlight : 404"))
       .log().ifError();
 
     // Verify that we replace only the beginning of the path

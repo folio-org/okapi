@@ -20,18 +20,18 @@ public class SemVer implements Comparable<SemVer> {
     while (offset < v.length() && v.charAt(offset) == '.') {
       offset = parseComp(v, offset + 1, versions);
       if (offset == -1) {
-        throw new IllegalArgumentException("missing version");
+        throw new IllegalArgumentException("missing version component");
       }
     }
     if (offset < v.length() && v.charAt(offset) == '-') {
       offset = parseComp(v, offset + 1, preRelease);
       if (offset == -1) {
-        throw new IllegalArgumentException("missing pre-release version");
+        throw new IllegalArgumentException("missing pre-release version component");
       }
       while (offset < v.length() && v.charAt(offset) == '.') {
         offset = parseComp(v, offset + 1, preRelease);
         if (offset == -1) {
-          throw new IllegalArgumentException("missing pre-release version");
+          throw new IllegalArgumentException("missing pre-release version component");
         }
       }
     }
