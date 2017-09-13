@@ -329,7 +329,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
@@ -1548,7 +1548,8 @@ public class ModuleTest {
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
       + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
+      + "  } ]," + LS
+      + "  \"tenantInterface\" : \"/tenant\"" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
