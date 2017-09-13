@@ -69,12 +69,6 @@
         "$ref": "RoutingEntry.json"
       }
     },
-    "routingEntries": {
-      "type": "array",
-      "items": {
-        "$ref": "RoutingEntry.json"
-      }
-    },
     "modulePermissions" : {
       "type": ["array","null"],
       "items": {
