@@ -5,8 +5,10 @@ public class ModuleId implements Comparable<ModuleId> {
 
   private String product;
   private SemVer semVer;
+  private String id;
 
   public ModuleId(String s) {
+    id = s;
     for (int i = 0; i < s.length() - 1; i++) {
       if (s.charAt(i) == '-' && Character.isDigit(s.charAt(i + 1))) {
         product = s.substring(0, i);
@@ -16,6 +18,10 @@ public class ModuleId implements Comparable<ModuleId> {
     }
     product = s;
     semVer = null;
+  }
+
+  public String getId() {
+    return id;
   }
 
   public boolean hasSemVer() {

@@ -307,9 +307,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -564,7 +561,6 @@ public class ModuleTest {
       + "  \"id\" : \"empty-module-1.0\"," + LS
       + "  \"name\" : \"empty module-1.0\"," + LS
       + "  \"tags\" : [ ]," + LS
-      + "  \"env\" : [ ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ ]," + LS
       + "  \"filters\" : [ ]," + LS
@@ -674,9 +670,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -792,7 +785,7 @@ public class ModuleTest {
   }
 
   /**
-   * Test the vartious ways we can interaxct with /_/discovery/nodes.
+   * Test the various ways we can interact with /_/discovery/nodes.
    *
    * @param context
    */
@@ -1121,9 +1114,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
       + "    \"version\" : \"1.2\"" + LS
@@ -1557,8 +1547,7 @@ public class ModuleTest {
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
       + "    \"type\" : \"request-response\"" + LS
-      + "  } ]," + LS
-      + "  \"tenantInterface\" : \"/tenant\"" + LS
+      + "  } ]" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -2506,9 +2495,6 @@ public class ModuleTest {
     final String docSampleModule1 = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module 1\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS
@@ -2538,9 +2524,6 @@ public class ModuleTest {
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-2\"," + LS
       + "  \"name\" : \"sample module 2\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS

@@ -20,22 +20,18 @@ import org.folio.okapi.util.ModuleId;
 public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private String id;
+  private ModuleId id;
   private String name;
 
   private String[] tags;
-  private EnvEntry[] env;
-
   private ModuleId moduleId;
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
-  private RoutingEntry[] routingEntries; //DEPRECATED
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
   private String[] modulePermissions; // DEPRECATED
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
-  private String tenantInterface; // DEPRECATED
 
   public ModuleDescriptor() {
   }
@@ -46,12 +42,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
-    this.moduleId = other.moduleId;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
-    this.env = other.env;
-    this.routingEntries = other.routingEntries;
     this.filters = other.filters;
     this.requires = other.requires;
     this.provides = other.provides;
@@ -59,7 +52,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
-    this.tenantInterface = other.tenantInterface;
   }
 
   public ModuleDescriptor(ModuleDescriptor other, boolean full) {
@@ -68,8 +60,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.name = other.name;
     this.tags = other.tags;
     if (full) {
-      this.env = other.env;
-      this.routingEntries = other.routingEntries;
       this.filters = other.filters;
       this.requires = other.requires;
       this.provides = other.provides;
@@ -77,23 +67,20 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       this.modulePermissions = other.modulePermissions;
       this.uiDescriptor = other.uiDescriptor;
       this.launchDescriptor = other.launchDescriptor;
-      this.tenantInterface = other.tenantInterface;
     }
   }
 
   public String getId() {
-    return id;
+    return id.getId();
   }
 
-  public void setId(String id) {
-    try {
-      moduleId = new ModuleId(id);
-    } catch (IllegalArgumentException e) {
-      logger.warn("ModuleId exception: " + id + " msg: " + e.getMessage());
-      moduleId = null;
+  public void setId(String s) {
+    this.id = new ModuleId(s);
+    if (!this.id.hasSemVer()) {
+      throw new IllegalArgumentException("Missing semantic version for: " + s);
     }
-    this.id = id;
   }
+
   public String getName() {
     return name;
   }
@@ -108,14 +95,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setTags(String[] tags) {
     this.tags = tags;
-  }
-
-  public EnvEntry[] getEnv() {
-    return env;
-  }
-
-  public void setEnv(EnvEntry[] env) {
-    this.env = env;
   }
 
   @JsonIgnore
@@ -152,14 +131,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.provides = provides;
   }
 
-  public RoutingEntry[] getRoutingEntries() {
-    return routingEntries;
-  }
-
-  public void setRoutingEntries(RoutingEntry[] routingEntries) {
-    this.routingEntries = routingEntries;
-  }
-
   /**
    * Get all RoutingEntries that are type proxy. Either from provided
    * interfaces, or from the global level RoutingEntries.
@@ -169,9 +140,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    if (routingEntries != null) {
-      Collections.addAll(all, routingEntries);
-    }
     if (filters != null) {
       Collections.addAll(all, filters);
     }
@@ -238,14 +206,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.launchDescriptor = launchDescriptor;
   }
 
-  public String getTenantInterface() {
-    return tenantInterface;
-  }
-
-  public void setTenantInterface(String tenantInterface) {
-    this.tenantInterface = tenantInterface;
-  }
-
   public Permission[] getPermissionSets() {
     return permissionSets;
   }
@@ -278,9 +238,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
       return "Invalid id: " + getId();
     }
-    if (moduleId == null) {
-      pc.warn("Invalid semantic version for module Id: " + getId());
-    } else if (!moduleId.hasSemVer()) {
+    if (!id.hasSemVer()) {
       pc.warn("Missing semantic version for module Id: " + getId());
     }
     String mod = getId();
@@ -312,47 +270,15 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
         }
       }
     }
-    if (routingEntries != null) {
-      pc.warn("Module '" + mod + "' "
-        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate(pc, "toplevel", mod);
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-    if (getEnv() != null) {
-      pc.warn("Module '" + mod + "' "
-        + " uses DEPRECATED top-level environment settings. Put those "
-        + "in the launchDescriptor instead.");
-    }
-    if (getTenantInterface() != null) {
-      pc.warn("Module '" + mod + "' "
-        + "uses DEPRECATED tenantInterface field."
-        + " Provide a '_tenant' system interface instead");
-    }
     return "";
   }
 
   public int compareTo(ModuleDescriptor other) {
-    if (this.moduleId != null && other.moduleId != null) {
-      return this.moduleId.compareTo(other.moduleId);
-    } else if (this.moduleId != null && other.moduleId == null) {
-      return 1;
-    } else if (this.moduleId == null && other.moduleId != null) {
-      return -1;
-    } else {
-      return 0;
-    }
+    return id.compareTo(other.id);
   }
 
   @JsonIgnore
   public String getProduct() {
-    if (this.moduleId != null) {
-      return this.moduleId.getProduct();
-    } else {
-      return id;
-    }
+    return id.getProduct();
   }
 }
