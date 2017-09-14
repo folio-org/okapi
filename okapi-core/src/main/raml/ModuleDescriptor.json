@@ -9,9 +9,6 @@
     "tags" : {"type" : ["array", "null"],
       "items" : {"type": "string"}
     },
-    "env": {
-      "$ref": "EnvEntryList.json"
-    },
     "requires": {
       "type": ["array", "null"],
       "items": {
