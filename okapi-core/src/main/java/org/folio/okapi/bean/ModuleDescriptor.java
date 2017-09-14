@@ -20,7 +20,7 @@ import org.folio.okapi.util.ModuleId;
 public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private String id;
+  private ModuleId id;
   private String name;
 
   private String[] tags;
@@ -43,7 +43,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
-    this.moduleId = other.moduleId;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
@@ -58,18 +57,16 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public String getId() {
-    return id;
+    return id.getId();
   }
 
-  public void setId(String id) {
-    try {
-      moduleId = new ModuleId(id);
-    } catch (IllegalArgumentException e) {
-      logger.warn("ModuleId exception: " + id + " msg: " + e.getMessage());
-      moduleId = null;
+  public void setId(String s) {
+    this.id = new ModuleId(s);
+    if (!this.id.hasSemVer()) {
+      throw new IllegalArgumentException("Missing semantic version for: " + s);
     }
-    this.id = id;
   }
+
   public String getName() {
     return name;
   }
@@ -235,9 +232,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
       return "Invalid id: " + getId();
     }
-    if (moduleId == null) {
-      pc.warn("Invalid semantic version for module Id: " + getId());
-    } else if (!moduleId.hasSemVer()) {
+    if (!id.hasSemVer()) {
       pc.warn("Missing semantic version for module Id: " + getId());
     }
     String mod = getId();
@@ -278,23 +273,11 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public int compareTo(ModuleDescriptor other) {
-    if (this.moduleId != null && other.moduleId != null) {
-      return this.moduleId.compareTo(other.moduleId);
-    } else if (this.moduleId != null && other.moduleId == null) {
-      return 1;
-    } else if (this.moduleId == null && other.moduleId != null) {
-      return -1;
-    } else {
-      return 0;
-    }
+    return id.compareTo(other.id);
   }
 
   @JsonIgnore
   public String getProduct() {
-    if (this.moduleId != null) {
-      return this.moduleId.getProduct();
-    } else {
-      return id;
-    }
+    return id.getProduct();
   }
 }
