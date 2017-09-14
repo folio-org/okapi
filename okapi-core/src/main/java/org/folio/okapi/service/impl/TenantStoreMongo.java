@@ -59,7 +59,7 @@ public class TenantStoreMongo implements TenantStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
-        if (l.size() == 0) {
+        if (l.isEmpty()) {
           Tenant t = new Tenant(td);
           insert(t, ires -> {
             if (ires.succeeded()) {
@@ -121,7 +121,7 @@ public class TenantStoreMongo implements TenantStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
-        if (l.size() == 0) {
+        if (l.isEmpty()) {
           fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
         } else {
           JsonObject d = l.get(0);

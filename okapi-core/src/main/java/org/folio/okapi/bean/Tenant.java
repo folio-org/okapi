@@ -22,26 +22,19 @@ public class Tenant {
   // will be undefined. That should not harm in real life, but it messes up
   // our tests!
 
-  @JsonIgnore
-  private long timestamp;  // DEPRECATED - not needed any more
-  // TODO - Remove when going to Okapi 2.0
-
   public Tenant(TenantDescriptor descriptor) {
     this.descriptor = descriptor;
     this.enabled = new TreeMap<>();
-    this.timestamp = 0;
   }
 
   public Tenant(TenantDescriptor descriptor, TreeMap<String, Boolean> enabled) {
     this.descriptor = descriptor;
     this.enabled = enabled;
-    this.timestamp = 0;
   }
 
   public Tenant() {
     this.descriptor = new TenantDescriptor();
     this.enabled = new TreeMap<>();
-    this.timestamp = 0;
   }
 
   /**
@@ -52,16 +45,8 @@ public class Tenant {
   public Tenant(Tenant other) {
     this.descriptor = new TenantDescriptor(other.descriptor);
     this.enabled = new TreeMap<>(other.enabled);
-    this.timestamp = 0;
   }
 
-  public long getTimestamp() {
-    return timestamp;
-  }
-
-  public void setTimestamp(long timestamp) {
-    this.timestamp = timestamp;
-  }
 
   /**
    * Get the name. The JsonIgnore tells JSON not to encode the name as a
