@@ -210,15 +210,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate(ProxyContext pc) {
-    if (getId() == null || getId().isEmpty()) {
-      return "No Id in module";
-    }
-    if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
-      return "Invalid id: " + getId();
-    }
-    if (!id.hasSemVer()) {
-      pc.warn("Missing semantic version for module Id: " + getId());
-    }
     String mod = getId();
     if (provides != null) {
       for (ModuleInterface pr : provides) {
