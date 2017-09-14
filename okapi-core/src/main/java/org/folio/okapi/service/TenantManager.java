@@ -589,10 +589,13 @@ public class TenantManager {
     for (ModuleInterface pi : prov) {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
+        if (!"1.0".equals(pi.getVersion())) {
+          fut.handle(new Failure<>(USER, "Interface _tenant must be version 1.0 "));
+          return;
+        }
         if ("system".equals(pi.getInterfaceType())) { // looks like a new type
           List<RoutingEntry> res = pi.getAllRoutingEntries();
           if (!res.isEmpty()) {
-            // TODO - Check the version of the interface. Must be 1.0
             for (RoutingEntry re : res) {
               if (re.match(null, "POST")) {
                 if (re.getPath() != null) {
