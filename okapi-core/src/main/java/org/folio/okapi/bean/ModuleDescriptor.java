@@ -29,7 +29,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private ModuleInterface[] provides;
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
-  private String[] modulePermissions; // DEPRECATED
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
 
@@ -49,7 +48,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.requires = other.requires;
     this.provides = other.provides;
     this.permissionSets = other.permissionSets;
-    this.modulePermissions = other.modulePermissions;
     this.uiDescriptor = other.uiDescriptor;
     this.launchDescriptor = other.launchDescriptor;
   }
@@ -64,7 +62,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       this.requires = other.requires;
       this.provides = other.provides;
       this.permissionSets = other.permissionSets;
-      this.modulePermissions = other.modulePermissions;
       this.uiDescriptor = other.uiDescriptor;
       this.launchDescriptor = other.launchDescriptor;
     }
@@ -180,14 +177,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     }
     return null;
-  }
-
-  public String[] getModulePermissions() {
-    return modulePermissions;
-  }
-
-  public void setModulePermissions(String[] modulePermissions) {
-    this.modulePermissions = modulePermissions;
   }
 
   public UiModuleDescriptor getUiDescriptor() {

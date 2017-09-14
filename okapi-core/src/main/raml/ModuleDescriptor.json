@@ -60,12 +60,6 @@
         "$ref": "RoutingEntry.json"
       }
     },
-    "modulePermissions" : {
-      "type": ["array","null"],
-      "items": {
-        "type": "string"
-      }
-    },
     "permissionSets": {
       "type": ["array", "null"],
       "items": {
