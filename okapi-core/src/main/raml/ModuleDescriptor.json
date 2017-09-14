@@ -2,6 +2,7 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "ModuleDescriptor",
   "type": "object",
+  "additionalProperties" : false,
   "properties": {
     "id": {"type": "string"},
     "name": {"type": "string"},
@@ -12,6 +13,7 @@
       "type": ["array", "null"],
       "items": {
         "type": "object",
+        "additionalProperties" : false,
         "properties": {
           "id": {
             "type": "string"
@@ -26,6 +28,7 @@
       "type": ["array", "null"],
       "items": {
         "type": "object",
+        "additionalProperties" : false,
         "properties": {
           "id": {
             "type": "string"
@@ -73,6 +76,12 @@
       "type": ["array","null"],
       "items": {
         "type": "string"
+      }
+    },
+    "permissionSets": {
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "Permission.json"
       }
     },
     "uiDescriptor": {

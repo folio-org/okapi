@@ -2,7 +2,15 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "TenantModuleDescriptor",
   "type": "object",
+  "additionalProperties" : false,
   "properties": {
-    "id": {"type": "string"}
-  }
+    "id": {"type": "string"},
+    "from": {"type": "string"},
+    "action" : {
+       "type" : "string",
+       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
+    },
+    "message": {"type": "string"}
+  },
+  "required" : ["id"]
 }

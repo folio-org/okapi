@@ -42,7 +42,6 @@ public class MainVerticle extends AbstractVerticle {
    * @param ctx
    */
   public void my_tenantPermissions_handle(RoutingContext ctx) {
-    ctx.response().putHeader("X-Tenant-Perms-Result1", "ZZZ");
     ReadStream<Buffer> content = ctx.request();
     final Buffer incoming = Buffer.buffer();
     content.handler(data -> {
@@ -52,6 +51,10 @@ public class MainVerticle extends AbstractVerticle {
       String body = incoming.toString();
       body = body.replaceAll("\\s+", " "); // remove newlines etc
       ctx.response().putHeader("X-Tenant-Perms-Result", body);
+      if (body.length() > 80) {
+        body = body.substring(0, 80) + "...";
+      }
+      logger.info("tenantPermissions: " + body);
       ctx.response().end();
     });
   }

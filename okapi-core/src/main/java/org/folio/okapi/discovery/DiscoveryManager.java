@@ -29,10 +29,10 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 
 /**
- * Keeps track of which modules are running where.
- * Uses a shared map to list running modules on the different nodes.
- * Maps a SrvcId to a DeploymentDescriptor. Can also invoke deployment,
- * and record the result in its map.
+ * Keeps track of which modules are running where. Uses a shared map to list
+ * running modules on the different nodes. Maps a SrvcId to a
+ * DeploymentDescriptor. Can also invoke deployment, and record the result in
+ * its map.
  */
 public class DiscoveryManager implements NodeListener {
 
@@ -119,7 +119,8 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  public void addAndDeploy(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  public void addAndDeploy(DeploymentDescriptor dd,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
     final String srvcId = dd.getSrvcId();
     if (srvcId == null) {
@@ -128,7 +129,7 @@ public class DiscoveryManager implements NodeListener {
     }
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
-    if (launchDesc == null && nodeId == null) { // 3: already deployed
+    if (launchDesc == null && nodeId == null) { // 3: externally deployed
       final String instId = dd.getInstId();
       if (instId == null) {
         fut.handle(new Failure<>(USER, "Needs instId"));
@@ -144,7 +145,8 @@ public class DiscoveryManager implements NodeListener {
     } else if (nodeId == null) {
       fut.handle(new Failure<>(USER, "missing nodeId"));
     } else {
-      if ( launchDesc == null ) { // 2: get module
+      if (launchDesc == null) { // 2: get from module
+        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
         if ( moduleManager == null) {
           fut.handle(new Failure<>(INTERNAL, "no module manager (should not happen)"));
           return;
@@ -154,36 +156,54 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(USER, "Needs srvcId"));
           return;
         }
-        ModuleDescriptor md = moduleManager.get(modId);
-        if (md == null) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + modId + " not found"));
-          return;
-        }
-        launchDesc = md.getLaunchDescriptor();
-        if (launchDesc == null) {
-          fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
-          return;
-        }
-        dd.setDescriptor(launchDesc);
-      }
-      getNode(nodeId, noderes -> {
-        if (noderes.failed()) {
-          fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
-        } else {
-          OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, null);
-          String reqdata = Json.encode(dd);
-          ok.post("/_/deployment/modules", reqdata, okres -> {
-            if (okres.failed()) {
-              fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+        moduleManager.get(modId, gres -> {
+          if (gres.failed()) {
+            if (gres.getType() == NOT_FOUND) {
+              fut.handle(new Failure<>(NOT_FOUND, "Module " + modId + " not found"));
             } else {
-                DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
-                        DeploymentDescriptor.class);
-                fut.handle(new Success<>(pmd));
+              fut.handle(new Failure<>(gres.getType(), gres.cause()));
             }
-          });
-        }
-      });
+            return;
+          }
+          ModuleDescriptor md = gres.result();
+          LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+          if (modLaunchDesc == null) {
+            fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
+            return;
+          }
+          dd.setDescriptor(modLaunchDesc);
+          launchit(nodeId, dd, fut);
+          return;
+        });
+      } else { // Have a launchdesc already in dd
+        logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
+        launchit(nodeId, dd, fut);
+      }
     }
+  }
+  /**
+   * Helper to actually launch (deploy) a module on a node.
+   */
+  private void launchit(String nodeId, DeploymentDescriptor dd,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    logger.debug("launchit starting for " + Json.encode(dd));
+    getNode(nodeId, noderes -> {
+      if (noderes.failed()) {
+        fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
+      } else {
+        OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, null);
+        String reqdata = Json.encode(dd);
+        ok.post("/_/deployment/modules", reqdata, okres -> {
+          if (okres.failed()) {
+            fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+          } else {
+            DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
+              DeploymentDescriptor.class);
+            fut.handle(new Success<>(pmd));
+          }
+        });
+      }
+    });
   }
 
   public void removeAndUndeploy(String srvcId, String instId, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -228,7 +248,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  public void get(String srvcId, String instId,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
@@ -253,7 +274,8 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Get the list for one srvcId. May return an empty list.
    */
-  public void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  public void get(String srvcId,
+    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -404,6 +426,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
+    logger.debug("Discovery. addNode: " + Json.encode(nd));
     nodes.put(nd.getNodeId(), nd, fut);
   }
 
@@ -411,45 +434,38 @@ public class DiscoveryManager implements NodeListener {
     nodes.remove(nd.getNodeId(), fut);
   }
 
-  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
-          Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(all));
-    } else {
-      String srvcId = it.next();
-      getNode(srvcId, resGet -> {
-        if (resGet.failed()) {
-          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-        } else {
-          NodeDescriptor dpl = resGet.result();
-          all.add(dpl);
-          getNodes_r(it, all, fut);
-        }
-      });
-    }
-  }
 
+  /**
+   * Translate node url or node name to its id. If not found, returns the id
+   * itself.
+   *
+   * @param nodeId
+   * @param fut
+   */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    if (nodeId.startsWith("http://")) {
-      getNodes(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          List<NodeDescriptor> result = res.result();
-          Iterator<NodeDescriptor> iterator = result.iterator();
-          while (iterator.hasNext()) {
-            NodeDescriptor next = iterator.next();
-            if (nodeId.compareTo(next.getUrl()) == 0) {
-              fut.handle(new Success<>(next.getNodeId()));
-              return;
-            }
+    logger.debug("Discovery: nodeUrl: " + nodeId);
+    getNodes(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        List<NodeDescriptor> result = res.result();
+        Iterator<NodeDescriptor> iterator = result.iterator();
+        while (iterator.hasNext()) {
+          NodeDescriptor nd = iterator.next();
+          logger.debug("Discovery: nodeUrl: " + nodeId + " nd=" + Json.encode(nd));
+          if (nodeId.compareTo(nd.getUrl()) == 0) {
+            fut.handle(new Success<>(nd.getNodeId()));
+            return;
           }
-          fut.handle(new Failure<>(NOT_FOUND, nodeId));
+          String nm = nd.getNodeName();
+          if (nm != null && nodeId.compareTo(nm) == 0) {
+            fut.handle(new Success<>(nd.getNodeId()));
+            return;
+          }
         }
-      });
-    } else {
-      fut.handle(new Success<>(nodeId));
-    }
+        fut.handle(new Success<>(nodeId)); // try with the original id
+      }
+    });
   }
 
   public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
@@ -466,11 +482,63 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, nodeId));
+        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
         return;
       }
     }
     nodes.get(nodeId, fut);
+  }
+
+  public void updateNode(String nodeId, NodeDescriptor nd,
+    Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+    if (clusterManager != null) {
+      List<String> n = clusterManager.getNodes();
+      if (!n.contains(nodeId)) {
+        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        return;
+      }
+    }
+    nodes.get(nodeId, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+      } else {
+        NodeDescriptor old = gres.result();
+        if (!old.getNodeId().equals(nd.getNodeId())) {
+          fut.handle(new Failure<>(USER, "Can not change nodeId for node " + nodeId));
+          return;
+        }
+        if (!old.getUrl().equals(nd.getUrl())) {
+          fut.handle(new Failure<>(USER, "Can not change the URL for node " + nodeId));
+          return;
+        }
+        nodes.put(nodeId, nd, pres -> {
+          if (pres.failed()) {
+            fut.handle(new Failure<>(pres.getType(), pres.cause()));
+          } else {
+            fut.handle(new Success<>(nd));
+          }
+        });
+      }
+    });
+
+  }
+
+  void getNodes_r(Iterator<String> it, List<NodeDescriptor> all,
+    Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+    if (!it.hasNext()) {
+      fut.handle(new Success<>(all));
+    } else {
+      String nodeId = it.next();
+      getNode1(nodeId, resGet -> {
+        if (resGet.failed()) {
+          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        } else {
+          NodeDescriptor dpl = resGet.result();
+          all.add(dpl);
+          getNodes_r(it, all, fut);
+        }
+      });
+    }
   }
 
   public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
@@ -495,6 +563,7 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeAdded(String nodeID) {
+    logger.info("node.add " + nodeID);
   }
 
   @Override

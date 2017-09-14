@@ -10,6 +10,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -54,7 +55,10 @@ public class DockerTest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
+    VertxOptions options = new VertxOptions();
+    options.setBlockedThreadCheckInterval(60000); // in ms
+    options.setWarningExceptionTime(60000); // in ms
+    vertx = Vertx.vertx(options);
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
@@ -92,17 +96,22 @@ public class DockerTest {
       res.endHandler(d -> {
         if (res.statusCode() == 200) {
           boolean gotIt = false;
-          logger.info("RESULT\n" + body.toString());
-          JsonArray ar = body.toJsonArray();
-          for (int i = 0; i < ar.size(); i++) {
-            JsonObject ob = ar.getJsonObject(i);
-            JsonArray ar1 = ob.getJsonArray("RepoTags");
-            for (int j = 0; j < ar1.size(); j++) {
-              String tag = ar1.getString(j);
-              if (tag != null && tag.startsWith("okapi-test-module")) {
-                gotIt = true;
+          try {
+            JsonArray ar = body.toJsonArray();
+            for (int i = 0; i < ar.size(); i++) {
+              JsonObject ob = ar.getJsonObject(i);
+              JsonArray ar1 = ob.getJsonArray("RepoTags");
+              if (ar1 != null) {
+                for (int j = 0; j < ar1.size(); j++) {
+                  String tag = ar1.getString(j);
+                  if (tag != null && tag.startsWith("okapi-test-module")) {
+                    gotIt = true;
+                  }
+                }
               }
             }
+          } catch (Exception ex) {
+            logger.warn(ex);
           }
           if (gotIt) {
             future.handle(Future.succeededFuture());
@@ -111,8 +120,8 @@ public class DockerTest {
           }
         } else {
           String m = "checkDocker HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }
@@ -144,18 +153,19 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"sample-module\"," + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"pathPattern\" : \"/test\"" + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"dockerImage\" : \"okapi-test-module\"," + LS
+      + "    \"dockerPull\" : false," + LS
       + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
       + "    \"dockerArgs\" : {" + LS
       + "      \"StopTimeout\" : 12" + LS
@@ -176,7 +186,7 @@ public class DockerTest {
 
     logger.info("deploy 1");
     final String doc1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module\"," + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
@@ -199,15 +209,15 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"mod-users\"," + LS
+      + "  \"id\" : \"mod-users-1\"," + LS
       + "  \"name\" : \"users\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"users\"," + LS
-      + "    \"version\" : \"1.0.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"pathPattern\" : \"/test\"" + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"" + LS
@@ -226,7 +236,7 @@ public class DockerTest {
     locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
-      + "  \"srvcId\" : \"mod-users\"," + LS
+      + "  \"srvcId\" : \"mod-users-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 

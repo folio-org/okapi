@@ -22,12 +22,15 @@ schemas:
   - EnvEntry: !include EnvEntry.json
   - EnvEntryList: !include EnvEntryList.json
   - Permission: !include Permission.json
+  - PullDescriptor: !include PullDescriptor.json
 
-# DEPLOYMENT SERVICE
+
 /_/deployment/modules:
+  description: Deployment service. This is responsible for starting and
+    stopping modules.
   post:
-    description: deploy (launch process, start a container, etc) instance of a
-      particular service, according to the deployment descriptor
+    description: Deploy (launch process, start a container, etc) instance of a
+      particular service, according to the deployment descriptor.
     body:
       application/json:
         schema: DeploymentDescriptor
@@ -37,6 +40,8 @@ schemas:
         headers:
           Location:
             description: URI to the descriptor of the deployed instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -49,32 +54,40 @@ schemas:
         body:
           text/plain:
   get:
-    description: list all deployed instances
+    description: List all deployed instances
     responses:
       200:
         body:
           application/json:
             schema: DeploymentDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
 
   /{instance_id}:
     get:
-      description: retrieve deployment descriptor for a particular instance
+      description: Retrieve deployment descriptor for a particular instance
       responses:
         200:
           body:
             application/json:
               schema: DeploymentDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     delete:
       description: shutdown instance
       responses:
         204:
-
-
-# DISCOVERY SERVICE
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 /_/discovery/modules:
+  description: Discovery service. This is responsible for monitoring
+    all instances (deployed) on, possibly many, deployment nodes.
   post:
-    description: register instance under a specified service id
+    description: Register instance under a specified service id
     body:
       application/json:
         schema: DeploymentDescriptor
@@ -84,6 +97,8 @@ schemas:
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptor
@@ -96,13 +111,15 @@ schemas:
         body:
           text/plain:
   get:
-    description: return all instances
+    description: Return all instances
     responses:
       200:
-        description: Created
+        description: Ok
         headers:
           Location:
             description: URI to the registered instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: DeploymentDescriptorList
@@ -116,12 +133,15 @@ schemas:
           text/plain:
   /{service_id}:
     get:
-      description: list all instances for a particular service
+      description: List all instances for a particular service
       responses:
         200:
           body:
             application/json:
               schema: DeploymentDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -132,32 +152,45 @@ schemas:
             text/plain:
     /{instance_id}:
       get:
-        description: update registration of a specified instance
+        description: Update registration of a specified instance
         responses:
           200:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       put:
-        description: update registration of a specified instance
+        description: Update registration of a specified instance
         responses:
           200:
             body:
               application/json:
                 schema: DeploymentDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
       delete:
-        description: remove registration for a given instance
+        description: Remove registration for a given instance
         responses:
           204:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 
 /_/discovery/health:
+  description: Health service for individual instances
   get:
-    description: get health info for all services
+    description: Get health info for all services
     responses:
       200:
         body:
           application/json:
             schema: HealthDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -168,12 +201,15 @@ schemas:
           text/plain:
   /{service_id}:
     get:
-      description: health for all instances for a particular service
+      description: Health for all instances for a particular service
       responses:
         200:
           body:
             application/json:
               schema: HealthDescriptorList
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
     /{instance_id}:
       get:
         description: get health for a particular instance
@@ -182,14 +218,21 @@ schemas:
             body:
               application/json:
                 schema: HealthDescriptor
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
 /_/discovery/nodes:
+  description: Get information about nodes
   get:
-    description: get list of all nodes
+    description: Get list of all nodes
     responses:
       200:
         body:
           application/json:
             schema: NodeDescriptorList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -198,14 +241,30 @@ schemas:
         description: Server Error
         body:
           text/plain:
+  put:
+    description: Update descriptor of a particular node, only the name can be changed
+    body:
+      application/json:
+        schema: NodeDescriptor
+    responses:
+      200:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+        body:
+          application/json:
+            schema: NodeDescriptor
   /{node_id}:
     get:
-      description: get info for one node
+      description: Get info for one node
       responses:
         200:
           body:
             application/json:
               schema: NodeDescriptor
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -219,12 +278,11 @@ schemas:
           body:
             text/plain:
 
-# PROXY SERVICE
-
 /_/proxy/modules:
+  description: Proxy modules service
   post:
-    description: announce new module to the proxy, once successful a module
-      can be selected for a specific tenant
+    description: Announce new module to the proxy. Once successful a module
+      can be selected for a specific tenant.
     body:
       application/json:
         schema: ModuleDescriptor
@@ -232,6 +290,8 @@ schemas:
       201:
         description: Created
         headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
           Location:
             description: URI to the created module instance
         body:
@@ -246,47 +306,86 @@ schemas:
         body:
           text/plain:
   get:
-    description: list all available modules
+    description: List all or subset of modules for proxy
+    queryParameters:
+      filter:
+        description: Filter by module ID
+        type: string
+        required: false
+      orderBy:
+        description: Order by field
+        type: string
+        required: false
+      order:
+        description: Order
+        enum: [desc, asc]
+        required: false
+      preRelease:
+        description: whether to include modules with pre-release info
+        type: boolean
+        required: false
     responses:
       200:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: ModuleList
-
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   /{module_id}:
     get:
-      description: retrieve descriptor for a particular module
+      description: Retrieve descriptor for a particular module
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: ModuleDescriptor
     put:
-      description: update descriptor of a particular module
+      description: Update descriptor of a particular module
       body:
         application/json:
           schema: ModuleDescriptor
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: ModuleDescriptor
     delete:
-      description: remove module descriptor for a particular module, module
+      description: Remove module descriptor for a particular module, module
         will no longer be selectable by tenants
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
 
 /_/proxy/tenants:
+  description: Tenants service
   post:
-    description: create a new tenant
+    description: Create a new tenant
     body:
       application/json:
         schema: TenantDescriptor
     responses:
       201:
-        description: tenant has been created
+        description: Tenant has been created
         headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
           Location:
             description: URI to the created tenant
         body:
@@ -297,18 +396,24 @@ schemas:
         body:
           text/plain:
   get:
-    description: list all tenants
+    description: List all tenants
     responses:
       200:
-        description: list of tenants in a brief format
+        description: List of tenants in a brief format
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: TenantList
   /{tenant_id}:
     get:
-      description: retrieve a tenant
+      description: Retrieve a tenant
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: TenantDescriptor
@@ -317,12 +422,15 @@ schemas:
           body:
             text/plain:
     put:
-      description: update a tenant
+      description: Update a tenant
       body:
         application/json:
           schema: TenantDescriptor
       responses:
         200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
           body:
             application/json:
               schema: TenantDescriptor
@@ -335,20 +443,25 @@ schemas:
           body:
             text/plain:
     delete:
-      description: remove a tenant
+      description: Remove a tenant
       responses:
         204:
-
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+        403:
+          description: Forbidden
+          body:
+            text/plain:
     /modules:
-      get:
-        description: selection of modules by the tenant
-        responses:
-          200:
-            body:
-              application/json:
-                schema: TenantModuleDescriptorList
       post:
-        description: enable a module for a specified tenant
+        description: Enable a module for tenant. Only the member 'id' from
+          TenantModuleDescriptor is used in this operation.
+          This call will eventually be replaced by the 'install' service.
         body:
           application/json:
             schema: TenantModuleDescriptor
@@ -356,11 +469,17 @@ schemas:
           201:
             description: Created
             headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
               Location:
-                description: URI to the created tenant
+                description: URI to the enabled module
             body:
               application/json:
                 schema: TenantModuleDescriptor
+          400:
+            description: Bad Request
+            body:
+              text/plain:
           404:
             description: Not Found
             body:
@@ -369,11 +488,26 @@ schemas:
             description: Server error
             body:
               text/plain:
+      get:
+        description: Get enabled modules for tenant
+        responses:
+          200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
       /{module_id}:
+        description: CRUD service for getting module and upgrading module
+          for a tenant.
         get:
-          description: look up particular module selection
+          description: Look up particular module selection
           responses:
             200:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
               body:
                 application/json:
                   schema: TenantModuleDescriptor
@@ -382,7 +516,10 @@ schemas:
               body:
                 text/plain:
         post:
-          description: update a module for a specified tenant.
+          description: Upgrade a module for a tenant. Enable new module and
+            disable current module with new module ID in body and existing ID
+            in path.
+            This call will eventually be replaced by the 'install' service.
           body:
             application/json:
               schema: TenantModuleDescriptor
@@ -390,8 +527,10 @@ schemas:
             201:
               description: Created
               headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
                 Location:
-                  description: URI to the created tenant
+                  description: URI to the enabled module
               body:
                 application/json:
                   schema: TenantModuleDescriptor
@@ -408,24 +547,173 @@ schemas:
               body:
                 text/plain:
         delete:
-          description: remove particular module selection
+          description: Disable a module for a tenant.
+            This call will eventually be replaced by the 'install' service.
           responses:
             204:
+              description: Gone
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+            400:
+              description: Client Error
+              body:
+                text/plain:
+    /install:
+      post:
+        description: Enable, disable or upgrade one or more modules for
+          tenant. The request body and response body is of the same type
+          TenantModuleDescriptorList. This list includes one or more
+          modules to be enabled, disabled or upgraded. The request is the
+          initial desired changes and the response is the list of changes
+          that must be fulfilled to satisfy dependencies.
+          This service will eventually partially replace
+          /_/proxy/tenants/{tenant}/modules . It also allows
+          enabling multiple modules in in one transaction.
+          For simulate=true, the response, can be viewed as a recipe for what
+          must be deployed (optionally) and enabled/disabled by the existing
+          tenants-modules CRUD service.
+        queryParameters:
+          simulate:
+            description: Whether the installation is simulated
+            type: boolean
+          preRelease:
+            description: Whether pre-releases should be considered for
+              installation.
+            type: boolean
+        body:
+          application/json:
+            schema: TenantModuleDescriptorList
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
+    /upgrade:
+      post:
+        description: Check if newer modules of exist and upgrade for tenant.
+          The response is a list of modules that should be enabled, disabled
+          or upgraded to perform the upgrade.
+        queryParameters:
+          simulate:
+            description: whether the upgrade is simulated
+            type: boolean
+          preRelease:
+            description: Whether pre-releases should be considered for
+              installation.
+            type: boolean
+        responses:
+          200:
+            description: OK
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
+    /interfaces/{interface_id}:
+      get:
+        description: Get all modules that provide the specified interface ID
+        responses:
+          200:
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+            body:
+              application/json:
+                schema: TenantModuleDescriptorList
+          400:
+            description: Client Error
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
 /_/proxy/health:
+  description: Check health of modules
   get:
-    description: Check health of all modules
+    description: Check health of modules
     responses:
       200:
         description: OK
         body:
           application/json:
             schema: HealthStatusList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       500:
         description: Server Error
 
-/_/env:
+/_/proxy/pull/modules:
+  description: Pull module descriptors from a remote repository
   post:
-    description: add environment entry
+    description: Pull modules (i.e. Module Descriptors) from a remote
+      repository. The PullDescriptor includes one or more URLs. And
+      the operation will try all URLs in order until one succeeds. Hence,
+      the URLs should be pointing to identical remote repositories.
+    body:
+      application/json:
+        schema: PullDescriptor
+    responses:
+      200:
+        description: OK
+        headers:
+          Location:
+            description:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+        body:
+          application/json:
+            schema: ModuleList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
+/_/env:
+  description: Environment service. Environment variables are system
+    variables that allows us to configure modules in a uniform way.
+    They can hold fundamental database configuration, etc.
+  post:
+    description: Add environment entry
     body:
       application/json:
         schema: EnvEntry
@@ -435,6 +723,8 @@ schemas:
         headers:
           Location:
             description: URI to the environment entry instance
+          X-Okapi-Trace:
+            description: Okapi trace and timing
         body:
           application/json:
             schema: EnvEntry
@@ -447,12 +737,15 @@ schemas:
         body:
           text/plain:
   get:
-    description: get list of all environment
+    description: Get list of all environment variables
     responses:
       200:
         body:
           application/json:
             schema: EnvEntryList
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
       400:
         description: Bad Request
         body:
@@ -463,12 +756,15 @@ schemas:
           text/plain:
   /{id}:
     get:
-      description: get info for one environment variable
+      description: Get info for one environment variable
       responses:
         200:
           body:
             application/json:
               schema: EnvEntry
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
         400:
           description: Bad Request
           body:
@@ -482,8 +778,45 @@ schemas:
           body:
             text/plain:
     delete:
-      description: remove environment variable
+      description: Remove environment variable
       responses:
         204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+
+/_/version:
+  description: Service for getting information about Okapi
+  get:
+    description: get Okapi version
+    responses:
+      200:
+        description: OK, with version in body
+        body:
+          text/plain:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+
+/_/invoke/tenant/{id}:
+  description: Call module with Tenant ID in path. This
+    service offers support for systems that need to "call-back" Okapi and
+    don't allow setting the Tenant ID in the HTTP header.
+  get:
+    description: Invoke any service (the rest of the path, any method,
+      any response).
+    responses:
+      200:
+        description: OK
+        body:
+          text/plain:
 
 #TODO implement single module health check

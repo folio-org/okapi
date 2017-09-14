@@ -39,7 +39,7 @@ public class DeploymentManagerTest {
     em.init(vertx, res1 -> {
       dis = new DiscoveryManager();
       dis.init(vertx, res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9130);
+        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9130, "");
         async.complete();
       });
     });

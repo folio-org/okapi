@@ -224,7 +224,7 @@ public class OkapiPerformance {
             + "  \"id\" : \"auth\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
+      context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         tenantEnableModuleSample(context);
       });
@@ -236,7 +236,7 @@ public class OkapiPerformance {
             + "  \"id\" : \"sample-module\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
+      context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         doLogin(context);
       });
@@ -252,7 +252,6 @@ public class OkapiPerformance {
     HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST auth:200.*"));
       okapiToken = response.getHeader("X-Okapi-Token");
       response.endHandler(x -> {
         useItWithGet(context);
@@ -266,7 +265,6 @@ public class OkapiPerformance {
     HttpClientRequest req = httpClient.get(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=GET sample-module:200.*"));
       response.handler(x -> {
         context.assertEquals("It works", x.toString());
       });
@@ -284,7 +282,6 @@ public class OkapiPerformance {
     HttpClientRequest req = httpClient.post(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers != null && headers.matches(".*X-Okapi-Trace=POST sample-module:200.*"));
       response.handler(x -> {
         body.appendBuffer(x);
       });
@@ -338,7 +335,7 @@ public class OkapiPerformance {
             + "  \"id\" : \"sample-module2\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
+      context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         // deleteTenant(context);
         declareSample3(context);
@@ -395,7 +392,7 @@ public class OkapiPerformance {
             + "  \"id\" : \"sample-module3\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
-      context.assertEquals(200, response.statusCode());
+      context.assertEquals(201, response.statusCode());
       response.endHandler(x -> {
         repeatPostInit(context);
       });
@@ -434,7 +431,6 @@ public class OkapiPerformance {
     HttpClientRequest req = httpClient.post(port, "localhost", "/testb", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
-      context.assertTrue(headers.matches(".*X-Okapi-Trace=POST sample-module2:200.*"));
       response.handler(x -> {
         body.appendBuffer(x);
       });

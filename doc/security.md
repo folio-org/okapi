@@ -1,5 +1,19 @@
 # Okapi Security Model
 
+<!-- ./md2toc -l 2 -h 3 security.md -->
+* [Introduction](#introduction)
+* [Simplified Overview](#simplified-overview)
+* [Authentication](#authentication)
+* [Authorization](#authorization)
+* [Examples of data flow](#examples-of-data-flow)
+    * [Simple request: Date](#simple-request-date)
+    * [More complex request: MOTD](#more-complex-request-motd)
+    * [Login](#login)
+* [Open questions and technical details](#open-questions-and-technical-details)
+* [Okapi process](#okapi-process)
+* [The auth process](#the-auth-process)
+
+## Introduction
 
 The Okapi security model consists of two parts: authentication and authorization.
 Authentication is responsible for assuring that our user is who they claim to be.
@@ -50,7 +64,7 @@ even some pseudo-authentication that just says that this is an unidentified
 member of the general public.
 
 There should usually be (at least) one authentication module enabled for each
-tenant. The user's first request should be to /login, which gets routed to the
+tenant. The user's first request should be to /authn/login, which gets routed to the
 right authentication module. It will get some parameters, for example tenant,
 username, and password. It will verify these, talking to
 what ever backend is proper. When it is satisfied, it will get a JWT token
@@ -70,7 +84,7 @@ module will verify it every time.
 ## Authorization
 This is where Okapi gets a bit more involved, and where things get technical.
 
-When a request comes in to Okapi (excluding the /login and other requests that
+When a request comes in to Okapi (excluding the /authn/login and other requests that
 are open for anyone), Okapi looks at the tenant, and figures out the pipeline
 of modules it is going to call. This should include the authorization module at
 (or near) the beginning.
@@ -460,10 +474,6 @@ to its caller.
 
 ### Login
 
-NOTE: I have just come up with a simplified way to do the login. What is described
-below is not exactly what has been implemented, or described elsewhere. (Remove
-this note when things are up to date!)
-
 Here is a quick outline of what happens when a user wants to log in to the system.
 The tediously detailed handshakes come later.
 
@@ -485,7 +495,7 @@ modules can check against LDAP servers, OAuth, or any other authentication metho
  * Clicks on a submit button.
 
 3.2: The UI sends a request to Okapi:
- * POST `http://folio.org/okapi/login`
+ * POST `http://folio.org/okapi/authn/login`
  * X-Okapi-Tenant: ourlib
  * Of course we do not have any JWT yet.
 
@@ -493,7 +503,7 @@ Note that the URL and the tenantId must be already known to the UI somehow.
 
 3.3: Okapi receives the request:
  * It checks that we know about tenant "ourlib".
- * It builds a list of modules that serve /login, and that are enabled for "ourlib".
+ * It builds a list of modules that serve /authn/login, and that are enabled for "ourlib".
  * This list will typically consist of two modules: first "auth", and then the
 actual "login" module.
  * Okapi notes that the request contains no X-Okapi-Token header.

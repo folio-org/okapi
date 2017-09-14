@@ -6,6 +6,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * One entry in Okapi's routing table.
@@ -38,7 +39,8 @@ public class RoutingEntry {
     REQUEST_RESPONSE,
     REQUEST_ONLY,
     HEADERS,
-    REDIRECT
+    REDIRECT,
+    INTERNAL
   };
 
   @JsonIgnore
@@ -88,6 +90,8 @@ public class RoutingEntry {
       proxyType = ProxyType.REDIRECT;
     } else if ("system".equals(type)) {
       proxyType = ProxyType.REQUEST_RESPONSE;
+    } else if ("internal".equals(type)) {
+      proxyType = ProxyType.INTERNAL;
     } else {
       throw new DecodeException("Invalid entry type: " + type);
     }
@@ -169,27 +173,31 @@ public class RoutingEntry {
   }
 
   public boolean match(String uri, String method) {
-    if (pathRegex != null) {
-      String p = uri;
-      int indx = p.indexOf('?');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
-      indx = p.indexOf('#');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
-      if (!p.matches(pathRegex)) {
-        return false;
-      }
-    } else if (path != null) {
-      if (!uri.startsWith(path)) {
-        return false;
+    if (uri != null) {
+      if (pathRegex != null) {
+        String p = uri;
+        int indx = p.indexOf('?');
+        if (indx > 0) {
+          p = p.substring(0, indx);
+        }
+        indx = p.indexOf('#');
+        if (indx > 0) {
+          p = p.substring(0, indx);
+        }
+        if (!p.matches(pathRegex)) {
+          return false;
+        }
+      } else if (path != null) {
+        if (!uri.startsWith(path)) {
+          return false;
+        }
       }
     }
-    for (String m : methods) {
-      if (method == null || m.equals("*") || m.equals(method)) {
-        return true;
+    if (methods != null) {
+      for (String m : methods) {
+        if (method == null || m.equals("*") || m.equals(method)) {
+          return true;
+        }
       }
     }
     return false;
@@ -219,29 +227,6 @@ public class RoutingEntry {
       return null;
     }
   }
-  /**
-   * Validate the RoutingEntry.
-   *
-   * @param strict - if false, will not report all error, just log a warning
-   * @param section "provides" or "toplevel". Soon also "filter" and "handler".
-   * @return an error message (as a string), or "" if all is well.
-   */
-  public String validate(boolean strict, String section) {
-    logger.debug("Validating RoutingEntry " + Json.encode(this));
-    if ((path == null || path.isEmpty())
-      && (pathPattern == null || pathPattern.isEmpty())) {
-      return "Bad routing entry, needs a pathPattern or at least a path";
-    }
-
-    // TODO - Do not accept old paths in Handlers and Filters, once we get those
-    if (pathPattern == null || pathPattern.isEmpty()) {
-      logger.warn("RoutingEntry uses old type path " + path
-        + ". Use a pathPattern instead");
-    }
-
-    // TODO - Validate permissions required and desired, and modulePerms
-    return ""; // no problems found
-  }
 
   public String getPhase() {
     return phase;
@@ -255,4 +240,99 @@ public class RoutingEntry {
     }
     this.phase = phase;
   }
+
+  /**
+   * Validate the RoutingEntry.
+   *
+   * @param section "requires", "provides", "filters", "handlers" or "toplevel"
+   * @return an error message (as a string), or "" if all is well.
+   */
+  public String validate(ProxyContext pc, String section, String mod) {
+    String prefix = "Module '" + mod + "' " + section;
+    if (pathPattern != null && !pathPattern.isEmpty()) {
+      prefix += " " + pathPattern;
+    } else if (path != null && !path.isEmpty()) {
+      prefix += " " + path;
+    }
+    prefix += ": ";
+    pc.debug(prefix
+      + "Validating RoutingEntry " + Json.encode(this));
+    if ((path == null || path.isEmpty())
+      && (pathPattern == null || pathPattern.isEmpty())) {
+      return "Bad routing entry, needs a pathPattern or at least a path";
+    }
+
+    if ("redirect".equals(type)) {
+      if (redirectPath == null || redirectPath.isEmpty()) {
+        return "Redirect entry without redirectPath";
+      }
+    } else {
+      if (redirectPath != null && !redirectPath.isEmpty()) {
+        pc.warn(prefix
+          + "has a redirectPath, even though it is not a redirect");
+      }
+
+      if (pathPattern == null || pathPattern.isEmpty()) {
+        pc.warn(prefix
+          + " uses old type path"
+        + ". Use a pathPattern instead");
+    }
+    if (level != null && !"toplevel".equals(section)) {
+      String ph = "";  // toplevel has a higher-level warning
+      if ("filters".equals(section)) {
+        ph = "Use a phase=auth instead";
+      }
+      pc.warn(prefix
+        + "uses DEPRECATED level. " + ph);
+    }
+
+    if (pathPattern != null && pathPattern.endsWith("/")) {
+      pc.warn(prefix
+        + "ends in a slash. Probably not what you intend");
+    }
+    if ("system".equals(type)) {
+      pc.warn(prefix
+        + "uses DEPRECATED type 'system'");
+      }
+
+    }
+
+    if (null != section)
+      switch (section) {
+        case "handlers":
+          String err = validateHandlers(pc, prefix);
+          if (!err.isEmpty()) {
+            return err;
+          }
+          break;
+        case "filters":
+          break;
+        case "requires":
+          break;
+        case "toplevel":
+          break;
+        default:
+          // Should not happen
+          return "Programming error: "
+            + "RoutingEntry.validate() called with unknown section "
+            + "'" + section + "'";
+    }
+    // TODO - Validate permissions required and desired, and modulePerms
+    return ""; // no problems found
+  }
+
+  private String validateHandlers(ProxyContext pc, String prefix) {
+    if (phase != null) {
+      pc.warn(prefix
+        + "uses 'phase' in the handlers section. "
+        + "Leave it out");
+    }
+    if (type != null && "request-response".equals(type)) {
+      pc.warn(prefix
+        + "uses type=request-response. "
+        + "That is the default, you can leave it out");
+    }
+    return "";
+  }
+
 }

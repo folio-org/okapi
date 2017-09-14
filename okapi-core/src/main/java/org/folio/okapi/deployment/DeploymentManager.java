@@ -33,28 +33,31 @@ import org.folio.okapi.env.EnvManager;
 public class DeploymentManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
-  Vertx vertx;
-  Ports ports;
-  String host;
-  DiscoveryManager dm;
-  EnvManager em;
+  private final LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
+  private final Vertx vertx;
+  private final Ports ports;
+  private final String host;
+  private final DiscoveryManager dm;
+  private final EnvManager em;
   private final int listenPort;
+  private final String nodeName;
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
-          String host, Ports ports, int listenPort) {
+    String host, Ports ports, int listenPort, String nodeName) {
     this.dm = dm;
     this.em = em;
     this.vertx = vertx;
     this.host = host;
     this.listenPort = listenPort;
     this.ports = ports;
+    this.nodeName = nodeName;
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
     NodeDescriptor nd = new NodeDescriptor();
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
+    nd.setNodeName(nodeName);
     dm.addNode(nd, fut);
   }
 
@@ -64,6 +67,7 @@ public class DeploymentManager {
 
   private void shutdownR(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
+      logger.info("All modules shut down");
       fut.handle(new Success<>());
     } else {
       DeploymentDescriptor md = list.get(it.next());
@@ -143,6 +147,7 @@ public class DeploymentManager {
           } else {
             tim.close();
             ports.free(use_port);
+            logger.warn("Deploying " + md1.getSrvcId() + " failed");
             fut.handle(new Failure<>(INTERNAL, future.cause()));
           }
         });

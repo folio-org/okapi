@@ -7,7 +7,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -38,6 +37,9 @@ public class OkapiClient {
   //   response headers, the whole response, and so on.
   // TODO Use this in the discovery-deployment communications
   private MultiMap respHeaders;
+  private String reqId;
+  private boolean logInfo; // t: log requests on INFO. f: on DEBUG
+  private String responsebody;
 
   /**
    * Constructor from a vert.x ctx.
@@ -48,11 +50,17 @@ public class OkapiClient {
     init(ctx.vertx());
     this.ctx = ctx;
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
-    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    if (this.okapiUrl != null) {
+      this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    }
     for (String hdr : ctx.request().headers().names()) {
-      if (hdr.startsWith(XOkapiHeaders.PREFIX)) {
+      if (hdr.startsWith(XOkapiHeaders.PREFIX)
+        || hdr.startsWith("Accept")) {
         String hv = ctx.request().getHeader(hdr);
-        headers.put(hdr,hv);
+        headers.put(hdr, hv);
+        if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
+          reqId = hv;
+        }
       }
     }
   }
@@ -69,6 +77,9 @@ public class OkapiClient {
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
+    if (this.headers.containsKey(XOkapiHeaders.REQUEST_ID)) {
+      reqId = this.headers.get(XOkapiHeaders.REQUEST_ID);
+    }
     respHeaders = null;
   }
 
@@ -77,6 +88,39 @@ public class OkapiClient {
     this.httpClient = vertx.createHttpClient();
     this.headers = new HashMap<>();
     respHeaders = null;
+    reqId = "";
+    logInfo = false;
+  }
+
+  /**
+   * Enable logging of request on INFO level. Normally not the case, since Okapi
+   * will log the incoming request anyway. Useful with Okapi's own requests to
+   * modules, etc.
+   */
+  public void enableInfoLog() {
+    logInfo = true;
+  }
+
+  /**
+   * Disable request logging on INFO. They will still be logged on DEBUG.
+   */
+  public void disableInfoLog() {
+    logInfo = false;
+  }
+
+  /**
+   * Set up a new request-Id. Used internally, when Okapi itself makes a new
+   * request to the modules, like the tenant interface.
+   */
+  public void newReqId(String path) {
+    int rnd = (int) (Math.random() * 1000000);
+    String newId = String.format("%06d", rnd) + "/" + path;
+    if (reqId.isEmpty()) {
+      reqId = newId;
+    } else {
+      reqId = reqId + ";" + newId;
+    }
+    headers.put(XOkapiHeaders.REQUEST_ID, reqId);
   }
 
   /**
@@ -89,30 +133,58 @@ public class OkapiClient {
    * well, or a plain text string in case of errors.
    */
   public void request( HttpMethod method, String path, String data,
-        Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (this.okapiUrl == null) {
+      logger.error("OkapiClient: No OkapiUrl specified");
+      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
+      return;
+    }
     String url = this.okapiUrl + path;
+    String tenant = "-";
+    if (headers.containsKey(XOkapiHeaders.TENANT)) {
+      tenant = headers.get(XOkapiHeaders.TENANT);
+    }
+
     respHeaders = null;
-    logger.debug("OkapiClient: " + method.toString() + " request to " + url);
+    String logReqMsg = reqId + " REQ "        + "okapiClient " + tenant + " "
+        + method.toString() + " " + url;
+    if (logInfo) {
+      logger.info(logReqMsg);
+    } else {
+      logger.debug(logReqMsg);
+    }
+
     HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
+      String logResMsg = reqId
+        + " RES " + postres.statusCode() + " 0us " // TODO - get timing
+        + "okapiClient " + url;
+      if (logInfo) {
+        logger.info(logResMsg);
+      } else {
+        logger.debug(logResMsg);
+      }
       final Buffer buf = Buffer.buffer();
       respHeaders = postres.headers();
       postres.handler(b -> {
-        logger.debug("OkapiClient Buffering response " + b.toString());
+        logger.debug(reqId + " OkapiClient Buffering response " + b.toString());
         buf.appendBuffer(b);
       });
       postres.endHandler(e -> {
-        String reply = buf.toString();
+        responsebody = buf.toString();
         if (postres.statusCode() >= 200 && postres.statusCode() <= 299) {
-          fut.handle(new Success<>(reply));
+          fut.handle(new Success<>(responsebody));
         } else {
           if (postres.statusCode() == 404) {
-            fut.handle(new Failure<>(NOT_FOUND, "404 " + reply + ": " + url ));
+            fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
           } else if (postres.statusCode() == 400) {
-            fut.handle(new Failure<>(USER, reply));
+            fut.handle(new Failure<>(USER, responsebody));
           } else {
-            fut.handle(new Failure<>(INTERNAL, reply));
+            fut.handle(new Failure<>(INTERNAL, responsebody));
           }
         }
+      });
+      postres.exceptionHandler(e -> {
+        fut.handle(new Failure<>(INTERNAL, e));
       });
     });
     req.exceptionHandler(x -> {
@@ -120,11 +192,12 @@ public class OkapiClient {
       if ( msg == null || msg.isEmpty()) { // unresolved address results in no message
         msg = x.toString(); // so we use toString instead
       } // but not both, because connection error has identical string in both...
-      logger.debug("OkapiClient exception: " + x.toString() + ": " + x.getMessage());
+      logger.warn(reqId + " OkapiClient exception: "
+        + x.toString() + ": " + x.getMessage(), x);
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for ( String hdr : headers.keySet()) {
-      logger.debug("OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
+      logger.debug(reqId + " OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
     }
     req.headers().addAll(headers);
     req.end(data);
@@ -159,7 +232,17 @@ public class OkapiClient {
   }
 
   /**
-   * Get the Okapi authentication token.   * From the X-Okapi-Token header.
+   * Get the response body. Same string as returned in the callback from
+   * request().
+   *
+   * @return
+   */
+  public String getResponsebody() {
+    return responsebody;
+  }
+
+  /**
+   * Get the Okapi authentication token. From the X-Okapi-Token header.
    *
    * @return the token, or null if not defined.
    */

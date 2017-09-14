@@ -4,18 +4,12 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.AsyncFile;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.file.OpenOptions;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
-import java.io.File;
 import java.io.IOException;
-import java.lang.ProcessBuilder.Redirect;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
@@ -37,7 +31,6 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Ports ports;
   private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds.
   private static final long MILLISECONDS = 200;
-  private File logFile;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
@@ -63,15 +56,6 @@ public class ProcessModuleHandle implements ModuleHandle {
     return pb;
   }
 
-  private void serviceFailed(Handler<AsyncResult<Void>> startFuture, Buffer buffer, int exitValue) {
-    logger.warn("Service returned with exit code " + p.exitValue());
-    if (buffer.length() > 0) {
-      logger.warn(buffer.toString());
-    }
-    startFuture.handle(Future.failedFuture("Service returned with exit code "
-      + exitValue + (buffer.length() > 9 ? ("\n" + buffer.toString()) : "")));
-  }
-
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
     NetClient c = vertx.createNetClient(options);
@@ -87,43 +71,21 @@ public class ProcessModuleHandle implements ModuleHandle {
         }
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
-        Buffer buffer = Buffer.buffer();
-        if (logFile == null) {
-          serviceFailed(startFuture, buffer, p.exitValue());
-        } else {
-          FileSystem fs = vertx.fileSystem();
-          OpenOptions oo = new OpenOptions().setRead(true).setWrite(false).setCreate(false);
-          fs.open(logFile.getPath(), oo, ores -> {
-            if (ores.succeeded()) {
-              AsyncFile file = ores.result();
-              file.read(buffer, 0, 0, 4096, ar -> {
-                file.close();
-                serviceFailed(startFuture, buffer, p.exitValue());
-              });
-            } else {
-              serviceFailed(startFuture, buffer, p.exitValue());
-            }
-          });
-        }
+        logger.warn("Service returned with exit code " + p.exitValue());
+        startFuture.handle(Future.failedFuture("Service returned with exit code "
+          + p.exitValue()));
       } else if (count < MAX_ITERATIONS) {
         vertx.setTimer((count + 1) * MILLISECONDS, id -> tryConnect(startFuture, count + 1));
       } else {
         logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
         startFuture.handle(Future.failedFuture("Deployment failed. "
-                + "Could not connect to port " + port + ": " + res.cause().getMessage()));
+          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
       }
     });
   }
 
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
-    try {
-      logFile = File.createTempFile("okapi_", ".log");
-      logFile.deleteOnExit();
-    } catch (Exception e) {
-      logger.warn("Could not delete " + logFile.getPath() + ". Exception: " + e);
-      logFile = null;
-    }
     if (port > 0) {
       // fail if port is already in use
       NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
@@ -167,13 +129,7 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
           }
           ProcessBuilder pb = createProcessBuilder(l);
-          pb.redirectInput(Redirect.INHERIT);
-          pb.redirectOutput(Redirect.INHERIT);
-          if (logFile != null) {
-            pb.redirectError(logFile);
-          } else {
-            pb.redirectError(Redirect.INHERIT);
-          }
+          pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
           logger.warn("Deployment failed: " + ex.getMessage());

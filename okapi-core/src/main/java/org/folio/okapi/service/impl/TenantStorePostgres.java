@@ -13,6 +13,7 @@ import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.TreeMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -32,22 +33,11 @@ public class TenantStorePostgres implements TenantStore {
   private final String idIndex = "btree((" + jsonColumn + "->'descriptor'->'id'))";
 
   public TenantStorePostgres(PostgresHandle pg) {
-    logger.info("TenantStorePg");
     this.pg = pg;
   }
 
   public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (pg.getDropDb()) {
-      // Dirty trick to use recursion here, but initMode needs to be
-      // effectively final in the lambda below.
-      // This code can be removed when we drop the -D options to initialize databases.
-      this.resetDatabase(Storage.InitMode.INIT, fut);
-      return;
-    }
-    if (initMode == Storage.InitMode.NORMAL) {
-      fut.handle(new Success<>());
-      return;
-    }
+    logger.debug("resetDatabase");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("resetDatabase: getConnection() failed: "
@@ -97,6 +87,7 @@ public class TenantStorePostgres implements TenantStore {
   } // resetDatabase
 
   private void insert(SQLConnection conn, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("insert");
     String sql = "INSERT INTO tenants ( " + jsonColumn + " ) VALUES (?::JSONB)";
     String s = Json.encode(t);
     JsonObject doc = new JsonObject(s);
@@ -114,6 +105,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
+    logger.debug("insert");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("insert: getConnection() failed: " + gres.cause().getMessage());
@@ -133,6 +125,7 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateAll(SQLConnection conn, String id, TenantDescriptor td, Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("updateAll");
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + jsonColumn + " = ? WHERE " + idSelect;
@@ -160,7 +153,7 @@ public class TenantStorePostgres implements TenantStore {
   // ON CONFLICT (id) DO UPDATE SET tenantjson = '{"enabled": {}, "descriptor": {"id": "our", "name": "our library", "description": "Our"}}';
   @Override
   public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("updateDescriptor");
+    logger.debug("updateDescriptor");
     final String id = td.getId();
     pg.getConnection(gres -> {
       if (gres.failed()) {
@@ -202,6 +195,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
+    logger.debug("listTenants");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("listTenants: getConnection() failed: "
@@ -234,7 +228,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
-    logger.info("get");
+    logger.debug("get");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
@@ -268,7 +262,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("delete");
+    logger.debug("delete");
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("delete: getConnection() failed: "
@@ -297,23 +291,27 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModuleR(SQLConnection conn, String id, String module,
-          long timestamp, Boolean enable, Iterator<JsonObject> it,
-          Handler<ExtendedAsyncResult<Void>> fut) {
+    Boolean enable, TreeMap<String, Boolean> enabled,
+    Iterator<JsonObject> it,          Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + jsonColumn + " = ? WHERE " + idSelect;
       String tj = r.getString(jsonColumn);
       Tenant t = Json.decodeValue(tj, Tenant.class);
-      t.setTimestamp(timestamp);
-      if (enable)
-        t.enableModule(module);
-      else if (!t.isEnabled(module)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
-                + id + " not found, can not disable"));
-        pg.closeConnection(conn);
-        return;
-      } else
-        t.disableModule(module);
+      if (enabled != null) {
+        t.setEnabled(enabled);
+      } else {
+        if (enable) {
+          t.enableModule(module);
+        } else if (!t.isEnabled(module)) {
+          fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
+            + id + " not found, can not disable"));
+          pg.closeConnection(conn);
+          return;
+        } else {
+          t.disableModule(module);
+        }
+      }
       String s = Json.encode(t);
       JsonObject doc = new JsonObject(s);
       JsonArray jsa = new JsonArray();
@@ -325,7 +323,7 @@ public class TenantStorePostgres implements TenantStore {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
           pg.closeConnection(conn);
         } else {
-          updateModuleR(conn, id, module, timestamp, enable, it, fut);
+          updateModuleR(conn, id, module, enable, enabled, it, fut);
         }
       });
     } else {
@@ -334,8 +332,9 @@ public class TenantStorePostgres implements TenantStore {
     }
   }
 
-  private void updateModule(String id, String module, long timestamp,
-          Boolean enable, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void updateModule(String id, String module,
+    Boolean enable, TreeMap<String, Boolean> enabled,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
         logger.fatal("updateModule: getConnection() failed: "
@@ -357,9 +356,9 @@ public class TenantStorePostgres implements TenantStore {
               fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
               pg.closeConnection(conn);
             } else {
-              logger.info("update: replace");
-              updateModuleR(conn, id, module, timestamp, enable,
-                      rs.getRows().iterator(), fut);
+              logger.debug("update: replace");
+              updateModuleR(conn, id, module, enable, enabled,
+                rs.getRows().iterator(), fut);
             }
           }
         });
@@ -368,16 +367,24 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void enableModule(String id, String module, long timestamp,
-          Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("enableModule");
-    updateModule(id, module, timestamp, true, fut);
+  public void updateModules(String id, TreeMap<String, Boolean> enabled,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("updateModules " + Json.encode(enabled.keySet()));
+    updateModule(id, "", null, enabled, fut);
+
   }
 
   @Override
-  public void disableModule(String id, String module, long timestamp,
+  public void enableModule(String id, String module,
           Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("disableModule");
-    updateModule(id, module, timestamp, false, fut);
+    logger.debug("enableModule");
+    updateModule(id, module, true, null, fut);
+  }
+
+  @Override
+  public void disableModule(String id, String module,
+          Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("disableModule");
+    updateModule(id, module, false, null, fut);
   }
 }

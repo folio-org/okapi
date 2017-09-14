@@ -1,13 +1,169 @@
+## 1.12.0 2017-09-13
+
+ * User-defined Okapi node names OKAPI-400
+ * Make the pull operation faster especially when starting from scratch
+   OKAPI-403
+ * Fix possible missing %-decoding in path parameters OKAPI-405
+
+## 1.11.0 2017-09-08
+
+ * Install facility can do full enable (simulate=false) OKAPI-399
+ * Add upgrade facility OKAPI-350
+ * `preRelease` parameter for install and upgrade facilities OKAPI-397
+ * Install facility for action=enable may take a module ID without
+   semVer OKAPI-395 . In this case module with highest semVer is
+   picked from available modules.
+ * Install facility for action=disable may take a module ID without
+   semVer OKAPI-396 .
+
+## 1.10.0 2017-08-28
+
+ * Fix pull fails with internal modules OKAPI-393
+ * Fix OkapiClient doesn't send Accept header OKAPI-391
+ * Separate interface versions for Okapi admin and Okapi proxy OKAPI-390
+ * Internal module interface version is fixed and not changed
+   with Okapi version OKAPI-387
+ * Enable module for tenant may take module ID without version
+   in which case latest version of module is picked. This should make
+   it a little easier to make scripts for backend modules OKAPI-386
+ * Fix Query parameters erased via `/_/invoke` endpoint OKAPI-384
+ * Add log message for when all is closed down OKAPI-383
+ * Better error message for missing jar in deployment OKAPI-382
+ * Update security documentation a bit OKAPI-377
+ * Set up permissions for internal module OKAPI-362
+ * New install call `/_/proxy/tenant/id/install` which changes
+   modules in use by tenant. Since it acts on multiple modules at once
+   it can report about all necessary dependencies and conflicts . The
+   operation is simulate-only at this stage, so admin users will have to
+   enable modules per tenant as usual - one by one. OKAPI-349
+
+## 1.9.0 2017-08-04
+
+ * Add facility to sort and retrieve latest MDs OKAPI-376
+   Okapi by default will sort on semVer order - descending when
+   retrieving MDs with `/_/proxy/modules` . It is also possible to filter
+   to a particular module prefix. This allows to pick all versions of
+   a module or all versions with a particular version prefix (say same
+   major version).  The filter looks like a semVer on its own.
+ * Fix Vertx exception: request has already been written OKAPI-374
+   (issue appeared in 1.8.0)
+ * Log Module ID rather than module Name OKAPI-365
+ * New feature Enable modules with dependencies for Tenant OKAPI-349 is
+   merged within this release but it is subject to change. Do not use
+   except if you are curious. Is is not documented and not complete.
+
+## 1.8.1 2017-07-28
+
+ * Okapi internal modules gets updated automatically OKAPI-364
+ * Fix leak WRT socket usage OKAPI-370
+ * Pass X-Okapi-User-Id to modules OKAPI-367
+ * Add utilities for handling semantic versions OKAPI-366, OKAPI-371, OKAPI-372
+
+## 1.8.0 2017-07-25
+
+ * Refactor internal operations to go through the internal module
+ * Create okapi.supertenant and the internal module when starting up, if not
+   already there.
+ * If no tenant specified, default to the okapi.supertenant, so we can get to
+   the internal endpoints.
+
+## 1.7.0 2017-06-28
+
+ * Tenant ID may be passed part of path. This is to facilitate "callback"
+   for some remote systems. Format is:
+   `/_/invoke/tenant/{id}/module-path-and-parms` OKAPI-355
+ * Fix Okapi doesn't accept Semver "pre-release" version syntax from MD 'id' field. OKAPI-356
+
+## 1.6.1 2017-06-27
+
+ * Fix incorrect location of upgrading module for Tenant OKAPI-351
+ * Environment variable OKAPI_LOGLEVEL sets log level - Command line
+   still takes precedence
+ * Refactor Modules and Tenants to use shared memory OKAPI-196, OKAPI-354
+
+## 1.6.0 2017-06-19
+
+ * Service `/_/proxy/pull/modules` syncs remote Okapi with local one OKAPI-347
+ * Fix empty routing entry throws exception OKAPI-348
+
+## 1.5.0 2017-06-12
+
+ * Service `/_/version` returns Okapi version OKAPI-346
+ * Allow multiple versions in requires OKAPI-330
+ * Minor tweak in HTTP logging to avoid double blank
+
+## 1.4.0 2017-06-07
+
+ * Multiple interfaces facility OKAPI-337
+ * Configurable Docker pull OKAPI-345
+
+## 1.3.0 2017-05-29
+
+ * Pass visibility flag from MD to tenantPermissions OKAPI-341
+ * Log all traffic on TRACE level OKAPI-328
+ * Describe clustered operations better in the guide OKAPI-315
+ * Fix OKAPI allow empty srvcId for discovery endpoint OKAPI-319
+ * Fix Okapi should abort operation if cluster-host is invalid OKAPI-320
+ * Log Okapi's own operations like we log proxying ops OKAPI-323
+ * Okapi raml specifies "additionalProperties": false OKAPI-326
+ * Fix Missing exception handler for http response read stream OKAPI-331
+ * Fix dockerArgs not mentioned in RAML/JSON definition OKAPI-333
+ * Fix Tenant and Permissions interface version in guide OKAPI-334
+ * Fix Okapi performance test (-Pperformance) OKAPI-338
+
+## 1.2.5 2017-04-28
+
+ * Okapi initdatabase hangs when pg db is unavailable OKAPI-255
+ * Check dependencies before calling tenant interface OKAPI-277
+ * Fix ModuleDescriptor handler without method issues NPE OKAPI-308
+ * Log proxy HTTP requests - with session tracking info OKAPI-311
+ * Upgrade to Vert.x 3.4.1 OKAPI-313
+ * initdatabase / purgedatabase updates and clarifications OKAPI-316
+
+## 1.2.4 2017-04-20
+
+ * Fix hang in recursive calls for parallel requests OKAPI-312 / FOLIO-516
+ * Document PostrgreSQL init commands OKAPI-310
+
+## 1.2.3 2017-04-07
+
+ * Warn about deprecated features in ModuleDescriptors OKAPI-295
+ * Inherit stderr again for deployed modules OKAPI-307
+
+## 1.2.2 2017-04-04
+
+ * Fix Okapi failure when invoking tenantPermissions with a v1.0
+   ModuleDescriptor OKAPI-301
+ * Fix tenantPermissions for the permission module itself OKAPI-304
+
+## 1.2.1 2017-03-31
+
+ * Fix Null diagnostic when Docker can not be reached OKAPI-299
+ * Fix HTTP connection hangs after throwing error OKAPI-298
+ * Fix DockerTest Unit Test may timeout OKAPI-297
+ * Documentation: Link to API docs section and improve presentation
+   of Instrumentation section
+
+## 1.2.0 2017-03-24
+
+ * Add ability to pull Docker images from a remote repository OKAPI-283
+ * Allow Handlers/filters instead of routingEntries OKAPI-284
+ * Allow phase instead of level inside routingEntries  OKAPI-284
+ * Rewrite the Okapi guide examples OKAPI-286
+ * Make RoutingEntry type optional and default to request-response OKAPI-288
+ * Fix garbage character for Docker logging OKAPI-291
+ * Increase wait time before warning in Unit Test for Docker OKAPI-294
+
 ## 1.1.0 2017-03-20
 
- * new property pathPattern which is an alternative to path in
+ * New property pathPattern which is an alternative to path in
    routingEntries/handlers/filters. OKAPI-274
  * routingEntries (handler) may be given for an interface OKAPI-269
    This is the preferred way of declaring handlers (that implement
-   an interface). Filters, on other other hand, do not implement
+   an interface). Filters, on the other hand, do not implement
    an interface and stays in the usual top-level (non-interface specific
    place).
- * Permission loading interface /_/tenantPermissions OKAPI-268
+ * Permission loading interface `/_/tenantPermissions` OKAPI-268
  * Define permission sets in ModuleDescriptor OKAPI-267
  * Cleaned up a few things issued by SonarQube OKAPI-279 OKAPI-280
  * Fix Okapi may hang due to standard error being buffered OKAPI-282

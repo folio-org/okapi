@@ -8,6 +8,8 @@ import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.util.ModuleId;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -15,13 +17,14 @@ import java.util.List;
  *
  */
 @JsonInclude(Include.NON_NULL)
-public class ModuleDescriptor {
+public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String id;
   private String name;
 
   private String[] tags;
+  private ModuleId moduleId;
   private ModuleInterface[] requires;
   private ModuleInterface[] provides;
   private RoutingEntry[] routingEntries; //DEPRECATED
@@ -41,6 +44,7 @@ public class ModuleDescriptor {
    * @param other
    */
   public ModuleDescriptor(ModuleDescriptor other) {
+    this.moduleId = other.moduleId;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
@@ -60,6 +64,12 @@ public class ModuleDescriptor {
   }
 
   public void setId(String id) {
+    try {
+      moduleId = new ModuleId(id);
+    } catch (IllegalArgumentException e) {
+      logger.warn("ModuleId exception: " + id + " msg: " + e.getMessage());
+      moduleId = null;
+    }
     this.id = id;
   }
   public String getName() {
@@ -70,14 +80,6 @@ public class ModuleDescriptor {
     this.name = name;
   }
 
-  @JsonIgnore
-  public String getNameOrId() {
-    if (name != null && !name.isEmpty()) {
-      return name;
-    }
-    return id;
-  }
-
   public String[] getTags() {
     return tags;
   }
@@ -86,12 +88,30 @@ public class ModuleDescriptor {
     this.tags = tags;
   }
 
+  @JsonIgnore
+  public ModuleInterface[] getRequiresList() {
+    if (requires == null) {
+      return new ModuleInterface[0];
+    } else {
+      return requires;
+    }
+  }
+
   public ModuleInterface[] getRequires() {
     return requires;
   }
 
   public void setRequires(ModuleInterface[] requires) {
     this.requires = requires;
+  }
+
+  @JsonIgnore
+  public ModuleInterface[] getProvidesList() {
+    if (provides == null) {
+      return new ModuleInterface[0];
+    } else {
+      return provides;
+    }
   }
 
   public ModuleInterface[] getProvides() {
@@ -118,18 +138,6 @@ public class ModuleDescriptor {
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
-    return getAllRoutingEntries("proxy");
-  }
-
-  /**
-   * Get all routingEntries of given type.
-   *
-   * @param type "proxy" or "system" or "" for all types
-   * @param globaltoo true: include the global-level entries too
-   * @return a list of RoutingEntries
-   */
-  @JsonIgnore
-  private List<RoutingEntry> getAllRoutingEntries(String type) {
     List<RoutingEntry> all = new ArrayList<>();
     if (routingEntries != null) {
       Collections.addAll(all, routingEntries);
@@ -137,16 +145,21 @@ public class ModuleDescriptor {
     if (filters != null) {
       Collections.addAll(all, filters);
     }
-    ModuleInterface[] prov = getProvides();
-    if (prov != null) {
-      for (ModuleInterface mi : prov) {
-        String t = mi.getInterfaceType();
-        if (t == null || t.isEmpty()) {
-          t = "proxy";
-        }
-        if (type.isEmpty() || type.equals(t)) {
-          all.addAll(mi.getAllRoutingEntries());
-        }
+    for (ModuleInterface mi : getProvidesList()) {
+      String t = mi.getInterfaceType();
+      if (t == null || t.equals("proxy") || t.equals("internal")) {
+        all.addAll(mi.getAllRoutingEntries());
+      }
+    }
+    return all;
+  }
+
+  @JsonIgnore
+  public List<RoutingEntry> getMultiRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    for (ModuleInterface mi : getProvidesList()) {
+      if ("multiple".equals(mi.getInterfaceType())) {
+        all.addAll(mi.getAllRoutingEntries());
       }
     }
     return all;
@@ -156,68 +169,19 @@ public class ModuleDescriptor {
    * Get the given system interface, if the MD has one.
    *
    * @param interfaceId name of the interface we want
-   * @return
+   * @return null if not found, or the interface
    *
    * TODO - Take a version too, check compatibility
    */
   @JsonIgnore
   public ModuleInterface getSystemInterface(String interfaceId) {
-    ModuleInterface[] provlist = getProvides();
-    if (provlist != null) {
-      for (ModuleInterface prov : provlist) {
+    for (ModuleInterface prov : getProvidesList()) {
       if ("system".equals(prov.getInterfaceType())
         && interfaceId.equals(prov.getId())) {
         return prov;
-        }
       }
     }
     return null;
-  }
-
-  /**
-   * Validate some features of a ModuleDescriptor.
-   *
-   * @return "" if ok, otherwise an informative error message.
-   */
-  public String validate() {
-    if (getId() == null || getId().isEmpty()) {
-      return "No Id in module";
-    }
-    if (!getId().matches("^[a-z0-9._-]+$")) {
-      return "Invalid id";
-    }
-    if (provides != null) {
-      for (ModuleInterface pr : provides) {
-        String err = pr.validate(false, "provides");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-    if (requires != null) {
-      for (ModuleInterface pr : requires) {
-        String err = pr.validate(false, "requires");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-
-    if (routingEntries != null) { // This can be removed in 2.0
-      for (RoutingEntry re : routingEntries) {
-        String err = re.validate(false, "toplevel");
-        if (!err.isEmpty()) {
-          return err;
-        }
-      }
-    }
-
-    if (getTenantInterface() != null) {
-      logger.warn("Module uses DEPRECATED tenantInterface field. "
-        + "Provide a 'tenant' system interface instead");
-      // Can not return error yet, need to accept this.
-    }
-    return "";
   }
 
   public String[] getModulePermissions() {
@@ -266,5 +230,94 @@ public class ModuleDescriptor {
 
   public void setFilters(RoutingEntry[] filters) {
     this.filters = filters;
+  }
+
+  /**
+   * Validate some features of a ModuleDescriptor.
+   *
+   * In case of Deprecated things, writes warnings in the log.
+   * TODO: Turn these into errors when releasing 2.0
+   *
+   * @param pc
+   * @return "" if ok, otherwise an informative error message.
+   */
+  public String validate(ProxyContext pc) {
+    if (getId() == null || getId().isEmpty()) {
+      return "No Id in module";
+    }
+    if (!getId().matches("^[a-zA-Z0-9+._-]+$")) {
+      return "Invalid id: " + getId();
+    }
+    if (moduleId == null) {
+      pc.warn("Invalid semantic version for module Id: " + getId());
+    } else if (!moduleId.hasSemVer()) {
+      pc.warn("Missing semantic version for module Id: " + getId());
+    }
+    String mod = getId();
+    if (provides != null) {
+      for (ModuleInterface pr : provides) {
+        String err = pr.validate(pc, "provides", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (requires != null) {
+      for (ModuleInterface pr : requires) {
+        String err = pr.validate(pc, "requires", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    } else {
+      pc.warn("Module '" + mod + "' "
+        + "has no Requires section. If the module really does not require "
+        + "any other interfaces, provide an empty array to be explicit about it.");
+    }
+    if (filters != null) {
+      for (RoutingEntry fe : filters) {
+        String err = fe.validate(pc, "filters", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (routingEntries != null) {
+      pc.warn("Module '" + mod + "' "
+        + " uses DEPRECATED top-level routingEntries. Use handlers instead");
+      for (RoutingEntry re : routingEntries) {
+        String err = re.validate(pc, "toplevel", mod);
+        if (!err.isEmpty()) {
+          return err;
+        }
+      }
+    }
+    if (getTenantInterface() != null) {
+      pc.warn("Module '" + mod + "' "
+        + "uses DEPRECATED tenantInterface field."
+        + " Provide a '_tenant' system interface instead");
+    }
+    return "";
+  }
+
+  public int compareTo(ModuleDescriptor other) {
+    if (this.moduleId != null && other.moduleId != null) {
+      return this.moduleId.compareTo(other.moduleId);
+    } else if (this.moduleId != null && other.moduleId == null) {
+      return 1;
+    } else if (this.moduleId == null && other.moduleId != null) {
+      return -1;
+    } else {
+      return 0;
+    }
+  }
+
+  @JsonIgnore
+  public String getProduct() {
+    if (this.moduleId != null) {
+      return this.moduleId.getProduct();
+    } else {
+      return id;
+    }
   }
 }

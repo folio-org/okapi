@@ -28,7 +28,7 @@ public class LogHelper {
    * here, to control logging for each module, or something. For now this is
    * good enough.
    */
-  private static class LogLevelInfo {
+  public static class LogLevelInfo {
 
     String level;
 
@@ -87,7 +87,6 @@ public class LogHelper {
       setRootLogLevel(inf.getLevel());
       responseJson(ctx, 200).end(Json.encode(inf));
     }
-
   }
 
 }
