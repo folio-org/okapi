@@ -304,17 +304,6 @@ public class ProxyService {
           modperms.put(mod.getModuleDescriptor().getId(), modp);
         }
       }
-
-      ModuleDescriptor md = mod.getModuleDescriptor();
-      modp = md.getModulePermissions();
-      if (modp != null && modp.length > 0) {
-        // TODO - The general modperms are DEPRECATED, use the ones in the re.
-        if (mod.getRoutingEntry().getProxyType() == ProxyType.REDIRECT) {
-          extraperms.addAll(Arrays.asList(modp));
-        } else {
-          modperms.put(md.getId(), modp);
-        }
-      }
       mod.setAuthToken(defaultToken);
     } // mod loop
     if (!req.isEmpty()) {

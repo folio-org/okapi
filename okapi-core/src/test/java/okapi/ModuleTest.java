@@ -564,7 +564,6 @@ public class ModuleTest {
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ ]," + LS
       + "  \"filters\" : [ ]," + LS
-      + "  \"modulePermissions\" : [ ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
       + "  \"launchDescriptor\" : { }" + LS
       + "}";
@@ -1126,6 +1125,7 @@ public class ModuleTest {
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
       + "      \"type\" : \"request-response\"," + LS
+      + "      \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "       \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
       + "      } ]" + LS
@@ -1133,7 +1133,6 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
       + "  } ]," + LS
-      + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS
       + "  }" + LS
@@ -2224,6 +2223,7 @@ public class ModuleTest {
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/loop1\"" + LS
       + "  }, {" + LS
+      + "    \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain3\"," + LS
       + "    \"level\" : \"53\"," + LS
@@ -2231,7 +2231,6 @@ public class ModuleTest {
       + "    \"redirectPath\" : \"/testr\"," + LS
       + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
       + "  } ]," + LS
-      + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
@@ -2309,6 +2308,7 @@ public class ModuleTest {
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/loop2\"" + LS
       + "  }, {" + LS
+      + "    \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain1\"," + LS
       + "    \"level\" : \"25\"," + LS
@@ -2335,7 +2335,6 @@ public class ModuleTest {
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"" + LS
       + "  } ]," + LS
-      + "  \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
       + "  }" + LS
