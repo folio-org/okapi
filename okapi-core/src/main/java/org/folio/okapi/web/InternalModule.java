@@ -9,6 +9,9 @@ import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.Utils;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -16,10 +19,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleDescriptorBrief;
+import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -178,6 +183,11 @@ public class InternalModule {
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/nodes\","
       + "    \"permissionsRequired\" : [ ], "
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"PUT\" ],"
+      + "    \"pathPattern\" : \"/_/discovery/nodes/{nodeId}\","
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.put\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
@@ -356,6 +366,10 @@ public class InternalModule {
       + "   \"permissionName\" : \"okapi.discovery.delete\", "
       + "   \"displayName\" : \"Okapi - undeploy a module instance\", "
       + "   \"description\" : \"Undeploy a given instance of a module\" "
+      + " }, { "
+      + "   \"permissionName\" : \"okapi.discovery.nodes.put\", "
+      + "   \"displayName\" : \"Okapi - Update a node descriptor\", "
+      + "   \"description\" : \"Update a node descriptor, usually to give it a new name\" "
       + " }, "
       + " { "
       + "   \"permissionName\" : \"okapi.proxy.modules.post\", "
@@ -434,7 +448,7 @@ public class InternalModule {
       + "   \"subPermissions\" : [ "
       + "     \"okapi.deployment.post\", \"okapi.deployment.delete\", "
       + "     \"okapi.discovery.post\", \"okapi.discovery.put\", "
-      + "     \"okapi.discovery.delete\" "
+      + "     \"okapi.discovery.delete\", \"okapi.discovery.nodes.put\" "
       + "   ]"
       + " }, "
       + " { "
@@ -493,6 +507,37 @@ public class InternalModule {
     return md;
   }
 
+  /**
+   * Helper to make a Location header. Takes the request path, and appends /id
+   * to it, and puts it in the Location header in pc.response. Also sets the
+   * return code to 201-Created. You can overwrite it after, if needed.
+   *
+   * @param pc
+   * @param id
+   * @return "" if all ok, or an error message
+   */
+  private String makeLocation(ProxyContext pc, String id, String baseUri) {
+    String uri = "";
+    try {
+      if (baseUri == null) {
+        uri = pc.getCtx().request().uri();
+      } else {
+        uri = baseUri;
+      }
+      uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
+      pc.getCtx().response().putHeader("Location", uri);
+      pc.getCtx().response().setStatusCode(201);
+      return "";
+    } catch (UnsupportedEncodingException ex) {
+      logger.warn("Could not encode location " + uri + "  " + id);
+      return ("Error in encoding location id " + id + ". "
+        + ex.getMessage());
+    }
+  }
+  private String makeLocation(ProxyContext pc, String id) {
+    return makeLocation(pc, id, null);
+  }
+
   private void createTenant(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
@@ -512,10 +557,12 @@ public class InternalModule {
           return;
         }
         RoutingContext ctx = pc.getCtx();
-        final String uri = ctx.request().uri() + "/" + id;
+        String locErr = makeLocation(pc, id);
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         final String s = Json.encodePrettily(t.getDescriptor());
-        ctx.response().setStatusCode(201);
-        ctx.response().putHeader("Location", uri);
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
@@ -600,9 +647,11 @@ public class InternalModule {
           return;
         }
         td.setId(eres.result());
-        final String uri = pc.getCtx().request().uri() + "/" + td.getId();
-        pc.getCtx().response().putHeader("Location", uri);
-        pc.getCtx().response().setStatusCode(201);
+        String locErr = makeLocation(pc, td.getId());
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(Json.encodePrettily(td)));
       });
 
@@ -696,9 +745,12 @@ public class InternalModule {
         td.setId(res.result());
         final String uri = pc.getCtx().request().uri();
         final String regex = "^(.*)/" + module_from + "$";
-        final String newuri = uri.replaceAll(regex, "$1/" + td.getId());
-        pc.getCtx().response().setStatusCode(201);
-        pc.getCtx().response().putHeader("Location", newuri);
+        final String newuri = uri.replaceAll(regex, "$1");
+        String locErr = makeLocation(pc, td.getId(), newuri);
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(Json.encodePrettily(td)));
       });
     } catch (DecodeException ex) {
@@ -778,14 +830,17 @@ public class InternalModule {
         return;
       }
       moduleManager.create(md, cres -> {
+        String uri = "";
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;
         }
         final String s = Json.encodePrettily(md);
-        final String uri = pc.getCtx().request().uri() + "/" + md.getId();
-        pc.getCtx().response().putHeader("Location", uri);
-        pc.getCtx().response().setStatusCode(201);
+        String locErr = makeLocation(pc, md.getId());
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
@@ -927,9 +982,11 @@ public class InternalModule {
           return;
         }
         final String s = Json.encodePrettily(res.result());
-        final String url = pc.getCtx().request().uri() + "/" + res.result().getInstId();
-        pc.getCtx().response().setStatusCode(201);
-        pc.getCtx().response().putHeader("Location", url);
+        String locErr = makeLocation(pc, res.result().getInstId());
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
@@ -955,7 +1012,30 @@ public class InternalModule {
       fut.handle(new Failure<>(USER, "id missing"));
       return;
     }
+    logger.debug("Int: getDiscoveryNode: " + id);
     discoveryManager.getNode(id, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      final String s = Json.encodePrettily(res.result());
+      fut.handle(new Success<>(s));
+    });
+  }
+
+  private void putDiscoveryNode(ProxyContext pc, String id, String body,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    if (id == null) {
+      fut.handle(new Failure<>(USER, "id missing"));
+      return;
+    }
+    logger.debug("Int: putDiscoveryNode: " + id + " " + body);
+    final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
+    if (!id.equals(nd.getNodeId())) {
+      fut.handle(new Failure<>(USER, "Module.id=" + nd.getNodeId() + " id=" + id));
+      return;
+    }
+    discoveryManager.updateNode(id, nd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1042,10 +1122,13 @@ public class InternalModule {
         }
         DeploymentDescriptor md = res.result();
         final String s = Json.encodePrettily(md);
-        final String uri = pc.getCtx().request().uri()
-          + "/" + md.getSrvcId() + "/" + md.getInstId();
-        pc.getCtx().response().setStatusCode(201);
-        pc.getCtx().response().putHeader("Location", uri);
+        final String baseuri = pc.getCtx().request().uri()
+          + "/" + md.getSrvcId();
+        String locErr = makeLocation(pc, md.getInstId(), baseuri);
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
@@ -1158,9 +1241,11 @@ public class InternalModule {
           return;
         }
         final String js = Json.encodePrettily(pmd);
-        final String uri = pc.getCtx().request().uri() + "/" + pmd.getName();
-        pc.getCtx().response().putHeader("Location", uri);
-        pc.getCtx().response().setStatusCode(201);
+        String locErr = makeLocation(pc, pmd.getName());
+        if (!locErr.isEmpty()) {
+          fut.handle(new Failure<>(INTERNAL, locErr));
+          return;
+        }
         fut.handle(new Success<>(js));
       });
     } catch (DecodeException ex) {
@@ -1256,9 +1341,13 @@ public class InternalModule {
     String p = ctx.normalisedPath();
     String[] segments = p.split("/");
     int n = segments.length;
+    String[] decodedSegs = new String[n];
+    for (int i = 0; i < n; i++) {
+      decodedSegs[i] = Utils.urlDecode(segments[i], false);
+    }
     HttpMethod m = ctx.request().method();
     pc.debug("internalService '" + ctx.request().method() + "'"
-      + " '" + p + "'  nseg=" + n + " :" + Json.encode(segments));
+      + " '" + p + "'  nseg=" + n + " :" + Json.encode(decodedSegs));
     if (p.endsWith("/")) {
       n = 0; // force a notfound error for trailing slash
     }
@@ -1278,15 +1367,15 @@ public class InternalModule {
         }
         // /_/proxy/modules/:id
         if (n == 5 && m.equals(GET)) {
-          getModule(pc, segments[4], fut);
+          getModule(pc, decodedSegs[4], fut);
           return;
         }
         if (n == 5 && m.equals(PUT)) {
-          updateModule(pc, segments[4], req, fut);
+          updateModule(pc, decodedSegs[4], req, fut);
           return;
         }
         if (n == 5 && m.equals(DELETE)) {
-          deleteModule(pc, segments[4], fut);
+          deleteModule(pc, decodedSegs[4], fut);
           return;
         }
       } // /_/proxy/modules
@@ -1304,53 +1393,53 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id
         if (n == 5 && m.equals(GET)) {
-          getTenant(pc, segments[4], fut);
+          getTenant(pc, decodedSegs[4], fut);
           return;
         }
         if (n == 5 && m.equals(PUT)) {
-          updateTenant(pc, segments[4], req, fut);
+          updateTenant(pc, decodedSegs[4], req, fut);
           return;
         }
         if (n == 5 && m.equals(DELETE)) {
-          deleteTenant(pc, segments[4], fut);
+          deleteTenant(pc, decodedSegs[4], fut);
           return;
         }
         // /_/proxy/tenants/:id/modules
         if (n == 6 && m.equals(GET) && segments[5].equals("modules")) {
-          listModulesForTenant(pc, segments[4], fut);
+          listModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
         if (n == 6 && m.equals(POST) && segments[5].equals("modules")) {
-          enableModuleForTenant(pc, segments[4], req, fut);
+          enableModuleForTenant(pc, decodedSegs[4], req, fut);
           return;
         }
         // /_/proxy/tenants/:id/modules/:mod
         if (n == 7 && m.equals(GET) && segments[5].equals("modules")) {
-          getModuleForTenant(pc, segments[4], segments[6], fut);
+          getModuleForTenant(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
         if (n == 7 && m.equals(POST) && segments[5].equals("modules")) {
-          upgradeModuleForTenant(pc, segments[4], segments[6], req, fut);
+          upgradeModuleForTenant(pc, decodedSegs[4], decodedSegs[6], req, fut);
           return;
         }
         if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")) {
-          disableModuleForTenant(pc, segments[4], segments[6], fut);
+          disableModuleForTenant(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
         // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(POST) && segments[5].equals("install")) {
-          installModulesForTenant(pc, segments[4], req, fut);
+          installModulesForTenant(pc, decodedSegs[4], req, fut);
           return;
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
-          upgradeModulesForTenant(pc, segments[4], req, fut);
+          upgradeModulesForTenant(pc, decodedSegs[4], req, fut);
           return;
         }
 
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")) {
-          listModulesFromInterface(pc, segments[4], segments[6], fut);
+          listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
       } // /_/proxy/tenants
@@ -1384,11 +1473,11 @@ public class InternalModule {
       }
       // /_/deployment/modules/:id:
       if (n == 5 && m.equals(GET)) {
-        getDeployment(pc, segments[4], fut);
+        getDeployment(pc, decodedSegs[4], fut);
         return;
       }
       if (n == 5 && m.equals(DELETE)) {
-        deleteDeployment(pc, segments[4], fut);
+        deleteDeployment(pc, decodedSegs[4], fut);
         return;
       }
     } // deployment
@@ -1402,7 +1491,12 @@ public class InternalModule {
       }
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(GET)) {
-        getDiscoveryNode(pc, segments[4], fut);
+        getDiscoveryNode(pc, decodedSegs[4], fut);
+        return;
+      }
+      // /_/discovery/nodes/:nodeid
+      if (n == 5 && segments[3].equals("nodes") && m.equals(PUT)) {
+        putDiscoveryNode(pc, decodedSegs[4], req, fut);
         return;
       }
 
@@ -1417,16 +1511,16 @@ public class InternalModule {
       }
       // /_/discovery/modules/:srvcid
       if (n == 5 && segments[3].equals("modules") && m.equals(GET)) {
-        discoveryGetSrvcId(pc, segments[4], fut);
+        discoveryGetSrvcId(pc, decodedSegs[4], fut);
         return;
       }
       // /_/discovery/modules/:srvcid/:instid"
       if (n == 6 && segments[3].equals("modules") && m.equals(GET)) {
-        discoveryGetInstId(pc, segments[4], segments[5], fut);
+        discoveryGetInstId(pc, decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(pc, segments[4], segments[5], fut);
+        discoveryUndeploy(pc, decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       // /_/discovery/health
@@ -1436,12 +1530,12 @@ public class InternalModule {
       }
       // /_/discovery/health/:srvcId
       if (n == 5 && segments[3].equals("health") && m.equals(GET)) {
-        discoveryHealthSrvcId(pc, segments[4], fut);
+        discoveryHealthSrvcId(pc, decodedSegs[4], fut);
         return;
       }
       // /_/discovery/health/:srvcId/:instid
       if (n == 6 && segments[3].equals("health") && m.equals(GET)) {
-        discoveryHealthOne(pc, segments[4], segments[5], fut);
+        discoveryHealthOne(pc, decodedSegs[4], decodedSegs[5], fut);
         return;
       }
     } // discovery
@@ -1460,11 +1554,11 @@ public class InternalModule {
       }
       // /_/env/name
       if (n == 4 && m.equals(GET)) {
-        getEnv(pc, segments[3], fut);
+        getEnv(pc, decodedSegs[3], fut);
         return;
       }
       if (n == 4 && m.equals(DELETE)) {
-        deleteEnv(pc, segments[3], fut);
+        deleteEnv(pc, decodedSegs[3], fut);
         return;
       }
 

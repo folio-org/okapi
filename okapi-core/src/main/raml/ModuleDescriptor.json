@@ -9,9 +9,6 @@
     "tags" : {"type" : ["array", "null"],
       "items" : {"type": "string"}
     },
-    "env": {
-      "$ref": "EnvEntryList.json"
-    },
     "requires": {
       "type": ["array", "null"],
       "items": {
@@ -48,12 +45,6 @@
               "$ref": "RoutingEntry.json"
             }
           },
-          "routingEntries": {
-            "type": ["array", "null"],
-            "items": {
-              "$ref": "RoutingEntry.json"
-            }
-          },
           "permissionSets": {
             "type": ["array", "null"],
             "items": {
@@ -64,12 +55,6 @@
       }
     },
     "filters": {
-      "type": "array",
-      "items": {
-        "$ref": "RoutingEntry.json"
-      }
-    },
-    "routingEntries": {
       "type": "array",
       "items": {
         "$ref": "RoutingEntry.json"

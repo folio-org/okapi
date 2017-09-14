@@ -1,5 +1,6 @@
 package okapi;
 
+import com.google.common.base.Utf8;
 import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -27,6 +28,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.impl.Utils;
 
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
@@ -58,7 +60,8 @@ public class ModuleTest {
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     JsonObject conf = new JsonObject()
-      .put("storage", "inmemory");
+      .put("storage", "inmemory")
+      .put("nodename", "node1");
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);
@@ -168,7 +171,8 @@ public class ModuleTest {
    * cluttering real tests. Actually testing the tenant stuff should be in its
    * own test.
    *
-   * @return the location, for deleting it later
+   * @return the location, for deleting it later. This has to be urldecoded,
+   * because restAssured "helpfully" encodes any urls passed to it.
    */
   public String createTenant() {
     final String docTenant = "{" + LS
@@ -185,7 +189,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/tenants"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -204,7 +208,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -230,7 +234,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -251,7 +255,7 @@ public class ModuleTest {
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
-    return location;
+    return Utils.urlDecode(location, false);
   }
 
   /**
@@ -289,7 +293,7 @@ public class ModuleTest {
       .statusCode(404);
 
     // Check that we refuse the request to unknown okapi service
-    // (also check that the parameters do not end in the log)
+    // (also check (manually!) that the parameters do not end in the log)
     given()
       .get("/_/foo?q=bar")
       .then()
@@ -297,13 +301,12 @@ public class ModuleTest {
 
     // This is a good ModuleDescriptor. For error tests, some things get
     // replaced out. Still some old-style fields here and there...
+    // Note the '+' in the id, it is valid semver, but may give problems
+    // in url-encoding things.
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -328,7 +331,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
@@ -422,19 +425,23 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locSampleModule = r.getHeader("Location");
+    String locSampleModule = r.getHeader("Location");
+    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
+    locSampleModule = Utils.urlDecode(locSampleModule, false);
+    // Damn restAssured encodes the urls in get(), so we need to decode this here.
 
     // Get the module
     c = api.createRestAssured();
     c.given()
       .get(locSampleModule)
-      .then().statusCode(200).body(equalTo(docSampleModule));
+      .then()
+      .statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
     // List the one module, and the built-in.
     final String expOneModList = "[ {" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"" + LS
       + "}, " + internalModuleDoc
       + " ]";
@@ -446,11 +453,12 @@ public class ModuleTest {
       .body(equalTo(expOneModList));
     Assert.assertTrue(c.getLastReport().isEmpty());
 
-    // Deploy the module
+    // Deploy the module - use the node name, not node id
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"sample-inst\"," + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"srvcId\" : \"sample-module-1+1\"," + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"nodeId\" : \"node1\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -460,11 +468,11 @@ public class ModuleTest {
       .statusCode(201).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment = r.header("Location");
+    locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
 
     // Create a tenant and enable the module
     final String locTenant = createTenant();
-    final String locEnable = enableModule("sample-module-1");
+    final String locEnable = enableModule("sample-module-1+1");
 
     // Try to enable a non-existing module
     final String docEnableNonExisting = "{" + LS
@@ -504,7 +512,7 @@ public class ModuleTest {
       .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
       .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
+      .header("X-Okapi-Module-Permissions", "{\"sample-module-1+1\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
 
     // Check that the module can call itself recursively, 5 time
@@ -553,11 +561,9 @@ public class ModuleTest {
       + "  \"id\" : \"empty-module-1.0\"," + LS
       + "  \"name\" : \"empty module-1.0\"," + LS
       + "  \"tags\" : [ ]," + LS
-      + "  \"env\" : [ ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ ]," + LS
       + "  \"filters\" : [ ]," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"modulePermissions\" : [ ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
       + "  \"launchDescriptor\" : { }" + LS
@@ -664,9 +670,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -781,6 +784,87 @@ public class ModuleTest {
     async.complete();
   }
 
+  /**
+   * Test the various ways we can interact with /_/discovery/nodes.
+   *
+   * @param context
+   */
+  @Test
+  public void testDiscoveryNodes(TestContext context) {
+    async = context.async();
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    checkDbIsEmpty("testDiscoveryNodes starting", context);
+
+    String nodeListDoc = "[ {" + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"node1\"" + LS
+      + "} ]";
+
+    String nodeDoc = "{" + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"NewName\"" + LS
+      + "}";
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes").then().statusCode(200)
+      .body(equalTo(nodeListDoc));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .body(nodeDoc)
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .log().ifError()
+      .statusCode(200);
+
+    given().get("/_/discovery/nodes")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeListDoc.replaceFirst("node1", "NewName")))
+      .log().ifError();
+
+    // Test some bad PUTs
+    given()
+      .body(nodeDoc.replaceFirst("localhost", "MayNotChangeId"))
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(400);
+    given()
+      .body(nodeDoc.replaceFirst("http://localhost:9130", "MayNotChangeUrl"))
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(400);
+
+    // Get it in various ways
+    given().get("/_/discovery/nodes/localhost")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+    given().get("/_/discovery/nodes/NewName")
+      .then()
+      .statusCode(200)
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+    given().get("/_/discovery/nodes/http://localhost:9130")
+      .then() // Note that get() encodes the url.
+      .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
+      .body(equalTo(nodeDoc))
+      .log().ifError();
+
+    checkDbIsEmpty("testDiscoveryNodes done", context);
+    async.complete();
+  }
+
   // TODO - This function is way too long and confusing
   // Create smaller functions that test one thing at a time
   // Later, move them into separate files
@@ -796,7 +880,8 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"" + LS
+      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
     c = api.createRestAssured();
@@ -880,19 +965,20 @@ public class ModuleTest {
       + "  \"name\" : \"auth\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
-      + "    \"version\" : \"1.2\"" + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
-      + "  }, {"
-      + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/authn/login\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
@@ -928,19 +1014,20 @@ public class ModuleTest {
       + "  \"name\" : \"auth2\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"auth2\"," + LS
-      + "    \"version\" : \"1.2\"" + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
-      + "  }, {"
-      + "    \"methods\" : [ \"POST\" ]," + LS
-      + "    \"path\" : \"/authn/login\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
@@ -1027,28 +1114,25 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
       + "    \"version\" : \"1.2\"" + LS
       + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
+      + "       \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
+      + "      } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"," + LS
-      + "    \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
-      + "    \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
-      + "  } ]," + LS // no 'requires' - generates a warning
       + "  \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS
@@ -1458,7 +1542,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
@@ -1525,7 +1609,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"05\"," + LS
@@ -1803,16 +1887,16 @@ public class ModuleTest {
       + "  \"name\" : \"sample module for deployment test\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS
-      + "  } ]," + LS
-      + "  \"routingEntries\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"30\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -1836,14 +1920,17 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
+    // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"" + LS
+      //+ "  \"nodeId\" : \"localhost\"" + LS
+      + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
     final String DeployResp = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"," + LS
+      //+ "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"nodeId\" : \"http://localhost:9130\"," + LS
       + "  \"url\" : \"http://localhost:9131\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -1912,7 +1999,7 @@ public class ModuleTest {
 
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"20\"," + LS
@@ -1927,7 +2014,7 @@ public class ModuleTest {
 
     final String docHeaderModule = "{" + LS
       + "  \"id\" : \"header-module-1\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"10\"," + LS
@@ -1984,7 +2071,7 @@ public class ModuleTest {
 
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"5\"," + LS
@@ -2038,7 +2125,6 @@ public class ModuleTest {
     final String docUiModuleInput = "{" + LS
       + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
       + "    \"npm\" : \"name-of-module-in-npm\"" + LS
       + "  }" + LS
@@ -2047,7 +2133,6 @@ public class ModuleTest {
     final String docUiModuleOutput = "{" + LS
       + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
-      + "  \"routingEntries\" : [ ]," + LS
       + "  \"uiDescriptor\" : {" + LS
       + "    \"npm\" : \"name-of-module-in-npm\"" + LS
       + "  }" + LS
@@ -2122,7 +2207,7 @@ public class ModuleTest {
     // Set up, deploy, and enable a sample module
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
-      + "  \"routingEntries\" : [ {" + LS
+      + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"50\"," + LS
@@ -2411,9 +2496,6 @@ public class ModuleTest {
     final String docSampleModule1 = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module 1\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS
@@ -2443,9 +2525,6 @@ public class ModuleTest {
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-2\"," + LS
       + "  \"name\" : \"sample module 2\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS

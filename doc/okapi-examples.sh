@@ -37,7 +37,7 @@ perl -n -e  'print if /^cat /../^END/;' $GUIDE  | sh
 
 # And run the example curl commands that actually talk to Okapi, excluding
 # the clean-up delete commands, so we leave Okapi fully loaded.
-perl -n -e  'print if /^curl /../http/; ' $GUIDE |
+perl -n -e  'print if /^curl /../http/; last if (/STOP-EXAMPLE-RUN/);' $GUIDE |
   grep -v 8080 | grep -v DELETE |
   sed "s/^curl/sleep $SLEEP; curl/" |
   sh -x

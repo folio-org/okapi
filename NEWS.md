@@ -1,3 +1,10 @@
+## 1.12.0 2017-09-13
+
+ * User-defined Okapi node names OKAPI-400
+ * Make the pull operation faster especially when starting from scratch
+   OKAPI-403
+ * Fix possible missing %-decoding in path parameters OKAPI-405
+
 ## 1.11.0 2017-09-08
 
  * Install facility can do full enable (simulate=false) OKAPI-399
