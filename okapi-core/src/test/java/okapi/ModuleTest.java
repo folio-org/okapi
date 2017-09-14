@@ -1,5 +1,6 @@
 package okapi;
 
+import com.google.common.base.Utf8;
 import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -27,6 +28,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.impl.Utils;
 
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
@@ -169,7 +171,8 @@ public class ModuleTest {
    * cluttering real tests. Actually testing the tenant stuff should be in its
    * own test.
    *
-   * @return the location, for deleting it later
+   * @return the location, for deleting it later. This has to be urldecoded,
+   * because restAssured "helpfully" encodes any urls passed to it.
    */
   public String createTenant() {
     final String docTenant = "{" + LS
@@ -186,7 +189,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/tenants"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -205,7 +208,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -231,7 +234,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifError()
       .extract().header("Location");
-    return loc;
+    return Utils.urlDecode(loc, false);
   }
 
   /**
@@ -252,7 +255,7 @@ public class ModuleTest {
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
-    return location;
+    return Utils.urlDecode(location, false);
   }
 
   /**
@@ -298,13 +301,12 @@ public class ModuleTest {
 
     // This is a good ModuleDescriptor. For error tests, some things get
     // replaced out. Still some old-style fields here and there...
+    // Note the '+' in the id, it is valid semver, but may give problems
+    // in url-encoding things.
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -329,7 +331,7 @@ public class ModuleTest {
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"routingEntries\" : [ {" + LS
+      + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
@@ -423,19 +425,23 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locSampleModule = r.getHeader("Location");
+    String locSampleModule = r.getHeader("Location");
+    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
+    locSampleModule = Utils.urlDecode(locSampleModule, false);
+    // Damn restAssured encodes the urls in get(), so we need to decode this here.
 
     // Get the module
     c = api.createRestAssured();
     c.given()
       .get(locSampleModule)
-      .then().statusCode(200).body(equalTo(docSampleModule));
+      .then()
+      .statusCode(200).body(equalTo(docSampleModule));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
     // List the one module, and the built-in.
     final String expOneModList = "[ {" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"" + LS
       + "}, " + internalModuleDoc
       + " ]";
@@ -450,7 +456,7 @@ public class ModuleTest {
     // Deploy the module - use the node name, not node id
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"sample-inst\"," + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"srvcId\" : \"sample-module-1+1\"," + LS
       //+ "  \"nodeId\" : \"localhost\"" + LS
       + "  \"nodeId\" : \"node1\"" + LS
       + "}";
@@ -462,11 +468,11 @@ public class ModuleTest {
       .statusCode(201).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment = r.header("Location");
+    locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
 
     // Create a tenant and enable the module
     final String locTenant = createTenant();
-    final String locEnable = enableModule("sample-module-1");
+    final String locEnable = enableModule("sample-module-1+1");
 
     // Try to enable a non-existing module
     final String docEnableNonExisting = "{" + LS
@@ -506,7 +512,7 @@ public class ModuleTest {
       .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
       .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
+      .header("X-Okapi-Module-Permissions", "{\"sample-module-1+1\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
 
     // Check that the module can call itself recursively, 5 time
@@ -555,7 +561,6 @@ public class ModuleTest {
       + "  \"id\" : \"empty-module-1.0\"," + LS
       + "  \"name\" : \"empty module-1.0\"," + LS
       + "  \"tags\" : [ ]," + LS
-      + "  \"env\" : [ ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ ]," + LS
       + "  \"filters\" : [ ]," + LS
@@ -665,9 +670,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -783,7 +785,7 @@ public class ModuleTest {
   }
 
   /**
-   * Test the vartious ways we can interaxct with /_/discovery/nodes.
+   * Test the various ways we can interact with /_/discovery/nodes.
    *
    * @param context
    */
@@ -1112,9 +1114,6 @@ public class ModuleTest {
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting\"" + LS
-      + "  } ]," + LS
       + "  \"requires\" : [ {" + LS
       + "    \"id\" : \"auth\"," + LS
       + "    \"version\" : \"1.2\"" + LS
@@ -2497,9 +2496,6 @@ public class ModuleTest {
     final String docSampleModule1 = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"name\" : \"sample module 1\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS
@@ -2529,9 +2525,6 @@ public class ModuleTest {
     final String docSampleModule2 = "{" + LS
       + "  \"id\" : \"sample-module-2\"," + LS
       + "  \"name\" : \"sample module 2\"," + LS
-      + "  \"env\" : [ {" + LS
-      + "    \"name\" : \"helloGreeting1\"" + LS
-      + "  } ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
       + "    \"interfaceType\" : \"proxy\"," + LS
