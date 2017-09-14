@@ -307,10 +307,6 @@ public class RoutingEntry {
           break;
         case "filters":
           break;
-        case "requires":
-          break;
-        case "toplevel":
-          break;
         default:
           // Should not happen
           return "Programming error: "
