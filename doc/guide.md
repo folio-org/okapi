@@ -2170,7 +2170,7 @@ Content-Length: 178
 As mentioned, the Hazelcast system allocates UUIDs for the nodeIds. That is all
 fine, but they are clumsy to use, and they change every time you run things, so
 it is not so easy to refer to nodes in your scripts etc. We have added a feature
-to give the node a name on the commandd line, like this:
+to give the node a name on the command line, like this:
 ```
 java -Dhost=tapas -Dnodename=MyFirstNode \
   -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-host 10.0.0.2

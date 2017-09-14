@@ -792,7 +792,7 @@ public class ModuleTest {
   }
 
   /**
-   * Test the vartious ways we can interaxct with /_/discovery/nodes.
+   * Test the various ways we can interact with /_/discovery/nodes.
    *
    * @param context
    */
