@@ -1,3 +1,18 @@
+## 2.0.0 2017-09-14
+
+ * Remove support for property routingEntries OKAPI-289
+   Replaced by handlers and filters.
+ * Remove support for environment variables in top-level MD OKAPI-292
+   While possible to specify, the values were never passed on by OKAPI.
+ * Enforce proper module ID with semantic version suffix OKAPI-406
+ * Remove support for tenantInterface property in MD OKAPI-407
+ * Check _tenant interface versinon OKAPI-408
+   Only 1.0 supported at this time.
+ * Allow full=true parameter for /_/proxy/modules OKAPI-409
+   Allows fetch of many full MDs in one operation.
+ * Remove support for top-level modulePermissions in MD OKAPI-411
+ * Refactor and remove timestamp from tenant OKAPI-410 and OKAPI-412
+
 ## 1.12.0 2017-09-13
 
  * User-defined Okapi node names OKAPI-400
