@@ -159,20 +159,14 @@ public class ProxyService {
 
     for (ModuleDescriptor md : enabledModules) {
       pc.debug("getMods:  looking at " + md.getId());
-      List<RoutingEntry> rr = md.getProxyRoutingEntries();
+      List<RoutingEntry> rr = null;
       if (id == null) {
-        for (RoutingEntry re : rr) {
-          if (match(re, req)) {
-            if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
-              return null;
-            }
-            pc.debug("getMods:   Added " + md.getId() + " "
-              + re.getPathPattern() + " " + re.getPath());
-          }
-        }
+        rr = md.getProxyRoutingEntries();
       } else if (id.equals(md.getId())) {
-        List<RoutingEntry> rr1 = md.getMultiRoutingEntries();
-        for (RoutingEntry re : rr1) {
+        rr = md.getMultiRoutingEntries();
+      }
+      if (rr != null) {
+        for (RoutingEntry re : rr) {
           if (match(re, req)) {
             if (!resolveRedirects(pc, mods, re, md, enabledModules, "", req.uri(), "")) {
               return null;
