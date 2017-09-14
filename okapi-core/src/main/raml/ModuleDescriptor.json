@@ -45,12 +45,6 @@
               "$ref": "RoutingEntry.json"
             }
           },
-          "routingEntries": {
-            "type": ["array", "null"],
-            "items": {
-              "$ref": "RoutingEntry.json"
-            }
-          },
           "permissionSets": {
             "type": ["array", "null"],
             "items": {
@@ -61,12 +55,6 @@
       }
     },
     "filters": {
-      "type": "array",
-      "items": {
-        "$ref": "RoutingEntry.json"
-      }
-    },
-    "routingEntries": {
       "type": "array",
       "items": {
         "$ref": "RoutingEntry.json"
