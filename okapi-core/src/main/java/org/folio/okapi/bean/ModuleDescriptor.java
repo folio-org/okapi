@@ -39,19 +39,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * Copy constructor.
    *
    * @param other
+   * @param full
    */
-  public ModuleDescriptor(ModuleDescriptor other) {
-    this.id = other.id;
-    this.name = other.name;
-    this.tags = other.tags;
-    this.filters = other.filters;
-    this.requires = other.requires;
-    this.provides = other.provides;
-    this.permissionSets = other.permissionSets;
-    this.uiDescriptor = other.uiDescriptor;
-    this.launchDescriptor = other.launchDescriptor;
-  }
-
   public ModuleDescriptor(ModuleDescriptor other, boolean full) {
     this.moduleId = other.moduleId;
     this.id = other.id;
