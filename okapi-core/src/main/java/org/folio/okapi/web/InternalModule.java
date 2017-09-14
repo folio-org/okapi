@@ -23,7 +23,6 @@ import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleDescriptorBrief;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
@@ -872,6 +871,7 @@ public class InternalModule {
       final String orderByStr = pc.getCtx().request().getParam("orderBy");
       final String orderStr = pc.getCtx().request().getParam("order");
       final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+      final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
       moduleManager.getModulesWithFilter(filter, preRelease, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -896,9 +896,9 @@ public class InternalModule {
         } else {
           Collections.sort(mdl, Collections.reverseOrder());
         }
-        List<ModuleDescriptorBrief> ml = new ArrayList<>(mdl.size());
+        List<ModuleDescriptor> ml = new ArrayList<>(mdl.size());
         for (ModuleDescriptor md : mdl) {
-          ml.add(new ModuleDescriptorBrief(md));
+          ml.add(new ModuleDescriptor(md, full));
         }
         String s = Json.encodePrettily(ml);
         fut.handle(new Success<>(s));

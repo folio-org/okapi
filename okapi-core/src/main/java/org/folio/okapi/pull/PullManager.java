@@ -14,7 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.TreeMap;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleDescriptorBrief;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -76,7 +75,7 @@ public class PullManager {
   }
 
   private void getList(String urlBase,
-    Handler<ExtendedAsyncResult<ModuleDescriptorBrief[]>> fut) {
+    Handler<ExtendedAsyncResult<ModuleDescriptor[]>> fut) {
     String url = urlBase;
     if (!url.endsWith("/")) {
       url += "/";
@@ -91,9 +90,9 @@ public class PullManager {
         if (res.statusCode() != 200) {
           fut.handle(new Failure<>(ErrorType.USER, body.toString()));
         } else {
-          ModuleDescriptorBrief ml[] = Json.decodeValue(body.toString(),
-            ModuleDescriptorBrief[].class);
-          for (ModuleDescriptorBrief mdb : ml) {
+          ModuleDescriptor ml[] = Json.decodeValue(body.toString(),
+            ModuleDescriptor[].class);
+          for (ModuleDescriptor mdb : ml) {
           }
           fut.handle(new Success<>(ml));
         }
@@ -110,7 +109,7 @@ public class PullManager {
     req.end();
   }
 
-  private void getFull(String urlBase, Iterator<ModuleDescriptorBrief> it,
+  private void getFull(String urlBase, Iterator<ModuleDescriptor> it,
     List<ModuleDescriptor> ml,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
@@ -254,16 +253,16 @@ public class PullManager {
     });
   }
 
-  private void merge(String urlBase, ModuleDescriptorBrief[] mlLocal,
-    ModuleDescriptorBrief[] mlRemote, Handler<ExtendedAsyncResult<List<ModuleDescriptorBrief>>> fut) {
+  private void merge(String urlBase, ModuleDescriptor[] mlLocal,
+    ModuleDescriptor[] mlRemote, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     TreeMap<String, Boolean> enabled = new TreeMap<>();
-    for (ModuleDescriptorBrief md : mlLocal) {
+    for (ModuleDescriptor md : mlLocal) {
       enabled.put(md.getId(), false);
     }
 
-    List<ModuleDescriptorBrief> mlAdd = new LinkedList<>();
-    for (ModuleDescriptorBrief md : mlRemote) {
+    List<ModuleDescriptor> mlAdd = new LinkedList<>();
+    for (ModuleDescriptor md : mlRemote) {
       if (!md.getProduct().equals("okapi") && enabled.get(md.getId()) == null) {
         mlAdd.add(md);
       }
@@ -288,7 +287,7 @@ public class PullManager {
     });
   }
 
-  public void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptorBrief>>> fut) {
+  public void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     getRemoteUrl(Arrays.asList(pd.getUrls()).iterator(), resUrl -> {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
@@ -297,7 +296,7 @@ public class PullManager {
           if (resLocal.failed()) {
             fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
           } else {
-            ModuleDescriptorBrief[] mlLocal = resLocal.result();
+            ModuleDescriptor[] mlLocal = resLocal.result();
             getList(resUrl.result(), resRemote -> {
               if (resRemote.failed()) {
                 fut.handle(new Failure<>(resRemote.getType(), resRemote.cause()));
