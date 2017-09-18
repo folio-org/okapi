@@ -6,7 +6,7 @@
    While possible to specify, the values were never passed on by OKAPI.
  * Enforce proper module ID with semantic version suffix OKAPI-406
  * Remove support for tenantInterface property in MD OKAPI-407
- * Check _tenant interface versinon OKAPI-408
+ * Check _tenant interface version OKAPI-408
    Only 1.0 supported at this time.
  * Allow full=true parameter for /_/proxy/modules OKAPI-409
    Allows fetch of many full MDs in one operation.
