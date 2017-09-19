@@ -30,7 +30,7 @@ public class MongoHandle {
   // finally a default value.
   public MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
-    String h = Config.getSysConf("mongo_host", "127.0.0.1", conf);
+    String h = Config.getSysConf("mongo_host", "localhost", conf);
     if (!h.isEmpty()) {
       opt.put("host", h);
     }
