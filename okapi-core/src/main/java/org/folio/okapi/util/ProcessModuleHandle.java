@@ -199,6 +199,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           try {
             int x = p.waitFor();
           } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
           }
         }
         future.complete();

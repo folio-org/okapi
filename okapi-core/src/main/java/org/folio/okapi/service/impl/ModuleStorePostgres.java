@@ -139,11 +139,7 @@ public class ModuleStorePostgres implements ModuleStore {
             logger.fatal("update failed: " + sres.cause().getMessage());
             fut.handle(new Failure<>(INTERNAL, sres.cause()));
           } else {
-            UpdateResult result = sres.result();
-            if (result.getUpdated() > 0)
-              fut.handle(new Success<>(id));
-            else
-              fut.handle(new Success<>(id));
+            fut.handle(new Success<>(id));
           }
           pg.closeConnection(conn);
         });

@@ -111,6 +111,9 @@ public class ModuleInterface {
       return false; // not the same interface at all
     }
     int[] t = this.versionParts(this.version, 0);
+    if (t == null) {
+      return false;
+    }
     for (int idx = 0;; idx++) {
       int[] r = this.versionParts(required.version, idx);
       if (r == null) {

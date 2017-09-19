@@ -181,6 +181,7 @@ public class MainVerticle extends AbstractVerticle {
             }
           } catch (InterruptedException e) {
             logger.error("Exception while shutting down");
+            Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
           }
         }
