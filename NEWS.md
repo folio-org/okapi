@@ -221,9 +221,5 @@
  * Uses Vert.x for non-blocking services
  * Two dummy example modules - used by Unit tests
 
-### TODO
-
- * Interface with Consul for Clustering, Service Discovery, etc.
- * Header merging (#33)
 
 
