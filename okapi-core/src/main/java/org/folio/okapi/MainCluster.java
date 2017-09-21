@@ -19,6 +19,11 @@ import static java.lang.Integer.*;
 import org.folio.okapi.util.DropwizardHelper;
 
 public class MainCluster {
+  private static final String CANNOT_LOAD_STR = "Cannot load ";
+
+  private MainCluster() {
+    throw new IllegalAccessError("MainCluster");
+  }
 
   public static void main(String[] args) {
     setProperty("vertx.logger-delegate-factory-class-name",
@@ -35,8 +40,8 @@ public class MainCluster {
     JsonObject conf = new JsonObject();
     String clusterHost = null;
     int clusterPort = -1;
-
-    for (int i = 0; i < args.length; i++) {
+    int i = 0;
+    while (i < args.length) {
       if (!args[i].startsWith("-")) {
         if ("help".equals(args[i])) {
           out.println("Usage: command [options]\n"
@@ -63,7 +68,7 @@ public class MainCluster {
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
@@ -72,7 +77,7 @@ public class MainCluster {
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
@@ -81,7 +86,7 @@ public class MainCluster {
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
           exit(1);
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
@@ -103,8 +108,9 @@ public class MainCluster {
         err.println("Invalid option: " + args[i]);
         exit(1);
       }
+      i++;
     }
-    if (conf.getString("mode", "dev").equals("dev")) {
+    if ("dev".equals(conf.getString("mode", "dev"))) {
       Vertx vertx = Vertx.vertx(vopt);
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
