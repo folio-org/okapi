@@ -19,6 +19,7 @@ import static java.lang.Integer.*;
 import org.folio.okapi.util.DropwizardHelper;
 
 public class MainCluster {
+  private final static String cannotLoadStr = "Cannot load ";
 
   public static void main(String[] args) {
     setProperty("vertx.logger-delegate-factory-class-name",
@@ -35,8 +36,8 @@ public class MainCluster {
     JsonObject conf = new JsonObject();
     String clusterHost = null;
     int clusterPort = -1;
-
-    for (int i = 0; i < args.length; i++) {
+    int i = 0;
+    while (i < args.length) {
       if (!args[i].startsWith("-")) {
         if ("help".equals(args[i])) {
           out.println("Usage: command [options]\n"
@@ -63,7 +64,7 @@ public class MainCluster {
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(cannotLoadStr + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
@@ -72,7 +73,7 @@ public class MainCluster {
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(cannotLoadStr + resource + ": " + e);
           exit(1);
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
@@ -81,7 +82,7 @@ public class MainCluster {
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          logger.error("Cannot load " + resource + ": " + e);
+          logger.error(cannotLoadStr + resource + ": " + e);
           exit(1);
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
@@ -103,6 +104,7 @@ public class MainCluster {
         err.println("Invalid option: " + args[i]);
         exit(1);
       }
+      i++;
     }
     if (conf.getString("mode", "dev").equals("dev")) {
       Vertx vertx = Vertx.vertx(vopt);
