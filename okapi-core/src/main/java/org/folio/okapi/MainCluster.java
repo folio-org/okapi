@@ -110,57 +110,63 @@ public class MainCluster {
       }
       i++;
     }
-    if ("dev".equals(conf.getString("mode", "dev"))) {
-      Vertx vertx = Vertx.vertx(vopt);
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
-        if (dep.failed()) {
-          exit(1);
+    final String mode = conf.getString("mode", "dev");
+    switch (mode) {
+      case "dev":
+      case "initdatabase":
+      case "purgedatabase": {
+        Vertx vertx = Vertx.vertx(vopt);
+        DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+        vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
+          if (dep.failed()) {
+            exit(1);
+          }
+        });
+      }
+      break;
+      default:
+        if (hConfig == null) {
+          hConfig = new Config();
+          if (clusterHost != null) {
+            NetworkConfig network = hConfig.getNetworkConfig();
+            InterfacesConfig iFace = network.getInterfaces();
+            iFace.setEnabled(true).addInterface(clusterHost);
+          }
         }
-      });
-    } else {
-      if (hConfig == null) {
-        hConfig = new Config();
+        hConfig.setProperty("hazelcast.logging.type", "slf4j");
+
+        HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
+        vopt.setClusterManager(mgr);
         if (clusterHost != null) {
-          NetworkConfig network = hConfig.getNetworkConfig();
-          InterfacesConfig iFace = network.getInterfaces();
-          iFace.setEnabled(true).addInterface(clusterHost);
-        }
-      }
-      hConfig.setProperty("hazelcast.logging.type", "slf4j");
-
-      HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
-      vopt.setClusterManager(mgr);
-      if (clusterHost != null) {
-        logger.info("clusterHost=" + clusterHost);
-        vopt.setClusterHost(clusterHost);
-      } else {
-        logger.warn("clusterHost not set");
-      }
-      if (clusterPort != -1) {
-        logger.info("clusterPort=" + clusterPort);
-        vopt.setClusterPort(clusterPort);
-      } else {
-        logger.warn("clusterPort not set");
-      }
-      vopt.setClustered(true);
-
-      Vertx.clusteredVertx(vopt, res -> {
-        if (res.succeeded()) {
-          Vertx vertx = res.result();
-          DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-          MainVerticle v = new MainVerticle();
-          v.setClusterManager(mgr);
-          vertx.deployVerticle(v, opt, dep -> {
-            if (dep.failed()) {
-              exit(1);
-            }
-          });
+          logger.info("clusterHost=" + clusterHost);
+          vopt.setClusterHost(clusterHost);
         } else {
-          logger.fatal(res.cause().getMessage());
-          exit(1);
+          logger.warn("clusterHost not set");
         }
-      });
+        if (clusterPort != -1) {
+          logger.info("clusterPort=" + clusterPort);
+          vopt.setClusterPort(clusterPort);
+        } else {
+          logger.warn("clusterPort not set");
+        }
+        vopt.setClustered(true);
+
+        Vertx.clusteredVertx(vopt, res -> {
+          if (res.succeeded()) {
+            Vertx vertx = res.result();
+            DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+            MainVerticle v = new MainVerticle();
+            v.setClusterManager(mgr);
+            vertx.deployVerticle(v, opt, dep -> {
+              if (dep.failed()) {
+                exit(1);
+              }
+            });
+          } else {
+            logger.fatal(res.cause().getMessage());
+            exit(1);
+          }
+        });
     }
   }
 }
