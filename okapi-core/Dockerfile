@@ -1,22 +1,28 @@
-###
-# vert.x docker example using a Java verticle packaged as a fatjar
-# To build:
-#  docker build -t indexdata/okapi-core .
-# To run:
-#   docker run -t -i -p 8080:8080 indexdata/okapi-core
-###
+FROM openjdk:8-jre
 
-FROM java:8
+ENV VERTICLE_FILE okapi-core-fat.jar
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles
 
-EXPOSE 8080
-
 # Copy your fat jar to the container
-COPY target/*-fat.jar $VERTICLE_HOME/module.jar
+COPY target/$VERTICLE_FILE $VERTICLE_HOME/module.jar
+COPY docker/docker-entrypoint.sh $VERTICLE_HOME/docker-entrypoint.sh
+
+# Create user/group 'folio'
+RUN groupadd folio && \
+    useradd -r -d $VERTICLE_HOME -g folio -M folio && \
+    chown -R folio.folio $VERTICLE_HOME && \
+    chown -R folio.folio ${VERTICLE_HOME}/docker-entrypoint.sh && \
+    chmod +x ${VERTICLE_HOME}/docker-entrypoint.sh
+
+# Run as this user
+USER folio
 
 # Launch the verticle
 WORKDIR $VERTICLE_HOME
-ENTRYPOINT ["java", "-jar", "module.jar"]
-CMD ["dev"]
+
+# Expose this port locally in the container.
+EXPOSE 9130
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
