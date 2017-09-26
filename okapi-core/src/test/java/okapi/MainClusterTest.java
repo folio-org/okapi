@@ -53,6 +53,30 @@ public class MainClusterTest {
   }
 
   @Test
+  public void testHelp(TestContext context) {
+    async = context.async();
+
+    String[] args = {"help"};
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue(res.succeeded());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testBadOption(TestContext context) {
+    async = context.async();
+
+    String[] args = {"-bad-option"};
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertFalse(res.succeeded());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testBadMode(TestContext context) {
     async = context.async();
 
