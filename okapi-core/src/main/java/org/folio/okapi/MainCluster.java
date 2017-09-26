@@ -7,6 +7,8 @@ import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Handler;
+import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
@@ -16,6 +18,10 @@ import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
+import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Success;
 import org.folio.okapi.util.DropwizardHelper;
 
 public class MainCluster {
@@ -26,14 +32,24 @@ public class MainCluster {
   }
 
   public static void main(String[] args) {
+    final Logger logger = LoggerFactory.getLogger("okapi");
+    main1(args, res -> {
+      if (res.failed()) {
+        logger.error(res.cause());
+        exit(1);
+      }
+    });
+  }
+
+  public static void main1(String[] args, Handler<ExtendedAsyncResult<Vertx>> fut) {
     setProperty("vertx.logger-delegate-factory-class-name",
             "io.vertx.core.logging.SLF4JLogDelegateFactory");
 
     final Logger logger = LoggerFactory.getLogger("okapi");
 
     if (args.length < 1) {
-      err.println("Missing command; use help");
-      exit(1);
+      fut.handle(new Failure<>(USER, "Missing command; use help"));
+      return;
     }
     VertxOptions vopt = new VertxOptions();
     Config hConfig = null;
@@ -68,8 +84,8 @@ public class MainCluster {
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
-          exit(1);
+          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          return;
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
         i++;
@@ -77,8 +93,8 @@ public class MainCluster {
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
-          exit(1);
+          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          return;
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
         i++;
@@ -86,8 +102,8 @@ public class MainCluster {
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          logger.error(CANNOT_LOAD_STR + resource + ": " + e);
-          exit(1);
+          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          return;
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
         i++;
@@ -105,62 +121,65 @@ public class MainCluster {
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
-        err.println("Invalid option: " + args[i]);
-        exit(1);
+        fut.handle(new Failure<>(USER, "Invalid option: " + args[i]));
+        return;
       }
       i++;
     }
-    if ("dev".equals(conf.getString("mode", "dev"))) {
-      Vertx vertx = Vertx.vertx(vopt);
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, dep -> {
-        if (dep.failed()) {
-          exit(1);
+    final String mode = conf.getString("mode", "dev");
+    switch (mode) {
+      case "dev":
+      case "initdatabase":
+      case "purgedatabase":
+        deploy(new MainVerticle(), conf, Vertx.vertx(vopt), fut);
+        break;
+      default:
+        if (hConfig == null) {
+          hConfig = new Config();
+          if (clusterHost != null) {
+            NetworkConfig network = hConfig.getNetworkConfig();
+            InterfacesConfig iFace = network.getInterfaces();
+            iFace.setEnabled(true).addInterface(clusterHost);
+          }
         }
-      });
-    } else {
-      if (hConfig == null) {
-        hConfig = new Config();
+        hConfig.setProperty("hazelcast.logging.type", "slf4j");
+
+        HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
+        vopt.setClusterManager(mgr);
         if (clusterHost != null) {
-          NetworkConfig network = hConfig.getNetworkConfig();
-          InterfacesConfig iFace = network.getInterfaces();
-          iFace.setEnabled(true).addInterface(clusterHost);
-        }
-      }
-      hConfig.setProperty("hazelcast.logging.type", "slf4j");
-
-      HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
-      vopt.setClusterManager(mgr);
-      if (clusterHost != null) {
-        logger.info("clusterHost=" + clusterHost);
-        vopt.setClusterHost(clusterHost);
-      } else {
-        logger.warn("clusterHost not set");
-      }
-      if (clusterPort != -1) {
-        logger.info("clusterPort=" + clusterPort);
-        vopt.setClusterPort(clusterPort);
-      } else {
-        logger.warn("clusterPort not set");
-      }
-      vopt.setClustered(true);
-
-      Vertx.clusteredVertx(vopt, res -> {
-        if (res.succeeded()) {
-          Vertx vertx = res.result();
-          DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-          MainVerticle v = new MainVerticle();
-          v.setClusterManager(mgr);
-          vertx.deployVerticle(v, opt, dep -> {
-            if (dep.failed()) {
-              exit(1);
-            }
-          });
+          logger.info("clusterHost=" + clusterHost);
+          vopt.setClusterHost(clusterHost);
         } else {
-          logger.fatal(res.cause().getMessage());
-          exit(1);
+          logger.warn("clusterHost not set");
         }
-      });
+        if (clusterPort != -1) {
+          logger.info("clusterPort=" + clusterPort);
+          vopt.setClusterPort(clusterPort);
+        } else {
+          logger.warn("clusterPort not set");
+        }
+        vopt.setClustered(true);
+
+        Vertx.clusteredVertx(vopt, res -> {
+          if (res.succeeded()) {
+            MainVerticle v = new MainVerticle();
+            v.setClusterManager(mgr);
+            deploy(v, conf, res.result(), fut);
+          } else {
+            fut.handle(new Failure<>(USER, res.cause()));
+          }
+        });
     }
+  }
+
+  private static void deploy(Verticle v, JsonObject conf, Vertx vertx, Handler<ExtendedAsyncResult<Vertx>> fut) {
+    DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+    vertx.deployVerticle(v, opt, dep -> {
+      if (dep.failed()) {
+        fut.handle(new Failure<>(INTERNAL, dep.cause()));
+      } else {
+        fut.handle(new Success<>(vertx));
+      }
+    });
   }
 }
