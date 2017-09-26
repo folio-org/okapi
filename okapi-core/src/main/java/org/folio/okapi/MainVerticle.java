@@ -14,7 +14,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
 import java.io.InputStream;
 import static java.lang.System.getenv;
@@ -220,17 +219,6 @@ public class MainVerticle extends AbstractVerticle {
         moduleManager, tenantManager, discoveryManager,
         internalModule, okapiUrl);
     }
-
-  }
-
-  public void NotFound(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx, "okapi.notfound");
-    String slash = "";
-    if (ctx.request().path().endsWith("/")) {
-      slash = "  Try without a trailing slash";
-    }
-    pc.responseError(404, "Okapi: unrecognized service "
-      + ctx.request().path() + slash);
 
   }
 
@@ -501,9 +489,6 @@ public class MainVerticle extends AbstractVerticle {
     if (proxyService != null) {
       router.route("/*").handler(proxyService::proxy);
     }
-
-    // A fallback for a notfound response
-    router.route("/*").handler(this::NotFound);
 
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
