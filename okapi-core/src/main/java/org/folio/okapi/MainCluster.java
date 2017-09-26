@@ -133,7 +133,9 @@ public class MainCluster {
       case "purgedatabase":
         deploy(new MainVerticle(), conf, Vertx.vertx(vopt), fut);
         break;
-      default:
+      case "cluster":
+      case "proxy":
+      case "deployment":
         if (hConfig == null) {
           hConfig = new Config();
           if (clusterHost != null) {
@@ -169,6 +171,10 @@ public class MainCluster {
             fut.handle(new Failure<>(USER, res.cause()));
           }
         });
+        break;
+      default:
+        fut.handle(new Failure<>(USER, "Unknown command '" + mode + "'"));
+        return;
     }
   }
 

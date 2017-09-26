@@ -13,10 +13,8 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.MainCluster;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -27,59 +25,121 @@ public class MainClusterTest {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
   Async async;
   Vertx vertx;
+  RamlDefinition api;
+
 
   public MainClusterTest() {
-  }
-
-  @BeforeClass
-  public static void setUpClass() {
-  }
-
-  @AfterClass
-  public static void tearDownClass() {
   }
 
   @Before
   public void setUp(TestContext context) {
     async = context.async();
-
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.port = port;
-    String[] args = {"dev"};
-
-    MainCluster.main1(args, res -> {
-      vertx = res.result();
-      Assert.assertTrue("main1: " + res.cause(), res.succeeded());
-      async.complete();
-    });
+    async.complete();
   }
 
   @After
   public void tearDown(TestContext context) {
     async = context.async();
-    if (vertx != null) {
+    if (vertx == null) {
+      async.complete();
+    } else {
       vertx.close(x -> {
+        vertx = null;
         async.complete();
       });
-    } else {
-      async.complete();
     }
   }
 
   @Test
-  public void testVersion(TestContext context) {
+  public void testBadMode(TestContext context) {
     async = context.async();
 
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+    String[] args = {"bad"};
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertFalse(res.succeeded());
+      async.complete();
+    });
+  }
 
-    RestAssuredClient c;
-    Response r;
+  @Test
+  public void testNoArgs(TestContext context) {
+    async = context.async();
 
-    c = api.createRestAssured();
-    r = c.given().get("/_/version").then().statusCode(200).log().ifError().extract().response();
+    String[] args = {};
+    MainCluster.main1(args, res -> {
+      Assert.assertFalse(res.succeeded());
+      vertx = res.succeeded() ? res.result() : null;
+      async.complete();
+    });
+  }
 
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    async.complete();
+  @Test
+  public void testDevMode(TestContext context) {
+    async = context.async();
+
+    String[] args = {"dev"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
+
+      RestAssuredClient c;
+      Response r;
+
+      c = api.createRestAssured();
+      r = c.given().get("/_/version").then().statusCode(200).log().ifError().extract().response();
+
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testDeploymentMode(TestContext context) {
+    async = context.async();
+
+    String[] args = {"deployment"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1" + res.cause(), res.succeeded());
+
+      RestAssuredClient c;
+      Response r;
+
+      c = api.createRestAssured();
+      r = c.given().get("/_/deployment/modules").then().statusCode(200).log().ifError().extract().response();
+
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testProxyMode(TestContext context) {
+    async = context.async();
+
+    String[] args = {"proxy"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
+
+      RestAssuredClient c;
+      Response r;
+
+      c = api.createRestAssured();
+      r = c.given().get("/_/proxy/modules").then().statusCode(200).log().ifError().extract().response();
+
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+      async.complete();
+    });
   }
 
 }
