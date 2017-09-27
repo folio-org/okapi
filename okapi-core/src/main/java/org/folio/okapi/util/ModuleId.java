@@ -58,6 +58,17 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   @Override
+  public boolean equals(Object that) {
+    if (this == that) {
+      return true;
+    }
+    if (!(that instanceof ModuleId)) {
+      return false;
+    }
+    return compareTo((ModuleId) that) == 0;
+  }
+
+  @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
     b.append("module: ");
@@ -91,12 +102,10 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   public boolean hasPrefix(ModuleId other) {
-    if (!this.product.equals(other.product)) {
+    if (!this.product.equals(other.product) || this.semVer == null) {
       return false;
-    } else if (this.semVer != null && other.semVer != null) {
+    } else if (other.semVer != null) {
       return semVer.hasPrefix(other.semVer);
-    } else if (this.semVer == null && other.semVer != null) {
-      return false;
     } else {
       return true;
     }

@@ -36,6 +36,7 @@ import org.folio.okapi.common.Success;
  * See /etc/postgresql/version/main/pg_hba.conf
  *
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresHandle {
 
   private AsyncSQLClient cli;

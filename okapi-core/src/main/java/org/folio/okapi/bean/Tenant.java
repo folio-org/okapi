@@ -2,6 +2,7 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.*;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
 /**
@@ -13,11 +14,11 @@ import java.util.TreeMap;
 public class Tenant {
 
   @JsonProperty
-  final private TenantDescriptor descriptor;
+  private final TenantDescriptor descriptor;
   // id and name, and that kind of stuff
 
   @JsonProperty
-  private TreeMap<String, Boolean> enabled;
+  private SortedMap<String, Boolean> enabled;
   // Note that this can not just be a Map, or the order of enabled modules
   // will be undefined. That should not harm in real life, but it messes up
   // our tests!
@@ -27,7 +28,7 @@ public class Tenant {
     this.enabled = new TreeMap<>();
   }
 
-  public Tenant(TenantDescriptor descriptor, TreeMap<String, Boolean> enabled) {
+  public Tenant(TenantDescriptor descriptor, SortedMap<String, Boolean> enabled) {
     this.descriptor = descriptor;
     this.enabled = enabled;
   }
@@ -68,11 +69,11 @@ public class Tenant {
     return descriptor;
   }
 
-  public TreeMap<String, Boolean> getEnabled() {
+  public SortedMap<String, Boolean> getEnabled() {
     return enabled;
   }
 
-  public void setEnabled(TreeMap<String, Boolean> enabled) {
+  public void setEnabled(SortedMap<String, Boolean> enabled) {
     this.enabled = enabled;
   }
 

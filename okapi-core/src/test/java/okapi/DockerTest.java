@@ -24,13 +24,12 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.folio.okapi.MainVerticle;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class DockerTest {
 
@@ -43,14 +42,6 @@ public class DockerTest {
 
   public DockerTest() {
     this.locations = new LinkedList<>();
-  }
-
-  @BeforeClass
-  public static void setUpClass() {
-  }
-
-  @AfterClass
-  public static void tearDownClass() {
   }
 
   @Before

@@ -11,6 +11,7 @@ import org.folio.okapi.common.Success;
 /**
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap.
  */
+@java.lang.SuppressWarnings("squid:S1192")
 public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   LocalMap<K, V> map = null;
@@ -28,9 +29,7 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void put(K k, V v, Handler<AsyncResult<Void>> completionHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    //map.put(k, v);
-    //completionHandler.handle(new Success<>());
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
@@ -74,7 +73,7 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
   @Override
   public void replace(K k, V v, Handler<AsyncResult<V>> resultHandler) {
     // This is an unsafe operation!
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
@@ -90,12 +89,12 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void clear(Handler<AsyncResult<Void>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
   @Override
   public void size(Handler<AsyncResult<Integer>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
 }

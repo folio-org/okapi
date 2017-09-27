@@ -10,7 +10,7 @@ import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.MongoClientUpdateResult;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -21,11 +21,12 @@ import org.folio.okapi.common.Success;
 /**
  * Stores Tenants in a Mongo database.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStoreMongo implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  MongoClient cli;
-  final private String collection = "okapi.tenants";
+  private MongoClient cli;
+  private final String collection = "okapi.tenants";
 
   public TenantStoreMongo(MongoClient cli) {
     this.cli = cli;
@@ -216,7 +217,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, TreeMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(collection, jq, gres -> {
       if (gres.failed()) {

@@ -7,8 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
 import java.util.Iterator;
@@ -22,8 +20,6 @@ import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import static org.folio.okapi.common.ErrorType.USER;
 
 public class LockedStringMap {
-
-  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   static class StringMap {
 

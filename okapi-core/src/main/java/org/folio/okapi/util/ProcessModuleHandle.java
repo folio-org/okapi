@@ -16,6 +16,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class ProcessModuleHandle implements ModuleHandle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -190,6 +191,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           try {
             int r = p.exitValue();
           } catch (Exception e) {
+            logger.info(e);
             exited = false;
           }
           if (exited) {

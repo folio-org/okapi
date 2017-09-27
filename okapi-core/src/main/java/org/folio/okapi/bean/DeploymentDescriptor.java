@@ -23,12 +23,15 @@ public class DeploymentDescriptor {
   private ModuleHandle moduleHandle;
 
   public DeploymentDescriptor() {
+    this.instId = null;
+    this.srvcId = null;
+    this.url = null;
+    this.descriptor = null;
+    this.moduleHandle = null;
   }
 
   public DeploymentDescriptor(String instId, String srvcId,
-          String url,
-          LaunchDescriptor descriptor,
-          ModuleHandle moduleHandle) {
+    String url, LaunchDescriptor descriptor, ModuleHandle moduleHandle) {
     this.instId = instId;
     this.srvcId = srvcId;
     this.url = url;

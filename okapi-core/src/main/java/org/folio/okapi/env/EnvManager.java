@@ -20,6 +20,7 @@ public class EnvManager {
   private LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.debug("starting EnvManager");
     envMap.init(vertx, "env", res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));

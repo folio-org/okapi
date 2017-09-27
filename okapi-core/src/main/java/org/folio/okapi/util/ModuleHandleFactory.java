@@ -6,6 +6,10 @@ import org.folio.okapi.bean.Ports;
 
 public class ModuleHandleFactory {
 
+  private ModuleHandleFactory() {
+    throw new IllegalAccessError("ModuleHandleFactory");
+  }
+
   public static ModuleHandle create(Vertx vertx, LaunchDescriptor desc,
           Ports ports, int port) {
     ModuleHandle mh = null;

@@ -122,6 +122,7 @@ public class SemVer implements Comparable<SemVer> {
     return true;
   }
 
+  @Override
   public int compareTo(SemVer other) {
     Iterator<String> i1 = this.versions.iterator();
     Iterator<String> i2 = other.versions.iterator();
@@ -177,6 +178,17 @@ public class SemVer implements Comparable<SemVer> {
       return -1;
     }
     return 0;
+  }
+
+  @Override
+  public boolean equals(Object that) {
+    if (this == that) {
+      return true;
+    }
+    if (!(that instanceof SemVer)) {
+      return false;
+    }
+    return compareTo((SemVer) that) == 0;
   }
 
   @Override

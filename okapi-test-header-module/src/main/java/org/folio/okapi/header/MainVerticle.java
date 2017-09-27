@@ -8,7 +8,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
@@ -21,7 +20,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-header-module");
 
-  public void my_header_handle(RoutingContext ctx) {
+  public void myHeaderHandle(RoutingContext ctx) {
     String h = ctx.request().getHeader("X-my-header");
     if (h == null) {
       h = "foo";
@@ -30,9 +29,7 @@ public class MainVerticle extends AbstractVerticle {
     }
     final String hv = h;
     ctx.response().putHeader("X-my-header", hv);
-    ctx.request().endHandler(x -> {
-      ctx.response().end();
-    });
+    ctx.request().endHandler(x -> ctx.response().end());
   }
 
   /**
@@ -41,12 +38,10 @@ public class MainVerticle extends AbstractVerticle {
    *
    * @param ctx
    */
-  public void my_tenantPermissions_handle(RoutingContext ctx) {
+  public void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
     final Buffer incoming = Buffer.buffer();
-    content.handler(data -> {
-      incoming.appendBuffer(data);
-    });
+    content.handler(data -> incoming.appendBuffer(data));
     ctx.request().endHandler(x -> {
       String body = incoming.toString();
       body = body.replaceAll("\\s+", " "); // remove newlines etc
@@ -68,10 +63,10 @@ public class MainVerticle extends AbstractVerticle {
       + ManagementFactory.getRuntimeMXBean().getName()
       + " on port " + port);
 
-    router.get("/testb").handler(this::my_header_handle);
-    router.post("/testb").handler(this::my_header_handle);
+    router.get("/testb").handler(this::myHeaderHandle);
+    router.post("/testb").handler(this::myHeaderHandle);
     router.post("/_/tenantPermissions")
-      .handler(this::my_tenantPermissions_handle);
+      .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
             .requestHandler(router::accept)
