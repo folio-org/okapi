@@ -80,7 +80,7 @@ public class MainClusterTest {
   public void testBadMode(TestContext context) {
     async = context.async();
 
-    String[] args = {"bad"};
+    String[] args = {"bad", "-enable-metrics"};
     MainCluster.main1(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertFalse(res.succeeded());
@@ -162,6 +162,80 @@ public class MainClusterTest {
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClusterMode(TestContext context) {
+    async = context.async();
+
+    String[] args = {"cluster"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
+
+      RestAssuredClient c;
+      Response r;
+
+      c = api.createRestAssured();
+      r = c.given().get("/_/proxy/modules").then().statusCode(200).log().ifError().extract().response();
+
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClusterModeFail1(TestContext context) {
+    async = context.async();
+
+    String[] args = {"cluster", "-cluster-host", "foobar", "-cluster-port", "5701"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClusterModeFail2(TestContext context) {
+    async = context.async();
+
+    String[] args = {"cluster", "-hazelcast-config-file", "foobar"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClusterModeFail3(TestContext context) {
+    async = context.async();
+
+    String[] args = {"cluster", "-hazelcast-config-cp", "foobar"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClusterModeFail4(TestContext context) {
+    async = context.async();
+
+    String[] args = {"cluster", "-hazelcast-config-url", "foobar"};
+
+    MainCluster.main1(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
   }
