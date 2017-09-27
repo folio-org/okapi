@@ -40,7 +40,6 @@ import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ModuleId;
-import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.web.InternalModule;
 
 public class MainVerticle extends AbstractVerticle {

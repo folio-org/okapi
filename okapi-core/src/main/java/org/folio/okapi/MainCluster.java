@@ -75,7 +75,8 @@ public class MainCluster {
                   + "  -cluster-port port            Vertx cluster port\n"
                   + "  -enable-metrics\n"
           );
-          exit(0);
+          fut.handle(new Success<>(null));
+          return;
         }
         conf.put("mode", args[i]);
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
