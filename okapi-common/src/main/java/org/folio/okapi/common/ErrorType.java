@@ -15,14 +15,11 @@ public enum ErrorType {
   /** Error type for anything else */
   ANY;
 
-  static public int httpCode(ErrorType t) {
+  public static int httpCode(ErrorType t) {
     int code = 500;
     switch (t) {
       case OK:
         code = 200;
-        break;
-      case INTERNAL:
-        code = 500;
         break;
       case USER:
         code = 400;
@@ -30,6 +27,7 @@ public enum ErrorType {
       case NOT_FOUND:
         code = 404;
         break;
+      case INTERNAL:
       case ANY:
         code = 500;
         break;

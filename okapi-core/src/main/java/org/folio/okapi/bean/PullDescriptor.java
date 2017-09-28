@@ -7,9 +7,6 @@ public class PullDescriptor {
 
   private String[] urls;
 
-  public PullDescriptor() {
-  }
-
   public String[] getUrls() {
     return urls;
   }

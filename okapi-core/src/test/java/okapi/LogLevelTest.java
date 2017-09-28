@@ -14,6 +14,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class LogLevelTest {
 
@@ -43,23 +44,22 @@ public class LogLevelTest {
     RestAssured.port = port;
 
     String currentLevel = given().get("/_/test/loglevel").then()
-            .assertThat().statusCode(200).extract().body().asString();
+      .assertThat().statusCode(200).extract().body().asString();
 
     String trace = "{\"level\":\"TRACE\"}";
-    String post = given()
-            .header("Content-Type", "application/json")
-            .body(trace)
-            .post("/_/test/loglevel").then()
-            .assertThat().statusCode(200).extract().body().asString();
+    given().header("Content-Type", "application/json")
+      .body(trace)
+      .post("/_/test/loglevel").then()
+      .assertThat().statusCode(200);
 
-    String newLevel = given().get("/_/test/loglevel").then()
-            .assertThat().statusCode(200).extract().body().asString();
+    given().get("/_/test/loglevel").then()
+      .assertThat().statusCode(200);
 
     given() // Put the level back to what it was
-            .header("Content-Type", "application/json")
-            .body(currentLevel)
-            .post("/_/test/loglevel").then()
-            .assertThat().statusCode(200).extract().body().asString();
+      .header("Content-Type", "application/json")
+      .body(currentLevel)
+      .post("/_/test/loglevel").then()
+      .assertThat().statusCode(200);
 
   }
 }

@@ -37,9 +37,7 @@ public class HealthCheckTest {
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-    vertx.close(x -> {
-      async.complete();
-    });
+    vertx.close(x -> async.complete());
   }
 
   @Test

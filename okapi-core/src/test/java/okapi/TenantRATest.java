@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
 
@@ -28,9 +29,6 @@ public class TenantRATest {
 
   Vertx vertx;
   private static final String LS = System.lineSeparator();
-
-  public TenantRATest() {
-  }
 
   @Before
   public void setUp(TestContext context) {

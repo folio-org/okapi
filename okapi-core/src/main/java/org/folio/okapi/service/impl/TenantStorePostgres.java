@@ -13,7 +13,7 @@ import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.TreeMap;
+import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -24,6 +24,7 @@ import org.folio.okapi.common.Success;
 /**
  * Stores Tenants in Postgres.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStorePostgres implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -291,8 +292,8 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModuleR(SQLConnection conn, String id, String module,
-    Boolean enable, TreeMap<String, Boolean> enabled,
-    Iterator<JsonObject> it,          Handler<ExtendedAsyncResult<Void>> fut) {
+    Boolean enable, SortedMap<String, Boolean> enabled,
+    Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + jsonColumn + " = ? WHERE " + idSelect;
@@ -333,7 +334,7 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModule(String id, String module,
-    Boolean enable, TreeMap<String, Boolean> enabled,
+    Boolean enable, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
     pg.getConnection(gres -> {
       if (gres.failed()) {
@@ -367,7 +368,7 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, TreeMap<String, Boolean> enabled,
+  public void updateModules(String id, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("updateModules " + Json.encode(enabled.keySet()));
     updateModule(id, "", null, enabled, fut);

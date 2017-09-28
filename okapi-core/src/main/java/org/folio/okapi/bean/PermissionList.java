@@ -11,9 +11,6 @@ public class PermissionList {
   String moduleId; // The module that owns these permissions.
   Permission[] perms;
 
-  public PermissionList() {
-  }
-
   public PermissionList(String moduleId, Permission[] perms) {
     this.moduleId = moduleId;
     this.perms = perms;
