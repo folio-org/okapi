@@ -17,26 +17,27 @@ import org.folio.okapi.common.XOkapiHeaders;
 import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.OkapiClient;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-module");
   private String helloGreeting;
   private String tenantRequests = "";
 
-  public void my_stream_handle(RoutingContext ctx) {
+  public void myStreamHandle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
     final String ctype = ctx.request().headers().get("Content-Type");
-    String xmlMsg = "";
+    StringBuilder xmlMsg = new StringBuilder();
     if (ctype != null && ctype.toLowerCase().contains("xml")) {
-      xmlMsg = " (XML) ";
+      xmlMsg.append(" (XML) ");
     }
     String hv = ctx.request().getHeader("X-my-header");
     if (hv != null) {
-      xmlMsg += hv;
+      xmlMsg.append(hv);
     }
     String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
     if (tenantReqs != null) {
-      xmlMsg += " Tenant requests: " + tenantRequests;
+      xmlMsg.append(" Tenant requests: " + tenantRequests);
     }
     ctx.response().putHeader("Content-Type", "text/plain");
 
@@ -44,7 +45,7 @@ public class MainVerticle extends AbstractVerticle {
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
       String qry = ctx.request().query();
-      if ( qry != null )
+      if (qry != null)
         ctx.request().headers().add("X-Url-Params", qry);
       for (String hdr : ctx.request().headers().names()) {
         tenantReqs = ctx.request().getHeader(hdr);
@@ -53,7 +54,7 @@ public class MainVerticle extends AbstractVerticle {
             ctx.response().putHeader(hdr, tenantReqs);
           }
           if (allh.contains("B")) {
-            xmlMsg += " " + hdr + ":" + tenantReqs + "\n";
+            xmlMsg.append(" " + hdr + ":" + tenantReqs + "\n");
           }
         }
       }
@@ -63,25 +64,19 @@ public class MainVerticle extends AbstractVerticle {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
 
-    final String xmlMsg2 = xmlMsg; // it needs to be final, in the callbacks
+    final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
 
     if (ctx.request().method().equals(HttpMethod.GET)) {
-      ctx.request().endHandler(x -> {
-        ctx.response().end("It works" + xmlMsg2);
-      });
+      ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
     } else {
       ctx.response().setChunked(true);
       ctx.response().write(helloGreeting + " " + xmlMsg2);
-      ctx.request().handler(x -> {
-        ctx.response().write(x);
-      });
-      ctx.request().endHandler(x -> {
-        ctx.response().end();
-      });
+      ctx.request().handler(x -> ctx.response().write(x));
+      ctx.request().endHandler(x -> ctx.response().end());
     }
   }
 
-  public void my_tenant_handle(RoutingContext ctx) {
+  public void myTenantHandle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
@@ -103,15 +98,11 @@ public class MainVerticle extends AbstractVerticle {
     }
     this.tenantRequests += meth + "-" + tenant + " ";
     logger.debug("Tenant requests so far: " + tenantRequests);
-    ctx.request().handler(x -> {
-      ctx.response().write(x);
-    });
-    ctx.request().endHandler(x -> {
-      ctx.response().end();
-    });
+    ctx.request().handler(x -> ctx.response().write(x));
+    ctx.request().endHandler(x -> ctx.response().end());
   }
 
-  public void recurse_handle(RoutingContext ctx) {
+  public void recurseHandle(RoutingContext ctx) {
     String d = ctx.request().getParam("depth");
     if (d == null || d.isEmpty()) {
       d = "1";
@@ -151,22 +142,18 @@ public class MainVerticle extends AbstractVerticle {
       + ManagementFactory.getRuntimeMXBean().getName()
       + " on port " + port);
 
-    router.get("/testb").handler(this::my_stream_handle);
-    router.post("/testb").handler(this::my_stream_handle);
-    router.get("/testr").handler(this::my_stream_handle);
-    router.post("/testr").handler(this::my_stream_handle);
+    router.get("/testb").handler(this::myStreamHandle);
+    router.post("/testb").handler(this::myStreamHandle);
+    router.get("/testr").handler(this::myStreamHandle);
+    router.post("/testr").handler(this::myStreamHandle);
 
-    // TODO - Remove the /tenant path when we have switched to /_/tenant everywhere
-    router.get("/tenant").handler(this::my_tenant_handle);
-    router.post("/tenant").handler(this::my_tenant_handle);
-    router.delete("/tenant").handler(this::my_tenant_handle);
-    router.get("/_/tenant").handler(this::my_tenant_handle);
-    router.post("/_/tenant").handler(this::my_tenant_handle);
-    router.delete("/_/tenant").handler(this::my_tenant_handle);
+    router.get("/_/tenant").handler(this::myTenantHandle);
+    router.post("/_/tenant").handler(this::myTenantHandle);
+    router.delete("/_/tenant").handler(this::myTenantHandle);
 
-    router.get("/recurse").handler(this::recurse_handle);
+    router.get("/recurse").handler(this::recurseHandle);
 
-    HttpServerOptions so = new HttpServerOptions()            .setHandle100ContinueAutomatically(true);
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
             .requestHandler(router::accept)
             .listen(

@@ -7,11 +7,9 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+@java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 public class BeanTest {
   private static final String LS = System.lineSeparator();
-
-  public BeanTest() {
-  }
 
   @Test
   public void testDeploymentDescriptor1() {
@@ -151,8 +149,6 @@ public class BeanTest {
       final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
         ModuleDescriptor.class);
       String pretty = Json.encodePrettily(md);
-      System.out.println(pretty);
-      System.out.println(docModuleDescriptor);
       assertEquals(docModuleDescriptor, pretty);
     } catch (DecodeException ex) {
       ex.printStackTrace();

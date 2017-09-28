@@ -41,6 +41,9 @@ public class TenantDescriptor {
   }
 
   public TenantDescriptor() {
+    this.id = null;
+    this.name = null;
+    this.description = null;
   }
 
   public TenantDescriptor(String id, String name, String description) {

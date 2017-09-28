@@ -106,17 +106,17 @@ public class Auth {
     HashMap<String, String> tokens = new HashMap<>();
     if (modPermJson != null && !modPermJson.isEmpty()) {
       JsonObject jo = new JsonObject(modPermJson);
-      String permstr = "";
+      StringBuilder permstr = new StringBuilder();
       for (String mod : jo.fieldNames()) {
         JsonArray ja = jo.getJsonArray(mod);
-        for ( int i = 0; i < ja.size(); i++) {
+        for (int i = 0; i < ja.size(); i++) {
           String p = ja.getString(i);
-          if (! permstr.isEmpty() )
-            permstr += ",";
-          permstr += p;
+          if (permstr.length() > 0) {
+            permstr.append(",");
           }
-        String tok = token(mod, permstr);
-        tokens.put(mod, tok);
+          permstr.append(p);
+        }
+        tokens.put(mod, token(mod, permstr.toString()));
       }
     }
     if (!tokens.isEmpty()) { // return also a 'clean' token
@@ -182,13 +182,8 @@ public class Auth {
 
   private void echo(RoutingContext ctx) {
     ctx.response().setChunked(true);
-    // todo: content-type copy from request?
-    ctx.request().handler(x -> {
-      ctx.response().write(x); // echo content
-    });
-    ctx.request().endHandler(x -> {
-      ctx.response().end();
-    });
+    ctx.request().handler(x -> ctx.response().write(x));
+    ctx.request().endHandler(x -> ctx.response().end());
   }
 
   /**

@@ -4,8 +4,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -17,7 +15,6 @@ import org.folio.okapi.util.ProxyContext;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoutingEntry {
-  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String[] methods;
   private String pathPattern;
@@ -41,7 +38,7 @@ public class RoutingEntry {
     HEADERS,
     REDIRECT,
     INTERNAL
-  };
+  }
 
   @JsonIgnore
   private ProxyType proxyType = ProxyType.REQUEST_RESPONSE;
@@ -144,7 +141,8 @@ public class RoutingEntry {
     this.pathPattern = pathPattern;
     StringBuilder b = new StringBuilder();
     b.append("^");
-    for (int i = 0; i < pathPattern.length(); i++) {
+    int i = 0;
+    while (i < pathPattern.length()) {
       char c = pathPattern.charAt(i);
       if (c == '{') {
         b.append("[^/?#]+");
@@ -167,6 +165,7 @@ public class RoutingEntry {
       } else {
         b.append(c);
       }
+      i++;
     }
     b.append("$");
     this.pathRegex = b.toString();

@@ -10,18 +10,18 @@ import io.vertx.core.logging.LoggerFactory;
  */
 public class Ports {
 
-  private final int port_start;
-  private final int port_end;
-  private final Boolean[] ports;
+  private final int portStart;
+  private final int portEnd;
+  private final Boolean[] portsEnabled;
 
   private final Logger logger = LoggerFactory.getLogger("Ports");
 
   public Ports(int port_start, int port_end) {
-    this.port_start = port_start;
-    this.port_end = port_end;
-    this.ports = new Boolean[port_end - port_start];
-    for (int i = 0; i < ports.length; i++) {
-      ports[i] = false;
+    this.portStart = port_start;
+    this.portEnd = port_end;
+    this.portsEnabled = new Boolean[port_end - port_start];
+    for (int i = 0; i < portsEnabled.length; i++) {
+      portsEnabled[i] = false;
     }
   }
 
@@ -30,10 +30,10 @@ public class Ports {
    * @return the newly allocated port number, of -1 if none available
    */
   public int get() {
-    for (int i = 0; i < ports.length; i++) {
-      if (ports[i] == false) {
-        ports[i] = true;
-        final int p = i + port_start;
+    for (int i = 0; i < portsEnabled.length; i++) {
+      if (!portsEnabled[i]) {
+        portsEnabled[i] = true;
+        final int p = i + portStart;
         logger.debug("allocate port " + p);
         return p;
       }
@@ -48,7 +48,9 @@ public class Ports {
   public void free(int p) {
     if (p > 0) {
       logger.debug("free port " + p);
-      ports[p - port_start] = false;
+      if (p >= portStart && p < portEnd) {
+        portsEnabled[p - portStart] = false;
+      }
     }
   }
 }

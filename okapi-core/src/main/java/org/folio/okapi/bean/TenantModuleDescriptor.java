@@ -19,7 +19,7 @@ public class TenantModuleDescriptor {
 
   enum Action {
     enable, disable, uptodate, suggest, conflict
-  };
+  }
 
   private Action action;
 

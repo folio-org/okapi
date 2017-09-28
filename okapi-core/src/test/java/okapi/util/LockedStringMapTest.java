@@ -22,15 +22,13 @@ public class LockedStringMapTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  public LockedStringMapTest() {
-  }
-
-  Vertx vertx;
-  Async async;
-  LockedStringMap map = new LockedStringMap();
+  private Vertx vertx;
+  private Async async;
+  private LockedStringMap map = new LockedStringMap();
 
   @Before
   public void setUp(TestContext context) {
+    logger.debug("starting LockedStringMapTest");
     vertx = Vertx.vertx();
   }
 
@@ -131,11 +129,11 @@ public class LockedStringMapTest {
     map.remove("k1", "k2.2", res -> {
       assertTrue(res.succeeded());
       assertTrue(res.result()); // no keys left
-      testgetk1(context);
+      testgek1Lower(context);
     });
   }
 
-  private void testgetk1(TestContext context) {
+  private void testgek1Lower(TestContext context) {
     map.getString("k1", res -> {
       assertTrue(res.succeeded());
       assertEquals("[]", res.result().toString());
@@ -152,7 +150,6 @@ public class LockedStringMapTest {
   }
 
   private void done(TestContext context) {
-    System.out.println("OK");
     async.complete();
   }
 

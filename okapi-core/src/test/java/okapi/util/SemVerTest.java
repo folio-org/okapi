@@ -5,15 +5,10 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class SemVerTest {
-
-  public SemVerTest() {
-  }
-
   @Test
   public void test() {
     SemVer v1 = new SemVer("1");
 
-    System.out.println(v1.toString());
     assertEquals("version: 1", v1.toString());
 
     SemVer v2 = new SemVer("2");
@@ -64,6 +59,10 @@ public class SemVerTest {
     assertEquals("version: 1 0 0 pre: rc 1", p7.toString());
     SemVer p8 = new SemVer("1.0.0");
     assertEquals("version: 1 0 0", p8.toString());
+    assertFalse(p1.equals(p2));
+    assertTrue(p1.equals(p1));
+    SemVer p1Copy = new SemVer("1.0.0-alpha");
+    assertTrue(p1.equals(p1Copy));
 
     assertTrue(p1.hasPrefix(v1));
     assertTrue(p7.hasPrefix(v1));

@@ -6,7 +6,9 @@ import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
@@ -18,10 +20,6 @@ import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
-import static org.folio.okapi.common.ErrorType.*;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.util.DropwizardHelper;
 
 public class MainCluster {
@@ -41,14 +39,14 @@ public class MainCluster {
     });
   }
 
-  public static void main1(String[] args, Handler<ExtendedAsyncResult<Vertx>> fut) {
+  public static void main1(String[] args, Handler<AsyncResult<Vertx>> fut) {
     setProperty("vertx.logger-delegate-factory-class-name",
             "io.vertx.core.logging.SLF4JLogDelegateFactory");
 
     final Logger logger = LoggerFactory.getLogger("okapi");
 
     if (args.length < 1) {
-      fut.handle(new Failure<>(USER, "Missing command; use help"));
+      fut.handle(Future.failedFuture("Missing command; use help"));
       return;
     }
     VertxOptions vopt = new VertxOptions();
@@ -75,7 +73,7 @@ public class MainCluster {
                   + "  -cluster-port port            Vertx cluster port\n"
                   + "  -enable-metrics\n"
           );
-          fut.handle(new Success<>(null));
+          fut.handle(Future.succeededFuture(null));
           return;
         }
         conf.put("mode", args[i]);
@@ -85,7 +83,7 @@ public class MainCluster {
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return;
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
@@ -94,7 +92,7 @@ public class MainCluster {
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return;
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
@@ -103,7 +101,7 @@ public class MainCluster {
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
-          fut.handle(new Failure<>(USER, CANNOT_LOAD_STR + resource + ": " + e));
+          fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return;
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
@@ -122,7 +120,7 @@ public class MainCluster {
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
-        fut.handle(new Failure<>(USER, "Invalid option: " + args[i]));
+        fut.handle(Future.failedFuture("Invalid option: " + args[i]));
         return;
       }
       i++;
@@ -169,23 +167,23 @@ public class MainCluster {
             v.setClusterManager(mgr);
             deploy(v, conf, res.result(), fut);
           } else {
-            fut.handle(new Failure<>(USER, res.cause()));
+            fut.handle(Future.failedFuture(res.cause()));
           }
         });
         break;
       default:
-        fut.handle(new Failure<>(USER, "Unknown command '" + mode + "'"));
+        fut.handle(Future.failedFuture("Unknown command '" + mode + "'"));
         return;
     }
   }
 
-  private static void deploy(Verticle v, JsonObject conf, Vertx vertx, Handler<ExtendedAsyncResult<Vertx>> fut) {
+  private static void deploy(Verticle v, JsonObject conf, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(v, opt, dep -> {
       if (dep.failed()) {
-        fut.handle(new Failure<>(INTERNAL, dep.cause()));
+        fut.handle(Future.failedFuture(dep.cause()));
       } else {
-        fut.handle(new Success<>(vertx));
+        fut.handle(Future.succeededFuture(vertx));
       }
     });
   }

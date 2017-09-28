@@ -34,6 +34,7 @@ import org.folio.okapi.common.OkapiClient;
  * DeploymentDescriptor. Can also invoke deployment, and record the result in
  * its map.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class DiscoveryManager implements NodeListener {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -43,8 +44,6 @@ public class DiscoveryManager implements NodeListener {
   Vertx vertx;
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
-
-  private final int delay = 10; // ms in recursing for retry of map
   private HttpClient httpClient;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {

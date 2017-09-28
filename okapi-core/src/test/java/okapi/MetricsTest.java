@@ -31,9 +31,6 @@ public class MetricsTest {
   private ConsoleReporter reporter1;
   private GraphiteReporter reporter2;
 
-  public MetricsTest() {
-  }
-
   @Before
   public void setUp(TestContext context) {
     port = Integer.parseInt(System.getProperty("port", "9130"));

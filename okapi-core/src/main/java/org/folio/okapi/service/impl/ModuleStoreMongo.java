@@ -23,8 +23,8 @@ public class ModuleStoreMongo implements ModuleStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  MongoClient cli;
-  final private String collection = "okapi.modules";
+  private MongoClient cli;
+  private final String collection = "okapi.modules";
 
   public ModuleStoreMongo(MongoClient cli) {
     this.cli = cli;
@@ -77,7 +77,7 @@ public class ModuleStoreMongo implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
-        if (l.size() == 0) {
+        if (l.isEmpty()) {
           fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
         } else {
           JsonObject d = l.get(0);

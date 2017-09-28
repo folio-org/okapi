@@ -22,14 +22,13 @@ import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class ModuleTenantsTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  Vertx vertx;
+  private Vertx vertx;
   private HttpClient httpClient;
-
   private static final String LS = System.lineSeparator();
   private String locationBasicDeployemnt_0_9_0;
   private String locationBasicDeployment_1_0_0;
@@ -39,11 +38,9 @@ public class ModuleTenantsTest {
   private String locationSampleDeployment_2_0_0;
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
-  public ModuleTenantsTest() {
-  }
-
   @Before
   public void setUp(TestContext context) {
+    logger.debug("starting ModuleTenantsTest");
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
     DeploymentOptions opt = new DeploymentOptions()

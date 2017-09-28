@@ -22,24 +22,20 @@ import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class EnvTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  Vertx vertx;
+  private Vertx vertx;
   private HttpClient httpClient;
-
   private static final String LS = System.lineSeparator();
   private String locationSampleDeployment1;
-  private String locationSampleModule;
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-
-  public EnvTest() {
-  }
 
   @Before
   public void setUp(TestContext context) {
+    logger.debug("starting EnvTest");
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
     DeploymentOptions opt = new DeploymentOptions()
@@ -217,7 +213,6 @@ public class EnvTest {
     Assert.assertTrue(
             "raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
-    locationSampleModule = r.getHeader("Location");
     // add tenant
     final String docTenantRoskilde = "{" + LS
             + "  \"id\" : \"" + okapiTenant + "\"," + LS

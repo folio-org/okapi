@@ -5,14 +5,13 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -31,15 +30,13 @@ import org.folio.okapi.util.ModuleId;
 public class ModuleManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  final private Vertx vertx;
   private TenantManager tenantManager = null;
   private String mapName = "modules";
   LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
   ModuleStore moduleStore;
 
-  public ModuleManager(Vertx vertx, ModuleStore moduleStore) {
-    this.vertx = vertx;
+  public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
   }
 
@@ -134,10 +131,10 @@ public class ModuleManager {
    * @return "" if ok, or error message
    */
   private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
-    HashMap<String, ModuleDescriptor> modlist) {
+    Map<String, ModuleDescriptor> modlist) {
     ModuleInterface seenversion = null;
-    for (String runningmodule : modlist.keySet()) {
-      ModuleDescriptor rm = modlist.get(runningmodule);
+    for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
+      ModuleDescriptor rm = entry.getValue();
       for (ModuleInterface pi : rm.getProvidesList()) {
         logger.debug("Checking dependency of " + md.getId() + ": "
           + req.getId() + " " + req.getVersion()
@@ -170,7 +167,7 @@ public class ModuleManager {
    * against that...
    */
   private String checkDependencies(ModuleDescriptor md,
-          HashMap<String, ModuleDescriptor> modlist) {
+    Map<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
     for (ModuleInterface req : md.getRequiresList()) {
       String res = checkOneDependency(md, req, modlist);
@@ -182,11 +179,11 @@ public class ModuleManager {
   }
 
   private int checkInterfaceDependency(ModuleInterface req,
-    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled,
+    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
     logger.info("checkInterfaceDependency1");
-    for (String runningmodule : modsEnabled.keySet()) {
-      ModuleDescriptor md = modsEnabled.get(runningmodule);
+    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
       for (ModuleInterface pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId())) {
           if (pi.isCompatible(req)) {
@@ -198,8 +195,8 @@ public class ModuleManager {
     }
     logger.info("checkInterfaceDependency2");
     ModuleDescriptor foundMd = null;
-    for (String runningmodule : modsAvailable.keySet()) {
-      ModuleDescriptor md = modsAvailable.get(runningmodule);
+    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
       for (ModuleInterface pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId())) {
           if (pi.isCompatible(req)) {
@@ -220,7 +217,7 @@ public class ModuleManager {
     return v;
   }
 
-  private int resolveModuleConflicts(ModuleDescriptor md, HashMap<String, ModuleDescriptor> modsEnabled,
+  private int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
@@ -256,7 +253,7 @@ public class ModuleManager {
   }
 
   public int addModuleDependencies(ModuleDescriptor md,
-    HashMap<String, ModuleDescriptor> modsAvailable, HashMap<String, ModuleDescriptor> modsEnabled,
+    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("addModuleDependencies " + md.getId());
@@ -267,7 +264,7 @@ public class ModuleManager {
       }
       sum += v;
     }
-    List<ModuleDescriptor> fromModule = new LinkedList<ModuleDescriptor>();
+    List<ModuleDescriptor> fromModule = new LinkedList<>();
     sum += resolveModuleConflicts(md, modsEnabled, tml, fromModule);
 
     logger.info("addModuleDependencies - add " + md.getId());
@@ -283,7 +280,7 @@ public class ModuleManager {
   }
 
   public int removeModuleDependencies(ModuleDescriptor md,
-    HashMap<String, ModuleDescriptor> modsEnabled,
+    Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("removeModuleDependencies " + md.getId());
@@ -323,7 +320,7 @@ public class ModuleManager {
    * @param modlist list to check
    * @return error message, or "" if all is ok
    */
-  public String checkAllDependencies(HashMap<String, ModuleDescriptor> modlist) {
+  public String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
     for (ModuleDescriptor md : modlist.values()) {
       String res = checkDependencies(md, modlist);
       if (!res.isEmpty()) {
@@ -339,8 +336,8 @@ public class ModuleManager {
    * @param modlist modules to be checked
    * @return error message listing conflicts, or "" if no problems
    */
-  public String checkAllConflicts(HashMap<String, ModuleDescriptor> modlist) {
-    HashMap<String, String> provs = new HashMap<>(); // interface name to module name
+  public String checkAllConflicts(Map<String, ModuleDescriptor> modlist) {
+    Map<String, String> provs = new HashMap<>(); // interface name to module name
     String conflicts = "";
     for (ModuleDescriptor md : modlist.values()) {
       ModuleInterface[] provides = md.getProvidesList();
@@ -674,7 +671,7 @@ public class ModuleManager {
         return;
       }
     }
-    if (preRelease == false && idThis.hasPreRelease()) {
+    if (!preRelease && idThis.hasPreRelease()) {
       logger.info("skipping " + id);
       getModulesR(it, mdl, filter, preRelease, fut);
       return;

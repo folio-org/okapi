@@ -26,6 +26,10 @@ public class ModuleInterface {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   public ModuleInterface() {
+    this.id = null;
+    this.version = null;
+    this.interfaceType = null;
+    this.handlers = null;
   }
 
   public ModuleInterface(String id, String version) {
@@ -49,7 +53,7 @@ public class ModuleInterface {
     return version;
   }
 
-  public void setVersion(String version) throws IllegalArgumentException {
+  public void setVersion(String version) {
     if (validateVersion(version)) {
       this.version = version;
     } else {
@@ -110,28 +114,17 @@ public class ModuleInterface {
     if (!this.getId().equals(required.getId())) {
       return false; // not the same interface at all
     }
-    int[] t = this.versionParts(this.version, 0);
+    int[] t = ModuleInterface.versionParts(this.version, 0);
     if (t == null) {
       return false;
     }
     for (int idx = 0;; idx++) {
-      int[] r = this.versionParts(required.version, idx);
+      int[] r = ModuleInterface.versionParts(required.version, idx);
       if (r == null) {
         break;
       }
-      // major version has to match exactly
-      if (t[0] != r[0]) {
-        continue;
-      }
-      // minor version has to be at least the same
-      if (t[1] < r[1]) {
-        continue;
-      }
-      // if minor equals, and we have sw req, check sw
-      if (t[1] == r[1] && r[2] >= 0 && t[2] < r[2]) {
-        continue;
-      }
-      return true;
+      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2])))
+        return true;
     }
     return false;
   }
@@ -248,7 +241,6 @@ public class ModuleInterface {
    * Validate those things that apply to the "provides" section.
    */
   private String validateProvides(ProxyContext pc, String section, String mod) {
-    RoutingEntry[] handlers = getHandlers();
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
         String err = re.validate(pc, "handlers", mod);
@@ -264,7 +256,6 @@ public class ModuleInterface {
    * Validate those things that apply to the "requires" section.
    */
   private String validateRequires(ProxyContext pc, String section, String mod) {
-    RoutingEntry[] handlers1 = getHandlers();
     if (handlers != null && handlers.length > 0) {
       return "No handlers allowed in 'requires' section";
     }

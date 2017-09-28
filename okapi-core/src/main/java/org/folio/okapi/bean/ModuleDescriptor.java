@@ -3,8 +3,6 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,8 +16,6 @@ import org.folio.okapi.util.ModuleId;
  */
 @JsonInclude(Include.NON_NULL)
 public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
   private ModuleId id;
   private String name;
 
@@ -33,6 +29,16 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private LaunchDescriptor launchDescriptor;
 
   public ModuleDescriptor() {
+    this.moduleId = null;
+    this.id = null;
+    this.name = null;
+    this.tags = null;
+    this.filters = null;
+    this.requires = null;
+    this.provides = null;
+    this.permissionSets = null;
+    this.uiDescriptor = null;
+    this.launchDescriptor = null;
   }
 
   /**
@@ -242,8 +248,25 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return "";
   }
 
+  @Override
   public int compareTo(ModuleDescriptor other) {
     return id.compareTo(other.id);
+  }
+
+  @Override
+  public boolean equals(Object that) {
+    if (this == that) {
+      return true;
+    }
+    if (!(that instanceof ModuleDescriptor)) {
+      return false;
+    }
+    return compareTo((ModuleDescriptor) that) == 0;
+  }
+
+  @Override
+  public int hashCode() {
+    return id.hashCode();
   }
 
   @JsonIgnore
