@@ -25,8 +25,6 @@ import io.vertx.ext.web.RoutingContext;
  * check permissions for anything, but does return X-Okapi-Permissions-Desired
  * in X-Okapi-Permissions, as if all desired permissions were granted.
  *
- * TODO - we could do more trickery with -Required
- *
  * @author heikki
  *
  *

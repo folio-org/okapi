@@ -16,10 +16,10 @@ public class Ports {
 
   private final Logger logger = LoggerFactory.getLogger("Ports");
 
-  public Ports(int port_start, int port_end) {
-    this.portStart = port_start;
-    this.portEnd = port_end;
-    this.portsEnabled = new Boolean[port_end - port_start];
+  public Ports(int portStart, int portEnd) {
+    this.portStart = portStart;
+    this.portEnd = portEnd;
+    this.portsEnabled = new Boolean[portEnd - portStart];
     for (int i = 0; i < portsEnabled.length; i++) {
       portsEnabled[i] = false;
     }
