@@ -160,8 +160,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    *
    * @param interfaceId name of the interface we want
    * @return null if not found, or the interface
-   *
-   * TODO - Take a version too, check compatibility
    */
   @JsonIgnore
   public ModuleInterface getSystemInterface(String interfaceId) {
@@ -210,7 +208,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * Validate some features of a ModuleDescriptor.
    *
    * In case of Deprecated things, writes warnings in the log.
-   * TODO: Turn these into errors when releasing 2.0
    *
    * @param pc
    * @return "" if ok, otherwise an informative error message.

@@ -16,6 +16,8 @@ import org.folio.okapi.util.ProxyContext;
  * X.Y.Z where X is the major version of the interface, Y is the minor version
  * of the interface, and Z is the software version of the module.
  */
+// S1168: Empty arrays and collections should be returned instead of null
+@java.lang.SuppressWarnings({"squid:S1168"})
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ModuleInterface {
 
@@ -68,10 +70,7 @@ public class ModuleInterface {
    */
   public static boolean validateVersion(String version) {
     int[] p = versionParts(version, 0);
-    if (p == null) {
-      return false;
-    }
-    return true;
+    return p == null ? false : true;
   }
 
   /**
@@ -148,10 +147,7 @@ public class ModuleInterface {
     if (interfaceType != null && !"proxy".equals(interfaceType)) {
       return false; // explicitly some other type, like "multiple" or "system"
     }
-    if (this.id.startsWith("_")) {
-      return false; // old-fashioned _tenant etc. DEPRECATED
-    }
-    return true;
+    return this.id.startsWith("_") ? false : true; // old-fashioned _tenant etc. DEPRECATED
   }
 
   @JsonIgnore
@@ -190,7 +186,7 @@ public class ModuleInterface {
     }
 
     String err;
-    err = validateGeneral(pc, mod);
+    err = validateGeneral(mod);
     if (!err.isEmpty()) {
       return err;
     }
@@ -208,7 +204,7 @@ public class ModuleInterface {
     }
 
     if (section.equals("provides")) {
-      err = validateProvides(pc, section, mod);
+      err = validateProvides(pc, mod);
       if (!err.isEmpty()) {
         return err;
       }
@@ -226,7 +222,7 @@ public class ModuleInterface {
    * Validate those things that just have to be right.
    * @return "" if ok, or an error message
    */
-  private String validateGeneral(ProxyContext pc, String mod) {
+  private String validateGeneral(String mod) {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
       return "Bad interface type '" + it + "'";
@@ -240,7 +236,7 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(ProxyContext pc, String section, String mod) {
+  private String validateProvides(ProxyContext pc, String mod) {
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
         String err = re.validate(pc, "handlers", mod);
