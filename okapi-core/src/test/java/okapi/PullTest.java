@@ -1,7 +1,6 @@
 package okapi;
 
 import org.folio.okapi.MainVerticle;
-import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import org.junit.After;
@@ -20,21 +19,19 @@ import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class PullTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  Vertx vertx;
+  private Vertx vertx;
 
   private static final String LS = System.lineSeparator();
   private String vert1;
   private String vert2;
   private final int port1 = 9131; // where we define MDs
   private final int port2 = 9130; // where we pull
-
-  public PullTest() {
-  }
 
   private void otherDeploy(TestContext context, Async async) {
     DeploymentOptions opt = new DeploymentOptions()
@@ -53,6 +50,7 @@ public class PullTest {
 
   @Before
   public void setUp(TestContext context) {
+    logger.debug("staring PullTest");
     vertx = Vertx.vertx();
     Async async = context.async();
     DeploymentOptions opt = new DeploymentOptions()

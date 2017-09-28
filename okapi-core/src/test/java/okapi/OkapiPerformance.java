@@ -18,13 +18,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class OkapiPerformance {
 
   private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
 
-  Vertx vertx;
-  Async async;
+  private Vertx vertx;
+  private Async async;
 
   private String locationTenant;
   private String locationSample;
@@ -37,9 +38,6 @@ public class OkapiPerformance {
   private int repeatPostRunning;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-
-  public OkapiPerformance() {
-  }
 
   @Before
   public void setUp(TestContext context) {
@@ -109,7 +107,7 @@ public class OkapiPerformance {
   private int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   @Test(timeout = 600000)
-  public void test_sample(TestContext context) {
+  public void testSample(TestContext context) {
     async = context.async();
     declareAuth(context);
   }

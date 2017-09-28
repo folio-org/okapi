@@ -12,6 +12,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import static org.folio.okapi.common.ErrorType.*;
 
 /**
@@ -27,10 +28,8 @@ import static org.folio.okapi.common.ErrorType.*;
 public class OkapiClient {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
-  private RoutingContext ctx;
   private String okapiUrl;
   private HttpClient httpClient;
-  private Vertx vertx;
   private Map<String,String> headers;
   // TODO Response headers: do we need a trace or something?
   // TODO Return type: Need a more complex container class with room for
@@ -48,7 +47,6 @@ public class OkapiClient {
    */
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx());
-    this.ctx = ctx;
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
     if (this.okapiUrl != null) {
       this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
@@ -73,7 +71,6 @@ public class OkapiClient {
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String,String> headers) {
     init(vertx);
-    this.ctx = null;
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null )
       this.headers.putAll(headers);
@@ -84,7 +81,6 @@ public class OkapiClient {
   }
 
   private void init(Vertx vertx) {
-    this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     this.headers = new HashMap<>();
     respHeaders = null;
@@ -113,8 +109,8 @@ public class OkapiClient {
    * request to the modules, like the tenant interface.
    */
   public void newReqId(String path) {
-    int rnd = (int) (Math.random() * 1000000);
-    String newId = String.format("%06d", rnd) + "/" + path;
+    Random r = new Random();
+    String newId = String.format("%06d", r.nextInt(1000000)) + "/" + path;
     if (reqId.isEmpty()) {
       reqId = newId;
     } else {
@@ -183,21 +179,19 @@ public class OkapiClient {
           }
         }
       });
-      postres.exceptionHandler(e -> {
-        fut.handle(new Failure<>(INTERNAL, e));
-      });
+      postres.exceptionHandler(e -> fut.handle(new Failure<>(INTERNAL, e)));
     });
     req.exceptionHandler(x -> {
       String msg = x.getMessage();
-      if ( msg == null || msg.isEmpty()) { // unresolved address results in no message
+      if (msg == null || msg.isEmpty()) { // unresolved address results in no message
         msg = x.toString(); // so we use toString instead
       } // but not both, because connection error has identical string in both...
       logger.warn(reqId + " OkapiClient exception: "
         + x.toString() + ": " + x.getMessage(), x);
       fut.handle(new Failure<>(INTERNAL, msg));
     });
-    for ( String hdr : headers.keySet()) {
-      logger.debug(reqId + " OkapiClient: adding header " + hdr + ": " + headers.get(hdr));
+    for (Map.Entry<String, String> entry : headers.entrySet()) {
+      logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
     }
     req.headers().addAll(headers);
     req.end(data);
@@ -258,6 +252,4 @@ public class OkapiClient {
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);
   }
-
-
 }

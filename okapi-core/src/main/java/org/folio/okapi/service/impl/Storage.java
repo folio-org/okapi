@@ -23,7 +23,7 @@ public class Storage {
     NORMAL, // normal operation
     INIT, // create database at startup
     PURGE  // purge the whole database
-  };
+  }
   private JsonObject config;
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
@@ -66,10 +66,11 @@ public class Storage {
     logger.info("prepareDatabases: " + initMode);
     if (initMode == InitMode.NORMAL) {
       fut.handle(new Success<>());
-    } else if (mongo != null) {
-      mongo.resetDatabases(fut);
-    } else if (postgres != null) {
-      TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
+    } else {
+      if (mongo != null) {
+        mongo.resetDatabases(fut);
+      } else if (postgres != null) {
+        TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
         tnp.resetDatabase(initMode, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -78,10 +79,10 @@ public class Storage {
             mnp.resetDatabase(initMode, fut);
           }
         });
-  } else {
-      // inmemory will always ignore the database things, it always starts with
-      // nothing in its in-memory arrays
-      fut.handle(new Success<>());
+      } else {
+        // inmemory has no reset
+        fut.handle(new Success<>());
+      }
     }
   }
 

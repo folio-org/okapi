@@ -10,12 +10,10 @@ import static org.junit.Assert.*;
  *
  * @author heikki
  */
+@java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
 public class ModuleInterfaceTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  public ModuleInterfaceTest() {
-  }
 
   @Test
   public void simpleTests() {
@@ -52,7 +50,7 @@ public class ModuleInterfaceTest {
     assertTrue(ModuleInterface.validateVersion("1.2."));
     assertTrue(ModuleInterface.validateVersion("1.2.3"));
     assertTrue(ModuleInterface.validateVersion("1.2.3."));
-    assertFalse(ModuleInterface.validateVersion("1.2.3.4"));
+    assertFalse(ModuleInterface.validateVersion("1.2.3.4")); //not an IP!
     assertFalse(ModuleInterface.validateVersion("X"));
     assertFalse(ModuleInterface.validateVersion("X.Y.X"));
     assertFalse(ModuleInterface.validateVersion("1.2.*"));
