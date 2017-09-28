@@ -7,6 +7,7 @@ public class Success<T> implements ExtendedAsyncResult<T> {
   private T item;
 
   public Success() {
+    this.item = null;
   }
 
   public Success(T item) {

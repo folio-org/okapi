@@ -5,11 +5,12 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+@java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 public class RoutingEntryTest {
   @Test
   public void test1() {
     RoutingEntry t = new RoutingEntry();
-    String methods[] = new String[1];
+    String[] methods = new String[1];
     methods[0] = "GET";
 
     t.setPathPattern("/");
@@ -131,7 +132,7 @@ public class RoutingEntryTest {
   @Test
   public void test2() {
     RoutingEntry t = new RoutingEntry();
-    String methods[] = new String[1];
+    String[] methods = new String[1];
     methods[0] = "GET";
     t.setMethods(methods);
     t.setPathPattern("/req");

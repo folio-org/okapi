@@ -2,7 +2,6 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.JsonRawValue;
 
 /**
  * Tells how a module is to be deployed. Either by exec'ing a command (and
@@ -20,9 +19,6 @@ public class LaunchDescriptor {
   private String[] dockerCMD;
   private EnvEntry[] env;
   private AnyDescriptor dockerArgs;
-
-  public LaunchDescriptor() {
-  }
 
   public String getCmdlineStart() {
     return cmdlineStart;

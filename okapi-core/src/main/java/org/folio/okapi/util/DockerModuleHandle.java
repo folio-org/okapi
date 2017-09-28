@@ -21,7 +21,9 @@ import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private final Vertx vertx;
@@ -37,7 +39,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-          Ports ports, int port) {
+    Ports ports, int port) {
     this.vertx = vertx;
     this.hostPort = port;
     this.ports = ports;
@@ -46,7 +48,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
     Boolean b = desc.getDockerPull();
-    if (b != null && b.booleanValue() == false) {
+    if (b != null && !b.booleanValue()) {
       this.dockerPull = false;
     } else {
       this.dockerPull = true;

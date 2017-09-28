@@ -4,6 +4,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
+import java.util.Random;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
@@ -14,6 +15,10 @@ import static org.folio.okapi.common.ErrorType.*;
  * AsyncLocalmap, if not running in a clustered mode.
  */
 public class AsyncMapFactory {
+
+  private AsyncMapFactory() {
+    throw new IllegalAccessError("AsyncMapFactory");
+  }
 
   /**
    * Create a AsyncMap
@@ -40,8 +45,8 @@ public class AsyncMapFactory {
       // clustered mode, of course.
       // Also used in deploy-only nodes, where we want local-only tenant and
       // module lists with only the hard-coded supertenant and internalModule.
-      int rnd = (int) (Math.random() * 1000000000);
-      String newid = String.format("%09d", rnd);
+      Random r = new Random();
+      String newid = String.format("%09d", r.nextInt(1000000000));
       if (mapName != null) {
         newid = mapName + newid;
       }

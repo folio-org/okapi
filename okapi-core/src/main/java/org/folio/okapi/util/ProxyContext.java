@@ -2,13 +2,12 @@ package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
@@ -19,6 +18,7 @@ import org.folio.okapi.common.XOkapiHeaders;
  * used for Okapi's own services, without the modList. Also has lots of helpers
  * for logging, in order to get the request-id in most log messages.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -118,15 +118,16 @@ public class ProxyContext {
     path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
       // when rerouting, the query appears as part of the path, so we kill it
     // here with the '?'.
-    int rnd = (int) (Math.random() * 1000000);
-    String newid = String.format("%06d", rnd);
-    newid += path;
+    Random r = new Random();
+    StringBuilder newid = new StringBuilder();
+    newid.append(String.format("%06d", r.nextInt(1000000)));
+    newid.append(path);
     if (curid == null || curid.isEmpty()) {
-      reqId = newid;
+      reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Assigned new reqId " + newid);
     } else {
-      reqId = curid + ";" + newid;
+      reqId = curid + ";" + newid.toString();
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Appended a reqId " + newid);
     }

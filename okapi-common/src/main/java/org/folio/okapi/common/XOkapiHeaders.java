@@ -10,6 +10,9 @@ package org.folio.okapi.common;
  */
 public class XOkapiHeaders {
 
+  private XOkapiHeaders() {
+    throw new IllegalStateException("XOkapiHeaders");
+  }
   /**
    * The common "X-Okapi" prefix for all the headers defined here.
    *
