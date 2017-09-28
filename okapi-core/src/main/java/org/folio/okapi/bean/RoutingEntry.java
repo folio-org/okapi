@@ -137,7 +137,23 @@ public class RoutingEntry {
     return pathPattern;
   }
 
-  public void setPathPattern(String pathPattern) throws DecodeException {
+  private int skipNamedPattern(String pathPattern, int i, char c) {
+    i++;
+    for (; i < pathPattern.length(); i++) {
+      c = pathPattern.charAt(i);
+      if (c == '}') {
+        break;
+      } else if (INVALID_PATH_CHARS.indexOf(c) != -1 || c == '/') {
+        throw new DecodeException("Invalid character " + c + " inside {}-construct in pathPattern");
+      }
+    }
+    if (c != '}') {
+      throw new DecodeException("Missing {-character for {}-construct in pathPattern");
+    }
+    return i;
+  }
+
+  public void setPathPattern(String pathPattern) {
     this.pathPattern = pathPattern;
     StringBuilder b = new StringBuilder();
     b.append("^");
@@ -146,18 +162,7 @@ public class RoutingEntry {
       char c = pathPattern.charAt(i);
       if (c == '{') {
         b.append("[^/?#]+");
-        i++;
-        for (; i < pathPattern.length(); i++) {
-          c = pathPattern.charAt(i);
-          if (c == '}') {
-            break;
-          } else if (INVALID_PATH_CHARS.indexOf(c) != -1 || c == '/') {
-            throw new DecodeException("Invalid character " + c + " inside {}-construct in pathPattern");
-          }
-        }
-        if (c != '}') {
-          throw new DecodeException("Missing {-character for {}-construct in pathPattern");
-        }
+        i = skipNamedPattern(pathPattern, i, c);
       } else if (c == '*') {
         b.append(".*");
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
@@ -171,7 +176,7 @@ public class RoutingEntry {
     this.pathRegex = b.toString();
   }
 
-  public boolean match(String uri, String method) {
+  private boolean matchUri(String uri) {
     if (uri != null) {
       if (pathRegex != null) {
         String p = uri;
@@ -191,6 +196,13 @@ public class RoutingEntry {
           return false;
         }
       }
+    }
+    return true;
+  }
+
+  public boolean match(String uri, String method) {
+    if (!matchUri(uri)) {
+      return false;
     }
     if (methods != null) {
       for (String m : methods) {

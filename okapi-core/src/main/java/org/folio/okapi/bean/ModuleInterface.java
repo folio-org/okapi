@@ -68,10 +68,7 @@ public class ModuleInterface {
    */
   public static boolean validateVersion(String version) {
     int[] p = versionParts(version, 0);
-    if (p == null) {
-      return false;
-    }
-    return true;
+    return p.length == 0 ? false : true;
   }
 
   /**
@@ -83,11 +80,11 @@ public class ModuleInterface {
   private static int[] versionParts(String version, int idx) {
     final String[] verComp = version.split(" ");
     if (verComp.length <= idx) {
-      return null;
+      return new int[0];
     }
     final String[] parts = verComp[idx].split("\\.");
     if (parts.length < 2 || parts.length > 3) {
-      return null;
+      return new int[0];
     }
     int[] p = new int[3];
     for (int i = 0; i < 3; i++) {
@@ -95,7 +92,7 @@ public class ModuleInterface {
         try {
           p[i] = Integer.parseInt(parts[i]);
         } catch (NumberFormatException ex) {
-          return null;
+          return new int[0];
         }
       } else {
         p[i] = -1;
@@ -115,12 +112,12 @@ public class ModuleInterface {
       return false; // not the same interface at all
     }
     int[] t = ModuleInterface.versionParts(this.version, 0);
-    if (t == null) {
+    if (t.length == 0) {
       return false;
     }
     for (int idx = 0;; idx++) {
       int[] r = ModuleInterface.versionParts(required.version, idx);
-      if (r == null) {
+      if (r.length == 0) {
         break;
       }
       if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2])))
@@ -148,10 +145,7 @@ public class ModuleInterface {
     if (interfaceType != null && !"proxy".equals(interfaceType)) {
       return false; // explicitly some other type, like "multiple" or "system"
     }
-    if (this.id.startsWith("_")) {
-      return false; // old-fashioned _tenant etc. DEPRECATED
-    }
-    return true;
+    return this.id.startsWith("_") ? false : true; // old-fashioned _tenant etc. DEPRECATED
   }
 
   @JsonIgnore
@@ -190,7 +184,7 @@ public class ModuleInterface {
     }
 
     String err;
-    err = validateGeneral(pc, mod);
+    err = validateGeneral(mod);
     if (!err.isEmpty()) {
       return err;
     }
@@ -208,7 +202,7 @@ public class ModuleInterface {
     }
 
     if (section.equals("provides")) {
-      err = validateProvides(pc, section, mod);
+      err = validateProvides(pc, mod);
       if (!err.isEmpty()) {
         return err;
       }
@@ -226,7 +220,7 @@ public class ModuleInterface {
    * Validate those things that just have to be right.
    * @return "" if ok, or an error message
    */
-  private String validateGeneral(ProxyContext pc, String mod) {
+  private String validateGeneral(String mod) {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
       return "Bad interface type '" + it + "'";
@@ -240,7 +234,7 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "provides" section.
    */
-  private String validateProvides(ProxyContext pc, String section, String mod) {
+  private String validateProvides(ProxyContext pc, String mod) {
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
         String err = re.validate(pc, "handlers", mod);
