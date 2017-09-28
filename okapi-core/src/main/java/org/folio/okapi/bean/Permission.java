@@ -11,6 +11,11 @@ public class Permission {
   private Boolean visible;
 
   public Permission() {
+    this.permissionName = null;
+    this.displayName = null;
+    this.description = null;
+    this.subPermissions = null;
+    this.visible = null;
   }
 
   public Permission(Permission other) {

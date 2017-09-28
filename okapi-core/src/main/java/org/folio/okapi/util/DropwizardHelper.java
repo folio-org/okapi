@@ -17,7 +17,12 @@ import java.util.concurrent.TimeUnit;
 /**
  * Helpers for the DropWizard instrumentation.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class DropwizardHelper {
+
+  private DropwizardHelper() {
+    throw new IllegalAccessError("DropwizardHelper");
+  }
 
   static Logger logger = LoggerFactory.getLogger("okapi");
 

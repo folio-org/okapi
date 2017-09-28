@@ -42,6 +42,7 @@ import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.web.InternalModule;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -110,8 +111,8 @@ public class MainVerticle extends AbstractVerticle {
 
     JsonObject config = context.config();
     port = Integer.parseInt(conf("port", "9130", config));
-    int port_start = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
-    int port_end = Integer.parseInt(conf("port_end", Integer.toString(port_start + 10), config));
+    int portStart = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
+    int portEnd = Integer.parseInt(conf("port_end", Integer.toString(portStart + 10), config));
 
     if (clusterManager != null) {
       logger.info("cluster NodeId " + clusterManager.getNodeID());
@@ -134,11 +135,6 @@ public class MainVerticle extends AbstractVerticle {
     }
     String mode = config.getString("mode", "cluster");
     switch (mode) {
-      case "cluster":
-      case "dev":
-        enableDeployment = true;
-        enableProxy = true;
-        break;
       case "deployment":
         enableDeployment = true;
         break;
@@ -153,9 +149,10 @@ public class MainVerticle extends AbstractVerticle {
         initMode = INIT;
         enableProxy = true;
         break;
-      default:
-        logger.fatal("Unknown role '" + mode + "'");
-        System.exit(1);
+      default: // cluster and dev
+        enableDeployment = true;
+        enableProxy = true;
+        break;
     }
 
     envManager = new EnvManager();
@@ -164,15 +161,14 @@ public class MainVerticle extends AbstractVerticle {
       discoveryManager.setClusterManager(clusterManager);
     }
     if (enableDeployment) {
-      Ports ports = new Ports(port_start, port_end);
+      Ports ports = new Ports(portStart, portEnd);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
         host, ports, port, nodeName);
       Runtime.getRuntime().addShutdownHook(new Thread() {
+        @Override
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);
-          deploymentManager.shutdown(ar -> {
-            latch.countDown();
-          });
+          deploymentManager.shutdown(ar -> latch.countDown());
           try {
             if (!latch.await(2, TimeUnit.MINUTES)) {
               logger.error("Timed out waiting to undeploy all");
@@ -189,7 +185,7 @@ public class MainVerticle extends AbstractVerticle {
       storage = new Storage(vertx, storageType, config);
       healthService = new HealthService();
       ModuleStore moduleStore = storage.getModuleStore();
-      moduleManager = new ModuleManager(vertx, moduleStore);
+      moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
       tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
@@ -204,7 +200,7 @@ public class MainVerticle extends AbstractVerticle {
         internalModule, okapiUrl);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
-      moduleManager = new ModuleManager(vertx, null);
+      moduleManager = new ModuleManager(null);
       moduleManager.forceLocalMap(); // make sure it is not shared
       tenantManager = new TenantManager(moduleManager, null);
       tenantManager.forceLocalMap();

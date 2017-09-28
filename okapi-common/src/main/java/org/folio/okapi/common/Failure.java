@@ -2,16 +2,16 @@ package org.folio.okapi.common;
 
 public class Failure<T> implements ExtendedAsyncResult<T> {
 
-  final private Throwable failure;
-  final private ErrorType errorType;
+  private final Throwable failureThrown;
+  private final ErrorType errorType;
 
   public Failure(ErrorType errorType, Throwable failure) {
-    this.failure = failure;
+    this.failureThrown = failure;
     this.errorType = errorType;
   }
 
   public Failure(ErrorType errorType, String s) {
-    this.failure = new Throwable(s);
+    this.failureThrown = new Throwable(s);
     this.errorType = errorType;
   }
 
@@ -22,7 +22,7 @@ public class Failure<T> implements ExtendedAsyncResult<T> {
 
   @Override
   public Throwable cause() {
-    return failure;
+    return failureThrown;
   }
 
   @Override

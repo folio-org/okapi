@@ -30,6 +30,7 @@ import org.folio.okapi.util.ProxyContext;
 /**
  * Manages the tenants in the shared map, and passes updates to the database.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -182,7 +183,7 @@ public class TenantManager {
       List<TenantDescriptor> tdl = new ArrayList<>();
       logger.debug("TenantManager list: " + Json.encode(ids));
       Iterator<String> it = ids.iterator();
-      list_r(it, tdl, fut);
+      listR(it, tdl, fut);
     });
   }
 
@@ -193,7 +194,7 @@ public class TenantManager {
    * @param tdl list to build
    * @param fut
    */
-  private void list_r(Iterator<String> it, List<TenantDescriptor> tdl,
+  private void listR(Iterator<String> it, List<TenantDescriptor> tdl,
     Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(tdl));
@@ -209,7 +210,7 @@ public class TenantManager {
         TenantDescriptor td = t.getDescriptor();
         tdl.add(td);
         logger.debug("TenantManager list: Added " + tid + ":" + Json.encode(td));
-        list_r(it, tdl, fut);
+        listR(it, tdl, fut);
       });
     }
   }
@@ -753,7 +754,7 @@ public class TenantManager {
             tml2.add(tmu);
           }
         } else {
-          int v = moduleManager.addModuleDependencies(modsAvailable.get(id),
+          moduleManager.addModuleDependencies(modsAvailable.get(id),
             modsAvailable, modsEnabled, tml2);
         }
       } else if ("uptodate".equals(tm.getAction())) {
@@ -774,7 +775,7 @@ public class TenantManager {
           fut.handle(new Failure<>(NOT_FOUND, id));
           return;
         }
-        int v = moduleManager.removeModuleDependencies(modsAvailable.get(id),
+        moduleManager.removeModuleDependencies(modsAvailable.get(id),
           modsEnabled, tml2);
       } else {
         fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));

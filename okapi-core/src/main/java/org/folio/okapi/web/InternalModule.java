@@ -19,7 +19,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -57,6 +56,7 @@ import org.folio.okapi.util.ProxyContext;
  *
  *
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class InternalModule {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -85,7 +85,7 @@ public class InternalModule {
     logger.warn("InternalModule starting: " + okapiVersion);
   }
 
-  static public ModuleDescriptor moduleDescriptor(String okapiVersion) {
+  public static ModuleDescriptor moduleDescriptor(String okapiVersion) {
     String v = okapiVersion;
     if (v == null) {  // happens at compile time,
       v = "0.0.0";   // unit tests can just check for this
@@ -502,8 +502,7 @@ public class InternalModule {
       + "],"
       + "\"requires\" : [ ]" // can not require any other interfaces.
       + "}";
-    final ModuleDescriptor md = Json.decodeValue(doc, ModuleDescriptor.class);
-    return md;
+    return Json.decodeValue(doc, ModuleDescriptor.class);
   }
 
   /**
@@ -529,6 +528,7 @@ public class InternalModule {
       return "";
     } catch (UnsupportedEncodingException ex) {
       logger.warn("Could not encode location " + uri + "  " + id);
+      logger.info(ex);
       return ("Error in encoding location id " + id + ". "
         + ex.getMessage());
     }

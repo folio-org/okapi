@@ -18,21 +18,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class MainClusterTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  Async async;
-  Vertx vertx;
-  RamlDefinition api;
-
-
-  public MainClusterTest() {
-  }
+  private Async async;
+  private Vertx vertx;
+  private RamlDefinition api;
 
   @Before
   public void setUp(TestContext context) {
+    logger.debug("starting MainClusterTest");
     async = context.async();
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.port = port;
@@ -80,7 +78,7 @@ public class MainClusterTest {
   public void testBadMode(TestContext context) {
     async = context.async();
 
-    String[] args = {"bad", "-enable-metrics"};
+    String[] args = {"bad"};
     MainCluster.main1(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertFalse(res.succeeded());

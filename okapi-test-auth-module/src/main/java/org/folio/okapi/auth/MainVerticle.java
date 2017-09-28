@@ -21,6 +21,7 @@ import io.vertx.ext.web.handler.BodyHandler;
  *
  * ...
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");

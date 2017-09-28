@@ -6,10 +6,11 @@ public class ErrorTest {
   @Test
   public void testFailure() {
     Failure f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
-    assertEquals(f.getType(), ErrorType.NOT_FOUND);
+    assertEquals(ErrorType.NOT_FOUND, f.getType());
     assertTrue(f.failed());
     assertFalse(f.succeeded());
     assertEquals("Not found", f.cause().getMessage());
+    assertEquals(null, f.result());
   }
 
   @Test

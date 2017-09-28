@@ -5,10 +5,6 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class ModuleIdTest {
-
-  public ModuleIdTest() {
-  }
-
   @Test
   public void test() {
     ModuleId module_1 = new ModuleId("module-1");
@@ -45,5 +41,8 @@ public class ModuleIdTest {
 
     assertEquals(-4, ModuleId.compare("abc-2.9", "abc-3.5"));
     assertEquals(-5, ModuleId.compare("abc-2", "abcd-3"));
+
+    assertTrue(module_1.equals(module_1));
+    assertFalse(module_1.equals(foobar_1_2));
   }
 }

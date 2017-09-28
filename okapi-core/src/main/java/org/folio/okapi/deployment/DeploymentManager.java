@@ -10,6 +10,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -185,8 +186,8 @@ public class DeploymentManager {
 
   public void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     List<DeploymentDescriptor> ml = new LinkedList<>();
-    for (String id : list.keySet()) {
-      ml.add(list.get(id));
+    for (Map.Entry<String, DeploymentDescriptor> entry : list.entrySet()) {
+      ml.add(entry.getValue());
     }
     fut.handle(new Success<>(ml));
   }
@@ -198,5 +199,4 @@ public class DeploymentManager {
       fut.handle(new Success<>(list.get(id)));
     }
   }
-
 }

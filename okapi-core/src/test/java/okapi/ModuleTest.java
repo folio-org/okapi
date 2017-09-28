@@ -1,6 +1,5 @@
 package okapi;
 
-import com.google.common.base.Utf8;
 import static com.jayway.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -30,6 +29,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.impl.Utils;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
 public class ModuleTest {
 
@@ -52,9 +52,6 @@ public class ModuleTest {
     + "  \"id\" : \"okapi-0.0.0\"," + LS
     + "  \"name\" : \"okapi-0.0.0\"" + LS
     + "}";
-
-  public ModuleTest() {
-  }
 
   @Before
   public void setUp(TestContext context) {
@@ -84,16 +81,6 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationAuthDeployment = null;
-          td(context);
-        });
-      }).end();
-      return;
-    }
-    if (locationSampleDeployment != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment = null;
           td(context);
         });
       }).end();
@@ -1862,7 +1849,6 @@ public class ModuleTest {
       .log().ifError()
       .body(equalTo("[ " + doc2 + " ]"));
 
-    System.out.println("delete: " + locationSampleDeployment);
     given().delete(locationSampleDeployment).then().statusCode(204);
     locationSampleDeployment = null;
 

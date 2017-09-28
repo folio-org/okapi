@@ -52,6 +52,7 @@ import org.folio.okapi.web.InternalModule;
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
  * enabled for the current tenant.
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class ProxyService {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -61,7 +62,7 @@ public class ProxyService {
   private final DiscoveryManager discoveryManager;
   private final InternalModule internalModule;
   private final String okapiUrl;
-  final private Vertx vertx;
+  private final Vertx vertx;
   private final HttpClient httpClient;
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
@@ -87,7 +88,7 @@ public class ProxyService {
   private void makeTraceHeader(ModuleInstance mi, int statusCode,
     ProxyContext pc) {
     RoutingContext ctx = pc.getCtx();
-    String url = makeUrl(ctx, mi).replaceFirst("[?#].*$", ".."); // rm params
+    String url = makeUrl(mi).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getId() + " "
       + url + " : " + statusCode + pc.timeDiff());
@@ -337,7 +338,7 @@ public class ProxyService {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           List<DeploymentDescriptor> l = res.result();
-          if (l.size() < 1) {
+          if (l.isEmpty()) {
             fut.handle(new Failure<>(NOT_FOUND,
               "No running module instance found for "
               + mi.getModuleDescriptor().getId()));
@@ -404,7 +405,7 @@ public class ProxyService {
     }
   }
 
-  private String makeUrl(RoutingContext ctx, ModuleInstance mi) {
+  private String makeUrl(ModuleInstance mi) {
     return mi.getUrl() + mi.getUri();
   }
 
@@ -446,7 +447,7 @@ public class ProxyService {
 
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
-            content.resume();
+          content.resume();
           return; // ctx already set up
         }
         pc.setModList(l);
@@ -472,7 +473,7 @@ public class ProxyService {
   private void proxyRequestHttpClient( Iterator<ModuleInstance> it,
     ProxyContext pc, Buffer bcontent, ModuleInstance mi) {
     RoutingContext ctx = pc.getCtx();
-    String url = makeUrl(ctx, mi);
+    String url = makeUrl(mi);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest c_req = httpClient.requestAbs(meth, url, res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
@@ -552,7 +553,7 @@ public class ProxyService {
     ModuleInstance mi) {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(ctx, mi), res -> {
+      makeUrl(mi), res -> {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
         && it.hasNext()) {
@@ -612,7 +613,7 @@ public class ProxyService {
     ModuleInstance mi) {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest c_req = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(ctx, mi), res -> {
+      makeUrl(mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
           makeTraceHeader(mi, res.statusCode(), pc);
