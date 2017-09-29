@@ -191,10 +191,8 @@ public class RoutingEntry {
         if (!p.matches(pathRegex)) {
           return false;
         }
-      } else if (path != null) {
-        if (!uri.startsWith(path)) {
-          return false;
-        }
+      } else if (path != null && !uri.startsWith(path)) {
+        return false;
       }
     }
     return true;
@@ -252,13 +250,30 @@ public class RoutingEntry {
     this.phase = phase;
   }
 
-  /**
-   * Validate the RoutingEntry.
-   *
-   * @param section "requires", "provides", "filters", "handlers" or "toplevel"
-   * @return an error message (as a string), or "" if all is well.
-   */
-  public String validate(ProxyContext pc, String section, String mod) {
+  public String validateHandlers(ProxyContext pc, String mod) {
+    String section = "handlers";
+    String err = validateCommon(pc, section, mod);
+    if (err.isEmpty()) {
+      String prefix = "Module '" + mod + "' " + section;
+      if (phase != null) {
+        pc.warn(prefix
+          + "uses 'phase' in the handlers section. "
+          + "Leave it out");
+      }
+      if (type != null && "request-response".equals(type)) {
+        pc.warn(prefix
+          + "uses type=request-response. "
+          + "That is the default, you can leave it out");
+      }
+    }
+    return err;
+  }
+
+  public String validateFilters(ProxyContext pc, String mod) {
+    return validateCommon(pc, "filters", mod);
+  }
+
+  private String validateCommon(ProxyContext pc, String section, String mod) {
     String prefix = "Module '" + mod + "' " + section;
     if (pathPattern != null && !pathPattern.isEmpty()) {
       prefix += " " + pathPattern;
@@ -282,64 +297,29 @@ public class RoutingEntry {
         pc.warn(prefix
           + "has a redirectPath, even though it is not a redirect");
       }
-
       if (pathPattern == null || pathPattern.isEmpty()) {
         pc.warn(prefix
           + " uses old type path"
-        + ". Use a pathPattern instead");
-    }
-    if (level != null && !"toplevel".equals(section)) {
-      String ph = "";  // toplevel has a higher-level warning
-      if ("filters".equals(section)) {
-        ph = "Use a phase=auth instead";
+          + ". Use a pathPattern instead");
       }
-      pc.warn(prefix
-        + "uses DEPRECATED level. " + ph);
-    }
-
-    if (pathPattern != null && pathPattern.endsWith("/")) {
-      pc.warn(prefix
-        + "ends in a slash. Probably not what you intend");
-    }
-    if ("system".equals(type)) {
-      pc.warn(prefix
-        + "uses DEPRECATED type 'system'");
+      if (level != null && !"toplevel".equals(section)) {
+        String ph = "";  // toplevel has a higher-level warning
+        if ("filters".equals(section)) {
+          ph = "Use a phase=auth instead";
+        }
+        pc.warn(prefix
+          + "uses DEPRECATED level. " + ph);
       }
 
-    }
-
-    if (null != section)
-      switch (section) {
-        case "handlers":
-          String err = validateHandlers(pc, prefix);
-          if (!err.isEmpty()) {
-            return err;
-          }
-          break;
-        case "filters":
-          break;
-        default:
-          // Should not happen
-          return "Programming error: "
-            + "RoutingEntry.validate() called with unknown section "
-            + "'" + section + "'";
-    }
-    // TODO - Validate permissions required and desired, and modulePerms
-    return ""; // no problems found
-  }
-
-  private String validateHandlers(ProxyContext pc, String prefix) {
-    if (phase != null) {
-      pc.warn(prefix
-        + "uses 'phase' in the handlers section. "
-        + "Leave it out");
-    }
-    if (type != null && "request-response".equals(type)) {
-      pc.warn(prefix
-        + "uses type=request-response. "
-        + "That is the default, you can leave it out");
+      if (pathPattern != null && pathPattern.endsWith("/")) {
+        pc.warn(prefix
+          + "ends in a slash. Probably not what you intend");
+      }
+      if ("system".equals(type)) {
+        pc.warn(prefix
+          + "uses DEPRECATED type 'system'");
+      }
     }
     return "";
   }
-
 }

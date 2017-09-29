@@ -284,7 +284,6 @@ public class MainVerticle extends AbstractVerticle {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have " + okapiModule
           + " with interface version " + interfaceVersion);
-        // TODO - What if it is a wrong version?
         // See Okapi-359 about version checks across the cluster
         checkSuperTenant(okapiModule, fut);
         return;
@@ -342,7 +341,7 @@ public class MainVerticle extends AbstractVerticle {
         final String ev = enver;
         logger.debug("checkSuperTenant: Enabled version is '" + ev
           + "', not '" + okapiModule + "'");
-        // TODO - Use semver comparision
+        // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) > 0) {
           logger.fatal("checkSuperTenant: This Okapi is too old, "
             + okapiVersion + " we already have " + ev + " in the database. "
@@ -354,7 +353,7 @@ public class MainVerticle extends AbstractVerticle {
           logger.debug("checkSuperTenant: Need to upgrade the stored version");
           // Use the commit, easier interface.
           // the internal module can not have dependencies
-          // TODO - What if someone depends on given Okapi version?
+          // See Okapi-359 about version checks across the cluster
           tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
             ev, okapiModule, ures -> {
               if (ures.failed()) {

@@ -17,6 +17,9 @@ public class TenantModuleDescriptor {
   // called 'id'. It is the id of a module.
   private String from;
 
+  // we really want these lowercase as they reflect the JSON property values
+  // S00115: Constant names should comply with a naming convention
+  @java.lang.SuppressWarnings({"squid:S00115"})
   enum Action {
     enable, disable, uptodate, suggest, conflict
   }

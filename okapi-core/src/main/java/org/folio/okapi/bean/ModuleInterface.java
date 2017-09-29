@@ -178,11 +178,11 @@ public class ModuleInterface {
   public String validate(ProxyContext pc, String section, String mod) {
     logger.debug("Validating ModuleInterface " + Json.encode(this));
     if (id == null) {
-      return "id is missing";
+      return "id is missing for module " + mod;
     }
     String prefix = "Module '" + mod + "' interface '" + id + "': ";
     if (version == null) {
-      return "version is missing";
+      return "version is missing for module " + mod;
     }
 
     String err;
@@ -210,11 +210,11 @@ public class ModuleInterface {
       }
     }
     if (section.equals("requires")) {
-      err = validateRequires(pc, section, mod);
+      err = validateRequires(mod);
       if (!err.isEmpty()) {
         return err;
-        }
       }
+    }
     return "";
   }
 
@@ -225,10 +225,10 @@ public class ModuleInterface {
   private String validateGeneral(String mod) {
     String it = getInterfaceType();
     if (it != null && !it.equals("proxy") && !it.equals("system") && !it.equals("multiple")) {
-      return "Bad interface type '" + it + "'";
+      return "Bad interface type '" + it + "' for module " + mod;
     }
     if (!validateVersion(version)) {
-      return "Bad interface version number '" + version + "'";
+      return "Bad interface version number '" + version + "' for module " + mod;
     }
     return "";
   }
@@ -239,7 +239,7 @@ public class ModuleInterface {
   private String validateProvides(ProxyContext pc, String mod) {
     if (handlers != null) {
       for (RoutingEntry re : handlers) {
-        String err = re.validate(pc, "handlers", mod);
+        String err = re.validateHandlers(pc, mod);
         if (!err.isEmpty()) {
           return err;
         }
@@ -251,9 +251,9 @@ public class ModuleInterface {
   /**
    * Validate those things that apply to the "requires" section.
    */
-  private String validateRequires(ProxyContext pc, String section, String mod) {
+  private String validateRequires(String mod) {
     if (handlers != null && handlers.length > 0) {
-      return "No handlers allowed in 'requires' section";
+      return "No handlers allowed in 'requires' section for module " + mod;
     }
     return "";
   }

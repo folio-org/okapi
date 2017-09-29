@@ -236,7 +236,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {
-        String err = fe.validate(pc, "filters", mod);
+        String err = fe.validateFilters(pc, mod);
         if (!err.isEmpty()) {
           return err;
         }

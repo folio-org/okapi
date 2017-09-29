@@ -73,36 +73,38 @@ public class DeploymentManager {
     } else {
       DeploymentDescriptor md = list.get(it.next());
       ModuleHandle mh = md.getModuleHandle();
-      mh.stop(future -> {
-        shutdownR(it, fut);
-      });
+      mh.stop(future -> shutdownR(it, fut));
     }
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getInstId();
-    if (id != null) {
-      if (list.containsKey(id)) {
-        fut.handle(new Failure<>(USER, "already deployed: " + id));
-        return;
-      }
+    if (id != null && list.containsKey(id)) {
+      fut.handle(new Failure<>(USER, "already deployed: " + id));
+      return;
     }
     String srvc = md1.getSrvcId();
     Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
-    int use_port = ports.get();
-    if (use_port == -1) {
+    int usePort = ports.get();
+    if (usePort == -1) {
       fut.handle(new Failure<>(INTERNAL, "all ports in use"));
       tim.close();
       return;
     }
-    String url = "http://" + host + ":" + use_port;
+    String url = "http://" + host + ":" + usePort;
 
     if (id == null) {
-      id = host + "-" + use_port;
+      id = host + "-" + usePort;
       md1.setInstId(id);
     }
     logger.info("deploy instId " + id);
+    deploy2(fut, tim, usePort, md1, url);
+  }
+
+  private void deploy2(Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
+    Timer.Context tim, int usePort, DeploymentDescriptor md1, String url) {
+
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
@@ -132,22 +134,19 @@ public class DeploymentManager {
           }
           descriptor.setEnv(nenv);
         }
-        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, use_port);
-
+        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, usePort);
         mh.start(future -> {
           if (future.succeeded()) {
             DeploymentDescriptor md2
-                    = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
-                            url, md1.getDescriptor(), mh);
+              = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
+                url, md1.getDescriptor(), mh);
             md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
             list.put(md2.getInstId(), md2);
             tim.close();
-            dm.add(md2, res -> {
-              fut.handle(new Success<>(md2));
-            });
+            dm.add(md2, res -> fut.handle(new Success<>(md2)));
           } else {
             tim.close();
-            ports.free(use_port);
+            ports.free(usePort);
             logger.warn("Deploying " + md1.getSrvcId() + " failed");
             fut.handle(new Failure<>(INTERNAL, future.cause()));
           }
