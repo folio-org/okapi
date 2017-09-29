@@ -11,7 +11,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.okapi.MainCluster;
+import org.folio.okapi.MainDeploy;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
-public class MainClusterTest {
+public class MainDeployTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
@@ -55,7 +55,8 @@ public class MainClusterTest {
     async = context.async();
 
     String[] args = {"help"};
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue(res.succeeded());
       async.complete();
@@ -67,7 +68,8 @@ public class MainClusterTest {
     async = context.async();
 
     String[] args = {"-bad-option"};
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertFalse(res.succeeded());
       async.complete();
@@ -79,7 +81,8 @@ public class MainClusterTest {
     async = context.async();
 
     String[] args = {"bad"};
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertFalse(res.succeeded());
       async.complete();
@@ -91,7 +94,8 @@ public class MainClusterTest {
     async = context.async();
 
     String[] args = {};
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       Assert.assertFalse(res.succeeded());
       vertx = res.succeeded() ? res.result() : null;
       async.complete();
@@ -104,7 +108,8 @@ public class MainClusterTest {
 
     String[] args = {"dev"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.succeeded());
 
@@ -126,7 +131,8 @@ public class MainClusterTest {
 
     String[] args = {"deployment"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1" + res.cause(), res.succeeded());
 
@@ -148,7 +154,8 @@ public class MainClusterTest {
 
     String[] args = {"proxy"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.succeeded());
 
@@ -170,7 +177,8 @@ public class MainClusterTest {
 
     String[] args = {"cluster"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.succeeded());
 
@@ -192,7 +200,8 @@ public class MainClusterTest {
 
     String[] args = {"cluster", "-cluster-host", "foobar", "-cluster-port", "5701"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
@@ -205,7 +214,8 @@ public class MainClusterTest {
 
     String[] args = {"cluster", "-hazelcast-config-file", "foobar"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
@@ -218,7 +228,8 @@ public class MainClusterTest {
 
     String[] args = {"cluster", "-hazelcast-config-cp", "foobar"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
@@ -231,11 +242,11 @@ public class MainClusterTest {
 
     String[] args = {"cluster", "-hazelcast-config-url", "foobar"};
 
-    MainCluster.main1(args, res -> {
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
       vertx = res.succeeded() ? res.result() : null;
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
   }
-
 }
