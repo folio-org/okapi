@@ -16,33 +16,33 @@ import java.util.Random;
 import static org.folio.okapi.common.ErrorType.*;
 
 /**
- * Okapi client.
- * Makes requests to other Okapi modules, or Okapi itself. Handles all the
- * things we need with the headers etc. Note that the client keeps a list
- * of necessary headers (which it can get from the RoutingContext, or
- * separately), so it is bound to one request, or at least one tenant.
- * Your module should not just keep one client around for everything it
- * does.
+ * Okapi client. Makes requests to other Okapi modules, or Okapi itself. Handles
+ * all the things we need with the headers etc. Note that the client keeps a
+ * list of necessary headers (which it can get from the RoutingContext, or
+ * separately), so it is bound to one request, or at least one tenant. Your
+ * module should not just keep one client around for everything it does.
+ *
  * @author heikki
  */
 public class OkapiClient {
+
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private String okapiUrl;
   private HttpClient httpClient;
-  private Map<String,String> headers;
+  private Map<String, String> headers;
   // TODO Response headers: do we need a trace or something?
-  // TODO Return type: Need a more complex container class with room for
-  //   response headers, the whole response, and so on.
-  // TODO Use this in the discovery-deployment communications
+  //      Return type: Need a more complex container class with room for
+  //      response headers, the whole response, and so on.
+  //      Use this in the discovery-deployment communications
   private MultiMap respHeaders;
   private String reqId;
   private boolean logInfo; // t: log requests on INFO. f: on DEBUG
   private String responsebody;
 
   /**
-   * Constructor from a vert.x ctx.
-   * That ctx contains all the headers we need.
+   * Constructor from a vert.x ctx. That ctx contains all the headers we need.
+   *
    * @param ctx
    */
   public OkapiClient(RoutingContext ctx) {
@@ -63,17 +63,19 @@ public class OkapiClient {
     }
   }
 
-  /** Explicit constructor.
+  /**
+   * Explicit constructor.
    *
    * @param okapiUrl
    * @param vertx
    * @param headers may be null
    */
-  public OkapiClient(String okapiUrl, Vertx vertx, Map<String,String> headers) {
+  public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
     init(vertx);
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
-    if (headers != null )
+    if (headers != null) {
       this.headers.putAll(headers);
+    }
     if (this.headers.containsKey(XOkapiHeaders.REQUEST_ID)) {
       reqId = this.headers.get(XOkapiHeaders.REQUEST_ID);
     }
@@ -125,10 +127,10 @@ public class OkapiClient {
    * @param method GET or POST or such
    * @param path like "/foomodule/something"
    * @param data for the request. Most likely a JSON string.
-   * @param fut callback when done. Most likely a JSON string if all went
-   * well, or a plain text string in case of errors.
+   * @param fut callback when done. Most likely a JSON string if all went well,
+   * or a plain text string in case of errors.
    */
-  public void request( HttpMethod method, String path, String data,
+  public void request(HttpMethod method, String path, String data,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (this.okapiUrl == null) {
       logger.error("OkapiClient: No OkapiUrl specified");
@@ -142,8 +144,8 @@ public class OkapiClient {
     }
 
     respHeaders = null;
-    String logReqMsg = reqId + " REQ "        + "okapiClient " + tenant + " "
-        + method.toString() + " " + url;
+    String logReqMsg = reqId + " REQ " + "okapiClient " + tenant + " "
+      + method.toString() + " " + url;
     if (logInfo) {
       logger.info(logReqMsg);
     } else {
@@ -198,17 +200,17 @@ public class OkapiClient {
   }
 
   public void post(String path, String data,
-        Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.POST, path, data, fut);
   }
 
   public void get(String path,
-        Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.GET, path, "", fut);
   }
 
   public void delete(String path,
-        Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
@@ -244,9 +246,10 @@ public class OkapiClient {
     return headers.get(XOkapiHeaders.TOKEN);
   }
 
-  /** Set the Okapi authentication token.
-   * Overrides the auth token. Should normally not be needed,
-   * but can be used in some special cases.
+  /**
+   * Set the Okapi authentication token. Overrides the auth token. Should
+   * normally not be needed, but can be used in some special cases.
+   *
    * @param token
    */
   public void setOkapiToken(String token) {

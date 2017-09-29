@@ -41,7 +41,7 @@ public class MainVerticle extends AbstractVerticle {
   public void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
     final Buffer incoming = Buffer.buffer();
-    content.handler(data -> incoming.appendBuffer(data));
+    content.handler(incoming::appendBuffer);
     ctx.request().endHandler(x -> {
       String body = incoming.toString();
       body = body.replaceAll("\\s+", " "); // remove newlines etc

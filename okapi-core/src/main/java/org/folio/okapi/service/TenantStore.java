@@ -7,10 +7,6 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 
-/**
- *
- * @author heikki
- */
 public interface TenantStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
@@ -28,6 +24,5 @@ public interface TenantStore {
   void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
 
   void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
-  // TODO - Add list parameters, like which fields, start, and maxrecs
 
 }

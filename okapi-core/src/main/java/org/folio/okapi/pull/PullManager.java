@@ -47,7 +47,7 @@ public class PullManager {
       url += "_/version";
       final Buffer body = Buffer.buffer();
       HttpClientRequest req = httpClient.getAbs(url, res -> {
-        res.handler(x -> body.appendBuffer(x));
+        res.handler(body::appendBuffer);
         res.endHandler(x -> {
           if (res.statusCode() != 200) {
             logger.info("pull for " + baseUrl + " failed with status "
@@ -79,9 +79,7 @@ public class PullManager {
     url += "_/proxy/modules";
     final Buffer body = Buffer.buffer();
     HttpClientRequest req = httpClient.getAbs(url, res -> {
-      res.handler(x -> {
-        body.appendBuffer(x);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(x -> {
         if (res.statusCode() != 200) {
           fut.handle(new Failure<>(ErrorType.USER, body.toString()));
@@ -91,9 +89,8 @@ public class PullManager {
           fut.handle(new Success<>(ml));
         }
       });
-      res.exceptionHandler(x -> {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
-      });
+      res.exceptionHandler(x
+        -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     });
     req.exceptionHandler(x -> {
       fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
@@ -112,38 +109,37 @@ public class PullManager {
         url += "/";
       }
       url += "_/proxy/modules/" + it.next().getId();
-      final Buffer body = Buffer.buffer();
-      HttpClientRequest req = httpClient.getAbs(url, res -> {
-        res.handler(x -> {
-          body.appendBuffer(x);
-        });
-        res.endHandler(x -> {
-          if (concurrentRuns > 0) {
-            concurrentRuns--;
-          }
-          if (res.statusCode() != 200) {
-            if (!concurrentComplete) {
-              concurrentComplete = true;
-              fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-            }
-          } else {
-            ModuleDescriptor md = Json.decodeValue(body.toString(),
-              ModuleDescriptor.class);
-            ml.add(md);
-            getFull(urlBase, it, ml, fut);
-          }
-        });
-        res.exceptionHandler(x -> {
-          if (concurrentRuns > 0) {
-            concurrentRuns--;
-          }
+      getFullReq(url, fut, ml, urlBase, it);
+    }
+    if (!it.hasNext() && !concurrentComplete && concurrentRuns == 0) {
+      concurrentComplete = true;
+      fut.handle(new Success<>(ml));
+    }
+  }
+
+  private void getFullReq(String url, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut,
+    List<ModuleDescriptor> ml, String urlBase, Iterator<ModuleDescriptor> it) {
+
+    final Buffer body = Buffer.buffer();
+    HttpClientRequest req = httpClient.getAbs(url, res -> {
+      res.handler(body::appendBuffer);
+      res.endHandler(x -> {
+        if (concurrentRuns > 0) {
+          concurrentRuns--;
+        }
+        if (res.statusCode() != 200) {
           if (!concurrentComplete) {
             concurrentComplete = true;
-            fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+            fut.handle(new Failure<>(ErrorType.USER, body.toString()));
           }
-        });
+        } else {
+          ModuleDescriptor md = Json.decodeValue(body.toString(),
+            ModuleDescriptor.class);
+          ml.add(md);
+          getFull(urlBase, it, ml, fut);
+        }
       });
-      req.exceptionHandler(x -> {
+      res.exceptionHandler(x -> {
         if (concurrentRuns > 0) {
           concurrentRuns--;
         }
@@ -152,12 +148,17 @@ public class PullManager {
           fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
         }
       });
-      req.end();
-    }
-    if (!it.hasNext() && !concurrentComplete && concurrentRuns == 0) {
-      concurrentComplete = true;
-      fut.handle(new Success<>(ml));
-    }
+    });
+    req.exceptionHandler(x -> {
+      if (concurrentRuns > 0) {
+        concurrentRuns--;
+      }
+      if (!concurrentComplete) {
+        concurrentComplete = true;
+        fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
+      }
+    });
+    req.end();
   }
 
   private void addFull(String urlBase, ModuleDescriptor ml,
@@ -169,7 +170,7 @@ public class PullManager {
     url += "_/proxy/modules";
     Buffer body = Buffer.buffer();
     HttpClientRequest req = httpClient.postAbs(url, res -> {
-      res.handler(x -> body.appendBuffer(x));
+      res.handler(body::appendBuffer);
       res.endHandler(x -> {
         if (res.statusCode() != 201) {
           fut.handle(new Failure<>(ErrorType.USER, body.toString()));

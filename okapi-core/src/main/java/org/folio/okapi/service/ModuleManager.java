@@ -185,11 +185,9 @@ public class ModuleManager {
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (ModuleInterface pi : md.getProvidesList()) {
-        if (req.getId().equals(pi.getId())) {
-          if (pi.isCompatible(req)) {
-            logger.debug("Dependency OK");
-            return 0;
-          }
+        if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+          logger.debug("Dependency OK");
+          return 0;
         }
       }
     }
@@ -198,23 +196,16 @@ public class ModuleManager {
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (ModuleInterface pi : md.getProvidesList()) {
-        if (req.getId().equals(pi.getId())) {
-          if (pi.isCompatible(req)) {
-            if (foundMd == null || md.compareTo(foundMd) > 0) {// newest module
-              foundMd = md;
-            }
-          }
+        if (req.getId().equals(pi.getId()) && pi.isCompatible(req)
+          && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
+          foundMd = md;
         }
       }
     }
     if (foundMd == null) {
       return -1;
     }
-    int v = addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
-    if (v == -1) {
-      return -1;
-    }
-    return v;
+    return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
   }
 
   private int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
@@ -228,22 +219,21 @@ public class ModuleManager {
         if (pi.isRegularHandler()) {
           String confl = pi.getId();
           for (ModuleInterface mi : md.getProvidesList()) {
-            if (mi.getId().equals(confl)) {
-              if (modsEnabled.containsKey(runningmodule)) {
-                if (md.getProduct().equals(rm.getProduct())) {
-                  logger.info("resolveModuleConflicts from " + runningmodule);
-                  fromModule.add(rm);
-                } else {
-                  logger.info("resolveModuleConflicts remove " + runningmodule);
-                  TenantModuleDescriptor tm = new TenantModuleDescriptor();
-                  tm.setAction("disable");
-                  tm.setId(runningmodule);
-                  tml.add(tm);
-                }
-                modsEnabled.remove(runningmodule);
-                it = modsEnabled.keySet().iterator();
-                v++;
+            if (mi.getId().equals(confl)
+              && modsEnabled.containsKey(runningmodule)) {
+              if (md.getProduct().equals(rm.getProduct())) {
+                logger.info("resolveModuleConflicts from " + runningmodule);
+                fromModule.add(rm);
+              } else {
+                logger.info("resolveModuleConflicts remove " + runningmodule);
+                TenantModuleDescriptor tm = new TenantModuleDescriptor();
+                tm.setAction("disable");
+                tm.setId(runningmodule);
+                tml.add(tm);
               }
+              modsEnabled.remove(runningmodule);
+              it = modsEnabled.keySet().iterator();
+              v++;
             }
           }
         }
@@ -338,7 +328,7 @@ public class ModuleManager {
    */
   public String checkAllConflicts(Map<String, ModuleDescriptor> modlist) {
     Map<String, String> provs = new HashMap<>(); // interface name to module name
-    String conflicts = "";
+    StringBuilder conflicts = new StringBuilder();
     for (ModuleDescriptor md : modlist.values()) {
       ModuleInterface[] provides = md.getProvidesList();
       for (ModuleInterface mi : provides) {
@@ -349,13 +339,13 @@ public class ModuleManager {
           } else {
             String msg = "Interface " + mi.getId()
               + " is provided by " + md.getId() + " and " + confl + ". ";
-            conflicts += msg;
+            conflicts.append(msg);
           }
         }
       }
     }
-    logger.debug("checkAllConflicts: " + conflicts);
-    return conflicts;
+    logger.debug("checkAllConflicts: " + conflicts.toString());
+    return conflicts.toString();
   }
 
   /**
