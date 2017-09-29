@@ -63,7 +63,7 @@ public class MainDeploy {
     }
   }
 
-  private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) throws NumberFormatException {
+  private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
     int i = 0;
     while (i < args.length) {
       if (!args[i].startsWith("-")) {
