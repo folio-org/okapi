@@ -357,7 +357,7 @@ in a login pipeline may conclude that the user is already authorized since
 he comes from a IP address in the secure office, and abort the sequence of
 events that would lead to a login screen being displayed.
 
-<span id="chunked"/>Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
+<a id="chunked"/>Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
 chunked encoding to make the connections to the modules.
 
 
