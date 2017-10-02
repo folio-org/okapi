@@ -24,7 +24,7 @@ public class ModuleStoreMongo implements ModuleStore {
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
   private MongoClient cli;
-  private final String collection = "okapi.modules";
+  private static final String COLLECTION = "okapi.modules";
 
   public ModuleStoreMongo(MongoClient cli) {
     this.cli = cli;
@@ -37,7 +37,7 @@ public class ModuleStoreMongo implements ModuleStore {
     JsonObject document = new JsonObject(s);
     String id = md.getId();
     document.put("_id", id);
-    cli.insert(collection, document, res -> {
+    cli.insert(COLLECTION, document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
@@ -57,7 +57,7 @@ public class ModuleStoreMongo implements ModuleStore {
     JsonObject document = new JsonObject(s);
     document.put("_id", id);
     UpdateOptions options = new UpdateOptions().setUpsert(true);
-    cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
+    cli.updateCollectionWithOptions(COLLECTION, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>(id));
       } else {
@@ -72,7 +72,7 @@ public class ModuleStoreMongo implements ModuleStore {
   public void get(String id,
           Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
-    cli.find(collection, jq, res -> {
+    cli.find(COLLECTION, jq, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
@@ -94,7 +94,7 @@ public class ModuleStoreMongo implements ModuleStore {
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
+    cli.find(COLLECTION, jq, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
@@ -114,7 +114,7 @@ public class ModuleStoreMongo implements ModuleStore {
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("id", id);
-    cli.removeDocument(collection, jq, rres -> {
+    cli.removeDocument(COLLECTION, jq, rres -> {
       if (rres.failed()) {
         fut.handle(new Failure<>(INTERNAL, rres.cause()));
       } else if (rres.result().getRemovedCount() == 0) {

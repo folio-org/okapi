@@ -38,11 +38,11 @@ public class MongoHandle {
     if (!p.isEmpty()) {
       opt.put("port", Integer.parseInt(p));
     }
-    String db_name = Config.getSysConf("mongo_db_name", "", conf);
-    if (!db_name.isEmpty()) {
-      opt.put("db_name", db_name);
+    String dbName = Config.getSysConf("mongo_db_name", "", conf);
+    if (!dbName.isEmpty()) {
+      opt.put("db_name", dbName);
     }
-    logger.info("Using mongo backend at " + h + " : " + p + " / " + db_name);
+    logger.info("Using mongo backend at " + h + " : " + p + " / " + dbName);
     this.cli = MongoClient.createShared(vertx, opt);
   }
 
