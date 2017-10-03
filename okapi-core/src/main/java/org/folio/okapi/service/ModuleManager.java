@@ -502,15 +502,7 @@ public class ModuleManager {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
-      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
-      if (!tempList.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
-        return;
-      }
-      tempList.remove(id);
-      String res = checkAllDependencies(tempList);
-      if (!res.isEmpty()) {
-        fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
+      if (deleteCheckDep(id, fut, ares.result())) {
         return;
       }
       tenantManager.getModuleUser(id, ures -> {
@@ -519,36 +511,50 @@ public class ModuleManager {
             String ten = ures.cause().getMessage();
             fut.handle(new Failure<>(USER, "delete: module " + id
               + " is used by tenant " + ten));
-            return;
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            return;
           }
-        }
-        if (moduleStore == null) {
-          modules.remove(id, sres -> {
-            if (sres.failed()) {
-              fut.handle(new Failure<>(sres.getType(), sres.cause()));
-              return;
-            }
-            fut.handle(new Success<>());
-          });
           return;
         }
-        moduleStore.delete(id, dres -> {
-          if (dres.failed()) {
-            fut.handle(new Failure<>(dres.getType(), dres.cause()));
-            return;
-          }
-          modules.remove(id, rres -> {
-            if (rres.failed()) {
-              fut.handle(new Failure<>(rres.getType(), rres.cause()));
+        if (moduleStore == null) {
+          deleteInternal(id, fut);
+        } else {
+          moduleStore.delete(id, dres -> {
+            if (dres.failed()) {
+              fut.handle(new Failure<>(dres.getType(), dres.cause()));
               return;
             }
-            fut.handle(new Success<>());
+            deleteInternal(id, fut);
           });
-        });
+        }
       });
+    });
+  }
+
+  private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
+    LinkedHashMap<String, ModuleDescriptor> mods) {
+
+    LinkedHashMap<String, ModuleDescriptor> tempList = mods;
+    if (!tempList.containsKey(id)) {
+      fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
+      return true;
+    }
+    tempList.remove(id);
+    String res = checkAllDependencies(tempList);
+    if (!res.isEmpty()) {
+      fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
+      return true;
+    }
+    return false;
+  }
+
+  private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    modules.remove(id, rres -> {
+      if (rres.failed()) {
+        fut.handle(new Failure<>(rres.getType(), rres.cause()));
+        return;
+      }
+      fut.handle(new Success<>());
     });
   }
 
@@ -655,11 +661,9 @@ public class ModuleManager {
     }
     String id = it.next();
     ModuleId idThis = new ModuleId(id);
-    if (filter != null) {
-      if (!idThis.hasPrefix(filter)) {
-        getModulesR(it, mdl, filter, preRelease, fut);
-        return;
-      }
+    if (filter != null && !idThis.hasPrefix(filter)) {
+      getModulesR(it, mdl, filter, preRelease, fut);
+      return;
     }
     if (!preRelease && idThis.hasPreRelease()) {
       logger.info("skipping " + id);
@@ -677,9 +681,4 @@ public class ModuleManager {
     });
   }
 
-  /*
-   public boolean isEmpty() {
-    return modules.isEmpty();
-   }
-   */
-} // class
+}

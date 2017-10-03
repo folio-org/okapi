@@ -92,9 +92,8 @@ public class PullManager {
       res.exceptionHandler(x
         -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     });
-    req.exceptionHandler(x -> {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
-    });
+    req.exceptionHandler(x
+      -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     req.end();
   }
 

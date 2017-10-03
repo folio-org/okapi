@@ -51,12 +51,12 @@ public class Storage {
   }
 
   public void prepareDatabases(InitMode initModeP, Handler<ExtendedAsyncResult<Void>> fut) {
-    String db_init = Config.getSysConf("mongo_db_init", "0", config);
-    if (mongo != null && "1".equals(db_init)) {
+    String dbInit = Config.getSysConf("mongo_db_init", "0", config);
+    if (mongo != null && "1".equals(dbInit)) {
       initModeP = InitMode.INIT;
     }
-    db_init = Config.getSysConf("postgres_db_init", "0", config);
-    if (postgres != null && "1".equals(db_init)) {
+    dbInit = Config.getSysConf("postgres_db_init", "0", config);
+    if (postgres != null && "1".equals(dbInit)) {
       logger.warn("Will initialize the whole database!");
       logger.warn("The postgres_db_init option is DEPRECATED!"
         + " use 'initdatabase' command (instead of 'dev' on the command line)");

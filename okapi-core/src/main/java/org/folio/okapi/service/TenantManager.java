@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
@@ -728,15 +729,15 @@ public class TenantManager {
     }); // tenant
   }
 
-  private void installModules(HashMap<String, ModuleDescriptor> modsAvailable,
-    HashMap<String, ModuleDescriptor> modsEnabled,
+  private void installModules(Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     List<TenantModuleDescriptor> tml2 = new LinkedList<>();
 
     for (TenantModuleDescriptor tm : tml) {
-      if (InstallModule1(tm, modsAvailable, fut, modsEnabled, tml2)) {
+      if (tmAction(tm, modsAvailable, modsEnabled, tml2, fut)) {
         return;
       }
     }
@@ -755,74 +756,96 @@ public class TenantManager {
     fut.handle(new Success<>(Boolean.TRUE));
   }
 
-  private boolean InstallModule1(TenantModuleDescriptor tm,
-    HashMap<String, ModuleDescriptor> modsAvailable, Handler<ExtendedAsyncResult<Boolean>> fut,
-    HashMap<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml2) {
+  private boolean tmAction(TenantModuleDescriptor tm,
+    Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     String id = tm.getId();
-    if ("enable".equals(tm.getAction())) {
-      ModuleId moduleId = new ModuleId(id);
-      if (!moduleId.hasSemVer()) {
-        id = moduleId.getLatest(modsAvailable.keySet());
-        if (id == null) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return true;
-        }
-      }
-      if (!modsAvailable.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return true;
-      }
-      if (modsEnabled.containsKey(id)) {
-        boolean alreadyEnabled = false;
-        for (TenantModuleDescriptor tm2 : tml2) {
-          if (tm2.getId().equals(id)) {
-            alreadyEnabled = true;
-          }
-        }
-        if (!alreadyEnabled) {
-          TenantModuleDescriptor tmu = new TenantModuleDescriptor();
-          tmu.setAction("uptodate");
-          tmu.setId(id);
-          tml2.add(tmu);
-        }
-      } else {
-        moduleManager.addModuleDependencies(modsAvailable.get(id),
-          modsAvailable, modsEnabled, tml2);
-      }
-    } else if ("uptodate".equals(tm.getAction())) {
-      if (!modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return true;
-      }
-    } else if ("disable".equals(tm.getAction())) {
-      ModuleId moduleId = new ModuleId(id);
-      if (!moduleId.hasSemVer()) {
-        id = moduleId.getLatest(modsEnabled.keySet());
-        if (id == null) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return true;
-        }
-      }
-      if (!modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return true;
-      }
-      moduleManager.removeModuleDependencies(modsAvailable.get(id),
-        modsEnabled, tml2);
+    String action = tm.getAction();
+    if ("enable".equals(action)) {
+      return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
+    } else if ("uptodate".equals(action)) {
+      return tmUpToDate(modsEnabled, id, fut);
+    } else if ("disable".equals(action)) {
+      return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
     } else {
-      fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + tm.getAction()));
+      fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + action));
+      return true;
+    }
+  }
+
+  private boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+
+    ModuleId moduleId = new ModuleId(id);
+    if (!moduleId.hasSemVer()) {
+      id = moduleId.getLatest(modsAvailable.keySet());
+      if (id == null) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
+        return true;
+      }
+    }
+    if (!modsAvailable.containsKey(id)) {
+      fut.handle(new Failure<>(NOT_FOUND, id));
+      return true;
+    }
+    if (modsEnabled.containsKey(id)) {
+      boolean alreadyEnabled = false;
+      for (TenantModuleDescriptor tm : tml) {
+        if (tm.getId().equals(id)) {
+          alreadyEnabled = true;
+        }
+      }
+      if (!alreadyEnabled) {
+        TenantModuleDescriptor tmu = new TenantModuleDescriptor();
+        tmu.setAction("uptodate");
+        tmu.setId(id);
+        tml.add(tmu);
+      }
+    } else {
+      moduleManager.addModuleDependencies(modsAvailable.get(id),
+        modsAvailable, modsEnabled, tml);
+    }
+    return false;
+  }
+
+  private boolean tmUpToDate(Map<String, ModuleDescriptor> modsEnabled,
+    String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
+
+    if (!modsEnabled.containsKey(id)) {
+      fut.handle(new Failure<>(NOT_FOUND, id));
       return true;
     }
     return false;
   }
 
+  private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml2,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+
+    ModuleId moduleId = new ModuleId(id);
+    if (!moduleId.hasSemVer()) {
+      id = moduleId.getLatest(modsEnabled.keySet());
+      if (id == null) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
+        return true;
+      }
+    }
+    if (tmUpToDate(modsEnabled, id, fut)) {
+      return true;
+    }
+    moduleManager.removeModuleDependencies(modsAvailable.get(id),
+      modsEnabled, tml2);
+    return false;
+  }
+
   private void installCommit(Tenant tenant, ProxyContext pc,
-    HashMap<String, ModuleDescriptor> modsAvailable,
-    List<TenantModuleDescriptor> tml, Iterator<TenantModuleDescriptor> it,
-    boolean simulate,
-    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
-    if (!simulate && it.hasNext()) {
+    Map<String, ModuleDescriptor> modsAvailable,
+    Iterator<TenantModuleDescriptor> it,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    if (it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor mdFrom = null;
       ModuleDescriptor mdTo = null;
@@ -839,14 +862,14 @@ public class TenantManager {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
-            installCommit(tenant, pc, modsAvailable, tml, it, simulate, fut);
+            installCommit(tenant, pc, modsAvailable, it, fut);
           }
         });
       } else {
-        installCommit(tenant, pc, modsAvailable, tml, it, simulate, fut);
+        installCommit(tenant, pc, modsAvailable, it, fut);
       }
     } else {
-      fut.handle(new Success<>(tml));
+      fut.handle(new Success<>());
     }
   }
 
@@ -875,38 +898,58 @@ public class TenantManager {
             modsEnabled.put(md.getId(), md);
           }
         }
-        if (tml == null) {
-          List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-
-          for (String fId : modsEnabled.keySet()) {
-            ModuleId moduleId = new ModuleId(fId);
-            String uId = moduleId.getLatest(modsAvailable.keySet());
-            if (!uId.equals(fId)) {
-              TenantModuleDescriptor tmd = new TenantModuleDescriptor();
-              tmd.setAction("enable");
-              tmd.setId(uId);
-              logger.info("upgrade.. enable " + uId);
-              tmd.setFrom(fId);
-              tml2.add(tmd);
-            }
-          }
-          installModules(modsAvailable, modsEnabled, tml2, res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-              return;
-            }
-            installCommit(t, pc, modsAvailable, tml2, tml2.iterator(), simulate, fut);
-          });
-        } else {
-          installModules(modsAvailable, modsEnabled, tml, res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-              return;
-            }
-            installCommit(t, pc, modsAvailable, tml, tml.iterator(), simulate, fut);
-          });
-        }
+        List<TenantModuleDescriptor> tml2
+          = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
+        installAndCommit(t, pc, simulate, modsAvailable, modsEnabled, tml2, fut);
       });
+    });
+  }
+
+  List<TenantModuleDescriptor> prepareTenantModuleList(
+    Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+
+    if (tml == null) { // upgrade case . Mark all newer modules for install
+      List<TenantModuleDescriptor> tml2 = new LinkedList<>();
+      for (String fId : modsEnabled.keySet()) {
+        ModuleId moduleId = new ModuleId(fId);
+        String uId = moduleId.getLatest(modsAvailable.keySet());
+        if (!uId.equals(fId)) {
+          TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+          tmd.setAction("enable");
+          tmd.setId(uId);
+          logger.info("upgrade.. enable " + uId);
+          tmd.setFrom(fId);
+          tml2.add(tmd);
+        }
+      }
+      return tml2;
+    } else {
+      return tml;
+    }
+  }
+
+  private void installAndCommit(Tenant t, ProxyContext pc, boolean simulate,
+    Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+
+    installModules(modsAvailable, modsEnabled, tml, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      if (simulate) {
+        fut.handle(new Success<>(tml));
+      } else {
+        installCommit(t, pc, modsAvailable, tml.iterator(), res1 -> {
+          if (res1.failed()) {
+            fut.handle(new Failure<>(res1.getType(), res1.cause()));
+          } else {
+            fut.handle(new Success<>(tml));
+          }
+        });
+      }
     });
   }
 

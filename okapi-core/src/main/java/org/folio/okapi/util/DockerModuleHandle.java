@@ -66,9 +66,7 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId + "/start";
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 204) {
           future.handle(Future.succeededFuture());
@@ -81,9 +79,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
@@ -97,9 +93,7 @@ public class DockerModuleHandle implements ModuleHandle {
       res.exceptionHandler(d -> {
         future.handle(Future.failedFuture(d.getCause()));
       });
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 204) {
           future.handle(Future.succeededFuture());
@@ -112,9 +106,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
@@ -127,9 +119,7 @@ public class DockerModuleHandle implements ModuleHandle {
       res.exceptionHandler(d -> {
         future.handle(Future.failedFuture(d.getCause()));
       });
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 204) {
           future.handle(Future.succeededFuture());
@@ -142,9 +132,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
@@ -154,9 +142,7 @@ public class DockerModuleHandle implements ModuleHandle {
     HttpClientRequest req = client.getAbs(url, res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
-        res.handler(d -> {
-          System.err.print(d.getString(8, d.length()));
-        });
+        res.handler(d -> System.err.print(d.getString(8, d.length())));
         future.handle(Future.succeededFuture());
       } else {
         String m = "getContainerLog HTTP error "
@@ -165,9 +151,7 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.failedFuture(m));
       }
     });
-    req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
@@ -180,9 +164,7 @@ public class DockerModuleHandle implements ModuleHandle {
         logger.warn(url + ": " + d.getMessage());
         future.handle(Future.failedFuture(url + ": " + d.getMessage()));
       });
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 200) {
           JsonObject b = body.toJsonObject();
@@ -213,9 +195,7 @@ public class DockerModuleHandle implements ModuleHandle {
         logger.warn(url + ": " + d.getMessage());
         future.handle(Future.failedFuture(url + ": " + d.getMessage()));
       });
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         logger.info("pull image " + image + " done");
         if (res.statusCode() == 200) {
@@ -280,12 +260,8 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/create";
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
-      res.handler(d -> {
-        body.appendBuffer(d);
-      });
+      res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
+      res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 201) {
           containerId = body.toJsonObject().getString("Id");
@@ -299,9 +275,7 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      future.handle(Future.failedFuture(d.getCause()));
-    });
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.putHeader("Content-Type", "application/json");
     req.end(doc);
   }
@@ -349,9 +323,7 @@ public class DockerModuleHandle implements ModuleHandle {
   @Override
   public void start(Handler<AsyncResult<Void>> startFuture) {
     if (dockerPull) {
-      pullImage(res -> {
-        prepareContainer(startFuture);
-      });
+      pullImage(res -> prepareContainer(startFuture));
     } else {
       prepareContainer(startFuture);
     }
