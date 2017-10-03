@@ -1,7 +1,6 @@
 package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
-import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
