@@ -90,9 +90,8 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId + "/stop";
     req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
+      res.exceptionHandler(d
+        -> future.handle(Future.failedFuture(d.getCause())));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 204) {
@@ -116,17 +115,16 @@ public class DockerModuleHandle implements ModuleHandle {
     final String url = dockerUrl + "/containers/" + containerId;
     HttpClientRequest req = client.deleteAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
+      res.exceptionHandler(d
+        -> future.handle(Future.failedFuture(d.getCause())));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() == 204) {
           future.handle(Future.succeededFuture());
         } else {
           String m = "deleteContainer HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }

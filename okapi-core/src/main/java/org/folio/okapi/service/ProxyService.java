@@ -419,7 +419,7 @@ public class ProxyService {
     // Pause the request data stream before doing any slow ops, otherwise
     // it will get read into a buffer somewhere.
 
-    ProxyContext pc = new ProxyContext(vertx, ctx);
+    ProxyContext pc = new ProxyContext(ctx);
 
     String tenantId = tenantHeader(pc);
     if (tenantId == null) {
@@ -888,7 +888,7 @@ public class ProxyService {
    * @param ctx
    */
   public void redirectProxy(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(vertx, ctx);
+    ProxyContext pc = new ProxyContext(ctx);
     final String origPath = ctx.request().path();
     String qry = ctx.request().query();
     String tid = origPath

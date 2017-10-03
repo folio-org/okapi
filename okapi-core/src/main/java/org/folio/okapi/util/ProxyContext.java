@@ -32,10 +32,9 @@ public class ProxyContext {
    * Constructor to be used from proxy. Does not log the request, as we do not
    * know the tenant yet.
    *
-   * @param vertx - to create a httpClient, used by proxy
    * @param ctx - the request we are serving
    */
-  public ProxyContext(Vertx vertx, RoutingContext ctx) {
+  public ProxyContext(RoutingContext ctx) {
     this.ctx = ctx;
     this.tenant = "-";
     this.modList = null;
@@ -136,17 +135,17 @@ public class ProxyContext {
 
   /* Helpers for logging and building responses */
   public final void logRequest(RoutingContext ctx, String tenant) {
-    String mods = "";
+    StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {
-        mods += " " + mi.getModuleDescriptor().getId();
+        mods.append(" " + mi.getModuleDescriptor().getId());
       }
     }
     logger.info(reqId + " REQ "
       + ctx.request().remoteAddress()
       + " " + tenant + " " + ctx.request().method()
       + " " + ctx.request().path()
-      + mods);
+      + mods.toString());
   }
 
   public void logResponse(String module, String url, int statusCode) {

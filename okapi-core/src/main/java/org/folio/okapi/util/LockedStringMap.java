@@ -35,8 +35,8 @@ public class LockedStringMap {
 
   AsyncMap<String, String> list = null;
   Vertx vertx = null;
-  private final int delay = 10; // ms in recursing for retry of map
-  private final String allkeys = "_keys"; // keeps a list of all known keys
+  private static final int DELAY = 10; // ms in recursing for retry of map
+  private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -126,7 +126,7 @@ public class LockedStringMap {
   }
 
   public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    list.get(allkeys, resGet -> {
+    list.get(ALL_KEYS, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
@@ -145,7 +145,7 @@ public class LockedStringMap {
 
   private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
     KeyList klist = new KeyList();
-    list.get(allkeys, resGet -> {
+    list.get(ALL_KEYS, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
@@ -160,28 +160,24 @@ public class LockedStringMap {
           klist.keys.add(k);
           String newVal = Json.encodePrettily(klist);
           if (oldVal == null) { // new entry
-            list.putIfAbsent(allkeys, newVal, resPut -> {
+            list.putIfAbsent(ALL_KEYS, newVal, resPut -> {
               if (resPut.succeeded()) {
                 if (resPut.result() == null) {
                   fut.handle(new Success<>());
                 } else { // Someone messed with it, try again
-                  vertx.setTimer(delay, res -> {
-                    addKey(k, fut);
-                  });
+                  vertx.setTimer(DELAY, res -> addKey(k, fut));
                 }
               } else {
                 fut.handle(new Failure<>(INTERNAL, resPut.cause()));
               }
             });
           } else { // existing entry, put and retry if someone else messed with it
-            list.replaceIfPresent(allkeys, oldVal, newVal, resRepl -> {
+            list.replaceIfPresent(ALL_KEYS, oldVal, newVal, resRepl -> {
               if (resRepl.succeeded()) {
                 if (resRepl.result()) {
                   fut.handle(new Success<>());
                 } else {
-                  vertx.setTimer(delay, res -> {
-                    addKey(k, fut);
-                  });
+                  vertx.setTimer(DELAY, res -> addKey(k, fut));
                 }
               } else {
                 fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
@@ -222,9 +218,8 @@ public class LockedStringMap {
               if (resPut.result() == null) {
                 addKey(k, fut);
               } else { // Someone messed with it, try again
-                vertx.setTimer(delay, res -> {
-                  addOrReplace(allowReplace, k, k2, value, fut);
-                });
+                vertx.setTimer(DELAY, res
+                  -> addOrReplace(allowReplace, k, k2, value, fut));
               }
             } else {
               fut.handle(new Failure<>(INTERNAL, resPut.cause()));
@@ -236,9 +231,8 @@ public class LockedStringMap {
               if (resRepl.result()) {
                 addKey(k, fut);
               } else {
-                vertx.setTimer(delay, res -> {
-                  addOrReplace(allowReplace, k, k2, value, fut);
-                });
+                vertx.setTimer(DELAY, res
+                  -> addOrReplace(allowReplace, k, k2, value, fut));
               }
             } else {
               fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
@@ -281,9 +275,7 @@ public class LockedStringMap {
                 // That could lead to race conditions, better to have
                 // unused entries in the allkeys list.
               } else {
-                vertx.setTimer(delay, res -> {
-                  remove(k, k2, fut);
-                });
+                vertx.setTimer(DELAY, res -> remove(k, k2, fut));
               }
             } else {
               fut.handle(new Failure<>(INTERNAL, resDel.cause()));
@@ -296,9 +288,7 @@ public class LockedStringMap {
               if (resPut.result()) {
                 fut.handle(new Success<>(false));
               } else {
-                vertx.setTimer(delay, res -> {
-                  remove(k, k2, fut);
-                });
+                vertx.setTimer(DELAY, res -> remove(k, k2, fut));
               }
             } else {
               fut.handle(new Failure<>(INTERNAL, resPut.cause()));

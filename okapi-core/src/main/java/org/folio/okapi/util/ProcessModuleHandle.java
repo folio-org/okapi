@@ -160,9 +160,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           NetSocket socket = res.result();
           socket.close();
           if (iter > 0) {
-            vertx.setTimer(100, x -> {
-              waitPortToClose(stopFuture, iter - 1);
-            });
+            vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
             logger.error("port " + port + " not shut down");
             stopFuture.handle(Future.failedFuture("port " + port + " not shut down"));
@@ -189,7 +187,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         while (p.isAlive()) {
           boolean exited = true;
           try {
-            int r = p.exitValue();
+            p.exitValue();
           } catch (Exception e) {
             logger.info(e);
             exited = false;
@@ -199,7 +197,7 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
           }
           try {
-            int x = p.waitFor();
+            p.waitFor();
           } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
           }

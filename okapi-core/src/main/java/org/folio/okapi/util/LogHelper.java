@@ -52,7 +52,7 @@ public class LogHelper {
   }
 
   public String getRootLogLevel() {
-    Level lev = l4jlogger.getParent().getEffectiveLevel(); // getLevel();
+    Level lev = l4jlogger.getParent().getEffectiveLevel();
     if (lev == null) {
       return "null";
     } else {

@@ -69,7 +69,6 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
-      String json = gres.result();
       T t = Json.decodeValue(gres.result(), clazz);
       all.put(key, t);
       getAllR(it, all, fut);

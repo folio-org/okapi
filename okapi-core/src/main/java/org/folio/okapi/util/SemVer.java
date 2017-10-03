@@ -84,7 +84,6 @@ public class SemVer implements Comparable<SemVer> {
   public boolean hasPrefix(SemVer other) {
     Iterator<String> i1 = this.versions.iterator();
     Iterator<String> i2 = other.versions.iterator();
-    int level = 4; // major returns +-4, minor +-3, patch +- 2, rest +-1.
     while (i1.hasNext() && i2.hasNext()) {
       int v = compareComp(i1.next(), i2.next());
       if (v != 0) {
