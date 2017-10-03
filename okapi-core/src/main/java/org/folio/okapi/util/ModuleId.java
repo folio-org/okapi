@@ -29,10 +29,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   public boolean hasPreRelease() {
-    if (semVer != null && semVer.hasPreRelease()) {
-      return true;
-    }
-    return false;
+    return semVer != null && semVer.hasPreRelease();
   }
 
   public String getProduct() {
@@ -100,11 +97,10 @@ public class ModuleId implements Comparable<ModuleId> {
     String bId = null;
     for (String cId : l) {
       ModuleId cModule = new ModuleId(cId);
-      if (product.equals(cModule.getProduct())) {
-        if (bModule == null || cModule.compareTo(bModule) > 0) {
-          bId = cId;
-          bModule = cModule;
-        }
+      if (product.equals(cModule.getProduct())
+        && (bModule == null || cModule.compareTo(bModule) > 0)) {
+        bId = cId;
+        bModule = cModule;
       }
     }
     return bId;

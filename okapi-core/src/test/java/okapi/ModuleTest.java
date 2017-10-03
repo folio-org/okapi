@@ -28,6 +28,10 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.impl.Utils;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
+import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
@@ -46,6 +50,8 @@ public class ModuleTest {
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private static final int POSTGRES_PORT = 9139;
+  private static EmbeddedPostgres postgres;
 
   // the one module that's always there.
   private static final String internalModuleDoc = "{" + LS
@@ -53,19 +59,38 @@ public class ModuleTest {
     + "  \"name\" : \"okapi-0.0.0\"" + LS
     + "}";
 
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    String pUrl = null;
+    postgres = new EmbeddedPostgres(V9_6);
+    pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+  }
+
+  @AfterClass
+  public static void tearDownAfterClass() throws Exception {
+    if (postgres != null) {
+      postgres.stop();
+    }
+  }
+
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+
     JsonObject conf = new JsonObject()
-      .put("storage", "inmemory")
+      .put("storage", "postgres")
+      .put("port_start", "9131")
+      .put("port_end", "9138")
+      .put("postgres_host", "localhost")
+      .put("postgres_port", Integer.toString(POSTGRES_PORT))
+      .put("postgres_db_init", "1") // using this because dbinit exits!
       .put("nodename", "node1");
 
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(conf);
-    vertx.deployVerticle(MainVerticle.class.getName(),
-      opt, context.asyncAssertSuccess());
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
+
+    DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
   @After
@@ -106,7 +131,6 @@ public class ModuleTest {
       }).end();
       return;
     }
-
     vertx.close(x -> {
       async.complete();
     });

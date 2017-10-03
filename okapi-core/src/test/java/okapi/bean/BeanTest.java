@@ -35,7 +35,7 @@ public class BeanTest {
       ex.printStackTrace();
       fail = 400;
     }
-    assertEquals(fail, 0);
+    assertEquals(0, fail);
   }
 
   @Test
@@ -61,7 +61,7 @@ public class BeanTest {
       ex.printStackTrace();
       fail = 400;
     }
-    assertEquals(fail, 0);
+    assertEquals(0, fail);
   }
 
   @Test
@@ -84,7 +84,7 @@ public class BeanTest {
       ex.printStackTrace();
       fail = 400;
     }
-    assertEquals(fail, 0);
+    assertEquals(0, fail);
   }
 
   @Test
@@ -110,7 +110,7 @@ public class BeanTest {
       ex.printStackTrace();
       fail = 400;
     }
-    assertEquals(fail, 0);
+    assertEquals(0, fail);
   }
 
   @Test
@@ -154,7 +154,7 @@ public class BeanTest {
       ex.printStackTrace();
       fail = 400;
     }
-    assertEquals(fail, 0);
+    assertEquals(0, fail);
   }
 
 }

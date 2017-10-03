@@ -8,7 +8,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
-import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,45 +30,32 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("resetDatabase: getConnection() failed: "
-                + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    PostgresQuery q = pg.getQuery();
+    q.query("DROP TABLE IF EXISTS modules", res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res1.cause()));
       } else {
-        final SQLConnection conn = gres.result();
-        String dropSql = "DROP TABLE IF EXISTS modules";
-        conn.query(dropSql, dres -> {
-          if (dres.failed()) {
-            logger.fatal(dropSql + ": " + gres.cause().getMessage());
-            fut.handle(new Failure<>(gres.getType(), gres.cause()));
-            pg.closeConnection(conn);
+        if (initMode != Storage.InitMode.INIT) {
+          fut.handle(new Success<>());
+          q.close();
+          return;
+        }
+        final String createSql = "create table modules ( "
+          + JSON_COLUMN + " JSONB NOT NULL )";
+        q.query(createSql, res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            logger.debug("Dropped the module table");
-            if (initMode != Storage.InitMode.INIT) {
-              fut.handle(new Success<>());
-              return;
-            }
-            String createSql = "create table modules ( "
-              + JSON_COLUMN + " JSONB NOT NULL )";
-            conn.query(createSql, cres -> {
-              if (cres.failed()) {
-                logger.fatal(createSql + ": " + gres.cause().getMessage());
-                fut.handle(new Failure<>(gres.getType(), gres.cause()));
-                pg.closeConnection(conn);
+            final String createSql1 = "CREATE UNIQUE INDEX module_id ON " + ""
+              + "modules USING btree((" + ID_INDEX + "))";
+            q.query(createSql1, res3 -> {
+              if (res2.failed()) {
+                logger.fatal(createSql1 + ": " + res3.cause().getMessage());
+                fut.handle(new Failure<>(res3.getType(), res3.cause()));
               } else {
-                String createSql1 = "CREATE UNIQUE INDEX module_id ON " + ""
-                  + "modules USING btree((" + ID_INDEX + "))";
-                conn.query(createSql1, res -> {
-                  if (cres.failed()) {
-                    logger.fatal(createSql1 + ": " + gres.cause().getMessage());
-                    fut.handle(new Failure<>(gres.getType(), gres.cause()));
-                  } else {
-                    logger.debug("Intitialized the module table");
-                    fut.handle(new Success<>());
-                  }
-                  pg.closeConnection(conn);
-                });
+                logger.debug("Intitialized the module table");
+                q.close();
+                fut.handle(new Success<>());
               }
             });
           }
@@ -78,169 +64,117 @@ public class ModuleStorePostgres implements ModuleStore {
     });
   } // resetDatabase
 
-  private void insert(SQLConnection conn, ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    String sql = "INSERT INTO modules ( " + JSON_COLUMN + " ) VALUES (?::JSONB)";
+  @Override
+  public void insert(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    PostgresQuery q = pg.getQuery();
+    final String sql = "INSERT INTO modules ( " + JSON_COLUMN + " ) VALUES (?::JSONB)";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
     jsa.add(doc.encode());
-    conn.queryWithParams(sql, jsa, ires -> {
-      if (ires.failed()) {
-        logger.fatal("insert failed: " + ires.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, ires.cause()));
+    q.queryWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        fut.handle(new Success<>());
+        fut.handle(new Success<>(md.getId()));
       }
-    });
-  }
-
-  @Override
-  public void insert(ModuleDescriptor md,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("insert");
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("insert: getConnection() failed: " + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        SQLConnection conn= gres.result();
-        insert(conn, md, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            fut.handle(new Success<>(md.getId()));
-          }
-          pg.closeConnection(conn);
-        });
-      }
+      q.close();
     });
   }
 
   @Override
   public void update(ModuleDescriptor md,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("update");
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    PostgresQuery q = pg.getQuery();
     final String id = md.getId();
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    String sql = "INSERT INTO modules (" + JSON_COLUMN + ") VALUES (?::JSONB)"
+      + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
+    String s = Json.encode(md);
+    JsonObject doc = new JsonObject(s);
+    JsonArray jsa = new JsonArray();
+    jsa.add(doc.encode());
+    jsa.add(doc.encode());
+    q.updateWithParams(sql, jsa, sres -> {
+      if (sres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, sres.cause()));
       } else {
-        SQLConnection conn = gres.result();
-        String sql = "INSERT INTO modules (" + JSON_COLUMN + ") VALUES (?::JSONB)"
-          + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
-        String s = Json.encode(md);
-        JsonObject doc = new JsonObject(s);
-        JsonArray jsa = new JsonArray();
-        jsa.add(doc.encode());
-        jsa.add(doc.encode());
-        conn.updateWithParams(sql, jsa, sres -> {
-          if (sres.failed()) {
-            logger.fatal("update failed: " + sres.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL, sres.cause()));
-          } else {
-            fut.handle(new Success<>(id));
-          }
-          pg.closeConnection(conn);
-        });
+        q.close();
+        fut.handle(new Success<>(id));
       }
     });
   }
 
   @Override
   public void get(String id,
-          Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    logger.debug("get");
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("get: getConnection() failed: " + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+
+    PostgresQuery q = pg.getQuery();
+    String sql = "SELECT " + JSON_COLUMN + " FROM modules WHERE " + ID_SELECT;
+    JsonArray jsa = new JsonArray();
+    jsa.add(id);
+    q.queryWithParams(sql, jsa, sres -> {
+      if (sres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, sres.cause()));
       } else {
-        SQLConnection conn = gres.result();
-        String sql = "SELECT " + JSON_COLUMN + " FROM modules WHERE " + ID_SELECT;
-        JsonArray jsa = new JsonArray();
-        jsa.add(id);
-        conn.queryWithParams(sql, jsa, sres -> {
-          if (sres.failed()) {
-            logger.fatal("get failed: " + sres.cause().getMessage());
-            pg.closeConnection(conn);
-            fut.handle(new Failure<>(INTERNAL, sres.cause()));
-          } else {
-            ResultSet rs = sres.result();
-            if (rs.getNumRows() == 0) {
-              fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-            } else {
-              JsonObject r = rs.getRows().get(0);
-              String tj = r.getString(JSON_COLUMN);
-              ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
-              fut.handle(new Success<>(md));
-            }
-            pg.closeConnection(conn);
-          }
-        });
+        ResultSet rs = sres.result();
+        if (rs.getNumRows() == 0) {
+          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
+        } else {
+          JsonObject r = rs.getRows().get(0);
+          String tj = r.getString(JSON_COLUMN);
+          ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
+          q.close();
+          fut.handle(new Success<>(md));
+        }
       }
     });
   }
 
   @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    logger.debug("getAll");
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("getAll: getConnection() failed: "
-                + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+
+    PostgresQuery q = pg.getQuery();
+    String sql = "SELECT " + JSON_COLUMN + " FROM modules";
+    q.query(sql, sres -> {
+      if (sres.failed()) {
+        fut.handle(new Failure<>(INTERNAL, sres.cause()));
       } else {
-        SQLConnection conn = gres.result();
-        String sql = "SELECT " + JSON_COLUMN + " FROM modules";
-        conn.query(sql, sres -> {
-          if (sres.failed()) {
-            logger.fatal("getAll: select failed: "
-                    + sres.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL, sres.cause()));
-          } else {
-            ResultSet rs = sres.result();
-            List<ModuleDescriptor> ml = new ArrayList<>();
-            List<JsonObject> tempList = rs.getRows();
-            for (JsonObject r : tempList) {
-              String tj = r.getString(JSON_COLUMN);
-              ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
-              ml.add(md);
-            }
-            fut.handle(new Success<>(ml));
-          }
-          pg.closeConnection(conn);
-        });
+        ResultSet rs = sres.result();
+        List<ModuleDescriptor> ml = new ArrayList<>();
+        List<JsonObject> tempList = rs.getRows();
+        for (JsonObject r : tempList) {
+          String tj = r.getString(JSON_COLUMN);
+          ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
+          ml.add(md);
+        }
+        q.close();
+        fut.handle(new Success<>(ml));
       }
     });
   }
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.debug("delete");
-    pg.getConnection(gres -> {
-      if (gres.failed()) {
-        logger.fatal("delete: getConnection() failed: "
-                + gres.cause().getMessage());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+
+    PostgresQuery q = pg.getQuery();
+    String sql = "DELETE FROM modules WHERE " + ID_SELECT;
+    JsonArray jsa = new JsonArray();
+    jsa.add(id);
+    q.updateWithParams(sql, jsa, sres -> {
+      if (sres.failed()) {
+        logger.fatal("delete failed: " + sres.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL, sres.cause()));
       } else {
-        SQLConnection conn = gres.result();
-        String sql = "DELETE FROM modules WHERE " + ID_SELECT;
-        JsonArray jsa = new JsonArray();
-        jsa.add(id);
-        conn.updateWithParams(sql, jsa, sres -> {
-          if (sres.failed()) {
-            logger.fatal("delete failed: " + sres.cause().getMessage());
-            fut.handle(new Failure<>(INTERNAL, sres.cause()));
-          } else {
-            UpdateResult result = sres.result();
-            if (result.getUpdated() > 0)
-              fut.handle(new Success<>());
-            else
-              fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-          }
-          pg.closeConnection(conn);
-        });
+        UpdateResult result = sres.result();
+        if (result.getUpdated() > 0) {
+          fut.handle(new Success<>());
+        } else {
+          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
+        }
+        q.close();
       }
     });
   }

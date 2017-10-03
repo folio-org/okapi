@@ -10,6 +10,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -60,85 +61,64 @@ public class DockerModuleHandle implements ModuleHandle {
     this.dockerUrl = u;
   }
 
-  private void startContainer(Handler<AsyncResult<Void>> future) {
-    logger.info("start container " + containerId + " image " + image);
-    HttpClient client = vertx.createHttpClient();
-    final String url = dockerUrl + "/containers/" + containerId + "/start";
-    HttpClientRequest req = client.postAbs(url, res -> {
-      Buffer body = Buffer.buffer();
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 204) {
-          future.handle(Future.succeededFuture());
-        } else {
-          String m = "startContainer HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
+  private void handle204(HttpClientResponse res, String msg,
+    Handler<AsyncResult<Void>> future) {
+    Buffer body = Buffer.buffer();
+    res.handler(body::appendBuffer);
+    res.endHandler(d -> {
+      if (res.statusCode() == 204) {
+        future.handle(Future.succeededFuture());
+      } else {
+        String m = msg + " HTTP error "
+          + Integer.toString(res.statusCode()) + "\n"
+          + body.toString();
+        logger.error(m);
+        future.handle(Future.failedFuture(m));
+      }
     });
+
+  }
+
+  private void postUrl(String url, String msg,
+    Handler<AsyncResult<Void>> future) {
+
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest req = client.postAbs(url, res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
+  }
+
+  private void deleteUrl(String url, String msg,
+    Handler<AsyncResult<Void>> future) {
+
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, msg, future));
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
+    req.end();
+  }
+
+  private void startContainer(Handler<AsyncResult<Void>> future) {
+    logger.info("start container " + containerId + " image " + image);
+    postUrl(dockerUrl + "/containers/" + containerId + "/start",
+      "startContainer", future);
   }
 
   private void stopContainer(Handler<AsyncResult<Void>> future) {
     logger.info("stop container " + containerId + " image " + image);
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest req;
-    final String url = dockerUrl + "/containers/" + containerId + "/stop";
-    req = client.postAbs(url, res -> {
-      Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 204) {
-          future.handle(Future.succeededFuture());
-        } else {
-          String m = "stopContainer HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
-    });
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.end();
+    postUrl(dockerUrl + "/containers/" + containerId + "/stop",
+      "stopContainer", future);
   }
 
   private void deleteContainer(Handler<AsyncResult<Void>> future) {
     logger.info("delete container " + containerId + " image " + image);
-    HttpClient client = vertx.createHttpClient();
-    final String url = dockerUrl + "/containers/" + containerId;
-    HttpClientRequest req = client.deleteAbs(url, res -> {
-      Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        future.handle(Future.failedFuture(d.getCause()));
-      });
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 204) {
-          future.handle(Future.succeededFuture());
-        } else {
-          String m = "deleteContainer HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
-    });
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.end();
+    deleteUrl(dockerUrl + "/containers/" + containerId,
+      "deleteContainer", future);
   }
 
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
     HttpClient client = vertx.createHttpClient();
-    final String url = dockerUrl + "/containers/" + containerId + "/logs?stderr=1&stdout=1&follow=1";
+    final String url = dockerUrl + "/containers/" + containerId
+      + "/logs?stderr=1&stdout=1&follow=1";
     HttpClientRequest req = client.getAbs(url, res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
@@ -146,7 +126,7 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.succeededFuture());
       } else {
         String m = "getContainerLog HTTP error "
-                + Integer.toString(res.statusCode());
+          + Integer.toString(res.statusCode());
         logger.error(m);
         future.handle(Future.failedFuture(m));
       }
@@ -155,9 +135,8 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
-  private void getImage(Handler<AsyncResult<JsonObject>> future) {
+  private void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
     HttpClient client = vertx.createHttpClient();
-    final String url = dockerUrl + "/images/" + image + "/json";
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
@@ -185,24 +164,27 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
+  private void getImage(Handler<AsyncResult<JsonObject>> future) {
+    getUrl(dockerUrl + "/images/" + image + "/json", future);
+  }
+
   private void pullImage(Handler<AsyncResult<JsonObject>> future) {
-    logger.info("pull image " + image + " initiated");
+    getUrl(dockerUrl + "/images/create?fromImage=" + image, future);
+  }
+
+  private void postUrlBody(String url, String doc,
+    Handler<AsyncResult<Void>> future) {
     HttpClient client = vertx.createHttpClient();
-    final String url = dockerUrl + "/images/create?fromImage=" + image;
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> {
-        logger.warn(url + ": " + d.getMessage());
-        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
-      });
+      res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
-        logger.info("pull image " + image + " done");
-        if (res.statusCode() == 200) {
-          JsonObject b = body.toJsonObject();
-          future.handle(Future.succeededFuture(b));
+        if (res.statusCode() == 201) {
+          containerId = body.toJsonObject().getString("Id");
+          future.handle(Future.succeededFuture());
         } else {
-          String m = url + " HTTP error "
+          String m = "createContainer HTTP error "
             + Integer.toString(res.statusCode()) + "\n"
             + body.toString();
           logger.error(m);
@@ -210,11 +192,9 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      logger.warn(url + ": " + d.getMessage());
-      future.handle(Future.failedFuture(url + ": " + d.getMessage()));
-    });
-    req.end();
+    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
+    req.putHeader("Content-Type", "application/json");
+    req.end(doc);
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
@@ -255,29 +235,8 @@ public class DockerModuleHandle implements ModuleHandle {
       }
     }
     String doc = j.encodePrettily();
-    HttpClient client = vertx.createHttpClient();
     logger.info("createContainer\n" + doc);
-    final String url = dockerUrl + "/containers/create";
-    HttpClientRequest req = client.postAbs(url, res -> {
-      Buffer body = Buffer.buffer();
-      res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-      res.handler(body::appendBuffer);
-      res.endHandler(d -> {
-        if (res.statusCode() == 201) {
-          containerId = body.toJsonObject().getString("Id");
-          future.handle(Future.succeededFuture());
-        } else {
-          String m = "createContainer HTTP error "
-                  + Integer.toString(res.statusCode()) + "\n"
-                  + body.toString();
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
-    });
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.putHeader("Content-Type", "application/json");
-    req.end(doc);
+    postUrlBody(dockerUrl + "/containers/create", doc, future);
   }
 
   private void prepareContainer(Handler<AsyncResult<Void>> startFuture) {

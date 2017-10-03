@@ -25,7 +25,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
+  private final Logger logger = LoggerFactory.getLogger("okapi");
 
   Vertx vertx;
   private static final String LS = System.lineSeparator();

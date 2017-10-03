@@ -87,14 +87,8 @@ public class PostgresHandle {
     });
   }
 
-  public void closeConnection(SQLConnection conn) {
-    conn.close(cres -> {
-      if (cres.failed()) {
-        logger.fatal("Closing handle failed: "
-                + cres.cause().getMessage());
-      }
-    });
+  public PostgresQuery getQuery() {
+    return new PostgresQuery(this);
   }
-
 
 }

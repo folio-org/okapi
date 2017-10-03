@@ -989,8 +989,9 @@ public class InternalModule {
     }
   }
 
-  private void deleteDeployment(ProxyContext pc, String id,
+  private void deleteDeployment(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     deploymentManager.undeploy(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1001,7 +1002,7 @@ public class InternalModule {
     });
   }
 
-  private void getDiscoveryNode(ProxyContext pc, String id,
+  private void getDiscoveryNode(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
@@ -1018,7 +1019,7 @@ public class InternalModule {
     });
   }
 
-  private void putDiscoveryNode(ProxyContext pc, String id, String body,
+  private void putDiscoveryNode(String id, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
@@ -1040,8 +1041,7 @@ public class InternalModule {
     });
   }
 
-  private void listDiscoveryNodes(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void listDiscoveryNodes(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.getNodes(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1052,8 +1052,7 @@ public class InternalModule {
     });
   }
 
-  private void listDiscoveryModules(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void listDiscoveryModules(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1064,8 +1063,9 @@ public class InternalModule {
     });
   }
 
-  private void discoveryGetSrvcId(ProxyContext pc, String srvcId,
+  private void discoveryGetSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     if (srvcId == null) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
       return;
@@ -1085,7 +1085,7 @@ public class InternalModule {
     });
   }
 
-  private void discoveryGetInstId(ProxyContext pc, String srvcId, String instId,
+  private void discoveryGetInstId(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (srvcId == null || srvcId.isEmpty()) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
@@ -1131,8 +1131,9 @@ public class InternalModule {
     }
   }
 
-  private void discoveryUndeploy(ProxyContext pc, String srvcId, String instId,
+  private void discoveryUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     if (srvcId == null || srvcId.isEmpty()) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
       return;
@@ -1150,8 +1151,7 @@ public class InternalModule {
     });
   }
 
-  private void discoveryHealthAll(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.health(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1162,8 +1162,9 @@ public class InternalModule {
     });
   }
 
-  private void discoveryHealthSrvcId(ProxyContext pc, String srvcId,
+  private void discoveryHealthSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     if (srvcId == null || srvcId.isEmpty()) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
       return;
@@ -1178,8 +1179,9 @@ public class InternalModule {
     });
   }
 
-  private void discoveryHealthOne(ProxyContext pc, String srvcId, String instId,
+  private void discoveryHealthOne(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     if (srvcId == null || srvcId.isEmpty()) {
       fut.handle(new Failure<>(USER, "srvcId missing"));
       return;
@@ -1198,8 +1200,7 @@ public class InternalModule {
     });
   }
 
-  private void listEnv(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void listEnv(Handler<ExtendedAsyncResult<String>> fut) {
     envManager.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1210,8 +1211,9 @@ public class InternalModule {
     });
   }
 
-  private void getEnv(ProxyContext pc, String id,
+  private void getEnv(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
       return;
@@ -1228,6 +1230,7 @@ public class InternalModule {
 
   private void createEnv(ProxyContext pc, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     try {
       final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
       envManager.add(pmd, res -> {
@@ -1248,8 +1251,8 @@ public class InternalModule {
     }
   }
 
-  private void deleteEnv(ProxyContext pc, String id,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void deleteEnv(String id, Handler<ExtendedAsyncResult<String>> fut) {
+
     if (id == null) {
       fut.handle(new Failure<>(USER, "id missing"));
       return;
@@ -1263,8 +1266,9 @@ public class InternalModule {
     });
   }
 
-  private void pullModules(ProxyContext pc, String body,
+  private void pullModules(String body,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     try {
       final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
       pullManager.pull(pmd, res -> {
@@ -1282,8 +1286,7 @@ public class InternalModule {
   /**
    * Pretty simplistic health check.
    */
-  private void getHealth(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void getHealth(Handler<ExtendedAsyncResult<String>> fut) {
     fut.handle(new Success<>("[ ]"));
   }
 
@@ -1297,16 +1300,16 @@ public class InternalModule {
     fut.handle(new Success<>(v));
   }
 
-  private void getRootLogLevel(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void getRootLogLevel(Handler<ExtendedAsyncResult<String>> fut) {
     String lev = logHelper.getRootLogLevel();
     LogHelper.LogLevelInfo li = new LogHelper.LogLevelInfo(lev);
     String rj = Json.encode(li);
     fut.handle(new Success<>(rj));
   }
 
-  private void setRootLogLevel(ProxyContext pc, String body,
+  private void setRootLogLevel(String body,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
       LogHelper.LogLevelInfo.class);
     logHelper.setRootLogLevel(inf.getLevel());
@@ -1330,8 +1333,12 @@ public class InternalModule {
    * have done something to them already.
    *
    */
+  // Cognitive Complexity of methods should not be too high
+  // but this function is really just a big switch
+  @java.lang.SuppressWarnings({"squid:S3776"})
   public void internalService(String req, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
+
     RoutingContext ctx = pc.getCtx();
     String p = ctx.normalisedPath();
     String[] segments = p.split("/");
@@ -1442,12 +1449,12 @@ public class InternalModule {
       // /_/proxy/pull/modules
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
         && m.equals(POST) && pullManager != null) {
-        pullModules(pc, req, fut);
+        pullModules(req, fut);
         return;
       }
       // /_/proxy/health
       if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
-        getHealth(pc, fut);
+        getHealth(fut);
         return;
       }
 
@@ -1472,7 +1479,7 @@ public class InternalModule {
         return;
       }
       if (n == 5 && m.equals(DELETE)) {
-        deleteDeployment(pc, decodedSegs[4], fut);
+        deleteDeployment(decodedSegs[4], fut);
         return;
       }
     } // deployment
@@ -1481,23 +1488,23 @@ public class InternalModule {
       && discoveryManager != null) {
       // /_/discovery/nodes
       if (n == 4 && segments[3].equals("nodes") && m.equals(GET)) {
-        listDiscoveryNodes(pc, fut);
+        listDiscoveryNodes(fut);
         return;
       }
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(GET)) {
-        getDiscoveryNode(pc, decodedSegs[4], fut);
+        getDiscoveryNode(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(PUT)) {
-        putDiscoveryNode(pc, decodedSegs[4], req, fut);
+        putDiscoveryNode(decodedSegs[4], req, fut);
         return;
       }
 
       // /_/discovery/modules
       if (n == 4 && segments[3].equals("modules") && m.equals(GET)) {
-        listDiscoveryModules(pc, fut);
+        listDiscoveryModules(fut);
         return;
       }
       if (n == 4 && segments[3].equals("modules") && m.equals(POST)) {
@@ -1506,31 +1513,31 @@ public class InternalModule {
       }
       // /_/discovery/modules/:srvcid
       if (n == 5 && segments[3].equals("modules") && m.equals(GET)) {
-        discoveryGetSrvcId(pc, decodedSegs[4], fut);
+        discoveryGetSrvcId(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/modules/:srvcid/:instid"
       if (n == 6 && segments[3].equals("modules") && m.equals(GET)) {
-        discoveryGetInstId(pc, decodedSegs[4], decodedSegs[5], fut);
+        discoveryGetInstId(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(pc, decodedSegs[4], decodedSegs[5], fut);
+        discoveryUndeploy(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       // /_/discovery/health
       if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
-        discoveryHealthAll(pc, fut);
+        discoveryHealthAll(fut);
         return;
       }
       // /_/discovery/health/:srvcId
       if (n == 5 && segments[3].equals("health") && m.equals(GET)) {
-        discoveryHealthSrvcId(pc, decodedSegs[4], fut);
+        discoveryHealthSrvcId(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/health/:srvcId/:instid
       if (n == 6 && segments[3].equals("health") && m.equals(GET)) {
-        discoveryHealthOne(pc, decodedSegs[4], decodedSegs[5], fut);
+        discoveryHealthOne(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
     } // discovery
@@ -1540,7 +1547,7 @@ public class InternalModule {
 
       // /_/env
       if (n == 3 && m.equals(GET)) {
-        listEnv(pc, fut);
+        listEnv(fut);
         return;
       }
       if (n == 3 && m.equals(POST)) {
@@ -1549,11 +1556,11 @@ public class InternalModule {
       }
       // /_/env/name
       if (n == 4 && m.equals(GET)) {
-        getEnv(pc, decodedSegs[3], fut);
+        getEnv(decodedSegs[3], fut);
         return;
       }
       if (n == 4 && m.equals(DELETE)) {
-        deleteEnv(pc, decodedSegs[3], fut);
+        deleteEnv(decodedSegs[3], fut);
         return;
       }
 
@@ -1566,11 +1573,11 @@ public class InternalModule {
 
     if (n >= 2 && p.startsWith("/_/test/")) {
       if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
-        getRootLogLevel(pc, fut);
+        getRootLogLevel(fut);
         return;
       }
       if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
-        setRootLogLevel(pc, req, fut);
+        setRootLogLevel(req, fut);
         return;
       }
     }
