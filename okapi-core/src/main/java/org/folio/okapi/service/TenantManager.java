@@ -156,22 +156,6 @@ public class TenantManager {
     });
   }
 
-  /**
-   * List the Ids of all tenants.
-   *
-   * @param fut
-   */
-  public void getIds(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    tenants.getKeys(res -> {
-      if (res.failed()) {
-        logger.warn("TenantManager: Getting keys FAILED: ", res);
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(res.result()));
-    });
-  }
-
   public void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     tenants.getKeys(lres -> {
       if (lres.failed()) {
