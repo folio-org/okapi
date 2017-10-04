@@ -196,20 +196,12 @@ public class TenantStorePostgres implements TenantStore {
     String sql = "SELECT " + JSON_COLUMN + " FROM tenants WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.queryWithParams(sql, jsa, res -> {
+    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          String tj = r.getString(JSON_COLUMN);
-          Tenant t = Json.decodeValue(tj, Tenant.class);
+        Tenant t = Json.decodeValue(res.result(), Tenant.class);
           fut.handle(new Success<>(t));
-        }
-        q.close();
       }
     });
   }

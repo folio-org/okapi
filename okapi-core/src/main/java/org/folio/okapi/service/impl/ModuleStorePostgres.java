@@ -114,20 +114,13 @@ public class ModuleStorePostgres implements ModuleStore {
     String sql = "SELECT " + JSON_COLUMN + " FROM modules WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.queryWithParams(sql, jsa, res -> {
+    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          String tj = r.getString(JSON_COLUMN);
-          ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
-          q.close();
-          fut.handle(new Success<>(md));
-        }
+        ModuleDescriptor md = Json.decodeValue(res.result(),
+          ModuleDescriptor.class);
+        fut.handle(new Success<>(md));
       }
     });
   }
