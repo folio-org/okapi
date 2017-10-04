@@ -16,11 +16,6 @@ public class PermissionList {
     this.perms = perms;
   }
 
-  public PermissionList(PermissionList other) {
-    this.moduleId = other.moduleId;
-    this.perms = other.perms;
-  }
-
   public String getModuleId() {
     return moduleId;
   }

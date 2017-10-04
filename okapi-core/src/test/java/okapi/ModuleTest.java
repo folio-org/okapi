@@ -26,16 +26,25 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
 import io.vertx.ext.web.impl.Utils;
+import java.util.Arrays;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.runners.Parameterized;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-@RunWith(VertxUnitRunner.class)
+@RunWith(Parameterized.class)
+@Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
+
+  // 0 is inmemory, 1 is postgres
+  @Parameterized.Parameters
+  public static Iterable<Integer> data() {
+    return Arrays.asList(0, 1);
+  }
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
@@ -52,6 +61,7 @@ public class ModuleTest {
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
   private static final int POSTGRES_PORT = 9139;
   private static EmbeddedPostgres postgres;
+  private JsonObject conf;
 
   // the one module that's always there.
   private static final String internalModuleDoc = "{" + LS
@@ -73,18 +83,25 @@ public class ModuleTest {
     }
   }
 
+  public ModuleTest(int value) {
+    conf = new JsonObject();
+
+    conf.put("port_start", "9131")
+      .put("port_end", "9138")
+      .put("nodename", "node1");
+
+    if (value == 1) {
+      conf.put("storage", "postgres")
+        .put("postgres_host", "localhost")
+        .put("postgres_port", Integer.toString(POSTGRES_PORT))
+        .put("postgres_db_init", "1") // using this because dbinit exits!
+        ;
+    }
+  }
+
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-
-    JsonObject conf = new JsonObject()
-      .put("storage", "postgres")
-      .put("port_start", "9131")
-      .put("port_end", "9138")
-      .put("postgres_host", "localhost")
-      .put("postgres_port", Integer.toString(POSTGRES_PORT))
-      .put("postgres_db_init", "1") // using this because dbinit exits!
-      .put("nodename", "node1");
 
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
@@ -136,14 +153,6 @@ public class ModuleTest {
     });
   }
 
-  /**
-   * Check that the tests have not left anything in the database. Since the
-   *
-   * @Tests are run in a nondeterministic order, each ought to clean up after
-   * itself. This should be called in the beginning and end of each @Test
-   *
-   * @param context
-   */
   private void checkDbIsEmpty(String label, TestContext context) {
 
     logger.debug("Db check '" + label + "'");
