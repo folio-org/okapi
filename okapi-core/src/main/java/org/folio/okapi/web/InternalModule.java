@@ -997,7 +997,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(""));
     });
   }
