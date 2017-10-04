@@ -171,11 +171,11 @@ public class TenantStorePostgres implements TenantStore {
     logger.debug("listTenants");
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM tenants";
-    q.query(sql, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.query(sql, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = sres.result();
+        ResultSet rs = res.result();
         List<Tenant> tl = new ArrayList<>();
         List<JsonObject> tempList = rs.getRows();
         for (JsonObject r : tempList) {
@@ -196,20 +196,12 @@ public class TenantStorePostgres implements TenantStore {
     String sql = "SELECT " + JSON_COLUMN + " FROM tenants WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.queryWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = sres.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          String tj = r.getString(JSON_COLUMN);
-          Tenant t = Json.decodeValue(tj, Tenant.class);
+        Tenant t = Json.decodeValue(res.result(), Tenant.class);
           fut.handle(new Success<>(t));
-        }
-        q.close();
       }
     });
   }
@@ -222,11 +214,11 @@ public class TenantStorePostgres implements TenantStore {
 
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.updateWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.updateWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        UpdateResult result = sres.result();
+        UpdateResult result = res.result();
         if (result.getUpdated() > 0) {
           fut.handle(new Success<>());
         } else {
@@ -285,12 +277,12 @@ public class TenantStorePostgres implements TenantStore {
     String sql = "SELECT " + JSON_COLUMN + " FROM tenants WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.queryWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        logger.fatal("updateModule failed: " + sres.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.queryWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        logger.fatal("updateModule failed: " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = sres.result();
+        ResultSet rs = res.result();
         if (rs.getNumRows() == 0) {
           fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
           q.close();

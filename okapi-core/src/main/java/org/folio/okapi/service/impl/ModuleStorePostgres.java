@@ -50,7 +50,6 @@ public class ModuleStorePostgres implements ModuleStore {
               + "modules USING btree((" + ID_INDEX + "))";
             q.query(createSql1, res3 -> {
               if (res2.failed()) {
-                logger.fatal(createSql1 + ": " + res3.cause().getMessage());
                 fut.handle(new Failure<>(res3.getType(), res3.cause()));
               } else {
                 logger.debug("Intitialized the module table");
@@ -97,9 +96,9 @@ public class ModuleStorePostgres implements ModuleStore {
     JsonArray jsa = new JsonArray();
     jsa.add(doc.encode());
     jsa.add(doc.encode());
-    q.updateWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.updateWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         q.close();
         fut.handle(new Success<>(id));
@@ -115,20 +114,13 @@ public class ModuleStorePostgres implements ModuleStore {
     String sql = "SELECT " + JSON_COLUMN + " FROM modules WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.queryWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = sres.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          String tj = r.getString(JSON_COLUMN);
-          ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
-          q.close();
-          fut.handle(new Success<>(md));
-        }
+        ModuleDescriptor md = Json.decodeValue(res.result(),
+          ModuleDescriptor.class);
+        fut.handle(new Success<>(md));
       }
     });
   }
@@ -138,11 +130,11 @@ public class ModuleStorePostgres implements ModuleStore {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM modules";
-    q.query(sql, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.query(sql, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ResultSet rs = sres.result();
+        ResultSet rs = res.result();
         List<ModuleDescriptor> ml = new ArrayList<>();
         List<JsonObject> tempList = rs.getRows();
         for (JsonObject r : tempList) {
@@ -163,12 +155,12 @@ public class ModuleStorePostgres implements ModuleStore {
     String sql = "DELETE FROM modules WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
-    q.updateWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        logger.fatal("delete failed: " + sres.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
+    q.updateWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        logger.fatal("delete failed: " + res.cause().getMessage());
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        UpdateResult result = sres.result();
+        UpdateResult result = res.result();
         if (result.getUpdated() > 0) {
           fut.handle(new Success<>());
         } else {
