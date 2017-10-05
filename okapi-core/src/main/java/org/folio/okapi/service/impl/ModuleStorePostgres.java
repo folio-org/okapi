@@ -107,25 +107,6 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void get(String id,
-    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-
-    PostgresQuery q = pg.getQuery();
-    String sql = "SELECT " + JSON_COLUMN + " FROM modules WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        ModuleDescriptor md = Json.decodeValue(res.result(),
-          ModuleDescriptor.class);
-        fut.handle(new Success<>(md));
-      }
-    });
-  }
-
-  @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     PostgresQuery q = pg.getQuery();

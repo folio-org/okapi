@@ -2,7 +2,6 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
@@ -61,25 +60,6 @@ public class PostgresQuery {
             fut.handle(new Success<>(qres.result()));
           }
         });
-      }
-    });
-  }
-
-  public void queryFirstRow(String sql, JsonArray jsa, String col,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    queryWithParams(sql, jsa, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module/Tenant not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          fut.handle(new Success<>(r.getString(col)));
-        }
-        close();
       }
     });
   }

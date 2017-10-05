@@ -11,13 +11,7 @@ public interface TenantStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void enableModule(String id, String module, Handler<ExtendedAsyncResult<Void>> fut);
-
-  void disableModule(String id, String module, Handler<ExtendedAsyncResult<Void>> fut);
-
   void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut);
-
-  void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut);
 
   void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
 
