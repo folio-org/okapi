@@ -3,6 +3,7 @@ package org.folio.okapi.common;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
@@ -10,6 +11,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Base64;
 import java.util.HashMap;
 import org.junit.After;
 import org.junit.Before;
@@ -35,38 +37,16 @@ public class OkapiClientTest {
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
     ctx.response().setStatusCode(200);
-    StringBuilder xmlMsg = new StringBuilder();
-    String hv = ctx.request().getHeader("X-my-header");
-    if (hv != null) {
-      xmlMsg.append(hv);
-    }
+    StringBuilder msg = new StringBuilder();
     ctx.response().putHeader("Content-Type", "text/plain");
+    OkapiToken token = new OkapiToken(ctx);
 
-    // Report all headers back (in headers and in the body) if requested
-    String allh = ctx.request().getHeader("X-all-headers");
-    if (allh != null) {
-      String qry = ctx.request().query();
-      if (qry != null) {
-        ctx.request().headers().add("X-Url-Params", qry);
-      }
-      for (String hdr : ctx.request().headers().names()) {
-        String tenantReqs = ctx.request().getHeader(hdr);
-        if (tenantReqs != null) {
-          if (allh.contains("H")) {
-            ctx.response().putHeader(hdr, tenantReqs);
-          }
-          if (allh.contains("B")) {
-            xmlMsg.append(" " + hdr + ":" + tenantReqs + "\n");
-          }
-        }
-      }
-    }
-    ctx.request().handler(x -> xmlMsg.append(x));
+    ctx.request().handler(x -> msg.append(x));
     ctx.request().endHandler(x -> {
-      if (xmlMsg.length() > 0) {
-        ctx.response().write(xmlMsg.toString());
+      if (msg.length() > 0) {
+        ctx.response().write(msg.toString());
       } else {
-        ctx.response().write("hello");
+        ctx.response().write("hello " + token.getTenant());
       }
       ctx.response().end();
     });
@@ -137,14 +117,25 @@ public class OkapiClientTest {
     cli.disableInfoLog();
     cli.enableInfoLog();
 
-    cli.setOkapiToken("919");
-    assertEquals("919", cli.getOkapiToken());
+    JsonObject o = new JsonObject();
+    o.put("tenant", "test-lib");
+    o.put("foo", "bar");
+    String s = o.encodePrettily();
+    byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
+    String e = new String(encodedBytes);
+    String tokenStr = "method." + e + ".trail";
+    OkapiToken t = new OkapiToken();
+    t.setToken(tokenStr);
+    assertEquals("test-lib", t.getTenant());
+
+    cli.setOkapiToken(tokenStr);
+    assertEquals(tokenStr, cli.getOkapiToken());
 
     cli.newReqId("920");
 
     cli.get("/test1", res -> {
       assertTrue(res.succeeded());
-      assertEquals("hello", res.result());
+      assertEquals("hello test-lib", res.result());
       test2(cli, async);
     });
   }
@@ -168,7 +159,7 @@ public class OkapiClientTest {
   private void test4(OkapiClient cli, Async async) {
     cli.get("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
-      assertEquals("hello", res.result());
+      assertEquals("hello test-lib", res.result());
       test5(cli, async);
     });
   }
