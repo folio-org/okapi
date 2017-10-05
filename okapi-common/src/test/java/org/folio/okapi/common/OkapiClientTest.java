@@ -73,21 +73,24 @@ public class OkapiClientTest {
   }
 
   private void myStreamHandle2(RoutingContext ctx) {
+    ctx.response().setChunked(true);
     ctx.request().pause();
+    String p = ctx.request().params().get("p");
+    if (p == null) {
+      p = "/test1";
+    }
     OkapiClient cli = new OkapiClient(ctx);
-    cli.get("/test1", res -> {
-      StringBuilder b = new StringBuilder();
+    cli.get(p, res -> {
       ctx.request().resume();
-      ctx.response().setChunked(true);
       if (res.failed()) {
-        ctx.response().setStatusCode(ErrorType.httpCode(res.getType()));
+        HttpResponse.responseError(ctx, res.getType(), res.cause());
       } else {
-        ctx.response().setStatusCode(200);
+        HttpResponse.responseText(ctx, 200);
+        ctx.request().endHandler(x -> {
+          ctx.response().write(res.result());
+          ctx.response().end();
+        });
       }
-      ctx.request().endHandler(x -> {
-        ctx.response().write(res.result());
-        ctx.response().end();
-      });
     });
   }
 
@@ -163,9 +166,16 @@ public class OkapiClientTest {
   }
 
   private void test4(OkapiClient cli, Async async) {
-    cli.get("/test2", res -> {
+    cli.get("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
       assertEquals("hello", res.result());
+      test5(cli, async);
+    });
+  }
+
+  private void test5(OkapiClient cli, Async async) {
+    cli.get("/test2?p=%2Fbad", res -> {
+      assertTrue(res.failed());
       async.complete();
     });
   }
