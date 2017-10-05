@@ -69,28 +69,6 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public void get(String id,
-          Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    JsonObject jq = new JsonObject().put("_id", id);
-    cli.find(COLLECTION, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<JsonObject> l = res.result();
-        if (l.isEmpty()) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-        } else {
-          JsonObject d = l.get(0);
-          d.remove("_id");
-          final ModuleDescriptor md = Json.decodeValue(d.encode(),
-                  ModuleDescriptor.class);
-          fut.handle(new Success<>(md));
-        }
-      }
-    });
-  }
-
-  @Override
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);

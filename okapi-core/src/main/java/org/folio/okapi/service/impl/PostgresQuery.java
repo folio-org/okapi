@@ -65,25 +65,6 @@ public class PostgresQuery {
     });
   }
 
-  public void queryFirstRow(String sql, JsonArray jsa, String col,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    queryWithParams(sql, jsa, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module/Tenant not found"));
-        } else {
-          JsonObject r = rs.getRows().get(0);
-          fut.handle(new Success<>(r.getString(col)));
-        }
-        close();
-      }
-    });
-  }
-
   public void updateWithParams(String sql, JsonArray jsa,
     Handler<ExtendedAsyncResult<UpdateResult>> fut) {
 

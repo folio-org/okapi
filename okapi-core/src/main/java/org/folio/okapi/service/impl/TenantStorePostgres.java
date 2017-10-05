@@ -190,23 +190,6 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
-    logger.debug("get");
-    PostgresQuery q = pg.getQuery();
-    String sql = "SELECT " + JSON_COLUMN + " FROM tenants WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.queryFirstRow(sql, jsa, JSON_COLUMN, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        Tenant t = Json.decodeValue(res.result(), Tenant.class);
-          fut.handle(new Success<>(t));
-      }
-    });
-  }
-
-  @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("delete");
     PostgresQuery q = pg.getQuery();
@@ -301,19 +284,5 @@ public class TenantStorePostgres implements TenantStore {
     logger.debug("updateModules " + Json.encode(enabled.keySet()));
     updateModule(id, "", null, enabled, fut);
 
-  }
-
-  @Override
-  public void enableModule(String id, String module,
-          Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.debug("enableModule");
-    updateModule(id, module, true, null, fut);
-  }
-
-  @Override
-  public void disableModule(String id, String module,
-          Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.debug("disableModule");
-    updateModule(id, module, false, null, fut);
   }
 }
