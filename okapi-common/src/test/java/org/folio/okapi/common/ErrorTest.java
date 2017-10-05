@@ -42,6 +42,7 @@ public class ErrorTest {
     func(ErrorType.OK, res -> {
       assertTrue(res.succeeded());
       assertFalse(res.failed());
+      assertEquals(null, res.cause());
       assertEquals("123", res.result());
     });
   }
@@ -50,7 +51,7 @@ public class ErrorTest {
   public void testFuncInternal() {
     func(ErrorType.INTERNAL, res -> {
       assertTrue(res.failed());
-      assertTrue(res.cause() != null);
+      assertNotEquals(null, res.cause());
       assertEquals("my exception", res.cause().getMessage());
     });
   }
