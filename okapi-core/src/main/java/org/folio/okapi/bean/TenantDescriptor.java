@@ -45,22 +45,4 @@ public class TenantDescriptor {
     this.name = null;
     this.description = null;
   }
-
-  public TenantDescriptor(String id, String name, String description) {
-    this.id = id;
-    this.name = name;
-    this.description = description;
-  }
-
-  /**
-   * Copy constructor. Makes a separate copy of everything.
-   *
-   * @param other
-   */
-  public TenantDescriptor(TenantDescriptor other) {
-    this.id = other.id;
-    this.name = other.name;
-    this.description = other.description;
-  }
-
 }

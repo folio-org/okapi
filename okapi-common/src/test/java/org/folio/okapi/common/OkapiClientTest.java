@@ -114,6 +114,7 @@ public class OkapiClientTest {
     headers.put(XOkapiHeaders.URL, URL);
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    assertEquals(URL, cli.getOkapiUrl());
     cli.disableInfoLog();
     cli.enableInfoLog();
 
@@ -136,6 +137,7 @@ public class OkapiClientTest {
     cli.get("/test1", res -> {
       assertTrue(res.succeeded());
       assertEquals("hello test-lib", res.result());
+      assertEquals(res.result(), cli.getResponsebody());
       test2(cli, async);
     });
   }
