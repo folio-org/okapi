@@ -39,17 +39,6 @@ public class Tenant {
   }
 
   /**
-   * Copy constructor. Makes separate copies of everything.
-   *
-   * @param other
-   */
-  public Tenant(Tenant other) {
-    this.descriptor = new TenantDescriptor(other.descriptor);
-    this.enabled = new TreeMap<>(other.enabled);
-  }
-
-
-  /**
    * Get the name. The JsonIgnore tells JSON not to encode the name as a
    * top-level thing.
    *
