@@ -1250,16 +1250,18 @@ public class ModuleTest {
       + "responseViolations=[], validationViolations=[]}",
       c.getLastReport().toString());
 
+    // add tenant by using PUT (which will insert)
+    final String locationTenantRoskilde = "/_/proxy/tenants/" + okapiTenant;
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docTenantRoskilde).post("/_/proxy/tenants")
-      .then().statusCode(201)
+      .body(docTenantRoskilde)
+      .put(locationTenantRoskilde)
+      .then().statusCode(200)
       .body(equalTo(docTenantRoskilde))
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationTenantRoskilde = r.getHeader("Location");
 
     // Try to enable sample without the auth that it requires
     final String docEnableWithoutDep = "{" + LS
