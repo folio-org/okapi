@@ -27,7 +27,6 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.deployment.DeploymentManager;
-import org.folio.okapi.web.HealthService;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.ProxyService;
 import org.folio.okapi.service.TenantManager;
@@ -48,7 +47,6 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final LogHelper logHelper = new LogHelper();
 
-  HealthService healthService;
   ModuleManager moduleManager;
   TenantManager tenantManager;
   EnvManager envManager;
@@ -183,7 +181,6 @@ public class MainVerticle extends AbstractVerticle {
     }
     if (enableProxy) {
       storage = new Storage(vertx, storageType, config);
-      healthService = new HealthService();
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
