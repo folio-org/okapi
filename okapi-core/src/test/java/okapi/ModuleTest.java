@@ -14,6 +14,9 @@ import org.junit.runner.RunWith;
 import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
 import com.jayway.restassured.response.ValidatableResponse;
+import de.flapdoodle.embed.mongo.MongodExecutable;
+import de.flapdoodle.embed.mongo.MongodProcess;
+import de.flapdoodle.embed.mongo.MongodStarter;
 
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
@@ -34,6 +37,9 @@ import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
 import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
+import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
+import de.flapdoodle.embed.mongo.config.Net;
+import de.flapdoodle.embed.process.runtime.Network;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
@@ -43,7 +49,8 @@ public class ModuleTest {
   // 0 is inmemory, 1 is postgres
   @Parameterized.Parameters
   public static Iterable<Integer> data() {
-    return Arrays.asList(0, 1);
+    // 0=inmemory, 1=postgres, 2=mongo
+    return Arrays.asList(0, 1, 2);
   }
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -59,9 +66,13 @@ public class ModuleTest {
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private static final int POSTGRES_PORT = 9139;
+  private static final int POSTGRES_PORT = 9138;
+  private static final int MONGO_PORT = 9139;
   private static EmbeddedPostgres postgres;
-  private JsonObject conf;
+  private static MongodExecutable mongoExe;
+  private static MongodProcess mongoD;
+
+  private final JsonObject conf;
 
   // the one module that's always there.
   private static final String internalModuleDoc = "{" + LS
@@ -74,6 +85,13 @@ public class ModuleTest {
     String pUrl = null;
     postgres = new EmbeddedPostgres(V9_6);
     pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+
+    MongodStarter starter = MongodStarter.getDefaultInstance();
+    mongoExe = starter.prepare(new MongodConfigBuilder()
+      .version(de.flapdoodle.embed.mongo.distribution.Version.V3_4_1)
+      .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
+      .build());
+    mongoD = mongoExe.start();
   }
 
   @AfterClass
@@ -81,13 +99,19 @@ public class ModuleTest {
     if (postgres != null) {
       postgres.stop();
     }
+    if (mongoD != null) {
+      mongoD.stop();
+    }
+    if (mongoExe != null) {
+      mongoExe.stop();
+    }
   }
 
   public ModuleTest(int value) {
     conf = new JsonObject();
 
     conf.put("port_start", "9131")
-      .put("port_end", "9138")
+      .put("port_end", "9137")
       .put("nodename", "node1");
 
     if (value == 1) {
@@ -95,6 +119,12 @@ public class ModuleTest {
         .put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT))
         .put("postgres_db_init", "1") // using this because dbinit exits!
+        ;
+    } else if (value == 2) {
+      conf.put("storage", "mongo")
+        .put("mongo_host", "localhost")
+        .put("mongo_port", Integer.toString(MONGO_PORT))
+        .put("mongo_db_init", "1") // using this because dbinit exits!
         ;
     }
   }
