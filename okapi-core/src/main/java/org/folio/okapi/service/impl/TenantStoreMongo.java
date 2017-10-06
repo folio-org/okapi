@@ -24,8 +24,37 @@ import org.folio.okapi.common.Success;
 public class TenantStoreMongo implements TenantStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private MongoClient cli;
+  private final MongoClient cli;
   private static final String COLLECTION = "okapi.tenants";
+
+  private JsonObject encodeTenant(Tenant t) {
+    JsonObject j = new JsonObject(Json.encode(t));
+    JsonObject o = j.getJsonObject("enabled");
+    if (o != null) {
+      JsonObject repl = new JsonObject();
+      for (String m : o.fieldNames()) {
+        String n = m.replace(".", "__");
+        repl.put(n, o.getBoolean(m));
+      }
+      j.put("enabled", repl);
+    }
+    return j;
+  }
+
+  private Tenant decodeTenant(JsonObject j) {
+    JsonObject o = j.getJsonObject("enabled");
+    if (o != null) {
+      JsonObject repl = new JsonObject();
+      for (String m : o.fieldNames()) {
+        if (m.contains("_")) {
+          String n = m.replace("__", ".");
+          repl.put(n, o.getBoolean(m));
+        }
+      }
+      j.put("enabled", repl);
+    }
+    return Json.decodeValue(j.encode(), Tenant.class);
+  }
 
   public TenantStoreMongo(MongoClient cli) {
     this.cli = cli;
@@ -35,8 +64,7 @@ public class TenantStoreMongo implements TenantStore {
   public void insert(Tenant t,
           Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
-    String s = Json.encodePrettily(t);
-    JsonObject document = new JsonObject(s);
+    JsonObject document = encodeTenant(t);
     document.put("_id", id);
     cli.insert(COLLECTION, document, res -> {
       if (res.succeeded()) {
@@ -53,7 +81,8 @@ public class TenantStoreMongo implements TenantStore {
   public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = td.getId();
     JsonObject jq = new JsonObject().put("_id", id);
-    cli.find(COLLECTION, jq, res -> {
+    cli.find(COLLECTION, jq, res
+      -> {
       if (res.failed()) {
         logger.warn("updateDescriptor: find failed: " + res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
@@ -71,11 +100,10 @@ public class TenantStoreMongo implements TenantStore {
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
-          final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
+          final Tenant t = decodeTenant(d);
           Tenant nt = new Tenant(td, t.getEnabled());
           // TODO - Validate that we don't change the id
-          String s = Json.encodePrettily(nt);
-          JsonObject document = new JsonObject(s);
+          JsonObject document = encodeTenant(nt);
           document.put("_id", id);
           cli.replaceDocuments(COLLECTION, jq, document, ures -> {
             if (ures.succeeded()) {
@@ -102,7 +130,7 @@ public class TenantStoreMongo implements TenantStore {
         List<Tenant> ts = new ArrayList<>(res.result().size());
         for (JsonObject jo : res.result()) {
           jo.remove("_id");
-          final Tenant t = Json.decodeValue(jo.encode(), Tenant.class);
+          final Tenant t = decodeTenant(jo);
           ts.add(t);
         }
         fut.handle(new Success<>(ts));
@@ -139,10 +167,9 @@ public class TenantStoreMongo implements TenantStore {
         } else {
           JsonObject d = l.get(0);
           d.remove("_id");
-          final Tenant t = Json.decodeValue(d.encode(), Tenant.class);
+          final Tenant t = decodeTenant(d);
           t.setEnabled(enabled);
-          String s = Json.encodePrettily(t);
-          JsonObject document = new JsonObject(s);
+          JsonObject document = encodeTenant(t);
           document.put("_id", id);
           cli.save(COLLECTION, document, sres -> {
             if (sres.failed()) {
