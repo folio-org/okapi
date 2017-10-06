@@ -21,4 +21,16 @@ public class OkapiTokenTest {
     t.setToken(tokenStr);
     assertEquals("test-lib", t.getTenant());
   }
+
+  @Test
+  public void test2() {
+    String s = "eyJzdWIiOiJfX3VuZGVmaW5lZF9fIiwidXNlcl9pZCI6Ijk5OTk5OTk5L"
+      + "Tk5OTktOTk5OS05OTk5LTk5OTk5OTk5OTk5OSIsInRlbmFudCI6InRlc3RsaWIifQ";
+    byte[] buf = Base64.getDecoder().decode(s);
+    String got = new String(buf);
+    String exp = "{\"sub\":\"__undefined__\","
+      + "\"user_id\":\"99999999-9999-9999-9999-999999999999\",\"tenant\":\"testlib\"}";
+    assertEquals(exp, got);
+  }
+
 }
