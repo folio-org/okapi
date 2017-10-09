@@ -45,12 +45,13 @@ public class MainVerticle extends AbstractVerticle {
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
       String qry = ctx.request().query();
-      if (qry != null)
+      if (qry != null) {
         ctx.request().headers().add("X-Url-Params", qry);
+      }
       for (String hdr : ctx.request().headers().names()) {
         tenantReqs = ctx.request().getHeader(hdr);
         if (tenantReqs != null) {
-          if (allh.contains("H")) {
+          if (allh.contains("H") && hdr.startsWith("X-")) {
             ctx.response().putHeader(hdr, tenantReqs);
           }
           if (allh.contains("B")) {
@@ -60,7 +61,7 @@ public class MainVerticle extends AbstractVerticle {
       }
     }
     String stopper = ctx.request().getHeader("X-stop-here");
-    if (stopper != null ) {
+    if (stopper != null) {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
 
