@@ -15,9 +15,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
-import static org.folio.okapi.common.ErrorType.USER;
+import static org.folio.okapi.common.ErrorType.*;
 
 public class LockedStringMap {
 
@@ -148,35 +146,40 @@ public class LockedStringMap {
           fut.handle(new Success<>());
         } else {
           klist.keys.add(k);
-          String newVal = Json.encodePrettily(klist);
-          if (oldVal == null) { // new entry
-            list.putIfAbsent(ALL_KEYS, newVal, resPut -> {
-              if (resPut.succeeded()) {
-                if (resPut.result() == null) {
-                  fut.handle(new Success<>());
-                } else { // Someone messed with it, try again
-                  vertx.setTimer(DELAY, res -> addKey(k, fut));
-                }
-              } else {
-                fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-              }
-            });
-          } else { // existing entry, put and retry if someone else messed with it
-            list.replaceIfPresent(ALL_KEYS, oldVal, newVal, resRepl -> {
-              if (resRepl.succeeded()) {
-                if (resRepl.result()) {
-                  fut.handle(new Success<>());
-                } else {
-                  vertx.setTimer(DELAY, res -> addKey(k, fut));
-                }
-              } else {
-                fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
-              }
-            });
-          }
+          addKey2(k, oldVal, Json.encodePrettily(klist), fut);
         }
       }
     });
+  }
+
+  private void addKey2(String k, String oldVal, String newVal,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    if (oldVal == null) { // new entry
+      list.putIfAbsent(ALL_KEYS, newVal, resPut -> {
+        if (resPut.succeeded()) {
+          if (resPut.result() == null) {
+            fut.handle(new Success<>());
+          } else { // Someone messed with it, try again
+            vertx.setTimer(DELAY, res -> addKey(k, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+        }
+      });
+    } else { // existing entry, put and retry if someone else messed with it
+      list.replaceIfPresent(ALL_KEYS, oldVal, newVal, resRepl -> {
+        if (resRepl.succeeded()) {
+          if (resRepl.result()) {
+            fut.handle(new Success<>());
+          } else {
+            vertx.setTimer(DELAY, res -> addKey(k, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
+        }
+      });
+    }
   }
 
   public void addOrReplace(boolean allowReplace, String k, String k2, String value,
@@ -202,42 +205,50 @@ public class LockedStringMap {
           smap.strings.put(k2, value);
           newVal = Json.encodePrettily(smap);
         }
-        if (oldVal == null) { // new entry
-          list.putIfAbsent(k, newVal, resPut -> {
-            if (resPut.succeeded()) {
-              if (resPut.result() == null) {
-                addKey(k, fut);
-              } else { // Someone messed with it, try again
-                vertx.setTimer(DELAY, res
-                  -> addOrReplace(allowReplace, k, k2, value, fut));
-              }
-            } else {
-              fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-            }
-          });
-        } else { // existing entry, put and retry if someone else messed with it
-          list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
-            if (resRepl.succeeded()) {
-              if (resRepl.result()) {
-                addKey(k, fut);
-              } else {
-                vertx.setTimer(DELAY, res
-                  -> addOrReplace(allowReplace, k, k2, value, fut));
-              }
-            } else {
-              fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
-            }
-          });
-        }
+        addOrReplace2(allowReplace, k, k2, value, oldVal, newVal, fut);
       } // get success
     });
+  }
+
+  private void addOrReplace2(boolean allowReplace, String k, String k2, String value,
+    String oldVal, String newVal, Handler<ExtendedAsyncResult<Void>> fut) {
+
+    if (oldVal == null) { // new entry
+      list.putIfAbsent(k, newVal, resPut -> {
+        if (resPut.succeeded()) {
+          if (resPut.result() == null) {
+            addKey(k, fut);
+          } else { // Someone messed with it, try again
+            vertx.setTimer(DELAY, res
+              -> addOrReplace(allowReplace, k, k2, value, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+        }
+      });
+    } else { // existing entry, put and retry if someone else messed with it
+      list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
+        if (resRepl.succeeded()) {
+          if (resRepl.result()) {
+            addKey(k, fut);
+          } else {
+            vertx.setTimer(DELAY, res
+              -> addOrReplace(allowReplace, k, k2, value, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
+        }
+      });
+    }
   }
 
   public void remove(String k, Handler<ExtendedAsyncResult<Boolean>> fut) {
     remove(k, null, fut);
   }
 
-  public void remove(String k, String k2, Handler<ExtendedAsyncResult<Boolean>> fut) {
+  public void remove(String k, String k2,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
@@ -256,37 +267,43 @@ public class LockedStringMap {
           }
           smap.strings.remove(k2);
         }
-        if (smap.strings.isEmpty()) {
-          list.removeIfPresent(k, val, resDel -> {
-            if (resDel.succeeded()) {
-              if (resDel.result()) {
-                fut.handle(new Success<>(true));
-                // Note that we don't remove from the allkeys list.
-                // That could lead to race conditions, better to have
-                // unused entries in the allkeys list.
-              } else {
-                vertx.setTimer(DELAY, res -> remove(k, k2, fut));
-              }
-            } else {
-              fut.handle(new Failure<>(INTERNAL, resDel.cause()));
-            }
-          });
-        } else { // list was not empty, remove value
-          String newVal = Json.encodePrettily(smap);
-          list.replaceIfPresent(k, val, newVal, resPut -> {
-            if (resPut.succeeded()) {
-              if (resPut.result()) {
-                fut.handle(new Success<>(false));
-              } else {
-                vertx.setTimer(DELAY, res -> remove(k, k2, fut));
-              }
-            } else {
-              fut.handle(new Failure<>(INTERNAL, resPut.cause()));
-            }
-          });
-        }
+        remove2(k, k2, smap, val, fut);
       }
     });
+  }
+
+  private void remove2(String k, String k2, StringMap smap, String val,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+
+    if (smap.strings.isEmpty()) {
+      list.removeIfPresent(k, val, resDel -> {
+        if (resDel.succeeded()) {
+          if (resDel.result()) {
+            fut.handle(new Success<>(true));
+            // Note that we don't remove from the allkeys list.
+            // That could lead to race conditions, better to have
+            // unused entries in the allkeys list.
+          } else {
+            vertx.setTimer(DELAY, res -> remove(k, k2, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resDel.cause()));
+        }
+      });
+    } else { // list was not empty, remove value
+      String newVal = Json.encodePrettily(smap);
+      list.replaceIfPresent(k, val, newVal, resPut -> {
+        if (resPut.succeeded()) {
+          if (resPut.result()) {
+            fut.handle(new Success<>(false));
+          } else {
+            vertx.setTimer(DELAY, res -> remove(k, k2, fut));
+          }
+        } else {
+          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+        }
+      });
+    }
   }
 
 }
