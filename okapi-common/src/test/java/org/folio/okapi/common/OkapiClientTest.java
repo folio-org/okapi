@@ -53,6 +53,12 @@ public class OkapiClientTest {
   }
 
   private void myStreamHandle2(RoutingContext ctx) {
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> {
+        HttpResponse.responseText(ctx, 204).end();
+      });
+      return;
+    }
     ctx.response().setChunked(true);
     ctx.request().pause();
     String p = ctx.request().params().get("p");
@@ -65,16 +71,11 @@ public class OkapiClientTest {
       if (res.failed()) {
         HttpResponse.responseError(ctx, res.getType(), res.cause());
       } else {
-        if (HttpMethod.DELETE.equals(ctx.request().method())) {
-          HttpResponse.responseText(ctx, 204);
-          ctx.response().end();
-        } else {
+        ctx.request().endHandler(x -> {
           HttpResponse.responseJson(ctx, 200);
-          ctx.request().endHandler(x -> {
-            ctx.response().write("\"" + res.result() + "\"");
-            ctx.response().end();
-          });
-        }
+          ctx.response().write("\"" + res.result() + "\"");
+          ctx.response().end();
+        });
       }
     });
   }
@@ -188,7 +189,7 @@ public class OkapiClientTest {
     cli.get("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
       assertEquals("\"hello test-lib\"", res.result());
-      test6(cli, async);
+      test5(cli, async);
     });
   }
 
