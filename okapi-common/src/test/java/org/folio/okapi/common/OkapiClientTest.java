@@ -1,5 +1,6 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -36,9 +37,8 @@ public class OkapiClientTest {
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
-    ctx.response().setStatusCode(200);
     StringBuilder msg = new StringBuilder();
-    ctx.response().putHeader("Content-Type", "text/plain");
+    HttpResponse.responseText(ctx, 200);
     OkapiToken token = new OkapiToken(ctx);
 
     ctx.request().handler(x -> msg.append(x));
@@ -65,11 +65,16 @@ public class OkapiClientTest {
       if (res.failed()) {
         HttpResponse.responseError(ctx, res.getType(), res.cause());
       } else {
-        HttpResponse.responseText(ctx, 200);
-        ctx.request().endHandler(x -> {
-          ctx.response().write(res.result());
+        if (HttpMethod.DELETE.equals(ctx.request().method())) {
+          HttpResponse.responseText(ctx, 204);
           ctx.response().end();
-        });
+        } else {
+          HttpResponse.responseJson(ctx, 200);
+          ctx.request().endHandler(x -> {
+            ctx.response().write("\"" + res.result() + "\"");
+            ctx.response().end();
+          });
+        }
       }
     });
   }
@@ -84,6 +89,7 @@ public class OkapiClientTest {
     router.get("/test1").handler(this::myStreamHandle1);
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
+    router.delete("/test2").handler(this::myStreamHandle2);
     final int port = Integer.parseInt(System.getProperty("port", "9130"));
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
@@ -104,6 +110,20 @@ public class OkapiClientTest {
   public void tearDown(TestContext context) {
     Async async = context.async();
     vertx.close(x -> async.complete());
+  }
+
+  @Test
+  public void testBogus(TestContext context) {
+    Async async = context.async();
+    final String bogusUrl = "http://xxxx:9131";
+    OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
+    assertEquals(bogusUrl, cli.getOkapiUrl());
+
+    cli.get("/test1", res -> {
+      assertTrue(res.failed());
+      assertEquals(ErrorType.INTERNAL, res.getType());
+      async.complete();
+    });
   }
 
   @Test
@@ -138,6 +158,12 @@ public class OkapiClientTest {
       assertTrue(res.succeeded());
       assertEquals("hello test-lib", res.result());
       assertEquals(res.result(), cli.getResponsebody());
+      MultiMap respH = cli.getRespHeaders();
+      assertTrue(respH != null);
+      if (respH != null) {
+        assertEquals("text/plain", respH.get("Content-Type").toString());
+      }
+
       test2(cli, async);
     });
   }
@@ -161,14 +187,21 @@ public class OkapiClientTest {
   private void test4(OkapiClient cli, Async async) {
     cli.get("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
-      assertEquals("hello test-lib", res.result());
-      test5(cli, async);
+      assertEquals("\"hello test-lib\"", res.result());
+      test6(cli, async);
     });
   }
 
   private void test5(OkapiClient cli, Async async) {
     cli.get("/test2?p=%2Fbad", res -> {
       assertTrue(res.failed());
+      test6(cli, async);
+    });
+  }
+
+  private void test6(OkapiClient cli, Async async) {
+    cli.delete("/test2?p=%2Ftest1", res -> {
+      assertTrue(res.succeeded());
       async.complete();
     });
   }
