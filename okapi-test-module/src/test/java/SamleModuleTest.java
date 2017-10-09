@@ -84,9 +84,21 @@ public class SamleModuleTest {
     });
   }
 
-  // TODO add test methods here.
-  // The methods must be annotated with annotation @Test. For example:
-  //
-  // @Test
-  // public void hello() {}
+  @Test
+  public void testAllHeaders(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+
+    headers.put("X-all-headers", "HB");
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.enableInfoLog();
+    cli.get("/testb", res -> {
+      assertTrue(res.succeeded());
+      async.complete();
+    });
+  }
 }
