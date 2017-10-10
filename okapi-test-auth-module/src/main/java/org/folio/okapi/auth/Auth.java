@@ -157,10 +157,17 @@ public class Auth {
     }
     String payload = splitTok[1];
 
-    String decodedJson = new String(Base64.getDecoder().decode(payload));
-    logger.debug("test-auth: check payload: " + decodedJson);
-    JsonObject jtok = new JsonObject(decodedJson);
-    String userId = jtok.getString("sub", "");
+    String userId;
+    try {
+      String decodedJson = new String(Base64.getDecoder().decode(payload));
+      logger.debug("test-auth: check payload: " + decodedJson);
+      JsonObject jtok = new JsonObject(decodedJson);
+      userId = jtok.getString("sub", "");
+
+    } catch (IllegalArgumentException e) {
+      responseError(ctx, 400, "Bad Json payload " + payload);
+      return;
+    }
 
     // Fake some desired permissions
     String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
