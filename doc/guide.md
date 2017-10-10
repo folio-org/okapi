@@ -938,6 +938,7 @@ cat > /tmp/okapi-proxy-test-basic.1.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
@@ -1236,6 +1237,7 @@ cat > /tmp/okapi-module-auth.json <<END
       ]
     }
   ],
+  "requires": [],
   "filters": [
     {
       "methods": [ "*" ],
@@ -1825,6 +1827,7 @@ cat > /tmp/okapi-proxy-foo.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
@@ -1878,6 +1881,7 @@ cat > /tmp/okapi-proxy-bar.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
