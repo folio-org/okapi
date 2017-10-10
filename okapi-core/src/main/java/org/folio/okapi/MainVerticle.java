@@ -112,6 +112,11 @@ public class MainVerticle extends AbstractVerticle {
     int portStart = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
     int portEnd = Integer.parseInt(conf("port_end", Integer.toString(portStart + 10), config));
 
+    String okapiVersion2 = conf("okapiVersion", null, config);
+    if (okapiVersion2 != null) {
+      okapiVersion = okapiVersion2;
+    }
+
     if (clusterManager != null) {
       logger.info("cluster NodeId " + clusterManager.getNodeID());
     } else {
@@ -236,35 +241,25 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void startModmanager(Future<Void> fut) {
-    if (moduleManager == null) {
-      startTenants(fut);
-    } else {
-      logger.debug("Starting modules");
-      moduleManager.init(vertx, res -> {
-        if (res.succeeded()) {
-          startTenants(fut);
-        } else {
-          logger.fatal("ModuleManager init: " + res.cause().getMessage());
-          fut.fail(res.cause());
-        }
-      });
-    }
+    moduleManager.init(vertx, res -> {
+      if (res.succeeded()) {
+        startTenants(fut);
+      } else {
+        logger.fatal("ModuleManager init: " + res.cause().getMessage());
+        fut.fail(res.cause());
+      }
+    });
   }
 
   private void startTenants(Future<Void> fut) {
-    if (tenantManager == null) {
-      checkInternalModules(fut);
-    } else {
-      logger.debug("Startting tenants");
-      tenantManager.init(vertx, res -> {
-        if (res.succeeded()) {
-          checkInternalModules(fut);
-        } else {
-          logger.fatal("load tenants failed: " + res.cause().getMessage());
-          fut.fail(res.cause());
-        }
-      });
-    }
+    tenantManager.init(vertx, res -> {
+      if (res.succeeded()) {
+        checkInternalModules(fut);
+      } else {
+        logger.fatal("load tenants failed: " + res.cause().getMessage());
+        fut.fail(res.cause());
+      }
+    });
   }
 
 
@@ -272,11 +267,6 @@ public class MainVerticle extends AbstractVerticle {
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     final String okapiModule = md.getId();
     final String interfaceVersion = md.getProvides()[0].getVersion();
-    if (moduleManager == null) {
-      logger.debug("checkInternalModules: skipping, no moduleManager");
-      checkSuperTenant(okapiModule, fut);
-      return;
-    }
     moduleManager.get(okapiModule, gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have " + okapiModule
@@ -313,18 +303,13 @@ public class MainVerticle extends AbstractVerticle {
    * @param fut
    */
   private void checkSuperTenant(String okapiModule, Future<Void> fut) {
-    if (tenantManager == null) {
-      logger.debug("checkSuperTenant: Skipping, no tenantManager");
-      startEnv(fut);
-      return;
-    }
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
       if (gres.succeeded()) { // we already have one, go on
-        logger.debug("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
+        logger.info("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
         Tenant st = gres.result();
         Set<String> enabledMods = st.getEnabled().keySet();
         if (enabledMods.contains(okapiModule)) {
-          logger.debug("checkSuperTenant: enabled version is OK");
+          logger.info("checkSuperTenant: enabled version is OK");
           startEnv(fut);
           return;
         }
@@ -347,7 +332,7 @@ public class MainVerticle extends AbstractVerticle {
             + " Need " + ev);
           return;
         } else {
-          logger.debug("checkSuperTenant: Need to upgrade the stored version");
+          logger.info("checkSuperTenant: Need to upgrade the stored version");
           // Use the commit, easier interface.
           // the internal module can not have dependencies
           // See Okapi-359 about version checks across the cluster
@@ -373,7 +358,7 @@ public class MainVerticle extends AbstractVerticle {
         fut.fail(gres.cause()); // something went badly wrong
         return;
       }
-      logger.debug("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
+      logger.info("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
       final String docTenant = "{"
         + "\"descriptor\" : {"
         + " \"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","

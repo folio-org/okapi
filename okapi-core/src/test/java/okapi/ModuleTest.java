@@ -40,6 +40,11 @@ import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Network;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import java.util.Iterator;
+import java.util.Set;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
@@ -118,14 +123,12 @@ public class ModuleTest {
       conf.put("storage", "postgres")
         .put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT))
-        .put("postgres_db_init", "1") // using this because dbinit exits!
-        ;
+;
     } else if (value == 2) {
       conf.put("storage", "mongo")
         .put("mongo_host", "localhost")
         .put("mongo_port", Integer.toString(MONGO_PORT))
-        .put("mongo_db_init", "1") // using this because dbinit exits!
-        ;
+;
     }
   }
 
@@ -135,6 +138,9 @@ public class ModuleTest {
 
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
+
+    conf.put("postgres_db_init", "1");
+    conf.put("mongo_db_init", "1");
 
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
@@ -2896,4 +2902,44 @@ public class ModuleTest {
 
     async.complete();
   }
+
+  private void undeployFirst(Handler<AsyncResult<Void>> fut) {
+    Set<String> ids = vertx.deploymentIDs();
+    Iterator<String> it = ids.iterator();
+    if (it.hasNext()) {
+      vertx.undeploy(it.next(), fut);
+    } else {
+      fut.handle(Future.succeededFuture());
+    }
+  }
+
+  @Test
+  public void testInternalModule(TestContext context) {
+    logger.info("testInternalModule 1");
+    async = context.async();
+    undeployFirst(x -> {
+      conf.remove("mongo_db_init");
+      conf.remove("postgres_db_init");
+
+      logger.info("testInternalModule 2");
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        logger.info("testInternalModule 3");
+        testInternalModule2();
+      });
+    });
+  }
+
+  void testInternalModule2() {
+    undeployFirst(x -> {
+      conf.put("okapiVersion", "3.0.0");
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        logger.info("testInternalModule 4");
+        conf.remove("okapiVersion");
+        async.complete();
+      });
+    });
+  }
+
 }
