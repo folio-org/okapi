@@ -878,12 +878,12 @@ curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/modules : 200 12710us
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/modules : 200 8081us
 Content-Length: 74
 
 [ {
-  "id" : "okapi-1.7.1-SNAPSHOT",
-  "name" : "okapi-1.7.1-SNAPSHOT"
+  "id" : "okapi-2.0.1-SNAPSHOT",
+  "name" : "okapi-2.0.1-SNAPSHOT"
 } ]
 ```
 
@@ -898,7 +898,7 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 200 7080us
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
 Content-Length: 117
 
 [ {
@@ -938,6 +938,7 @@ cat > /tmp/okapi-proxy-test-basic.1.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
@@ -972,12 +973,13 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic-1.0.0
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 12074us
-Content-Length: 350
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/modules : 201 9786us
+Content-Length: 370
 
 {
   "id" : "test-basic-1.0.0",
   "name" : "Okapi test module",
+  "requires" : [ ],
   "provides" : [ {
     "id" : "test-basic",
     "version" : "2.2",
@@ -1065,7 +1067,7 @@ Okapi responds with
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-basic-1.0.0/localhost-9131
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/discovery/modules : 201
 Content-Length: 237
 
 {
@@ -1134,7 +1136,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants : 201 1704us
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 201 1065us
 Content-Length: 91
 
 {
@@ -1162,7 +1164,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 16025us
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 11566us
 Content-Length: 31
 
 {
@@ -1200,6 +1202,7 @@ curl -w '\n' -D - \
 
 It works!
 ```
+
 This is a bit of a hack, for some special cases where we can not control the
 headers in the request, for example a callback from a SSO service. This is
 quite limited, it will fail for calls that require an auth token (see below).
@@ -1236,6 +1239,7 @@ cat > /tmp/okapi-module-auth.json <<END
       ]
     }
   ],
+  "requires": [],
   "filters": [
     {
       "methods": [ "*" ],
@@ -1277,12 +1281,13 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth-3.4.1
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/modules : 201 5634us
-Content-Length: 357
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/modules : 201 1614us
+Content-Length: 377
 
 {
   "id" : "test-auth-3.4.1",
   "name" : "Okapi test auth module",
+  "requires" : [ ],
   "provides" : [ {
     "id" : "test-auth",
     "version" : "3.4",
@@ -1323,7 +1328,7 @@ curl -w '\n' -D - -s \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-auth-3.4.1/localhost-9132
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/discovery/modules : 201
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/discovery/modules : 201
 Content-Length: 246
 
 {
@@ -1354,7 +1359,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-auth-3.4.1
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 1727us
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 1693us
 Content-Length: 30
 
 {
@@ -1373,7 +1378,7 @@ curl -D - -w '\n' \
 
 HTTP/1.1 401 Unauthorized
 Content-Type: text/plain
-X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 84118us
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 64187us
 Transfer-Encoding: chunked
 
 Auth.check called without X-Okapi-Token
@@ -1401,10 +1406,10 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/authn/login
 
 HTTP/1.1 200 OK
-X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 202 7235us
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 202 4539us
 Content-Type: application/json
 X-Okapi-Token: dummyJwt.eyJzdWIiOiJwZXRlciIsInRlbmFudCI6InRlc3RsaWIifQ==.sig
-X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 200 232721us
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/authn/login : 200 159934us
 Transfer-Encoding: chunked
 
 {  "tenant": "testlib",  "username": "peter",  "password": "peter-password"}
@@ -1431,9 +1436,9 @@ curl -D - -w '\n' \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
-X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 202 18179us
+X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 202 15614us
 Content-Type: text/plain
-X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 3172us
+X-Okapi-Trace: GET test-basic-1.0.0 http://localhost:9131/testb : 200 1826us
 Transfer-Encoding: chunked
 
 It works
@@ -1572,7 +1577,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.2.0
-X-Okapi-Trace: POST okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
+X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
 Content-Length: 31
 
 {
@@ -1604,9 +1609,9 @@ curl -w '\n' -X POST -D - \
   http://localhost:9130/testb
 
 HTTP/1.1 200 OK
-X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/testb : 202 4325us
+X-Okapi-Trace: POST test-auth-3.4.1 http://localhost:9132/testb : 202 2784us
 Content-Type: text/plain
-X-Okapi-Trace: POST test-basic-1.2.0 http://localhost:9133/testb : 200 3141us
+X-Okapi-Trace: POST test-basic-1.2.0 http://localhost:9133/testb : 200 3239us
 Transfer-Encoding: chunked
 
 Hi there { "foo":"bar"}
@@ -1825,6 +1830,7 @@ cat > /tmp/okapi-proxy-foo.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
@@ -1878,6 +1884,7 @@ cat > /tmp/okapi-proxy-bar.json <<END
       ]
     }
   ],
+  "requires": [],
   "launchDescriptor": {
     "exec": "java -Dport=%p -jar okapi-test-module/target/okapi-test-module-fat.jar"
   }
@@ -1948,13 +1955,13 @@ curl -w '\n' -D - \
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-1.7.1-SNAPSHOT /_/proxy/tenants/testlib/interfaces/test-multi : 200 1496us
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/interfaces/test-multi : 200 2271us
 Content-Length: 64
 
 [ {
-  "id" : "test-foo-1.0.0"
-}, {
   "id" : "test-bar-1.0.0"
+}, {
+  "id" : "test-foo-1.0.0"
 } ]
 ```
 
@@ -1997,7 +2004,8 @@ Okapi responds to each of these with a simple:
 
 ```
 HTTP/1.1 204 No Content
-Content-Type: text/plain
+Content-Type: application/json
+X-Okapi-Trace: DELETE ...
 Content-Length: 0
 ```
 <!-- STOP-EXAMPLE-RUN -->
@@ -2051,6 +2059,7 @@ Now you can ask Okapi to list the known nodes. On a third console window try thi
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 186
 
 [ {
@@ -2107,6 +2116,7 @@ ask Okapi (any Okapi in the cluster) to list all nodes:
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 186
 
 [ {
@@ -2182,7 +2192,7 @@ If you now list your nodes, you should see something like this:
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-1.11.1-SNAPSHOT /_/discovery/nodes : 200
+X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 120
 
 [ {
