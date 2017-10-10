@@ -346,7 +346,7 @@ public class MainVerticle extends AbstractVerticle {
               }
             logger.info("Upgraded the InternalModule version"
               + " from '" + ev + "' to '" + okapiModule + "'"
-              + "for " + XOkapiHeaders.SUPERTENANT_ID);
+              + " for " + XOkapiHeaders.SUPERTENANT_ID);
             });
         }
         startEnv(fut);
@@ -383,36 +383,26 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
-
   private void startEnv(Future<Void> fut) {
-    if (envManager == null) {
-      logger.debug("startEnv: no envManager, skipping");
-      startDiscovery(fut);
-    } else {
-      logger.debug("starting Env");
-      envManager.init(vertx, res -> {
-        if (res.succeeded()) {
-          startDiscovery(fut);
-        } else {
-          fut.fail(res.cause());
-        }
-      });
-    }
+    logger.debug("starting Env");
+    envManager.init(vertx, res -> {
+      if (res.succeeded()) {
+        startDiscovery(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
   }
 
   private void startDiscovery(Future<Void> fut) {
-    if (discoveryManager == null) {
-      startDeployment(fut);
-    } else {
-      logger.debug("Starting discovery");
-      discoveryManager.init(vertx, res -> {
-        if (res.succeeded()) {
-          startDeployment(fut);
-        } else {
-          fut.fail(res.cause());
-        }
-      });
-    }
+    logger.debug("Starting discovery");
+    discoveryManager.init(vertx, res -> {
+      if (res.succeeded()) {
+        startDeployment(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
   }
 
   public void startDeployment(Future<Void> fut) {
