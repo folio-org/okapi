@@ -74,17 +74,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    final String srvcId = md.getSrvcId();
-    if (srvcId == null) {
-      fut.handle(new Failure<>(USER, "Needs srvc"));
-      return;
-    }
-    final String instId = md.getInstId();
-    if (instId == null) {
-      fut.handle(new Failure<>(USER, "Needs instId"));
-      return;
-    }
-    deployments.add(srvcId, instId, md, fut);
+    deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
   }
 
   /**

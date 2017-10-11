@@ -84,6 +84,10 @@ public class DeploymentManager {
       return;
     }
     String srvc = md1.getSrvcId();
+    if (srvc == null) {
+      fut.handle(new Failure<>(USER, "Needs srvcId"));
+      return;
+    }
     Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
     int usePort = ports.get();
@@ -107,6 +111,7 @@ public class DeploymentManager {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
+      ports.free(usePort);
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
       tim.close();
       return;
@@ -120,6 +125,7 @@ public class DeploymentManager {
     }
     em.get(eres -> {
       if (eres.failed()) {
+        ports.free(usePort);
         fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
         tim.close();
       } else {
