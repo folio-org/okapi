@@ -920,14 +920,21 @@ public class ModuleTest {
       .log().ifError();
 
     // Test some bad PUTs
+    logger.info("Bad PUTs 1");
     given()
-      .body(nodeDoc.replaceFirst("localhost", "MayNotChangeId"))
+      .body(nodeDoc)
+      .header("Content-Type", "application/json")
+      .put("/_/discovery/nodes/foobarhost")
+      .then()
+      .statusCode(404);
+    given()
+      .body(nodeDoc.replaceFirst("\"localhost\"", "\"foobar\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
       .statusCode(400);
     given()
-      .body(nodeDoc.replaceFirst("http://localhost:9130", "MayNotChangeUrl"))
+      .body(nodeDoc.replaceFirst("\"http://localhost:9130\"", "\"MayNotChangeUrl\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
@@ -1929,6 +1936,33 @@ public class ModuleTest {
       .body(doc1).post("/_/discovery/modules/") // extra slash !
       .then().statusCode(404);
 
+    // with descriptor, but missing nodeId
+    final String doc1a = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    given().header("Content-Type", "application/json")
+      .body(doc1a).post("/_/discovery/modules")
+      .then().statusCode(400);
+
+    // unknown nodeId
+    final String doc1b = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"nodeId\" : \"foobarhost\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    given().header("Content-Type", "application/json")
+      .body(doc1b).post("/_/discovery/modules")
+      .then().statusCode(404);
+
     final String doc2 = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
@@ -1968,6 +2002,8 @@ public class ModuleTest {
       .body(equalTo("[ " + doc2 + " ]"));
 
     given().delete(locationSampleDeployment).then().statusCode(204);
+
+    given().delete(locationSampleDeployment).then().statusCode(404);
     locationSampleDeployment = null;
 
     // Verify that the list works also after delete
