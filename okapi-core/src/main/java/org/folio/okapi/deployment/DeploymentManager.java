@@ -107,6 +107,7 @@ public class DeploymentManager {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
+      ports.free(usePort);
       fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
       tim.close();
       return;
@@ -120,6 +121,7 @@ public class DeploymentManager {
     }
     em.get(eres -> {
       if (eres.failed()) {
+        ports.free(usePort);
         fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
         tim.close();
       } else {
