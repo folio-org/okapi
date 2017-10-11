@@ -47,6 +47,10 @@ schemas:
         description: Bad Request
         body:
           text/plain:
+      404:
+        description: Not Found
+        body:
+          text/plain:
       500:
         description: Server Error
         body:
@@ -102,6 +106,10 @@ schemas:
             schema: DeploymentDescriptor
       400:
         description: Bad Request
+        body:
+          text/plain:
+      404:
+        description: Not Found
         body:
           text/plain:
       500:
