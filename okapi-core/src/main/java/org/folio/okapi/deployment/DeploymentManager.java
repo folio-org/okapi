@@ -84,6 +84,10 @@ public class DeploymentManager {
       return;
     }
     String srvc = md1.getSrvcId();
+    if (srvc == null) {
+      fut.handle(new Failure<>(USER, "Needs srvcId"));
+      return;
+    }
     Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
     int usePort = ports.get();
