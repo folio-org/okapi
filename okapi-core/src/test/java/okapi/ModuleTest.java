@@ -467,9 +467,6 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
-
-    // TODO - Tests for bad interface versions
-
     // Actually create the module
     c = api.createRestAssured();
     r = c.given()
@@ -485,6 +482,43 @@ public class ModuleTest {
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
     locSampleModule = Utils.urlDecode(locSampleModule, false);
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
+
+    given()
+      .header("Content-Type", "application/json")
+      .body("{}")
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(400);
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{\"srvcId\" : \"\"}")
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{\"srvcId\" : \"1\"}")
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{\"srvcId\" : \"1\", \"nodeId\" : \"foo\"}")
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // Get the module
     c = api.createRestAssured();
@@ -972,6 +1006,20 @@ public class ModuleTest {
       .body(badDoc).post("/_/deployment/modules")
       .then().statusCode(400);
 
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{}").post("/_/deployment/modules")
+      .then().statusCode(400);
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{\"srvcId\" : \"foo\"}").post("/_/deployment/modules")
+      .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     final String docUnknownJar = "{" + LS
       + "  \"srvcId\" : \"auth-1\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -986,7 +1034,6 @@ public class ModuleTest {
       .body(docUnknownJar).post("/_/deployment/modules")
       .then()
       .statusCode(500);
-
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
