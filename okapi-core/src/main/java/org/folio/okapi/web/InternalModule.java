@@ -1026,10 +1026,6 @@ public class InternalModule {
     }
     logger.debug("Int: putDiscoveryNode: " + id + " " + body);
     final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
-    if (!id.equals(nd.getNodeId())) {
-      fut.handle(new Failure<>(USER, "Module.id=" + nd.getNodeId() + " id=" + id));
-      return;
-    }
     discoveryManager.updateNode(id, nd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
