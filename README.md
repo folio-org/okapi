@@ -15,7 +15,7 @@ The Okapi software has the following compile-time dependencies:
 
 * Apache Maven 3.3.x or higher
 
-In addition, the test suite must be able to bind to ports 9130-9134 to succeed.
+In addition, the test suite must be able to bind to ports 9130-9139 to succeed.
 
 *Note: If tests fail, the API Gateway may be unable in some cases to shut down
 microservices that it has spawned, and they may need to be terminated
