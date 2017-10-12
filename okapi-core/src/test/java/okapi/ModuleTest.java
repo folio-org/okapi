@@ -347,6 +347,11 @@ public class ModuleTest {
       .then()
       .statusCode(404);
 
+    given()
+      .get("/_/proxy/modules/no-module")
+      .then()
+      .statusCode(404);
+
     // Check that we refuse the request to unknown okapi service
     // (also check (manually!) that the parameters do not end in the log)
     given()
@@ -419,6 +424,22 @@ public class ModuleTest {
     given()
       .header("Content-Type", "application/json")
       .body(docBadId)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Missing module id
+    given()
+      .header("Content-Type", "application/json")
+      .body("{\"name\" : \"sample-module\"}")
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400);
+
+    // Empty module id
+    given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule.replace("\"sample-module-1+1\"", "\"\""))
       .post("/_/proxy/modules")
       .then()
       .statusCode(400);
