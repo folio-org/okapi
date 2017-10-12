@@ -1,3 +1,14 @@
+## 2.0.1 2017-10-12
+
+ * Fix handling of missing id when posting a module OKAPI-438
+ * More coverage from 58.1 to 77.8 OKAPI-423/OKAPI-431
+   Still missing completely is the DockerModuleHandle.
+ * Fix issues as reported by SonarQube ("A")
+   OKAPI-420/OKAPI-421/OKAPI-432/OKAPI-430
+ * Remove TODOs in NEWS OKAPI-428
+ * Update RAML with proper version OKAPI-426
+ * Fix initdatabase/purgedatabase starts cluster mode OKAPI-414
+
 ## 2.0.0 2017-09-14
 
  * Remove support for property routingEntries OKAPI-289
