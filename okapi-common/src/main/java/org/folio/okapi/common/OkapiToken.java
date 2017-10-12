@@ -53,6 +53,6 @@ public class OkapiToken {
       return null;
     }
     JsonObject pl = this.getPayload();
-    return pl == null ? null : pl.getString("tenant");
+    return pl.getString("tenant");
   }
 }
