@@ -183,37 +183,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       return;
     }
     if (cmdlineStop == null) {
-      vertx.executeBlocking(future -> {
-        p.destroy();
-        while (p.isAlive()) {
-          boolean exited = true;
-          try {
-            p.exitValue();
-          } catch (Exception e) {
-            if (!(e instanceof IllegalThreadStateException)) {
-              logger.info(e);
-            }
-            exited = false;
-          }
-          if (exited) {
-            future.fail("Process exited but child processes exist");
-            return;
-          }
-          try {
-            p.waitFor();
-          } catch (InterruptedException ex) {
-            Thread.currentThread().interrupt();
-          }
-        }
-        future.complete();
-      }, false, result -> {
-        if (result.failed()) {
-          stopFuture.handle(Future.failedFuture(result.cause()));
-        } else {
-          ports.free(port);
-          waitPortToClose(stopFuture, 10);
-        }
-      });
+      stopProcess(stopFuture);
     } else {
       vertx.executeBlocking(future -> {
         try {
@@ -240,5 +210,39 @@ public class ProcessModuleHandle implements ModuleHandle {
         }
       });
     }
+  }
+
+  private void stopProcess(Handler<AsyncResult<Void>> stopFuture) {
+    vertx.executeBlocking(future -> {
+      p.destroy();
+      while (p.isAlive()) {
+        boolean exited = true;
+        try {
+          p.exitValue();
+        } catch (IllegalThreadStateException e) {
+          exited = false;
+        } catch (Exception e) {
+          logger.info(e);
+          exited = false;
+        }
+        if (exited) {
+          future.fail("Process exited but child processes exist");
+          return;
+        }
+        try {
+          p.waitFor();
+        } catch (InterruptedException ex) {
+          Thread.currentThread().interrupt();
+        }
+      }
+      future.complete();
+    }, false, result -> {
+      if (result.failed()) {
+        stopFuture.handle(Future.failedFuture(result.cause()));
+      } else {
+        ports.free(port);
+        waitPortToClose(stopFuture, 10);
+      }
+    });
   }
 }
