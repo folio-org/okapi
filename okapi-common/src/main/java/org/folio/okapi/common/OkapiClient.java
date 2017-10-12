@@ -133,7 +133,6 @@ public class OkapiClient {
   public void request(HttpMethod method, String path, String data,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (this.okapiUrl == null) {
-      logger.error("OkapiClient: No OkapiUrl specified");
       fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
       return;
     }

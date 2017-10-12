@@ -26,6 +26,11 @@ public class ErrorTest {
     assertTrue(s.succeeded());
     assertEquals(42, s.result().intValue());
     assertEquals(200, ErrorType.httpCode(s.getType()));
+
+    Success<Void> t = new Success();
+    assertFalse(s.failed());
+    assertTrue(s.succeeded());
+    assertEquals(200, ErrorType.httpCode(s.getType()));
   }
 
   public void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
