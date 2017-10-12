@@ -122,13 +122,12 @@ public class ModuleTest {
     if (value == 1) {
       conf.put("storage", "postgres")
         .put("postgres_host", "localhost")
-        .put("postgres_port", Integer.toString(POSTGRES_PORT))
-;
+        .put("postgres_port", Integer.toString(POSTGRES_PORT));
+
     } else if (value == 2) {
       conf.put("storage", "mongo")
         .put("mongo_host", "localhost")
-        .put("mongo_port", Integer.toString(MONGO_PORT))
-;
+        .put("mongo_port", Integer.toString(MONGO_PORT));
     }
   }
 
@@ -920,7 +919,6 @@ public class ModuleTest {
       .log().ifError();
 
     // Test some bad PUTs
-    logger.info("Bad PUTs 1");
     given()
       .body(nodeDoc)
       .header("Content-Type", "application/json")
