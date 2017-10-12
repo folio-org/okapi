@@ -33,4 +33,67 @@ public class OkapiTokenTest {
     assertEquals(exp, got);
   }
 
+  @Test
+  public void test3() {
+    OkapiToken tok = new OkapiToken();
+    tok.setToken(null);
+    assertEquals(null, tok.getTenant());
+
+    Boolean ex;
+
+    ex = false;
+    tok.setToken("");
+    try {
+      String v = tok.getTenant();
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertTrue(ex);
+
+    ex = false;
+    tok.setToken("a");
+    try {
+      String v = tok.getTenant();
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertTrue(ex);
+
+    ex = false;
+    tok.setToken("a.b");
+    try {
+      String v = tok.getTenant();
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertTrue(ex);
+
+    ex = false;
+    tok.setToken("a.b.c");
+    try {
+      String v = tok.getTenant();
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertTrue(ex);
+
+    ex = false;
+    tok.setToken("a.ewo=.c");
+    try {
+      String v = tok.getTenant();
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertTrue(ex);
+
+    ex = false;
+    tok.setToken("a.eyB9Cg==.c"); // "{ }"
+    try {
+      String v = tok.getTenant();
+      assertEquals(null, v);
+    } catch (IllegalArgumentException e) {
+      ex = true;
+    }
+    assertFalse(ex);
+  }
 }

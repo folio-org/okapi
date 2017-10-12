@@ -1,5 +1,6 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
@@ -19,35 +20,28 @@ public class OkapiToken {
   }
 
   public OkapiToken(RoutingContext ctx) {
-    this.token = this.readHeader(ctx);
+    this.token = ctx.request().getHeader(XOkapiHeaders.TOKEN);
   }
 
   public void setToken(String token) {
     this.token = token;
   }
 
-  /**
-   * Read the X-Okapi-Token header from ctx.
-   *
-   *
-   * @param ctx Routing context, with the headers
-   * @return the value of the header, or null if not found
-   */
-  private String readHeader(RoutingContext ctx) {
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (tok != null && ! tok.isEmpty()) {
-      return tok;
-    }
-    return null;
-  }
-
-
   private JsonObject getPayload() {
-    String encodedJson = this.token.split("\\.")[1];
-    if (encodedJson == null || encodedJson.isEmpty())
-      return null;
+    String encodedJson;
+    try {
+      encodedJson = this.token.split("\\.")[1];
+    } catch (ArrayIndexOutOfBoundsException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
     String decodedJson = new String(Base64.getDecoder().decode(encodedJson));
-    return new JsonObject(decodedJson);
+    JsonObject j;
+    try {
+      j = new JsonObject(decodedJson);
+    } catch (DecodeException e) {
+      throw new IllegalArgumentException(e.getMessage());
+    }
+    return j;
   }
 
   /**
@@ -55,8 +49,9 @@ public class OkapiToken {
    * @return null if no token, or no tenant there
    */
   public String getTenant() {
-    if (this.token == null || this.token.isEmpty())
+    if (token == null) {
       return null;
+    }
     JsonObject pl = this.getPayload();
     return pl == null ? null : pl.getString("tenant");
   }

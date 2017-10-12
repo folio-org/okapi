@@ -247,13 +247,17 @@ public class ProxyService {
 
     String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenantId == null) {
-      tenantId = new OkapiToken(ctx).getTenant();
-      if (tenantId != null && !tenantId.isEmpty()) {
-        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
-        pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
+      try {
+        tenantId = new OkapiToken(ctx).getTenant();
+        if (tenantId != null && !tenantId.isEmpty()) {
+          ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
+          pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
+        }
+      } catch (IllegalArgumentException e) {
+        pc.responseText(400, "Invalid Token: " + e.getMessage());
+        return null;
       }
     }
-
     if (tenantId == null) {
       logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
       return XOkapiHeaders.SUPERTENANT_ID; // without setting it in pc
