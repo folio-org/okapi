@@ -817,9 +817,6 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
-      if (md.getId() == null || md.getId().isEmpty()) {
-        md.setId(UUID.randomUUID().toString());
-      }
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         fut.handle(new Failure<>(USER, validerr));

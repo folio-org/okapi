@@ -63,7 +63,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public String getId() {
-    return id.getId();
+    return id != null ? id.getId() : null;
   }
 
   public void setId(String s) {
@@ -213,6 +213,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate(ProxyContext pc) {
+    if (id == null) {
+      return "id is missing for module";
+    }
     String mod = getId();
     if (provides != null) {
       for (ModuleInterface pr : provides) {
