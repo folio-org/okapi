@@ -30,11 +30,11 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
-  private static final int MAX_ITERATIONS = 30; // x*(x+1) * 0.1 seconds.
-  private static final long MILLISECONDS = 200;
+  private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
+  private static final int MILLISECONDS = 200;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
-          Ports ports, int port) {
+    Ports ports, int port) {
     this.vertx = vertx;
 
     this.exec = desc.getExec();
@@ -44,6 +44,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.port = port;
     this.ports = ports;
     this.p = null;
+  }
+
+  public void setConnectIterMax(int iterations) {
+    this.maxIterations = iterations;
   }
 
   private ProcessBuilder createProcessBuilder(String[] l) {
@@ -58,7 +62,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   }
 
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
-    NetClientOptions options = new NetClientOptions().setConnectTimeout(200);
+    NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
     NetClient c = vertx.createNetClient(options);
     c.connect(port, "localhost", res -> {
       if (res.succeeded()) {
@@ -75,10 +79,9 @@ public class ProcessModuleHandle implements ModuleHandle {
         logger.warn("Service returned with exit code " + p.exitValue());
         startFuture.handle(Future.failedFuture("Service returned with exit code "
           + p.exitValue()));
-      } else if (count < MAX_ITERATIONS) {
+      } else if (count < maxIterations) {
         vertx.setTimer((count + 1) * MILLISECONDS, id -> tryConnect(startFuture, count + 1));
       } else {
-        logger.error("Failed to connect to service at port " + port + " : " + res.cause().getMessage());
         startFuture.handle(Future.failedFuture("Deployment failed. "
           + "Could not connect to port " + port + ": " + res.cause().getMessage()));
       }
@@ -95,7 +98,6 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          logger.error("Failed to start service on port " + port + " : already in use");
           startFuture.handle(Future.failedFuture("port " + port + " already in use"));
         } else {
           start2(startFuture);
@@ -133,7 +135,6 @@ public class ProcessModuleHandle implements ModuleHandle {
           pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
-          logger.warn("Deployment failed: " + ex.getMessage());
           future.fail(ex);
           return;
         }
@@ -162,7 +163,6 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            logger.error("port " + port + " not shut down");
             stopFuture.handle(Future.failedFuture("port " + port + " not shut down"));
           }
         } else {
@@ -189,7 +189,9 @@ public class ProcessModuleHandle implements ModuleHandle {
           try {
             p.exitValue();
           } catch (Exception e) {
-            logger.info(e);
+            if (!(e instanceof IllegalThreadStateException)) {
+              logger.info(e);
+            }
             exited = false;
           }
           if (exited) {
