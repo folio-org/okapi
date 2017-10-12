@@ -80,7 +80,8 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.failedFuture("Service returned with exit code "
           + p.exitValue()));
       } else if (count < maxIterations) {
-        vertx.setTimer((count + 1) * MILLISECONDS, id -> tryConnect(startFuture, count + 1));
+        vertx.setTimer((long) (count + 1) * MILLISECONDS,
+          id -> tryConnect(startFuture, count + 1));
       } else {
         startFuture.handle(Future.failedFuture("Deployment failed. "
           + "Could not connect to port " + port + ": " + res.cause().getMessage()));
