@@ -1,7 +1,6 @@
 package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -39,20 +38,6 @@ public class ProxyContext {
     this.modList = null;
     reqidHeader(ctx);
     timer = null;
-  }
-
-  /**
-   * Constructor used from inside Okapi. Starts a timer and logs the request
-   * from ctx.
-   *
-   */
-  public ProxyContext(RoutingContext ctx, String timerKey ) {
-    this.ctx = ctx;
-    modList = null;
-    reqidHeader(ctx);
-    logRequest(ctx, "-");
-    timer = null;
-    startTimer(timerKey);
   }
 
   public final void startTimer(String key) {
@@ -153,13 +138,6 @@ public class ProxyContext {
       + module + " " + url);
   }
 
-  public void logResponse(HttpServerResponse response, String msg) {
-    int code = response.getStatusCode();
-    String text = (msg == null) ? "(null)" : msg;
-    text = text.substring(0, 80);
-    logResponse("okapi", text, code);
-  }
-
   public void responseError(ErrorType t, Throwable cause) {
     responseError(ErrorType.httpCode(t), cause);
   }
@@ -182,28 +160,8 @@ public class ProxyContext {
     HttpResponse.responseText(ctx, code).end(txt);
   }
 
-  public void responseJson(int code, String json) {
-    logResponse("okapi", "", code);
-    HttpResponse.responseJson(ctx, code).end(json);
-  }
-  public void responseJson(int code, String json, String location) {
-    logResponse("okapi", "", code);
-    HttpResponse.responseJson(ctx, code)
-      .putHeader("Location", location)
-      .end(json);
-  }
-
-
   public void addTraceHeaderLine(String h) {
     ctx.response().headers().add(XOkapiHeaders.TRACE, h);
-  }
-
-  public void fatal(String msg) {
-    logger.fatal(getReqId() + " " + msg);
-  }
-
-  public void info(String msg) {
-    logger.info(getReqId() + " " + msg);
   }
 
   public void error(String msg) {
@@ -213,6 +171,7 @@ public class ProxyContext {
   public void warn(String msg) {
     logger.warn(getReqId() + " " + msg);
   }
+
   public void warn(String msg, Throwable e) {
     logger.warn(getReqId() + " " + msg, e);
   }
