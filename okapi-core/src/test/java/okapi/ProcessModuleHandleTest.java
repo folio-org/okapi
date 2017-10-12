@@ -58,6 +58,31 @@ public class ProcessModuleHandleTest {
   }
 
   @Test
+  public void test1a(TestContext context) {
+    final Async async = context.async();
+    LaunchDescriptor desc = new LaunchDescriptor();
+    desc.setExec("java -version %p");
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
+    pmh.setConnectIterMax(2);
+    ModuleHandle mh = pmh;
+
+    mh.start(res -> {
+      if (res.succeeded()) { // error did not expect to succeed!
+        mh.stop(res2 -> {
+          context.assertTrue(res2.succeeded());
+          context.assertFalse(res.failed());
+          async.complete();
+        });
+      }
+      context.assertFalse(res.succeeded());
+      String msg = res.cause().getMessage();
+      context.assertTrue(msg.startsWith("Deployment failed. Could not connect to port 9131"));
+      async.complete();
+    });
+  }
+
+
+  @Test
   public void test2(TestContext context) {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
@@ -84,4 +109,35 @@ public class ProcessModuleHandleTest {
       async.complete();
     });
   }
+
+  @Test
+  public void test4(TestContext context) {
+    final Async async = context.async();
+    LaunchDescriptor desc = new LaunchDescriptor();
+    desc.setExec("java -Dport=9000 -jar unknown.jar");
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
+    ModuleHandle mh = pmh;
+
+    mh.start(res -> {
+      context.assertFalse(res.succeeded());
+      context.assertEquals("Can not deploy: No %p in the exec line", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void test5(TestContext context) {
+    final Async async = context.async();
+    LaunchDescriptor desc = new LaunchDescriptor();
+    desc.setCmdlineStart("java -Dport=9000 -jar unknown.jar");
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
+    ModuleHandle mh = pmh;
+
+    mh.start(res -> {
+      context.assertFalse(res.succeeded());
+      context.assertEquals("Can not deploy: No %p in the cmdlineStart", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
 }
