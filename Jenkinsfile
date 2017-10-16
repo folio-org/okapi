@@ -6,5 +6,5 @@ buildMvnModTest {
   publishModDescriptor = 'no'
   publishAPI = 'yes'
   mvnDeploy = 'yes'
-  subDir = ['okapi-core']
+  dockerDir = 'okapi-core'
 }
