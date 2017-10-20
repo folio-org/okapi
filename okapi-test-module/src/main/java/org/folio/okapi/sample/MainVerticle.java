@@ -13,6 +13,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
 import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.OkapiClient;
@@ -25,6 +26,12 @@ public class MainVerticle extends AbstractVerticle {
   private String tenantRequests = "";
 
   public void myStreamHandle(RoutingContext ctx) {
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> {
+        HttpResponse.responseText(ctx, 204).end();
+      });
+      return;
+    }
     ctx.response().setStatusCode(200);
     final String ctype = ctx.request().headers().get("Content-Type");
     StringBuilder xmlMsg = new StringBuilder();
@@ -145,6 +152,7 @@ public class MainVerticle extends AbstractVerticle {
 
     router.get("/testb").handler(this::myStreamHandle);
     router.post("/testb").handler(this::myStreamHandle);
+    router.delete("/testb").handler(this::myStreamHandle);
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
 
