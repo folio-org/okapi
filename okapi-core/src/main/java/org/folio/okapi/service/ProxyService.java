@@ -359,11 +359,12 @@ public class ProxyService {
     }
   }
 
-  void relayToResponse(HttpServerResponse hres, HttpClientResponse res) {
-    hres.setChunked(true);
+  private void relayToResponse(HttpServerResponse hres, HttpClientResponse res) {
     hres.setStatusCode(res.statusCode());
     hres.headers().addAll(res.headers());
     hres.headers().remove("Content-Length");
+    hres.headers().remove("Transfer-Encoding");
+    hres.setChunked(res.statusCode() != 204);
   }
 
   /**
