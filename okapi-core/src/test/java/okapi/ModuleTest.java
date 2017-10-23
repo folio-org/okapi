@@ -371,7 +371,7 @@ public class ModuleTest {
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
       + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
@@ -602,6 +602,12 @@ public class ModuleTest {
       .get("/testb")
       .then().statusCode(200)
       .body(containsString("It works"));
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .delete("/testb")
+      .then().statusCode(204)
+      .log().ifError();
 
     // Make a more complex request that returns all headers and parameters
     // So the headers we check are those that the module sees and reports to

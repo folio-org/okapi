@@ -13,7 +13,6 @@ import org.folio.okapi.sample.MainVerticle;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -53,33 +52,40 @@ public class SamleModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
-      assertTrue(res.succeeded());
-      test2(cli, async);
+      context.assertTrue(res.succeeded());
+      test2(context, cli, async);
     });
   }
 
-  public void test2(OkapiClient cli, Async async) {
+  public void test2(TestContext context, OkapiClient cli, Async async) {
     cli.post("/testb", "FOO", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("Hello FOO", cli.getResponsebody());
-      test3(cli, async);
+      context.assertTrue(res.succeeded());
+      context.assertEquals("Hello FOO", cli.getResponsebody());
+      test3(context, cli, async);
     });
   }
 
-  public void test3(OkapiClient cli, Async async) {
+  public void test3(TestContext context, OkapiClient cli, Async async) {
     cli.get("/recurse?depth=2", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("2 1 Recursion done", cli.getResponsebody());
-      test4(cli, async);
+      context.assertTrue(res.succeeded());
+      context.assertEquals("2 1 Recursion done", cli.getResponsebody());
+      test4(context, cli, async);
     });
   }
 
-  public void test4(OkapiClient cli, Async async) {
+  public void test4(TestContext context, OkapiClient cli, Async async) {
     cli.get("/_/tenant", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("GET request to okapi-test-module tenant service for "
+      context.assertTrue(res.succeeded());
+      context.assertEquals("GET request to okapi-test-module tenant service for "
         + "tenant my-lib\n",
         cli.getResponsebody());
+      test5(context, cli, async);
+    });
+  }
+
+  public void test5(TestContext context, OkapiClient cli, Async async) {
+    cli.delete("/testb", res -> {
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
@@ -97,7 +103,7 @@ public class SamleModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.enableInfoLog();
     cli.get("/testb", res -> {
-      assertTrue(res.succeeded());
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
