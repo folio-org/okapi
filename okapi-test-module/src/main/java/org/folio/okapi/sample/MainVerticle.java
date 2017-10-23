@@ -11,6 +11,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.folio.okapi.common.HttpResponse;
@@ -27,9 +28,7 @@ public class MainVerticle extends AbstractVerticle {
 
   public void myStreamHandle(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
-      ctx.request().endHandler(x -> {
-        HttpResponse.responseText(ctx, 204).end();
-      });
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
     }
     ctx.response().setStatusCode(200);
@@ -146,9 +145,9 @@ public class MainVerticle extends AbstractVerticle {
       helloGreeting = "Hello";
     }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
+    String bName = ManagementFactory.getRuntimeMXBean().getName();
     logger.info("Starting okapi-test-module "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + " on port " + port);
+      + bName + " on port " + port);
 
     router.get("/testb").handler(this::myStreamHandle);
     router.post("/testb").handler(this::myStreamHandle);
@@ -164,17 +163,26 @@ public class MainVerticle extends AbstractVerticle {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-            .requestHandler(router::accept)
-            .listen(
-                    port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        fut.fail(result.cause());
-                        logger.error("okapi-test-module failed: " + result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router::accept)
+      .listen(
+        port,
+        result -> {
+          if (result.succeeded()) {
+            final String pidFile = System.getProperty("pidFile");
+            if (pidFile != null && !pidFile.isEmpty()) {
+              final String pid = bName.split("@")[0];
+              try (FileWriter fw = new FileWriter(pidFile)) {
+                fw.write(pid);
+                logger.info("Writing " + pid);
+              } catch (IOException ex) {
+                logger.error(ex);
+              }
+            }
+            fut.complete();
+          } else {
+            fut.fail(result.cause());
+            logger.error("okapi-test-module failed: " + result.cause());
+          }
+        });
   }
 }
