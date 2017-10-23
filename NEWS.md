@@ -1,3 +1,9 @@
+## 2.0.1 2017-10-23
+
+ * When Okapi relays HTTP responses chunked-encoding is disabled
+   for 204 responses OKAPI-440
+ * More coverage for Process Handling cmdlineStart and Stop OKAPI-444
+
 ## 2.0.1 2017-10-12
 
  * Fix handling of missing id when posting a module OKAPI-438
