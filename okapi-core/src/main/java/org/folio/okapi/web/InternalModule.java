@@ -503,16 +503,14 @@ public class InternalModule {
     return Json.decodeValue(doc, ModuleDescriptor.class);
   }
 
-  /**
+  /*
    * Helper to make a Location header. Takes the request path, and appends /id
    * to it, and puts it in the Location header in pc.response. Also sets the
    * return code to 201-Created. You can overwrite it after, if needed.
-   *
-   * @param pc
-   * @param id
-   * @return "" if all ok, or an error message
    */
-  private String makeLocation(ProxyContext pc, String id, String baseUri) {
+  private void location(ProxyContext pc, String id, String baseUri,
+    String s, Handler<ExtendedAsyncResult<String>> fut) {
+
     String uri = "";
     try {
       if (baseUri == null) {
@@ -523,16 +521,11 @@ public class InternalModule {
       uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
       pc.getCtx().response().putHeader("Location", uri);
       pc.getCtx().response().setStatusCode(201);
-      return "";
+      fut.handle(new Success<>(s));
     } catch (UnsupportedEncodingException ex) {
-      logger.warn("Could not encode location " + uri + "  " + id);
-      logger.info(ex);
-      return ("Error in encoding location id " + id + ". "
-        + ex.getMessage());
+      fut.handle(new Failure<>(INTERNAL, "Error in encoding location id "
+        + id + ". " + ex.getMessage()));
     }
-  }
-  private String makeLocation(ProxyContext pc, String id) {
-    return makeLocation(pc, id, null);
   }
 
   private void createTenant(ProxyContext pc, String body,
@@ -553,13 +546,7 @@ public class InternalModule {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
         }
-        String locErr = makeLocation(pc, id);
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        final String s = Json.encodePrettily(t.getDescriptor());
-        fut.handle(new Success<>(s));
+        location(pc, id, null, Json.encodePrettily(t.getDescriptor()), fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -577,7 +564,7 @@ public class InternalModule {
       Tenant t = new Tenant(td);
       tenantManager.updateDescriptor(td, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(NOT_FOUND, res.cause()));
+          fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
         }
         final String s = Json.encodePrettily(t.getDescriptor());
@@ -640,12 +627,7 @@ public class InternalModule {
           return;
         }
         td.setId(eres.result());
-        String locErr = makeLocation(pc, td.getId());
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(Json.encodePrettily(td)));
+        location(pc, td.getId(), null, Json.encodePrettily(td), fut);
       });
 
     } catch (DecodeException ex) {
@@ -739,12 +721,7 @@ public class InternalModule {
         final String uri = pc.getCtx().request().uri();
         final String regex = "^(.*)/" + module_from + "$";
         final String newuri = uri.replaceAll(regex, "$1");
-        String locErr = makeLocation(pc, td.getId(), newuri);
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(Json.encodePrettily(td)));
+        location(pc, td.getId(), newuri, Json.encodePrettily(td), fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -827,13 +804,7 @@ public class InternalModule {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;
         }
-        final String s = Json.encodePrettily(md);
-        String locErr = makeLocation(pc, md.getId());
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(s));
+        location(pc, md.getId(), null, Json.encodePrettily(md), fut);
       });
     } catch (DecodeException ex) {
       pc.debug("Failed to decode md: " + pc.getCtx().getBodyAsString());
@@ -974,12 +945,7 @@ public class InternalModule {
           return;
         }
         final String s = Json.encodePrettily(res.result());
-        String locErr = makeLocation(pc, res.result().getInstId());
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(s));
+        location(pc, res.result().getInstId(), null, s, fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -1111,12 +1077,7 @@ public class InternalModule {
         final String s = Json.encodePrettily(md);
         final String baseuri = pc.getCtx().request().uri()
           + "/" + md.getSrvcId();
-        String locErr = makeLocation(pc, md.getInstId(), baseuri);
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(s));
+        location(pc, md.getInstId(), baseuri, s, fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -1231,12 +1192,7 @@ public class InternalModule {
           return;
         }
         final String js = Json.encodePrettily(pmd);
-        String locErr = makeLocation(pc, pmd.getName());
-        if (!locErr.isEmpty()) {
-          fut.handle(new Failure<>(INTERNAL, locErr));
-          return;
-        }
-        fut.handle(new Success<>(js));
+        location(pc, pmd.getName(), null, js, fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -1573,14 +1529,7 @@ public class InternalModule {
         return;
       }
     }
-
-    // If we get here, nothing matched.
-    String slash = "";
-    if (p.endsWith("/")) {
-      slash = " (try without a trailing slash)";
-    }
-    fut.handle(new Failure<>(NOT_FOUND, "No internal module found for "
-      + m + " " + p + slash));
+    fut.handle(new Failure<>(INTERNAL, "Unhandled internal module path=" + p));
   }
 
 }
