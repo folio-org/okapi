@@ -1296,22 +1296,6 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule = r.getHeader("Location");
 
-    // Commented-out tests have been moved to testOneModule, no need to repeat here
-    // TODO - Remove these when refactoring complete
-    //c = api.createRestAssured(); // trailing slash is no good
-    //c.given().get("/_/proxy/modules/").then().statusCode(404);
-
-    //c = api.createRestAssured();
-    //c.given().get("/_/proxy/modules").then().statusCode(200);
-    //Assert.assertTrue(c.getLastReport().isEmpty());
-
-    //c = api.createRestAssured();
-    //c.given()
-    //  .get(locationSampleModule)
-    //  .then().statusCode(200).body(equalTo(docSampleModule));
-    //Assert.assertTrue("raml: " + c.getLastReport().toString(),
-    //  c.getLastReport().isEmpty());
-
     // Try to delete the auth module that our sample depends on
     c.given().delete(locationAuthModule).then().statusCode(400);
 
@@ -1421,7 +1405,14 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // Enablæe the sample
+    // Enable with bad JSON
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{").post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(400);
+
+    // Enable the sample
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
