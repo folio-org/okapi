@@ -55,7 +55,7 @@ public class ModuleTest {
   @Parameterized.Parameters
   public static Iterable<Integer> data() {
     // 0=inmemory, 1=postgres, 2=mongo
-    return Arrays.asList(0);
+    return Arrays.asList(0, 1, 2);
   }
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
