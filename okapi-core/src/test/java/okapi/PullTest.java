@@ -107,6 +107,11 @@ public class PullTest {
     c.given().port(port2).get("/_/version").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body("{ bad json").post("/_/proxy/pull/modules").then().statusCode(400);
   }
 
   @Test
@@ -254,6 +259,11 @@ public class PullTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=foo&preRelease=true").then().statusCode(400);
 
     c = api.createRestAssured();
     c.given().port(port2)

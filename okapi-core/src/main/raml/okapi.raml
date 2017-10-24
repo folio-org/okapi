@@ -374,6 +374,10 @@ schemas:
           body:
             application/json:
               schema: ModuleDescriptor
+        400:
+          description: Bad Request
+          body:
+            text/plain:
     delete:
       description: Remove module descriptor for a particular module, module
         will no longer be selectable by tenants
@@ -465,6 +469,10 @@ schemas:
             text/plain:
         403:
           description: Forbidden
+          body:
+            text/plain:
+        404:
+          description: Not Found
           body:
             text/plain:
     /modules:
