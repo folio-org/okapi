@@ -373,6 +373,13 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationSampleDeployment_1_2_0 = r.getHeader("Location");
 
+    // Upgrade with bad JSON.
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{").post(locationTenantModule)
+      .then().statusCode(400);
+
     // Upgrade from sample 1.0.0 to 1.2.0
     // supply the new ID in the body and the old ID in the header.
     final String docEnableSample2 = "{" + LS
@@ -489,6 +496,13 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("{ \"foo\" : \"bar\"}").post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400);
+
+    // enable modules -- bad JSON
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{").post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400);
 
     // enable modules: post unknown module

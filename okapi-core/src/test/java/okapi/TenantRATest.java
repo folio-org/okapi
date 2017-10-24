@@ -252,5 +252,24 @@ public class TenantRATest {
       .body(equalTo("[ " + superdoc2 + " ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    // server-side generated Id
+    String doc6 = "{" + LS
+      + "  \"name\" : \"Ringsted\"," + LS
+      + "  \"description\" : \"Ringsted description\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json").body(doc5)
+      .post("/_/proxy/tenants").then().statusCode(201).extract().response();
+
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    location3 = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    c.given().delete(location3).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
   }
 }
