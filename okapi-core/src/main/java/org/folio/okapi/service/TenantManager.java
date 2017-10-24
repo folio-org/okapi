@@ -946,7 +946,7 @@ public class TenantManager {
   public void listModules(String id, Handler<ExtendedAsyncResult<List<String>>> fut) {
     tenants.get(id, gres -> {
       if (gres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, gres.cause()));
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
       Tenant t = gres.result();
@@ -966,7 +966,7 @@ public class TenantManager {
   public void getModuleUser(String mod, Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.getKeys(kres -> {
       if (kres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, kres.cause()));
+        fut.handle(new Failure<>(kres.getType(), kres.cause()));
         return;
       }
       Collection<String> tkeys = kres.result();
@@ -982,7 +982,7 @@ public class TenantManager {
       String tid = it.next();
       tenants.get(tid, gres -> {
         if (gres.failed()) {
-          fut.handle(new Failure<>(INTERNAL, gres.cause()));
+          fut.handle(new Failure<>(gres.getType(), gres.cause()));
           return;
         }
         Tenant t = gres.result();
@@ -1020,7 +1020,7 @@ public class TenantManager {
       }
       tenantStore.listTenants(lres -> {
         if (lres.failed()) {
-          fut.handle(new Failure<>(INTERNAL, lres.cause()));
+          fut.handle(new Failure<>(lres.getType(), lres.cause()));
           return;
         }
         Iterator<Tenant> it = lres.result().iterator();

@@ -1298,9 +1298,6 @@ public class InternalModule {
     HttpMethod m = ctx.request().method();
     pc.debug("internalService '" + ctx.request().method() + "'"
       + " '" + p + "'  nseg=" + n + " :" + Json.encode(decodedSegs));
-    if (p.endsWith("/")) {
-      n = 0; // force a notfound error for trailing slash
-    }
     // default to json replies, error code overrides to text/plain
     pc.getCtx().response().putHeader("Content-Type", "application/json");
     if (n >= 4 && p.startsWith("/_/proxy/")) { // need at least /_/proxy/something

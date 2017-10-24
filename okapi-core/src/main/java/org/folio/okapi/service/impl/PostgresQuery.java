@@ -19,9 +19,6 @@ public class PostgresQuery {
   private static Logger logger = LoggerFactory.getLogger("okapi");
   private PostgresHandle pg;
 
-  private PostgresQuery() {
-  }
-
   public PostgresQuery(PostgresHandle pg) {
     this.pg = pg;
     this.conn = null;

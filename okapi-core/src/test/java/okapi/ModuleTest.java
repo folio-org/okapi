@@ -931,56 +931,84 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    given()
+    c = api.createRestAssured();
+    c.given()
       .body(nodeDoc)
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
       .log().ifError()
       .statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/discovery/nodes")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes")
       .then()
       .statusCode(200)
       .body(equalTo(nodeListDoc.replaceFirst("node1", "NewName")))
       .log().ifError();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // Test some bad PUTs
-    given()
+    c = api.createRestAssured();
+    c.given()
       .body(nodeDoc)
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/foobarhost")
       .then()
       .statusCode(404);
-    given()
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
       .body(nodeDoc.replaceFirst("\"localhost\"", "\"foobar\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
       .statusCode(400);
-    given()
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
       .body(nodeDoc.replaceFirst("\"http://localhost:9130\"", "\"MayNotChangeUrl\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
       .statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // Get it in various ways
-    given().get("/_/discovery/nodes/localhost")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes/localhost")
       .then()
       .statusCode(200)
       .body(equalTo(nodeDoc))
       .log().ifError();
-    given().get("/_/discovery/nodes/NewName")
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes/NewName")
       .then()
       .statusCode(200)
       .body(equalTo(nodeDoc))
       .log().ifError();
-    given().get("/_/discovery/nodes/http://localhost:9130")
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/nodes/http://localhost:9130")
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))
       .log().ifError();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     checkDbIsEmpty("testDiscoveryNodes done", context);
     async.complete();
@@ -1787,10 +1815,26 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    given()
+    c = api.createRestAssured();
+    c.given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(200)
-      .log().all();
+      .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .get("/_/proxy/tenants/" + "unknown" + "/modules")
+      .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .get("/_/proxy/tenants/" + "unknown" + "/modules/unknown")
+      .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -1937,19 +1981,36 @@ public class ModuleTest {
     async = context.async();
     Response r;
 
-    given().get("/_/deployment/modules")
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
+
+    c = api.createRestAssured();
+    c.given().get("/_/deployment/modules")
       .then().statusCode(200)
       .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/deployment/modules/not_found")
+    c = api.createRestAssured();
+    c.given().get("/_/deployment/modules/not_found")
       .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/discovery/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules")
       .then().statusCode(200)
       .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/discovery/modules/not_found")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/not_found")
       .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
@@ -1973,9 +2034,12 @@ public class ModuleTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    given().header("Content-Type", "application/json")
+    c = api.createRestAssured();
+    c.given().header("Content-Type", "application/json")
       .body(doc1a).post("/_/discovery/modules")
       .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // unknown nodeId
     final String doc1b = "{" + LS
@@ -1987,9 +2051,12 @@ public class ModuleTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    given().header("Content-Type", "application/json")
+    c = api.createRestAssured();
+    c.given().header("Content-Type", "application/json")
       .body(doc1b).post("/_/discovery/modules")
       .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     final String doc2 = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
@@ -2002,50 +2069,83 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
 
-    r = given().header("Content-Type", "application/json")
+    c = api.createRestAssured();
+    r = c.given().header("Content-Type", "application/json")
       .body(doc1).post("/_/discovery/modules")
       .then().statusCode(201)
       .body(equalTo(doc2))
       .extract().response();
     locationSampleDeployment = r.getHeader("Location");
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get(locationSampleDeployment).then().statusCode(200)
+    c = api.createRestAssured();
+    c.given().get(locationSampleDeployment).then().statusCode(200)
       .body(equalTo(doc2));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/deployment/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/deployment/modules")
       .then().statusCode(200)
       .body(equalTo("[ " + doc2 + " ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().header("Content-Type", "application/json")
+    c = api.createRestAssured();
+    c.given().header("Content-Type", "application/json")
       .body(doc2).post("/_/discovery/modules")
       .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/discovery/modules/sample-module5")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/sample-module5")
       .then().statusCode(200)
       .body(equalTo("[ " + doc2 + " ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/discovery/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules")
       .then().statusCode(200)
       .log().ifError()
       .body(equalTo("[ " + doc2 + " ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().delete(locationSampleDeployment).then().statusCode(204);
+    c = api.createRestAssured();
+    c.given().delete(locationSampleDeployment).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().delete(locationSampleDeployment).then().statusCode(404);
+    c = api.createRestAssured();
+    c.given().delete(locationSampleDeployment).then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     locationSampleDeployment = null;
 
     // Verify that the list works also after delete
-    given().get("/_/deployment/modules")
+    c = api.createRestAssured();
+    c.given().get("/_/deployment/modules")
       .then().statusCode(200)
       .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // verify that module5 is no longer there
-    given().get("/_/discovery/modules/sample-module5")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/sample-module5")
       .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // verify that a never-seen module returns the same
-    given().get("/_/discovery/modules/UNKNOWN-MODULE")
+    c = api.createRestAssured();
+    c.given().get("/_/discovery/modules/UNKNOWN-MODULE")
       .then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // Deploy a module via its own LaunchDescriptor
     final String docSampleModule = "{" + LS
@@ -2068,11 +2168,6 @@ public class ModuleTest {
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
-    RestAssuredClient c;
 
     c = api.createRestAssured();
     r = c.given()
@@ -2103,26 +2198,39 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
 
-    r = given().header("Content-Type", "application/json")
+    c = api.createRestAssured();
+    r = c.given().header("Content-Type", "application/json")
       .body(docDeploy).post("/_/discovery/modules")
       .then().statusCode(201)
       .body(equalTo(DeployResp))
       .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     locationSampleDeployment = r.getHeader("Location");
 
     // Would be nice to verify that the module works, but too much hassle with
     // tenants etc.
     // Undeploy.
-    given().delete(locationSampleDeployment).then().statusCode(204);
+    c = api.createRestAssured();
+    c.given().delete(locationSampleDeployment).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     // Undeploy again, to see it is gone
-    given().delete(locationSampleDeployment).then().statusCode(404);
+    c = api.createRestAssured();
+    c.given().delete(locationSampleDeployment).then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     locationSampleDeployment = null;
 
     // and delete from the proxy
-    given().delete(locationSampleModule)
+    c = api.createRestAssured();
+    c.given().delete(locationSampleModule)
       .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     checkDbIsEmpty("testDeployment done", context);
+
     async.complete();
   }
 

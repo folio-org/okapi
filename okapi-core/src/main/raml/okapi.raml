@@ -77,6 +77,10 @@ schemas:
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
+        404:
+          description: Not Found
+          body:
+            text/plain:
     delete:
       description: shutdown instance
       responses:
@@ -152,6 +156,10 @@ schemas:
           description: Bad Request
           body:
             text/plain:
+        404:
+          description: Not Found
+          body:
+            text/plain:
         500:
           description: Server Error
           body:
@@ -184,7 +192,10 @@ schemas:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
-
+          404:
+            description: Not Found
+            body:
+              text/plain:
 /_/discovery/health:
   description: Health service for individual instances
   get:
@@ -247,20 +258,32 @@ schemas:
         description: Server Error
         body:
           text/plain:
-  put:
-    description: Update descriptor of a particular node, only the name can be changed
-    body:
-      application/json:
-        schema: NodeDescriptor
-    responses:
-      200:
-        headers:
-          X-Okapi-Trace:
-            description: Okapi trace and timing
-        body:
-          application/json:
-            schema: NodeDescriptor
   /{node_id}:
+    put:
+      description: Update descriptor of a particular node, only the name can be changed
+      body:
+        application/json:
+          schema: NodeDescriptor
+      responses:
+        200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+          body:
+            application/json:
+              schema: NodeDescriptor
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+        404:
+          description: Not Found
+          body:
+            text/plain:
+        500:
+          description: Server Error
+          body:
+            text/plain:
     get:
       description: Get info for one node
       responses:
@@ -283,7 +306,6 @@ schemas:
           description: Server Error
           body:
             text/plain:
-
 /_/proxy/modules:
   description: Proxy modules service
   post:
@@ -516,6 +538,14 @@ schemas:
             body:
               application/json:
                 schema: TenantModuleDescriptorList
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server error
+            body:
+              text/plain:
       /{module_id}:
         description: CRUD service for getting module and upgrading module
           for a tenant.
