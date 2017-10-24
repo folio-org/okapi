@@ -502,6 +502,33 @@ public class ModuleTest {
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
     locSampleModule = Utils.urlDecode(locSampleModule, false);
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // post it again.. Allowed because it is the same MD
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertEquals(Utils.urlDecode(r.getHeader("Location"), false), locSampleModule);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // post it again with slight modification
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule.replace("sample.extra\"", "sample.foo\""))
+      .post("/_/proxy/modules")
+      .then()
+      .statusCode(400)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     given()
       .header("Content-Type", "application/json")

@@ -3,6 +3,7 @@ package org.folio.okapi.service;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.util.Collection;
@@ -373,20 +374,29 @@ public class ModuleManager {
         return;
       }
       LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      LinkedList<ModuleDescriptor> nList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
-          fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
-          return;
+          ModuleDescriptor exMd = tempList.get(id);
+
+          String exJson = Json.encodePrettily(exMd);
+          String json = Json.encodePrettily(md);
+          if (!json.equals(exJson)) {
+            fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+            return;
+          }
+        } else {
+          tempList.put(id, md);
+          nList.add(md);
         }
-        tempList.put(id, md);
       }
       String res = checkAllDependencies(tempList);
       if (!res.isEmpty()) {
         fut.handle(new Failure<>(USER, res));
         return;
       }
-      Iterator<ModuleDescriptor> it = list.iterator();
+      Iterator<ModuleDescriptor> it = nList.iterator();
       createListR(it, fut);
     });
   }
