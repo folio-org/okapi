@@ -55,7 +55,7 @@ public class ModuleTest {
   @Parameterized.Parameters
   public static Iterable<Integer> data() {
     // 0=inmemory, 1=postgres, 2=mongo
-    return Arrays.asList(0, 1, 2);
+    return Arrays.asList(0);
   }
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
@@ -1134,6 +1134,18 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthModule).put(locationAuthModule + "misMatch").then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
 
     c = api.createRestAssured();
     r = c.given()

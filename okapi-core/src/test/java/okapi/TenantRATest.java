@@ -148,11 +148,18 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
+    String doc3BadJson = "{" + LS
+      + "  \"id\" : \"roskildedk\"," + LS;
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc3BadJson)
+      .post("/_/proxy/tenants").then().statusCode(400);
+
     String doc3 = "{" + LS
-            + "  \"id\" : \"roskildedk\"," + LS
-            + "  \"name\" : \"roskilde\"," + LS
-            + "  \"description\" : \"Roskilde bibliotek\"" + LS
-            + "}";
+      + "  \"id\" : \"roskildedk\"," + LS
+      + "  \"name\" : \"roskilde\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
     c = api.createRestAssured();
     Response r3 = c.given()
             .header("Content-Type", "application/json").body(doc3)
@@ -169,6 +176,25 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
+    String doc4BadJson = "{" + LS
+      + "  \"id\" : \"roskildedk\"," + LS;
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc4BadJson)
+      .put(location3).then().statusCode(400);
+
+    String doc4badId = "{" + LS
+      + "  \"id\" : \"roskildedk2\"," + LS
+      + "  \"name\" : \"Roskildes Real Name\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek with a better description\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc4badId)
+      .put(location3).then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     String doc4 = "{" + LS
             + "  \"id\" : \"roskildedk\"," + LS
             + "  \"name\" : \"Roskildes Real Name\"," + LS
@@ -181,13 +207,15 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-//    c = api.createRestAssured();
-//    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
-
     c = api.createRestAssured();
     c.given().delete(location3).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(location3 + "notThere").then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     String doc5 = "{" + LS
             + "  \"id\" : \"roskildedk\"," + LS
@@ -224,6 +252,5 @@ public class TenantRATest {
       .body(equalTo("[ " + superdoc2 + " ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
   }
 }
