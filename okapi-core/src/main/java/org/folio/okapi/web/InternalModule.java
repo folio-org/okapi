@@ -966,10 +966,6 @@ public class InternalModule {
 
   private void getDiscoveryNode(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
-    if (id == null) {
-      fut.handle(new Failure<>(USER, "id missing"));
-      return;
-    }
     logger.debug("Int: getDiscoveryNode: " + id);
     discoveryManager.getNode(id, res -> {
       if (res.failed()) {
@@ -983,10 +979,6 @@ public class InternalModule {
 
   private void putDiscoveryNode(String id, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
-    if (id == null) {
-      fut.handle(new Failure<>(USER, "id missing"));
-      return;
-    }
     logger.debug("Int: putDiscoveryNode: " + id + " " + body);
     final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
     discoveryManager.updateNode(id, nd, res -> {
@@ -1024,10 +1016,6 @@ public class InternalModule {
   private void discoveryGetSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (srvcId == null) {
-      fut.handle(new Failure<>(USER, "srvcId missing"));
-      return;
-    }
     discoveryManager.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1045,14 +1033,7 @@ public class InternalModule {
 
   private void discoveryGetInstId(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
-    if (srvcId == null || srvcId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "srvcId missing"));
-      return;
-    }
-    if (instId == null || instId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "instId missing"));
-      return;
-    }
+
     discoveryManager.get(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1087,14 +1068,6 @@ public class InternalModule {
   private void discoveryUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (srvcId == null || srvcId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "srvcId missing"));
-      return;
-    }
-    if (instId == null || instId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "instId missing"));
-      return;
-    }
     discoveryManager.removeAndUndeploy(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1135,14 +1108,6 @@ public class InternalModule {
   private void discoveryHealthOne(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (srvcId == null || srvcId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "srvcId missing"));
-      return;
-    }
-    if (instId == null || instId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "instId missing"));
-      return;
-    }
     discoveryManager.health(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1167,10 +1132,6 @@ public class InternalModule {
   private void getEnv(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (id == null) {
-      fut.handle(new Failure<>(USER, "id missing"));
-      return;
-    }
     envManager.get(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1201,10 +1162,6 @@ public class InternalModule {
 
   private void deleteEnv(String id, Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (id == null) {
-      fut.handle(new Failure<>(USER, "id missing"));
-      return;
-    }
     envManager.remove(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
