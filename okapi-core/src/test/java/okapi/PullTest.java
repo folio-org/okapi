@@ -9,12 +9,16 @@ import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import org.folio.okapi.common.HttpResponse;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
@@ -32,18 +36,36 @@ public class PullTest {
   private String vert2;
   private final int port1 = 9131; // where we define MDs
   private final int port2 = 9130; // where we pull
+  private final int port3 = 9132; // other non-proxy server
+  private final int port4 = 9133; // non-existing server!
+
+  private void setupOtherHttpServer(TestContext context, Async async) {
+    Router router = Router.router(vertx);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
+      .requestHandler(router::accept)
+      .listen(
+        port3,
+        result -> {
+          if (result.failed()) {
+            context.fail(result.cause());
+          }
+          async.complete();
+        }
+      );
+  }
 
   private void otherDeploy(TestContext context, Async async) {
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("storage", "inmemory")
-        .put("port", Integer.toString(port1))
+      .setConfig(new JsonObject().put("port", Integer.toString(port1))
       );
     vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
       if (res.failed()) {
         context.fail(res.cause());
       } else {
         vert2 = res.result();
-        async.complete();
+        setupOtherHttpServer(context, async);
       }
     });
   }
@@ -54,8 +76,7 @@ public class PullTest {
     vertx = Vertx.vertx();
     Async async = context.async();
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("storage", "inmemory")
-        .put("port", Integer.toString(port2))
+      .setConfig(new JsonObject().put("port", Integer.toString(port2))
       );
     vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
       if (res.failed()) {
@@ -112,6 +133,7 @@ public class PullTest {
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body("{ bad json").post("/_/proxy/pull/modules").then().statusCode(400);
+
   }
 
   @Test
@@ -351,5 +373,74 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+  }
+
+  @Test
+  public void test3() {
+    RamlDefinition api
+      = RamlLoaders.fromFile("src/main/raml").load("okapi.raml").assumingBaseUri("https://okapi.cloud");
+    RestAssuredClient c;
+
+    // pull frome dummy server
+    final String pullPort3 = "{" + LS
+      + "\"urls\" : [" + LS
+      + "  \"http://localhost:" + port3 + "\"" + LS
+      + "  ]" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullPort3).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // pull from non-existing server
+    final String pullPort4 = "{" + LS
+      + "\"urls\" : [" + LS
+      + "  \"http://localhost:" + port4 + "\"" + LS
+      + "  ]" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullPort4).post("/_/proxy/pull/modules").then().statusCode(404).log().ifError();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // first non-existing, then dummy
+    final String pullBoth1 = "{" + LS
+      + "\"urls\" : [" + LS
+      + "  \"http://localhost:" + port3 + "\"," + LS
+      + "  \"http://localhost:" + port4 + "\"" + LS
+      + "  ]" + LS
+      + "}";
+
+    // pull from from both
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullBoth1).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // first dummy, then non-existing
+    final String pullBoth2 = "{" + LS
+      + "\"urls\" : [" + LS
+      + "  \"http://localhost:" + port4 + "\"," + LS
+      + "  \"http://localhost:" + port3 + "\"" + LS
+      + "  ]" + LS
+      + "}";
+
+    // pull from from both
+    c = api.createRestAssured();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .body(pullBoth2).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
   }
 }
