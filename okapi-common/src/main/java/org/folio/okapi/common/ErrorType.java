@@ -12,6 +12,8 @@ public enum ErrorType {
   USER,
   /** Stuff that is not there */
   NOT_FOUND,
+  /** Any kind of auth or permission problem */
+  FORBIDDEN,
   /** Error type for anything else */
   ANY;
 
@@ -26,6 +28,9 @@ public enum ErrorType {
         break;
       case NOT_FOUND:
         code = 404;
+        break;
+      case FORBIDDEN:
+        code = 403;
         break;
       case INTERNAL:
       case ANY:
