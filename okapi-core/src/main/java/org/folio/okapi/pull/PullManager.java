@@ -52,7 +52,8 @@ public class PullManager {
           if (res.statusCode() != 200) {
             logger.info("pull for " + baseUrl + " failed with status "
                     + res.statusCode());
-            fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+            fut.handle(new Failure<>(ErrorType.USER,
+              "pull for " + baseUrl + " returned status " + res.statusCode() + "\n" + body.toString()));
           } else {
             fut.handle(new Success<>(baseUrl));
           }
