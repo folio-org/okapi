@@ -469,7 +469,7 @@ public class TenantManager {
       ead3Permissions(tenant, moduleFrom, mdTo, mdTo, pc, fut);
       return;
     }
-    findSystemInterface(tenant.getId(), "_tenantPermissions", res -> {
+    findSystemInterface(tenant, "_tenantPermissions", res -> {
       if (res.failed()) {
         if (res.getType() == NOT_FOUND) { // no perms interface. TODO
           // just continue with the process. Should probably trigger an error
@@ -600,7 +600,6 @@ public class TenantManager {
         for (RoutingEntry re : res) {
           if (re.match(null, "POST")) {
             if (re.getPath() != null) {
-              // TODO - Remove this in version 2.0
               logger.debug("findTenantInterface: found path " + re.getPath());
               fut.handle(new Success<>(re.getPath()));
               return;
@@ -613,10 +612,6 @@ public class TenantManager {
           }
         }
       }
-      logger.warn("Tenant interface for module '" + md.getId() + "' "
-        + "has no suitable RoutingEntry. Can not call the Tenant API");
-      fut.handle(new Success<>(""));
-      return; // TODO Process this as an error!
     }
     logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
       + "interface. Define InterfaceType=system, and add a RoutingEntry."
@@ -628,33 +623,17 @@ public class TenantManager {
    * Find (the first) module that provides a given system interface. Module must
    * be enabled for the tenant.
    *
-   * @param tenantId tenant to check for
+   * @param tenant tenant to check for
    * @param interfaceName interface name to look for
    * @param fut callback with a @return ModuleDescriptor for the module
    *
    * TODO - Take a version too, pass it to getSystemInterface, check there
    */
-  public void findSystemInterface(String tenantId, String interfaceName,
+  private void findSystemInterface(Tenant tenant, String interfaceName,
     Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    tenants.get(tenantId, gres -> {
-      if (gres.failed()) {
-        logger.debug("findSystemInterface: no tenant " + tenantId + " found, bailing out");
-        fut.handle(new Failure<>(INTERNAL, gres.cause()));
-        return;
-      }
-      Tenant tenant = gres.result();
-      moduleManager.list(lres -> {
-        if (lres.failed()) { // should not happen
-          fut.handle(new Failure<>(lres.getType(), lres.cause()));
-          return;
-        }
-        Collection<String> modlist = lres.result();
-        logger.debug("findSystemInterface " + interfaceName
-          + ": module list: " + Json.encode(modlist));
-        Iterator<String> it = modlist.iterator();
-        findSystemInterfaceR(tenant, interfaceName, it, fut);
-      });
-    });
+
+    Iterator<String> it = tenant.getEnabled().keySet().iterator();
+    findSystemInterfaceR(tenant, interfaceName, it, fut);
   }
 
   private void findSystemInterfaceR(Tenant tenant, String interfaceName,
