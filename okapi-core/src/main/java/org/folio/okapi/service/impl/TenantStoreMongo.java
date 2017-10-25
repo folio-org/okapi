@@ -102,7 +102,6 @@ public class TenantStoreMongo implements TenantStore {
           d.remove("_id");
           final Tenant t = decodeTenant(d);
           Tenant nt = new Tenant(td, t.getEnabled());
-          // TODO - Validate that we don't change the id
           JsonObject document = encodeTenant(nt);
           document.put("_id", id);
           cli.replaceDocuments(COLLECTION, jq, document, ures -> {
