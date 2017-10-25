@@ -173,6 +173,8 @@ public class OkapiClient {
         } else {
           if (postres.statusCode() == 404) {
             fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
+          } else if (postres.statusCode() == 403) {
+            fut.handle(new Failure<>(FORBIDDEN, "403 " + responsebody + ": " + url));
           } else if (postres.statusCode() == 400) {
             fut.handle(new Failure<>(USER, responsebody));
           } else {
