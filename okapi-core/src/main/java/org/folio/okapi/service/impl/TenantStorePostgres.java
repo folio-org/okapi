@@ -123,9 +123,9 @@ public class TenantStorePostgres implements TenantStore {
       q.queryWithParams(sql, jsa, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
+        } else {
+          updateAll(q, id, td, it, fut);
         }
-        updateAll(q, id, td, it, fut);
       });
     } else {
       q.close();
@@ -212,28 +212,16 @@ public class TenantStorePostgres implements TenantStore {
     });
   }
 
-  private void updateModuleR(PostgresQuery q, String id, String module,
-    Boolean enable, SortedMap<String, Boolean> enabled,
+  private void updateModuleR(PostgresQuery q, String id,
+    SortedMap<String, Boolean> enabled,
     Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
+
     if (it.hasNext()) {
       JsonObject r = it.next();
       String sql = "UPDATE tenants SET " + JSON_COLUMN + " = ? WHERE " + ID_SELECT;
       String tj = r.getString(JSON_COLUMN);
       Tenant t = Json.decodeValue(tj, Tenant.class);
-      if (enabled != null) {
-        t.setEnabled(enabled);
-      } else {
-        if (enable) {
-          t.enableModule(module);
-        } else if (!t.isEnabled(module)) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + module + " for Tenant "
-            + id + " not found, can not disable"));
-          q.close();
-          return;
-        } else {
-          t.disableModule(module);
-        }
-      }
+      t.setEnabled(enabled);
       String s = Json.encode(t);
       JsonObject doc = new JsonObject(s);
       JsonArray jsa = new JsonArray();
@@ -243,7 +231,7 @@ public class TenantStorePostgres implements TenantStore {
         if (res.failed()) {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
         } else {
-          updateModuleR(q, id, module, enable, enabled, it, fut);
+          updateModuleR(q, id, enabled, it, fut);
         }
       });
     } else {
@@ -252,10 +240,11 @@ public class TenantStorePostgres implements TenantStore {
     }
   }
 
-  private void updateModule(String id, String module,
-    Boolean enable, SortedMap<String, Boolean> enabled,
+  @Override
+  public void updateModules(String id, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
+    logger.debug("updateModules " + Json.encode(enabled.keySet()));
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM tenants WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
@@ -271,18 +260,9 @@ public class TenantStorePostgres implements TenantStore {
           q.close();
         } else {
           logger.debug("update: replace");
-          updateModuleR(q, id, module, enable, enabled,
-            rs.getRows().iterator(), fut);
+          updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);
         }
       }
     });
-  }
-
-  @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.debug("updateModules " + Json.encode(enabled.keySet()));
-    updateModule(id, "", null, enabled, fut);
-
   }
 }

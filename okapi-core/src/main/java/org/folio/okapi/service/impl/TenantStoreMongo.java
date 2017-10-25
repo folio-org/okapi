@@ -61,8 +61,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void insert(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
+  public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
     JsonObject document = encodeTenant(t);
     document.put("_id", id);
@@ -102,7 +101,6 @@ public class TenantStoreMongo implements TenantStore {
           d.remove("_id");
           final Tenant t = decodeTenant(d);
           Tenant nt = new Tenant(td, t.getEnabled());
-          // TODO - Validate that we don't change the id
           JsonObject document = encodeTenant(nt);
           document.put("_id", id);
           cli.replaceDocuments(COLLECTION, jq, document, ures -> {
