@@ -61,8 +61,7 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void insert(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
+  public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
     JsonObject document = encodeTenant(t);
     document.put("_id", id);
