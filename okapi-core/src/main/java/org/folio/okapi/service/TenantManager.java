@@ -19,6 +19,7 @@ import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -837,7 +838,7 @@ public class TenantManager {
   }
 
   public void installUpgradeModules(String tenantId, ProxyContext pc,
-    boolean simulate, boolean preRelease, List<TenantModuleDescriptor> tml,
+    TenantInstallOptions options, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
     tenants.get(tenantId, gres -> {
       if (gres.failed()) {
@@ -845,7 +846,7 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      moduleManager.getModulesWithFilter(null, preRelease, mres -> {
+      moduleManager.getModulesWithFilter(null, options.getPreRelease(), mres -> {
         if (mres.failed()) {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
@@ -863,7 +864,7 @@ public class TenantManager {
         }
         List<TenantModuleDescriptor> tml2
           = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
-        installAndCommit(t, pc, simulate, modsAvailable, modsEnabled, tml2, fut);
+        installAndCommit(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
       });
     });
   }
@@ -892,7 +893,19 @@ public class TenantManager {
     }
   }
 
-  private void installAndCommit(Tenant t, ProxyContext pc, boolean simulate,
+  private void checkAutoDeploy(Tenant t, ProxyContext pc,
+    TenantInstallOptions options,
+    Map<String, ModuleDescriptor> modsAvailable, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    if (options.getAutoDeploy()) {
+      fut.handle(new Failure<>(INTERNAL, "autoDeploy unsupported"));
+    } else {
+      installCommit(t, pc, modsAvailable, tml.iterator(), fut);
+    }
+  }
+
+  private void installAndCommit(Tenant t, ProxyContext pc,
+    TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
@@ -902,10 +915,10 @@ public class TenantManager {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      if (simulate) {
+      if (options.getSimulate()) {
         fut.handle(new Success<>(tml));
       } else {
-        installCommit(t, pc, modsAvailable, tml.iterator(), res1 -> {
+        checkAutoDeploy(t, pc, options, modsAvailable, tml, res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
           } else {
