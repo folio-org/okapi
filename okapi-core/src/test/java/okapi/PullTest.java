@@ -130,7 +130,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body("{ bad json").post("/_/proxy/pull/modules").then().statusCode(400);
+      .body("{ bad json").post("/_/proxy/pull/modules")
+      .then().statusCode(400).log().ifValidationFails();
 
   }
 
@@ -148,7 +149,9 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200).body(equalTo("[ ]"));
+      .body(pullDoc).post("/_/proxy/pull/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -171,7 +174,7 @@ public class PullTest {
     c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleA).post("/_/proxy/modules")
-      .then().statusCode(201);
+      .then().statusCode(201).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -186,7 +189,7 @@ public class PullTest {
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules")
-      .then().statusCode(200)
+      .then().statusCode(200).log().ifValidationFails()
       .body(equalTo(internalModuleDoc));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -195,7 +198,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200)
+      .body(pullDoc).post("/_/proxy/pull/modules")
+      .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ " + docBriefModuleA + " ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -216,7 +220,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port1)
       .header("Content-Type", "application/json")
-      .body(docModuleB).post("/_/proxy/modules").then().statusCode(201);
+      .body(docModuleB).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -236,7 +241,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port1)
       .header("Content-Type", "application/json")
-      .body(docModuleC).post("/_/proxy/modules").then().statusCode(201);
+      .body(docModuleC).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -245,7 +251,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200);
+      .body(pullDoc).post("/_/proxy/pull/modules")
+      .then().statusCode(200).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -253,7 +260,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullDoc).post("/_/proxy/pull/modules").then().statusCode(200)
+      .body(pullDoc).post("/_/proxy/pull/modules")
+      .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -262,7 +270,8 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true").then().statusCode(200)
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true")
+      .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
         + "  \"name\" : \"okapi-0.0.0\"" + LS
@@ -388,7 +397,7 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullPort3).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+      .body(pullPort3).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -402,7 +411,7 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullPort4).post("/_/proxy/pull/modules").then().statusCode(404).log().ifError();
+      .body(pullPort4).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -419,7 +428,7 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullBoth1).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+      .body(pullBoth1).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -436,7 +445,7 @@ public class PullTest {
     c = api.createRestAssured();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullBoth2).post("/_/proxy/pull/modules").then().statusCode(400).log().ifError();
+      .body(pullBoth2).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());

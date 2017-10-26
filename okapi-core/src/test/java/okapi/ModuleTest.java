@@ -206,18 +206,18 @@ public class ModuleTest {
       + "  \"description\" : \"Okapi built-in super tenant\"" + LS
       + "} ]";
     given().get("/_/deployment/modules").then()
-      .log().ifError().statusCode(200)
+      .log().ifValidationFails().statusCode(200)
       .body(equalTo(emptyListDoc));
 
     given().get("/_/discovery/nodes").then()
-      .log().ifError().statusCode(200); // we still have a node!
+      .log().ifValidationFails().statusCode(200); // we still have a node!
     given().get("/_/discovery/modules").then()
-      .log().ifError().statusCode(200).body(equalTo(emptyListDoc));
+      .log().ifValidationFails().statusCode(200).body(equalTo(emptyListDoc));
 
     given().get("/_/proxy/modules").then()
-      .log().ifError().statusCode(200).body(equalTo("[ " + internalModuleDoc + " ]"));
+      .log().ifValidationFails().statusCode(200).body(equalTo("[ " + internalModuleDoc + " ]"));
     given().get("/_/proxy/tenants").then()
-      .log().ifError().statusCode(200).body(equalTo(superTenantDoc));
+      .log().ifValidationFails().statusCode(200).body(equalTo(superTenantDoc));
     logger.debug("Db check '" + label + "' OK");
 
   }
@@ -243,7 +243,7 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().header("Location");
     return Utils.urlDecode(loc, false);
   }
@@ -262,7 +262,7 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .header("Location",containsString("/_/proxy/modules"))
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().header("Location");
     return Utils.urlDecode(loc, false);
   }
@@ -288,7 +288,7 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .header("Location",containsString("/_/discovery/modules"))
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().header("Location");
     return Utils.urlDecode(loc, false);
   }
@@ -622,7 +622,7 @@ public class ModuleTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
       .statusCode(404)
-      .log().ifError();
+      .log().ifValidationFails();
 
      // Make a simple request to the module
     given()
@@ -635,7 +635,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .delete("/testb")
       .then().statusCode(204)
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Make a more complex request that returns all headers and parameters
     // So the headers we check are those that the module sees and reports to
@@ -680,7 +680,7 @@ public class ModuleTest {
       .header("X-all-headers", "HB") // ask sample to report all headers
       .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then()
-      .log().ifError()
+      .log().ifValidationFails()
       .header("X-Url-Params", "query=foo")
       .statusCode(200);
     given()
@@ -697,7 +697,7 @@ public class ModuleTest {
       .then()
       .statusCode(200)
       .body(equalTo("It works Tenant requests: POST-roskilde "))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Test a moduleDescriptor with empty arrays
     // We have seen errors with such before.
@@ -745,14 +745,14 @@ public class ModuleTest {
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testOneModule cleaning up");
-    given().delete(locUpgEmpty).then().log().ifError().statusCode(204);
-    //given().delete(locEnableEmpty).then().log().ifError().statusCode(204);
-    given().delete(locEmptyModule2).then().log().ifError().statusCode(204);
-    given().delete(locEmptyModule).then().log().ifError().statusCode(204);
-    given().delete(locEnable).then().log().ifError().statusCode(204);
-    given().delete(locTenant).then().log().ifError().statusCode(204);
-    given().delete(locSampleModule).then().log().ifError().statusCode(204);
-    given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
+    given().delete(locUpgEmpty).then().log().ifValidationFails().statusCode(204);
+    //given().delete(locEnableEmpty).then().log().ifValidationFails().statusCode(204);
+    given().delete(locEmptyModule2).then().log().ifValidationFails().statusCode(204);
+    given().delete(locEmptyModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
 
     checkDbIsEmpty("testOneModule done", context);
@@ -872,7 +872,7 @@ public class ModuleTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
 
@@ -903,25 +903,25 @@ public class ModuleTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .header("X-Tenant-Perms-Result", expPerms2)
       .extract().header("Location");
 
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testSystemInterfaces cleaning up");
-    given().delete(locSampleEnable2).then().log().ifError().statusCode(204);
-    given().delete(locationSampleDeployment2).then().log().ifError().statusCode(204);
-    given().delete(locSampleModule2).then().log().ifError().statusCode(204);
-    given().delete(locSampleEnable).then().log().ifError().statusCode(204);
-    given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
-    given().delete(locSampleModule).then().log().ifError().statusCode(204);
+    given().delete(locSampleEnable2).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment2).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleModule2).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
-    given().delete(locHdrEnable).then().log().ifError().statusCode(204);
-    given().delete(locationHeaderDeployment).then().log().ifError().statusCode(204);
+    given().delete(locHdrEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
     locationHeaderDeployment = null;
-    given().delete(locHdrModule).then().log().ifError().statusCode(204);
-    given().delete(locTenant).then().log().ifError().statusCode(204);
+    given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
 
     checkDbIsEmpty("testSystemInterfaces done", context);
     async.complete();
@@ -965,7 +965,7 @@ public class ModuleTest {
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
-      .log().ifError()
+      .log().ifValidationFails()
       .statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -975,7 +975,7 @@ public class ModuleTest {
       .then()
       .statusCode(200)
       .body(equalTo(nodeListDoc.replaceFirst("node1", "NewName")))
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1016,7 +1016,7 @@ public class ModuleTest {
       .then()
       .statusCode(200)
       .body(equalTo(nodeDoc))
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1025,7 +1025,7 @@ public class ModuleTest {
       .then()
       .statusCode(200)
       .body(equalTo(nodeDoc))
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1034,7 +1034,7 @@ public class ModuleTest {
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1644,7 +1644,7 @@ public class ModuleTest {
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
       .body(equalTo("It works Tenant requests: POST-roskilde "))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Check that we refuse unknown paths, even with auth module
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -1658,7 +1658,7 @@ public class ModuleTest {
       .header("X-all-headers", "H") // ask sample to report all headers
       .header("Authorization", "Bearer " + okapiToken)
       .get("/testb")
-      .then().log().ifError()
+      .then().log().ifValidationFails()
       .header("X-Okapi-Tenant", okapiTenant)
       .statusCode(200);
     // Note that we can not check the token, the module sees a different token,
@@ -1672,7 +1672,7 @@ public class ModuleTest {
       .header("X-Okapi-Token", okapiToken)
       .header("Authorization", "Bearer " + okapiToken + "WRONG")
       .get("/testb")
-      .then().log().ifError()
+      .then().log().ifValidationFails()
       .statusCode(400);
 
     // 2nd sample module. We only create it in discovery and give it same URL as
@@ -1697,7 +1697,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/discovery/modules/sample-module2-1")
       .then().statusCode(200)
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1705,7 +1705,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/discovery/modules/sample-module2-1/sample2-inst")
       .then().statusCode(200)
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1839,7 +1839,7 @@ public class ModuleTest {
       .body(docEnableSample3).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .header("Location", equalTo("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module3-1"))
-      .log().ifError()
+      .log().ifValidationFails()
       .body(equalTo(docEnableSample3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1875,7 +1875,7 @@ public class ModuleTest {
       .header("X-Okapi-Token", okapiToken)
       .body("OkapiX").post("/testb")
       .then()
-      .log().ifError()
+      .log().ifValidationFails()
       .statusCode(200)
       .body(equalTo("hej hej OkapiX"));
 
@@ -1888,7 +1888,7 @@ public class ModuleTest {
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
       .body(containsString("POST-roskilde POST-roskilde"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
     // a X-Stop-Here header.
@@ -1947,7 +1947,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/discovery/modules")
       .then().statusCode(200)
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1961,7 +1961,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/discovery/modules")
       .then().statusCode(200)
-      .log().ifError();
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1990,14 +1990,14 @@ public class ModuleTest {
 
     // Clean up, so the next test starts with a clean slate
     logger.debug("testproxy cleaning up");
-    given().delete(locationSample3Inst).then().log().ifError().statusCode(204);
-    given().delete(locationSample3Module).then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/sample-module-1").then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/sample-module2-1").then().log().ifError().statusCode(204);
-    given().delete("/_/proxy/modules/auth-1").then().log().ifError().statusCode(204);
-    given().delete(locationAuthDeployment).then().log().ifError().statusCode(204);
+    given().delete(locationSample3Inst).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSample3Module).then().log().ifValidationFails().statusCode(204);
+    given().delete("/_/proxy/modules/sample-module-1").then().log().ifValidationFails().statusCode(204);
+    given().delete("/_/proxy/modules/sample-module2-1").then().log().ifValidationFails().statusCode(204);
+    given().delete("/_/proxy/modules/auth-1").then().log().ifValidationFails().statusCode(204);
+    given().delete(locationAuthDeployment).then().log().ifValidationFails().statusCode(204);
     locationAuthDeployment = null;
-    given().delete(locationSampleDeployment).then().log().ifError().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
 
     checkDbIsEmpty("testproxy done", context);
@@ -2138,7 +2138,7 @@ public class ModuleTest {
     c = api.createRestAssured();
     c.given().get("/_/discovery/modules")
       .then().statusCode(200)
-      .log().ifError()
+      .log().ifValidationFails()
       .body(equalTo("[ " + doc2 + " ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2501,7 +2501,7 @@ public class ModuleTest {
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2578,7 +2578,7 @@ public class ModuleTest {
       .get("/testr")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Set up, deploy, and enable the header module
     final String docHeaderModule = "{" + LS
@@ -2682,7 +2682,7 @@ public class ModuleTest {
       .get("/testb")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Actual redirecting request
     given()
@@ -2691,7 +2691,7 @@ public class ModuleTest {
       .then().statusCode(200)
       .body(containsString("It works"))
       .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9131/testr"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Bad redirect
     given()
@@ -2707,14 +2707,14 @@ public class ModuleTest {
       .get("/simpleloop")
       .then().statusCode(500)
       .body(containsString("loop:"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/loop1")
       .then().statusCode(500)
       .body(containsString("loop:"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // redirect to multiple modules
     given()
@@ -2724,7 +2724,7 @@ public class ModuleTest {
       .post("/multiple")
       .then().statusCode(200)
       .body(containsString("Hello Hello")) // test-module run twice
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Redirect with parameters
     given()
@@ -2732,7 +2732,7 @@ public class ModuleTest {
       .get("/red?foo=bar")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // A longer chain of redirects
     given()
@@ -2743,7 +2743,7 @@ public class ModuleTest {
       .body(containsString("It works"))
       .body(containsString("X-Okapi-Permissions-Desired:hdr.chain1,hdr.chain2,sample.testr,sample.chain3"))
       .body(containsString("X-Okapi-Extra-Permissions:[\"hdr.modperm\",\"sample.modperm\"]"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // What happens on prefix match
     // /red matches, replaces with /testr, getting /testrlight which is not found
@@ -2753,14 +2753,14 @@ public class ModuleTest {
       .get("/redlight")
       .then().statusCode(404)
       .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9131/testrlight : 404"))
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Verify that we replace only the beginning of the path
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/red/blue/red?color=/red")
       .then().statusCode(404)
-      .log().ifError();
+      .log().ifValidationFails();
 
     // Clean up
     logger.info("Redirect test done. Cleaning up");
@@ -2819,7 +2819,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2848,7 +2848,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2932,7 +2932,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2965,7 +2965,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -3019,7 +3019,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .body("OkapiX").post("/testb")
       .then()
-      .log().ifError()
+      .log().ifValidationFails()
       .statusCode(200)
       .body(equalTo("Hello OkapiX"));
 
@@ -3027,7 +3027,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .body("OkapiX").post("/testb")
       .then()
-      .log().ifError()
+      .log().ifValidationFails()
       .statusCode(200)
       .body(equalTo("hej OkapiX"));
 
@@ -3079,7 +3079,7 @@ public class ModuleTest {
       .assumingBaseUri("https://okapi.cloud");
 
     c = api.createRestAssured();
-    r = c.given().get("/_/version").then().statusCode(200).log().ifError().extract().response();
+    r = c.given().get("/_/version").then().statusCode(200).log().ifValidationFails().extract().response();
 
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -3109,7 +3109,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -3126,7 +3126,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -3143,7 +3143,7 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(201)
-      .log().ifError()
+      .log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
