@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class ErrorTest {
   @Test
   public void testFailure() {
-    Failure f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
+    Failure<Void> f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
     assertEquals(ErrorType.NOT_FOUND, f.getType());
     assertTrue(f.failed());
     assertFalse(f.succeeded());
@@ -27,7 +27,7 @@ public class ErrorTest {
     assertEquals(42, s.result().intValue());
     assertEquals(200, ErrorType.httpCode(s.getType()));
 
-    Success<Void> t = new Success();
+    Success<Void> t = new Success<>();
     assertFalse(s.failed());
     assertTrue(s.succeeded());
     assertEquals(200, ErrorType.httpCode(s.getType()));
