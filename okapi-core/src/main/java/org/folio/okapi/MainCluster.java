@@ -10,11 +10,11 @@ public class MainCluster {
   }
 
   public static void main(String[] args) {
-    final Logger logger = LoggerFactory.getLogger("okapi");
     MainDeploy d = new MainDeploy();
-
     d.init(args, res -> {
       if (res.failed()) {
+        // use logger after vert.x logger is configured in d.init
+        Logger logger = LoggerFactory.getLogger("okapi");
         logger.error(res.cause());
         exit(1);
       }
