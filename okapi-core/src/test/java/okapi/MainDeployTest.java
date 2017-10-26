@@ -117,7 +117,8 @@ public class MainDeployTest {
       Response r;
 
       c = api.createRestAssured();
-      r = c.given().get("/_/version").then().statusCode(200).log().ifError().extract().response();
+      r = c.given().get("/_/version")
+        .then().statusCode(200).log().ifValidationFails().extract().response();
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -140,7 +141,8 @@ public class MainDeployTest {
       Response r;
 
       c = api.createRestAssured();
-      r = c.given().get("/_/deployment/modules").then().statusCode(200).log().ifError().extract().response();
+      r = c.given().get("/_/deployment/modules")
+        .then().statusCode(200).log().ifValidationFails().extract().response();
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -163,7 +165,8 @@ public class MainDeployTest {
       Response r;
 
       c = api.createRestAssured();
-      r = c.given().get("/_/proxy/modules").then().statusCode(200).log().ifError().extract().response();
+      r = c.given().get("/_/proxy/modules")
+        .then().statusCode(200).log().ifValidationFails().extract().response();
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
@@ -186,7 +189,8 @@ public class MainDeployTest {
       Response r;
 
       c = api.createRestAssured();
-      r = c.given().get("/_/proxy/modules").then().statusCode(200).log().ifError().extract().response();
+      r = c.given().get("/_/proxy/modules")
+        .then().statusCode(200).log().ifValidationFails().extract().response();
 
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());

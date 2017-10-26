@@ -843,7 +843,6 @@ public class InternalModule {
         List<ModuleDescriptor> mdl = res.result();
         if (orderByStr != null) {
           if (!"id".equals(orderByStr)) {
-            logger.warn("unknown orderBy field: " + orderByStr);
             fut.handle(new Failure<>(USER, "unknown orderBy field: " + orderByStr));
             return;
           }
@@ -852,7 +851,6 @@ public class InternalModule {
           } else if ("asc".equals(orderStr)) {
             Collections.sort(mdl);
           } else {
-            logger.warn("invalid order value: " + orderStr);
             fut.handle(new Failure<>(USER, "invalid order value: " + orderStr));
             return;
           }
