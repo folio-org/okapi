@@ -1540,7 +1540,8 @@ public class ModuleTest {
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/something.we.do.not.have")
-      .then().statusCode(404);
+      .then().statusCode(404)
+      .body(equalTo("No suitable module found for path /something.we.do.not.have"));
 
     // Request without an auth token
     given()
@@ -2697,8 +2698,8 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/badredirect")
       .then().statusCode(500)
-      .body(containsString("No suitable module found"))
-      .log().ifError();
+      .body(equalTo("Redirecting /badredirect to /nonexisting FAILED. No suitable module found"))
+      .log().ifValidationFails();
 
     // catch redirect loops
     given()
