@@ -200,8 +200,8 @@ public class ModuleTest {
     String emptyListDoc = "[ ]";
 
     String superTenantDoc = "[ {" + LS
-      + "  \"id\" : \"okapi.supertenant\"," + LS
-      + "  \"name\" : \"okapi.supertenant\"," + LS
+      + "  \"id\" : \"supertenant\"," + LS
+      + "  \"name\" : \"supertenant\"," + LS
       + "  \"description\" : \"Okapi built-in super tenant\"" + LS
       + "} ]";
     given().get("/_/deployment/modules").then()
