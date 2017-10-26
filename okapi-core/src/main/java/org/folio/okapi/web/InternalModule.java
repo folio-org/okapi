@@ -26,6 +26,7 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -659,12 +660,20 @@ public class InternalModule {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
+  private TenantInstallOptions createTenantOptions(RoutingContext ctx) {
+    TenantInstallOptions options = new TenantInstallOptions();
+
+    options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
+    options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
+    options.setAutoDeploy(getParamBoolean(ctx.request(), "autoDeploy", false));
+    return options;
+  }
+
   private void installModulesForTenant(ProxyContext pc, String id,
     String body, Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      final boolean simulate = getParamBoolean(pc.getCtx().request(), "simulate", false);
-      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+      TenantInstallOptions options = createTenantOptions(pc.getCtx());
 
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
         TenantModuleDescriptor[].class);
@@ -672,7 +681,7 @@ public class InternalModule {
       for (int i = 0; i < tml.length; i++) {
         tm.add(tml[i]);
       }
-      tenantManager.installUpgradeModules(id, pc, simulate, preRelease, tm, res -> {
+      tenantManager.installUpgradeModules(id, pc, options, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
@@ -689,10 +698,9 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      final boolean simulate = getParamBoolean(pc.getCtx().request(), "simulate", false);
-      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+      TenantInstallOptions options = createTenantOptions(pc.getCtx());
 
-      tenantManager.installUpgradeModules(id, pc, simulate, preRelease, null, res -> {
+      tenantManager.installUpgradeModules(id, pc, options, null, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {

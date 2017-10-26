@@ -625,6 +625,16 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // upgrade service: autoDeloy is unsupported
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?autoDeploy=true")
+      .then().statusCode(500);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // deploy basic 2.0.0
     final String docBasicDeployment_2_0_0 = "{" + LS
       + "  \"srvcId\" : \"basic-module-2.0.0\"," + LS
