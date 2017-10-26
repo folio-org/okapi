@@ -201,8 +201,7 @@ public class ProxyService {
         pc.responseText(403, "Missing Tenant");
         return null;
       } else {
-        pc.responseError(404, "No suitable module found for "
-          + req.absoluteURI());
+        pc.responseError(404, "No suitable module found for path " + req.path());
         return null;
       }
     }
