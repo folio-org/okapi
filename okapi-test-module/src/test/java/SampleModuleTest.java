@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
-public class SamleModuleTest {
+public class SampleModuleTest {
 
   private Vertx vertx;
   private static final int PORT = 9130;
