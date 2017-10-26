@@ -59,6 +59,7 @@ public class DockerTest {
 
   @After
   public void tearDown(TestContext context) {
+    logger.info("tearDown");
     td(context, context.async());
   }
 
@@ -128,16 +129,11 @@ public class DockerTest {
   public void testDockerModule(TestContext context) {
     Async async = context.async();
     checkDocker(res -> {
-      if (res.succeeded()) {
-        dockerTest1(context, async);
-      } else {
-        logger.info("NOT running module within Docker test. Reason: " + res.cause().getMessage());
-        async.complete();
-      }
+      dockerTest1(context, async, res.succeeded());
     });
   }
 
-  private void dockerTest1(TestContext context, Async async) {
+  private void dockerTest1(TestContext context, Async async, boolean haveDocker) {
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -164,32 +160,41 @@ public class DockerTest {
       + "  }" + LS
       + "}";
 
-    logger.info("module 1");
+    logger.info("module 1 haveDocker " + haveDocker);
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDockerModule).post("/_/proxy/modules")
       .then()
-      .statusCode(201)
+      .statusCode(201).log().ifValidationFails()
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(), c.getLastReport().isEmpty());
     locations.add(r.getHeader("Location"));
 
-    logger.info("deploy 1");
     final String doc1 = "{" + LS
       + "  \"srvcId\" : \"sample-module-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
     c = api.createRestAssured();
-    r = c.given().header("Content-Type", "application/json")
-            .body(doc1).post("/_/discovery/modules")
-            .then().statusCode(201)
-            .extract().response();
+    if (haveDocker) {
+      r = c.given().header("Content-Type", "application/json")
+        .body(doc1).post("/_/discovery/modules")
+        .then().statusCode(201)
+        .extract().response();
+      locations.add(r.getHeader("Location"));
+    } else {
+      c.given().header("Content-Type", "application/json")
+        .body(doc1).post("/_/discovery/modules")
+        .then().statusCode(500);
+    }
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
-    locations.add(r.getHeader("Location"));
-    dockerTests2(context, async);
+      c.getLastReport().isEmpty());
+    if (haveDocker) {
+      dockerTests2(context, async);
+    } else {
+      async.complete();
+    }
   }
 
   private void dockerTests2(TestContext context, Async async) {
