@@ -87,16 +87,6 @@ public class ModuleTest {
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
-    String pUrl = null;
-    postgres = new EmbeddedPostgres(V9_6);
-    pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
-
-    MongodStarter starter = MongodStarter.getDefaultInstance();
-    mongoExe = starter.prepare(new MongodConfigBuilder()
-      .version(de.flapdoodle.embed.mongo.distribution.Version.V3_4_1)
-      .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
-      .build());
-    mongoD = mongoExe.start();
   }
 
   @AfterClass
@@ -112,7 +102,7 @@ public class ModuleTest {
     }
   }
 
-  public ModuleTest(int value) {
+  public ModuleTest(int value) throws Exception {
     conf = new JsonObject();
 
     conf.put("port_start", "9131")
@@ -123,11 +113,22 @@ public class ModuleTest {
       conf.put("storage", "postgres")
         .put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
-
+      if (postgres == null) {
+        postgres = new EmbeddedPostgres(V9_6);
+        String pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+      }
     } else if (value == 2) {
       conf.put("storage", "mongo")
         .put("mongo_host", "localhost")
         .put("mongo_port", Integer.toString(MONGO_PORT));
+      if (mongoD == null) {
+        MongodStarter starter = MongodStarter.getDefaultInstance();
+        mongoExe = starter.prepare(new MongodConfigBuilder()
+          .version(de.flapdoodle.embed.mongo.distribution.Version.V3_4_1)
+          .net(new Net("localhost", MONGO_PORT, Network.localhostIsIPv6()))
+          .build());
+        mongoD = mongoExe.start();
+      }
     }
   }
 
