@@ -1,4 +1,19 @@
-## 2.0.1 2017-10-23
+## 2.1.0 2017-10-26
+
+ * Extend okapi.common ErrorType with FORBIDDEN type OKAPI-454
+ * Allow re-posting identical ModuleDescriptor OKAPI-437
+ * 404 Not Found Errors do not correctly report protocol OKAPI-441
+ * Simplify code for Internal Modules and more coverage OKAPI-445
+ * Test and improve error handling of pull OKAPI-446
+ * simplify TenantManager OKAPI-447
+ * TenantStore simplifications OKAPI-448
+ * Test header module OKAPI-449
+ * Remove unused code from LogHelp OKAPI-450
+ * RestAssured : use log ifValidationFails OKAPI-452
+ * Strange logformat OKAPI-453
+ * Test docker - even if not present OKAPI-454
+
+## 2.0.2 2017-10-23
 
  * When Okapi relays HTTP responses chunked-encoding is disabled
    for 204 responses OKAPI-440
