@@ -804,16 +804,18 @@ public class TenantManager {
         mdTo = modsAvailable.get(tm.getId());
       } else if ("disable".equals(tm.getAction())) {
         mdFrom = modsAvailable.get(tm.getId());
-      } else {
-        installCommit(tenant, pc, modsAvailable, it, fut);
       }
-      ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          installCommit(tenant, pc, modsAvailable, it, fut);
-        }
-      });
+      if (mdFrom == null && mdTo == null) {
+        installCommit(tenant, pc, modsAvailable, it, fut);
+      } else {
+        ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            installCommit(tenant, pc, modsAvailable, it, fut);
+          }
+        });
+      }
     } else {
       fut.handle(new Success<>());
     }
