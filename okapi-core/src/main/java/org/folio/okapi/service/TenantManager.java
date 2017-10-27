@@ -63,13 +63,13 @@ public class TenantManager {
    * @param vertx
    * @param fut
    */
-  public void init(Vertx vertx,  Handler<ExtendedAsyncResult<Void>> fut) {
+  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
-        return;
+      } else {
+        loadTenants(fut);
       }
-      loadTenants(fut);
     });
   }
 
@@ -780,10 +780,6 @@ public class TenantManager {
     ModuleId moduleId = new ModuleId(id);
     if (!moduleId.hasSemVer()) {
       id = moduleId.getLatest(modsEnabled.keySet());
-      if (id == null) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return true;
-      }
     }
     if (tmUpToDate(modsEnabled, id, fut)) {
       return true;
@@ -808,6 +804,8 @@ public class TenantManager {
         mdTo = modsAvailable.get(tm.getId());
       } else if ("disable".equals(tm.getAction())) {
         mdFrom = modsAvailable.get(tm.getId());
+      } else {
+        installCommit(tenant, pc, modsAvailable, it, fut);
       }
       ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
         if (res.failed()) {
@@ -977,30 +975,28 @@ public class TenantManager {
    * @param fut
    */
   public void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
-    if (tenantStore == null) {  // no storage, we are done.
-      logger.info("No storage to load tenants from starting with empty");
-      fut.handle(new Success<>());
-      return;
-    }
     tenants.getKeys(gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      Collection<String> keys = gres.result();
-      if (!keys.isEmpty()) {
-        logger.info("Not loading tenants, looks like someone already did");
-        fut.handle(new Success<>());
-        return;
-      }
-      tenantStore.listTenants(lres -> {
-        if (lres.failed()) {
-          fut.handle(new Failure<>(lres.getType(), lres.cause()));
+      } else {
+        Collection<String> keys = gres.result();
+        if (!keys.isEmpty()) {
+          logger.info("Not loading tenants, looks like someone already did");
+          fut.handle(new Success<>());
+        } else if (tenantStore == null) {
+          logger.info("No storage to load tenants from from starting with empty");
+          fut.handle(new Success<>());
         } else {
-          Iterator<Tenant> it = lres.result().iterator();
-          loadR(it, fut);
+          tenantStore.listTenants(lres -> {
+            if (lres.failed()) {
+              fut.handle(new Failure<>(lres.getType(), lres.cause()));
+            } else {
+              Iterator<Tenant> it = lres.result().iterator();
+              loadR(it, fut);
+            }
+          });
         }
-      });
+      }
     });
   }
 

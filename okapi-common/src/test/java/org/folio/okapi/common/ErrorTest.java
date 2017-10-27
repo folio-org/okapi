@@ -18,6 +18,10 @@ public class ErrorTest {
     assertEquals(404, ErrorType.httpCode(ErrorType.NOT_FOUND));
     assertEquals(403, ErrorType.httpCode(ErrorType.FORBIDDEN));
     assertEquals(500, ErrorType.httpCode(ErrorType.INTERNAL));
+
+    String nullStr = null;
+    Failure<Void> g = new Failure<>(ErrorType.NOT_FOUND, nullStr);
+    assertNull(g.cause().getMessage());
   }
 
   @Test
