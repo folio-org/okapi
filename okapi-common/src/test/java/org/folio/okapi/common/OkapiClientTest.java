@@ -155,6 +155,7 @@ public class OkapiClientTest {
     HashMap<String, String> headers = new HashMap<>();
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, tenant);
+    headers.put(XOkapiHeaders.REQUEST_ID, "919");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     assertEquals(URL, cli.getOkapiUrl());
