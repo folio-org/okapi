@@ -465,37 +465,35 @@ public class ModuleManager {
             String ten = gres.cause().getMessage();
             fut.handle(new Failure<>(USER, "update: module " + id
               + " is used by tenant " + ten));
-            return;
           } else { // any other error
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
-            return;
           }
+          return;
         }
         // all ok, we can update it
         if (moduleStore == null) { // no db, just upd shared memory
           modules.put(id, md, mres -> {
             if (mres.failed()) {
               fut.handle(new Failure<>(mres.getType(), mres.cause()));
-              return;
+            } else {
+              fut.handle(new Success<>());
             }
-            fut.handle(new Success<>());
           });
-          return;
+        } else {
+          moduleStore.update(md, ures -> { // store in db first,
+            if (ures.failed()) {
+              fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            } else {
+              modules.put(id, md, mres -> { // then in shared mem
+                if (mres.failed()) {
+                  fut.handle(new Failure<>(mres.getType(), mres.cause()));
+                } else {
+                  fut.handle(new Success<>());
+                }
+              });
+            }
+          });
         }
-        moduleStore.update(md, ures -> { // store in db first,
-          if (ures.failed()) {
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            return;
-          }
-          modules.put(id, md, mres -> { // then in shared mem
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-              return;
-            }
-            fut.handle(new Success<>());
-            return;
-          });
-        });
       }); // getModuleUser
     }); // get
   }
@@ -524,17 +522,15 @@ public class ModuleManager {
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
           }
-          return;
-        }
-        if (moduleStore == null) {
+        } else if (moduleStore == null) {
           deleteInternal(id, fut);
         } else {
           moduleStore.delete(id, dres -> {
             if (dres.failed()) {
               fut.handle(new Failure<>(dres.getType(), dres.cause()));
-              return;
+            } else {
+              deleteInternal(id, fut);
             }
-            deleteInternal(id, fut);
           });
         }
       });
@@ -554,20 +550,20 @@ public class ModuleManager {
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.remove(id, rres -> {
       if (rres.failed()) {
         fut.handle(new Failure<>(rres.getType(), rres.cause()));
-        return;
+      } else {
+        fut.handle(new Success<>());
       }
-      fut.handle(new Success<>());
     });
   }
-
 
   /**
    * Get a module.
@@ -610,10 +606,10 @@ public class ModuleManager {
     modules.getKeys(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
-        return;
+      } else {
+        Collection<String> keys = kres.result();
+        getModulesFromCollection(keys, filter, preRelease, fut);
       }
-      Collection<String> keys = kres.result();
-      getModulesFromCollection(keys, filter, preRelease, fut);
     });
   }
 
