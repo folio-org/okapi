@@ -177,7 +177,6 @@ public class OkapiClientTest {
     assertEquals(tokenStr, cli.getOkapiToken());
 
     cli.newReqId("920");
-    cli.newReqId("921");
 
     cli.get("/test1", res -> {
       assertTrue(res.succeeded());
@@ -237,6 +236,7 @@ public class OkapiClientTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, null);
     assertEquals(URL, cli.getOkapiUrl());
+    cli.newReqId("920");
 
     cli.get("/test1?e=403", res -> {
       context.assertTrue(res.failed());
