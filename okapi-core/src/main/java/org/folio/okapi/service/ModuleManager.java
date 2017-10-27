@@ -472,25 +472,13 @@ public class ModuleManager {
         }
         // all ok, we can update it
         if (moduleStore == null) { // no db, just upd shared memory
-          modules.put(id, md, mres -> {
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-            } else {
-              fut.handle(new Success<>());
-            }
-          });
+          modules.put(id, md, fut);
         } else {
           moduleStore.update(md, ures -> { // store in db first,
             if (ures.failed()) {
               fut.handle(new Failure<>(ures.getType(), ures.cause()));
             } else {
-              modules.put(id, md, mres -> { // then in shared mem
-                if (mres.failed()) {
-                  fut.handle(new Failure<>(mres.getType(), mres.cause()));
-                } else {
-                  fut.handle(new Success<>());
-                }
-              });
+              modules.put(id, md, fut);
             }
           });
         }
