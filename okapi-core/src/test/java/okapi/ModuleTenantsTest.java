@@ -505,11 +505,22 @@ public class ModuleTenantsTest {
       .body("{").post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400);
 
-    // enable modules: post unknown module
+    // enable modules: post unknown module with semver
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo-1.2.3\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // enable modules: post unknown module without semver
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-foo\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(404);
     Assert.assertTrue(
