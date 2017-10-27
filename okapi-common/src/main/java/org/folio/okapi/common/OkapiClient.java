@@ -186,11 +186,7 @@ public class OkapiClient {
     });
     req.exceptionHandler(x -> {
       String msg = x.getMessage();
-      if (msg == null || msg.isEmpty()) { // unresolved address results in no message
-        msg = x.toString(); // so we use toString instead
-      } // but not both, because connection error has identical string in both...
-      logger.warn(reqId + " OkapiClient exception: "
-        + x.toString() + ": " + x.getMessage(), x);
+      logger.warn(reqId + " OkapiClient exception: " + msg);
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
