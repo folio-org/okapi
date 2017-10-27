@@ -593,11 +593,7 @@ public class ModuleManager {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
         } else {
           String latest = moduleId.getLatest(res2.result());
-          if (latest != null) {
-            get(latest, fut);
-          } else {
-            fut.handle(new Failure<>(NOT_FOUND, id));
-          }
+          get(latest, fut);
         }
       });
     }
