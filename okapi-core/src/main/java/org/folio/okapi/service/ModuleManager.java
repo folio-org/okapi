@@ -600,15 +600,6 @@ public class ModuleManager {
   }
 
   /**
-   * List the ids of all modules.
-   *
-   * @param fut
-   */
-  public void list(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    modules.getKeys(fut);
-  }
-
-  /**
    * Get all ModuleDescriptors that obey filter (possibly all)
    *
    * @param filter
