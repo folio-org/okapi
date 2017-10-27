@@ -1,6 +1,4 @@
-#!/usr/bin/groovy
 
-@Library('folio_jenkins_shared_libs@folio-886') _
 
 buildMvn {
   publishModDescriptor = 'no'
