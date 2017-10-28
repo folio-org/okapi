@@ -8,15 +8,20 @@ use warnings;
 
 my $lowest = 1;
 my $highest = 99;
+my $skip = 0;
+
 while (@ARGV > 2) {
     if ($ARGV[0] eq '-l') {
         $lowest = $ARGV[1]; shift; shift;
     } elsif ($ARGV[0] eq '-h') {
         $highest = $ARGV[1]; shift; shift;
+    } elsif ($ARGV[0] eq '-s') {
+        $skip = $ARGV[1]; shift; shift;
     } elsif ($ARGV[0] =~ /^-/) {
-        print STDERR "Usage: md2toc [-l <lowest>] [-h <highest>] <FILE.md>\
+        print STDERR "Usage: md2toc [-l <lowest>] [-h <highest>] [-s <skip>] <FILE.md>\
         -l <lowest> specified lowest heading level to include.\
-        -h <highest> specified highest heading level to include.\n";
+        -h <highest> specified highest heading level to include.\
+        -s <skip> skip the first few lines of generated output.\n";
         exit 1;
     } else {
         last;
@@ -31,6 +36,10 @@ while (my $line = <>) {
         my $link = lc($line);
         $link =~ s/ /-/g;
         $link =~ s/[^a-z0-9-]//g;
-        print '    ' x ($level-$lowest), "* [$line](#$link)\n";
+	if ($skip > 0) {
+	    $skip--;
+	} else {
+	    print '    ' x ($level-$lowest), "* [$line](#$link)\n";
+	}
     }
 }
