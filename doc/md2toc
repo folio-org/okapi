@@ -19,8 +19,8 @@ while (@ARGV > 2) {
         $skip = $ARGV[1]; shift; shift;
     } elsif ($ARGV[0] =~ /^-/) {
         print STDERR "Usage: md2toc [-l <lowest>] [-h <highest>] [-s <skip>] <FILE.md>\
-        -l <lowest> specified lowest heading level to include.\
-        -h <highest> specified highest heading level to include.\
+        -l <lowest> specifies lowest heading level to include.\
+        -h <highest> specifies highest heading level to include.\
         -s <skip> skip the first few lines of generated output.\n";
         exit 1;
     } else {
