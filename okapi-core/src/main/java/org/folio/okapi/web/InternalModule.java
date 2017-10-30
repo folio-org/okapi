@@ -537,7 +537,7 @@ public class InternalModule {
         td.setId(UUID.randomUUID().toString());
       }
       final String id = td.getId();
-      if (!id.matches("^[a-z0-9._-]+$")) {
+      if (!id.matches("^[a-z0-9_-]+$")) {
         fut.handle(new Failure<>(USER, "Invalid tenant id '" + id + "'"));
         return;
       }
