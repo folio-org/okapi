@@ -5,7 +5,7 @@ buildMvn {
   publishAPI = 'yes'
   mvnDeploy = 'yes'
 
-  doDocker = { 
+  doDocker = {
     buildJavaDocker {
       dockerDir = 'okapi-core'
       overrideConfig  = 'no'

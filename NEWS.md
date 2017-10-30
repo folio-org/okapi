@@ -5,7 +5,7 @@
  * 404 Not Found Errors do not correctly report protocol OKAPI-441
  * Simplify code for Internal Modules and more coverage OKAPI-445
  * Test and improve error handling of pull OKAPI-446
- * simplify TenantManager OKAPI-447
+ * Simplify TenantManager OKAPI-447
  * TenantStore simplifications OKAPI-448
  * Test header module OKAPI-449
  * Remove unused code from LogHelp OKAPI-450

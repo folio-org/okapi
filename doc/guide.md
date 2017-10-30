@@ -41,6 +41,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Instrumentation](#instrumentation)
 
 ## Introduction
 

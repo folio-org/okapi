@@ -36,10 +36,10 @@ while (my $line = <>) {
         my $link = lc($line);
         $link =~ s/ /-/g;
         $link =~ s/[^a-z0-9-]//g;
-	if ($skip > 0) {
-	    $skip--;
-	} else {
-	    print '    ' x ($level-$lowest), "* [$line](#$link)\n";
-	}
+        if ($skip > 0) {
+            $skip--;
+        } else {
+            print '    ' x ($level-$lowest), "* [$line](#$link)\n";
+        }
     }
 }
