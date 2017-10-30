@@ -243,6 +243,69 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  public void autoDeploy(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    logger.info("autoDeploy " + md.getId());
+    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    if (modLaunchDesc == null) {
+      logger.info("autoDeploy " + md.getId() + " no lunchDescriptor");
+      fut.handle(new Success());
+      return;
+    }
+    nodes.getKeys(res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      } else {
+        Collection<String> allNodes = res1.result();
+        deployments.get(md.getId(), res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            List<DeploymentDescriptor> ddList = res.result();
+            // deploy on all nodes for now
+            for (String node : allNodes) {
+              // check if we have deploy on node
+              logger.info("autoDeploy " + md.getId() + " consider " + node);
+              DeploymentDescriptor foundDd = null;
+              for (DeploymentDescriptor dd : ddList) {
+                if (node.equals(dd.getNodeId())) {
+                  foundDd = dd;
+                }
+              }
+              if (foundDd == null) {
+                logger.info("autoDeploy " + md.getId() + " must deploy");
+                // no deployment on node.. launch
+                DeploymentDescriptor dd = new DeploymentDescriptor();
+                dd.setDescriptor(modLaunchDesc);
+                dd.setSrvcId(md.getId());
+                launchIt(node, dd, res2 -> {
+                  if (res2.failed()) {
+                    logger.info("launchIt failed");
+                    fut.handle(new Failure<>(res2.getType(), res2.cause()));
+                  } else {
+                    logger.info("launchIt OK");
+                    autoDeploy(md, fut);
+                  }
+                });
+                return;
+              } else {
+                logger.info("autoDeploy " + md.getId() + " already deployed");
+              }
+            }
+            fut.handle(new Success());
+          }
+        });
+      }
+    });
+  }
+
+  public void autoUndeploy(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.info("autoUndeploy " + md.getId());
+
+    fut.handle(new Success());
+  }
+
   /**
    * Get the list for one srvcId. May return an empty list.
    */

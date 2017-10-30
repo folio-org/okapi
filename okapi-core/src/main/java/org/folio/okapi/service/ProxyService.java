@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.folio.okapi.bean.DeploymentDescriptor;
+import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
@@ -908,5 +909,18 @@ public class ProxyService {
     logger.debug("redirectProxy: After rerouting: "
       + ctx.request().path() + " " + ctx.request().query());
   }
+
+  public void autoDeploy(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    discoveryManager.autoDeploy(md, fut);
+  }
+
+  public void autoUndeploy(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    discoveryManager.autoUndeploy(md, fut);
+  }
+
 
 } // class

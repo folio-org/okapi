@@ -2,6 +2,7 @@ package okapi;
 
 import org.folio.okapi.MainVerticle;
 import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.http.ContentType;
 import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
@@ -179,25 +180,6 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // deploy basic 1.0.0
-    final String docBasicDeployment_1_0_0 = "{" + LS
-      + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
-    c = api.createRestAssured();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docBasicDeployment_1_0_0).post("/_/deployment/modules")
-      .then()
-      .statusCode(201)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    locationBasicDeployment_1_0_0 = r.getHeader("Location");
-
     // create basic 1.0.0
     final String docBasic_1_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -218,7 +200,11 @@ public class ModuleTenantsTest {
       + "      \"pathPattern\" : \"/foo\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -230,24 +216,22 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     final String locationBasic_1_0_0 = r.getHeader("Location");
 
-    // deploy sample 1.0.0
-    final String docSampleDeployment_1_0_0 = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
+    // deploy basic 1.0.0
+    final String docBasicDeployment_1_0_0 = "{" + LS
+      + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
+      + "  \"nodeId\" :  \"localhost\"" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleDeployment_1_0_0).post("/_/deployment/modules")
+      .body(docBasicDeployment_1_0_0).post("/_/discovery/modules")
       .then()
       .statusCode(201)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment_1_0_0 = r.getHeader("Location");
+    locationBasicDeployment_1_0_0 = r.getHeader("Location");
+
     // create sample 1.0.0
     final String docSample_1_0_0 = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -268,7 +252,11 @@ public class ModuleTenantsTest {
       + "      \"pathPattern\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
@@ -278,6 +266,22 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    // deploy sample 1.0.0
+    final String docSampleDeployment_1_0_0 = "{" + LS
+      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleDeployment_1_0_0).post("/_/discovery/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationSampleDeployment_1_0_0 = r.getHeader("Location");
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -342,7 +346,11 @@ public class ModuleTenantsTest {
       + "      \"pathPattern\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]" + LS
+      + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
       + "}";
 
     c = api.createRestAssured();
@@ -357,15 +365,12 @@ public class ModuleTenantsTest {
     // deploy sample 1.2.0
     final String docSampleDeployment_1_2_0 = "{" + LS
       + "  \"srvcId\" : \"sample-module-1.2.0\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleDeployment_1_2_0).post("/_/deployment/modules")
+      .body(docSampleDeployment_1_2_0).post("/_/discovery/modules")
       .then()
       .statusCode(201)
       .extract().response();
@@ -527,7 +532,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // enable modules: post known module
+    // enable modules: post known module with simulation
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -542,17 +547,30 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // we simulated above.. Now actually insert it with old style enable
+    // make sure sample-module-1.0.0 is not deployed anymore
     c = api.createRestAssured();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(201)
-      .body(equalTo(docEnableSample)).extract().response();
+    c.given()
+      .delete(locationSampleDeployment_1_0_0)
+      .then()
+      .statusCode(204);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationTenantModule = r.getHeader("Location");
+
+    // we simulated above.. This time for real
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?autoDeploy=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // enable modules again: post known module
     c = api.createRestAssured();
@@ -636,35 +654,6 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // upgrade service: autoDeloy is unsupported
-    c = api.createRestAssured();
-    c.given()
-      .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?autoDeploy=true")
-      .then().statusCode(500);
-    Assert.assertTrue(
-      "raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    // deploy basic 2.0.0
-    final String docBasicDeployment_2_0_0 = "{" + LS
-      + "  \"srvcId\" : \"basic-module-2.0.0\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
-    c = api.createRestAssured();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docBasicDeployment_2_0_0).post("/_/deployment/modules")
-      .then()
-      .statusCode(201)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    locationBasicDeployment_2_0_0 = r.getHeader("Location");
-
     // create basic 2.0.0
     final String docBasic_2_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-2.0.0\"," + LS
@@ -696,6 +685,25 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationBasic_2_0_0 = r.getHeader("Location");
+
+    // deploy basic 2.0.0
+    final String docBasicDeployment_2_0_0 = "{" + LS
+      + "  \"srvcId\" : \"basic-module-2.0.0\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasicDeployment_2_0_0).post("/_/deployment/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    locationBasicDeployment_2_0_0 = r.getHeader("Location");
 
     // upgrade service simulate: will return same as previous one
     // basic 2.0.0 should not be included because bint 2.0 is not used
