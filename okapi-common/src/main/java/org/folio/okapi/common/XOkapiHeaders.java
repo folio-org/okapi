@@ -130,7 +130,7 @@ public class XOkapiHeaders {
   /**
    * The id of the always-present super tenant.
    */
-  public static final String SUPERTENANT_ID = "okapi.supertenant";
+  public static final String SUPERTENANT_ID = "supertenant";
 
   /**
    * The name of the internal Okapi module. Version will be copied from software

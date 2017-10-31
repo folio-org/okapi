@@ -1,3 +1,9 @@
+## 2.2.0 2017-10-31
+
+ * Rename the supertenant (used to be okapi.supertenant) OKAPI-455
+   Stricly speaking a breaking change but nobody was using it.
+ * More testing of new XOkapiClient code OKAPI-457
+
 ## 2.1.0 2017-10-26
 
  * Extend okapi.common ErrorType with FORBIDDEN type OKAPI-454
@@ -5,7 +11,7 @@
  * 404 Not Found Errors do not correctly report protocol OKAPI-441
  * Simplify code for Internal Modules and more coverage OKAPI-445
  * Test and improve error handling of pull OKAPI-446
- * simplify TenantManager OKAPI-447
+ * Simplify TenantManager OKAPI-447
  * TenantStore simplifications OKAPI-448
  * Test header module OKAPI-449
  * Remove unused code from LogHelp OKAPI-450
