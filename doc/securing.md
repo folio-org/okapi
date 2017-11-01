@@ -59,8 +59,6 @@ superuser privs with something like
 sudo -u postgres psql -c "ALTER USER okapi  WITH SUPERUSER"
 ```
 
-
-```
 TODO: Set up the same way as Wayne does. See https://github.com/folio-org/folio-ansible/blob/master/roles/postgresql/tasks/main.yml
 
 <!--
@@ -169,7 +167,7 @@ version above -->
 ### Declaring the modules
 
 
-The module descritpors are generated from a template during the build process.
+The module descriptors are generated from a template during the build process.
 
 Where ever they come from, we just need to POST them to Okapi.
 ```

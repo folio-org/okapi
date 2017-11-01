@@ -1,7 +1,7 @@
 ## 2.2.0 2017-10-31
 
  * Rename the supertenant (used to be okapi.supertenant) OKAPI-455
-   Stricly speaking a breaking change but nobody was using it.
+   Strictly speaking a breaking change but nobody was using it.
  * More testing of new XOkapiClient code OKAPI-457
 
 ## 2.1.0 2017-10-26
