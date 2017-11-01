@@ -167,7 +167,7 @@ version above -->
 ### Declaring the modules
 
 
-The module descritpors are generated from a template during the build process.
+The module descriptors are generated from a template during the build process.
 
 Where ever they come from, we just need to POST them to Okapi.
 ```
