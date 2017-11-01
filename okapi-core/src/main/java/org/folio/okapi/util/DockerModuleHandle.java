@@ -147,6 +147,7 @@ public class DockerModuleHandle implements ModuleHandle {
       res.endHandler(d -> {
         if (res.statusCode() == 200) {
           JsonObject b = body.toJsonObject();
+          logger.info(b.encodePrettily());
           future.handle(Future.succeededFuture(b));
         } else {
           String m = url + " HTTP error "
@@ -235,6 +236,7 @@ public class DockerModuleHandle implements ModuleHandle {
       }
     }
     String doc = j.encodePrettily();
+    doc = doc.replace("%p", Integer.toString(hostPort));
     logger.info("createContainer\n" + doc);
     postUrlBody(dockerUrl + "/containers/create", doc, future);
   }
