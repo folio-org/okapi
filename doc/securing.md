@@ -110,32 +110,31 @@ This script requires the following modules.
 * mod-login
 * mod-authtoken
 
-The following commands fetch and compile the modules in versions that are known
-to work together. You should be able to change them all to check out `master`
-and run the latest and greatest, but since the master branch is always under
-development, things can occasionally go wrong.
+The following commands fetch and compile the modules. We use the tip of the
+master branches here, but beware, things may change under your feet. You can
+add a `git checkout` to get to a known good version.
 
 ```
 git clone git@github.com:folio-org/mod-permissions.git
 cd mod-permissions
-git checkout "v4.0.4"  # Or "master" if you want the latest, or any other tag
+#git checkout master # "v4.0.4" is way too old
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-users.git
 cd mod-users
-git checkout v14.2.0
+#git checkout master # maybe v14.2.0 works
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-login.git
-git checkout master # v3.1.0 is way too old
+# git checkout master # v3.1.0 is way too old
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-authtoken.git
 cd mod-authtoken
-git checkout v1.1.0
+#git checkout master # v1.1.0
 mvn clean install
 cd ..
 ```
@@ -170,11 +169,7 @@ version above -->
 ### Declaring the modules
 
 
-The modules are not quite consistent in where they keep their descriptors. Most
-use the modern way, and have a `ModuleDescriptor-template.json` under `descriptors`,
-and the build process creates the actual ModuleDescriptor under `target` with the
-right version numbers. Some still have hard coded ModuleDescriptors in the main
-directory.
+The module descritpors are generated from a template during the build process.
 
 Where ever they come from, we just need to POST them to Okapi.
 ```
@@ -202,29 +197,8 @@ curl -w '\n' -D - -X POST  \
 You can verify we have all four modules properly declared:
 ```
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.2 /_/proxy/modules : 200 11836us
-Content-Length: 297
-
-[ {
-  "id" : "okapi-2.0.2",
-  "name" : "okapi-2.0.2"
-}, {
-  "id" : "mod-users-14.2.0",
-  "name" : "users"
-}, {
-  "id" : "mod-permissions-5.0.1-SNAPSHOT",
-  "name" : "permissions"
-}, {
-  "id" : "mod-authtoken-1.1.0",
-  "name" : "authtoken"
-}, {
-  "id" : "mod-login-4.0.1-SNAPSHOT",
-  "name" : "login"
-} ]
 ```
+This should list five modules, the 4 declared above, and Okapi's internal module.
 
 ### Setting up the database environment
 All the modules need to know how to talk to the database. The easiest way is
@@ -267,6 +241,8 @@ out of the `pom.xml` file for each module.
 
 Also note that these commands start with a meaningless-looking cat. It is there
 to trigger the script-running one-liner.
+
+#### mod-permissions
 ```
 cat /dev/null
 export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -287,6 +263,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 
+#### mod-users
 ```
 cat /dev/null
 export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -306,6 +283,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/discovery/modules
 ```
 
+#### mod-login
 ```
 cat /dev/null
 export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -325,6 +303,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/discovery/modules
 ```
 
+#### mod-authtoken
 ```
 cat /dev/null
 export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -381,6 +360,7 @@ curl -w '\n' -D - -X POST  \
    http://localhost:9130/_/proxy/tenants/supertenant/modules/okapi-$OKAPIVER
 
 ```
+
 #### Create our superuser in the perms module
 ```
 cat > /tmp/permuser.json <<END
