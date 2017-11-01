@@ -155,7 +155,8 @@ public class DockerTest {
       + "    \"dockerPull\" : false," + LS
       + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"StopTimeout\" : 12" + LS
+      + "      \"StopTimeout\" : 12," + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8080/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";
