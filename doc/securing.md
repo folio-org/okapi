@@ -59,8 +59,6 @@ superuser privs with something like
 sudo -u postgres psql -c "ALTER USER okapi  WITH SUPERUSER"
 ```
 
-
-```
 TODO: Set up the same way as Wayne does. See https://github.com/folio-org/folio-ansible/blob/master/roles/postgresql/tasks/main.yml
 
 <!--
