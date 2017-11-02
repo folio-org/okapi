@@ -1049,7 +1049,7 @@ public class TenantManager {
           logger.info("Not loading tenants, looks like someone already did");
           fut.handle(new Success<>());
         } else if (tenantStore == null) {
-          logger.info("No storage to load tenants from from starting with empty");
+          logger.info("No storage to load tenants from, so starting with empty");
           fut.handle(new Success<>());
         } else {
           tenantStore.listTenants(lres -> {
