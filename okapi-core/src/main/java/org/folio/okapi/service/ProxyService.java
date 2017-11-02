@@ -909,4 +909,17 @@ public class ProxyService {
       + ctx.request().path() + " " + ctx.request().query());
   }
 
+  public void autoDeploy(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    discoveryManager.autoDeploy(md, fut);
+  }
+
+  public void autoUndeploy(ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    discoveryManager.autoUndeploy(md, fut);
+  }
+
+
 } // class
