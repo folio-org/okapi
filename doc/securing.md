@@ -115,24 +115,24 @@ add a `git checkout` to get to a known good version.
 ```
 git clone git@github.com:folio-org/mod-permissions.git
 cd mod-permissions
-#git checkout master # "v4.0.4" is way too old
+git checkout master # "v4.0.4" is way too old
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-users.git
 cd mod-users
-#git checkout master # maybe v14.2.0 works
+git checkout master # maybe v14.2.0 works
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-login.git
-# git checkout master # v3.1.0 is way too old
+git checkout master # v3.1.0 is way too old
 mvn clean install
 cd ..
 
 git clone git@github.com:folio-org/mod-authtoken.git
 cd mod-authtoken
-#git checkout master # v1.1.0
+git checkout master # v1.1.0
 mvn clean install
 cd ..
 ```
