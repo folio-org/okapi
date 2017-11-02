@@ -251,12 +251,6 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy " + md.getId());
-    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      logger.info("autoDeploy " + md.getId() + " no lunchDescriptor");
-      fut.handle(new Success());
-      return;
-    }
     nodes.getKeys(res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -267,41 +261,52 @@ public class DiscoveryManager implements NodeListener {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
             List<DeploymentDescriptor> ddList = res.result();
-            // deploy on all nodes for now
-            for (String node : allNodes) {
-              // check if we have deploy on node
-              logger.info("autoDeploy " + md.getId() + " consider " + node);
-              DeploymentDescriptor foundDd = null;
-              for (DeploymentDescriptor dd : ddList) {
-                if (node.equals(dd.getNodeId())) {
-                  foundDd = dd;
-                }
-              }
-              if (foundDd == null) {
-                logger.info("autoDeploy " + md.getId() + " must deploy");
-                // no deployment on node.. launch
-                DeploymentDescriptor dd = new DeploymentDescriptor();
-                dd.setDescriptor(modLaunchDesc);
-                dd.setSrvcId(md.getId());
-                callDeploy(node, dd, res2 -> {
-                  if (res2.failed()) {
-                    logger.info("launchIt failed");
-                    fut.handle(new Failure<>(res2.getType(), res2.cause()));
-                  } else {
-                    logger.info("launchIt OK");
-                    autoDeploy(md, fut);
-                  }
-                });
-                return;
-              } else {
-                logger.info("autoDeploy " + md.getId() + " already deployed");
-              }
-            }
-            fut.handle(new Success());
+            autoDeploy2(md, allNodes, ddList, fut);
           }
         });
       }
     });
+  }
+
+  private void autoDeploy2(ModuleDescriptor md, Collection<String> allNodes,
+    List<DeploymentDescriptor> ddList,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    if (modLaunchDesc == null) {
+      logger.info("autoDeploy " + md.getId() + " has no launchDescriptor");
+      return;
+    }
+    // deploy on all nodes for now
+    for (String node : allNodes) {
+      // check if we have deploy on node
+      logger.info("autoDeploy " + md.getId() + " consider " + node);
+      DeploymentDescriptor foundDd = null;
+      for (DeploymentDescriptor dd : ddList) {
+        if (node.equals(dd.getNodeId())) {
+          foundDd = dd;
+        }
+      }
+      if (foundDd == null) {
+        logger.info("autoDeploy " + md.getId() + " must deploy on node " + node);
+        DeploymentDescriptor dd = new DeploymentDescriptor();
+        dd.setDescriptor(modLaunchDesc);
+        dd.setSrvcId(md.getId());
+        callDeploy(node, dd, res2 -> {
+          if (res2.failed()) {
+            logger.info("launchIt failed");
+            fut.handle(new Failure<>(res2.getType(), res2.cause()));
+          } else {
+            logger.info("launchIt OK");
+            autoDeploy(md, fut);
+          }
+        });
+        return;
+      } else {
+        logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
+      }
+    }
+    fut.handle(new Success());
   }
 
   public void autoUndeploy(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
