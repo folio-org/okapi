@@ -51,11 +51,15 @@ import java.util.Set;
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
 
-  // 0 is inmemory, 1 is postgres
+  // 0=inmemory, 1=postgres, 2=mongo
   @Parameterized.Parameters
   public static Iterable<Integer> data() {
-    // 0=inmemory, 1=postgres, 2=mongo
-    return Arrays.asList(0, 1, 2);
+    final String f = System.getenv("okapiFastTest");
+    if (f != null) {
+      return Arrays.asList(0);
+    } else {
+      return Arrays.asList(0, 1, 2);
+    }
   }
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
