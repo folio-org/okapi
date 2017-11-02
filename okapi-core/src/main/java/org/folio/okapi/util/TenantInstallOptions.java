@@ -4,7 +4,7 @@ public class TenantInstallOptions {
 
   private boolean preRelease = false;
   private boolean simulate = false;
-  private boolean autoDeploy = false;
+  private boolean deploy = false;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -22,11 +22,11 @@ public class TenantInstallOptions {
     return simulate;
   }
 
-  public void setAutoDeploy(boolean v) {
-    autoDeploy = v;
+  public void setDeploy(boolean v) {
+    deploy = v;
   }
 
-  public boolean getAutoDeploy() {
-    return autoDeploy;
+  public boolean getDeploy() {
+    return deploy;
   }
 }

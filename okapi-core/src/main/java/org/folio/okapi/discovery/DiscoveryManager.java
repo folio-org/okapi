@@ -88,8 +88,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
-    final String srvcId = dd.getSrvcId();
-    if (srvcId == null) {
+    if (dd.getSrvcId() == null) {
       fut.handle(new Failure<>(USER, "Needs srvcId"));
       return;
     }
@@ -97,24 +96,23 @@ public class DiscoveryManager implements NodeListener {
     final String nodeId = dd.getNodeId();
     if (nodeId == null) {
       if (launchDesc == null) { // 3: externally deployed
-        final String instId = dd.getInstId();
-        if (instId == null) {
+        if (dd.getInstId() == null) {
           fut.handle(new Failure<>(USER, "Needs instId"));
-          return;
+        } else {
+          add(dd, res -> { // just add it
+            if (res.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+            } else {
+              fut.handle(new Success<>(dd));
+            }
+          });
         }
-        deployments.add(srvcId, instId, dd, res -> { // just add it
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            fut.handle(new Success<>(dd));
-          }
-        });
       } else {
         fut.handle(new Failure<>(USER, "missing nodeId"));
       }
     } else {
       if (launchDesc == null) {
-        logger.debug("addAndDeploy: case 2 for " + srvcId);
+        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
         addAndDeploy2(dd, fut, nodeId);
       } else { // Have a launchdesc already in dd
         logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
@@ -157,7 +155,7 @@ public class DiscoveryManager implements NodeListener {
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    logger.debug("launchit starting for " + Json.encode(dd));
+    logger.debug("callDeploy starting for " + Json.encode(dd));
     getNode(nodeId, noderes -> {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));

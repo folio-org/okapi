@@ -500,7 +500,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?autoDeploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -567,7 +567,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&autoDeploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-1.0.0\"," + LS
@@ -585,7 +585,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&autoDeploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
       .then().statusCode(200)
       .body(equalTo("[ ]"));
     Assert.assertTrue(
@@ -681,7 +681,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
-      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&autoDeploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-2.0.0\"," + LS
@@ -747,7 +747,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?autoDeploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-2.0.0\"," + LS

@@ -854,7 +854,7 @@ public class TenantManager {
     Iterator<TenantModuleDescriptor> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext() && options.getAutoDeploy()) {
+    if (it.hasNext() && options.getDeploy()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = null;
       if ("enable".equals(tm.getAction())) {
@@ -917,7 +917,7 @@ public class TenantManager {
     Iterator<TenantModuleDescriptor> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext() && options.getAutoDeploy()) {
+    if (it.hasNext() && options.getDeploy()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = null;
       if ("enable".equals(tm.getAction())) {
@@ -930,7 +930,7 @@ public class TenantManager {
         final ModuleDescriptor mdF = md;
         getModuleUser(md.getId(), ures -> {
           if (ures.failed()) {
-            // in use or other error skipo
+            // in use or other error, so skip
             installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it

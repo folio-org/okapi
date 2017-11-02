@@ -622,8 +622,8 @@ schemas:
           must be deployed (optionally) and enabled/disabled by the existing
           tenants-modules CRUD service.
         queryParameters:
-          autoDeploy:
-            description: whether to auto-deploy
+          deploy:
+            description: whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
           simulate:
@@ -663,8 +663,8 @@ schemas:
           The response is a list of modules that should be enabled, disabled
           or upgraded to perform the upgrade.
         queryParameters:
-          autoDeploy:
-            description: whether to auto-deploy
+          deploy:
+            description: whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
           simulate:

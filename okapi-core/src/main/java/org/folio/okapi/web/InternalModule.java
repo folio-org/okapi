@@ -665,7 +665,7 @@ public class InternalModule {
 
     options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
-    options.setAutoDeploy(getParamBoolean(ctx.request(), "autoDeploy", false));
+    options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
     return options;
   }
 
