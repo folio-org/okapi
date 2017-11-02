@@ -930,9 +930,10 @@ public class TenantManager {
         final ModuleDescriptor mdF = md;
         getModuleUser(md.getId(), ures -> {
           if (ures.failed()) {
-            // is in use by other tenant . no undeploy
+            // in use or other error skipo
             installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
           } else {
+            // success means : not in use, so we can undeploy it
             proxyService.autoUndeploy(mdF, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));

@@ -118,7 +118,7 @@ public class DiscoveryManager implements NodeListener {
         addAndDeploy2(dd, fut, nodeId);
       } else { // Have a launchdesc already in dd
         logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
-        launchIt(nodeId, dd, fut);
+        callDeploy(nodeId, dd, fut);
       }
     }
   }
@@ -147,14 +147,14 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
       dd.setDescriptor(modLaunchDesc);
-      launchIt(nodeId, dd, fut);
+      callDeploy(nodeId, dd, fut);
     });
   }
 
   /**
    * Helper to actually launch (deploy) a module on a node.
    */
-  private void launchIt(String nodeId, DeploymentDescriptor dd,
+  private void callDeploy(String nodeId, DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.debug("launchit starting for " + Json.encode(dd));
@@ -186,29 +186,35 @@ public class DiscoveryManager implements NodeListener {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        DeploymentDescriptor md = res.result();
-        if (md.getDescriptor() == null) {
-          remove(srvcId, instId, fut);
+        callUndeploy(res.result(), fut);
+      }
+    });
+  }
+
+  private void callUndeploy(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
+    if (md.getDescriptor() == null) {
+      logger.info("callUndeploy remove");
+      remove(md.getSrvcId(), md.getInstId(), fut);
+    } else {
+      logger.info("callUndeploy calling..");
+      final String nodeId = md.getNodeId();
+      getNode(nodeId, res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(res1.getType(), res1.cause()));
         } else {
-          final String nodeId = md.getNodeId();
-          getNode(nodeId, res1 -> {
-            if (res1.failed()) {
-              fut.handle(new Failure<>(res1.getType(), res1.cause()));
+          OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
+          ok.delete("/_/deployment/modules/" + md.getInstId(), okres -> {
+            if (okres.failed()) {
+              logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage());
+              fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
             } else {
-              OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
-              ok.delete("/_/deployment/modules/" + instId, okres -> {
-                if ( okres.failed()) {
-                  logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage() );
-                  fut.handle(new Failure<>(okres.getType(),okres.cause().getMessage()));
-                } else {
-                    fut.handle(new Success<>());
-                }
-              });
+              fut.handle(new Success<>());
             }
           });
         }
-      }
-    });
+      });
+    }
   }
 
   public void remove(String srvcId, String instId,
@@ -279,7 +285,7 @@ public class DiscoveryManager implements NodeListener {
                 DeploymentDescriptor dd = new DeploymentDescriptor();
                 dd.setDescriptor(modLaunchDesc);
                 dd.setSrvcId(md.getId());
-                launchIt(node, dd, res2 -> {
+                callDeploy(node, dd, res2 -> {
                   if (res2.failed()) {
                     logger.info("launchIt failed");
                     fut.handle(new Failure<>(res2.getType(), res2.cause()));
@@ -302,8 +308,30 @@ public class DiscoveryManager implements NodeListener {
 
   public void autoUndeploy(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("autoUndeploy " + md.getId());
-
-    fut.handle(new Success());
+    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    if (modLaunchDesc == null) {
+      logger.info("autoUndeploy " + md.getId() + " no lunchDescriptor");
+      fut.handle(new Success());
+    } else {
+      deployments.get(md.getId(), res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          List<DeploymentDescriptor> ddList = res.result();
+          if (ddList.isEmpty()) {
+            fut.handle(new Success());
+          } else {
+            callUndeploy(ddList.get(0), res2 -> {
+              if (res2.failed()) {
+                fut.handle(new Failure<>(res2.getType(), res2.cause()));
+              } else {
+                autoUndeploy(md, fut);
+              }
+            });
+          }
+        }
+      });
+    }
   }
 
   /**
