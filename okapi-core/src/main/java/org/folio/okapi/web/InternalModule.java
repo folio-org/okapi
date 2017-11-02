@@ -81,7 +81,7 @@ public class InternalModule {
     this.pullManager = pullManager;
     logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
-    logger.warn("InternalModule starting: " + okapiVersion);
+    logger.warn("InternalModule starting okapiversion=" + okapiVersion);
   }
 
   public static ModuleDescriptor moduleDescriptor(String okapiVersion) {

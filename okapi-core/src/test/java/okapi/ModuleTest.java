@@ -780,6 +780,13 @@ public class ModuleTest {
     // Set up a tenant to test with
     final String locTenant = createTenant();
 
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should be (re)loaded
+    // when our Hdr module gets enabled.
+    final String locInternal = enableModule("okapi-0.0.0");
+
     // Set up a module that does the _tenantPermissions interface that will
     // get called when sample gets enabled. We (ab)use the header module for
     // this.
@@ -921,8 +928,8 @@ public class ModuleTest {
     given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
     locationHeaderDeployment = null;
     given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
-
     checkDbIsEmpty("testSystemInterfaces done", context);
     async.complete();
   }

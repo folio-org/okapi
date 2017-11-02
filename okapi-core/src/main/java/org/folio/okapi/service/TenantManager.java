@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInterface;
 import org.folio.okapi.bean.PermissionList;
@@ -457,15 +458,18 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Void>> fut) {
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo.getId();
-    if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-      pc.debug("Using the tenantPermissions of this module itself");
-      ead3Permissions(tenant, moduleFrom, mdTo, mdTo, pc, fut);
-      return;
-    }
     findSystemInterface(tenant, "_tenantPermissions", res -> {
       if (res.failed()) {
-        if (res.getType() == NOT_FOUND) { // no perms interface. TODO
-          // just continue with the process. Should probably trigger an error
+        if (res.getType() == NOT_FOUND) { // no perms interface.
+          if (mdTo.getSystemInterface("_tenantPermissions") != null) {
+            pc.warn("Here we should reload perms of all enabled modules XXX ");
+            pc.warn("Carrying on for now XXX");
+            Set<String> listModules = tenant.listModules();
+            pc.warn("Got a list of already-enabled moduled: " + Json.encode(listModules) + " XXX");
+            Iterator<String> modit = listModules.iterator();
+            ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
+            return;
+          }
           pc.debug("enablePermissions: No tenantPermissions interface found. "
             + "Carrying on without it.");
           ead4commit(tenant, moduleFrom, moduleTo, pc, fut);
@@ -474,13 +478,50 @@ public class TenantManager {
         }
       } else {
         ModuleDescriptor permsMod = res.result();
+        if (mdTo.getSystemInterface("_tenantPermissions") != null) {
+          pc.debug("Using the tenantPermissions of this module itself");
+          permsMod = mdTo;
+        }
         ead3Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
       }
     });
   }
 
   /**
-   * enableAndDisable helper 2: Make the tenantPermissions call.
+   * enableAndDisable helper 3: Reload permissions. When we enable a module that
+   * provides the tenantPermissions interface, we may have other modules already
+   * enabled, who have not got their permissions pushed. Now that we have a
+   * place to push those permissions to, we do it for all enabled modules.
+   *
+   * @param tenant
+   * @param moduleFrom
+   * @param mdTo
+   * @param permsModule
+   * @param pc
+   * @param fut
+   */
+  private void ead3RealoadPerms(Tenant tenant, Iterator<String> modit,
+    String moduleFrom, ModuleDescriptor mdTo, ModuleDescriptor permsModule,
+    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!modit.hasNext()) {
+      pc.warn("No more modules to reload XXX");
+      ead3Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
+      return;
+    }
+    String mdid = modit.next();
+    moduleManager.get(mdid, res -> {
+      if (res.failed()) { // not likely to happen
+        pc.responseError(res.getType(), res.cause());
+        return;
+      }
+      ModuleDescriptor md = res.result();
+      pc.warn("XXX Should reload perms for " + md.getName());
+      ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
+    });
+  }
+
+  /**
+   * enableAndDisable helper 3: Make the tenantPermissions call.
    *
    * @param tenant
    * @param moduleFrom
