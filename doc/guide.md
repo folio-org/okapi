@@ -33,6 +33,7 @@ managing and running microservices.
     * [Module Descriptor Sharing](#module-descriptor-sharing)
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
+    * [Auto-deployment](#auto-deployment)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -2398,6 +2399,13 @@ is recognized which controls whether module IDs with pre-release info
 should be considered.
 
 The upgrade facility is part of Okapi version 1.11.0 and later.
+
+### Auto-deployment
+
+For Okapi 2.3.0 and later, the install and upgrade operations takes an
+optional parameter, `deploy`, which takes a boolean value. If true, the
+install operation will also deploy and un-deploy as necessary. This will
+only work if the ModuleDescriptor has the launchDescriptor property.
 
 ## Reference
 
