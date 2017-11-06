@@ -462,10 +462,9 @@ public class TenantManager {
       if (res.failed()) {
         if (res.getType() == NOT_FOUND) { // no perms interface.
           if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-            pc.warn("Here we should reload perms of all enabled modules XXX ");
-            pc.warn("Carrying on for now XXX");
+            pc.debug("ead2PermMod: Here we reload perms of all enabled modules");
             Set<String> listModules = tenant.listModules();
-            pc.warn("Got a list of already-enabled moduled: " + Json.encode(listModules) + " XXX");
+            pc.debug("Got a list of already-enabled moduled: " + Json.encode(listModules));
             Iterator<String> modit = listModules.iterator();
             ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
             return;
@@ -504,7 +503,7 @@ public class TenantManager {
     String moduleFrom, ModuleDescriptor mdTo, ModuleDescriptor permsModule,
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!modit.hasNext()) {
-      pc.warn("No more modules to reload XXX");
+      pc.debug("ead3RealoadPerms: No more modules to reload");
       ead3Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
       return;
     }
@@ -515,9 +514,60 @@ public class TenantManager {
         return;
       }
       ModuleDescriptor md = res.result();
-      pc.warn("XXX Should reload perms for " + md.getName());
-      ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
+      pc.debug("ead3RealoadPerms: Should reload perms for " + md.getName());
+      tenantPerms(tenant, md, permsModule, pc, pres -> {
+        if (pres.failed()) { // not likely to happen
+          pc.responseError(res.getType(), res.cause());
+          return;
+        }
+        ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
+      });
     });
+  }
+
+  /**
+   * Helper to make the tenantPermissions call for one module.
+   */
+  private void tenantPerms(Tenant tenant, ModuleDescriptor mdTo,
+    ModuleDescriptor permsModule, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    pc.debug("Loading permissions for " + mdTo.getName()
+      + " (using " + permsModule.getName() + ")");
+    String moduleTo = mdTo.getId();
+    PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
+    String pljson = Json.encodePrettily(pl);
+    pc.debug("tenantPerms Req: " + pljson);
+    ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+    String permPath = "";
+    List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
+    if (!routingEntries.isEmpty()) {
+      for (RoutingEntry re : routingEntries) {
+        if (re.match(null, "POST")) {
+          permPath = re.getPath();
+          if (permPath == null || permPath.isEmpty()) {
+            permPath = re.getPathPattern();
+          }
+        }
+      }
+    }
+    if (permPath == null || permPath.isEmpty()) {
+      fut.handle(new Failure<>(USER,
+        "Bad _tenantPermissions interface in module " + permsModule.getId()
+        + ". No path to POST to"));
+      return;
+    }
+    pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
+    proxyService.callSystemInterface(tenant.getId(),
+      permsModule.getId(), permPath, pljson, pc, cres -> {
+        if (cres.failed()) {
+          fut.handle(new Failure<>(cres.getType(), cres.cause()));
+        } else {
+          pc.debug("tenantPerms request to " + permsModule.getName()
+            + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
+          fut.handle(new Success<>());
+        }
+      });
   }
 
   /**

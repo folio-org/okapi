@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Header;
+import com.jayway.restassured.response.Headers;
 import com.jayway.restassured.response.Response;
 import com.jayway.restassured.response.ValidatableResponse;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -43,7 +45,9 @@ import de.flapdoodle.embed.process.runtime.Network;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -808,10 +812,33 @@ public class ModuleTest {
       + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
       + "  }" + LS
       + "}";
+
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
     locationHeaderDeployment = deployModule("header-1");
-    final String locHdrEnable = enableModule("header-1");
+    final String docEnableHdr = "{" + LS
+      + "  \"id\" : \"header-1\"" + LS
+      + "}";
+
+    // Enable the header module. Check that tenantPermissions gets called
+    // both for header module, and the already-enabled okapi internal module.
+    Headers headers = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHdr)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifValidationFails()
+      //.header("X-Tenant-Perms-Result", containsString("okapi.all"))
+      //.header("X-Tenant-Perms-Result", containsString("header-1"))
+      .extract().headers();
+    final String locHdrEnable = headers.getValue("Location");
+    List<Header> list = headers.getList("X-Tenant-Perms-Result");
+    Assert.assertEquals(2, list.size()); // one for okapi, one for header-1
+    Assert.assertThat("okapi perm result",
+      list.get(0).getValue(), containsString("okapi.all"));
+    Assert.assertThat("header-1perm result",
+      list.get(1).getValue(), containsString("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
