@@ -9,6 +9,7 @@ import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 
@@ -18,6 +19,7 @@ public class Storage {
   private PostgresHandle postgres;
   private ModuleStore moduleStore;
   private TenantStore tenantStore;
+  private DeploymentStore deploymentStore;
 
   public enum InitMode {
     NORMAL, // normal operation
@@ -29,20 +31,24 @@ public class Storage {
 
   public Storage(Vertx vertx, String type, JsonObject config) {
     this.config = config;
+    deploymentStore = new DeploymentStoreNull();
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo.getClient());
         tenantStore = new TenantStoreMongo(mongo.getClient());
+        deploymentStore = new DeploymentStoreNull();
         break;
       case "inmemory":
         moduleStore = null;
         tenantStore = null;
+        deploymentStore = new DeploymentStoreNull();
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
         moduleStore = new ModuleStorePostgres(postgres);
         tenantStore = new TenantStorePostgres(postgres);
+        deploymentStore = new DeploymentStorePostgres(postgres);
         break;
       default:
         logger.fatal("Unknown storage type '" + type + "'");
@@ -67,23 +73,26 @@ public class Storage {
     if (initMode == InitMode.NORMAL) {
       fut.handle(new Success<>());
     } else {
-      if (mongo != null) {
-        mongo.resetDatabases(fut);
-      } else if (postgres != null) {
-        TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
-        tnp.resetDatabase(initMode, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
-            mnp.resetDatabase(initMode, fut);
-          }
-        });
-      } else {
-        // inmemory has no reset
-        fut.handle(new Success<>());
-      }
+      deploymentStore.reset(res1 -> {
+        if (mongo != null) {
+          mongo.resetDatabases(fut);
+        } else if (postgres != null) {
+          TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
+          tnp.resetDatabase(initMode, res -> {
+            if (res.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+            } else {
+              ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
+              mnp.resetDatabase(initMode, fut);
+            }
+          });
+        } else {
+          // inmemory has no reset
+          fut.handle(new Success<>());
+        }
+      });
     }
+
   }
 
   public ModuleStore getModuleStore() {
@@ -92,6 +101,10 @@ public class Storage {
 
   public TenantStore getTenantStore() {
     return tenantStore;
+  }
+
+  public DeploymentStore getDeploymentStore() {
+    return deploymentStore;
   }
 
 }

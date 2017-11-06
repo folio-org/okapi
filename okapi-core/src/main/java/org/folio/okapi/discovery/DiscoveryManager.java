@@ -27,6 +27,7 @@ import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.service.DeploymentStore;
 
 /**
  * Keeps track of which modules are running where. Uses a shared map to list
@@ -45,6 +46,7 @@ public class DiscoveryManager implements NodeListener {
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
   private HttpClient httpClient;
+  private DeploymentStore deploymentStore;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -62,6 +64,10 @@ public class DiscoveryManager implements NodeListener {
         });
       }
     });
+  }
+
+  public DiscoveryManager(DeploymentStore ds) {
+    deploymentStore = ds;
   }
 
   public void setClusterManager(ClusterManager mgr) {
@@ -103,7 +109,7 @@ public class DiscoveryManager implements NodeListener {
             if (res.failed()) {
               fut.handle(new Failure<>(res.getType(), res.cause()));
             } else {
-              fut.handle(new Success<>(dd));
+              deploymentStore.insert(dd, fut);
             }
           });
         }
@@ -168,7 +174,7 @@ public class DiscoveryManager implements NodeListener {
           } else {
             DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
               DeploymentDescriptor.class);
-            fut.handle(new Success<>(pmd));
+            deploymentStore.insert(pmd, fut);
           }
         });
       }

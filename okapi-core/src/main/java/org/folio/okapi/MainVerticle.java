@@ -158,8 +158,10 @@ public class MainVerticle extends AbstractVerticle {
         break;
     }
 
+    storage = new Storage(vertx, storageType, config);
+
     envManager = new EnvManager();
-    discoveryManager = new DiscoveryManager();
+    discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
@@ -185,7 +187,6 @@ public class MainVerticle extends AbstractVerticle {
       });
     }
     if (enableProxy) {
-      storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();

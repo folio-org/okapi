@@ -64,7 +64,7 @@ public class MongoHandle {
    * integration tests on a clean slate.
    *
    */
-  public void dropDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
+  private void dropDatabase(Handler<ExtendedAsyncResult<Void>> fut) {
     cli.getCollections(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
