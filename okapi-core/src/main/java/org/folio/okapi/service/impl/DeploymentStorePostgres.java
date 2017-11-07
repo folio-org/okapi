@@ -8,8 +8,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.UpdateResult;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
@@ -23,7 +22,7 @@ public class DeploymentStorePostgres implements DeploymentStore {
   private static final String TABLE = "deployments";
   private static final String JSON_COLUMN = "json";
   private static final String ID_SELECT = JSON_COLUMN + "->>'instId' = ?";
-  private static final String ID_INDEX = "btree((" + JSON_COLUMN + "->'instId'))";
+  private static final String ID_INDEX = JSON_COLUMN + "->'instId'";
 
   public DeploymentStorePostgres(PostgresHandle pg) {
     this.pg = pg;
@@ -47,13 +46,12 @@ public class DeploymentStorePostgres implements DeploymentStore {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
             String createSql1 = "CREATE UNIQUE INDEX inst_id ON "
-              + TABLE + " USING " + ID_INDEX;
+              + TABLE + " USING btree((" + ID_INDEX + "))";
             q.query(createSql1, res3 -> {
               if (res2.failed()) {
                 logger.fatal(createSql1 + ": " + res3.cause().getMessage());
                 fut.handle(new Failure<>(res3.getType(), res3.cause()));
               } else {
-                logger.debug("Initalized the " + TABLE + " table");
                 fut.handle(new Success<>());
                 q.close();
               }
@@ -69,18 +67,20 @@ public class DeploymentStorePostgres implements DeploymentStore {
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    final String sql = "INSERT INTO " + TABLE + " ( " + JSON_COLUMN + " ) VALUES (?::JSONB)";
+    String sql = "INSERT INTO " + TABLE + " (" + JSON_COLUMN + ") VALUES (?::JSONB)"
+      + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
     String s = Json.encode(dd);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
     jsa.add(doc.encode());
-    q.queryWithParams(sql, jsa, res -> {
+    jsa.add(doc.encode());
+    q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
+        q.close();
         fut.handle(new Success<>(dd));
       }
-      q.close();
     });
   }
 
@@ -92,14 +92,14 @@ public class DeploymentStorePostgres implements DeploymentStore {
     jsa.add(id);
     q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        logger.fatal("delete failed: " + res.cause().getMessage());
+        logger.error("DeploymentStorePostgres.delete: " + res.cause());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         UpdateResult result = res.result();
         if (result.getUpdated() > 0) {
           fut.handle(new Success<>());
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
+          fut.handle(new Failure<>(NOT_FOUND, id));
         }
         q.close();
       }

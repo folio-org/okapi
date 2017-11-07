@@ -61,6 +61,17 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
+  public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
+    cli.dropCollection(COLLECTION, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
+  @Override
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
     JsonObject document = encodeTenant(t);

@@ -19,4 +19,5 @@ public interface TenantStore {
 
   void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
 
+  void reset(Handler<ExtendedAsyncResult<Void>> fut);
 }

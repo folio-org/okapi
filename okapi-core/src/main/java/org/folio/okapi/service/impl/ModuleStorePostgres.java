@@ -21,6 +21,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final PostgresHandle pg;
+  private static final String TABLE = "modules";
   private static final String JSON_COLUMN = "modulejson";
   private static final String ID_SELECT = JSON_COLUMN + "->>'id' = ?";
   private static final String ID_INDEX = JSON_COLUMN + "->'id'";
@@ -29,30 +30,25 @@ public class ModuleStorePostgres implements ModuleStore {
     this.pg = pg;
   }
 
-  public void resetDatabase(Storage.InitMode initMode, Handler<ExtendedAsyncResult<Void>> fut) {
+  @Override
+  public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
-    q.query("DROP TABLE IF EXISTS modules", res1 -> {
+    q.query("DROP TABLE IF EXISTS " + TABLE, res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(INTERNAL, res1.cause()));
       } else {
-        if (initMode != Storage.InitMode.INIT) {
-          fut.handle(new Success<>());
-          q.close();
-          return;
-        }
-        final String createSql = "create table modules ( "
+        final String createSql = "create table " + TABLE + "("
           + JSON_COLUMN + " JSONB NOT NULL )";
         q.query(createSql, res2 -> {
           if (res2.failed()) {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            final String createSql1 = "CREATE UNIQUE INDEX module_id ON " + ""
-              + "modules USING btree((" + ID_INDEX + "))";
+            final String createSql1 = "CREATE UNIQUE INDEX module_id ON "
+              + TABLE + " USING btree((" + ID_INDEX + "))";
             q.query(createSql1, res3 -> {
               if (res2.failed()) {
                 fut.handle(new Failure<>(res3.getType(), res3.cause()));
               } else {
-                logger.debug("Intitialized the module table");
                 q.close();
                 fut.handle(new Success<>());
               }
@@ -61,14 +57,14 @@ public class ModuleStorePostgres implements ModuleStore {
         });
       }
     });
-  } // resetDatabase
+  }
 
   @Override
   public void insert(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<String>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    final String sql = "INSERT INTO modules ( " + JSON_COLUMN + " ) VALUES (?::JSONB)";
+    final String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
@@ -77,9 +73,9 @@ public class ModuleStorePostgres implements ModuleStore {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
+        q.close();
         fut.handle(new Success<>(md.getId()));
       }
-      q.close();
     });
   }
 
@@ -89,7 +85,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
     PostgresQuery q = pg.getQuery();
     final String id = md.getId();
-    String sql = "INSERT INTO modules (" + JSON_COLUMN + ") VALUES (?::JSONB)"
+    String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)"
       + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
@@ -110,7 +106,7 @@ public class ModuleStorePostgres implements ModuleStore {
   public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    String sql = "SELECT " + JSON_COLUMN + " FROM modules";
+    String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE;
     q.query(sql, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
@@ -133,7 +129,7 @@ public class ModuleStorePostgres implements ModuleStore {
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    String sql = "DELETE FROM modules WHERE " + ID_SELECT;
+    String sql = "DELETE FROM " + TABLE + " WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
     q.updateWithParams(sql, jsa, res -> {

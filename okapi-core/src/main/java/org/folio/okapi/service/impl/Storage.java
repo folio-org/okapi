@@ -37,12 +37,10 @@ public class Storage {
         mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo.getClient());
         tenantStore = new TenantStoreMongo(mongo.getClient());
-        deploymentStore = new DeploymentStoreNull();
         break;
       case "inmemory":
         moduleStore = null;
         tenantStore = null;
-        deploymentStore = new DeploymentStoreNull();
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
@@ -74,25 +72,15 @@ public class Storage {
       fut.handle(new Success<>());
     } else {
       deploymentStore.reset(res1 -> {
-        if (mongo != null) {
-          mongo.resetDatabases(fut);
-        } else if (postgres != null) {
-          TenantStorePostgres tnp = (TenantStorePostgres) tenantStore;
-          tnp.resetDatabase(initMode, res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-            } else {
-              ModuleStorePostgres mnp = (ModuleStorePostgres) moduleStore;
-              mnp.resetDatabase(initMode, fut);
-            }
-          });
-        } else {
-          // inmemory has no reset
+        if (tenantStore == null) {
           fut.handle(new Success<>());
+        } else {
+          tenantStore.reset(res2 -> {
+            moduleStore.reset(fut);
+          });
         }
       });
     }
-
   }
 
   public ModuleStore getModuleStore() {
