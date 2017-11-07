@@ -410,7 +410,7 @@ public class TenantManager {
 
     if (mdTo == null) {
       // disable only
-      ead4commit(tenant, mdFrom.getId(), null, pc, fut);
+      ead5commit(tenant, mdFrom.getId(), null, pc, fut);
       return;
     }
     getTenantInterface(mdTo, ires -> {
@@ -471,7 +471,7 @@ public class TenantManager {
           }
           pc.debug("enablePermissions: No tenantPermissions interface found. "
             + "Carrying on without it.");
-          ead4commit(tenant, moduleFrom, moduleTo, pc, fut);
+          ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
         } else {
           pc.responseError(res.getType(), res.cause());
         }
@@ -481,7 +481,7 @@ public class TenantManager {
           pc.debug("Using the tenantPermissions of this module itself");
           permsMod = mdTo;
         }
-        ead3Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
+        ead4Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
       }
     });
   }
@@ -490,7 +490,8 @@ public class TenantManager {
    * enableAndDisable helper 3: Reload permissions. When we enable a module that
    * provides the tenantPermissions interface, we may have other modules already
    * enabled, who have not got their permissions pushed. Now that we have a
-   * place to push those permissions to, we do it for all enabled modules.
+   * place to push those permissions to, we do it recursively for all enabled
+   * modules.
    *
    * @param tenant
    * @param moduleFrom
@@ -504,7 +505,7 @@ public class TenantManager {
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!modit.hasNext()) {
       pc.debug("ead3RealoadPerms: No more modules to reload");
-      ead3Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
+      ead4Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
       return;
     }
     String mdid = modit.next();
@@ -526,7 +527,61 @@ public class TenantManager {
   }
 
   /**
-   * Helper to make the tenantPermissions call for one module.
+   * enableAndDisable helper 4: Make the tenantPermissions call. For the module
+   * itself.
+   *
+   * @param tenant
+   * @param moduleFrom
+   * @param module_to
+   * @param mdTo
+   * @param permsModule
+   * @param pc
+   * @param fut
+   */
+  private void ead4Permissions(Tenant tenant, String moduleFrom,
+    ModuleDescriptor mdTo, ModuleDescriptor permsModule,
+    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+
+    pc.debug("ead4Permissions: Perms interface found in "
+      + permsModule.getName());
+
+    tenantPerms(tenant, mdTo, permsModule, pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      String moduleTo = mdTo.getId();
+      ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
+    });
+  }
+
+  /**
+   * enableAndDisable helper 5: Commit the change in modules.
+   *
+   * @param tenant
+   * @param moduleFrom
+   * @param moduleTo
+   * @param pc
+   * @param fut
+   */
+  private void ead5commit(Tenant tenant,
+    String moduleFrom, String moduleTo, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
+    updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
+      if (ures.failed()) {
+        pc.responseError(ures.getType(), ures.cause());
+      } else {
+        pc.debug("ead5commit done");
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
+  /**
+   * Helper to make the tenantPermissions call for one module. Used from
+   * ead3RealoadPerms and ead4Permissions.
    */
   private void tenantPerms(Tenant tenant, ModuleDescriptor mdTo,
     ModuleDescriptor permsModule, ProxyContext pc,
@@ -571,76 +626,6 @@ public class TenantManager {
   }
 
   /**
-   * enableAndDisable helper 3: Make the tenantPermissions call.
-   *
-   * @param tenant
-   * @param moduleFrom
-   * @param module_to
-   * @param mdTo
-   * @param permsModule
-   * @param pc
-   * @param fut
-   */
-  private void ead3Permissions(Tenant tenant, String moduleFrom,
-    ModuleDescriptor mdTo, ModuleDescriptor permsModule,
-    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
-
-    pc.debug("ead3Permissions: Perms interface found in "
-      + permsModule.getId());
-    String moduleTo = mdTo.getId();
-    PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
-    String pljson = Json.encodePrettily(pl);
-    pc.debug("ead3Permissions Req: " + pljson);
-
-    ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
-    String permPath = "";
-    List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
-    if (!routingEntries.isEmpty()) {
-      for (RoutingEntry re : routingEntries) {
-        if (re.match(null, "POST")) {
-          permPath = re.getPath();
-          if (permPath == null || permPath.isEmpty()) {
-            permPath = re.getPathPattern();
-          }
-        }
-      }
-    }
-    if (permPath == null || permPath.isEmpty()) {
-      fut.handle(new Failure<>(USER,
-        "Bad _tenantPermissions interface in module " + permsModule.getId()
-        + ". No path to POST to"));
-      return;
-    }
-    pc.debug("ead3Permissions: " + permsModule.getId() + " and " + permPath);
-    proxyService.callSystemInterface(tenant.getId(),
-      permsModule.getId(), permPath, pljson, pc, cres -> {
-      if (cres.failed()) {
-        fut.handle(new Failure<>(cres.getType(), cres.cause()));
-      } else {
-        pc.debug("enablePermissions: request to " + permsModule.getId()
-          + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
-        ead4commit(tenant, moduleFrom, moduleTo, pc, fut);
-      }
-    });
-  }
-
-  private void ead4commit(Tenant tenant,
-    String moduleFrom, String moduleTo, ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
-    pc.debug("ead4commit: " + moduleFrom + " " + moduleTo);
-    updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
-      if (ures.failed()) {
-        pc.responseError(ures.getType(), ures.cause());
-      } else {
-        pc.debug("ead4commit done");
-        fut.handle(new Success<>());
-      }
-    });
-  }
-
-  //
-  /**
    * Find the tenant API interface. Supports several deprecated versions of the
    * tenant interface: the 'tenantInterface' field in MD; if the module provides
    * a '_tenant' interface without RoutingEntries, and finally the proper way,
@@ -651,8 +636,6 @@ public class TenantManager {
    * @param fut callback with the path to the interface, "" if no interface, or
    * a failure
    *
-   * TODO - Return a proper failure if no tenantInterface found. Small change in
-   * behavior, don't do while refactoring the rest...
    */
   private void getTenantInterface(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<String>> fut) {
