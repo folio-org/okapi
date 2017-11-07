@@ -846,18 +846,7 @@ public class ProxyService {
         }
         // Pass response headers - needed for unit test, if nothing else
         pc.debug("Request for " + module + " " + path + " ok");
-        if (pc.getCtx() != null) {
-          MultiMap respHeaders = cli.getRespHeaders();
-          if (respHeaders != null) {
-            for (String hdr : respHeaders.names()) {
-              if (hdr.matches("^X-.*$")) {
-                pc.getCtx().response().headers().add(hdr, respHeaders.get(hdr));
-                pc.debug("callSystemInterface: response header "
-                  + hdr + " " + respHeaders.get(hdr));
-              }
-            }
-          }
-        }
+        pc.passOkapiClientRespHeaders(cli);
         fut.handle(new Success<>(cli.getResponsebody()));
       });
     });
