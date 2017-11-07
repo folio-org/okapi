@@ -436,7 +436,6 @@ public class TenantManager {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
-            // TODO - Copy X-headers over to ctx.resp
             ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
           }
         });
