@@ -93,12 +93,12 @@ Content-Length: 117
   "name" : "supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
+```
 
 Note on the curl command line options:
 * `-w '\n'` causes curl to output a newline after the operation
 * `-D -` causes curl to output the response headers to stdout
 
-```
 
 ## Required modules
 
