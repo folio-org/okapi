@@ -58,6 +58,11 @@ public class Tenant {
     return descriptor;
   }
 
+  /**
+   * Get enabled modules. (Note - if we ever start to store false values in the
+   * map, we need to filter them out here - this needs to return only enabled
+   * modules)
+   */
   public SortedMap<String, Boolean> getEnabled() {
     return enabled;
   }
