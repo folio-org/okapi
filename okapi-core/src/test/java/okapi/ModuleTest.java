@@ -87,7 +87,8 @@ public class ModuleTest {
 
   private final JsonObject conf;
 
-  // the one module that's always there.
+  // the one module that's always there. When running tests, the version is at 0.0.0
+  // It gets set later in the compilation process.
   private static final String internalModuleDoc = "{" + LS
     + "  \"id\" : \"okapi-0.0.0\"," + LS
     + "  \"name\" : \"okapi-0.0.0\"" + LS
@@ -672,6 +673,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/recurse?depth=5")
       .then().statusCode(200)
+      .log().all()
       .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Call the module via the redirect-url. No tenant header!

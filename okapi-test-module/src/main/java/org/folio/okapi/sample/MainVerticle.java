@@ -5,6 +5,7 @@ package org.folio.okapi.sample;
  */
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
@@ -14,6 +15,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Map;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
 import static org.folio.okapi.common.HttpResponse.*;
@@ -126,6 +128,12 @@ public class MainVerticle extends AbstractVerticle {
       depth--;
       ok.get("/recurse?depth=" + depth, res -> {
         if (res.succeeded()) {
+          MultiMap respH = ok.getRespHeaders();
+          for (Map.Entry<String, String> e : respH.entries()) {
+            if (e.getKey().startsWith("X-") || e.getKey().startsWith("x-")) {
+              ctx.response().headers().add(e.getKey(), e.getValue());
+            }
+          }
           responseText(ctx, 200);
           ctx.response().end(depthstr + " " + res.result());
         } else {

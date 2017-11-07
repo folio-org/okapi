@@ -436,7 +436,6 @@ public class TenantManager {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
-            // TODO - Copy X-headers over to ctx.resp
             ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
           }
         });
@@ -718,9 +717,8 @@ public class TenantManager {
       }
       ModuleDescriptor md = gres.result();
       logger.debug("findSystemInterface: looking at " + mid + ": "
-        + "en: " + tenant.isEnabled(mid) + " si: " + md.getSystemInterface(interfaceName));
-      if (md.getSystemInterface(interfaceName) != null
-        && tenant.isEnabled(mid)) {
+        + " si: " + md.getSystemInterface(interfaceName));
+      if (md.getSystemInterface(interfaceName) != null ) {
         logger.debug("findSystemInterface: found " + mid);
         fut.handle(new Success<>(md));
         return;
