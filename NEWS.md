@@ -1,8 +1,8 @@
 ## 2.3.0 2017-11-02
 
  * Auto-deploy for install/upgrade operation OKAPI-424
- * Docker: Okapi port substituion in dockerArgs - solves OKAPI-458
- * Script/documentation on how to secure Okapi FOLIO-913 
+ * Docker: Okapi port substitution in dockerArgs - solves OKAPI-458
+ * Script/documentation on how to secure Okapi FOLIO-913
    See doc/securing.md
 
 ## 2.2.0 2017-10-31

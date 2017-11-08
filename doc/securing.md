@@ -1,11 +1,11 @@
 # Securing Okapi Installation
 
-This is a quick guide on how to use Folio's auth complex to secure an Okapi
+This is a quick guide on how to use the FOLIO auth complex to secure an Okapi
 installation. We hope that this process will be automated at some point.
 
 ## Running the examples
 
-There are many curl examples. Like with the Okapi guide, you can extract the
+There are many curl examples. As with the Okapi guide, you can extract the
 sample data into /tmp with
 ```
 perl -n -e 'print if /^cat /../^END/;' securing.md | sh
@@ -86,7 +86,7 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
-Content-Length: 117
+Content-Length: 105
 
 [ {
   "id" : "supertenant",
@@ -157,7 +157,7 @@ enabled for the first time. This makes it necessary for mod-permissions to be
 the first module to be installed, but that is not possible, since the internal
 module is already there when Okapi starts. So its permissions will never get
 into mod-permissions, and thus the superuser will never have the permissions to
-use Okapis admin functions. To work around that problem, we post the permissions
+use Okapi's admin functions. To work around that problem, we post the permissions
 of the internal module into mod-permissions when we set that one up.
 See [Okapi-388](https://issues.folio.org/browse/OKAPI-388).
 <!-- TODO: Remove this paragraph when -388 gets fixed, and update the Okapi
