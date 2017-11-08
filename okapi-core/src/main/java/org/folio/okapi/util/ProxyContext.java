@@ -69,7 +69,7 @@ public class ProxyContext {
   }
 
   /**
-   * Pass the responde headers from an OkapiClient into the response of this
+   * Pass the response headers from an OkapiClient into the response of this
    * request. Only X-Something headers.
    *
    * @param ok OkapiClient to take resp headers from
