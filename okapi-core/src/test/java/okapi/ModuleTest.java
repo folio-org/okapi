@@ -3191,6 +3191,52 @@ public class ModuleTest {
     async.complete();
   }
 
+  @Test
+  public void testManyModules(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    Response r;
+
+    int i;
+    for (i = 0; i < 1000; i++) {
+      String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
+        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"" + LS
+        + "}";
+      c = api.createRestAssured();
+      c.given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201)
+        .log().ifValidationFails();
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+      // if we list modules "often enough" we get no failures
+      if ((i % 110) == 0) { // 120 fails
+        c = api.createRestAssured();
+        r = c.given()
+          .get("/_/proxy/modules")
+          .then()
+          .statusCode(200).log().ifValidationFails().extract().response();
+        Assert.assertTrue(c.getLastReport().isEmpty());
+      }
+    }
+    c = api.createRestAssured();
+    r = c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails().extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    async.complete();
+  }
+
   private void undeployFirst(Handler<AsyncResult<Void>> fut) {
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
