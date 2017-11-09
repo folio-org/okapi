@@ -1,17 +1,23 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import static org.folio.okapi.common.ErrorType.INTERNAL;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
   private final Class<T> clazz;
+  private AtomicInteger countDown;
 
   public LockedTypedMap1(Class<T> c) {
     this.clazz = c;
@@ -49,29 +55,30 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
         return;
       }
-      LinkedHashMap<String, T> all = new LinkedHashMap<>();
       Collection<String> keys = kres.result();
-      Iterator<String> it = keys.iterator();
-      getAllR(it, all, fut);
+      LinkedHashMap<String, T> results = new LinkedHashMap<>();
+      List<Future> futures = new LinkedList<>();
+      for (String key : keys) {
+        Future f = Future.future();
+        getString(key, null, res -> {
+          if (res.succeeded()) {
+            T t = Json.decodeValue(res.result(), clazz);
+            results.put(key, t);
+            f.handle(Future.succeededFuture());
+          } else {
+            f.handle(Future.failedFuture(res.cause()));
+          }
+        });
+        futures.add(f);
+      }
+      CompositeFuture.all(futures).setHandler(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+        } else {
+          fut.handle(new Success<>(results));
+        }
+      });
     });
   }
 
-  private void getAllR(Iterator<String> it,
-    LinkedHashMap<String, T> all,
-    Handler<ExtendedAsyncResult<LinkedHashMap<String, T>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(all));
-      return;
-    }
-    String key = it.next();
-    getString(key, null, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      T t = Json.decodeValue(gres.result(), clazz);
-      all.put(key, t);
-      getAllR(it, all, fut);
-    });
-  }
 }

@@ -4,9 +4,13 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
 import java.util.Iterator;
@@ -35,6 +39,7 @@ public class LockedStringMap {
   Vertx vertx = null;
   private static final int DELAY = 10; // ms in recursing for retry of map
   private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
+  protected final Logger logger = LoggerFactory.getLogger("okapi");
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -69,6 +74,8 @@ public class LockedStringMap {
             smap.strings.putAll(oldlist.strings);
             if (smap.strings.containsKey(k2)) {
               fut.handle(new Success<>(smap.strings.get(k2)));
+            } else {
+              fut.handle(new Success<>(val));
             }
           }
         }
@@ -129,7 +136,6 @@ public class LockedStringMap {
       }
     });
   }
-
 
   private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
     KeyList klist = new KeyList();

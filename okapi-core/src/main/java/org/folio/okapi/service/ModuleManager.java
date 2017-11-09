@@ -583,20 +583,25 @@ public class ModuleManager {
     }
   }
 
-  /**
-   * Get all ModuleDescriptors that obey filter (possibly all)
-   *
-   * @param filter
-   * @param fut
-   */
   public void getModulesWithFilter(ModuleId filter, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    modules.getKeys(kres -> {
+    modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
       } else {
-        Collection<String> keys = kres.result();
-        getModulesFromCollection(keys, filter, preRelease, fut);
+        List<ModuleDescriptor> mdl = new LinkedList<>();
+        for (ModuleDescriptor md : kres.result().values()) {
+          String id = md.getId();
+          ModuleId idThis = new ModuleId(id);
+          if (filter != null && !idThis.hasPrefix(filter)) {
+            ;
+          } else if (!preRelease && idThis.hasPreRelease()) {
+            ;
+          } else {
+            mdl.add(md);
+          }
+        }
+        fut.handle(new Success<>(mdl));
       }
     });
   }
@@ -609,21 +614,9 @@ public class ModuleManager {
    */
   public void getEnabledModules(Tenant ten,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    getModulesFromCollection(ten.getEnabled().keySet(), null, true, fut);
-  }
 
-  /**
-   * Get ModuleDescriptors from a list of Ids.
-   *
-   * @param ids to get
-   * @param fut
-   */
-  private void getModulesFromCollection(Collection<String> ids,
-    ModuleId filter, boolean preRelease,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    Iterator<String> it = ids.iterator();
-    getModulesR(it, mdl, filter, preRelease, fut);
+    getEnabledModulesR(ten.getEnabled().keySet().iterator(), mdl, fut);
   }
 
   /**
@@ -633,8 +626,7 @@ public class ModuleManager {
    * @param mdl
    * @param fut
    */
-  private void getModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
-    ModuleId filter, boolean preRelease,
+  private void getEnabledModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(mdl));
@@ -642,24 +634,14 @@ public class ModuleManager {
     }
     String id = it.next();
     ModuleId idThis = new ModuleId(id);
-    if (filter != null && !idThis.hasPrefix(filter)) {
-      getModulesR(it, mdl, filter, preRelease, fut);
-      return;
-    }
-    if (!preRelease && idThis.hasPreRelease()) {
-      logger.info("skipping " + id);
-      getModulesR(it, mdl, filter, preRelease, fut);
-      return;
-    }
     modules.get(id, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
+      } else {
+        ModuleDescriptor md = gres.result();
+        mdl.add(md);
+        getEnabledModulesR(it, mdl, fut);
       }
-      ModuleDescriptor md = gres.result();
-      mdl.add(md);
-      getModulesR(it, mdl, filter, preRelease, fut);
     });
   }
-
 }
