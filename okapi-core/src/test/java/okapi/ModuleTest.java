@@ -45,7 +45,6 @@ import de.flapdoodle.embed.process.runtime.Network;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -3204,7 +3203,8 @@ public class ModuleTest {
     for (i = 0; i < 1000; i++) {
       String docSampleModule = "{" + LS
         + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
-        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"" + LS
+        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
+        + "  \"requires\" : [ ]" + LS
         + "}";
       c = api.createRestAssured();
       c.given()
@@ -3216,16 +3216,6 @@ public class ModuleTest {
         .log().ifValidationFails();
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
-
-      // if we list modules "often enough" we get no failures
-      if ((i % 110) == 0) { // 120 fails
-        c = api.createRestAssured();
-        r = c.given()
-          .get("/_/proxy/modules")
-          .then()
-          .statusCode(200).log().ifValidationFails().extract().response();
-        Assert.assertTrue(c.getLastReport().isEmpty());
-      }
     }
     c = api.createRestAssured();
     r = c.given()
