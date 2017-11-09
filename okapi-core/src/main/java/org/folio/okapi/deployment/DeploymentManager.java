@@ -63,17 +63,21 @@ public class DeploymentManager {
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    shutdownR(list.keySet().iterator(), fut);
+    shutdownR(list.keySet().iterator(), 0, fut);
   }
 
-  private void shutdownR(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void shutdownR(Iterator<String> it, int count,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
-      logger.info("All modules shut down");
+      if (count != 0) {
+        logger.info("All " + count + " modules shut down");
+      }
       fut.handle(new Success<>());
     } else {
       DeploymentDescriptor md = list.get(it.next());
       ModuleHandle mh = md.getModuleHandle();
-      mh.stop(future -> shutdownR(it, fut));
+      logger.debug("Shutting down " + md.getSrvcId());
+      mh.stop(future -> shutdownR(it, count + 1, fut));
     }
   }
 
