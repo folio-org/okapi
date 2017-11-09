@@ -7,10 +7,11 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 
@@ -56,25 +57,21 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         return;
       }
       Collection<String> keys = kres.result();
-      LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      List<Future> futures = new LinkedList<>();
+      Map<String, Future<String>> futures = new LinkedHashMap<>();
       for (String key : keys) {
-        Future f = Future.future();
-        getString(key, null, res -> {
-          if (res.succeeded()) {
-            T t = Json.decodeValue(res.result(), clazz);
-            results.put(key, t);
-            f.handle(Future.succeededFuture());
-          } else {
-            f.handle(Future.failedFuture(res.cause()));
-          }
-        });
-        futures.add(f);
+        Future<String> f = Future.future();
+        getString(key, null, f::handle);
+        futures.put(key, f);
       }
-      CompositeFuture.all(futures).setHandler(res -> {
+      CompositeFuture.all(new ArrayList<Future>(futures.values())).setHandler(res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
         } else {
+          LinkedHashMap<String, T> results = new LinkedHashMap<>();
+          for (Entry<String, Future<String>> s : futures.entrySet()) {
+            T t = Json.decodeValue(s.getValue().result(), clazz);
+            results.put(s.getKey(), t);
+          }
           fut.handle(new Success<>(results));
         }
       });
