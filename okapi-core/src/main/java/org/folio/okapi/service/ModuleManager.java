@@ -1,5 +1,7 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
@@ -92,34 +94,20 @@ public class ModuleManager {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
-        Iterator<ModuleDescriptor> it = mres.result().iterator();
-        loadR(it, fut);
+        List<Future> futures = new LinkedList<>();
+        for (ModuleDescriptor md : mres.result()) {
+          Future f = Future.future();
+          modules.add(md.getId(), md, f);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
       });
-    });
-  }
-
-  /**
-   * Recursive helper to load all modules.
-   *
-   * @param it
-   * @param fut
-   */
-  private void loadR(Iterator<ModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      logger.info("All modules loaded");
-      fut.handle(new Success<>());
-      return;
-    }
-    ModuleDescriptor md = it.next();
-    String id = md.getId();
-    modules.add(id, md, mres -> {
-      if (mres.failed()) {
-        fut.handle(new Failure<>(mres.getType(), mres.cause()));
-        return;
-      }
-      logger.debug("Loaded module " + id);
-      loadR(it, fut);
     });
   }
 
