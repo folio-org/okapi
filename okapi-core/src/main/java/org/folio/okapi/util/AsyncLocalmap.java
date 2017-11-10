@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
@@ -89,12 +90,13 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void clear(Handler<AsyncResult<Void>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    map.clear();
+    resultHandler.handle(Future.succeededFuture());
   }
 
   @Override
   public void size(Handler<AsyncResult<Integer>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    resultHandler.handle(Future.succeededFuture(map.size()));
   }
 
 }

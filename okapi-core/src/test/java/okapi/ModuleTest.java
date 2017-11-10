@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Header;
+import com.jayway.restassured.response.Headers;
 import com.jayway.restassured.response.Response;
 import com.jayway.restassured.response.ValidatableResponse;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -44,6 +46,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -83,7 +86,8 @@ public class ModuleTest {
 
   private final JsonObject conf;
 
-  // the one module that's always there.
+  // the one module that's always there. When running tests, the version is at 0.0.0
+  // It gets set later in the compilation process.
   private static final String internalModuleDoc = "{" + LS
     + "  \"id\" : \"okapi-0.0.0\"," + LS
     + "  \"name\" : \"okapi-0.0.0\"" + LS
@@ -668,6 +672,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/recurse?depth=5")
       .then().statusCode(200)
+      .log().all()
       .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Call the module via the redirect-url. No tenant header!
@@ -784,6 +789,13 @@ public class ModuleTest {
     // Set up a tenant to test with
     final String locTenant = createTenant();
 
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should be (re)loaded
+    // when our Hdr module gets enabled.
+    final String locInternal = enableModule("okapi-0.0.0");
+
     // Set up a module that does the _tenantPermissions interface that will
     // get called when sample gets enabled. We (ab)use the header module for
     // this.
@@ -805,10 +817,33 @@ public class ModuleTest {
       + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
       + "  }" + LS
       + "}";
+
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
     locationHeaderDeployment = deployModule("header-1");
-    final String locHdrEnable = enableModule("header-1");
+    final String docEnableHdr = "{" + LS
+      + "  \"id\" : \"header-1\"" + LS
+      + "}";
+
+    // Enable the header module. Check that tenantPermissions gets called
+    // both for header module, and the already-enabled okapi internal module.
+    Headers headers = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHdr)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifValidationFails()
+      //.header("X-Tenant-Perms-Result", containsString("okapi.all"))
+      //.header("X-Tenant-Perms-Result", containsString("header-1"))
+      .extract().headers();
+    final String locHdrEnable = headers.getValue("Location");
+    List<Header> list = headers.getList("X-Tenant-Perms-Result");
+    Assert.assertEquals(2, list.size()); // one for okapi, one for header-1
+    Assert.assertThat("okapi perm result",
+      list.get(0).getValue(), containsString("okapi.all"));
+    Assert.assertThat("header-1perm result",
+      list.get(1).getValue(), containsString("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -925,8 +960,8 @@ public class ModuleTest {
     given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
     locationHeaderDeployment = null;
     given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
-
     checkDbIsEmpty("testSystemInterfaces done", context);
     async.complete();
   }
@@ -3151,6 +3186,43 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    async.complete();
+  }
+
+  @Test
+  public void testManyModules(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    Response r;
+
+    int i;
+    for (i = 0; i < 1000; i++) {
+      String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
+        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+      c = api.createRestAssured();
+      c.given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201)
+        .log().ifValidationFails();
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    }
+    c = api.createRestAssured();
+    r = c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails().extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
 
     async.complete();
   }

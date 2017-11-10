@@ -1,14 +1,17 @@
 package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -62,6 +65,21 @@ public class ProxyContext {
       return " " + (timer.stop() / 1000) + "us";
     } else {
       return "";
+    }
+  }
+
+  /**
+   * Pass the response headers from an OkapiClient into the response of this
+   * request. Only X-Something headers.
+   *
+   * @param ok OkapiClient to take resp headers from
+   */
+  public void passOkapiClientRespHeaders(OkapiClient ok) {
+    MultiMap respH = ok.getRespHeaders();
+    for (Map.Entry<String, String> e : respH.entries()) {
+      if (e.getKey().startsWith("X-") || e.getKey().startsWith("x-")) {
+        ctx.response().headers().add(e.getKey(), e.getValue());
+      }
     }
   }
 

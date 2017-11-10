@@ -4,14 +4,19 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -35,6 +40,7 @@ public class LockedStringMap {
   Vertx vertx = null;
   private static final int DELAY = 10; // ms in recursing for retry of map
   private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
+  protected final Logger logger = LoggerFactory.getLogger("okapi");
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -46,6 +52,10 @@ public class LockedStringMap {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
+  }
+
+  public void size(Handler<AsyncResult<Integer>> fut) {
+    list.size(fut);
   }
 
   public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
@@ -69,6 +79,8 @@ public class LockedStringMap {
             smap.strings.putAll(oldlist.strings);
             if (smap.strings.containsKey(k2)) {
               fut.handle(new Success<>(smap.strings.get(k2)));
+            } else {
+              fut.handle(new Success<>(val));
             }
           }
         }
@@ -93,43 +105,48 @@ public class LockedStringMap {
     });
   }
 
-  private void getKeysR(Handler<ExtendedAsyncResult<Collection<String>>> fut,
-          Set<String> result, Iterator<String> it) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(result));
-    } else {
-      String k = it.next();
-      list.get(k, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        } else {
-          String val = res.result();
-          if (val != null) {
-            result.add(k);
-          }
-          getKeysR(fut, result, it);
-        }
-      });
-    }
-  }
-
   public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.get(ALL_KEYS, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
-        String val = resGet.result();
-        if (val != null && !val.isEmpty()) {
-          KeyList keys = Json.decodeValue(val, KeyList.class);
-          getKeysR(fut, new LinkedHashSet<>(), keys.keys.iterator());
-        } else {
-          KeyList nokeys = new KeyList();
-          fut.handle(new Success<>(nokeys.keys));
-        }
+        getKeys2(resGet.result(), fut);
       }
     });
   }
 
+  private void getKeys2(String val, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+    Collection<String> result = new TreeSet<>();
+    if (val == null || val.isEmpty()) {
+      fut.handle(new Success<>(result));
+    } else {
+      KeyList keys = Json.decodeValue(val, KeyList.class);
+
+      List<Future> futures = new LinkedList<>();
+      for (String k : keys.keys) {
+        Future f = Future.future();
+        list.get(k, res -> {
+          if (res.failed()) {
+            f.handle(Future.failedFuture(res.cause()));
+          } else {
+            String v = res.result();
+            if (v != null) {
+              result.add(k);
+            }
+            f.handle(Future.succeededFuture());
+          }
+        });
+        futures.add(f);
+      }
+      CompositeFuture.all(futures).setHandler(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+        } else {
+          fut.handle(new Success<>(result));
+        }
+      });
+    }
+  }
 
   private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
     KeyList klist = new KeyList();
