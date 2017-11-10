@@ -6,21 +6,15 @@ installation. We hope that this process will be automated at some point.
 ## Running the examples
 
 There are many curl examples. As with the Okapi guide, you can extract the
-sample data into /tmp with
+sample data into /tmp and run the curl commands using this one-liner.
+First ensure that Okapi and the required modules are ready as explained in these initial sections, then do:
 
 ```
-perl -n -e 'print if /^cat /../^END/;' securing.md | sh
-```
-
-and after that you can run all the example curl commands with
-
-```
-perl -n -e 'print if /^curl /../http/; ' securing.md | sh -x
+perl -n -e 'print if /^```script/../^```$/;' okapi/doc/securing.md | sed '/```/d' | sh
 ```
 
 All the shell commands assume you are in your top-level directory, for example
 `~/folio`. All modules are assumed to reside under it, each in its own directory.
-
 
 ## Okapi itself
 
@@ -92,7 +86,7 @@ java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar dev
 In the end you should have Okapi running in a console window, and listening on
 port 9130. You can verify it is running by listing the tenants:
 
-```
+```script
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 ```
 
@@ -184,7 +178,7 @@ The module descriptors are generated from a template during the build process.
 
 Where ever they come from, we just need to POST them to Okapi.
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -d @mod-permissions/target/ModuleDescriptor.json \
@@ -208,7 +202,7 @@ curl -w '\n' -D - -X POST  \
 
 You can verify we have all four modules properly declared:
 
-```
+```script
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 ```
 
@@ -219,7 +213,7 @@ This should list five modules, the 4 declared above, and Okapi's internal module
 All the modules need to know how to talk to the database. The easiest way is
 to set up some environment variables, by POSTing them to Okapi.
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -d '{"name":"DB_HOST", "value":"localhost"}' \
@@ -259,7 +253,7 @@ to trigger the script-running one-liner.
 
 #### mod-permissions
 
-```
+```script
 cat /dev/null
 export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-perm.json <<END
@@ -280,7 +274,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-users
 
-```
+```script
 cat /dev/null
 export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-user.json <<END
@@ -301,7 +295,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-login
 
-```
+```script
 cat /dev/null
 export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-login.json <<END
@@ -322,7 +316,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-authtoken
 
-```
+```script
 cat /dev/null
 export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-auth.json <<END
@@ -343,7 +337,7 @@ curl -w '\n' -D - -X POST  \
 
 You can see all four modules deployed with
 
-```
+```script
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
 
 ```
@@ -354,7 +348,7 @@ First we need to enable mod-permissions for our supertenant. We do not have to
 specify the version number here, Okapi will choose the latest (and only) version
 we have declared.
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
    -d'{"id":"mod-permissions"}' \
@@ -366,7 +360,7 @@ curl -w '\n' -D - -X POST  \
 Because of bug OKAPI-388, the permissions for the internal module have not
 been loaded in the perms module. Re-enabling that will fix that.
 
-```
+```script
 cat /dev/null
 export OKAPIVER=`grep '<version>' okapi/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 
@@ -383,7 +377,7 @@ curl -w '\n' -D - -X POST  \
 
 #### Create our superuser in the perms module
 
-```
+```script
 cat > /tmp/permuser.json <<END
 { "userId":"99999999-9999-9999-9999-999999999999",
   "permissions":[ "okapi.all" ] }
@@ -398,7 +392,7 @@ curl -w '\n' -D - -X POST  \
 
 #### Enable mod-users
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -408,7 +402,7 @@ curl -w '\n' -D - -X POST  \
 
 Create our superuser in mod-users
 
-```
+```script
 cat > /tmp/superuser.json <<END
 { "id":"99999999-9999-9999-9999-999999999999",
   "username":"superuser",
@@ -430,7 +424,7 @@ curl -w '\n' -D - -X POST  \
 
 Enable the login module
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -440,7 +434,7 @@ curl -w '\n' -D - -X POST  \
 
 And create a login user
 
-```
+```script
 cat >/tmp/loginuser.json << END
 { "username":"superuser",
   "password":"secretpassword" }
@@ -458,7 +452,7 @@ curl -w '\n' -D - -X POST  \
 
 When we enable mod-authtoken, the system is finally locked up.
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -471,7 +465,7 @@ curl -w '\n' -D - -X POST  \
 We can reuse the credentials we used for creating the login user.
 We need to save the headers in /tmp, so we can extract the auth token
 
-```
+```script
 curl -w '\n' -D /tmp/loginheaders -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -488,7 +482,7 @@ END
 
 Try to create a new tenant, without the token. Should fail.
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -498,7 +492,7 @@ curl -w '\n' -D - -X POST  \
 
 #### Verify that the token works
 
-```
+```script
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -H "X-Okapi-Tenant:supertenant" \
@@ -512,7 +506,7 @@ curl -w '\n' -D - -X POST  \
 Most of the read-only operations should be allowed for any user, even
 without the token.
 
-```
+```script
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant:supertenant" \
    http://localhost:9130/_/proxy/tenants
