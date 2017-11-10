@@ -7,11 +7,13 @@ installation. We hope that this process will be automated at some point.
 
 There are many curl examples. As with the Okapi guide, you can extract the
 sample data into /tmp with
+
 ```
 perl -n -e 'print if /^cat /../^END/;' securing.md | sh
 ```
 
 and after that you can run all the example curl commands with
+
 ```
 perl -n -e 'print if /^curl /../http/; ' securing.md | sh -x
 ```
@@ -23,8 +25,10 @@ All the shell commands assume you are in your top-level directory, for example
 ## Okapi itself
 
 ### Getting Okapi
+
 This script assumes you have a fresh Okapi instance running, with nothing
 installed in it. If you do not, you can get one up by running the following.
+
 ```
 git clone git@github.com:folio-org/okapi.git
 cd okapi
@@ -32,29 +36,34 @@ cd okapi
 mvn clean install
 cd ..
 ```
+
 The build takes a while. (It will go faster if you append `-DskipTests` to the
 mvn command line)
 
 Check that near the end there is a line that says
+
 ```
 [INFO] BUILD SUCCESS
 ```
 
-
 ### Initializing a fresh database
+
 You need to have a database to store all these things in, and you should start
 with clean state.
 
 Create a database user:
+
 ```
   sudo -u postgres -i
    createuser -P -s okapi   # When it asks for a password, enter okapi25
    createdb -O okapi okapi
 ```
+
 Note the -s, that gives the user superuser rights, which are needed in the
 tenant interface calls. If you have followed the Okapi guide, you probably
 have created the okapi user, but without the superuser bit. You can give the
 superuser privs with something like
+
 ```
 sudo -u postgres psql -c "ALTER USER okapi  WITH SUPERUSER"
 ```
@@ -69,20 +78,25 @@ CREATE ROLE module_admin_user PASSWORD ‘somepassword’ SUPERUSER CREATEDB INH
 See the
 [Storage](https://github.com/folio-org/okapi/blob/master/doc/guide.md#storage)
 section of the Okapi guide for details of setting up your database. Then run
+
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar initdatabase
 ```
 
 ### Starting Okapi
+
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar dev
 ```
 
 In the end you should have Okapi running in a console window, and listening on
 port 9130. You can verify it is running by listing the tenants:
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
+```
 
+```
 HTTP/1.1 200 OK
 Content-Type: application/json
 X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
@@ -150,6 +164,7 @@ us finish the process, locking us out of our own system.
 
 
 ### Workaround for a known bug
+
 When a module gets enabled, Okapi loads its permissions into mod-permissions,
 if such is already enabled. Unfortunately there is a bug in Okapi, so it will
 not reload permissions of already-existing modules when mod-permissions is
@@ -163,13 +178,12 @@ See [Okapi-388](https://issues.folio.org/browse/OKAPI-388).
 <!-- TODO: Remove this paragraph when -388 gets fixed, and update the Okapi
 version above -->
 
-
 ### Declaring the modules
-
 
 The module descriptors are generated from a template during the build process.
 
 Where ever they come from, we just need to POST them to Okapi.
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -193,14 +207,18 @@ curl -w '\n' -D - -X POST  \
 ```
 
 You can verify we have all four modules properly declared:
+
 ```
 curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 ```
+
 This should list five modules, the 4 declared above, and Okapi's internal module.
 
 ### Setting up the database environment
+
 All the modules need to know how to talk to the database. The easiest way is
 to set up some environment variables, by POSTing them to Okapi.
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -229,9 +247,8 @@ curl -w '\n' -D - -X POST  \
 
 ```
 
-
-
 ### Deploying the modules
+
 Now we need to deploy the modules. This is a bit tricky, since the
 DeploymentDescriptor needs to refer to the version of the module, and we
 do not want to hard code that in this script. Instead we grep the version
@@ -241,6 +258,7 @@ Also note that these commands start with a meaningless-looking cat. It is there
 to trigger the script-running one-liner.
 
 #### mod-permissions
+
 ```
 cat /dev/null
 export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -260,8 +278,8 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/discovery/modules
 ```
 
-
 #### mod-users
+
 ```
 cat /dev/null
 export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -282,6 +300,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### mod-login
+
 ```
 cat /dev/null
 export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -302,6 +321,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### mod-authtoken
+
 ```
 cat /dev/null
 export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
@@ -322,6 +342,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 You can see all four modules deployed with
+
 ```
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
 
@@ -341,6 +362,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### Workaround: Load the permissions of the Internal Module
+
 Because of bug OKAPI-388, the permissions for the internal module have not
 been loaded in the perms module. Re-enabling that will fix that.
 
@@ -360,6 +382,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### Create our superuser in the perms module
+
 ```
 cat > /tmp/permuser.json <<END
 { "userId":"99999999-9999-9999-9999-999999999999",
@@ -373,8 +396,8 @@ curl -w '\n' -D - -X POST  \
    http://localhost:9130/perms/users
 ```
 
-
 #### Enable mod-users
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -404,7 +427,9 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### mod-login
+
 Enable the login module
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -414,6 +439,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 And create a login user
+
 ```
 cat >/tmp/loginuser.json << END
 { "username":"superuser",
@@ -429,7 +455,9 @@ curl -w '\n' -D - -X POST  \
 
 
 #### mod-authtoken
+
 When we enable mod-authtoken, the system is finally locked up.
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -439,6 +467,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### Log in
+
 We can reuse the credentials we used for creating the login user.
 We need to save the headers in /tmp, so we can extract the auth token
 
@@ -456,7 +485,9 @@ END
 ```
 
 #### Verify that we need a token
+
 Try to create a new tenant, without the token. Should fail.
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -466,6 +497,7 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### Verify that the token works
+
 ```
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -476,21 +508,25 @@ curl -w '\n' -D - -X POST  \
 ```
 
 #### Verify that we can list the tenants
+
 Most of the read-only operations should be allowed for any user, even
 without the token.
+
 ```
 curl -w '\n' -D -  \
   -H "X-Okapi-Tenant:supertenant" \
    http://localhost:9130/_/proxy/tenants
 ```
+
 This should have listed exactly two tenants.
 
-
 ### Cleaning up
+
 If you need to clean up the things you have created, you need to do two things:
 Drop all schemas and roles we have created, and drop and recreate the whole
 database. Run something like `sudo -u postgres psql okapi` and paste the
 following commands into it:
+
 ```
 DROP SCHEMA supertenant_mod_login CASCADE;
 DROP ROLE supertenant_mod_login;
@@ -502,7 +538,9 @@ DROP SCHEMA supertenant_mod_permissions CASCADE;
 DROP ROLE supertenant_mod_permissions;
 \q
 ```
+
 Then run the two commands below:
+
 ```
 sudo -u postgres dropdb okapi
 sudo -u postgres createdb -O okapi okapi
