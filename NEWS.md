@@ -1,3 +1,12 @@
+## 2.3.1 2017-11-10
+
+ * Fix Okapi fails to restart after pull operation OKAPI-461
+ * Fix reload permission(set)s when enabling mod-perms OKAPI-388
+ * Load modulePermissions of already-enabled modules OKAPI-417
+ * Allow env option to skip Mongo and Postgres unit tests OKAPI-460
+ * Fix securing.md examples can not run OKAPI-462
+ * Fix "All modules shut down" repeats too many times OKAPI-463
+
 ## 2.3.0 2017-11-02
 
  * Auto-deploy for install/upgrade operation OKAPI-424
