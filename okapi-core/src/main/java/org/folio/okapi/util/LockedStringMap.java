@@ -14,7 +14,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -111,39 +110,42 @@ public class LockedStringMap {
       if (resGet.failed()) {
         fut.handle(new Failure<>(INTERNAL, resGet.cause()));
       } else {
-        String val = resGet.result();
-        Collection<String> result = new TreeSet<>();
-        if (val == null || val.isEmpty()) {
-          fut.handle(new Success<>(result));
-        } else {
-          KeyList keys = Json.decodeValue(val, KeyList.class);
-
-          List<Future> futures = new LinkedList<>();
-          for (String k : keys.keys) {
-            Future f = Future.future();
-            list.get(k, res -> {
-              if (res.failed()) {
-                f.handle(Future.failedFuture(res.cause()));
-              } else {
-                String v = res.result();
-                if (v != null) {
-                  result.add(k);
-                }
-                f.handle(Future.succeededFuture());
-              }
-            });
-            futures.add(f);
-          }
-          CompositeFuture.all(futures).setHandler(res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(INTERNAL, res.cause()));
-            } else {
-              fut.handle(new Success<>(result));
-            }
-          });
-        }
+        getKeys2(resGet.result(), fut);
       }
     });
+  }
+
+  private void getKeys2(String val, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+    Collection<String> result = new TreeSet<>();
+    if (val == null || val.isEmpty()) {
+      fut.handle(new Success<>(result));
+    } else {
+      KeyList keys = Json.decodeValue(val, KeyList.class);
+
+      List<Future> futures = new LinkedList<>();
+      for (String k : keys.keys) {
+        Future f = Future.future();
+        list.get(k, res -> {
+          if (res.failed()) {
+            f.handle(Future.failedFuture(res.cause()));
+          } else {
+            String v = res.result();
+            if (v != null) {
+              result.add(k);
+            }
+            f.handle(Future.succeededFuture());
+          }
+        });
+        futures.add(f);
+      }
+      CompositeFuture.all(futures).setHandler(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+        } else {
+          fut.handle(new Success<>(result));
+        }
+      });
+    }
   }
 
   private void addKey(String k, Handler<ExtendedAsyncResult<Void>> fut) {
