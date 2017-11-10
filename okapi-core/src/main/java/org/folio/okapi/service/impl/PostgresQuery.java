@@ -50,7 +50,7 @@ public class PostgresQuery {
         conn.queryWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
             logger.fatal("queryWithParams failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
+              + qres.cause() + " sql: " + sql);
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
             close();
           } else {
@@ -72,7 +72,7 @@ public class PostgresQuery {
         conn.updateWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
             logger.fatal("updateWithParams failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
+              + qres.cause() + " sql: " + sql);
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
             close();
           } else {
@@ -94,7 +94,7 @@ public class PostgresQuery {
         conn.query(sql, qres -> {
           if (qres.failed()) {
             logger.fatal("query failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
+              + qres.cause() + " sql: " + sql);
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
             close();
           } else {
