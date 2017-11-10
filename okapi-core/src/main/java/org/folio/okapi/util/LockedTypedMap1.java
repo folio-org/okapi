@@ -12,13 +12,11 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.atomic.AtomicInteger;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
   private final Class<T> clazz;
-  private AtomicInteger countDown;
 
   public LockedTypedMap1(Class<T> c) {
     this.clazz = c;
