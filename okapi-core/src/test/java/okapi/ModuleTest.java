@@ -45,7 +45,6 @@ import de.flapdoodle.embed.process.runtime.Network;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -3187,6 +3186,43 @@ public class ModuleTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    async.complete();
+  }
+
+  @Test
+  public void testManyModules(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    Response r;
+
+    int i;
+    for (i = 0; i < 1000; i++) {
+      String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
+        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+      c = api.createRestAssured();
+      c.given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201)
+        .log().ifValidationFails();
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    }
+    c = api.createRestAssured();
+    r = c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails().extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
 
     async.complete();
   }

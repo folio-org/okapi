@@ -173,6 +173,7 @@
           <systemPropertyVariables>
             <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
           </systemPropertyVariables>
+          <!-- argLine -Xss20M argLine -->
         </configuration>
       </plugin>
       <plugin>
