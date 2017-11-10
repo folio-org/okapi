@@ -581,11 +581,8 @@ public class ModuleManager {
         for (ModuleDescriptor md : kres.result().values()) {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
-          if (filter != null && !idThis.hasPrefix(filter)) {
-            ;
-          } else if (!preRelease && idThis.hasPreRelease()) {
-            ;
-          } else {
+          if ((filter == null || idThis.hasPrefix(filter))
+            && (preRelease || !idThis.hasPreRelease())) {
             mdl.add(md);
           }
         }
@@ -621,7 +618,6 @@ public class ModuleManager {
       return;
     }
     String id = it.next();
-    ModuleId idThis = new ModuleId(id);
     modules.get(id, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
