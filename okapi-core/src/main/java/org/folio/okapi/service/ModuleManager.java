@@ -78,13 +78,12 @@ public class ModuleManager {
       fut.handle(new Success<>());
       return;
     }
-    modules.getKeys(kres -> {
+    modules.size(kres -> {
       if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+        fut.handle(new Failure<>(INTERNAL, kres.cause()));
         return;
       }
-      Collection<String> keys = kres.result();
-      if (!keys.isEmpty()) {
+      if (kres.result().intValue() > 0) {
         logger.debug("Not loading modules, looks like someone already did");
         fut.handle(new Success<>());
         return;
@@ -101,6 +100,7 @@ public class ModuleManager {
           futures.add(f);
         }
         CompositeFuture.all(futures).setHandler(res -> {
+          logger.info("All modules loaded");
           if (res.failed()) {
             fut.handle(new Failure<>(INTERNAL, res.cause()));
           } else {
