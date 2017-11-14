@@ -1018,7 +1018,7 @@ public class TenantManager {
         installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
       }
     } else {
-      fut.handle(new Success());
+      fut.handle(new Success<>());
     }
   }
 

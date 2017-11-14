@@ -306,7 +306,7 @@ public class DiscoveryManager implements NodeListener {
         logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
       }
     }
-    fut.handle(new Success());
+    fut.handle(new Success<>());
   }
 
   public void autoUndeploy(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -314,7 +314,7 @@ public class DiscoveryManager implements NodeListener {
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
       logger.info("autoUndeploy " + md.getId() + " no lunchDescriptor");
-      fut.handle(new Success());
+      fut.handle(new Success<>());
     } else {
       deployments.get(md.getId(), res -> {
         if (res.failed()) {
@@ -322,7 +322,7 @@ public class DiscoveryManager implements NodeListener {
         } else {
           List<DeploymentDescriptor> ddList = res.result();
           if (ddList.isEmpty()) {
-            fut.handle(new Success());
+            fut.handle(new Success<>());
           } else {
             callUndeploy(ddList.get(0), res2 -> {
               if (res2.failed()) {
