@@ -5,9 +5,13 @@ installation. We hope that this process will be automated at some point.
 
 ## Running the examples
 
-There are many curl examples. As with the Okapi guide, you can extract the
-sample data into /tmp and run the curl commands using this one-liner.
-First ensure that Okapi and the required modules are ready as explained in these initial sections, then do:
+The example 'curl' commands are explained below.
+First ensure that Okapi and the required modules are ready, as explained in these initial sections.
+Then copy-and-paste them to another command-line console.
+
+After you are satisfied, then subsequent runs can be expedited.
+As with the Okapi guide, this one-liner can be used to extract the
+sample data into /tmp and run the curl commands:
 
 ```
 perl -n -e 'print if /^```script/../^```$/;' okapi/doc/securing.md | sed '/```/d' | sh -x
