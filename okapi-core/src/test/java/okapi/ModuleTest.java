@@ -3200,7 +3200,7 @@ public class ModuleTest {
     Response r;
 
     int i;
-    for (i = 0; i < 1000; i++) {
+    for (i = 0; i < 10; i++) {
       String docSampleModule = "{" + LS
         + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
         + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
