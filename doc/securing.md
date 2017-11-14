@@ -238,7 +238,6 @@ curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
   -d '{"name":"DB_DATABASE", "value":"okapi"}' \
   http://localhost:9130/_/env
-
 ```
 
 ### Deploying the modules
@@ -254,7 +253,6 @@ to trigger the script-running one-liner.
 #### mod-permissions
 
 ```script
-cat /dev/null
 export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-perm.json <<END
 {
@@ -275,7 +273,6 @@ curl -w '\n' -D - -X POST  \
 #### mod-users
 
 ```script
-cat /dev/null
 export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-user.json <<END
 {
@@ -296,7 +293,6 @@ curl -w '\n' -D - -X POST  \
 #### mod-login
 
 ```script
-cat /dev/null
 export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-login.json <<END
 {
@@ -317,7 +313,6 @@ curl -w '\n' -D - -X POST  \
 #### mod-authtoken
 
 ```script
-cat /dev/null
 export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 cat > /tmp/deploy-auth.json <<END
 {
@@ -339,7 +334,6 @@ You can see all four modules deployed with
 
 ```script
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
-
 ```
 
 ### Enabling modules and loading data
@@ -361,7 +355,6 @@ Because of bug OKAPI-388, the permissions for the internal module have not
 been loaded in the perms module. Re-enabling that will fix that.
 
 ```script
-cat /dev/null
 export OKAPIVER=`grep '<version>' okapi/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
 
 cat > /tmp/re-enable.json <<END
@@ -372,7 +365,6 @@ curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
    -d@/tmp/re-enable.json \
    http://localhost:9130/_/proxy/tenants/supertenant/modules/okapi-$OKAPIVER
-
 ```
 
 #### Create our superuser in the perms module
@@ -474,8 +466,6 @@ curl -w '\n' -D /tmp/loginheaders -X POST  \
 
 cat /tmp/loginheaders | grep -i x-okapi-token | sed 's/ //g' > /tmp/token
 echo "Got token " `cat /tmp/token`
-cat >/dev/null <<END
-END
 ```
 
 #### Verify that we need a token
