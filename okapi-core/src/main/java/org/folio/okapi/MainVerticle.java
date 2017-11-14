@@ -408,17 +408,27 @@ public class MainVerticle extends AbstractVerticle {
 
   public void startDeployment(Future<Void> fut) {
     if (deploymentManager == null) {
-      startListening(fut);
+      startDeployment2(fut);
     } else {
       logger.debug("Starting deployment");
       deploymentManager.init(res -> {
         if (res.succeeded()) {
-          startListening(fut);
+          startDeployment2(fut);
         } else {
           fut.fail(res.cause());
         }
       });
     }
+  }
+
+  private void startDeployment2(Future<Void> fut) {
+    discoveryManager.loadModules(res -> {
+      if (res.succeeded()) {
+        startListening(fut);
+      } else {
+        fut.fail(res.cause());
+      }
+    });
   }
 
   private void startListening(Future<Void> fut) {

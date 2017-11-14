@@ -66,6 +66,10 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  public void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+    fut.handle(new Success());
+  }
+
   public DiscoveryManager(DeploymentStore ds) {
     deploymentStore = ds;
   }
