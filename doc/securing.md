@@ -10,7 +10,7 @@ sample data into /tmp and run the curl commands using this one-liner.
 First ensure that Okapi and the required modules are ready as explained in these initial sections, then do:
 
 ```
-perl -n -e 'print if /^```script/../^```$/;' okapi/doc/securing.md | sed '/```/d' | sh
+perl -n -e 'print if /^```script/../^```$/;' okapi/doc/securing.md | sed '/```/d' | sh -x
 ```
 
 All the shell commands assume you are in your top-level directory, for example
