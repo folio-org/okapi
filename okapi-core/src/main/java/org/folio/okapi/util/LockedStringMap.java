@@ -124,7 +124,7 @@ public class LockedStringMap {
 
       List<Future> futures = new LinkedList<>();
       for (String k : keys.keys) {
-        Future f = Future.future();
+        Future<Void> f = Future.future();
         list.get(k, res -> {
           if (res.failed()) {
             f.handle(Future.failedFuture(res.cause()));
