@@ -1,3 +1,9 @@
+## 2.3.2 2017-11-14
+
+ * Fix Posting module list to install endpoint results in huge
+   number of headers OKAPI-466
+ * Fix cast warnings OKAPI-467
+
 ## 2.3.1 2017-11-10
 
  * Fix Okapi fails to restart after pull operation OKAPI-461
