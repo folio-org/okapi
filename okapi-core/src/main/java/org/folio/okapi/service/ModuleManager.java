@@ -94,8 +94,8 @@ public class ModuleManager {
         }
         List<Future> futures = new LinkedList<>();
         for (ModuleDescriptor md : mres.result()) {
-          Future f = Future.future();
-          modules.add(md.getId(), md, f);
+          Future<Void> f = Future.future();
+          modules.add(md.getId(), md, f::handle);
           futures.add(f);
         }
         CompositeFuture.all(futures).setHandler(res -> {

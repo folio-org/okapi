@@ -74,10 +74,11 @@ public class ProxyContext {
    *
    * @param ok OkapiClient to take resp headers from
    */
-  public void passOkapiClientRespHeaders(OkapiClient ok) {
+  public void passOkapiTraceHeaders(OkapiClient ok) {
     MultiMap respH = ok.getRespHeaders();
     for (Map.Entry<String, String> e : respH.entries()) {
-      if (e.getKey().startsWith("X-") || e.getKey().startsWith("x-")) {
+      if (XOkapiHeaders.TRACE.equals(e.getKey())
+        || "X-Tenant-Perms-Result".equals(e.getKey())) {
         ctx.response().headers().add(e.getKey(), e.getValue());
       }
     }

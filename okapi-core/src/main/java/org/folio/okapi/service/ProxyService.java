@@ -217,7 +217,7 @@ public class ProxyService {
    * tenant against what it has in the token, so even if a client puts up a bad
    * tenant, we should be safe.
    *
-   * @param ctx
+   * @param pc
    * @return null in case of errors, with the response already set in ctx. If
    * all went well, returns the tenantId for further processing.
    */
@@ -846,7 +846,7 @@ public class ProxyService {
         }
         // Pass response headers - needed for unit test, if nothing else
         pc.debug("Request for " + module + " " + path + " ok");
-        pc.passOkapiClientRespHeaders(cli);
+        pc.passOkapiTraceHeaders(cli);
         fut.handle(new Success<>(cli.getResponsebody()));
       });
     });
