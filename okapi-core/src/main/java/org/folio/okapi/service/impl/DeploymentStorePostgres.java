@@ -6,7 +6,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.UpdateResult;
+import java.util.ArrayList;
+import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -105,5 +108,27 @@ public class DeploymentStorePostgres implements DeploymentStore {
       }
     });
     fut.handle(new Success<>());
+  }
+
+  @Override
+  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    PostgresQuery q = pg.getQuery();
+    String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE;
+    q.query(sql, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        ResultSet rs = res.result();
+        List<DeploymentDescriptor> ml = new ArrayList<>();
+        List<JsonObject> tempList = rs.getRows();
+        for (JsonObject r : tempList) {
+          String tj = r.getString(JSON_COLUMN);
+          DeploymentDescriptor md = Json.decodeValue(tj, DeploymentDescriptor.class);
+          ml.add(md);
+        }
+        q.close();
+        fut.handle(new Success<>(ml));
+      }
+    });
   }
 }

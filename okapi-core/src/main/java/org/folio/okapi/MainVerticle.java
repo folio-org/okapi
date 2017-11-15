@@ -408,27 +408,17 @@ public class MainVerticle extends AbstractVerticle {
 
   public void startDeployment(Future<Void> fut) {
     if (deploymentManager == null) {
-      startDeployment2(fut);
+      startListening(fut);
     } else {
       logger.debug("Starting deployment");
       deploymentManager.init(res -> {
         if (res.succeeded()) {
-          startDeployment2(fut);
+          startListening(fut);
         } else {
           fut.fail(res.cause());
         }
       });
     }
-  }
-
-  private void startDeployment2(Future<Void> fut) {
-    discoveryManager.loadModules(res -> {
-      if (res.succeeded()) {
-        startListening(fut);
-      } else {
-        fut.fail(res.cause());
-      }
-    });
   }
 
   private void startListening(Future<Void> fut) {
@@ -477,8 +467,8 @@ public class MainVerticle extends AbstractVerticle {
                       if (result.succeeded()) {
                         logger.info("API Gateway started PID "
                                 + ManagementFactory.getRuntimeMXBean().getName()
-                                + ". Listening on port " + port);
-                        fut.complete();
+                          + ". Listening on port " + port);
+                        startRedeploy(fut);
                       } else {
                         logger.fatal("createHttpServer failed", result.cause());
                         fut.fail(result.cause());
@@ -487,5 +477,14 @@ public class MainVerticle extends AbstractVerticle {
             );
   }
 
-
+  private void startRedeploy(Future<Void> fut) {
+    discoveryManager.restartModules(res -> {
+      if (res.succeeded()) {
+        logger.info("Deploy completed succesfully");
+      } else {
+        logger.info("Deploy failed: " + res.cause());
+      }
+      fut.complete();
+    });
+  }
 }

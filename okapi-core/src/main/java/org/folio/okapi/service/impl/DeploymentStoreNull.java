@@ -1,6 +1,8 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Handler;
+import java.util.ArrayList;
+import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Success;
@@ -21,6 +23,11 @@ public class DeploymentStoreNull implements DeploymentStore {
   @Override
   public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
     fut.handle(new Success<>());
+  }
+
+  @Override
+  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    fut.handle(new Success<>(new ArrayList<>()));
   }
 
 }

@@ -1,6 +1,7 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Handler;
+import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 
@@ -10,4 +11,6 @@ public interface DeploymentStore {
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
   void reset(Handler<ExtendedAsyncResult<Void>> fut);
+
+  void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut);
 }

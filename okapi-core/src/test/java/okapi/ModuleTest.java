@@ -57,6 +57,7 @@ public class ModuleTest {
   @Parameterized.Parameters
   public static Iterable<String> data() {
     final String f = System.getenv("okapiFastTest");
+    // return Arrays.asList("postgres");
     if (f != null) {
       return Arrays.asList("inmemory");
     } else {
@@ -2180,6 +2181,39 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    if (!"postgres".equals(conf.getString("storage"))) {
+      testDeployment2(async, context);
+    } else {
+      // just undeploy but keep it registered in discovery
+      logger.info("doc2 " + doc2);
+      JsonObject o2 = new JsonObject(doc2);
+      String instId = o2.getString("instId");
+      String loc = "http://localhost:9130/_/deployment/modules/" + instId;
+      c = api.createRestAssured();
+      c.given().delete(loc).then().statusCode(204);
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+      undeployFirst(x -> {
+        conf.remove("mongo_db_init");
+        conf.remove("postgres_db_init");
+
+        DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+        vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+          testDeployment2(async, context);
+        });
+      });
+    }
+  }
+
+  private void testDeployment2(Async async, TestContext context) {
+    logger.info("testDeployment2");
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
     c = api.createRestAssured();
     c.given().delete(locationSampleDeployment).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2250,13 +2284,11 @@ public class ModuleTest {
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"" + LS
       + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
     final String DeployResp = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"," + LS
       + "  \"nodeId\" : \"http://localhost:9130\"," + LS
       + "  \"url\" : \"http://localhost:9131\"," + LS
       + "  \"descriptor\" : {" + LS

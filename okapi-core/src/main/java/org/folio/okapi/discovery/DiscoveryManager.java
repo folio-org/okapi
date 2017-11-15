@@ -1,5 +1,7 @@
 package org.folio.okapi.discovery;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -66,8 +68,26 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Success());
+  public void restartModules(Handler<ExtendedAsyncResult<Void>> fut) {
+    deploymentStore.getAll(res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      } else {
+        List<Future> futures = new LinkedList<>();
+        for (DeploymentDescriptor dd : res1.result()) {
+          Future<DeploymentDescriptor> f = Future.future();
+          addAndDeploy(dd, f::handle);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res2.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
+      }
+    });
   }
 
   public DiscoveryManager(DeploymentStore ds) {
