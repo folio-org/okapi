@@ -57,7 +57,6 @@ public class ModuleTest {
   @Parameterized.Parameters
   public static Iterable<String> data() {
     final String f = System.getenv("okapiFastTest");
-    // return Arrays.asList("postgres");
     if (f != null) {
       return Arrays.asList("inmemory");
     } else {
@@ -2080,6 +2079,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc1 = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS // set so we can compare with result
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2283,6 +2283,7 @@ public class ModuleTest {
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
       + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
