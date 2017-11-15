@@ -54,14 +54,13 @@ import java.util.Set;
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
 
-  // 0=inmemory, 1=postgres, 2=mongo
   @Parameterized.Parameters
-  public static Iterable<Integer> data() {
+  public static Iterable<String> data() {
     final String f = System.getenv("okapiFastTest");
     if (f != null) {
-      return Arrays.asList(0);
+      return Arrays.asList("inmemory");
     } else {
-      return Arrays.asList(0, 1, 2);
+      return Arrays.asList("inmemory", "postgres", "mongo");
     }
   }
 
@@ -110,24 +109,23 @@ public class ModuleTest {
     }
   }
 
-  public ModuleTest(int value) throws Exception {
+  public ModuleTest(String value) throws Exception {
     conf = new JsonObject();
 
-    conf.put("port_start", "9131")
+    conf.put("storage", value)
+      .put("port_start", "9131")
       .put("port_end", "9137")
       .put("nodename", "node1");
 
-    if (value == 1) {
-      conf.put("storage", "postgres")
-        .put("postgres_host", "localhost")
+    if ("postgres".equals(value)) {
+      conf.put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
         postgres = new EmbeddedPostgres(V9_6);
-        String pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+        postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
-    } else if (value == 2) {
-      conf.put("storage", "mongo")
-        .put("mongo_host", "localhost")
+    } else if ("mongo".equals(value)) {
+      conf.put("mongo_host", "localhost")
         .put("mongo_port", Integer.toString(MONGO_PORT));
       if (mongoD == null) {
         MongodStarter starter = MongodStarter.getDefaultInstance();
