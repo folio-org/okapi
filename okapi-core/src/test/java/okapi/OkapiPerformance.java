@@ -114,16 +114,16 @@ public class OkapiPerformance {
 
   public void declareAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"auth\"," + LS
+            + "  \"id\" : \"auth-1.0.0\"," + LS
             + "  \"name\" : \"authmodule\"," + LS
-            + "  \"routingEntries\" : [ {" + LS
+            + "  \"filters\" : [ {" + LS
             + "    \"methods\" : [ \"*\" ]," + LS
             + "    \"path\" : \"/s\"," + LS
             + "    \"level\" : \"10\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  }, {"
             + "    \"methods\" : [ \"POST\" ]," + LS
-            + "    \"path\" : \"/login\"," + LS
+            + "    \"path\" : \"/authn/login\"," + LS
             + "    \"level\" : \"20\"," + LS
             + "    \"type\" : \"request-response\"" + LS
             + "  } ]" + LS
@@ -140,7 +140,7 @@ public class OkapiPerformance {
 
   public void deployAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"srvcId\" : \"auth\"," + LS
+            + "  \"srvcId\" : \"auth-1.0.0\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar\"" + LS
@@ -159,9 +159,9 @@ public class OkapiPerformance {
 
   public void declareSample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module\"," + LS
+            + "  \"id\" : \"sample-module-1.0.0\"," + LS
             + "  \"name\" : \"sample module\"," + LS
-            + "  \"routingEntries\" : [ {" + LS
+            + "  \"filters\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"30\"," + LS
@@ -181,7 +181,7 @@ public class OkapiPerformance {
 
   public void deploySample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"srvcId\" : \"sample-module\"," + LS
+            + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
             + "  \"descriptor\" : {" + LS
             + "    \"exec\" : "
             + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -247,7 +247,7 @@ public class OkapiPerformance {
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-    HttpClientRequest req = httpClient.post(port, "localhost", "/login", response -> {
+    HttpClientRequest req = httpClient.post(port, "localhost", "/authn/login", response -> {
       context.assertEquals(200, response.statusCode());
       String headers = response.headers().entries().toString();
       okapiToken = response.getHeader("X-Okapi-Token");
@@ -296,9 +296,9 @@ public class OkapiPerformance {
 
   public void declareSample2(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module2\"," + LS
+            + "  \"id\" : \"sample-module2-1.0.0\"," + LS
             + "  \"name\" : \"sample2\"," + LS
-            + "  \"routingEntries\" : [ {" + LS
+            + "  \"filters\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/testb\"," + LS
             + "    \"level\" : \"31\"," + LS
@@ -316,7 +316,7 @@ public class OkapiPerformance {
   public void deploySample2(TestContext context) {
     final String doc = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
-            + "  \"srvcId\" : \"sample-module2\"," + LS
+            + "  \"srvcId\" : \"sample-module2-1.0.0\"," + LS
             + "  \"url\" : \"http://localhost:9132\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
@@ -343,9 +343,9 @@ public class OkapiPerformance {
 
   public void declareSample3(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module3\"," + LS
+            + "  \"id\" : \"sample-module3-1.0.0\"," + LS
             + "  \"name\" : \"sample3\"," + LS
-            + "  \"routingEntries\" : [ {" + LS
+            + "  \"filters\" : [ {" + LS
             + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
             + "    \"path\" : \"/sample\"," + LS
             + "    \"level\" : \"05\"," + LS
@@ -387,7 +387,7 @@ public class OkapiPerformance {
 
   public void tenantEnableModuleSample3(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module3\"" + LS
+            + "  \"id\" : \"sample-module3-1.0.0\"" + LS
             + "}";
     httpClient.post(port, "localhost", "/_/proxy/tenants/" + okapiTenant + "/modules", response -> {
       context.assertEquals(201, response.statusCode());
