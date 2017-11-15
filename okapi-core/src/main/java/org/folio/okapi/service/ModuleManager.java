@@ -14,7 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
@@ -118,12 +118,12 @@ public class ModuleManager {
    * @param modlist the list to check against
    * @return "" if ok, or error message
    */
-  private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
+  private String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modlist) {
-    ModuleInterface seenversion = null;
+    InterfaceDescriptor seenversion = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
       ModuleDescriptor rm = entry.getValue();
-      for (ModuleInterface pi : rm.getProvidesList()) {
+      for (InterfaceDescriptor pi : rm.getProvidesList()) {
         logger.debug("Checking dependency of " + md.getId() + ": "
           + req.getId() + " " + req.getVersion()
           + " against " + pi.getId() + " " + pi.getVersion());
@@ -157,7 +157,7 @@ public class ModuleManager {
   private String checkDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
-    for (ModuleInterface req : md.getRequiresList()) {
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       String res = checkOneDependency(md, req, modlist);
       if (!res.isEmpty()) {
         return res;
@@ -166,13 +166,13 @@ public class ModuleManager {
     return "";  // ok
   }
 
-  private int checkInterfaceDependency(ModuleInterface req,
+  private int checkInterfaceDependency(InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
     logger.info("checkInterfaceDependency1");
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
-      for (ModuleInterface pi : md.getProvidesList()) {
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
           logger.debug("Dependency OK");
           return 0;
@@ -183,7 +183,7 @@ public class ModuleManager {
     ModuleDescriptor foundMd = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
-      for (ModuleInterface pi : md.getProvidesList()) {
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId()) && pi.isCompatible(req)
           && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
           foundMd = md;
@@ -203,10 +203,10 @@ public class ModuleManager {
     while (it.hasNext()) {
       String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      for (ModuleInterface pi : rm.getProvidesList()) {
+      for (InterfaceDescriptor pi : rm.getProvidesList()) {
         if (pi.isRegularHandler()) {
           String confl = pi.getId();
-          for (ModuleInterface mi : md.getProvidesList()) {
+          for (InterfaceDescriptor mi : md.getProvidesList()) {
             if (mi.getId().equals(confl)
               && modsEnabled.containsKey(runningmodule)) {
               if (md.getProduct().equals(rm.getProduct())) {
@@ -235,7 +235,7 @@ public class ModuleManager {
     List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("addModuleDependencies " + md.getId());
-    for (ModuleInterface req : md.getRequiresList()) {
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       int v = checkInterfaceDependency(req, modsAvailable, modsEnabled, tml);
       if (v == -1) {
         return v;
@@ -266,15 +266,15 @@ public class ModuleManager {
     if (!modsEnabled.containsKey(md.getId())) {
       return 0;
     }
-    ModuleInterface[] provides = md.getProvidesList();
-    for (ModuleInterface prov : provides) {
+    InterfaceDescriptor[] provides = md.getProvidesList();
+    for (InterfaceDescriptor prov : provides) {
       if (prov.isRegularHandler()) {
         Iterator<String> it = modsEnabled.keySet().iterator();
         while (it.hasNext()) {
           String runningmodule = it.next();
           ModuleDescriptor rm = modsEnabled.get(runningmodule);
-          ModuleInterface[] requires = rm.getRequiresList();
-          for (ModuleInterface ri : requires) {
+          InterfaceDescriptor[] requires = rm.getRequiresList();
+          for (InterfaceDescriptor ri : requires) {
             if (prov.getId().equals(ri.getId())) {
               sum += removeModuleDependencies(rm, modsEnabled, tml);
               it = modsEnabled.keySet().iterator();
@@ -318,8 +318,8 @@ public class ModuleManager {
     Map<String, String> provs = new HashMap<>(); // interface name to module name
     StringBuilder conflicts = new StringBuilder();
     for (ModuleDescriptor md : modlist.values()) {
-      ModuleInterface[] provides = md.getProvidesList();
-      for (ModuleInterface mi : provides) {
+      InterfaceDescriptor[] provides = md.getProvidesList();
+      for (InterfaceDescriptor mi : provides) {
         if (mi.isRegularHandler()) {
           String confl = provs.get(mi.getId());
           if (confl == null || confl.isEmpty()) {
