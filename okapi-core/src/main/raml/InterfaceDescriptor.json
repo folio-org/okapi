@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "InterfaceDescriptor",
+  "description": "An interface that a module can provide",
+  "type": "object",
+  "additionalProperties" : false,
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "interfaceType": {
+      "type": ["string", "null"]
+    },
+    "handlers": {
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "RoutingEntry.json"
+      }
+    },
+    "permissionSets": {
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "Permission.json"
+      }
+    }
+  },
+  "required": ["id", "version"]
+}
