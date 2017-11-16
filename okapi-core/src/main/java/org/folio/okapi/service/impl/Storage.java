@@ -74,13 +74,14 @@ public class Storage {
     final InitMode initMode = initModeP;
     logger.info("prepareDatabases: " + initMode);
 
-    envStore.init(initMode != InitMode.NORMAL, res1 -> {
-      deploymentStore.init(initMode != InitMode.NORMAL, res2 -> {
+    boolean reset = initMode != InitMode.NORMAL;
+    envStore.init(reset, res1 -> {
+      deploymentStore.init(reset, res2 -> {
         if (tenantStore == null) {
           fut.handle(new Success<>());
         } else {
-          tenantStore.reset(res3 -> {
-            moduleStore.init(initMode != InitMode.NORMAL, fut);
+          tenantStore.init(reset, res3 -> {
+            moduleStore.init(reset, fut);
           });
         }
       });

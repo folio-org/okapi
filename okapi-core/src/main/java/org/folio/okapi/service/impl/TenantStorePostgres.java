@@ -37,37 +37,46 @@ public class TenantStorePostgres implements TenantStore {
     this.pg = pg;
   }
 
-  @Override
-  public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
-    PostgresQuery q = pg.getQuery();
-    String dropSql = "DROP TABLE IF EXISTS " + TABLE;
-    q.query(dropSql, res1 -> {
+  private void create(boolean reset, PostgresQuery q, Handler<ExtendedAsyncResult<Void>> fut) {
+    String notExists = reset ? "" : "IF NOT EXISTS ";
+    String createSql = "CREATE TABLE " + notExists + TABLE
+      + " ( " + JSON_COLUMN + " JSONB NOT NULL )";
+    q.query(createSql, res1 -> {
       if (res1.failed()) {
-        logger.fatal(dropSql + ": " + res1.cause().getMessage());
+        logger.fatal(createSql + ": " + res1.cause().getMessage());
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        String createSql = "CREATE TABLE " + TABLE + " ( "
-          + JSON_COLUMN + " JSONB NOT NULL )";
-        q.query(createSql, res2 -> {
-          if (res2.failed()) {
-            logger.fatal(createSql + ": " + res2.cause().getMessage());
+        String createSql1 = "CREATE UNIQUE INDEX " + notExists + "tenant_id ON "
+          + TABLE + " USING " + ID_INDEX;
+        q.query(createSql1, res2 -> {
+          if (res1.failed()) {
+            logger.fatal(createSql1 + ": " + res2.cause().getMessage());
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            String createSql1 = "CREATE UNIQUE INDEX tenant_id ON "
-              + TABLE + " USING " + ID_INDEX;
-            q.query(createSql1, res3 -> {
-              if (res2.failed()) {
-                logger.fatal(createSql1 + ": " + res3.cause().getMessage());
-                fut.handle(new Failure<>(res3.getType(), res3.cause()));
-              } else {
-                fut.handle(new Success<>());
-                q.close();
-              }
-            });
+            fut.handle(new Success<>());
+            q.close();
           }
         });
       }
     });
+  }
+
+  @Override
+  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+    PostgresQuery q = pg.getQuery();
+    if (!reset) {
+      create(reset, q, fut);
+    } else {
+      String dropSql = "DROP TABLE IF EXISTS " + TABLE;
+      q.query(dropSql, res -> {
+        if (res.failed()) {
+          logger.fatal(dropSql + ": " + res.cause().getMessage());
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          create(reset, q, fut);
+        }
+      });
+    }
   }
 
   private void insertTenant(PostgresQuery q, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
