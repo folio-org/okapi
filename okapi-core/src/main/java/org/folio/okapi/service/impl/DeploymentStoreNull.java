@@ -21,7 +21,7 @@ public class DeploymentStoreNull implements DeploymentStore {
   }
 
   @Override
-  public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
+  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
     fut.handle(new Success<>());
   }
 

@@ -74,25 +74,16 @@ public class Storage {
     final InitMode initMode = initModeP;
     logger.info("prepareDatabases: " + initMode);
 
-    envStore.init(initMode != InitMode.NORMAL, res -> {
-      if (initMode == InitMode.NORMAL) {
-        fut.handle(new Success<>());
-      } else {
-        logger.info("1");
-        deploymentStore.reset(res1 -> {
-          logger.info("2");
-          if (tenantStore == null) {
-            logger.info("3");
-            fut.handle(new Success<>());
-          } else {
-            logger.info("4");
-            tenantStore.reset(res2 -> {
-              logger.info("5");
-              moduleStore.reset(fut);
-            });
-          }
-        });
-      }
+    envStore.init(initMode != InitMode.NORMAL, res1 -> {
+      deploymentStore.init(initMode != InitMode.NORMAL, res2 -> {
+        if (tenantStore == null) {
+          fut.handle(new Success<>());
+        } else {
+          tenantStore.reset(res3 -> {
+            moduleStore.reset(fut);
+          });
+        }
+      });
     });
   }
 
