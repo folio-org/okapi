@@ -9,6 +9,7 @@ import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.DeploymentStore;
+import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 
@@ -19,6 +20,7 @@ public class Storage {
   private ModuleStore moduleStore;
   private TenantStore tenantStore;
   private DeploymentStore deploymentStore;
+  private EnvStore envStore;
 
   public enum InitMode {
     NORMAL, // normal operation
@@ -30,23 +32,26 @@ public class Storage {
 
   public Storage(Vertx vertx, String type, JsonObject config) {
     this.config = config;
-    deploymentStore = new DeploymentStoreNull();
     switch (type) {
       case "mongo":
         mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo.getClient());
         tenantStore = new TenantStoreMongo(mongo.getClient());
         deploymentStore = new DeploymentStoreMongo(mongo.getClient());
+        envStore = new EnvStoreMongo(mongo.getClient());
         break;
       case "inmemory":
         moduleStore = null;
         tenantStore = null;
+        deploymentStore = new DeploymentStoreNull();
+        envStore = new EnvStoreNull();
         break;
       case "postgres":
         postgres = new PostgresHandle(vertx, config);
         moduleStore = new ModuleStorePostgres(postgres);
         tenantStore = new TenantStorePostgres(postgres);
         deploymentStore = new DeploymentStorePostgres(postgres);
+        envStore = new EnvStorePostgres(postgres);
         break;
       default:
         logger.fatal("Unknown storage type '" + type + "'");
@@ -68,19 +73,27 @@ public class Storage {
     }
     final InitMode initMode = initModeP;
     logger.info("prepareDatabases: " + initMode);
-    if (initMode == InitMode.NORMAL) {
-      fut.handle(new Success<>());
-    } else {
-      deploymentStore.reset(res1 -> {
-        if (tenantStore == null) {
-          fut.handle(new Success<>());
-        } else {
-          tenantStore.reset(res2 -> {
-            moduleStore.reset(fut);
-          });
-        }
-      });
-    }
+
+    envStore.init(initMode != InitMode.NORMAL, res -> {
+      if (initMode == InitMode.NORMAL) {
+        fut.handle(new Success<>());
+      } else {
+        logger.info("1");
+        deploymentStore.reset(res1 -> {
+          logger.info("2");
+          if (tenantStore == null) {
+            logger.info("3");
+            fut.handle(new Success<>());
+          } else {
+            logger.info("4");
+            tenantStore.reset(res2 -> {
+              logger.info("5");
+              moduleStore.reset(fut);
+            });
+          }
+        });
+      }
+    });
   }
 
   public ModuleStore getModuleStore() {
@@ -93,6 +106,10 @@ public class Storage {
 
   public DeploymentStore getDeploymentStore() {
     return deploymentStore;
+  }
+
+  public EnvStore getEnvStore() {
+    return envStore;
   }
 
 }

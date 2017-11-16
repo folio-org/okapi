@@ -1,5 +1,7 @@
 package org.folio.okapi.env;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -9,15 +11,22 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
+import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.util.LockedTypedMap1;
 
 public class EnvManager {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
+  private final LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
+  private final EnvStore envStore;
+
+  public EnvManager(EnvStore s) {
+    envStore = s;
+  }
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("starting EnvManager");
@@ -25,13 +34,41 @@ public class EnvManager {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        fut.handle(new Success<>());
+        envStore.getAll(res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(res2.getType(), res2.cause()));
+          } else {
+            List<Future> futures = new LinkedList<>();
+            for (EnvEntry e : res2.result()) {
+              Future<Void> f = Future.future();
+              add1(e, f::handle);
+              futures.add(f);
+            }
+            CompositeFuture.all(futures).setHandler(res3 -> {
+              if (res3.failed()) {
+                fut.handle(new Failure<>(INTERNAL, res3.cause()));
+              } else {
+                fut.handle(new Success<>());
+              }
+            });
+          }
+        });
       }
     });
   }
 
-  public void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
     envMap.add(env.getName(), env, fut);
+  }
+
+  public void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
+    add1(env, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        envStore.add(env, fut);
+      }
+    });
   }
 
   public void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
@@ -72,7 +109,13 @@ public class EnvManager {
     });
   }
 
-  public void remove(String name, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    envMap.remove(name, fut);
+  public void remove(String name, Handler<ExtendedAsyncResult<Void>> fut) {
+    envMap.remove(name, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        envStore.delete(name, fut);
+      }
+    });
   }
 }

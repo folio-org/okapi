@@ -160,7 +160,7 @@ public class MainVerticle extends AbstractVerticle {
 
     storage = new Storage(vertx, storageType, config);
 
-    envManager = new EnvManager();
+    envManager = new EnvManager(storage.getEnvStore());
     discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
