@@ -30,33 +30,46 @@ public class ModuleStorePostgres implements ModuleStore {
     this.pg = pg;
   }
 
-  @Override
-  public void reset(Handler<ExtendedAsyncResult<Void>> fut) {
-    PostgresQuery q = pg.getQuery();
-    q.query("DROP TABLE IF EXISTS " + TABLE, res1 -> {
+  private void create(boolean reset, PostgresQuery q, Handler<ExtendedAsyncResult<Void>> fut) {
+    String notExists = reset ? "" : "IF NOT EXISTS ";
+    String createSql = "CREATE TABLE " + notExists + TABLE
+      + " ( " + JSON_COLUMN + " JSONB NOT NULL )";
+    q.query(createSql, res1 -> {
       if (res1.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res1.cause()));
+        logger.fatal(createSql + ": " + res1.cause().getMessage());
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        final String createSql = "create table " + TABLE + "("
-          + JSON_COLUMN + " JSONB NOT NULL )";
-        q.query(createSql, res2 -> {
-          if (res2.failed()) {
+        String createSql1 = "CREATE UNIQUE INDEX " + notExists + "module_id ON "
+          + TABLE + " USING btree((" + ID_INDEX + "))";
+        q.query(createSql1, res2 -> {
+          if (res1.failed()) {
+            logger.fatal(createSql1 + ": " + res2.cause().getMessage());
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            final String createSql1 = "CREATE UNIQUE INDEX module_id ON "
-              + TABLE + " USING btree((" + ID_INDEX + "))";
-            q.query(createSql1, res3 -> {
-              if (res2.failed()) {
-                fut.handle(new Failure<>(res3.getType(), res3.cause()));
-              } else {
-                q.close();
-                fut.handle(new Success<>());
-              }
-            });
+            fut.handle(new Success<>());
+            q.close();
           }
         });
       }
     });
+  }
+
+  @Override
+  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+    PostgresQuery q = pg.getQuery();
+    if (!reset) {
+      create(reset, q, fut);
+    } else {
+      String dropSql = "DROP TABLE IF EXISTS " + TABLE;
+      q.query(dropSql, res -> {
+        if (res.failed()) {
+          logger.fatal(dropSql + ": " + res.cause().getMessage());
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          create(reset, q, fut);
+        }
+      });
+    }
   }
 
   @Override

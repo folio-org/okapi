@@ -80,7 +80,7 @@ public class Storage {
           fut.handle(new Success<>());
         } else {
           tenantStore.reset(res3 -> {
-            moduleStore.reset(fut);
+            moduleStore.init(initMode != InitMode.NORMAL, fut);
           });
         }
       });
