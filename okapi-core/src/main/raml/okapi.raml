@@ -7,6 +7,8 @@ schemas:
   - DeploymentDescriptorList: !include DeploymentDescriptorList.json
   - ModuleDescriptor: !include ModuleDescriptor.json
   - ModuleList: !include ModuleList.json
+  - InterfaceDescriptor: !include InterfaceDescriptor.json
+  - InterfaceList: !include InterfaceList.json
   - TenantDescriptor: !include TenantDescriptor.json
   - TenantList: !include TenantList.json
   - TenantModuleDescriptor: !include TenantModuleDescriptor.json
@@ -306,6 +308,7 @@ schemas:
           description: Server Error
           body:
             text/plain:
+
 /_/proxy/modules:
   description: Proxy modules service
   post:
@@ -403,6 +406,87 @@ schemas:
     delete:
       description: Remove module descriptor for a particular module, module
         will no longer be selectable by tenants
+      responses:
+        204:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+
+/_/proxy/interfaces:
+  description: Module Interface definitions
+  post:
+    description: Announce new interface to the proxy. Once successful,
+      ModuleDescriptors can provide the interface, without specifying details
+    body:
+      application/json:
+        schema: InterfaceDescriptor
+    responses:
+      201:
+        description: Created
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+          Location:
+            description: URI to the created module instance
+        body:
+          application/json:
+            schema: InterfaceDescriptor
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+  get:
+    description: List all known interfaces
+    responses:
+      200:
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+        body:
+          application/json:
+            schema: InterfaceList
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
+  /{interface_id}:
+    get:
+      description: Retrieve descriptor for a particular interface
+      responses:
+        200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+          body:
+            application/json:
+              schema: InterfaceDescriptor
+    put:
+      description: Update descriptor of a particular interface
+      body:
+        application/json:
+          schema: InterfaceDescriptor
+      responses:
+        200:
+          headers:
+            X-Okapi-Trace:
+              description: Okapi trace and timing
+          body:
+            application/json:
+              schema: InterfaceDescriptor
+        400:
+          description: Bad Request
+          body:
+            text/plain:
+    delete:
+      description: Remove interface
       responses:
         204:
           headers:
