@@ -927,9 +927,8 @@ public class TenantManager {
 
     if (it.hasNext() && options.getDeploy()) {
       TenantModuleDescriptor tm = it.next();
-      ModuleDescriptor md = null;
-      if ("enable".equals(tm.getAction())) {
-        md = modsAvailable.get(tm.getId());
+      if ("enable".equals(tm.getAction()) || "uptodate".equals(tm.getAction())) {
+        ModuleDescriptor md = modsAvailable.get(tm.getId());
         proxyService.autoDeploy(md, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
