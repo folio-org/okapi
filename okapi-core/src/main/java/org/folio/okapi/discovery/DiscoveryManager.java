@@ -76,7 +76,7 @@ public class DiscoveryManager implements NodeListener {
         List<Future> futures = new LinkedList<>();
         for (DeploymentDescriptor dd : res1.result()) {
           Future<DeploymentDescriptor> f = Future.future();
-          addAndDeploy(dd, f::handle);
+          addAndDeploy1(dd, f::handle);
           futures.add(f);
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
@@ -107,6 +107,18 @@ public class DiscoveryManager implements NodeListener {
     deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
   }
 
+  public void addAndDeploy(DeploymentDescriptor dd,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    addAndDeploy1(dd, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        logger.debug("documentStore.insert " + res.result().getInstId());
+        deploymentStore.insert(res.result(), fut);
+      }
+    });
+  }
+
   /**
    * Adds a service to the discovery, and optionally deploys it too.
    *
@@ -114,7 +126,7 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  public void addAndDeploy(DeploymentDescriptor dd,
+  private void addAndDeploy1(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
@@ -133,7 +145,7 @@ public class DiscoveryManager implements NodeListener {
             if (res.failed()) {
               fut.handle(new Failure<>(res.getType(), res.cause()));
             } else {
-              deploymentStore.insert(dd, fut);
+              fut.handle(new Success<>(dd));
             }
           });
         }
@@ -198,7 +210,7 @@ public class DiscoveryManager implements NodeListener {
           } else {
             DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
               DeploymentDescriptor.class);
-            deploymentStore.insert(pmd, fut);
+            fut.handle(new Success<>(pmd));
           }
         });
       }
@@ -206,6 +218,19 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void removeAndUndeploy(String srvcId, String instId,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    removeAndUndeploy1(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        logger.debug("documentStore.delete " + instId);
+        deploymentStore.delete(instId, fut);
+      }
+    });
+  }
+
+  private void removeAndUndeploy1(String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
@@ -322,7 +347,8 @@ public class DiscoveryManager implements NodeListener {
         DeploymentDescriptor dd = new DeploymentDescriptor();
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
-        callDeploy(node, dd, res2 -> {
+        dd.setNodeId(node);
+        addAndDeploy(dd, res2 -> {
           if (res2.failed()) {
             logger.info("launchIt failed");
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
