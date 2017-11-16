@@ -107,7 +107,6 @@ public class DeploymentStorePostgres implements DeploymentStore {
         q.close();
       }
     });
-    fut.handle(new Success<>());
   }
 
   @Override
