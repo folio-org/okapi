@@ -12,6 +12,8 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.env.EnvManager;
+import org.folio.okapi.service.impl.EnvStoreNull;
+import org.folio.okapi.service.impl.DeploymentStoreNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,6 +30,7 @@ public class DeploymentManagerTest {
   Ports ports;
   DiscoveryManager dis;
   DeploymentManager dm;
+  DeploymentStoreNull ds;
   EnvManager em;
 
   @Before
@@ -35,9 +38,10 @@ public class DeploymentManagerTest {
     async = context.async();
     vertx = Vertx.vertx();
     ports = new Ports(9131, 9140);
-    em = new EnvManager();
+    em = new EnvManager(new EnvStoreNull());
+    ds = new DeploymentStoreNull();
     em.init(vertx, res1 -> {
-      dis = new DiscoveryManager();
+      dis = new DiscoveryManager(ds);
       dis.init(vertx, res2 -> {
         dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9130, "");
         async.complete();

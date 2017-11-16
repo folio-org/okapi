@@ -54,14 +54,13 @@ import java.util.Set;
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
 
-  // 0=inmemory, 1=postgres, 2=mongo
   @Parameterized.Parameters
-  public static Iterable<Integer> data() {
+  public static Iterable<String> data() {
     final String f = System.getenv("okapiFastTest");
     if (f != null) {
-      return Arrays.asList(0);
+      return Arrays.asList("inmemory");
     } else {
-      return Arrays.asList(0, 1, 2);
+      return Arrays.asList("inmemory", "postgres", "mongo");
     }
   }
 
@@ -110,24 +109,23 @@ public class ModuleTest {
     }
   }
 
-  public ModuleTest(int value) throws Exception {
+  public ModuleTest(String value) throws Exception {
     conf = new JsonObject();
 
-    conf.put("port_start", "9131")
+    conf.put("storage", value)
+      .put("port_start", "9131")
       .put("port_end", "9137")
       .put("nodename", "node1");
 
-    if (value == 1) {
-      conf.put("storage", "postgres")
-        .put("postgres_host", "localhost")
+    if ("postgres".equals(value)) {
+      conf.put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
         postgres = new EmbeddedPostgres(V9_6);
-        String pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+        postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
-    } else if (value == 2) {
-      conf.put("storage", "mongo")
-        .put("mongo_host", "localhost")
+    } else if ("mongo".equals(value)) {
+      conf.put("mongo_host", "localhost")
         .put("mongo_port", Integer.toString(MONGO_PORT));
       if (mongoD == null) {
         MongodStarter starter = MongodStarter.getDefaultInstance();
@@ -2081,6 +2079,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc1 = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS // set so we can compare with result
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2182,6 +2181,39 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    if ("inmemory".equals(conf.getString("storage"))) {
+      testDeployment2(async, context);
+    } else {
+      // just undeploy but keep it registered in discovery
+      logger.info("doc2 " + doc2);
+      JsonObject o2 = new JsonObject(doc2);
+      String instId = o2.getString("instId");
+      String loc = "http://localhost:9130/_/deployment/modules/" + instId;
+      c = api.createRestAssured();
+      c.given().delete(loc).then().statusCode(204);
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+      undeployFirst(x -> {
+        conf.remove("mongo_db_init");
+        conf.remove("postgres_db_init");
+
+        DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+        vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+          testDeployment2(async, context);
+        });
+      });
+    }
+  }
+
+  private void testDeployment2(Async async, TestContext context) {
+    logger.info("testDeployment2");
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
     c = api.createRestAssured();
     c.given().delete(locationSampleDeployment).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2251,14 +2283,13 @@ public class ModuleTest {
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
+      + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"" + LS
       + "  \"nodeId\" : \"http://localhost:9130\"" + LS
       + "}";
     final String DeployResp = "{" + LS
       + "  \"instId\" : \"localhost-9131\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"," + LS
       + "  \"nodeId\" : \"http://localhost:9130\"," + LS
       + "  \"url\" : \"http://localhost:9131\"," + LS
       + "  \"descriptor\" : {" + LS

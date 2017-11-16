@@ -158,8 +158,10 @@ public class MainVerticle extends AbstractVerticle {
         break;
     }
 
-    envManager = new EnvManager();
-    discoveryManager = new DiscoveryManager();
+    storage = new Storage(vertx, storageType, config);
+
+    envManager = new EnvManager(storage.getEnvStore());
+    discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
@@ -185,7 +187,6 @@ public class MainVerticle extends AbstractVerticle {
       });
     }
     if (enableProxy) {
-      storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
@@ -466,8 +467,8 @@ public class MainVerticle extends AbstractVerticle {
                       if (result.succeeded()) {
                         logger.info("API Gateway started PID "
                                 + ManagementFactory.getRuntimeMXBean().getName()
-                                + ". Listening on port " + port);
-                        fut.complete();
+                          + ". Listening on port " + port);
+                        startRedeploy(fut);
                       } else {
                         logger.fatal("createHttpServer failed", result.cause());
                         fut.fail(result.cause());
@@ -476,5 +477,14 @@ public class MainVerticle extends AbstractVerticle {
             );
   }
 
-
+  private void startRedeploy(Future<Void> fut) {
+    discoveryManager.restartModules(res -> {
+      if (res.succeeded()) {
+        logger.info("Deploy completed succesfully");
+      } else {
+        logger.info("Deploy failed: " + res.cause());
+      }
+      fut.complete();
+    });
+  }
 }

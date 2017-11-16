@@ -168,11 +168,12 @@ public class EnvTest {
     String locationName1 = r.getHeader("Location");
     // deploy module
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")

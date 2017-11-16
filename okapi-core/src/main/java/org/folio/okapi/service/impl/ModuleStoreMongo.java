@@ -31,6 +31,21 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
+  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!reset) {
+      fut.handle(new Success<>());
+    } else {
+      cli.dropCollection(COLLECTION, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+        } else {
+          fut.handle(new Success<>());
+        }
+      });
+    }
+  }
+
+  @Override
   public void insert(ModuleDescriptor md,
           Handler<ExtendedAsyncResult<String>> fut) {
     String s = Json.encodePrettily(md);

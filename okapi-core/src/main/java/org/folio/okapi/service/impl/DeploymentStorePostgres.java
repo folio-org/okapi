@@ -1,6 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.ModuleStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
@@ -11,22 +10,24 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
-import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.DeploymentDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.DeploymentStore;
 
-public class ModuleStorePostgres implements ModuleStore {
+@java.lang.SuppressWarnings({"squid:S1192"})
+public class DeploymentStorePostgres implements DeploymentStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final PostgresHandle pg;
-  private static final String TABLE = "modules";
-  private static final String JSON_COLUMN = "modulejson";
-  private static final String ID_SELECT = JSON_COLUMN + "->>'id' = ?";
-  private static final String ID_INDEX = JSON_COLUMN + "->'id'";
+  private static final String TABLE = "deployments";
+  private static final String JSON_COLUMN = "json";
+  private static final String ID_SELECT = JSON_COLUMN + "->>'instId' = ?";
+  private static final String ID_INDEX = JSON_COLUMN + "->'instId'";
 
-  public ModuleStorePostgres(PostgresHandle pg) {
+  public DeploymentStorePostgres(PostgresHandle pg) {
     this.pg = pg;
   }
 
@@ -39,7 +40,7 @@ public class ModuleStorePostgres implements ModuleStore {
         logger.fatal(createSql + ": " + res1.cause().getMessage());
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        String createSql1 = "CREATE UNIQUE INDEX " + notExists + "module_id ON "
+        String createSql1 = "CREATE UNIQUE INDEX " + notExists + "inst_id ON "
           + TABLE + " USING btree((" + ID_INDEX + "))";
         q.query(createSql1, res2 -> {
           if (res1.failed()) {
@@ -73,34 +74,13 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void insert(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  public void insert(DeploymentDescriptor dd,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    final String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)";
-    String s = Json.encode(md);
-    JsonObject doc = new JsonObject(s);
-    JsonArray jsa = new JsonArray();
-    jsa.add(doc.encode());
-    q.queryWithParams(sql, jsa, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        q.close();
-        fut.handle(new Success<>(md.getId()));
-      }
-    });
-  }
-
-  @Override
-  public void update(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    PostgresQuery q = pg.getQuery();
-    final String id = md.getId();
-    String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)"
+    String sql = "INSERT INTO " + TABLE + " (" + JSON_COLUMN + ") VALUES (?::JSONB)"
       + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
-    String s = Json.encode(md);
+    String s = Json.encode(dd);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
     jsa.add(doc.encode());
@@ -110,14 +90,35 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(id));
+        fut.handle(new Success<>(dd));
       }
     });
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    PostgresQuery q = pg.getQuery();
+    String sql = "DELETE FROM " + TABLE + " WHERE " + ID_SELECT;
+    JsonArray jsa = new JsonArray();
+    jsa.add(id);
+    q.updateWithParams(sql, jsa, res -> {
+      if (res.failed()) {
+        logger.error("DeploymentStorePostgres.delete: " + res.cause());
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      } else {
+        UpdateResult result = res.result();
+        if (result.getUpdated() > 0) {
+          fut.handle(new Success<>());
+        } else {
+          fut.handle(new Failure<>(NOT_FOUND, id));
+        }
+        q.close();
+      }
+    });
+  }
 
+  @Override
+  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE;
     q.query(sql, res -> {
@@ -125,38 +126,15 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
-        List<ModuleDescriptor> ml = new ArrayList<>();
+        List<DeploymentDescriptor> ml = new ArrayList<>();
         List<JsonObject> tempList = rs.getRows();
         for (JsonObject r : tempList) {
           String tj = r.getString(JSON_COLUMN);
-          ModuleDescriptor md = Json.decodeValue(tj, ModuleDescriptor.class);
+          DeploymentDescriptor md = Json.decodeValue(tj, DeploymentDescriptor.class);
           ml.add(md);
         }
         q.close();
         fut.handle(new Success<>(ml));
-      }
-    });
-  }
-
-  @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-
-    PostgresQuery q = pg.getQuery();
-    String sql = "DELETE FROM " + TABLE + " WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.updateWithParams(sql, jsa, res -> {
-      if (res.failed()) {
-        logger.fatal("delete failed: " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        UpdateResult result = res.result();
-        if (result.getUpdated() > 0) {
-          fut.handle(new Success<>());
-        } else {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + id + " not found"));
-        }
-        q.close();
       }
     });
   }

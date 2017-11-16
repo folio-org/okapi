@@ -399,8 +399,8 @@ public class OkapiPerformance {
 
   public void repeatPostInit(TestContext context) {
     repeatPostRunning = 0;
-    // 1k is enough for regular testing, but the performance improves up to 50k
-    final int iterations = 1000;
+    // 10 is enough for regular testing, but the performance improves up to 50k
+    final int iterations = 10;
     //final int iterations = 50000;
     final int parallels = 10;
     for (int i = 0; i < parallels; i++) {

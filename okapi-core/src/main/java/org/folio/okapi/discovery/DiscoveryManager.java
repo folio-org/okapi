@@ -1,5 +1,7 @@
 package org.folio.okapi.discovery;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -27,6 +29,7 @@ import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.service.DeploymentStore;
 
 /**
  * Keeps track of which modules are running where. Uses a shared map to list
@@ -45,6 +48,7 @@ public class DiscoveryManager implements NodeListener {
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
   private HttpClient httpClient;
+  private DeploymentStore deploymentStore;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -64,6 +68,32 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  public void restartModules(Handler<ExtendedAsyncResult<Void>> fut) {
+    deploymentStore.getAll(res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      } else {
+        List<Future> futures = new LinkedList<>();
+        for (DeploymentDescriptor dd : res1.result()) {
+          Future<DeploymentDescriptor> f = Future.future();
+          addAndDeploy1(dd, f::handle);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res2.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
+      }
+    });
+  }
+
+  public DiscoveryManager(DeploymentStore ds) {
+    deploymentStore = ds;
+  }
+
   public void setClusterManager(ClusterManager mgr) {
     this.clusterManager = mgr;
     mgr.nodeListener(this);
@@ -77,6 +107,18 @@ public class DiscoveryManager implements NodeListener {
     deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
   }
 
+  public void addAndDeploy(DeploymentDescriptor dd,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    addAndDeploy1(dd, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        logger.debug("documentStore.insert " + res.result().getInstId());
+        deploymentStore.insert(res.result(), fut);
+      }
+    });
+  }
+
   /**
    * Adds a service to the discovery, and optionally deploys it too.
    *
@@ -84,7 +126,7 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  public void addAndDeploy(DeploymentDescriptor dd,
+  private void addAndDeploy1(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
@@ -176,6 +218,19 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void removeAndUndeploy(String srvcId, String instId,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    removeAndUndeploy1(srvcId, instId, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        logger.debug("documentStore.delete " + instId);
+        deploymentStore.delete(instId, fut);
+      }
+    });
+  }
+
+  private void removeAndUndeploy1(String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
@@ -292,7 +347,8 @@ public class DiscoveryManager implements NodeListener {
         DeploymentDescriptor dd = new DeploymentDescriptor();
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
-        callDeploy(node, dd, res2 -> {
+        dd.setNodeId(node);
+        addAndDeploy(dd, res2 -> {
           if (res2.failed()) {
             logger.info("launchIt failed");
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
