@@ -2181,7 +2181,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    if (!"postgres".equals(conf.getString("storage"))) {
+    if ("inmemory".equals(conf.getString("storage"))) {
       testDeployment2(async, context);
     } else {
       // just undeploy but keep it registered in discovery

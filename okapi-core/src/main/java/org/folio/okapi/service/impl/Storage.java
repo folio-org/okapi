@@ -7,7 +7,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.ModuleStore;
@@ -37,6 +36,7 @@ public class Storage {
         mongo = new MongoHandle(vertx, config);
         moduleStore = new ModuleStoreMongo(mongo.getClient());
         tenantStore = new TenantStoreMongo(mongo.getClient());
+        deploymentStore = new DeploymentStoreMongo(mongo.getClient());
         break;
       case "inmemory":
         moduleStore = null;
