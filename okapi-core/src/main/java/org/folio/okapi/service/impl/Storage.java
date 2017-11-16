@@ -75,17 +75,17 @@ public class Storage {
     logger.info("prepareDatabases: " + initMode);
 
     boolean reset = initMode != InitMode.NORMAL;
-    envStore.init(reset, res1 -> {
-      deploymentStore.init(reset, res2 -> {
+    envStore.init(reset, res1
+      -> deploymentStore.init(reset, res2 -> {
         if (tenantStore == null) {
           fut.handle(new Success<>());
         } else {
-          tenantStore.init(reset, res3 -> {
-            moduleStore.init(reset, fut);
-          });
+          tenantStore.init(reset, res3
+            -> moduleStore.init(reset, fut)
+          );
         }
-      });
-    });
+      })
+    );
   }
 
   public ModuleStore getModuleStore() {
