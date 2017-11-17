@@ -7,7 +7,6 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.util.Base64;
 import java.util.HashMap;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
