@@ -74,7 +74,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void insert(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)";
@@ -87,7 +87,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(md.getId()));
+        fut.handle(new Success<>());
       }
     });
   }

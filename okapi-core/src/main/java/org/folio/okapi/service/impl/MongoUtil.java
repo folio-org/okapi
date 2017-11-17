@@ -70,6 +70,19 @@ public class MongoUtil<T> {
     });
   }
 
+  public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    String s = Json.encodePrettily(md);
+    JsonObject document = new JsonObject(s);
+    document.put("_id", id);
+    cli.insert(collection, document, res -> {
+      if (res.succeeded()) {
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
+      }
+    });
+  }
+
   public void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);

@@ -15,7 +15,7 @@ public interface ModuleStore {
 
   void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut);
 
-  void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<String>> fut);
+  void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
 
   void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
 
