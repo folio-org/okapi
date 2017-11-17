@@ -12,11 +12,11 @@ import org.folio.okapi.service.EnvStore;
 public class EnvStoreMongo implements EnvStore {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
-  private final MongoUtil util;
+  private final MongoUtil<EnvEntry> util;
   private static final String COLLECTION = "okapi.env";
 
   public EnvStoreMongo(MongoClient cli) {
-    this.util = new MongoUtil<>(COLLECTION, cli);
+    this.util = new MongoUtil(COLLECTION, cli);
   }
 
   @Override
