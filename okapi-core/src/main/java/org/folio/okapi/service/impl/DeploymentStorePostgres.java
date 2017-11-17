@@ -75,7 +75,7 @@ public class DeploymentStorePostgres implements DeploymentStore {
 
   @Override
   public void insert(DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
     String sql = "INSERT INTO " + TABLE + " (" + JSON_COLUMN + ") VALUES (?::JSONB)"
@@ -90,7 +90,7 @@ public class DeploymentStorePostgres implements DeploymentStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(dd));
+        fut.handle(new Success<>());
       }
     });
   }

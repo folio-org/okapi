@@ -11,8 +11,8 @@ import org.folio.okapi.service.DeploymentStore;
 public class DeploymentStoreNull implements DeploymentStore {
 
   @Override
-  public void insert(DeploymentDescriptor md, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    fut.handle(new Success<>(md));
+  public void insert(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+    fut.handle(new Success<>());
   }
 
   @Override

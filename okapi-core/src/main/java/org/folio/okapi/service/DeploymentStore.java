@@ -6,7 +6,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 
 public interface DeploymentStore {
-  void insert(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut);
+  void insert(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<Void>> fut);
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 

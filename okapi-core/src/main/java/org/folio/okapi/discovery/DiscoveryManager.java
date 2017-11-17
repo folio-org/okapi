@@ -114,7 +114,13 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         logger.debug("documentStore.insert " + res.result().getInstId());
-        deploymentStore.insert(res.result(), fut);
+        deploymentStore.insert(res.result(), res1 -> {
+          if (res1.failed()) {
+            fut.handle(new Failure(res1.getType(), res1.cause()));
+          } else {
+            fut.handle(new Success<>(res.result()));
+          }
+        });
       }
     });
   }

@@ -74,7 +74,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void insert(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)";
@@ -87,17 +87,16 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(md.getId()));
+        fut.handle(new Success<>());
       }
     });
   }
 
   @Override
   public void update(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    final String id = md.getId();
     String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)"
       + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
     String s = Json.encode(md);
@@ -110,7 +109,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(id));
+        fut.handle(new Success<>());
       }
     });
   }
