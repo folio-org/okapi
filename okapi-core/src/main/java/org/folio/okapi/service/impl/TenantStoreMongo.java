@@ -7,7 +7,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
