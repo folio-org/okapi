@@ -94,7 +94,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   @Override
   public void update(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
     final String id = md.getId();
@@ -110,7 +110,7 @@ public class ModuleStorePostgres implements ModuleStore {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         q.close();
-        fut.handle(new Success<>(id));
+        fut.handle(new Success<>());
       }
     });
   }
