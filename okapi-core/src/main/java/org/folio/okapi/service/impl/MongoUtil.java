@@ -59,7 +59,7 @@ public class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(env);
     JsonObject document = new JsonObject(s);
-    document.put("_id", id);
+    encode(document, id);
     UpdateOptions options = new UpdateOptions().setUpsert(true);
     cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
@@ -73,7 +73,7 @@ public class MongoUtil<T> {
   public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
-    document.put("_id", id);
+    encode(document, id);
     cli.insert(collection, document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
@@ -93,7 +93,7 @@ public class MongoUtil<T> {
         List<JsonObject> resl = res.result();
         List<T> ml = new LinkedList<>();
         for (JsonObject jo : resl) {
-          jo.remove("_id");
+          decode(jo);
           T env = Json.decodeValue(jo.encode(), clazz);
           ml.add(env);
         }
@@ -101,4 +101,33 @@ public class MongoUtil<T> {
       }
     });
   }
+
+  public void encode(JsonObject j, String id) {
+    j.put("_id", id);
+    JsonObject o = j.getJsonObject("enabled");
+    if (o != null) {
+      JsonObject repl = new JsonObject();
+      for (String m : o.fieldNames()) {
+        String n = m.replace(".", "__");
+        repl.put(n, o.getBoolean(m));
+      }
+      j.put("enabled", repl);
+    }
+  }
+
+  public void decode(JsonObject j) {
+    j.remove("_id");
+    JsonObject o = j.getJsonObject("enabled");
+    if (o != null) {
+      JsonObject repl = new JsonObject();
+      for (String m : o.fieldNames()) {
+        if (m.contains("_")) {
+          String n = m.replace("__", ".");
+          repl.put(n, o.getBoolean(m));
+        }
+      }
+      j.put("enabled", repl);
+    }
+  }
+
 }

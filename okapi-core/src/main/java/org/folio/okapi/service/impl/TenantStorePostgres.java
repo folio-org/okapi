@@ -96,14 +96,14 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
+  public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("insert");
     PostgresQuery q = pg.getQuery();
     insertTenant(q, t, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        fut.handle(new Success<>(t.getId()));
+        fut.handle(new Success<>());
       }
       q.close();
     });
