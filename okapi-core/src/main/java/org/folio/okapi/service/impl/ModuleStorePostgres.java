@@ -97,7 +97,6 @@ public class ModuleStorePostgres implements ModuleStore {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
-    final String id = md.getId();
     String sql = "INSERT INTO " + TABLE + "(" + JSON_COLUMN + ") VALUES (?::JSONB)"
       + " ON CONFLICT ((" + ID_INDEX + ")) DO UPDATE SET " + JSON_COLUMN + "= ?::JSONB";
     String s = Json.encode(md);

@@ -11,8 +11,6 @@ import org.folio.okapi.service.DeploymentStore;
 
 public class DeploymentStoreMongo implements DeploymentStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
   private static final String COLLECTION = "okapi.deployments";
   private final MongoUtil<DeploymentDescriptor> util;
 

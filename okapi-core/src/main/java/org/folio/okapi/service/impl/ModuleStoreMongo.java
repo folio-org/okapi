@@ -14,8 +14,6 @@ import org.folio.okapi.common.ExtendedAsyncResult;
  */
 public class ModuleStoreMongo implements ModuleStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
   private static final String COLLECTION = "okapi.modules";
   private final MongoUtil<ModuleDescriptor> util;
 

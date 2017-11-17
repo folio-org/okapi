@@ -11,7 +11,6 @@ import org.folio.okapi.service.EnvStore;
 
 public class EnvStoreMongo implements EnvStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
   private final MongoUtil<EnvEntry> util;
   private static final String COLLECTION = "okapi.env";
 

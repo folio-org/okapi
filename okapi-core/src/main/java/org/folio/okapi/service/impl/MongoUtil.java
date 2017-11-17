@@ -18,6 +18,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
+@java.lang.SuppressWarnings({"squid:S1192"})
 public class MongoUtil<T> {
 
   final String collection;
