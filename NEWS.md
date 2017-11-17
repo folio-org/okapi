@@ -1,3 +1,8 @@
+## 2.4.0 2017-11-17
+
+ * Persistent deployment OKAPI-423
+ * Make okapiPerformance run again OKAPI-468
+
 ## 2.3.2 2017-11-14
 
  * Fix Posting module list to install endpoint results in huge
