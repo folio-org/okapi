@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
@@ -592,7 +592,7 @@ public class TenantManager {
     PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
     String pljson = Json.encodePrettily(pl);
     pc.debug("tenantPerms Req: " + pljson);
-    ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+    InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     if (!routingEntries.isEmpty()) {
@@ -639,9 +639,9 @@ public class TenantManager {
   private void getTenantInterface(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    ModuleInterface[] prov = md.getProvidesList();
+    InterfaceDescriptor[] prov = md.getProvidesList();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));
-    for (ModuleInterface pi : prov) {
+    for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
         getTenantInterface1(pi, fut, md);
@@ -652,7 +652,7 @@ public class TenantManager {
       + md.getId()));
   }
 
-  private void getTenantInterface1(ModuleInterface pi,
+  private void getTenantInterface1(InterfaceDescriptor pi,
     Handler<ExtendedAsyncResult<String>> fut, ModuleDescriptor md) {
 
     if (!"1.0".equals(pi.getVersion())) {
@@ -745,7 +745,7 @@ public class TenantManager {
         }
         List<ModuleDescriptor> modlist = mres.result();
         for (ModuleDescriptor md : modlist) {
-          for (ModuleInterface provide : md.getProvidesList()) {
+          for (InterfaceDescriptor provide : md.getProvidesList()) {
             if (interfaceName.equals(provide.getId())) {
               mdList.add(md);
               break;
