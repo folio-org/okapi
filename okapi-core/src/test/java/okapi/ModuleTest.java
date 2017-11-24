@@ -2200,10 +2200,26 @@ public class ModuleTest {
 
         DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
         vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-          testDeployment2(async, context);
+          waitDeployment2();
         });
       });
+      waitDeployment2(async, context);
     }
+  }
+
+  synchronized private void waitDeployment2() {
+    this.notify();
+  }
+
+  synchronized private void waitDeployment2(Async async, TestContext context) {
+    try {
+      this.wait();
+    } catch (Exception e) {
+      context.asyncAssertFailure();
+      async.complete();
+      return;
+    }
+    testDeployment2(async, context);
   }
 
   private void testDeployment2(Async async, TestContext context) {
