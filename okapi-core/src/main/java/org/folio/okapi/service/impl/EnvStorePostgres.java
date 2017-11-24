@@ -10,16 +10,13 @@ import org.folio.okapi.service.EnvStore;
 
 public class EnvStorePostgres implements EnvStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  private static final String TABLE = "env";
   private static final String JSON_COLUMN = "json";
   private static final String ID_SELECT = JSON_COLUMN + "->>'name' = ?";
   private static final String ID_INDEX = JSON_COLUMN + "->'name'";
   private final PostgresTable<EnvEntry> table;
 
   public EnvStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "name");
+    this.table = new PostgresTable(pg, "env", JSON_COLUMN, ID_INDEX, ID_SELECT, "name");
   }
 
   @Override

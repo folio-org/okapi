@@ -10,15 +10,13 @@ import org.folio.okapi.service.DeploymentStore;
 
 public class DeploymentStorePostgres implements DeploymentStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-  private static final String TABLE = "deployments";
   private static final String JSON_COLUMN = "json";
   private static final String ID_SELECT = JSON_COLUMN + "->>'instId' = ?";
   private static final String ID_INDEX = JSON_COLUMN + "->'instId'";
   private final PostgresTable<DeploymentDescriptor> table;
 
   public DeploymentStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
+    this.table = new PostgresTable(pg, "deployments", JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
   }
 
   @Override

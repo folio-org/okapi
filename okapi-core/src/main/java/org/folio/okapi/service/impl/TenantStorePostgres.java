@@ -30,21 +30,21 @@ public class TenantStorePostgres implements TenantStore {
   private static final String JSON_COLUMN = "tenantjson";
   private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = ?";
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
-  private final PostgresTable<Tenant> table;
+  private final PostgresTable<Tenant> pgTable;
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
-    this.table = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "tenant_id");
+    this.pgTable = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "tenant_id");
   }
 
   @Override
   public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.init(reset, fut);
+    pgTable.init(reset, fut);
   }
 
   @Override
   public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.insert(t, fut);
+    pgTable.insert(t, fut);
   }
 
   private void updateAll(PostgresQuery q, String id, TenantDescriptor td,
@@ -105,17 +105,16 @@ public class TenantStorePostgres implements TenantStore {
         }
       }
     });
-
   }
 
   @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    table.getAll(Tenant.class, fut);
+    pgTable.getAll(Tenant.class, fut);
   }
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.delete(id, fut);
+    pgTable.delete(id, fut);
   }
 
   private void updateModuleR(PostgresQuery q, String id,
