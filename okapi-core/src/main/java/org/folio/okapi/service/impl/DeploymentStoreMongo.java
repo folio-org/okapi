@@ -1,8 +1,6 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
