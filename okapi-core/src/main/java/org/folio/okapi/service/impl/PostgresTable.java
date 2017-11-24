@@ -79,17 +79,15 @@ public class PostgresTable<T> {
   }
 
   public void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
-    String s = Json.encode(dd);
     PostgresQuery q = pg.getQuery();
-    String sql = "INSERT INTO " + table + " (" + jsonColumn + ") VALUES (?::JSONB)"
-      + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= ?::JSONB";
+    final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES (?::JSONB)";
+    String s = Json.encode(dd);
     JsonObject doc = new JsonObject(s);
     JsonArray jsa = new JsonArray();
     jsa.add(doc.encode());
-    jsa.add(doc.encode());
-    q.updateWithParams(sql, jsa, res -> {
+    q.queryWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         q.close();
         fut.handle(new Success<>());
