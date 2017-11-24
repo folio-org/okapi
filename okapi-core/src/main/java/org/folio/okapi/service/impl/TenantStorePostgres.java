@@ -47,64 +47,12 @@ public class TenantStorePostgres implements TenantStore {
     pgTable.insert(t, fut);
   }
 
-  private void updateAll(PostgresQuery q, String id, TenantDescriptor td,
-    Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
-
-    logger.debug("updateAll");
-    if (it.hasNext()) {
-      JsonObject r = it.next();
-      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = ? WHERE " + ID_SELECT;
-      String tj = r.getString(JSON_COLUMN);
-      Tenant t = Json.decodeValue(tj, Tenant.class);
-      Tenant t2 = new Tenant(td, t.getEnabled());
-      String s = Json.encode(t2);
-      JsonObject doc = new JsonObject(s);
-      JsonArray jsa = new JsonArray();
-      jsa.add(doc.encode());
-      jsa.add(id);
-      q.queryWithParams(sql, jsa, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          updateAll(q, id, td, it, fut);
-        }
-      });
-    } else {
-      q.close();
-      fut.handle(new Success<>());
-    }
-  }
-
   @Override
   public void updateDescriptor(TenantDescriptor td,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.debug("updateDescriptor");
-    PostgresQuery q = pg.getQuery();
-    final String id = td.getId();
-    String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.queryWithParams(sql, jsa, sres -> {
-      if (sres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, sres.cause()));
-      } else {
-        ResultSet rs = sres.result();
-        if (rs.getNumRows() == 0) {
-          Tenant t = new Tenant(td);
-          insert(t, res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-            } else {
-              fut.handle(new Success<>());
-            }
-            q.close();
-          });
-        } else {
-          updateAll(q, id, td, rs.getRows().iterator(), fut);
-        }
-      }
-    });
+    Tenant t = new Tenant(td);
+    pgTable.update(t, fut);
   }
 
   @Override
