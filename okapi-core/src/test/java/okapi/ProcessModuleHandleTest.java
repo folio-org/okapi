@@ -35,13 +35,18 @@ public class ProcessModuleHandleTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
+  ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
+    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, port);
+    pmh.setConnectIterMax(2);
+    return pmh;
+  }
+
   @Test
   public void test1(TestContext context) {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -version %p");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 0);
 
     mh.start(res -> {
       if (!res.succeeded()) {
@@ -64,9 +69,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -version %p");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    pmh.setConnectIterMax(2);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res -> {
       if (res.succeeded()) { // error did not expect to succeed!
@@ -89,8 +92,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("sleepxx 10 %p");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 0);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 0);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -103,8 +105,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -Dport=%p -jar unknown.jar");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -117,8 +118,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -Dport=9000 -jar unknown.jar");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -132,8 +132,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setCmdlineStart("java -Dport=9000 -jar unknown.jar");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -147,8 +146,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java " + invokeTest);
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res1 -> {
       context.assertTrue(res1.succeeded());
@@ -171,8 +169,7 @@ public class ProcessModuleHandleTest {
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setCmdlineStart("java -DpidFile=test-module.pid " + invokeTest + " 2>&1 >/dev/null &");
     desc.setCmdlineStop("kill `cat test-module.pid`; rm -f test-module.pid");
-    ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, 9131);
-    ModuleHandle mh = pmh;
+    ModuleHandle mh = createModuleHandle(desc, 9131);
 
     mh.start(res1 -> {
       context.assertTrue(res1.succeeded());
