@@ -1,7 +1,7 @@
 ## 2.4.1 2017-11-24
 
  * Minor Refactoring (SQ reports) OKAPI-472
- * Fix Okapi unite test timeout error OKAPI-471
+ * Fix Okapi unit test timeout error OKAPI-471
 
 ## 2.4.0 2017-11-17
 
