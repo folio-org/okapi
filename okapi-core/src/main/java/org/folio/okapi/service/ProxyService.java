@@ -584,7 +584,8 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseText(500, "proxyRequestResponse failure: " + mi.getUrl() + ": "
+      pc.responseText(500, "proxyRequestResponse failure: " 
+        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
     cReq.setChunked(true);
