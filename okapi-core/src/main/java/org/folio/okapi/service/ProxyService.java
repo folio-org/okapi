@@ -544,8 +544,7 @@ public class ProxyService {
       });
       content.endHandler(v -> {
         pc.trace("ProxyRequestOnly request end");
-        proxyRequestHttpClient( it, pc, incoming, mi);
-        pc.closeTimer();
+        proxyRequestHttpClient(it, pc, incoming, mi);
       });
       content.resume();
     }
@@ -584,7 +583,7 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseText(500, "proxyRequestResponse failure: " 
+      pc.responseText(500, "proxyRequestResponse failure: "
         + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
@@ -721,7 +720,6 @@ public class ProxyService {
       content.endHandler(v -> {
         pc.trace("proxyInternal request end");
         proxyInternalBuffer(it, pc, incoming, mi);
-        pc.closeTimer();
       });
       content.resume();
     }
