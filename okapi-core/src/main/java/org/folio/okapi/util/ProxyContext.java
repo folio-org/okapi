@@ -64,7 +64,7 @@ public class ProxyContext {
     if (timer != null) {
       return " " + (timer.stop() / 1000) + "us";
     } else {
-      return "";
+      return " -";
     }
   }
 
