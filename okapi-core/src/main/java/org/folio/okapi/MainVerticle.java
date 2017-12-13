@@ -432,6 +432,7 @@ public class MainVerticle extends AbstractVerticle {
             .allowedMethod(HttpMethod.POST)
             //allow request headers
             .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+            .allowedHeader(HttpHeaders.CONTENT_LENGTH.toString())
             .allowedHeader(XOkapiHeaders.TENANT)
             .allowedHeader(XOkapiHeaders.TOKEN)
             .allowedHeader(XOkapiHeaders.AUTHORIZATION)
