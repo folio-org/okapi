@@ -149,7 +149,7 @@ public class DockerTest {
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/test\"" + LS
+      + "      \"pathPattern\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -194,7 +194,7 @@ public class DockerTest {
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
 
-    if (true) {
+    if (!haveDocker) {
       async.complete();
       return;
     }
