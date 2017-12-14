@@ -1,3 +1,12 @@
+## 2.4.2 2017-12-14
+
+ * OKAPI-473 Long wait if test module fat jar is missing
+ * OKAPI-474 X-Okapi-Module-ID is passed to callee
+ * OKAPI-476 Improeve error reporting for ProxyRequestResponse
+ * OKAPI-477 Missing timing info for RES log entry
+ * OKAPI-478 High socket count in folio/testing
+ * OKAPI-479 Redirect container logs to logger (rather than standare error)
+
 ## 2.4.1 2017-11-24
 
  * Minor Refactoring (SQ reports) OKAPI-472
