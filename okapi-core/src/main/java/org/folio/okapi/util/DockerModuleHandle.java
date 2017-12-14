@@ -121,7 +121,8 @@ public class DockerModuleHandle implements ModuleHandle {
     HttpClientRequest req = client.getAbs(url, res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
-        res.handler(d -> System.err.print(d.getString(8, d.length())));
+        // remove 8 bytes of binary data and final newline
+        res.handler(d -> logger.info(d.getString(8, d.length() - 1)));
         future.handle(Future.succeededFuture());
       } else {
         String m = "getContainerLog HTTP error "
