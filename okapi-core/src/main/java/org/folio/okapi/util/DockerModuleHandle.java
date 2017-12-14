@@ -36,6 +36,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final EnvEntry[] env;
   private final AnyDescriptor dockerArgs;
   private final boolean dockerPull;
+  private final HttpClient client;
 
   private String containerId;
 
@@ -48,6 +49,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.cmd = desc.getDockerCMD();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
+    this.client = vertx.createHttpClient();
     Boolean b = desc.getDockerPull();
     if (b != null && !b.booleanValue()) {
       this.dockerPull = false;
@@ -82,7 +84,6 @@ public class DockerModuleHandle implements ModuleHandle {
   private void postUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.postAbs(url, res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
@@ -91,7 +92,6 @@ public class DockerModuleHandle implements ModuleHandle {
   private void deleteUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
@@ -116,7 +116,6 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
-    HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/containers/" + containerId
       + "/logs?stderr=1&stdout=1&follow=1";
     HttpClientRequest req = client.getAbs(url, res -> {
@@ -136,7 +135,6 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
@@ -175,7 +173,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private void postUrlBody(String url, String doc,
     Handler<AsyncResult<Void>> future) {
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
