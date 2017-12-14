@@ -518,8 +518,8 @@ public class ProxyService {
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
       pc.responseText(500, "proxyRequestHttpClient failure: "
-        + mi.getModuleDescriptor().getId() + " "
-        + meth + " " + url + ": " + e + " " + e.getMessage());
+        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
+        + e + " " + e.getMessage());
     });
     cReq.setChunked(true);
     cReq.headers().setAll(ctx.request().headers());
@@ -659,8 +659,9 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      pc.responseText(500, "proxyHeaders failure. connect url "
-        + mi.getUrl() + ": " + e + " " + e.getMessage());
+      pc.responseText(500, "proxyHeaders failure: "
+        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
+        + e + " " + e.getMessage());
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
