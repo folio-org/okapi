@@ -461,6 +461,7 @@ public class ProxyService {
         pc.logRequest(ctx, tenantId);
 
         ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
+        ctx.request().headers().remove(XOkapiHeaders.MODULE_ID);
         authHeaders(l, ctx.request().headers(), authToken, pc);
 
         resolveUrls(l.iterator(), res -> {

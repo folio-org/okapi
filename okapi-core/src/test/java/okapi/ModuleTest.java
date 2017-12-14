@@ -3089,11 +3089,14 @@ public class ModuleTest {
       .get("/testb")
       .then().statusCode(404);
 
-    given()
+    r = given()
       .header("X-Okapi-Module-Id", "sample-module-3")
+      .header("X-all-headers", "H") // makes module echo headers
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
-      .then().statusCode(200);
+      .then().statusCode(200).extract().response();
+    // check that X-Okapi-Module-Id was not passed to it
+    Assert.assertNull(r.headers().get("X-Okapi-Module-Id"));
 
     given()
       .header("X-Okapi-Module-Id", "sample-module-4")
