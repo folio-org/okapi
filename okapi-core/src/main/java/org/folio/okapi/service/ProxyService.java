@@ -524,7 +524,7 @@ public class ProxyService {
         + e + " " + e.getMessage());
     });
     cReq.headers().setAll(ctx.request().headers());
-    cReq.setChunked(true);
+    cReq.headers().remove("Content-Length");
     pc.trace("ProxyRequestHttpClient request buf '"
       + bcontent + "'");
     cReq.end(bcontent);
@@ -547,6 +547,27 @@ public class ProxyService {
       stream.endHandler(v -> {
         pc.trace("ProxyRequestOnly request end");
         proxyRequestHttpClient(it, pc, incoming, mi);
+      });
+      stream.resume();
+    }
+  }
+
+  private void proxyRequestBlock(Iterator<ModuleInstance> it,
+    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+    ModuleInstance mi) {
+
+    if (bcontent != null) {
+      proxyRequestResponse(it, pc, null, bcontent, mi);
+    } else {
+      final Buffer incoming = Buffer.buffer();
+      stream.handler(data -> {
+        incoming.appendBuffer(data);
+        pc.trace("ProxyRequestBlock request chunk '"
+          + data.toString() + "'");
+      });
+      stream.endHandler(v -> {
+        pc.trace("ProxyRequestBlock request end");
+        proxyRequestResponse(it, pc, null, incoming, mi);
       });
       stream.resume();
     }
@@ -589,12 +610,13 @@ public class ProxyService {
         + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
-    cReq.setChunked(true);
     cReq.headers().setAll(ctx.request().headers());
+    cReq.headers().remove("Content-Length");
     if (bcontent != null) {
       pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
       cReq.end(bcontent);
     } else {
+      cReq.setChunked(true);
       stream.handler(data -> {
         pc.trace("proxyRequestResponse request chunk '"
           + data.toString() + "'");
@@ -798,6 +820,8 @@ public class ProxyService {
         proxyNull(it, pc, stream, bcontent, mi);
       } else if (pType == ProxyType.INTERNAL) {
         proxyInternal(it, pc, stream, bcontent, mi);
+      } else if (pType == ProxyType.REQUEST_BLOCK) {
+        proxyRequestBlock(it, pc, stream, bcontent, mi);
       } else {// Should not happen
         pc.responseText(500, "Bad proxy type '" + pType
           + "' in module " + mi.getModuleDescriptor().getId());
