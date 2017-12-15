@@ -56,6 +56,10 @@ public class ModuleTest {
 
   @Parameterized.Parameters
   public static Iterable<String> data() {
+    final String s = System.getProperty("ModuleTestStorage");
+    if (s != null) {
+      return Arrays.asList(s.split(" "));
+    }
     final String f = System.getenv("okapiFastTest");
     if (f != null) {
       return Arrays.asList("inmemory");
@@ -392,7 +396,7 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-block\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
