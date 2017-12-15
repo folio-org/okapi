@@ -65,6 +65,9 @@ public class MainVerticle extends AbstractVerticle {
           if (allh.contains("B")) {
             xmlMsg.append(" " + hdr + ":" + tenantReqs + "\n");
           }
+          if (allh.contains("L")) {
+            logger.info(hdr + ":" + tenantReqs);
+          }
         }
       }
     }
