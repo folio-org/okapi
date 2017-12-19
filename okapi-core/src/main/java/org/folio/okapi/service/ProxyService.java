@@ -176,7 +176,7 @@ public class ProxyService {
               return null;
             }
             pc.debug("getMods:   Added " + md.getId() + " "
-              + re.getPathPattern() + " " + re.getPath());
+              + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
           }
         }
       }
