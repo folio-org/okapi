@@ -803,11 +803,25 @@ public class ProxyService {
         + ".module." + mi.getModuleDescriptor().getId();
       pc.startTimer(metricKey);
 
+      // Pass the right token
       ctx.request().headers().remove(XOkapiHeaders.TOKEN);
       String token = mi.getAuthToken();
       if (token != null && !token.isEmpty()) {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
+
+      // Pass the X-Okapi-Filter header for filters (only)
+      ctx.request().headers().remove(XOkapiHeaders.FILTER);
+      if (mi.getRoutingEntry().getPhase() != null) {
+        String pth = mi.getRoutingEntry().getPathPattern();
+        if (pth == null) {
+          pth = mi.getRoutingEntry().getPath();
+        }
+        String filt = mi.getRoutingEntry().getPhase() + " " + pth;
+        pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
+        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
+      }
+
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
