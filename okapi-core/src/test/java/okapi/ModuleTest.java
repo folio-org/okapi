@@ -384,7 +384,6 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS

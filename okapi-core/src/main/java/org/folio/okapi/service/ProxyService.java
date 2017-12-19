@@ -190,9 +190,15 @@ public class ProxyService {
     pc.debug("Checking filters for " + req.absoluteURI());
     boolean found = false;
     for (ModuleInstance inst : mods) {
-      if (!inst.getRoutingEntry().match("/", null)) {
-        found = true;  // Dirty heuristic: Any path longer than '/' is a real handler
-      } // Works for auth, but may fail later.
+      pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
+        + "'" + inst.getRoutingEntry().getPhase() + "' "
+        + "'" + inst.getRoutingEntry().getLevel() + "' "
+      );
+      if (inst.getRoutingEntry().getPhase() == null) {
+        found = true; // No real handler should have a phase any more.
+        // It has been deprecated for a long time, and never made any sense anyway.
+        // The auth filter, the only one we have, uses phase 'auth'
+      }
     }
     if (!found) {
       if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
