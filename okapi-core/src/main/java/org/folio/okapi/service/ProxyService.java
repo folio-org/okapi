@@ -816,21 +816,30 @@ public class ProxyService {
           + " path " + mi.getUri()
           + " url " + mi.getUrl());
       }
-      if (pType == ProxyType.REQUEST_ONLY) {
-        proxyRequestOnly(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REQUEST_RESPONSE) {
-        proxyRequestResponse(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.HEADERS) {
-        proxyHeaders(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REDIRECT) {
-        proxyNull(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.INTERNAL) {
-        proxyInternal(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REQUEST_BLOCK) {
-        proxyRequestBlock(it, pc, stream, bcontent, mi);
-      } else {// Should not happen
-        pc.responseText(500, "Bad proxy type '" + pType
-          + "' in module " + mi.getModuleDescriptor().getId());
+      switch (pType) {
+        case REQUEST_ONLY:
+          proxyRequestOnly(it, pc, stream, bcontent, mi);
+          break;
+        case REQUEST_RESPONSE:
+          proxyRequestResponse(it, pc, stream, bcontent, mi);
+          break;
+        case HEADERS:
+          proxyHeaders(it, pc, stream, bcontent, mi);
+          break;
+        case REDIRECT:
+          proxyNull(it, pc, stream, bcontent, mi);
+          break;
+        case INTERNAL:
+          proxyInternal(it, pc, stream, bcontent, mi);
+          break;
+        case REQUEST_BLOCK:
+          proxyRequestBlock(it, pc, stream, bcontent, mi);
+          break;
+        default:
+          // Should not happen
+          pc.responseText(500, "Bad proxy type '" + pType
+            + "' in module " + mi.getModuleDescriptor().getId());
+          break;
       }
     }
   }
