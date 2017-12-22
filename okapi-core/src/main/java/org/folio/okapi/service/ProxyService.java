@@ -820,7 +820,7 @@ public class ProxyService {
         proxyNull(it, pc, stream, bcontent, mi);
       } else if (pType == ProxyType.INTERNAL) {
         proxyInternal(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REQUEST_BLOCK) {
+      } else if (pType == ProxyType.REQUEST_RESPONSE_1_0) {
         proxyRequestBlock(it, pc, stream, bcontent, mi);
       } else {// Should not happen
         pc.responseText(500, "Bad proxy type '" + pType

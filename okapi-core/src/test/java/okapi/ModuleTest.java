@@ -396,7 +396,7 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-block\"" + LS
+      + "      \"type\" : \"request-response-1.0\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
