@@ -66,7 +66,12 @@ public class MainVerticle extends AbstractVerticle {
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value
   static String conf(String key, String def, JsonObject c) {
-    return System.getProperty(key, c.getString(key, def));
+    final String v = System.getProperty(key);
+    if (v == null || v.isEmpty()) {
+      return c.getString(key, def);
+    } else {
+      return v;
+    }
   }
 
   public void setClusterManager(ClusterManager mgr) {

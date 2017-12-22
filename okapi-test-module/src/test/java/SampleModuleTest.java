@@ -23,7 +23,7 @@ import org.junit.runner.RunWith;
 public class SampleModuleTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private final String pidFilename = "sample-module.pid";

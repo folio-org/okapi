@@ -25,7 +25,7 @@ import org.junit.runner.RunWith;
 public class OkapiClientTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = LoggerFactory.getLogger("okapi");
 
@@ -95,7 +95,7 @@ public class OkapiClientTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
     router.delete("/test2").handler(this::myStreamHandle2);
-    final int port = Integer.parseInt(System.getProperty("port", "9130"));
+    final int port = Integer.parseInt(System.getProperty("port", "9230"));
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
@@ -120,7 +120,7 @@ public class OkapiClientTest {
   @Test
   public void testBogus(TestContext context) {
     Async async = context.async();
-    final String bogusUrl = "http://xxxx:9131";
+    final String bogusUrl = "http://xxxx:9231";
     OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
     assertEquals(bogusUrl, cli.getOkapiUrl());
 
