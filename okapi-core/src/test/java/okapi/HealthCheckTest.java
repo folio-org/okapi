@@ -23,14 +23,14 @@ public class HealthCheckTest {
 
   Vertx vertx;
 
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = 9230;
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
 
     DeploymentOptions opt = new DeploymentOptions()
-            .setConfig(new JsonObject().put("storage", "inmemory"));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 

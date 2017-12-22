@@ -34,7 +34,7 @@ public class DockerTest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
   private Vertx vertx;
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = 9230;
   private static final String LS = System.lineSeparator();
   private final LinkedList<String> locations;
   private boolean haveDocker = false;
@@ -51,13 +51,16 @@ public class DockerTest {
     options.setBlockedThreadCheckInterval(60000); // in ms
     options.setWarningExceptionTime(60000); // in ms
     vertx = Vertx.vertx(options);
-    DeploymentOptions opt = new DeploymentOptions();
     RestAssured.port = port;
     client = vertx.createHttpClient();
 
     checkDocker(res2 -> {
       haveDocker = res2.succeeded();
       logger.info("haveDocker = " + haveDocker);
+
+      DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", Integer.toString(port)));
+
       vertx.deployVerticle(MainVerticle.class.getName(),
         opt, res -> async.complete());
     });

@@ -36,13 +36,13 @@ public class DeploymentManagerTest {
   public void setUp(TestContext context) {
     async = context.async();
     vertx = Vertx.vertx();
-    ports = new Ports(9131, 9140);
+    ports = new Ports(9231, 9239);
     em = new EnvManager(new EnvStoreNull());
     ds = new DeploymentStoreNull();
     em.init(vertx, res1 -> {
       dis = new DiscoveryManager(ds);
       dis.init(vertx, res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9130, "");
+        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9230, "");
         async.complete();
       });
     });
@@ -68,7 +68,7 @@ public class DeploymentManagerTest {
       context.assertTrue(res1.succeeded());
       dm.undeploy(res1.result().getInstId(), res2 -> {
         // after undeploy so we have no stale process
-        context.assertEquals("http://myhost.index:9131", res1.result().getUrl());
+        context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
         async.complete();
       });

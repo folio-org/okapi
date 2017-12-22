@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 public class TenantRATest {
 
   private final Logger logger = LoggerFactory.getLogger("okapi");
+  int port = 9230;
 
   Vertx vertx;
   private static final String LS = System.lineSeparator();
@@ -35,7 +36,7 @@ public class TenantRATest {
     vertx = Vertx.vertx();
 
     DeploymentOptions opt = new DeploymentOptions()
-            .setConfig(new JsonObject().put("storage", "inmemory"));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -49,8 +50,6 @@ public class TenantRATest {
 
   @Test
   public void test1() {
-    int port = Integer.parseInt(System.getProperty("port", "9130"));
-
     RestAssured.port = port;
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
