@@ -1,3 +1,11 @@
+## 2.5.0 2017-12-22
+
+ * OKAPI-481 Pass X-Okapi-Filter to module so that a module can
+   distinguish between phases when called as a handler or filter
+ * OKAPI-480 New routing type request-response-1.0 which uses normal
+   non-chunked encoding and sets Content-Length  
+ * OKAPI-459 Run test on port range 9230-9239
+
 ## 2.4.2 2017-12-14
 
  * OKAPI-473 Long wait if test module fat jar is missing
