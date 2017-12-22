@@ -176,7 +176,7 @@ public class ProxyService {
               return null;
             }
             pc.debug("getMods:   Added " + md.getId() + " "
-              + re.getPathPattern() + " " + re.getPath());
+              + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
           }
         }
       }
@@ -190,9 +190,15 @@ public class ProxyService {
     pc.debug("Checking filters for " + req.absoluteURI());
     boolean found = false;
     for (ModuleInstance inst : mods) {
-      if (!inst.getRoutingEntry().match("/", null)) {
-        found = true;  // Dirty heuristic: Any path longer than '/' is a real handler
-      } // Works for auth, but may fail later.
+      pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
+        + "'" + inst.getRoutingEntry().getPhase() + "' "
+        + "'" + inst.getRoutingEntry().getLevel() + "' "
+      );
+      if (inst.getRoutingEntry().getPhase() == null) {
+        found = true; // No real handler should have a phase any more.
+        // It has been deprecated for a long time, and never made any sense anyway.
+        // The auth filter, the only one we have, uses phase 'auth'
+      }
     }
     if (!found) {
       if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
@@ -552,7 +558,7 @@ public class ProxyService {
     }
   }
 
-  private void proxyRequestBlock(Iterator<ModuleInstance> it,
+  private void proxyRequestResponse_1_0(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     ModuleInstance mi) {
 
@@ -797,11 +803,25 @@ public class ProxyService {
         + ".module." + mi.getModuleDescriptor().getId();
       pc.startTimer(metricKey);
 
+      // Pass the right token
       ctx.request().headers().remove(XOkapiHeaders.TOKEN);
       String token = mi.getAuthToken();
       if (token != null && !token.isEmpty()) {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
+
+      // Pass the X-Okapi-Filter header for filters (only)
+      ctx.request().headers().remove(XOkapiHeaders.FILTER);
+      if (mi.getRoutingEntry().getPhase() != null) {
+        String pth = mi.getRoutingEntry().getPathPattern();
+        if (pth == null) {
+          pth = mi.getRoutingEntry().getPath();
+        }
+        String filt = mi.getRoutingEntry().getPhase() + " " + pth;
+        pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
+        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
+      }
+
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
@@ -810,21 +830,30 @@ public class ProxyService {
           + " path " + mi.getUri()
           + " url " + mi.getUrl());
       }
-      if (pType == ProxyType.REQUEST_ONLY) {
-        proxyRequestOnly(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REQUEST_RESPONSE) {
-        proxyRequestResponse(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.HEADERS) {
-        proxyHeaders(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REDIRECT) {
-        proxyNull(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.INTERNAL) {
-        proxyInternal(it, pc, stream, bcontent, mi);
-      } else if (pType == ProxyType.REQUEST_BLOCK) {
-        proxyRequestBlock(it, pc, stream, bcontent, mi);
-      } else {// Should not happen
-        pc.responseText(500, "Bad proxy type '" + pType
-          + "' in module " + mi.getModuleDescriptor().getId());
+      switch (pType) {
+        case REQUEST_ONLY:
+          proxyRequestOnly(it, pc, stream, bcontent, mi);
+          break;
+        case REQUEST_RESPONSE:
+          proxyRequestResponse(it, pc, stream, bcontent, mi);
+          break;
+        case HEADERS:
+          proxyHeaders(it, pc, stream, bcontent, mi);
+          break;
+        case REDIRECT:
+          proxyNull(it, pc, stream, bcontent, mi);
+          break;
+        case INTERNAL:
+          proxyInternal(it, pc, stream, bcontent, mi);
+          break;
+        case REQUEST_RESPONSE_1_0:
+          proxyRequestResponse_1_0(it, pc, stream, bcontent, mi);
+          break;
+        default:
+          // Should not happen
+          pc.responseText(500, "Bad proxy type '" + pType
+            + "' in module " + mi.getModuleDescriptor().getId());
+          break;
       }
     }
   }

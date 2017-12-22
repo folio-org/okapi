@@ -38,7 +38,7 @@ public class RoutingEntry {
     HEADERS,
     REDIRECT,
     INTERNAL,
-    REQUEST_BLOCK
+    REQUEST_RESPONSE_1_0
   }
 
   @JsonIgnore
@@ -90,8 +90,8 @@ public class RoutingEntry {
       proxyType = ProxyType.REQUEST_RESPONSE;
     } else if ("internal".equals(type)) {
       proxyType = ProxyType.INTERNAL;
-    } else if ("request-block".equals(type)) {
-      proxyType = ProxyType.REQUEST_BLOCK;
+    } else if ("request-response-1.0".equals(type)) {
+      proxyType = ProxyType.REQUEST_RESPONSE_1_0;
     } else {
       throw new DecodeException("Invalid entry type: " + type);
     }
@@ -260,12 +260,12 @@ public class RoutingEntry {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
         pc.warn(prefix
-          + "uses 'phase' in the handlers section. "
+          + " uses 'phase' in the handlers section. "
           + "Leave it out");
       }
       if (type != null && "request-response".equals(type)) {
         pc.warn(prefix
-          + "uses type=request-response. "
+          + " uses type=request-response. "
           + "That is the default, you can leave it out");
       }
     }

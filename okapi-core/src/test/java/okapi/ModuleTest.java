@@ -384,7 +384,6 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
@@ -396,7 +395,7 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-block\"" + LS
+      + "      \"type\" : \"request-response-1.0\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1206,7 +1205,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
-      + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
+      + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
@@ -1615,11 +1614,14 @@ public class ModuleTest {
     // Check that okapi sets up the permission headers.
     // Check also the X-Okapi-Url header in the same go, as well as
     // URL parameters.
+    // X-Okapi-Filter can not be checked here, but the log shows that it gets
+    // passed to the auth filter, and not to the handler.
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("X-all-headers", "HB") // ask sample to report all headers
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
+      .log().ifValidationFails()
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
       .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
