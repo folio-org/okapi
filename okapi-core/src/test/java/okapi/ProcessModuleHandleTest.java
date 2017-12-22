@@ -69,7 +69,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -version %p");
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res -> {
       if (res.succeeded()) { // error did not expect to succeed!
@@ -81,7 +81,7 @@ public class ProcessModuleHandleTest {
       }
       context.assertFalse(res.succeeded());
       String msg = res.cause().getMessage();
-      context.assertTrue(msg.startsWith("Deployment failed. Could not connect to port 9131"));
+      context.assertTrue(msg.startsWith("Deployment failed. Could not connect to port 9231"));
       async.complete();
     });
   }
@@ -105,7 +105,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -Dport=%p -jar unknown.jar");
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -118,7 +118,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java -Dport=9000 -jar unknown.jar");
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -132,7 +132,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setCmdlineStart("java -Dport=9000 -jar unknown.jar");
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res -> {
       context.assertFalse(res.succeeded());
@@ -146,7 +146,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setExec("java " + invokeTest);
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res1 -> {
       context.assertTrue(res1.succeeded());
@@ -169,7 +169,7 @@ public class ProcessModuleHandleTest {
     LaunchDescriptor desc = new LaunchDescriptor();
     desc.setCmdlineStart("java -DpidFile=test-module.pid " + invokeTest + " 2>&1 >/dev/null &");
     desc.setCmdlineStop("kill `cat test-module.pid`; rm -f test-module.pid");
-    ModuleHandle mh = createModuleHandle(desc, 9131);
+    ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res1 -> {
       context.assertTrue(res1.succeeded());

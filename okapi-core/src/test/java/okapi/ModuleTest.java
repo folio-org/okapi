@@ -80,9 +80,9 @@ public class ModuleTest {
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private static final int POSTGRES_PORT = 9138;
-  private static final int MONGO_PORT = 9139;
+  private final int port = 9230;
+  private static final int POSTGRES_PORT = 9238;
+  private static final int MONGO_PORT = 9239;
   private static EmbeddedPostgres postgres;
   private static MongodExecutable mongoExe;
   private static MongodProcess mongoD;
@@ -117,8 +117,9 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
-      .put("port_start", "9131")
-      .put("port_end", "9137")
+      .put("port", "9230")
+      .put("port_start", "9231")
+      .put("port_end", "9237")
       .put("nodename", "node1");
 
     if ("postgres".equals(value)) {
@@ -151,7 +152,6 @@ public class ModuleTest {
 
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
-
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
@@ -662,7 +662,7 @@ public class ModuleTest {
       .header("X-all-headers", "H") // ask sample to report all headers
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
-      .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
+      .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module-1+1\":[\"sample.modperm\"]}")
@@ -983,13 +983,13 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
     String nodeDoc = "{" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"NewName\"" + LS
       + "}";
 
@@ -1042,7 +1042,7 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given()
-      .body(nodeDoc.replaceFirst("\"http://localhost:9130\"", "\"MayNotChangeUrl\""))
+      .body(nodeDoc.replaceFirst("\"http://localhost:9230\"", "\"MayNotChangeUrl\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
@@ -1070,7 +1070,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/discovery/nodes/http://localhost:9130")
+    c.given().get("/_/discovery/nodes/http://localhost:9230")
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))
@@ -1097,7 +1097,7 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
@@ -1624,7 +1624,7 @@ public class ModuleTest {
       .log().ifValidationFails()
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
-      .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
+      .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Okapi-User-Id", "peter")
       .header("X-Url-Params", "query=foo&limit=10")
       .body(containsString("It works"));
@@ -1725,7 +1725,7 @@ public class ModuleTest {
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
       // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
-      + "  \"url\" : \"http://localhost:9132\"" + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -1828,7 +1828,7 @@ public class ModuleTest {
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
-      + "  \"url\" : \"http://localhost:9132\"" + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2085,7 +2085,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc1 = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS // set so we can compare with result
+      + "  \"instId\" : \"localhost-9231\"," + LS // set so we can compare with result
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2100,7 +2100,7 @@ public class ModuleTest {
 
     // with descriptor, but missing nodeId
     final String doc1a = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2116,7 +2116,7 @@ public class ModuleTest {
 
     // unknown nodeId
     final String doc1b = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"foobarhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2132,10 +2132,10 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc2 = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9131\"," + LS
+      + "  \"url\" : \"http://localhost:9231\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -2194,7 +2194,7 @@ public class ModuleTest {
       logger.info("doc2 " + doc2);
       JsonObject o2 = new JsonObject(doc2);
       String instId = o2.getString("instId");
-      String loc = "http://localhost:9130/_/deployment/modules/" + instId;
+      String loc = "http://localhost:9230/_/deployment/modules/" + instId;
       c = api.createRestAssured();
       c.given().delete(loc).then().statusCode(204);
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2305,15 +2305,15 @@ public class ModuleTest {
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"http://localhost:9130\"" + LS
+      + "  \"nodeId\" : \"http://localhost:9230\"" + LS
       + "}";
     final String DeployResp = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      + "  \"nodeId\" : \"http://localhost:9130\"," + LS
-      + "  \"url\" : \"http://localhost:9131\"," + LS
+      + "  \"nodeId\" : \"http://localhost:9230\"," + LS
+      + "  \"url\" : \"http://localhost:9231\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
@@ -2782,7 +2782,7 @@ public class ModuleTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9131/testr"))
+      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"))
       .log().ifValidationFails();
 
     // Bad redirect
@@ -2844,7 +2844,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
-      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9131/testrlight : 404"))
+      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"))
       .log().ifValidationFails();
 
     // Verify that we replace only the beginning of the path

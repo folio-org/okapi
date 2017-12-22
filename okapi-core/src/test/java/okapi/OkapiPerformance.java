@@ -38,12 +38,13 @@ public class OkapiPerformance {
   private int repeatPostRunning;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private int port = 9230;
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     JsonObject conf = new JsonObject()
-            .put("storage", "inmemory");
+      .put("port", Integer.toString(port));
 
     DeploymentOptions opt = new DeploymentOptions()
             .setConfig(conf);
@@ -103,8 +104,6 @@ public class OkapiPerformance {
       async.complete();
     });
   }
-
-  private int port = Integer.parseInt(System.getProperty("port", "9130"));
 
   @Test(timeout = 600000)
   public void testSample(TestContext context) {
@@ -317,8 +316,7 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"instId\" : \"sample2-inst\"," + LS
             + "  \"srvcId\" : \"sample-module2-1.0.0\"," + LS
-            + "  \"url\" : \"http://localhost:9132\"" + LS
-            + "}";
+      + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
     httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample2 = response.getHeader("Location");
@@ -374,8 +372,7 @@ public class OkapiPerformance {
     final String doc = "{" + LS
             + "  \"instId\" : \"sample3-inst\"," + LS
             + "  \"srvcId\" : \"sample-module3\"," + LS
-            + "  \"url\" : \"http://localhost:9132\"" + LS
-            + "}";
+      + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
     httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(201, response.statusCode());
       locationSample3 = response.getHeader("Location");

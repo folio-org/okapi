@@ -20,7 +20,7 @@ import org.folio.okapi.header.MainVerticle;
 public class HeaderModuleTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = LoggerFactory.getLogger("okapi");
 

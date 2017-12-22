@@ -35,15 +35,17 @@ public class ModuleTenantsTest {
   private String locationSampleDeployment_1_0_0;
   private String locationSampleDeployment_1_2_0;
   private String locationSampleDeployment_2_0_0;
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = 9230;
 
   @Before
   public void setUp(TestContext context) {
     logger.debug("starting ModuleTenantsTest");
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
+
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("storage", "inmemory"));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
+
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 

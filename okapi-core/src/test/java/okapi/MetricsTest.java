@@ -10,6 +10,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -27,13 +28,12 @@ public class MetricsTest {
   private Vertx vertx;
   private Async async;
   private HttpClient httpClient;
-  private int port;
+  private int port = 9230;
   private ConsoleReporter reporter1;
   private GraphiteReporter reporter2;
 
   @Before
   public void setUp(TestContext context) {
-    port = Integer.parseInt(System.getProperty("port", "9130"));
     String graphiteHost = System.getProperty("graphiteHost");
 
     final String registryName = "okapi";
@@ -56,7 +56,9 @@ public class MetricsTest {
       reporter2.start(1, TimeUnit.MILLISECONDS);
     }
 
-    DeploymentOptions opt = new DeploymentOptions();
+    DeploymentOptions opt = new DeploymentOptions()
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
+
 
     vertx.deployVerticle(MainVerticle.class.getName(),
             opt, context.asyncAssertSuccess());
