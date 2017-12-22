@@ -416,7 +416,7 @@ public class InternalModule {
       + "   \"displayName\" : \"Okapi - Enable a module and disable another\", "
       + "   \"description\" : \"Enable a module for the tenant, and disable another one\" "
       + " }, {"
-      + "   \"permissionName\" : \"okapi.proxy.tenants.modules.delete\", "
+      + "   \"permissionName\" : \"okapi.proxy.tenants.modules.enabled.delete\", "
       + "   \"displayName\" : \"Okapi - Disable a module for tenant\", "
       + "   \"description\" : \"Disable a module for the tenant\" "
       + " }, "
