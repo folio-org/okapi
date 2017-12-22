@@ -342,6 +342,13 @@ requests to list and get users to the simpler user module. If a handler
 (or a filter) is marked as a redirect, it must also have a redirectPath
 to tell where to redirect to.
 
+ * `request-response-1.0` -- This is like `request-response`, but
+makes Okapi read the full body before POSTing to the module so that
+Content-Length is set and chunked encoding is enabled. This is useful
+for modules that has trouble dealing with chunked encoding or require
+getting content length before inspecting. This type appeared in Okapi
+2.5.0.
+
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
 requires content to be streamed to and from the module. Where more
