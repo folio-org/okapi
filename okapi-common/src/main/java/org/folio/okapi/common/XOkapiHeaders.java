@@ -96,6 +96,12 @@ public class XOkapiHeaders {
    auth complex.
    */
   /**
+   * X-Okapi-Filter. Passed to filters (but not real handlers). Tells which
+   * phase we are in, etc.
+   */
+  public static final String FILTER = "X-Okapi-Filter";
+
+  /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
    * requires.
    * Used only between Okapi and the auth complex.

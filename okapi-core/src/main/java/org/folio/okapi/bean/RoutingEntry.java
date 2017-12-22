@@ -260,12 +260,12 @@ public class RoutingEntry {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
         pc.warn(prefix
-          + "uses 'phase' in the handlers section. "
+          + " uses 'phase' in the handlers section. "
           + "Leave it out");
       }
       if (type != null && "request-response".equals(type)) {
         pc.warn(prefix
-          + "uses type=request-response. "
+          + " uses type=request-response. "
           + "That is the default, you can leave it out");
       }
     }
