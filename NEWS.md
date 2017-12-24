@@ -1,3 +1,7 @@
+## 2.5.1 2017-12-24
+
+ * OKAPI-482 Fix incorrect permission for disabling module for tenant
+
 ## 2.5.0 2017-12-22
 
  * OKAPI-481 Pass X-Okapi-Filter to module so that a module can
