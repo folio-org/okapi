@@ -15,10 +15,8 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import java.io.InputStream;
 import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -26,6 +24,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.ProxyService;
@@ -60,7 +59,6 @@ public class MainVerticle extends AbstractVerticle {
   private int port;
   private String okapiVersion = null;
 
-
   // Little helper to get a config value:
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
@@ -80,32 +78,8 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
-    InputStream in = getClass().getClassLoader().
-      getResourceAsStream("META-INF/maven/org.folio.okapi/okapi-core/pom.properties");
-    if (in != null) {
-      try {
-        Properties prop = new Properties();
-        prop.load(in);
-        in.close();
-        okapiVersion = prop.getProperty("version");
-        logger.info(prop.getProperty("artifactId") + " " + okapiVersion);
-      } catch (Exception e) {
-        logger.warn(e);
-      }
-    }
-
-    in = getClass().getClassLoader().getResourceAsStream("git.properties");
-    if (in != null) {
-      try {
-        Properties prop = new Properties();
-        prop.load(in);
-        in.close();
-        logger.info("git: " + prop.getProperty("git.remote.origin.url")
-                + " " + prop.getProperty("git.commit.id"));
-      } catch (Exception e) {
-        logger.warn(e);
-      }
-    }
+    ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
+    m.logStart();
 
     boolean enableProxy = false;
     boolean enableDeployment = false;
