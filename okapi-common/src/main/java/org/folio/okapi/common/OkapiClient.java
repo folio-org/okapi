@@ -248,4 +248,11 @@ public class OkapiClient {
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);
   }
+
+  public void close() {
+    if (httpClient != null) {
+      httpClient.close();
+      httpClient = null;
+    }
+  }
 }
