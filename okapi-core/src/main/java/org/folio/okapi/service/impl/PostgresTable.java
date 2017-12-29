@@ -4,7 +4,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
@@ -13,12 +12,13 @@ import static org.folio.okapi.common.ErrorType.INTERNAL;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresTable<T> {
 
-  private final io.vertx.core.logging.Logger logger = LoggerFactory.getLogger("okapi");
+  private final io.vertx.core.logging.Logger logger = OkapiLogger.get();
 
   private final String table;
   private final String jsonColumn;

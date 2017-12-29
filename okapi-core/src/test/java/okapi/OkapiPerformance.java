@@ -8,10 +8,10 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class OkapiPerformance {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi.DeployModuleIntegration");
+  private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
   private Async async;

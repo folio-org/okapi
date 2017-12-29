@@ -4,7 +4,6 @@ import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -25,6 +24,7 @@ import org.folio.okapi.util.ModuleHandleFactory;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.env.EnvManager;
 
@@ -34,7 +34,7 @@ import org.folio.okapi.env.EnvManager;
  */
 public class DeploymentManager {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
   private final Vertx vertx;
   private final Ports ports;

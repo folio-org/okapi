@@ -1,7 +1,6 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.io.InputStream;
 import java.util.Properties;
 
@@ -12,7 +11,7 @@ public class ModuleVersionReporter {
   private String gitCommitId;
   private String gitRemoteOriginUrl;
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-common");
+  private final Logger logger = OkapiLogger.get();
 
   public ModuleVersionReporter(String path) {
     readProperties(path);

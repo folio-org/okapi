@@ -14,8 +14,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -32,7 +32,7 @@ import io.vertx.ext.web.RoutingContext;
  */
 public class Auth {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
+  private final Logger logger = OkapiLogger.get();
 
   /**
    * Calculate a token from tenant and username. Fakes a JWT token, almost

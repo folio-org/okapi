@@ -3,20 +3,20 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresQuery {
 
   private SQLConnection conn;
-  private static Logger logger = LoggerFactory.getLogger("okapi");
+  private static Logger logger = OkapiLogger.get();
   private PostgresHandle pg;
 
   public PostgresQuery(PostgresHandle pg) {

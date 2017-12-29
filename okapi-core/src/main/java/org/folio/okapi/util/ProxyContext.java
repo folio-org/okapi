@@ -3,7 +3,6 @@ package org.folio.okapi.util;
 import com.codahale.metrics.Timer;
 import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
@@ -12,6 +11,7 @@ import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -22,7 +22,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
   private String reqId;
   private String tenant;

@@ -6,7 +6,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -27,13 +26,7 @@ public class OkapiClientTest {
   private Vertx vertx;
   private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  public OkapiClientTest() {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-
-  }
+  private final Logger logger = OkapiLogger.get();
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
@@ -143,6 +136,8 @@ public class OkapiClientTest {
     cli.get("/test2?p=%2Ftest1", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
+      cli.close(); // 2nd close should work (ignored)
       async.complete();
     });
   }
@@ -224,6 +219,7 @@ public class OkapiClientTest {
   private void test6(OkapiClient cli, Async async) {
     cli.delete("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
+      cli.close();
       async.complete();
     });
   }
@@ -239,6 +235,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=403", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.FORBIDDEN, res.getType());
+      cli.close();
       async.complete();
     });
   }
@@ -253,6 +250,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=400", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, res.getType());
+      cli.close();
       async.complete();
     });
   }
@@ -267,6 +265,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=500", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
       async.complete();
     });
   }

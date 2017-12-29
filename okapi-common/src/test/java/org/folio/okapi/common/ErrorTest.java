@@ -76,6 +76,14 @@ public class ErrorTest {
 
     conf.put(varName, "124");
     assertEquals("124", Config.getSysConf(varName, "123", conf));
-  }
 
+    System.setProperty(varName, "129");
+    assertEquals("129", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("124", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("", Config.getSysConf(varName, "", conf));
+  }
 }

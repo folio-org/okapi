@@ -11,7 +11,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -21,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.OkapiLogger;
 
 public class LockedStringMap {
 
@@ -40,7 +40,7 @@ public class LockedStringMap {
   Vertx vertx = null;
   private static final int DELAY = 10; // ms in recursing for retry of map
   private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
-  protected final Logger logger = LoggerFactory.getLogger("okapi");
+  protected final Logger logger = OkapiLogger.get();
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;

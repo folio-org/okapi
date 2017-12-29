@@ -1,8 +1,8 @@
 package org.folio.okapi;
 
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import static java.lang.System.*;
+import org.folio.okapi.common.OkapiLogger;
 
 public class MainCluster {
   private MainCluster() {
@@ -13,8 +13,7 @@ public class MainCluster {
     MainDeploy d = new MainDeploy();
     d.init(args, res -> {
       if (res.failed()) {
-        // use logger after vert.x logger is configured in d.init
-        Logger logger = LoggerFactory.getLogger("okapi");
+        Logger logger = OkapiLogger.get();
         logger.error(res.cause());
         exit(1);
       }

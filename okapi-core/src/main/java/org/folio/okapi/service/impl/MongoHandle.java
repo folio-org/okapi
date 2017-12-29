@@ -3,9 +3,9 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import org.folio.okapi.common.Config;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Generic handle to the Mongo database. Encapsulates the configuration and
@@ -14,7 +14,7 @@ import org.folio.okapi.common.Config;
  */
 public class MongoHandle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;
 
   // Little helper to get a config value:
