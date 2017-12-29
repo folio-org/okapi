@@ -3,7 +3,6 @@ package org.folio.okapi.common;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import java.io.InputStream;
-import java.lang.management.ManagementFactory;
 import java.util.Properties;
 
 public class ModuleVersionReporter {
