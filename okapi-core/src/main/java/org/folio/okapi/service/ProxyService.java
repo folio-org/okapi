@@ -558,7 +558,7 @@ public class ProxyService {
     }
   }
 
-  private void proxyRequestResponse_1_0(Iterator<ModuleInstance> it,
+  private void proxyRequestResponse10(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     ModuleInstance mi) {
 
@@ -847,7 +847,7 @@ public class ProxyService {
           proxyInternal(it, pc, stream, bcontent, mi);
           break;
         case REQUEST_RESPONSE_1_0:
-          proxyRequestResponse_1_0(it, pc, stream, bcontent, mi);
+          proxyRequestResponse10(it, pc, stream, bcontent, mi);
           break;
         default:
           // Should not happen
