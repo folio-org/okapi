@@ -18,7 +18,9 @@ import java.lang.management.ManagementFactory;
 import java.util.Map;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
+
 import static org.folio.okapi.common.HttpResponse.*;
+import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiClient;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -157,6 +159,9 @@ public class MainVerticle extends AbstractVerticle {
     }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     String bName = ManagementFactory.getRuntimeMXBean().getName();
+
+    ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");
+    m.logStart();
     logger.info("Starting okapi-test-module "
       + bName + " on port " + port);
 
