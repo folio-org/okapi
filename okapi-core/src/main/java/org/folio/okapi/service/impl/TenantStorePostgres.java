@@ -6,7 +6,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
@@ -16,6 +15,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -24,7 +24,7 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStorePostgres implements TenantStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
   private static final String TABLE = "tenants";
   private static final String JSON_COLUMN = "tenantjson";

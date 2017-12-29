@@ -4,9 +4,9 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
@@ -28,7 +28,7 @@ public class Storage {
     PURGE  // purge the whole database
   }
   private JsonObject config;
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   public Storage(Vertx vertx, String type, JsonObject config) {
     this.config = config;

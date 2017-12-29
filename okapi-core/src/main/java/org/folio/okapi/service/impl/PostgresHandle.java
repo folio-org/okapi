@@ -4,7 +4,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
 import io.vertx.ext.sql.SQLConnection;
@@ -12,6 +11,7 @@ import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /*
@@ -40,7 +40,7 @@ import org.folio.okapi.common.Success;
 public class PostgresHandle {
 
   private AsyncSQLClient cli;
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   public PostgresHandle(Vertx vertx, JsonObject conf) {
     JsonObject pgconf = new JsonObject();

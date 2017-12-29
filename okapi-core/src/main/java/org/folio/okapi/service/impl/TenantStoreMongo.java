@@ -5,7 +5,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import java.util.SortedMap;
@@ -14,6 +13,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -22,7 +22,7 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStoreMongo implements TenantStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;
   private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";

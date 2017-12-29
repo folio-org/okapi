@@ -9,7 +9,7 @@ public class OkapiLogger {
     throw new IllegalStateException("OkapiLogger");
   }
 
-  static Logger get() {
+  public static Logger get() {
     System.setProperty("vertx.logger-delegate-factory-class-name",
       "io.vertx.core.logging.SLF4JLogDelegateFactory");
     return LoggerFactory.getLogger("okapi");

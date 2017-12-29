@@ -2,7 +2,7 @@ package okapi.bean;
 
 import org.folio.okapi.bean.InterfaceDescriptor;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -13,7 +13,7 @@ import static org.junit.Assert.*;
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
 public class ModuleInterfaceTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   @Test
   public void simpleTests() {

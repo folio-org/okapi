@@ -2,13 +2,13 @@ package okapi;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.env.EnvManager;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class DeploymentManagerTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   Vertx vertx;
   Async async;

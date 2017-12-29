@@ -7,11 +7,11 @@ import org.junit.Test;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.runner.RunWith;
@@ -19,7 +19,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class ProcessModuleHandleTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private Vertx vertx;
   private final Ports ports = new Ports(0, 10);
   private final String invokeTest

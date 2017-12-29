@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
@@ -26,6 +25,7 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.ModuleVersionReporter;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.ProxyService;
@@ -44,7 +44,7 @@ import org.folio.okapi.web.InternalModule;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final LogHelper logHelper = new LogHelper();
 
   ModuleManager moduleManager;

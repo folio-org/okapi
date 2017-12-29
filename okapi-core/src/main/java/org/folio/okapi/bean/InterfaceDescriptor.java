@@ -4,10 +4,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -26,7 +26,7 @@ public class InterfaceDescriptor {
   private String version;
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   public InterfaceDescriptor() {
     this.id = null;

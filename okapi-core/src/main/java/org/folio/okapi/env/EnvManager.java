@@ -5,7 +5,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -14,13 +13,14 @@ import org.folio.okapi.bean.EnvEntry;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.util.LockedTypedMap1;
 
 public class EnvManager {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
   private final EnvStore envStore;
 

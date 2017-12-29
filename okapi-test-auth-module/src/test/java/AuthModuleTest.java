@@ -3,7 +3,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -11,6 +10,7 @@ import java.util.HashMap;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Before;
@@ -24,7 +24,7 @@ public class AuthModuleTest {
   private Vertx vertx;
   private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   @Before
   public void setUp(TestContext context) {

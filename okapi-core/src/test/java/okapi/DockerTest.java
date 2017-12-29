@@ -17,12 +17,12 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.folio.okapi.MainVerticle;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,7 +32,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class DockerTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private Vertx vertx;
   private final int port = 9230;
   private static final String LS = System.lineSeparator();

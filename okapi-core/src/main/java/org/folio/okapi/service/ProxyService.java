@@ -16,7 +16,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
@@ -42,6 +41,7 @@ import static org.folio.okapi.common.ErrorType.USER;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
@@ -57,7 +57,7 @@ import org.folio.okapi.web.InternalModule;
 @java.lang.SuppressWarnings({"squid:S1168", "squid:S1192"})
 public class ProxyService {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;

@@ -1,7 +1,7 @@
 package org.folio.okapi.bean;
 
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Manages a list of available ports.
@@ -14,7 +14,7 @@ public class Ports {
   private final int portEnd;
   private final Boolean[] portsEnabled;
 
-  private final Logger logger = LoggerFactory.getLogger("Ports");
+  private final Logger logger = OkapiLogger.get();
 
   public Ports(int portStart, int portEnd) {
     this.portStart = portStart;

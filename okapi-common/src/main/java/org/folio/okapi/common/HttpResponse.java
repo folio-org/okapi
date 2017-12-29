@@ -2,7 +2,6 @@ package org.folio.okapi.common;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 
 /**
@@ -15,7 +14,7 @@ public class HttpResponse {
     throw new IllegalStateException("HttpResponse");
   }
 
-  private static final Logger logger = LoggerFactory.getLogger("okapi");
+  private static final Logger logger = OkapiLogger.get();
 
   public static void responseError(RoutingContext ctx, ErrorType t, Throwable cause) {
     responseError(ctx, ErrorType.httpCode(t), cause);
