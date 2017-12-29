@@ -14,10 +14,14 @@ public class ModuleVersionReporter {
   private final Logger logger = OkapiLogger.get();
 
   public ModuleVersionReporter(String path) {
-    readProperties(path);
+    readProperties(path, "git.properties");
   }
 
-  private void readProperties(String path) {
+  public ModuleVersionReporter(String path, String gitProperties) {
+    readProperties(path, gitProperties);
+  }
+
+  private void readProperties(String path, String gitProperties) {
     try {
       final String fp = "META-INF/maven/" + path + "/pom.properties";
       InputStream in = getClass().getClassLoader().
@@ -31,7 +35,7 @@ public class ModuleVersionReporter {
       } else {
         logger.warn(fp + " not found");
       }
-      in = getClass().getClassLoader().getResourceAsStream("git.properties");
+      in = getClass().getClassLoader().getResourceAsStream(gitProperties);
       if (in != null) {
         Properties prop = new Properties();
         prop.load(in);
