@@ -1,3 +1,7 @@
+## 2.6.0 2017-12-29
+
+ * OKAPI-483 Add ModuleVersionReporter utility
+
 ## 2.5.1 2017-12-24
 
  * OKAPI-482 Fix incorrect permission for disabling module for tenant
