@@ -29,5 +29,6 @@ public class ModuleVersionReporterTest {
     assertNotNull(m.getCommitId());
     assertEquals(40, m.getCommitId().length());
     assertNotNull(m.getRemoteOriginUrl());
+    m.logStart();
   }
 }
