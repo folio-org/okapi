@@ -1,3 +1,7 @@
+## 2.6.1 2017-12-30
+
+ * OKAPI-485 Fix Okapi internal module 0.0.0
+
 ## 2.6.0 2017-12-29
 
  * OKAPI-483 Add ModuleVersionReporter utility
