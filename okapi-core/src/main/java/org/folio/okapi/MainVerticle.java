@@ -67,6 +67,7 @@ public class MainVerticle extends AbstractVerticle {
   @Override
   public void init(Vertx vertx, Context context) {
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
+    okapiVersion = m.getVersion();
     m.logStart();
 
     boolean enableProxy = false;
