@@ -43,7 +43,7 @@ public class ModuleVersionReporter {
         gitCommitId = prop.getProperty("git.commit.id");
         gitRemoteOriginUrl = prop.getProperty("git.remote.origin.url");
       } else {
-        logger.warn("git.properties not found");
+        logger.warn(gitProperties + " not found");
       }
     } catch (Exception ex) {
       logger.warn(ex);
