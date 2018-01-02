@@ -698,39 +698,15 @@ public class ProxyService {
     log(pc, cReq);
   }
 
-  private void proxyNull(Iterator<ModuleInstance> it,
+  private void proxyRedirect(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     pc.trace("ProxyNull " + mi.getModuleDescriptor().getId());
-    if (it.hasNext()) {
-      pc.closeTimer();
-      proxyR(it, pc, stream, bcontent);
-    } else {
-      ctx.response().setChunked(true);
-
-      makeTraceHeader(mi, 999, pc);  // !!!
-      if (bcontent == null) {
-        stream.handler(data -> {
-          pc.trace("ProxyNull response chunk '"
-            + data.toString() + "'");
-          ctx.response().write(data);
-        });
-        stream.endHandler(v -> {
-          pc.closeTimer();
-          pc.trace("ProxyNull response end");
-          ctx.response().end();
-        });
-        stream.exceptionHandler(e
-          -> pc.warn("proxyNull: content exception ", e));
-        stream.resume();
-      } else {
-        pc.closeTimer();
-        pc.trace("ProxyNull response buf '" + bcontent + "'");
-        ctx.response().end(bcontent);
-      }
-    }
+    pc.closeTimer();
+    // if nore more intries in it, proxyR will return 404
+    proxyR(it, pc, stream, bcontent);
   }
 
   private void proxyInternal(Iterator<ModuleInstance> it,
@@ -841,7 +817,7 @@ public class ProxyService {
           proxyHeaders(it, pc, stream, bcontent, mi);
           break;
         case REDIRECT:
-          proxyNull(it, pc, stream, bcontent, mi);
+          proxyRedirect(it, pc, stream, bcontent, mi);
           break;
         case INTERNAL:
           proxyInternal(it, pc, stream, bcontent, mi);

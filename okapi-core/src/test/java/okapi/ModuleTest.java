@@ -56,6 +56,8 @@ public class ModuleTest {
 
   @Parameterized.Parameters
   public static Iterable<String> data() {
+    return Arrays.asList("inmemory");
+    /*
     final String s = System.getProperty("ModuleTestStorage");
     if (s != null) {
       return Arrays.asList(s.split(" "));
@@ -66,6 +68,7 @@ public class ModuleTest {
     } else {
       return Arrays.asList("inmemory", "postgres", "mongo");
     }
+     */
   }
 
   private final Logger logger = OkapiLogger.get();
@@ -2351,6 +2354,82 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     checkDbIsEmpty("testDeployment done", context);
+
+    async.complete();
+  }
+
+  @Test
+  public void testNotFound(TestContext context) {
+    async = context.async();
+
+    Response r;
+    ValidatableResponse then;
+
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    r = given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String docLaunch1 = "{" + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    r = given().header("Content-Type", "application/json")
+      .body(docLaunch1).post("/_/discovery/modules")
+      .then().statusCode(201)
+      .extract().response();
+    locationSampleDeployment = r.getHeader("Location");
+    for (String type : Arrays.asList("request-response", "request-only", "headers")) {
+
+      final String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-module-1\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/test2\"," + LS
+        + "    \"level\" : \"20\"," + LS
+        + "    \"type\" : \"" + type + "\"" + LS
+        + "  } ]" + LS
+        + "}";
+      r = given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+      final String locationSampleModule = r.getHeader("Location");
+
+      final String docEnableSample = "{" + LS
+        + "  \"id\" : \"sample-module-1\"" + LS
+        + "}";
+      r = given()
+        .header("Content-Type", "application/json")
+        .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+        .then().statusCode(201)
+        .body(equalTo(docEnableSample)).extract().response();
+      final String enableLoc = r.getHeader("Location");
+
+      given().header("X-Okapi-Tenant", okapiTenant)
+        .body("bar").post("/test2")
+        .then().statusCode(404);
+
+      given().delete(enableLoc).then().statusCode(204);
+      given().delete(locationSampleModule).then().statusCode(204);
+    }
+    given().delete(locationSampleDeployment).then().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locationTenantRoskilde)
+      .then().statusCode(204);
 
     async.complete();
   }
