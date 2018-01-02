@@ -52,6 +52,7 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -86,6 +87,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -104,6 +106,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b.c");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -122,6 +125,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("dummyJwt.b.c");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -145,6 +149,7 @@ public class AuthModuleTest {
     String body = j.encodePrettily();
 
     cli.post("/authn/login", body, res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -161,6 +166,7 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
     cli.get("/authn/login", res -> {
+      cli.close();
       assertTrue(res.succeeded());
       async.complete();
     });
@@ -191,6 +197,7 @@ public class AuthModuleTest {
 
   private void testNormal(OkapiClient cli, Async async) {
     cli.get("/some", res -> {
+      cli.close();
       assertTrue(res.succeeded());
       async.complete();
     });
