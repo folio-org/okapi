@@ -132,6 +132,7 @@ public class MainVerticle extends AbstractVerticle {
       OkapiClient ok = new OkapiClient(ctx);
       depth--;
       ok.get("/recurse?depth=" + depth, res -> {
+        ok.close();
         if (res.succeeded()) {
           MultiMap respH = ok.getRespHeaders();
           for (Map.Entry<String, String> e : respH.entries()) {

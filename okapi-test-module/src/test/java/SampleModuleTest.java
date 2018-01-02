@@ -95,6 +95,7 @@ public class SampleModuleTest {
 
   public void test5(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
+      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });

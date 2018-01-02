@@ -211,6 +211,7 @@ public class DiscoveryManager implements NodeListener {
         OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, null);
         String reqdata = Json.encode(dd);
         ok.post("/_/deployment/modules", reqdata, okres -> {
+          ok.close();
           if (okres.failed()) {
             fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
           } else {
@@ -264,6 +265,7 @@ public class DiscoveryManager implements NodeListener {
         } else {
           OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, null);
           ok.delete("/_/deployment/modules/" + md.getInstId(), okres -> {
+            ok.close();
             if (okres.failed()) {
               logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage());
               fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));

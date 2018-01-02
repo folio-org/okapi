@@ -891,6 +891,7 @@ public class ProxyService {
       cli.newReqId("tenant");
       cli.enableInfoLog();
       cli.request(HttpMethod.POST, path, request, cres -> {
+        cli.close();
         if (cres.failed()) {
           String msg = "Request for "
             + module + " " + path
