@@ -1,3 +1,12 @@
+## 2.7.0 2018-01-08
+
+ * OKAPI-486 Allow git properties file to be given for ModuleVersionReporter
+ * OKAPI-487 Use OkapiClient.close
+ * OKAPI-488 Further test coverage of ProxyService
+ * OKAPI-490 Fix Okapi fails to respond after multiple POST requests
+   returning 4xx status
+ * OKAPI-491 Fix ThreadBlocked if Okapi is downgraded
+
 ## 2.6.1 2017-12-30
 
  * OKAPI-485 Fix Okapi internal module 0.0.0
