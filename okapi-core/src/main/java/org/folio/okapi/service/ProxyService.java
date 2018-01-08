@@ -659,6 +659,9 @@ public class ProxyService {
           });
           res.exceptionHandler(e
             -> pc.warn("proxyHeaders: res exception ", e));
+          if (bcontent == null) {
+            stream.resume();
+          }
         } else if (it.hasNext()) {
           relayToRequest(res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
