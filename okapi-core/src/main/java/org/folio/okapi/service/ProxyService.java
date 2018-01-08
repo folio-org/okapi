@@ -646,6 +646,7 @@ public class ProxyService {
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
+          logger.info("proxyHeaders:1");
           relayToResponse(ctx.response(), res);
           makeTraceHeader(mi, res.statusCode(), pc);
           res.handler(data -> {
@@ -659,12 +660,17 @@ public class ProxyService {
           });
           res.exceptionHandler(e
             -> pc.warn("proxyHeaders: res exception ", e));
+          if (bcontent == null) {
+            stream.resume();
+          }
         } else if (it.hasNext()) {
+          logger.info("proxyHeaders:2");
           relayToRequest(res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
           res.endHandler(x
             -> proxyR(it, pc, stream, bcontent));
         } else {
+          logger.info("proxyHeaders:3");
           relayToResponse(ctx.response(), res);
           makeTraceHeader(mi, res.statusCode(), pc);
           if (bcontent == null) {
@@ -693,7 +699,12 @@ public class ProxyService {
         + e + " " + e.getMessage());
     });
     cReq.headers().setAll(ctx.request().headers());
+    logger.info("proxyHeaders:4");
+    for (Map.Entry<String,String> ent : ctx.request().headers().entries()) {
+      logger.info(" " + ent.getKey() + ":" + ent.getValue());
+    }
     cReq.headers().remove("Content-Length");
+    cReq.setChunked(false);
     cReq.end();
     log(pc, cReq);
   }
