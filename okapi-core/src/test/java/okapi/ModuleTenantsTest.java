@@ -772,4 +772,176 @@ public class ModuleTenantsTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
   }
+
+  @Test
+  public void test2() {
+    final String okapiTenant = "roskilde";
+    RestAssured.port = port;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    RestAssuredClient c;
+    Response r;
+
+    final String docMux = "{" + LS
+      + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docMux).post("/_/proxy/modules").then().statusCode(201)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docMul1 = "{" + LS
+      + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"multiple\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docMul1).post("/_/proxy/modules").then().statusCode(201)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docMul2 = "{" + LS
+      + "  \"id\" : \"basic-mul2-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"multiple\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docMul2).post("/_/proxy/modules").then().statusCode(201)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    // install with mult first
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {" + LS
+        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul2-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul2-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {" + LS
+        + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul2-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mul2-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+  }
+
 }
