@@ -9,7 +9,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @author heikki
  */
-public class LoginParameters {
+class LoginParameters {
 
   private final String tenant;
   private final String username;

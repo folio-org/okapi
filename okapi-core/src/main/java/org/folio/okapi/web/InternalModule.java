@@ -512,7 +512,7 @@ public class InternalModule {
   private void location(ProxyContext pc, String id, String baseUri,
     String s, Handler<ExtendedAsyncResult<String>> fut) {
 
-    String uri = "";
+    String uri;
     try {
       if (baseUri == null) {
         uri = pc.getCtx().request().uri();
@@ -678,9 +678,7 @@ public class InternalModule {
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
         TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
-      for (int i = 0; i < tml.length; i++) {
-        tm.add(tml[i]);
-      }
+      Collections.addAll(tm, tml);
       tenantManager.installUpgradeModules(id, pc, options, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));

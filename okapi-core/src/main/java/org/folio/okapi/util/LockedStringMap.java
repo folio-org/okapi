@@ -36,8 +36,8 @@ public class LockedStringMap {
     Set<String> keys = new TreeSet<>();
   }
 
-  AsyncMap<String, String> list = null;
-  Vertx vertx = null;
+  private AsyncMap<String, String> list = null;
+  private Vertx vertx = null;
   private static final int DELAY = 10; // ms in recursing for retry of map
   private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
   protected final Logger logger = OkapiLogger.get();

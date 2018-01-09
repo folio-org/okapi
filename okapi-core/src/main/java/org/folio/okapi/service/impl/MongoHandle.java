@@ -12,7 +12,7 @@ import org.folio.okapi.common.OkapiLogger;
  * creation of Mongo client that can be passed on to other Mongo-based storage
  * modules.
  */
-public class MongoHandle {
+class MongoHandle {
 
   private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;

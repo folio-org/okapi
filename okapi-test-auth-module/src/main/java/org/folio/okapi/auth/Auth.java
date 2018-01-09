@@ -30,7 +30,7 @@ import org.folio.okapi.common.OkapiLogger;
  *
  *
  */
-public class Auth {
+class Auth {
 
   private final Logger logger = OkapiLogger.get();
 

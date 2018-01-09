@@ -61,7 +61,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         getString(key, null, f::handle);
         futures.put(key, f);
       }
-      CompositeFuture.all(new ArrayList<Future>(futures.values())).setHandler(res -> {
+      CompositeFuture.all(new ArrayList<>(futures.values())).setHandler(res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(INTERNAL, res.cause()));
         } else {

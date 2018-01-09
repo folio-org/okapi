@@ -38,10 +38,10 @@ public class TenantManager {
 
   private final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager = null;
-  ProxyService proxyService = null;
-  TenantStore tenantStore = null;
-  LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
-  String mapName = "tenants";
+  private ProxyService proxyService = null;
+  private TenantStore tenantStore = null;
+  private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
+  private String mapName = "tenants";
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
@@ -457,7 +457,7 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Void>> fut) {
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo.getId();
-    findSystemInterface(tenant, "_tenantPermissions", res -> {
+    findSystemInterface(tenant, res -> {
       if (res.failed()) {
         if (res.getType() == NOT_FOUND) { // no perms interface.
           if (mdTo.getSystemInterface("_tenantPermissions") != null) {
@@ -688,18 +688,15 @@ public class TenantManager {
   /**
    * Find (the first) module that provides a given system interface. Module must
    * be enabled for the tenant.
-   *
-   * @param tenant tenant to check for
-   * @param interfaceName interface name to look for
+   *  @param tenant tenant to check for
    * @param fut callback with a @return ModuleDescriptor for the module
    *
-   * TODO - Take a version too, pass it to getSystemInterface, check there
    */
-  private void findSystemInterface(Tenant tenant, String interfaceName,
-    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  private void findSystemInterface(Tenant tenant,
+                                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
 
     Iterator<String> it = tenant.getEnabled().keySet().iterator();
-    findSystemInterfaceR(tenant, interfaceName, it, fut);
+    findSystemInterfaceR(tenant, "_tenantPermissions", it, fut);
   }
 
   private void findSystemInterfaceR(Tenant tenant, String interfaceName,
@@ -893,7 +890,7 @@ public class TenantManager {
     });
   }
 
-  List<TenantModuleDescriptor> prepareTenantModuleList(
+  private List<TenantModuleDescriptor> prepareTenantModuleList(
     Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
@@ -1110,7 +1107,7 @@ public class TenantManager {
    *
    * @param fut
    */
-  public void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
+  private void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.getKeys(gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));

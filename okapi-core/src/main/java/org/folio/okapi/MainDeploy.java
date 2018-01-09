@@ -56,7 +56,6 @@ public class MainDeploy {
         break;
       default:
         fut.handle(Future.failedFuture("Unknown command '" + mode + "'"));
-        return;
     }
   }
 

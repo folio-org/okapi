@@ -38,7 +38,7 @@ public class ErrorTest {
     assertEquals(200, ErrorType.httpCode(s.getType()));
   }
 
-  public void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
+  private void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
     if (x == ErrorType.OK) {
       fut.handle(new Success<>("123"));
     } else {

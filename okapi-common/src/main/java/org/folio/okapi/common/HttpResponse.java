@@ -20,7 +20,7 @@ public class HttpResponse {
     responseError(ctx, ErrorType.httpCode(t), cause);
   }
 
-  public static void responseError(RoutingContext ctx, int code, Throwable cause) {
+  private static void responseError(RoutingContext ctx, int code, Throwable cause) {
     responseError(ctx, code, cause.getMessage());
   }
 

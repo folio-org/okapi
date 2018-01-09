@@ -152,8 +152,8 @@ public class ProxyService {
    * @return a list of ModuleInstances. In case of error, sets up ctx and
    * returns null.
    */
-  public List<ModuleInstance> getModulesForRequest(ProxyContext pc,
-    List<ModuleDescriptor> enabledModules) {
+  private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
+                                                    List<ModuleDescriptor> enabledModules) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
@@ -376,7 +376,7 @@ public class ProxyService {
    * Process the auth module response. Set tokens for those modules that
    * received one.
    */
-  void authResponse(HttpClientResponse res, ProxyContext pc) {
+  private void authResponse(HttpClientResponse res, ProxyContext pc) {
     String modTok = res.headers().get(XOkapiHeaders.MODULE_TOKENS);
     if (modTok != null && !modTok.isEmpty()) {
       JsonObject jo = new JsonObject(modTok);
@@ -397,7 +397,7 @@ public class ProxyService {
     res.headers().remove(XOkapiHeaders.MODULE_PERMISSIONS); // They have served their purpose
   }
 
-  void relayToRequest(HttpClientResponse res, ProxyContext pc) {
+  private void relayToRequest(HttpClientResponse res, ProxyContext pc) {
     if (res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
       authResponse(res, pc);
     }
@@ -411,9 +411,7 @@ public class ProxyService {
 
   private void log(ProxyContext pc, HttpClientRequest creq) {
     pc.debug(creq.method().name() + " " + creq.absoluteURI());
-    Iterator<Map.Entry<String, String>> iterator = creq.headers().iterator();
-    while (iterator.hasNext()) {
-      Map.Entry<String, String> next = iterator.next();
+    for (Map.Entry<String, String> next : creq.headers()) {
       pc.debug(" " + next.getKey() + ":" + next.getValue());
     }
   }

@@ -21,7 +21,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class HealthCheckTest {
 
-  Vertx vertx;
+  private Vertx vertx;
 
   private final int port = 9230;
 

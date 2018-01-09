@@ -32,7 +32,9 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
 import io.vertx.ext.web.impl.Utils;
-import java.util.Arrays;
+
+import java.util.*;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
@@ -44,9 +46,6 @@ import de.flapdoodle.embed.process.runtime.Network;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -62,7 +61,7 @@ public class ModuleTest {
     }
     final String f = System.getenv("okapiFastTest");
     if (f != null) {
-      return Arrays.asList("inmemory");
+      return Collections.singletonList("inmemory");
     } else {
       return Arrays.asList("inmemory", "postgres", "mongo");
     }
@@ -70,8 +69,8 @@ public class ModuleTest {
 
   private final Logger logger = OkapiLogger.get();
 
-  Vertx vertx;
-  Async async;
+  private Vertx vertx;
+  private Async async;
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
@@ -163,7 +162,7 @@ public class ModuleTest {
     td(context);
   }
 
-  public void td(TestContext context) {
+  private void td(TestContext context) {
     if (locationAuthDeployment != null) {
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
@@ -240,7 +239,7 @@ public class ModuleTest {
    * @return the location, for deleting it later. This has to be urldecoded,
    * because restAssured "helpfully" encodes any urls passed to it.
    */
-  public String createTenant() {
+  private String createTenant() {
     final String docTenant = "{" + LS
       + "  \"id\" : \"" + okapiTenant + "\"," + LS
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
@@ -264,7 +263,7 @@ public class ModuleTest {
    * @param md A full ModuleDescriptor
    * @return the URL to delete when done
    */
-  public String createModule(String md) {
+  private String createModule(String md) {
     final String loc = given()
       .header("Content-Type", "application/json")
       .body(md)
@@ -284,7 +283,7 @@ public class ModuleTest {
    * @param modId Id of the module to be deployed.
    * @return url to delete when done
    */
-  public String deployModule(String modId) {
+  private String deployModule(String modId) {
     final String instId = modId.replace("-module", "") + "-inst";
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"" + instId + "\"," + LS
@@ -309,7 +308,7 @@ public class ModuleTest {
    * @param modId The module to enable
    * @return the location, so we can delete it later. Can safely be ignored.
    */
-  public String enableModule(String modId) {
+  private String enableModule(String modId) {
     final String docEnable = "{" + LS
       + "  \"id\" : \"" + modId + "\"" + LS
       + "}";
@@ -3386,7 +3385,7 @@ public class ModuleTest {
     });
   }
 
-  void testInternalModule2() {
+  private void testInternalModule2() {
     undeployFirst(x -> {
       conf.put("okapiVersion", "3.0.0");
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);

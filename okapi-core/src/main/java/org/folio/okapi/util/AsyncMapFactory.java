@@ -14,7 +14,7 @@ import static org.folio.okapi.common.ErrorType.*;
  * Factory to create either a vert.x ClusterWideMap or a
  * AsyncLocalmap, if not running in a clustered mode.
  */
-public class AsyncMapFactory {
+class AsyncMapFactory {
 
   private AsyncMapFactory() {
     throw new IllegalAccessError("AsyncMapFactory");

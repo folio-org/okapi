@@ -42,9 +42,9 @@ public class DiscoveryManager implements NodeListener {
 
   private final Logger logger = OkapiLogger.get();
 
-  LockedTypedMap2<DeploymentDescriptor> deployments = new LockedTypedMap2<>(DeploymentDescriptor.class);
-  LockedTypedMap1<NodeDescriptor> nodes = new LockedTypedMap1<>(NodeDescriptor.class);
-  Vertx vertx;
+  private LockedTypedMap2<DeploymentDescriptor> deployments = new LockedTypedMap2<>(DeploymentDescriptor.class);
+  private LockedTypedMap1<NodeDescriptor> nodes = new LockedTypedMap1<>(NodeDescriptor.class);
+  private Vertx vertx;
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
   private HttpClient httpClient;
@@ -449,8 +449,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void getAllR(Iterator<String> it, List<DeploymentDescriptor> all,
-    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  private void getAllR(Iterator<String> it, List<DeploymentDescriptor> all,
+                       Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
     if (!it.hasNext()) {
       fut.handle(new Success<>(all));
@@ -575,9 +575,7 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         List<NodeDescriptor> result = res.result();
-        Iterator<NodeDescriptor> iterator = result.iterator();
-        while (iterator.hasNext()) {
-          NodeDescriptor nd = iterator.next();
+        for (NodeDescriptor nd : result) {
           logger.debug("Discovery: nodeUrl: " + nodeId + " nd=" + Json.encode(nd));
           if (nodeId.compareTo(nd.getUrl()) == 0) {
             fut.handle(new Success<>(nd.getNodeId()));
@@ -649,8 +647,8 @@ public class DiscoveryManager implements NodeListener {
 
   }
 
-  void getNodesR(Iterator<String> it, List<NodeDescriptor> all,
-    Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+  private void getNodesR(Iterator<String> it, List<NodeDescriptor> all,
+                         Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(all));
     } else {

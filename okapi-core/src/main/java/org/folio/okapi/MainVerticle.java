@@ -47,16 +47,16 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = OkapiLogger.get();
   private final LogHelper logHelper = new LogHelper();
 
-  ModuleManager moduleManager;
-  TenantManager tenantManager;
-  EnvManager envManager;
-  ProxyService proxyService;
-  DeploymentManager deploymentManager;
-  DiscoveryManager discoveryManager;
-  ClusterManager clusterManager;
-  PullManager pullManager;
+  private ModuleManager moduleManager;
+  private TenantManager tenantManager;
+  private EnvManager envManager;
+  private ProxyService proxyService;
+  private DeploymentManager deploymentManager;
+  private DiscoveryManager discoveryManager;
+  private ClusterManager clusterManager;
+  private PullManager pullManager;
   private Storage storage;
-  Storage.InitMode initMode = NORMAL;
+  private Storage.InitMode initMode = NORMAL;
   private int port;
   private String okapiVersion = null;
 
@@ -347,7 +347,6 @@ public class MainVerticle extends AbstractVerticle {
           return;
         }
         startEnv(fut);
-        return;
       });
     });
   }
@@ -374,7 +373,7 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
-  public void startDeployment(Future<Void> fut) {
+  private void startDeployment(Future<Void> fut) {
     if (deploymentManager == null) {
       startListening(fut);
     } else {

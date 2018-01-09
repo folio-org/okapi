@@ -27,7 +27,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private final Logger logger = OkapiLogger.get();
 
-  private final Vertx vertx;
   private final int hostPort;
   private final Ports ports;
   private final String image;
@@ -42,7 +41,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     Ports ports, int port) {
-    this.vertx = vertx;
+    Vertx vertx1 = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = desc.getDockerImage();
@@ -51,11 +50,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.dockerArgs = desc.getDockerArgs();
     this.client = vertx.createHttpClient();
     Boolean b = desc.getDockerPull();
-    if (b != null && !b.booleanValue()) {
-      this.dockerPull = false;
-    } else {
-      this.dockerPull = true;
-    }
+    this.dockerPull = b == null || b.booleanValue();
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -89,10 +84,10 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
-  private void deleteUrl(String url, String msg,
-    Handler<AsyncResult<Void>> future) {
+  private void deleteUrl(String url,
+                         Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, msg, future));
+    HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, "deleteContainer", future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
@@ -112,7 +107,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private void deleteContainer(Handler<AsyncResult<Void>> future) {
     logger.info("delete container " + containerId + " image " + image);
     deleteUrl(dockerUrl + "/containers/" + containerId,
-      "deleteContainer", future);
+      future);
   }
 
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
@@ -223,8 +218,8 @@ public class DockerModuleHandle implements ModuleHandle {
 
     if (this.cmd != null && this.cmd.length > 0) {
       JsonArray a = new JsonArray();
-      for (int i = 0; i < cmd.length; i++) {
-        a.add(cmd[i]);
+      for (String aCmd : cmd) {
+        a.add(aCmd);
       }
       j.put("Cmd", a);
     }

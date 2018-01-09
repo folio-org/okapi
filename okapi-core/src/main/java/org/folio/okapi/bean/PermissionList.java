@@ -8,8 +8,8 @@ package org.folio.okapi.bean;
  * @author heikki
  */
 public class PermissionList {
-  String moduleId; // The module that owns these permissions.
-  Permission[] perms;
+  private String moduleId; // The module that owns these permissions.
+  private Permission[] perms;
 
   public PermissionList(String moduleId, Permission[] perms) {
     this.moduleId = moduleId;

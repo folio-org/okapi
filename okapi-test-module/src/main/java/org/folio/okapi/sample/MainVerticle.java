@@ -30,7 +30,7 @@ public class MainVerticle extends AbstractVerticle {
   private String helloGreeting;
   private String tenantRequests = "";
 
-  public void myStreamHandle(RoutingContext ctx) {
+  private void myStreamHandle(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
@@ -47,7 +47,7 @@ public class MainVerticle extends AbstractVerticle {
     }
     String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
     if (tenantReqs != null) {
-      xmlMsg.append(" Tenant requests: " + tenantRequests);
+      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
     }
     ctx.response().putHeader("Content-Type", "text/plain");
 
@@ -65,7 +65,7 @@ public class MainVerticle extends AbstractVerticle {
             ctx.response().putHeader(hdr, tenantReqs);
           }
           if (allh.contains("B")) {
-            xmlMsg.append(" " + hdr + ":" + tenantReqs + "\n");
+            xmlMsg.append(" ").append(hdr).append(":").append(tenantReqs).append("\n");
           }
           if (allh.contains("L")) {
             logger.info(hdr + ":" + tenantReqs);
@@ -90,7 +90,7 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  public void myTenantHandle(RoutingContext ctx) {
+  private void myTenantHandle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
@@ -116,7 +116,7 @@ public class MainVerticle extends AbstractVerticle {
     ctx.request().endHandler(x -> ctx.response().end());
   }
 
-  public void recurseHandle(RoutingContext ctx) {
+  private void recurseHandle(RoutingContext ctx) {
     String d = ctx.request().getParam("depth");
     if (d == null || d.isEmpty()) {
       d = "1";
