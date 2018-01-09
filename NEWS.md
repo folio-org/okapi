@@ -1,3 +1,8 @@
+## 2.7.1 2018-01-09
+
+ * OKAPI-489 Fix Unexpected results when using tenant install with
+  "multiple"-type interfaces
+
 ## 2.7.0 2018-01-08
 
  * OKAPI-486 Allow git properties file to be given for ModuleVersionReporter
