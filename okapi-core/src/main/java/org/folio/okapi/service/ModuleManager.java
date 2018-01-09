@@ -208,6 +208,7 @@ public class ModuleManager {
           String confl = pi.getId();
           for (InterfaceDescriptor mi : md.getProvidesList()) {
             if (mi.getId().equals(confl)
+              && mi.isRegularHandler()
               && modsEnabled.containsKey(runningmodule)) {
               if (md.getProduct().equals(rm.getProduct())) {
                 logger.info("resolveModuleConflicts from " + runningmodule);

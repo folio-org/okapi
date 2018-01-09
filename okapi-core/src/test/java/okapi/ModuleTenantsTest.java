@@ -900,9 +900,6 @@ public class ModuleTenantsTest {
         + "  \"id\" : \"basic-mux-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"basic-mux-1.0.0\"," + LS
-        + "  \"action\" : \"disable\"" + LS
-        + "}, {" + LS
         + "  \"id\" : \"basic-mul1-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
