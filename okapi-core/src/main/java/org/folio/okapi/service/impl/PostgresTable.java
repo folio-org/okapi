@@ -16,7 +16,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class PostgresTable<T> {
+class PostgresTable<T> {
 
   private final io.vertx.core.logging.Logger logger = OkapiLogger.get();
 

@@ -104,7 +104,7 @@ public class ProxyContext {
     return ctx;
   }
 
-  public String getReqId() {
+  private String getReqId() {
     return reqId;
   }
 
@@ -141,7 +141,7 @@ public class ProxyContext {
     StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {
-        mods.append(" " + mi.getModuleDescriptor().getId());
+        mods.append(" ").append(mi.getModuleDescriptor().getId());
       }
     }
     logger.info(reqId + " REQ "
@@ -161,7 +161,7 @@ public class ProxyContext {
     responseError(ErrorType.httpCode(t), cause);
   }
 
-  public void responseError(int code, Throwable cause) {
+  private void responseError(int code, Throwable cause) {
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {

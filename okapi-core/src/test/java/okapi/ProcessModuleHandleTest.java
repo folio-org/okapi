@@ -35,7 +35,7 @@ public class ProcessModuleHandleTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
-  ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
+  private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, port);
     pmh.setConnectIterMax(5);
     return pmh;
@@ -162,7 +162,7 @@ public class ProcessModuleHandleTest {
     final Async async = context.async();
     // Cannot rely on sh and kill on Windows
     String os = System.getProperty("os.name").toLowerCase();
-    if (os.indexOf("win") >= 0) {
+    if (os.contains("win")) {
       async.complete();
       return;
     }

@@ -18,7 +18,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class LogLevelTest {
 
-  Vertx vertx;
+  private Vertx vertx;
 
   private final int port = 9230;
 

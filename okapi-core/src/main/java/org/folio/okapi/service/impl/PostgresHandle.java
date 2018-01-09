@@ -37,10 +37,9 @@ import org.folio.okapi.common.Success;
  *
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class PostgresHandle {
+class PostgresHandle {
 
   private AsyncSQLClient cli;
-  private final Logger logger = OkapiLogger.get();
 
   public PostgresHandle(Vertx vertx, JsonObject conf) {
     JsonObject pgconf = new JsonObject();
@@ -51,6 +50,7 @@ public class PostgresHandle {
       pgconf.put("host", val);
     }
     val = Config.getSysConf("postgres_port", "", conf);
+    Logger logger = OkapiLogger.get();
     if (!val.isEmpty()) {
       try {
         Integer x = Integer.parseInt(val);

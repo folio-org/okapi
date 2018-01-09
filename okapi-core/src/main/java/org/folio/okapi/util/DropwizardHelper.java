@@ -24,7 +24,7 @@ public class DropwizardHelper {
     throw new IllegalAccessError("DropwizardHelper");
   }
 
-  static Logger logger = OkapiLogger.get();
+  private static Logger logger = OkapiLogger.get();
 
   public static void config(String graphiteHost, int port, TimeUnit tu,
           int period, VertxOptions vopt, String hostName) {

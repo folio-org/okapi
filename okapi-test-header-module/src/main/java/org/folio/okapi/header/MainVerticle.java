@@ -20,7 +20,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
 
-  public void myHeaderHandle(RoutingContext ctx) {
+  private void myHeaderHandle(RoutingContext ctx) {
     String h = ctx.request().getHeader("X-my-header");
     if (h == null) {
       h = "foo";
@@ -38,7 +38,7 @@ public class MainVerticle extends AbstractVerticle {
    *
    * @param ctx
    */
-  public void myPermissionHandle(RoutingContext ctx) {
+  private void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
     final Buffer incoming = Buffer.buffer();
     content.handler(incoming::appendBuffer);

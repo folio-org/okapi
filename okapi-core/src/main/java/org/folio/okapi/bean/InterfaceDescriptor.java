@@ -71,7 +71,7 @@ public class InterfaceDescriptor {
    */
   public static boolean validateVersion(String version) {
     int[] p = versionParts(version, 0);
-    return p == null ? false : true;
+    return p != null;
   }
 
   /**
@@ -148,7 +148,7 @@ public class InterfaceDescriptor {
     if (interfaceType != null && !"proxy".equals(interfaceType)) {
       return false; // explicitly some other type, like "multiple" or "system"
     }
-    return this.id.startsWith("_") ? false : true; // old-fashioned _tenant etc. DEPRECATED
+    return !this.id.startsWith("_"); // old-fashioned _tenant etc. DEPRECATED
   }
 
   @JsonIgnore

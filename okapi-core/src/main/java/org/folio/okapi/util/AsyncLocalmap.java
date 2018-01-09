@@ -13,9 +13,9 @@ import org.folio.okapi.common.Success;
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap.
  */
 @java.lang.SuppressWarnings("squid:S1192")
-public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
+class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
-  LocalMap<K, V> map = null;
+  private LocalMap<K, V> map = null;
 
   public AsyncLocalmap(Vertx vertx, String mapName) {
     SharedData sd = vertx.sharedData();

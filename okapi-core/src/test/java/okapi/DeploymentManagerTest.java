@@ -24,13 +24,13 @@ public class DeploymentManagerTest {
 
   private final Logger logger = OkapiLogger.get();
 
-  Vertx vertx;
-  Async async;
-  Ports ports;
-  DiscoveryManager dis;
-  DeploymentManager dm;
-  DeploymentStoreNull ds;
-  EnvManager em;
+  private Vertx vertx;
+  private Async async;
+  private Ports ports;
+  private DiscoveryManager dis;
+  private DeploymentManager dm;
+  private DeploymentStoreNull ds;
+  private EnvManager em;
 
   @Before
   public void setUp(TestContext context) {

@@ -4,7 +4,7 @@ import io.vertx.core.logging.Logger;
 import static java.lang.System.*;
 import org.folio.okapi.common.OkapiLogger;
 
-public class MainCluster {
+class MainCluster {
   private MainCluster() {
     throw new IllegalAccessError("MainCluster");
   }

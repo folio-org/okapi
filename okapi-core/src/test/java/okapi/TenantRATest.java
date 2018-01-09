@@ -26,9 +26,9 @@ import org.junit.runner.RunWith;
 public class TenantRATest {
 
   private final Logger logger = OkapiLogger.get();
-  int port = 9230;
+  private int port = 9230;
 
-  Vertx vertx;
+  private Vertx vertx;
   private static final String LS = System.lineSeparator();
 
   @Before

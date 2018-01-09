@@ -52,7 +52,7 @@ public class LogHelper {
     return lev == null ? "null" : lev.toString();
   }
 
-  public void setRootLogLevel(Level l) {
+  private void setRootLogLevel(Level l) {
     // This might stop working in log4j version 2. See
     // http://stackoverflow.com/questions/23434252/programmatically-change-log-level-in-log4j2
     l4jlogger.getParent().setLevel(l);

@@ -34,9 +34,9 @@ public class ModuleManager {
   private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
-  LockedTypedMap1<ModuleDescriptor> modules
+  private LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
-  ModuleStore moduleStore;
+  private ModuleStore moduleStore;
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -82,7 +82,7 @@ public class ModuleManager {
         fut.handle(new Failure<>(INTERNAL, kres.cause()));
         return;
       }
-      if (kres.result().intValue() > 0) {
+      if (kres.result() > 0) {
         logger.debug("Not loading modules, looks like someone already did");
         fut.handle(new Success<>());
         return;
@@ -354,7 +354,7 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -515,13 +515,12 @@ public class ModuleManager {
   private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
     LinkedHashMap<String, ModuleDescriptor> mods) {
 
-    LinkedHashMap<String, ModuleDescriptor> tempList = mods;
-    if (!tempList.containsKey(id)) {
+    if (!mods.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
       return true;
     }
-    tempList.remove(id);
-    String res = checkAllDependencies(tempList);
+    mods.remove(id);
+    String res = checkAllDependencies(mods);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return true;

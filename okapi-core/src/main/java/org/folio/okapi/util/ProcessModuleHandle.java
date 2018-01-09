@@ -22,10 +22,10 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Logger logger = OkapiLogger.get();
 
   private final Vertx vertx;
-  final String exec;
-  final String cmdlineStart;
-  final String cmdlineStop;
-  final EnvEntry[] env;
+  private final String exec;
+  private final String cmdlineStart;
+  private final String cmdlineStop;
+  private final EnvEntry[] env;
 
   private Process p;
   private final int port;
@@ -113,7 +113,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     vertx.executeBlocking(future -> {
       if (p == null) {
         try {
-          String[] l = new String[0];
+          String[] l;
           if (exec != null) {
             if (!exec.contains("%p")) {
               future.fail("Can not deploy: No %p in the exec line");

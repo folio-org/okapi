@@ -14,10 +14,10 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
-public class MongoUtil<T> {
+class MongoUtil<T> {
 
-  final String collection;
-  final MongoClient cli;
+  private final String collection;
+  private final MongoClient cli;
 
   public MongoUtil(String collection, MongoClient cli) {
     this.collection = collection;
