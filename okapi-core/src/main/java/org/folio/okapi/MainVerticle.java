@@ -294,12 +294,9 @@ public class MainVerticle extends AbstractVerticle {
           + "', not '" + okapiModule + "'");
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) > 0) {
-          logger.fatal("checkSuperTenant: This Okapi is too old, "
+          logger.warn("checkSuperTenant: This Okapi is too old, "
             + okapiVersion + " we already have " + ev + " in the database. "
             + " Use that!");
-          fut.fail("Too old Okapi, " + okapiVersion
-            + " Need " + ev);
-          return;
         } else {
           logger.info("checkSuperTenant: Need to upgrade the stored version");
           // Use the commit, easier interface.
