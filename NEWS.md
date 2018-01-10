@@ -1,6 +1,6 @@
 ## 2.7.1 2018-01-09
 
- * OKAPI-489 Fix Unexpected results when using tenant install with
+ * OKAPI-489 Fix unexpected results when using tenant install with
   "multiple"-type interfaces
 
 ## 2.7.0 2018-01-08
@@ -29,7 +29,7 @@
  * OKAPI-481 Pass X-Okapi-Filter to module so that a module can
    distinguish between phases when called as a handler or filter
  * OKAPI-480 New routing type request-response-1.0 which uses normal
-   non-chunked encoding and sets Content-Length  
+   non-chunked encoding and sets Content-Length
  * OKAPI-459 Run test on port range 9230-9239
 
 ## 2.4.2 2017-12-14

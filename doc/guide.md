@@ -345,7 +345,7 @@ to tell where to redirect to.
  * `request-response-1.0` -- This is like `request-response`, but
 makes Okapi read the full body before POSTing to the module so that
 Content-Length is set and chunked encoding is enabled. This is useful
-for modules that has trouble dealing with chunked encoding or require
+for modules that have trouble dealing with chunked encoding or require
 getting content length before inspecting. This type appeared in Okapi
 2.5.0.
 
