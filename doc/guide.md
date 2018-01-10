@@ -2319,7 +2319,7 @@ than the pull, because all/most modules have already been fetched.
 
 ```
 cat > /tmp/pull.json <<END
-{"urls" : [ "http://folio-registry.aws.indexdata.com:9130" ]}
+{"urls" : [ "http://folio-registry.aws.indexdata.com:80" ]}
 END
 
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
