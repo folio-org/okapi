@@ -2335,7 +2335,7 @@ interface that we knew was offered by the 'test-auth' module.
 It is a coincidence that those names match by the way. Not to mention
 that a module may require many interfaces.
 
-Okapi 1.10 and later offers the `/_/proxy/tenant/id/install` call
+Okapi 1.10 and later offers the `/_/proxy/tenants/id/install` call
 to remedy the situation. This call takes one or more modules to
 be enabled/upgraded/disabled and responds with a similar list that
 respects dependencies. For details, refer to the JSON schema
@@ -2399,7 +2399,7 @@ without pre-release information.
 
 The upgrade facility consists of a POST request with ignored body
 (should be empty) and a response that is otherwise similar to the
-install facility. The call has the path `/_/proxy/tenant/id/upgrade`.
+install facility. The call has the path `/_/proxy/tenants/id/upgrade`.
 Like the install facility, there is a simulate optional parameter, which
 if true will simulate the upgrade. Also the `preRelease` parameter
 is recognized which controls whether module IDs with pre-release info
