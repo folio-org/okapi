@@ -706,7 +706,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     pc.trace("ProxyNull " + mi.getModuleDescriptor().getId());
     pc.closeTimer();
-    // if nore more intries in it, proxyR will return 404
+    // if no more entries in it, proxyR will return 404
     proxyR(it, pc, stream, bcontent);
   }
 
