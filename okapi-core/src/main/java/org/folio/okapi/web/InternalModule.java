@@ -776,6 +776,20 @@ public class InternalModule {
     });
   }
 
+  private void listInterfaces(ProxyContext pc, String id,
+          Handler<ExtendedAsyncResult<String>> fut) {
+
+    final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+    tenantManager.listInterfaces(id, full, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      }
+    });
+  }
+
   private void listModulesFromInterface(String id, String intId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
@@ -1342,6 +1356,11 @@ public class InternalModule {
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
           upgradeModulesForTenant(pc, decodedSegs[4], fut);
+          return;
+        }
+        // /_/proxy/tenants/:id/interfaces
+        if (n == 6 && m.equals(GET) && segments[5].equals("interfaces")) {
+          listInterfaces(pc, decodedSegs[4], fut);
           return;
         }
 

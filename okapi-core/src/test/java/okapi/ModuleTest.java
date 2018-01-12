@@ -3040,11 +3040,39 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=true")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS
+                    + "  \"id\" : \"sample\"," + LS
+                    + "  \"version\" : \"1.0\"," + LS
+                    + "  \"interfaceType\" : \"proxy\"," + LS
+                    + "  \"handlers\" : [ {" + LS
+                    + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+                    + "    \"path\" : \"/testb\"" + LS
+                    + "  } ]" + LS
+                    + "} ]"))
+            .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=false")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS
+                    + "  \"id\" : \"sample\"," + LS
+                    + "  \"version\" : \"1.0\"" + LS
+                    + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + "foo" + "/interfaces/sample")

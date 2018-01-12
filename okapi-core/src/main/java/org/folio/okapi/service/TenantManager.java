@@ -8,6 +8,7 @@ import io.vertx.core.logging.Logger;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -724,11 +725,46 @@ public class TenantManager {
     });
   }
 
+  public void listInterfaces(String tenantId, boolean full,
+          Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
+
+    tenants.get(tenantId, tres -> {
+      if (tres.failed()) {
+        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        return;
+      }
+      Tenant tenant = tres.result();
+      ArrayList<InterfaceDescriptor> intList = new ArrayList<>();
+      moduleManager.getEnabledModules(tenant, mres -> {
+        if (mres.failed()) {
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        List<ModuleDescriptor> modlist = mres.result();
+        Set<String> ids = new HashSet<>();
+        for (ModuleDescriptor md : modlist) {
+          for (InterfaceDescriptor provide : md.getProvidesList()) {
+            if (full) {
+              intList.add(provide);
+            } else {
+              if (ids.add(provide.getId())) {
+                InterfaceDescriptor tmp = new InterfaceDescriptor();
+                tmp.setId(provide.getId());
+                tmp.setVersion(provide.getVersion());
+                intList.add(tmp);
+              }
+            }
+          }
+        }
+        fut.handle(new Success<>(intList));
+      });
+    });
+  }
+
   public void listModulesFromInterface(String tenantId,
     String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
-        logger.debug("listModulesFromInterface: tenant " + tenantId + " not found");
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
       }
@@ -736,7 +772,6 @@ public class TenantManager {
       ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
       moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
-          logger.debug("listModulesFromInterface: enabledModules failed for " + tenantId);
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
