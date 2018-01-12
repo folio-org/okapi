@@ -203,26 +203,29 @@ public class ModuleManager {
     while (it.hasNext()) {
       String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      for (InterfaceDescriptor pi : rm.getProvidesList()) {
-        if (pi.isRegularHandler()) {
-          String confl = pi.getId();
-          for (InterfaceDescriptor mi : md.getProvidesList()) {
-            if (mi.getId().equals(confl)
-              && mi.isRegularHandler()
-              && modsEnabled.containsKey(runningmodule)) {
-              if (md.getProduct().equals(rm.getProduct())) {
-                logger.info("resolveModuleConflicts from " + runningmodule);
-                fromModule.add(rm);
-              } else {
+      if (md.getProduct().equals(rm.getProduct())) {
+        logger.info("resolveModuleConflicts from " + runningmodule);
+        fromModule.add(rm);
+        modsEnabled.remove(runningmodule);
+        it = modsEnabled.keySet().iterator();
+        v++;
+      } else {
+        for (InterfaceDescriptor pi : rm.getProvidesList()) {
+          if (pi.isRegularHandler()) {
+            String confl = pi.getId();
+            for (InterfaceDescriptor mi : md.getProvidesList()) {
+              if (mi.getId().equals(confl)
+                && mi.isRegularHandler()
+                && modsEnabled.containsKey(runningmodule)) {
                 logger.info("resolveModuleConflicts remove " + runningmodule);
                 TenantModuleDescriptor tm = new TenantModuleDescriptor();
                 tm.setAction("disable");
                 tm.setId(runningmodule);
                 tml.add(tm);
+                modsEnabled.remove(runningmodule);
+                it = modsEnabled.keySet().iterator();
+                v++;
               }
-              modsEnabled.remove(runningmodule);
-              it = modsEnabled.keySet().iterator();
-              v++;
             }
           }
         }
