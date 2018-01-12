@@ -690,7 +690,7 @@ public class ModuleTest {
       .get("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then()
       .log().ifValidationFails()
-      //.header("X-Url-Params", "query=foo")
+      .header("X-Url-Params", "query=foo")
       .statusCode(200);
     given()
       .header("Content-Type", "application/json")
