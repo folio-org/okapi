@@ -782,6 +782,11 @@ schemas:
     /interfaces:
       get:
         description: Get all interfaces for tenant
+        queryParameters:
+          full:
+            description: whether brief or full interface list
+            type: boolean
+            required: false
         responses:
           200:
             headers:
