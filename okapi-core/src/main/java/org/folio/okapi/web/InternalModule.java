@@ -776,6 +776,10 @@ public class InternalModule {
     });
   }
 
+  private void listInterfaces(String id, Handler<ExtendedAsyncResult<String>> fut) {
+    fut.handle(new Failure<>(INTERNAL, "not implemented"));
+  }
+
   private void listModulesFromInterface(String id, String intId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
@@ -1342,6 +1346,11 @@ public class InternalModule {
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
           upgradeModulesForTenant(pc, decodedSegs[4], fut);
+          return;
+        }
+        // /_/proxy/tenants/:id/interfaces
+        if (n == 6 && m.equals(GET) && segments[5].equals("interfaces")) {
+          listInterfaces(decodedSegs[4], fut);
           return;
         }
 

@@ -779,9 +779,9 @@ schemas:
             description: Server error
             body:
               text/plain:
-    /interfaces/{interface_id}:
+    /interfaces:
       get:
-        description: Get all modules that provide the specified interface ID
+        description: Get all interfaces for tenant
         responses:
           200:
             headers:
@@ -789,7 +789,7 @@ schemas:
                 description: Okapi trace and timing
             body:
               application/json:
-                schema: TenantModuleDescriptorList
+                schema: InterfaceList
           400:
             description: Client Error
             body:
@@ -802,6 +802,29 @@ schemas:
             description: Server error
             body:
               text/plain:
+      /{interface_id}:
+        get:
+          description: Get all modules that provide the specified interface ID
+          responses:
+            200:
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+              body:
+                application/json:
+                  schema: TenantModuleDescriptorList
+            400:
+              description: Client Error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: Server error
+              body:
+                text/plain:
 /_/proxy/health:
   description: Check health of modules
   get:
