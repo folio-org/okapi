@@ -3,24 +3,21 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresQuery {
 
   private SQLConnection conn;
-  private static Logger logger = LoggerFactory.getLogger("okapi");
+  private static Logger logger = OkapiLogger.get();
   private PostgresHandle pg;
-
-  private PostgresQuery() {
-  }
 
   public PostgresQuery(PostgresHandle pg) {
     this.pg = pg;
@@ -53,9 +50,9 @@ public class PostgresQuery {
         conn.queryWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
             logger.fatal("queryWithParams failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+              + qres.cause() + " sql: " + sql);
             close();
+            fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }
@@ -75,9 +72,9 @@ public class PostgresQuery {
         conn.updateWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
             logger.fatal("updateWithParams failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+              + qres.cause() + " sql: " + sql);
             close();
+            fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }
@@ -97,9 +94,9 @@ public class PostgresQuery {
         conn.query(sql, qres -> {
           if (qres.failed()) {
             logger.fatal("query failed: "
-              + qres.cause().getMessage() + " sql: " + sql);
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+              + qres.cause() + " sql: " + sql);
             close();
+            fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }

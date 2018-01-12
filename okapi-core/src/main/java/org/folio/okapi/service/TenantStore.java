@@ -13,10 +13,11 @@ public interface TenantStore {
 
   void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut);
+  void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut);
 
   void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
 
   void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
 
+  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
 }

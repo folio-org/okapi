@@ -6,7 +6,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -25,20 +24,18 @@ import org.junit.runner.RunWith;
 public class OkapiClientTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  public OkapiClientTest() {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-
-  }
+  private final Logger logger = OkapiLogger.get();
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
     StringBuilder msg = new StringBuilder();
-    HttpResponse.responseText(ctx, 200);
+
+    String e = ctx.request().params().get("e");
+    final int status = e == null ? 200 : Integer.parseInt(e);
+
+    HttpResponse.responseText(ctx, status);
     OkapiToken token = new OkapiToken(ctx);
 
     ctx.request().handler(x -> msg.append(x));
@@ -91,7 +88,7 @@ public class OkapiClientTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
     router.delete("/test2").handler(this::myStreamHandle2);
-    final int port = Integer.parseInt(System.getProperty("port", "9130"));
+    final int port = Integer.parseInt(System.getProperty("port", "9230"));
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
@@ -116,7 +113,7 @@ public class OkapiClientTest {
   @Test
   public void testBogus(TestContext context) {
     Async async = context.async();
-    final String bogusUrl = "http://xxxx:9131";
+    final String bogusUrl = "http://xxxx:9231";
     OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
     assertEquals(bogusUrl, cli.getOkapiUrl());
 
@@ -128,11 +125,32 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void test1(TestContext context) {
+  public void testNoOkapiURl(TestContext context) {
     Async async = context.async();
 
     HashMap<String, String> headers = new HashMap<>();
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    assertEquals(URL, cli.getOkapiUrl());
+
+    cli.get("/test2?p=%2Ftest1", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
+      cli.close(); // 2nd close should work (ignored)
+      async.complete();
+    });
+  }
+
+  @Test
+  public void test1(TestContext context) {
+    Async async = context.async();
+    final String tenant = "test-lib";
+
+    HashMap<String, String> headers = new HashMap<>();
     headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, tenant);
+    headers.put(XOkapiHeaders.REQUEST_ID, "919");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     assertEquals(URL, cli.getOkapiUrl());
@@ -140,7 +158,7 @@ public class OkapiClientTest {
     cli.enableInfoLog();
 
     JsonObject o = new JsonObject();
-    o.put("tenant", "test-lib");
+    o.put("tenant", tenant);
     o.put("foo", "bar");
     String s = o.encodePrettily();
     byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
@@ -155,15 +173,13 @@ public class OkapiClientTest {
 
     cli.newReqId("920");
 
-    cli.get("/test1", res -> {
+    cli.get("/test1", (ExtendedAsyncResult<String> res) -> {
       assertTrue(res.succeeded());
       assertEquals("hello test-lib", res.result());
       assertEquals(res.result(), cli.getResponsebody());
       MultiMap respH = cli.getRespHeaders();
-      assertTrue(respH != null);
-      if (respH != null) {
-        assertEquals("text/plain", respH.get("Content-Type").toString());
-      }
+      assertNotNull(respH);
+      assertEquals("text/plain", respH.get("Content-Type"));
 
       test2(cli, async);
     });
@@ -203,6 +219,53 @@ public class OkapiClientTest {
   private void test6(OkapiClient cli, Async async) {
     cli.delete("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
+      cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void test403(TestContext context) {
+    Async async = context.async();
+
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    assertEquals(URL, cli.getOkapiUrl());
+    cli.newReqId("920");
+
+    cli.get("/test1?e=403", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.FORBIDDEN, res.getType());
+      cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void test400(TestContext context) {
+    Async async = context.async();
+
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    assertEquals(URL, cli.getOkapiUrl());
+
+    cli.get("/test1?e=400", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.USER, res.getType());
+      cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void test500(TestContext context) {
+    Async async = context.async();
+
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    assertEquals(URL, cli.getOkapiUrl());
+
+    cli.get("/test1?e=500", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
       async.complete();
     });
   }

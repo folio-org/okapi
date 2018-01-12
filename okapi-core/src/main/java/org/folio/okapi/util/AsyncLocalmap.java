@@ -1,6 +1,7 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
@@ -15,9 +16,9 @@ import org.folio.okapi.common.Success;
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap.
  */
 @java.lang.SuppressWarnings("squid:S1192")
-public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
+class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
-  LocalMap<K, V> map = null;
+  private LocalMap<K, V> map = null;
 
   public AsyncLocalmap(Vertx vertx, String mapName) {
     SharedData sd = vertx.sharedData();
@@ -92,12 +93,13 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void clear(Handler<AsyncResult<Void>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    map.clear();
+    resultHandler.handle(Future.succeededFuture());
   }
 
   @Override
   public void size(Handler<AsyncResult<Integer>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    resultHandler.handle(Future.succeededFuture(map.size()));
   }
 
   @Override

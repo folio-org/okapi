@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class ErrorTest {
   @Test
   public void testFailure() {
-    Failure f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
+    Failure<Void> f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
     assertEquals(ErrorType.NOT_FOUND, f.getType());
     assertTrue(f.failed());
     assertFalse(f.succeeded());
@@ -16,7 +16,12 @@ public class ErrorTest {
     assertEquals(404, ErrorType.httpCode(f.getType()));
     assertEquals(400, ErrorType.httpCode(ErrorType.USER));
     assertEquals(404, ErrorType.httpCode(ErrorType.NOT_FOUND));
+    assertEquals(403, ErrorType.httpCode(ErrorType.FORBIDDEN));
     assertEquals(500, ErrorType.httpCode(ErrorType.INTERNAL));
+
+    String nullStr = null;
+    Failure<Void> g = new Failure<>(ErrorType.NOT_FOUND, nullStr);
+    assertNull(g.cause().getMessage());
   }
 
   @Test
@@ -24,16 +29,16 @@ public class ErrorTest {
     Success<Integer> s = new Success<>(42);
     assertFalse(s.failed());
     assertTrue(s.succeeded());
-    assertEquals(42, s.result().intValue());
+    assertEquals(42, (int) s.result());
     assertEquals(200, ErrorType.httpCode(s.getType()));
 
-    Success<Void> t = new Success();
+    Success<Void> t = new Success<>();
     assertFalse(s.failed());
     assertTrue(s.succeeded());
     assertEquals(200, ErrorType.httpCode(s.getType()));
   }
 
-  public void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
+  private void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
     if (x == ErrorType.OK) {
       fut.handle(new Success<>("123"));
     } else {
@@ -71,6 +76,14 @@ public class ErrorTest {
 
     conf.put(varName, "124");
     assertEquals("124", Config.getSysConf(varName, "123", conf));
-  }
 
+    System.setProperty(varName, "129");
+    assertEquals("129", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("124", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("", Config.getSysConf(varName, "", conf));
+  }
 }

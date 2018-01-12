@@ -33,6 +33,7 @@ managing and running microservices.
     * [Module Descriptor Sharing](#module-descriptor-sharing)
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
+    * [Auto-deployment](#auto-deployment)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -41,6 +42,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Instrumentation](#instrumentation)
 
 ## Introduction
 
@@ -339,6 +341,13 @@ actual code to handle creating and updating users, but could redirect
 requests to list and get users to the simpler user module. If a handler
 (or a filter) is marked as a redirect, it must also have a redirectPath
 to tell where to redirect to.
+
+ * `request-response-1.0` -- This is like `request-response`, but
+makes Okapi read the full body before POSTing to the module so that
+Content-Length is set and chunked encoding is enabled. This is useful
+for modules that have trouble dealing with chunked encoding or require
+getting content length before inspecting. This type appeared in Okapi
+2.5.0.
 
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
@@ -2397,6 +2406,13 @@ is recognized which controls whether module IDs with pre-release info
 should be considered.
 
 The upgrade facility is part of Okapi version 1.11.0 and later.
+
+### Auto-deployment
+
+For Okapi 2.3.0 and later, the install and upgrade operations takes an
+optional parameter, `deploy`, which takes a boolean value. If true, the
+install operation will also deploy and un-deploy as necessary. This will
+only work if the ModuleDescriptor has the launchDescriptor property.
 
 ## Reference
 

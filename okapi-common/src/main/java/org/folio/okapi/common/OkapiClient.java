@@ -8,7 +8,6 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,15 +25,11 @@ import static org.folio.okapi.common.ErrorType.*;
  */
 public class OkapiClient {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   private String okapiUrl;
   private HttpClient httpClient;
   private Map<String, String> headers;
-  // TODO Response headers: do we need a trace or something?
-  //      Return type: Need a more complex container class with room for
-  //      response headers, the whole response, and so on.
-  //      Use this in the discovery-deployment communications
   private MultiMap respHeaders;
   private String reqId;
   private boolean logInfo; // t: log requests on INFO. f: on DEBUG
@@ -151,9 +146,9 @@ public class OkapiClient {
       logger.debug(logReqMsg);
     }
 
-    HttpClientRequest req = httpClient.requestAbs(method, url, postres -> {
+    HttpClientRequest req = httpClient.requestAbs(method, url, reqres -> {
       String logResMsg = reqId
-        + " RES " + postres.statusCode() + " 0us " // TODO - get timing
+        + " RES " + reqres.statusCode() + " 0us " // TODO - get timing
         + "okapiClient " + url;
       if (logInfo) {
         logger.info(logResMsg);
@@ -161,34 +156,32 @@ public class OkapiClient {
         logger.debug(logResMsg);
       }
       final Buffer buf = Buffer.buffer();
-      respHeaders = postres.headers();
-      postres.handler(b -> {
+      respHeaders = reqres.headers();
+      reqres.handler(b -> {
         logger.debug(reqId + " OkapiClient Buffering response " + b.toString());
         buf.appendBuffer(b);
       });
-      postres.endHandler(e -> {
+      reqres.endHandler(e -> {
         responsebody = buf.toString();
-        if (postres.statusCode() >= 200 && postres.statusCode() <= 299) {
+        if (reqres.statusCode() >= 200 && reqres.statusCode() <= 299) {
           fut.handle(new Success<>(responsebody));
         } else {
-          if (postres.statusCode() == 404) {
+          if (reqres.statusCode() == 404) {
             fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
-          } else if (postres.statusCode() == 400) {
+          } else if (reqres.statusCode() == 403) {
+            fut.handle(new Failure<>(FORBIDDEN, "403 " + responsebody + ": " + url));
+          } else if (reqres.statusCode() == 400) {
             fut.handle(new Failure<>(USER, responsebody));
           } else {
             fut.handle(new Failure<>(INTERNAL, responsebody));
           }
         }
       });
-      postres.exceptionHandler(e -> fut.handle(new Failure<>(INTERNAL, e)));
+      reqres.exceptionHandler(e -> fut.handle(new Failure<>(INTERNAL, e)));
     });
     req.exceptionHandler(x -> {
       String msg = x.getMessage();
-      if (msg == null || msg.isEmpty()) { // unresolved address results in no message
-        msg = x.toString(); // so we use toString instead
-      } // but not both, because connection error has identical string in both...
-      logger.warn(reqId + " OkapiClient exception: "
-        + x.toString() + ": " + x.getMessage(), x);
+      logger.warn(reqId + " OkapiClient exception: " + msg);
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -253,5 +246,12 @@ public class OkapiClient {
    */
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);
+  }
+
+  public void close() {
+    if (httpClient != null) {
+      httpClient.close();
+      httpClient = null;
+    }
   }
 }

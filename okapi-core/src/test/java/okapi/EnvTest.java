@@ -14,10 +14,10 @@ import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
@@ -26,20 +26,22 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class EnvTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
   private String locationSampleDeployment1;
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = 9230;
 
   @Before
   public void setUp(TestContext context) {
     logger.debug("starting EnvTest");
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
+
     DeploymentOptions opt = new DeploymentOptions()
-            .setConfig(new JsonObject().put("storage", "inmemory"));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
+
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -168,11 +170,12 @@ public class EnvTest {
     String locationName1 = r.getHeader("Location");
     // deploy module
     final String docSampleDeployment = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS            + "  \"descriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
     c = api.createRestAssured();
     r = c.given()
             .header("Content-Type", "application/json")

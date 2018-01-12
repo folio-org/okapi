@@ -1,23 +1,25 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ModuleId;
@@ -29,12 +31,12 @@ import org.folio.okapi.util.ModuleId;
  */
 public class ModuleManager {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
-  LockedTypedMap1<ModuleDescriptor> modules
+  private LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
-  ModuleStore moduleStore;
+  private ModuleStore moduleStore;
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -75,13 +77,12 @@ public class ModuleManager {
       fut.handle(new Success<>());
       return;
     }
-    modules.getKeys(kres -> {
+    modules.size(kres -> {
       if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+        fut.handle(new Failure<>(INTERNAL, kres.cause()));
         return;
       }
-      Collection<String> keys = kres.result();
-      if (!keys.isEmpty()) {
+      if (kres.result() > 0) {
         logger.debug("Not loading modules, looks like someone already did");
         fut.handle(new Success<>());
         return;
@@ -91,34 +92,21 @@ public class ModuleManager {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
-        Iterator<ModuleDescriptor> it = mres.result().iterator();
-        loadR(it, fut);
+        List<Future> futures = new LinkedList<>();
+        for (ModuleDescriptor md : mres.result()) {
+          Future<Void> f = Future.future();
+          modules.add(md.getId(), md, f::handle);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res -> {
+          logger.info("All modules loaded");
+          if (res.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
       });
-    });
-  }
-
-  /**
-   * Recursive helper to load all modules.
-   *
-   * @param it
-   * @param fut
-   */
-  private void loadR(Iterator<ModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      logger.info("All modules loaded");
-      fut.handle(new Success<>());
-      return;
-    }
-    ModuleDescriptor md = it.next();
-    String id = md.getId();
-    modules.add(id, md, mres -> {
-      if (mres.failed()) {
-        fut.handle(new Failure<>(mres.getType(), mres.cause()));
-        return;
-      }
-      logger.debug("Loaded module " + id);
-      loadR(it, fut);
     });
   }
 
@@ -130,12 +118,12 @@ public class ModuleManager {
    * @param modlist the list to check against
    * @return "" if ok, or error message
    */
-  private String checkOneDependency(ModuleDescriptor md, ModuleInterface req,
+  private String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modlist) {
-    ModuleInterface seenversion = null;
+    InterfaceDescriptor seenversion = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
       ModuleDescriptor rm = entry.getValue();
-      for (ModuleInterface pi : rm.getProvidesList()) {
+      for (InterfaceDescriptor pi : rm.getProvidesList()) {
         logger.debug("Checking dependency of " + md.getId() + ": "
           + req.getId() + " " + req.getVersion()
           + " against " + pi.getId() + " " + pi.getVersion());
@@ -169,7 +157,7 @@ public class ModuleManager {
   private String checkDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist) {
     logger.debug("Checking dependencies of " + md.getId());
-    for (ModuleInterface req : md.getRequiresList()) {
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       String res = checkOneDependency(md, req, modlist);
       if (!res.isEmpty()) {
         return res;
@@ -178,13 +166,13 @@ public class ModuleManager {
     return "";  // ok
   }
 
-  private int checkInterfaceDependency(ModuleInterface req,
+  private int checkInterfaceDependency(InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
     logger.info("checkInterfaceDependency1");
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
-      for (ModuleInterface pi : md.getProvidesList()) {
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
           logger.debug("Dependency OK");
           return 0;
@@ -195,7 +183,7 @@ public class ModuleManager {
     ModuleDescriptor foundMd = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
-      for (ModuleInterface pi : md.getProvidesList()) {
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId()) && pi.isCompatible(req)
           && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
           foundMd = md;
@@ -215,11 +203,12 @@ public class ModuleManager {
     while (it.hasNext()) {
       String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      for (ModuleInterface pi : rm.getProvidesList()) {
+      for (InterfaceDescriptor pi : rm.getProvidesList()) {
         if (pi.isRegularHandler()) {
           String confl = pi.getId();
-          for (ModuleInterface mi : md.getProvidesList()) {
+          for (InterfaceDescriptor mi : md.getProvidesList()) {
             if (mi.getId().equals(confl)
+              && mi.isRegularHandler()
               && modsEnabled.containsKey(runningmodule)) {
               if (md.getProduct().equals(rm.getProduct())) {
                 logger.info("resolveModuleConflicts from " + runningmodule);
@@ -247,7 +236,7 @@ public class ModuleManager {
     List<TenantModuleDescriptor> tml) {
     int sum = 0;
     logger.info("addModuleDependencies " + md.getId());
-    for (ModuleInterface req : md.getRequiresList()) {
+    for (InterfaceDescriptor req : md.getRequiresList()) {
       int v = checkInterfaceDependency(req, modsAvailable, modsEnabled, tml);
       if (v == -1) {
         return v;
@@ -278,15 +267,15 @@ public class ModuleManager {
     if (!modsEnabled.containsKey(md.getId())) {
       return 0;
     }
-    ModuleInterface[] provides = md.getProvidesList();
-    for (ModuleInterface prov : provides) {
+    InterfaceDescriptor[] provides = md.getProvidesList();
+    for (InterfaceDescriptor prov : provides) {
       if (prov.isRegularHandler()) {
         Iterator<String> it = modsEnabled.keySet().iterator();
         while (it.hasNext()) {
           String runningmodule = it.next();
           ModuleDescriptor rm = modsEnabled.get(runningmodule);
-          ModuleInterface[] requires = rm.getRequiresList();
-          for (ModuleInterface ri : requires) {
+          InterfaceDescriptor[] requires = rm.getRequiresList();
+          for (InterfaceDescriptor ri : requires) {
             if (prov.getId().equals(ri.getId())) {
               sum += removeModuleDependencies(rm, modsEnabled, tml);
               it = modsEnabled.keySet().iterator();
@@ -330,8 +319,8 @@ public class ModuleManager {
     Map<String, String> provs = new HashMap<>(); // interface name to module name
     StringBuilder conflicts = new StringBuilder();
     for (ModuleDescriptor md : modlist.values()) {
-      ModuleInterface[] provides = md.getProvidesList();
-      for (ModuleInterface mi : provides) {
+      InterfaceDescriptor[] provides = md.getProvidesList();
+      for (InterfaceDescriptor mi : provides) {
         if (mi.isRegularHandler()) {
           String confl = provs.get(mi.getId());
           if (confl == null || confl.isEmpty()) {
@@ -366,27 +355,36 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
       LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      LinkedList<ModuleDescriptor> nList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
-          fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
-          return;
+          ModuleDescriptor exMd = tempList.get(id);
+
+          String exJson = Json.encodePrettily(exMd);
+          String json = Json.encodePrettily(md);
+          if (!json.equals(exJson)) {
+            fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+            return;
+          }
+        } else {
+          tempList.put(id, md);
+          nList.add(md);
         }
-        tempList.put(id, md);
       }
       String res = checkAllDependencies(tempList);
       if (!res.isEmpty()) {
         fut.handle(new Failure<>(USER, res));
         return;
       }
-      Iterator<ModuleDescriptor> it = list.iterator();
+      Iterator<ModuleDescriptor> it = nList.iterator();
       createListR(it, fut);
     });
   }
@@ -455,37 +453,23 @@ public class ModuleManager {
             String ten = gres.cause().getMessage();
             fut.handle(new Failure<>(USER, "update: module " + id
               + " is used by tenant " + ten));
-            return;
           } else { // any other error
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
-            return;
           }
+          return;
         }
         // all ok, we can update it
         if (moduleStore == null) { // no db, just upd shared memory
-          modules.put(id, md, mres -> {
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-              return;
+          modules.put(id, md, fut);
+        } else {
+          moduleStore.update(md, ures -> { // store in db first,
+            if (ures.failed()) {
+              fut.handle(new Failure<>(ures.getType(), ures.cause()));
+            } else {
+              modules.put(id, md, fut);
             }
-            fut.handle(new Success<>());
           });
-          return;
         }
-        moduleStore.update(md, ures -> { // store in db first,
-          if (ures.failed()) {
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            return;
-          }
-          modules.put(id, md, mres -> { // then in shared mem
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-              return;
-            }
-            fut.handle(new Success<>());
-            return;
-          });
-        });
       }); // getModuleUser
     }); // get
   }
@@ -514,17 +498,15 @@ public class ModuleManager {
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
           }
-          return;
-        }
-        if (moduleStore == null) {
+        } else if (moduleStore == null) {
           deleteInternal(id, fut);
         } else {
           moduleStore.delete(id, dres -> {
             if (dres.failed()) {
               fut.handle(new Failure<>(dres.getType(), dres.cause()));
-              return;
+            } else {
+              deleteInternal(id, fut);
             }
-            deleteInternal(id, fut);
           });
         }
       });
@@ -534,30 +516,29 @@ public class ModuleManager {
   private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
     LinkedHashMap<String, ModuleDescriptor> mods) {
 
-    LinkedHashMap<String, ModuleDescriptor> tempList = mods;
-    if (!tempList.containsKey(id)) {
+    if (!mods.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
       return true;
     }
-    tempList.remove(id);
-    String res = checkAllDependencies(tempList);
+    mods.remove(id);
+    String res = checkAllDependencies(mods);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
       return true;
+    } else {
+      return false;
     }
-    return false;
   }
 
   private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.remove(id, rres -> {
       if (rres.failed()) {
         fut.handle(new Failure<>(rres.getType(), rres.cause()));
-        return;
+      } else {
+        fut.handle(new Success<>());
       }
-      fut.handle(new Success<>());
     });
   }
-
 
   /**
    * Get a module.
@@ -583,40 +564,29 @@ public class ModuleManager {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
         } else {
           String latest = moduleId.getLatest(res2.result());
-          if (latest != null) {
-            get(latest, fut);
-          } else {
-            fut.handle(new Failure<>(NOT_FOUND, id));
-          }
+          get(latest, fut);
         }
       });
     }
   }
 
-  /**
-   * List the ids of all modules.
-   *
-   * @param fut
-   */
-  public void list(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    modules.getKeys(fut);
-  }
-
-  /**
-   * Get all ModuleDescriptors that obey filter (possibly all)
-   *
-   * @param filter
-   * @param fut
-   */
   public void getModulesWithFilter(ModuleId filter, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    modules.getKeys(kres -> {
+    modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
-        return;
+      } else {
+        List<ModuleDescriptor> mdl = new LinkedList<>();
+        for (ModuleDescriptor md : kres.result().values()) {
+          String id = md.getId();
+          ModuleId idThis = new ModuleId(id);
+          if ((filter == null || idThis.hasPrefix(filter))
+            && (preRelease || !idThis.hasPreRelease())) {
+            mdl.add(md);
+          }
+        }
+        fut.handle(new Success<>(mdl));
       }
-      Collection<String> keys = kres.result();
-      getModulesFromCollection(keys, filter, preRelease, fut);
     });
   }
 
@@ -628,21 +598,9 @@ public class ModuleManager {
    */
   public void getEnabledModules(Tenant ten,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    getModulesFromCollection(ten.getEnabled().keySet(), null, true, fut);
-  }
 
-  /**
-   * Get ModuleDescriptors from a list of Ids.
-   *
-   * @param ids to get
-   * @param fut
-   */
-  private void getModulesFromCollection(Collection<String> ids,
-    ModuleId filter, boolean preRelease,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    Iterator<String> it = ids.iterator();
-    getModulesR(it, mdl, filter, preRelease, fut);
+    getEnabledModulesR(ten.getEnabled().keySet().iterator(), mdl, fut);
   }
 
   /**
@@ -652,33 +610,21 @@ public class ModuleManager {
    * @param mdl
    * @param fut
    */
-  private void getModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
-    ModuleId filter, boolean preRelease,
+  private void getEnabledModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>(mdl));
       return;
     }
     String id = it.next();
-    ModuleId idThis = new ModuleId(id);
-    if (filter != null && !idThis.hasPrefix(filter)) {
-      getModulesR(it, mdl, filter, preRelease, fut);
-      return;
-    }
-    if (!preRelease && idThis.hasPreRelease()) {
-      logger.info("skipping " + id);
-      getModulesR(it, mdl, filter, preRelease, fut);
-      return;
-    }
     modules.get(id, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
+      } else {
+        ModuleDescriptor md = gres.result();
+        mdl.add(md);
+        getEnabledModulesR(it, mdl, fut);
       }
-      ModuleDescriptor md = gres.result();
-      mdl.add(md);
-      getModulesR(it, mdl, filter, preRelease, fut);
     });
   }
-
 }

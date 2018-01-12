@@ -1,8 +1,8 @@
 package okapi.bean;
 
-import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -13,12 +13,12 @@ import static org.junit.Assert.*;
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
 public class ModuleInterfaceTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   @Test
   public void simpleTests() {
     logger.debug("simpleTests()");
-    ModuleInterface mi = new ModuleInterface();
+    InterfaceDescriptor mi = new InterfaceDescriptor();
     // Test defaults
     String id = mi.getId();
     assertEquals(null, id);
@@ -28,11 +28,11 @@ public class ModuleInterfaceTest {
     assertEquals("idhere", mi.getId());
     mi.setVersion("1.2.3");
     assertEquals("1.2.3", mi.getVersion());
-    mi = new ModuleInterface("hello", "4.5.6");
+    mi = new InterfaceDescriptor("hello", "4.5.6");
     assertEquals("hello", mi.getId());
     assertEquals("4.5.6", mi.getVersion());
     try {
-      mi = new ModuleInterface("fail", "4.x");
+      mi = new InterfaceDescriptor("fail", "4.x");
       fail("Managed to set a bad version number 4.x");
     } catch (IllegalArgumentException e) {
       // no problem
@@ -44,18 +44,18 @@ public class ModuleInterfaceTest {
   @Test
   public void validateTests() {
     logger.debug("validateTests()");
-    assertFalse(ModuleInterface.validateVersion("1"));
-    assertFalse(ModuleInterface.validateVersion("1."));
-    assertTrue(ModuleInterface.validateVersion("1.2"));
-    assertTrue(ModuleInterface.validateVersion("1.2."));
-    assertTrue(ModuleInterface.validateVersion("1.2.3"));
-    assertTrue(ModuleInterface.validateVersion("1.2.3."));
-    assertFalse(ModuleInterface.validateVersion("1.2.3.4")); //not an IP!
-    assertFalse(ModuleInterface.validateVersion("X"));
-    assertFalse(ModuleInterface.validateVersion("X.Y.X"));
-    assertFalse(ModuleInterface.validateVersion("1.2.*"));
-    assertTrue(ModuleInterface.validateVersion("1.2 2.3"));
-    ModuleInterface mi = new ModuleInterface();
+    assertFalse(InterfaceDescriptor.validateVersion("1"));
+    assertFalse(InterfaceDescriptor.validateVersion("1."));
+    assertTrue(InterfaceDescriptor.validateVersion("1.2"));
+    assertTrue(InterfaceDescriptor.validateVersion("1.2."));
+    assertTrue(InterfaceDescriptor.validateVersion("1.2.3"));
+    assertTrue(InterfaceDescriptor.validateVersion("1.2.3."));
+    assertFalse(InterfaceDescriptor.validateVersion("1.2.3.4")); //not an IP!
+    assertFalse(InterfaceDescriptor.validateVersion("X"));
+    assertFalse(InterfaceDescriptor.validateVersion("X.Y.X"));
+    assertFalse(InterfaceDescriptor.validateVersion("1.2.*"));
+    assertTrue(InterfaceDescriptor.validateVersion("1.2 2.3"));
+    InterfaceDescriptor mi = new InterfaceDescriptor();
     try {
       mi.setVersion("1.2.3");
     } catch (IllegalArgumentException e) {
@@ -73,22 +73,22 @@ public class ModuleInterfaceTest {
   @Test
   public void compatibilityTests() {
     logger.debug("compatibilityTests()");
-    ModuleInterface a = new ModuleInterface("m", "3.4.5");
-    assertFalse(a.isCompatible(new ModuleInterface("somethingelse", "3.4.5")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4.5")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "2.1.9")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "2.1")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "9.1.9")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "9.1")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "3.3")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "3.5")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4.1")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "3.4.6")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "2.9.2 3.4.6")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "2.9.2 3.4.4")));
-    assertTrue(a.isCompatible(new ModuleInterface("m", "3.4.4 2.9.2")));
-    assertFalse(a.isCompatible(new ModuleInterface("m", "2.9.2 3.4.6 4.0.0")));
+    InterfaceDescriptor a = new InterfaceDescriptor("m", "3.4.5");
+    assertFalse(a.isCompatible(new InterfaceDescriptor("somethingelse", "3.4.5")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.5")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.1.9")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.1")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "9.1.9")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "9.1")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.3")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "3.5")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.1")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "3.4.6")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.6")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.4")));
+    assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.4 2.9.2")));
+    assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.6 4.0.0")));
     logger.debug("compatibilityTests() ok");
   }
 }

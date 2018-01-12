@@ -13,10 +13,10 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
@@ -25,9 +25,10 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class TenantRATest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
+  private int port = 9230;
 
-  Vertx vertx;
+  private Vertx vertx;
   private static final String LS = System.lineSeparator();
 
   @Before
@@ -35,7 +36,7 @@ public class TenantRATest {
     vertx = Vertx.vertx();
 
     DeploymentOptions opt = new DeploymentOptions()
-            .setConfig(new JsonObject().put("storage", "inmemory"));
+      .setConfig(new JsonObject().put("port", Integer.toString(port)));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
@@ -49,8 +50,6 @@ public class TenantRATest {
 
   @Test
   public void test1() {
-    int port = Integer.parseInt(System.getProperty("port", "9130"));
-
     RestAssured.port = port;
 
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -58,22 +57,30 @@ public class TenantRATest {
 
     RestAssuredClient c;
 
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants//modules")
+      .then().statusCode(404);
+
     String superTenantDoc = "{" + LS
-      + "  \"id\" : \"okapi.supertenant\"," + LS
-      + "  \"name\" : \"okapi.supertenant\"," + LS
+      + "  \"id\" : \"supertenant\"," + LS
+      + "  \"name\" : \"supertenant\"," + LS
       + "  \"description\" : \"Okapi built-in super tenant\"" + LS
       + "}";
     String superTenantList = "[ " + superTenantDoc + " ]";
 
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants")
-      .then().statusCode(200).body(equalTo(superTenantList));
+    c.given()
+      .get("/_/proxy/tenants")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200)
+      .body(equalTo(superTenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
      // Check that we can not delete the superTenant
     c = api.createRestAssured();
-    c.given().delete("/_/proxy/tenants/okapi.supertenant")
+    c.given().delete("/_/proxy/tenants/supertenant")
       .then().statusCode(400);
      Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -130,10 +137,13 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-    final String tenantList = "[ " + superTenantDoc + ", " + doc + " ]";
+    final String tenantList = "[ " + doc + ", " + superTenantDoc + " ]";
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants")
-      .then().statusCode(200)
+    c.given()
+      .get("/_/proxy/tenants")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200)
       .body(equalTo(tenantList));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
@@ -148,11 +158,18 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
+    String doc3BadJson = "{" + LS
+      + "  \"id\" : \"roskildedk\"," + LS;
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc3BadJson)
+      .post("/_/proxy/tenants").then().statusCode(400);
+
     String doc3 = "{" + LS
-            + "  \"id\" : \"roskildedk\"," + LS
-            + "  \"name\" : \"roskilde\"," + LS
-            + "  \"description\" : \"Roskilde bibliotek\"" + LS
-            + "}";
+      + "  \"id\" : \"roskildedk\"," + LS
+      + "  \"name\" : \"roskilde\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
     c = api.createRestAssured();
     Response r3 = c.given()
             .header("Content-Type", "application/json").body(doc3)
@@ -163,11 +180,30 @@ public class TenantRATest {
     String location3 = r3.getHeader("Location");
     logger.debug("location3 = " + location3);
 
-    final String tenantList3 = "[ " + superTenantDoc + ", " + doc3 + " ]";
+    final String tenantList3 = "[ " + doc3 + ", " + superTenantDoc + " ]";
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants").then().statusCode(200).body(equalTo(tenantList3));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
+
+    String doc4BadJson = "{" + LS
+      + "  \"id\" : \"roskildedk\"," + LS;
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc4BadJson)
+      .put(location3).then().statusCode(400);
+
+    String doc4badId = "{" + LS
+      + "  \"id\" : \"roskildedk2\"," + LS
+      + "  \"name\" : \"Roskildes Real Name\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek with a better description\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    c.given()
+      .header("Content-Type", "application/json").body(doc4badId)
+      .put(location3).then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     String doc4 = "{" + LS
             + "  \"id\" : \"roskildedk\"," + LS
@@ -181,13 +217,15 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
 
-//    c = api.createRestAssured();
-//    c.given().get("/_/test/reloadtenant/roskildedk").then().statusCode(204);
-
     c = api.createRestAssured();
     c.given().delete(location3).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
              c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().delete(location3 + "notThere").then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     String doc5 = "{" + LS
             + "  \"id\" : \"roskildedk\"," + LS
@@ -207,14 +245,14 @@ public class TenantRATest {
       c.getLastReport().isEmpty());
 
     String superdoc2 = "{" + LS
-      + "  \"id\" : \"okapi.supertenant\"," + LS
+      + "  \"id\" : \"supertenant\"," + LS
       + "  \"name\" : \"The Real Super Tenant\"," + LS
       + "  \"description\" : \"With a better description\"" + LS
       + "}";
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json").body(superdoc2)
-      .put("/_/proxy/tenants/okapi.supertenant").then().statusCode(200);
+      .put("/_/proxy/tenants/supertenant").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     c = api.createRestAssured();
@@ -225,5 +263,21 @@ public class TenantRATest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // server-side generated Id
+    String doc6 = "{" + LS
+      + "  \"name\" : \"Ringsted\"," + LS
+      + "  \"description\" : \"Ringsted description\"" + LS
+      + "}";
+    c = api.createRestAssured();
+    r = c.given()
+      .header("Content-Type", "application/json").body(doc6)
+      .post("/_/proxy/tenants").then().statusCode(201).extract().response();
+    // Not valid according to RAML at the moment
+    location3 = r.getHeader("Location");
+
+    c = api.createRestAssured();
+    c.given().delete(location3).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
   }
 }

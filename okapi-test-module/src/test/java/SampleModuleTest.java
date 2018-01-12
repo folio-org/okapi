@@ -2,12 +2,15 @@
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.sample.MainVerticle;
 import org.junit.After;
@@ -17,12 +20,13 @@ import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
-public class SamleModuleTest {
+public class SampleModuleTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
+  private final String pidFilename = "sample-module.pid";
 
   @Before
   public void setUp(TestContext context) {
@@ -30,13 +34,19 @@ public class SamleModuleTest {
     vertx = Vertx.vertx();
 
     System.setProperty("port", Integer.toString(PORT));
+    System.setProperty("pidFile", pidFilename);
 
     DeploymentOptions opt = new DeploymentOptions();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
 
   @After
-  public void tearDown(TestContext context) {
+  public void tearDown(TestContext context) throws IOException {
+    try {
+      Files.delete(Paths.get(pidFilename));
+    } catch (IOException ex) {
+      logger.warn(ex);
+    }
     Async async = context.async();
     vertx.close(x -> async.complete());
   }
@@ -85,6 +95,7 @@ public class SamleModuleTest {
 
   public void test5(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
+      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });

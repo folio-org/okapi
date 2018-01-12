@@ -3,15 +3,14 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import java.util.Base64;
 import java.util.HashMap;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Before;
@@ -23,9 +22,9 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class AuthModuleTest {
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   @Before
   public void setUp(TestContext context) {
@@ -53,6 +52,7 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -87,6 +87,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -105,6 +106,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b.c");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -123,6 +125,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("dummyJwt.b.c");
 
     cli.get("/testb", res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -146,6 +149,7 @@ public class AuthModuleTest {
     String body = j.encodePrettily();
 
     cli.post("/authn/login", body, res -> {
+      cli.close();
       assertTrue(res.failed());
       assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
@@ -162,6 +166,7 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
     cli.get("/authn/login", res -> {
+      cli.close();
       assertTrue(res.succeeded());
       async.complete();
     });
@@ -192,6 +197,7 @@ public class AuthModuleTest {
 
   private void testNormal(OkapiClient cli, Async async) {
     cli.get("/some", res -> {
+      cli.close();
       assertTrue(res.succeeded());
       async.complete();
     });

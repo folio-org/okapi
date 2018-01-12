@@ -103,7 +103,7 @@ public class ModuleId implements Comparable<ModuleId> {
         bModule = cModule;
       }
     }
-    return bId;
+    return bId != null ? bId : id;
   }
 
   public boolean hasPrefix(ModuleId other) {

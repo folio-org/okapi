@@ -14,20 +14,19 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.Iterator;
 import java.util.Map;
 import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
-  private final Vertx vertx;
   private final int hostPort;
   private final Ports ports;
   private final String image;
@@ -36,24 +35,22 @@ public class DockerModuleHandle implements ModuleHandle {
   private final EnvEntry[] env;
   private final AnyDescriptor dockerArgs;
   private final boolean dockerPull;
+  private final HttpClient client;
 
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     Ports ports, int port) {
-    this.vertx = vertx;
+    Vertx vertx1 = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = desc.getDockerImage();
     this.cmd = desc.getDockerCMD();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
+    this.client = vertx.createHttpClient();
     Boolean b = desc.getDockerPull();
-    if (b != null && !b.booleanValue()) {
-      this.dockerPull = false;
-    } else {
-      this.dockerPull = true;
-    }
+    this.dockerPull = b == null || b.booleanValue();
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
@@ -82,17 +79,15 @@ public class DockerModuleHandle implements ModuleHandle {
   private void postUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.postAbs(url, res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
-  private void deleteUrl(String url, String msg,
-    Handler<AsyncResult<Void>> future) {
+  private void deleteUrl(String url,
+                         Handler<AsyncResult<Void>> future) {
 
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, msg, future));
+    HttpClientRequest req = client.deleteAbs(url, res -> handle204(res, "deleteContainer", future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
@@ -112,17 +107,17 @@ public class DockerModuleHandle implements ModuleHandle {
   private void deleteContainer(Handler<AsyncResult<Void>> future) {
     logger.info("delete container " + containerId + " image " + image);
     deleteUrl(dockerUrl + "/containers/" + containerId,
-      "deleteContainer", future);
+      future);
   }
 
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
-    HttpClient client = vertx.createHttpClient();
     final String url = dockerUrl + "/containers/" + containerId
       + "/logs?stderr=1&stdout=1&follow=1";
     HttpClientRequest req = client.getAbs(url, res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
-        res.handler(d -> System.err.print(d.getString(8, d.length())));
+        // remove 8 bytes of binary data and final newline
+        res.handler(d -> logger.info(d.getString(8, d.length() - 1)));
         future.handle(Future.succeededFuture());
       } else {
         String m = "getContainerLog HTTP error "
@@ -136,7 +131,6 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
@@ -147,6 +141,7 @@ public class DockerModuleHandle implements ModuleHandle {
       res.endHandler(d -> {
         if (res.statusCode() == 200) {
           JsonObject b = body.toJsonObject();
+          logger.info(b.encodePrettily());
           future.handle(Future.succeededFuture(b));
         } else {
           String m = url + " HTTP error "
@@ -174,7 +169,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private void postUrlBody(String url, String doc,
     Handler<AsyncResult<Void>> future) {
-    HttpClient client = vertx.createHttpClient();
     HttpClientRequest req = client.postAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
@@ -224,8 +218,8 @@ public class DockerModuleHandle implements ModuleHandle {
 
     if (this.cmd != null && this.cmd.length > 0) {
       JsonArray a = new JsonArray();
-      for (int i = 0; i < cmd.length; i++) {
-        a.add(cmd[i]);
+      for (String aCmd : cmd) {
+        a.add(aCmd);
       }
       j.put("Cmd", a);
     }
@@ -235,6 +229,7 @@ public class DockerModuleHandle implements ModuleHandle {
       }
     }
     String doc = j.encodePrettily();
+    doc = doc.replace("%p", Integer.toString(hostPort));
     logger.info("createContainer\n" + doc);
     postUrlBody(dockerUrl + "/containers/create", doc, future);
   }

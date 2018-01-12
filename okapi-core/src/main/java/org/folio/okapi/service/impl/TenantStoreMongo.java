@@ -5,9 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.mongo.MongoClient;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
@@ -15,6 +13,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -23,58 +22,35 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStoreMongo implements TenantStore {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;
+  private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";
 
-  private JsonObject encodeTenant(Tenant t) {
+  private JsonObject encodeTenant(Tenant t, String id) {
     JsonObject j = new JsonObject(Json.encode(t));
-    JsonObject o = j.getJsonObject("enabled");
-    if (o != null) {
-      JsonObject repl = new JsonObject();
-      for (String m : o.fieldNames()) {
-        String n = m.replace(".", "__");
-        repl.put(n, o.getBoolean(m));
-      }
-      j.put("enabled", repl);
-    }
+    util.encode(j, id);
     return j;
   }
 
   private Tenant decodeTenant(JsonObject j) {
-    JsonObject o = j.getJsonObject("enabled");
-    if (o != null) {
-      JsonObject repl = new JsonObject();
-      for (String m : o.fieldNames()) {
-        if (m.contains("_")) {
-          String n = m.replace("__", ".");
-          repl.put(n, o.getBoolean(m));
-        }
-      }
-      j.put("enabled", repl);
-    }
+    util.decode(j);
     return Json.decodeValue(j.encode(), Tenant.class);
   }
 
   public TenantStoreMongo(MongoClient cli) {
     this.cli = cli;
+    this.util = new MongoUtil(COLLECTION, cli);
   }
 
   @Override
-  public void insert(Tenant t,
-          Handler<ExtendedAsyncResult<String>> fut) {
-    String id = t.getId();
-    JsonObject document = encodeTenant(t);
-    document.put("_id", id);
-    cli.insert(COLLECTION, document, res -> {
-      if (res.succeeded()) {
-        fut.handle(new Success<>(id));
-      } else {
-        logger.debug("TenantStoreMongo: Failed to insert " + id
-                + ": " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      }
-    });
+  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+    util.init(reset, fut);
+  }
+
+  @Override
+  public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
+    util.insert(t, t.getId(), fut);
   }
 
   @Override
@@ -99,12 +75,9 @@ public class TenantStoreMongo implements TenantStore {
           });
         } else {
           JsonObject d = l.get(0);
-          d.remove("_id");
           final Tenant t = decodeTenant(d);
           Tenant nt = new Tenant(td, t.getEnabled());
-          // TODO - Validate that we don't change the id
-          JsonObject document = encodeTenant(nt);
-          document.put("_id", id);
+          JsonObject document = encodeTenant(nt, id);
           cli.replaceDocuments(COLLECTION, jq, document, ures -> {
             if (ures.succeeded()) {
               fut.handle(new Success<>());
@@ -121,35 +94,12 @@ public class TenantStoreMongo implements TenantStore {
 
   @Override
   public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    String q = "{}";
-    JsonObject jq = new JsonObject(q);
-    cli.find(COLLECTION, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        List<Tenant> ts = new ArrayList<>(res.result().size());
-        for (JsonObject jo : res.result()) {
-          jo.remove("_id");
-          final Tenant t = decodeTenant(jo);
-          ts.add(t);
-        }
-        fut.handle(new Success<>(ts));
-      }
-    });
+    util.getAll(Tenant.class, fut);
   }
 
   @Override
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    JsonObject jq = new JsonObject().put("_id", id);
-    cli.removeDocument(COLLECTION, jq, rres -> {
-      if (rres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, rres.cause()));
-      } else if (rres.result().getRemovedCount() == 0) {
-        fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found (delete)"));
-      } else {
-        fut.handle(new Success<>());
-      }
-    });
+    util.delete(id, fut);
   }
 
   @Override
@@ -166,11 +116,9 @@ public class TenantStoreMongo implements TenantStore {
           fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
         } else {
           JsonObject d = l.get(0);
-          d.remove("_id");
           final Tenant t = decodeTenant(d);
           t.setEnabled(enabled);
-          JsonObject document = encodeTenant(t);
-          document.put("_id", id);
+          JsonObject document = encodeTenant(t, id);
           cli.save(COLLECTION, document, sres -> {
             if (sres.failed()) {
               logger.debug("TenantStoreMongo: disable: saving failed: " + sres.cause().getMessage());
