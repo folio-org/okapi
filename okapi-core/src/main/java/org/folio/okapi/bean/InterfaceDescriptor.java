@@ -145,10 +145,20 @@ public class InterfaceDescriptor {
    */
   @JsonIgnore
   public boolean isRegularHandler() {
-    if (interfaceType != null && !"proxy".equals(interfaceType)) {
-      return false; // explicitly some other type, like "multiple" or "system"
+    return isType("proxy");
+  }
+
+  @JsonIgnore
+  public boolean isType(String type) {
+    String haveType;
+    if (id.startsWith("_")) {
+      haveType = "system";
+    } else if (interfaceType == null) {
+      haveType = "proxy";
+    } else {
+      haveType = interfaceType;
     }
-    return !this.id.startsWith("_"); // old-fashioned _tenant etc. DEPRECATED
+    return type.equals(haveType);
   }
 
   @JsonIgnore

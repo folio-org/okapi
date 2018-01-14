@@ -787,6 +787,10 @@ schemas:
             description: whether brief or full interface list
             type: boolean
             required: false
+          type:
+            description: limit by interfaceType
+            type: string
+            required: false
         responses:
           200:
             headers:
@@ -810,6 +814,11 @@ schemas:
       /{interface_id}:
         get:
           description: Get all modules that provide the specified interface ID
+          queryParameters:
+            type:
+              description: limit by interfaceType
+              type: string
+              required: false
           responses:
             200:
               headers:
