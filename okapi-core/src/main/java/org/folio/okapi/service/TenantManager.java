@@ -725,7 +725,7 @@ public class TenantManager {
     });
   }
 
-  public void listInterfaces(String tenantId, boolean full,
+  public void listInterfaces(String tenantId, boolean full, String interfaceType,
           Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
 
     tenants.get(tenantId, tres -> {
@@ -744,14 +744,16 @@ public class TenantManager {
         Set<String> ids = new HashSet<>();
         for (ModuleDescriptor md : modlist) {
           for (InterfaceDescriptor provide : md.getProvidesList()) {
-            if (full) {
-              intList.add(provide);
-            } else {
-              if (ids.add(provide.getId())) {
-                InterfaceDescriptor tmp = new InterfaceDescriptor();
-                tmp.setId(provide.getId());
-                tmp.setVersion(provide.getVersion());
-                intList.add(tmp);
+            if (interfaceType == null || provide.isType(interfaceType)) {
+              if (full) {
+                intList.add(provide);
+              } else {
+                if (ids.add(provide.getId())) {
+                  InterfaceDescriptor tmp = new InterfaceDescriptor();
+                  tmp.setId(provide.getId());
+                  tmp.setVersion(provide.getVersion());
+                  intList.add(tmp);
+                }
               }
             }
           }
@@ -762,7 +764,9 @@ public class TenantManager {
   }
 
   public void listModulesFromInterface(String tenantId,
-    String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+      String interfaceName, String interfaceType,
+      Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
@@ -778,7 +782,8 @@ public class TenantManager {
         List<ModuleDescriptor> modlist = mres.result();
         for (ModuleDescriptor md : modlist) {
           for (InterfaceDescriptor provide : md.getProvidesList()) {
-            if (interfaceName.equals(provide.getId())) {
+            if (interfaceName.equals(provide.getId())
+                    && (interfaceType == null || provide.isType(interfaceType))) {
               mdList.add(md);
               break;
             }
