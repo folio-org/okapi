@@ -1986,6 +1986,15 @@ curl -D - -w '\n' \
 It works
 ```
 
+Okapi version 2.8.0 and later offers a way to list all interfaces offered
+for a tenant with `_/proxy/tenants/{tenant}/interfaces`. This can be tuned
+with query parameters `full` and `type`. The `full` parameter is a boolean.
+For value `true`, all interfaces are returned in full. In full mode some
+interfaces may be repeated - for example for interfaceType=multiple or system.
+For a `full` with a value of `false` , each interface is returned once in a
+brief format. The `type` parameter, if given, limits the returned interfaces
+to an interfaceType. If `type` is not specified, interfaces of all types are
+returned.
 
 ### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
