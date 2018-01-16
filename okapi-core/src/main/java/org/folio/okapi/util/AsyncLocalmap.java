@@ -7,6 +7,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.common.Success;
 
 /**
@@ -97,6 +100,21 @@ class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
   @Override
   public void size(Handler<AsyncResult<Integer>> resultHandler) {
     resultHandler.handle(Future.succeededFuture(map.size()));
+  }
+
+  @Override
+  public void keys(Handler<AsyncResult<Set<K>>> hndlr) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void values(Handler<AsyncResult<List<V>>> hndlr) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void entries(Handler<AsyncResult<Map<K, V>>> hndlr) {
+    throw new UnsupportedOperationException("Not supported yet.");
   }
 
 }

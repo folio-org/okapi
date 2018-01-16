@@ -66,6 +66,7 @@ public class ProxyService {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
+  private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
     DiscoveryManager dm, InternalModule im, String okapiUrl) {
@@ -90,7 +91,7 @@ public class ProxyService {
   private void makeTraceHeader(ModuleInstance mi, int statusCode,
     ProxyContext pc) {
     RoutingContext ctx = pc.getCtx();
-    String url = makeUrl(mi).replaceFirst("[?#].*$", ".."); // rm params
+    String url = makeUrl(mi, ctx).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getId() + " "
       + url + " : " + statusCode + pc.timeDiff());
@@ -416,8 +417,14 @@ public class ProxyService {
     }
   }
 
-  private String makeUrl(ModuleInstance mi) {
-    return mi.getUrl() + mi.getUri();
+  private String makeUrl(ModuleInstance mi, RoutingContext ctx) {
+    String url = mi.getUrl() + mi.getUri();
+    String rdq = (String) ctx.data().get(REDIRECTQUERY);
+    if (rdq != null) { // Parameters smuggled in from redirectProxy
+      url += "?" + rdq;
+      logger.debug("Recovering hidden parameters from ctx " + url);
+    }
+    return url;
   }
 
 
@@ -485,7 +492,7 @@ public class ProxyService {
     ProxyContext pc, Buffer bcontent, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    String url = makeUrl(mi);
+    String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
@@ -583,7 +590,7 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi), res -> {
+      makeUrl(mi, ctx), res -> {
         if (res.statusCode() >= 200 && res.statusCode() < 300
         && res.getHeader(XOkapiHeaders.STOP) == null
         && it.hasNext()) {
@@ -642,7 +649,7 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi), res -> {
+      makeUrl(mi, ctx), res -> {
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           relayToResponse(ctx.response(), res);
           makeTraceHeader(mi, res.statusCode(), pc);
@@ -922,13 +929,15 @@ public class ProxyService {
     String newPath = origPath
       .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
     if (qry != null && !qry.isEmpty()) {
-      newPath += "?" + qry;
+      // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
+      ctx.data().put(REDIRECTQUERY, qry);
+      logger.debug("Hiding parameters into ctx " + qry);
     }
     ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
     pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
     ctx.reroute(newPath);
     logger.debug("redirectProxy: After rerouting: "
-      + ctx.request().path() + " " + ctx.request().query());
+      + ctx.request().path() + " " + qry);
   }
 
   public void autoDeploy(ModuleDescriptor md,
