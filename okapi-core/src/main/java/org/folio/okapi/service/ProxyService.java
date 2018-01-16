@@ -710,7 +710,6 @@ public class ProxyService {
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     ModuleInstance mi) {
 
-    RoutingContext ctx = pc.getCtx();
     pc.trace("ProxyNull " + mi.getModuleDescriptor().getId());
     pc.closeTimer();
     // if no more entries in it, proxyR will return 404
