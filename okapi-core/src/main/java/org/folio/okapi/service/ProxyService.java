@@ -66,7 +66,7 @@ public class ProxyService {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
-  private final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
+  private final static String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
     DiscoveryManager dm, InternalModule im, String okapiUrl) {
