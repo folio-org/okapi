@@ -1,3 +1,10 @@
+## 2.8.0 2018-01-15
+
+ * OKAPI-494 Fix module upgrade (for tenant): module not removed.
+ * OKAPI-495 It should be possible to get all interfaces for a tenant
+   in one go.
+ * OKAPI-496 Limit by interface type (when returning interfaces)
+
 ## 2.7.1 2018-01-09
 
  * OKAPI-489 Fix unexpected results when using tenant install with

@@ -776,10 +776,26 @@ public class InternalModule {
     });
   }
 
-  private void listModulesFromInterface(String id, String intId,
+  private void listInterfaces(ProxyContext pc, String id,
+          Handler<ExtendedAsyncResult<String>> fut) {
+
+    final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+    final String type = pc.getCtx().request().getParam("type");
+    tenantManager.listInterfaces(id, full, type, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      }
+    });
+  }
+
+  private void listModulesFromInterface(ProxyContext pc, String id, String intId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    tenantManager.listModulesFromInterface(id, intId, res -> {
+    final String type = pc.getCtx().request().getParam("type");
+    tenantManager.listModulesFromInterface(id, intId, type, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1344,10 +1360,15 @@ public class InternalModule {
           upgradeModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
+        // /_/proxy/tenants/:id/interfaces
+        if (n == 6 && m.equals(GET) && segments[5].equals("interfaces")) {
+          listInterfaces(pc, decodedSegs[4], fut);
+          return;
+        }
 
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")) {
-          listModulesFromInterface(decodedSegs[4], decodedSegs[6], fut);
+          listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
       } // /_/proxy/tenants
