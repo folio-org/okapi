@@ -107,9 +107,11 @@
       <version>${vertx-version}</version>
     </dependency>
     <dependency>
+      <!-- This is needed for things to work on AWS cloud. All tests pass OK
+      without it, but Okapi will refuse to start. See OKAPI-497 -->
       <groupId>com.hazelcast</groupId>
       <artifactId>hazelcast-cloud</artifactId>
-      <version>3.6.3</version>
+      <version>3.6.8</version>
     </dependency>
 
     <dependency>
