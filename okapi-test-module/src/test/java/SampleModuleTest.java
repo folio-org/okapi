@@ -108,6 +108,7 @@ public class SampleModuleTest {
     HashMap<String, String> headers = new HashMap<>();
 
     headers.put("X-all-headers", "HB");
+    headers.put("X-delay", "2");
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
 

@@ -79,7 +79,18 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
+    String delayStr = ctx.request().getHeader("X-delay");
+    if (delayStr != null) {
+      ctx.request().pause();
+      long delay = Long.parseLong(delayStr);
+      ctx.vertx().setTimer(delay, res -> response(xmlMsg2, ctx));
+    } else {
+      response(xmlMsg2, ctx);
+    }
+  }
 
+  private void response(String xmlMsg2, RoutingContext ctx) {
+    ctx.request().resume();
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
     } else {
