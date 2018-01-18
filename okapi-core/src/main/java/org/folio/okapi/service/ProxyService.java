@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -66,6 +67,7 @@ public class ProxyService {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
+  private Random random;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
@@ -76,6 +78,7 @@ public class ProxyService {
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
+    this.random = new Random();
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = vertx.createHttpClient(opt);
@@ -350,15 +353,14 @@ public class ProxyService {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          List<DeploymentDescriptor> l = res.result();
-          if (l.isEmpty()) {
+          DeploymentDescriptor instance = pickInstance(res.result());
+          if (instance == null) {
             fut.handle(new Failure<>(NOT_FOUND,
               "No running module instance found for "
               + mi.getModuleDescriptor().getId()));
             return;
           }
-          mi.setUrl(l.get(0).getUrl());
-          // Okapi-435 Don't just take the first!
+          mi.setUrl(instance.getUrl());
           resolveUrls(it, fut);
         }
       });
@@ -841,6 +843,11 @@ public class ProxyService {
     }
   }
 
+  private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
+    int sz = instances.size();
+    return sz > 0 ? instances.get(random.nextInt(sz)) : null;
+  }
+
   /**
    * Make a request to a system interface, like _tenant.
    *
@@ -860,14 +867,13 @@ public class ProxyService {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
-      List<DeploymentDescriptor> instances = gres.result();
-      if (instances.isEmpty()) {
+      DeploymentDescriptor instance = pickInstance(gres.result());
+      if (instance == null) {
         fut.handle(new Failure<>(USER, "No running instances for module "
           + module + ". Can not invoke " + path));
         return;
       }
-      // Okapi-435 - Don't just take the first. Pick one by random
-      String baseurl = instances.get(0).getUrl();
+      String baseurl = instance.getUrl();
       pc.debug("callSystemInterface Url: " + baseurl + " and " + path);
       Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId);
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
