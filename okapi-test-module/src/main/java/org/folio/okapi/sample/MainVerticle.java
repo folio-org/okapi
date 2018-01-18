@@ -78,16 +78,22 @@ public class MainVerticle extends AbstractVerticle {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
 
-    final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
+    String delayStr = ctx.request().getHeader("X-delay");
+    long delay = delayStr != null ? Long.parseLong(delayStr) : 1;
 
-    if (ctx.request().method().equals(HttpMethod.GET)) {
-      ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
-    } else {
-      ctx.response().setChunked(true);
-      ctx.response().write(helloGreeting + " " + xmlMsg2);
-      ctx.request().handler(x -> ctx.response().write(x));
-      ctx.request().endHandler(x -> ctx.response().end());
-    }
+    final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
+    ctx.request().pause();
+    ctx.vertx().setTimer(delay, res -> {
+      ctx.request().resume();
+      if (ctx.request().method().equals(HttpMethod.GET)) {
+        ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
+      } else {
+        ctx.response().setChunked(true);
+        ctx.response().write(helloGreeting + " " + xmlMsg2);
+        ctx.request().handler(x -> ctx.response().write(x));
+        ctx.request().endHandler(x -> ctx.response().end());
+      }
+    });
   }
 
   private void myTenantHandle(RoutingContext ctx) {
