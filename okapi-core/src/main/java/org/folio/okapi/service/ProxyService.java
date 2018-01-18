@@ -759,10 +759,10 @@ public class ProxyService {
       }
       Buffer respBuf = Buffer.buffer(resp);
       if (it.hasNext()) { // carry on with the pipeline
-        pc.closeTimer();
         proxyR(it, pc, null, respBuf);
       } else { // produce a result
         makeTraceHeader(mi, statusCode, pc);
+        pc.closeTimer();
         ctx.response().setChunked(false);
         ctx.response().end(respBuf);
       }
