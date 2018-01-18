@@ -28,6 +28,7 @@ public class ProxyContext {
   private String tenant;
   private final RoutingContext ctx;
   private Timer.Context timer;
+  private Long timerId;
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -41,14 +42,25 @@ public class ProxyContext {
     this.modList = null;
     reqidHeader(ctx);
     timer = null;
+    timerId = null;
   }
 
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
+    timerId = ctx.vertx().setPeriodic(10000, res -> {
+      logger.warn(reqId + " WAIT "
+        + ctx.request().remoteAddress()
+        + " " + tenant + " " + ctx.request().method()
+        + " " + ctx.request().path());
+    });
   }
 
   public void closeTimer() {
+    if (timerId != null) {
+      ctx.vertx().cancelTimer(timerId);
+      timerId = null;
+    }
     if (timer != null) {
       timer.close();
       timer = null;
