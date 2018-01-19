@@ -20,7 +20,7 @@ if ($opts{a}) {
     }
 
     chomp $line;
-    if ($line =~ /^\s*<!--\s*(.*)\s*-->\s*$/) {
+    if ($line =~ /^\s*<!--\s*(.*?)\s*-->\s*$/) {
 	print "<!-- $1 -->\n";
 	exec $1;
 	die "exec '$1' failed: $!";
