@@ -1,3 +1,10 @@
+## 2.8.1 2018-01-19
+
+ * OKAPI-402 The cluster gets confused when deleing nodes
+ * OKAPI-435 proxy should load balance over available modules
+ * OKAPI-443 Upgrade to Vert.x 3.5.0
+ * OKAPI-500 Log requests that takes a long time
+
 ## 2.8.0 2018-01-15
 
  * OKAPI-494 Fix module upgrade (for tenant): module not removed.
