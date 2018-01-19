@@ -15,11 +15,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
 
 public class MainDeploy {
@@ -33,10 +33,7 @@ public class MainDeploy {
   private int clusterPort = -1;
 
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
-    setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-
-    final Logger logger = LoggerFactory.getLogger("okapi");
+    final Logger logger = OkapiLogger.get();
 
     if (args.length < 1) {
       fut.handle(Future.failedFuture("Missing command; use help"));
@@ -59,7 +56,6 @@ public class MainDeploy {
         break;
       default:
         fut.handle(Future.failedFuture("Unknown command '" + mode + "'"));
-        return;
     }
   }
 

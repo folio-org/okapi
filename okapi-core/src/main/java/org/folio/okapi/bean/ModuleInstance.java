@@ -6,11 +6,11 @@ package org.folio.okapi.bean;
  */
 public class ModuleInstance {
 
-  ModuleDescriptor md;
-  String url;
-  final RoutingEntry re;
-  String authToken;
-  String uri;
+  private ModuleDescriptor md;
+  private String url;
+  private final RoutingEntry re;
+  private String authToken;
+  private String uri;
 
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String uri) {
     this.md = md;

@@ -1,3 +1,98 @@
+## 2.8.1 2018-01-19
+
+ * OKAPI-402 The cluster gets confused when deleing nodes
+ * OKAPI-435 proxy should load balance over available modules
+ * OKAPI-443 Upgrade to Vert.x 3.5.0
+ * OKAPI-500 Log requests that takes a long time
+
+## 2.8.0 2018-01-15
+
+ * OKAPI-494 Fix module upgrade (for tenant): module not removed.
+ * OKAPI-495 It should be possible to get all interfaces for a tenant
+   in one go.
+ * OKAPI-496 Limit by interface type (when returning interfaces)
+
+## 2.7.1 2018-01-09
+
+ * OKAPI-489 Fix unexpected results when using tenant install with
+  "multiple"-type interfaces
+
+## 2.7.0 2018-01-08
+
+ * OKAPI-486 Allow git properties file to be given for ModuleVersionReporter
+ * OKAPI-487 Use OkapiClient.close
+ * OKAPI-488 Further test coverage of ProxyService
+ * OKAPI-490 Fix Okapi fails to respond after multiple POST requests
+   returning 4xx status
+ * OKAPI-491 Fix ThreadBlocked if Okapi is downgraded
+
+## 2.6.1 2017-12-30
+
+ * OKAPI-485 Fix Okapi internal module 0.0.0
+
+## 2.6.0 2017-12-29
+
+ * OKAPI-483 Add ModuleVersionReporter utility
+
+## 2.5.1 2017-12-24
+
+ * OKAPI-482 Fix incorrect permission for disabling module for tenant
+
+## 2.5.0 2017-12-22
+
+ * OKAPI-481 Pass X-Okapi-Filter to module so that a module can
+   distinguish between phases when called as a handler or filter
+ * OKAPI-480 New routing type request-response-1.0 which uses normal
+   non-chunked encoding and sets Content-Length
+ * OKAPI-459 Run test on port range 9230-9239
+
+## 2.4.2 2017-12-14
+
+ * OKAPI-473 Long wait if test module fat jar is missing
+ * OKAPI-474 X-Okapi-Module-ID is passed to callee
+ * OKAPI-476 Improve error reporting for ProxyRequestResponse
+ * OKAPI-477 Missing timing info for RES log entry
+ * OKAPI-478 High socket count in folio/testing
+ * OKAPI-479 Redirect container logs to logger (rather than standard error)
+
+## 2.4.1 2017-11-24
+
+ * Minor Refactoring (SQ reports) OKAPI-472
+ * Fix Okapi unit test timeout error OKAPI-471
+
+## 2.4.0 2017-11-17
+
+ * Persistent deployment OKAPI-423
+ * Make okapiPerformance run again OKAPI-468
+
+## 2.3.2 2017-11-14
+
+ * Fix Posting module list to install endpoint results in huge
+   number of headers OKAPI-466
+ * Fix cast warnings OKAPI-467
+
+## 2.3.1 2017-11-10
+
+ * Fix Okapi fails to restart after pull operation OKAPI-461
+ * Fix reload permission(set)s when enabling mod-perms OKAPI-388
+ * Load modulePermissions of already-enabled modules OKAPI-417
+ * Allow env option to skip Mongo and Postgres unit tests OKAPI-460
+ * Fix securing.md examples can not run OKAPI-462
+ * Fix "All modules shut down" repeats too many times OKAPI-463
+
+## 2.3.0 2017-11-02
+
+ * Auto-deploy for install/upgrade operation OKAPI-424
+ * Docker: Okapi port substitution in dockerArgs - solves OKAPI-458
+ * Script/documentation on how to secure Okapi FOLIO-913
+   See doc/securing.md
+
+## 2.2.0 2017-10-31
+
+ * Rename the supertenant (used to be okapi.supertenant) OKAPI-455
+   Strictly speaking a breaking change but nobody was using it.
+ * More testing of new XOkapiClient code OKAPI-457
+
 ## 2.1.0 2017-10-26
 
  * Extend okapi.common ErrorType with FORBIDDEN type OKAPI-454
@@ -5,7 +100,7 @@
  * 404 Not Found Errors do not correctly report protocol OKAPI-441
  * Simplify code for Internal Modules and more coverage OKAPI-445
  * Test and improve error handling of pull OKAPI-446
- * simplify TenantManager OKAPI-447
+ * Simplify TenantManager OKAPI-447
  * TenantStore simplifications OKAPI-448
  * Test header module OKAPI-449
  * Remove unused code from LogHelp OKAPI-450

@@ -1,20 +1,24 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.LocalMap;
 import io.vertx.core.shareddata.SharedData;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.common.Success;
 
 /**
  * Encapsulating vert.x LocalMap so it looks like a ClusterWideMap.
  */
 @java.lang.SuppressWarnings("squid:S1192")
-public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
+class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
-  LocalMap<K, V> map = null;
+  private LocalMap<K, V> map = null;
 
   public AsyncLocalmap(Vertx vertx, String mapName) {
     SharedData sd = vertx.sharedData();
@@ -89,11 +93,27 @@ public class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
 
   @Override
   public void clear(Handler<AsyncResult<Void>> resultHandler) {
-    throw new UnsupportedOperationException("Not supported yet.");
+    map.clear();
+    resultHandler.handle(Future.succeededFuture());
   }
 
   @Override
   public void size(Handler<AsyncResult<Integer>> resultHandler) {
+    resultHandler.handle(Future.succeededFuture(map.size()));
+  }
+
+  @Override
+  public void keys(Handler<AsyncResult<Set<K>>> hndlr) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void values(Handler<AsyncResult<List<V>>> hndlr) {
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void entries(Handler<AsyncResult<Map<K, V>>> hndlr) {
     throw new UnsupportedOperationException("Not supported yet.");
   }
 

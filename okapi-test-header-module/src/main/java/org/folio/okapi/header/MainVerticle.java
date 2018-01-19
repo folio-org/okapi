@@ -4,12 +4,12 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Test module that works with headers-only. Also implements a few other test
@@ -18,9 +18,9 @@ import java.lang.management.ManagementFactory;
  */
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-test-header-module");
+  private final Logger logger = OkapiLogger.get();
 
-  public void myHeaderHandle(RoutingContext ctx) {
+  private void myHeaderHandle(RoutingContext ctx) {
     String h = ctx.request().getHeader("X-my-header");
     if (h == null) {
       h = "foo";
@@ -38,7 +38,7 @@ public class MainVerticle extends AbstractVerticle {
    *
    * @param ctx
    */
-  public void myPermissionHandle(RoutingContext ctx) {
+  private void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
     final Buffer incoming = Buffer.buffer();
     content.handler(incoming::appendBuffer);

@@ -33,6 +33,7 @@ managing and running microservices.
     * [Module Descriptor Sharing](#module-descriptor-sharing)
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
+    * [Auto-deployment](#auto-deployment)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -41,6 +42,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Instrumentation](#instrumentation)
 
 ## Introduction
 
@@ -339,6 +341,13 @@ actual code to handle creating and updating users, but could redirect
 requests to list and get users to the simpler user module. If a handler
 (or a filter) is marked as a redirect, it must also have a redirectPath
 to tell where to redirect to.
+
+ * `request-response-1.0` -- This is like `request-response`, but
+makes Okapi read the full body before POSTing to the module so that
+Content-Length is set and chunked encoding is enabled. This is useful
+for modules that have trouble dealing with chunked encoding or require
+getting content length before inspecting. This type appeared in Okapi
+2.5.0.
 
 Most requests will likely be of type `request-response`, which is the
 most powerful but potentially also most inefficient type, since it
@@ -1977,6 +1986,15 @@ curl -D - -w '\n' \
 It works
 ```
 
+Okapi version 2.8.0 and later offers a way to list all interfaces offered
+for a tenant with `_/proxy/tenants/{tenant}/interfaces`. This can be tuned
+with query parameters `full` and `type`. The `full` parameter is a boolean.
+For value `true`, all interfaces are returned in full. In full mode some
+interfaces may be repeated - for example for interfaceType=multiple or system.
+For a `full` with a value of `false` , each interface is returned once in a
+brief format. The `type` parameter, if given, limits the returned interfaces
+to an interfaceType. If `type` is not specified, interfaces of all types are
+returned.
 
 ### Cleaning up
 We are done with the examples. Just to be nice, we delete everything we have
@@ -2310,7 +2328,7 @@ than the pull, because all/most modules have already been fetched.
 
 ```
 cat > /tmp/pull.json <<END
-{"urls" : [ "http://folio-registry.aws.indexdata.com:9130" ]}
+{"urls" : [ "http://folio-registry.aws.indexdata.com:80" ]}
 END
 
 curl -w '\n' -X POST -d@/tmp/pull.json http://localhost:9130/_/proxy/pull/modules
@@ -2326,7 +2344,7 @@ interface that we knew was offered by the 'test-auth' module.
 It is a coincidence that those names match by the way. Not to mention
 that a module may require many interfaces.
 
-Okapi 1.10 and later offers the `/_/proxy/tenant/id/install` call
+Okapi 1.10 and later offers the `/_/proxy/tenants/id/install` call
 to remedy the situation. This call takes one or more modules to
 be enabled/upgraded/disabled and responds with a similar list that
 respects dependencies. For details, refer to the JSON schema
@@ -2390,13 +2408,20 @@ without pre-release information.
 
 The upgrade facility consists of a POST request with ignored body
 (should be empty) and a response that is otherwise similar to the
-install facility. The call has the path `/_/proxy/tenant/id/upgrade`.
+install facility. The call has the path `/_/proxy/tenants/id/upgrade`.
 Like the install facility, there is a simulate optional parameter, which
 if true will simulate the upgrade. Also the `preRelease` parameter
 is recognized which controls whether module IDs with pre-release info
 should be considered.
 
 The upgrade facility is part of Okapi version 1.11.0 and later.
+
+### Auto-deployment
+
+For Okapi 2.3.0 and later, the install and upgrade operations takes an
+optional parameter, `deploy`, which takes a boolean value. If true, the
+install operation will also deploy and un-deploy as necessary. This will
+only work if the ModuleDescriptor has the launchDescriptor property.
 
 ## Reference
 

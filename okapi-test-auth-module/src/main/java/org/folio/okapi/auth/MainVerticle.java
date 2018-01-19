@@ -6,9 +6,9 @@ import java.lang.management.ManagementFactory;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * The auth module provides two services: login and check. URI "/authn/login" takes
@@ -24,7 +24,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-test-auth-module");
+  private final Logger logger = OkapiLogger.get();
 
   @Override
   public void start(Future<Void> fut) throws IOException {

@@ -4,7 +4,6 @@ import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -12,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.UUID;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -24,6 +24,7 @@ import org.folio.okapi.util.ModuleHandleFactory;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.env.EnvManager;
 
@@ -33,7 +34,7 @@ import org.folio.okapi.env.EnvManager;
  */
 public class DeploymentManager {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final LinkedHashMap<String, DeploymentDescriptor> list = new LinkedHashMap<>();
   private final Vertx vertx;
   private final Ports ports;
@@ -63,17 +64,21 @@ public class DeploymentManager {
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    shutdownR(list.keySet().iterator(), fut);
+    shutdownR(list.keySet().iterator(), 0, fut);
   }
 
-  private void shutdownR(Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void shutdownR(Iterator<String> it, int count,
+    Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
-      logger.info("All modules shut down");
+      if (count != 0) {
+        logger.info("All " + count + " modules shut down");
+      }
       fut.handle(new Success<>());
     } else {
       DeploymentDescriptor md = list.get(it.next());
       ModuleHandle mh = md.getModuleHandle();
-      mh.stop(future -> shutdownR(it, fut));
+      logger.debug("Shutting down " + md.getSrvcId());
+      mh.stop(future -> shutdownR(it, count + 1, fut));
     }
   }
 
@@ -99,7 +104,7 @@ public class DeploymentManager {
     String url = "http://" + host + ":" + usePort;
 
     if (id == null) {
-      id = host + "-" + usePort;
+      id = UUID.randomUUID().toString();
       md1.setInstId(id);
     }
     logger.info("deploy instId " + id);

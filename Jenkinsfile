@@ -5,11 +5,11 @@ buildMvn {
   publishAPI = 'yes'
   mvnDeploy = 'yes'
 
-  doDocker = { 
+  doDocker = {
     buildJavaDocker {
       dockerDir = 'okapi-core'
       overrideConfig  = 'no'
-      publishMaster = 'no'
+      publishMaster = 'yes'
       healthChk = 'yes'
       healthChkCmd = 'curl --fail http://localhost:9130/_/proxy/health || exit 1'
       runArgs = 'dev'

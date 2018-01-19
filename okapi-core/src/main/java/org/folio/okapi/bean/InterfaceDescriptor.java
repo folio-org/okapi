@@ -4,37 +4,38 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.ProxyContext;
 
 /**
- * ModuleInterface describes an interface a module can provide, or depend on.
- * Basically just a name, and a version number. Version numbers are in the form
+ * InterfaceDescriptor describes an interface a module can provide, or depend
+ * on. * Basically just a name, and a version number. Version numbers are in the form
  * X.Y.Z where X is the major version of the interface, Y is the minor version
- * of the interface, and Z is the software version of the module.
+ * of the interface, and Z is the software version of the module. Also
+ * the InterfaceType, and the routing entries for the interface.
  */
 // S1168: Empty arrays and collections should be returned instead of null
 @java.lang.SuppressWarnings({"squid:S1168"})
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ModuleInterface {
+public class InterfaceDescriptor {
 
   private String id;
   private String version;
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
-  public ModuleInterface() {
+  public InterfaceDescriptor() {
     this.id = null;
     this.version = null;
     this.interfaceType = null;
     this.handlers = null;
   }
 
-  public ModuleInterface(String id, String version) {
+  public InterfaceDescriptor(String id, String version) {
     this.id = id;
     if (validateVersion(version)) {
       this.version = version;
@@ -70,7 +71,7 @@ public class ModuleInterface {
    */
   public static boolean validateVersion(String version) {
     int[] p = versionParts(version, 0);
-    return p == null ? false : true;
+    return p != null;
   }
 
   /**
@@ -104,21 +105,21 @@ public class ModuleInterface {
   }
 
   /**
-   * Check if this ModuleInterface is compatible with the required one.
+   * Check if this InterfaceDescriptor is compatible with the required one.
    *
    * @param required
    * @return
    */
-  public boolean isCompatible(ModuleInterface required) {
+  public boolean isCompatible(InterfaceDescriptor required) {
     if (!this.getId().equals(required.getId())) {
       return false; // not the same interface at all
     }
-    int[] t = ModuleInterface.versionParts(this.version, 0);
+    int[] t = InterfaceDescriptor.versionParts(this.version, 0);
     if (t == null) {
       return false;
     }
     for (int idx = 0;; idx++) {
-      int[] r = ModuleInterface.versionParts(required.version, idx);
+      int[] r = InterfaceDescriptor.versionParts(required.version, idx);
       if (r == null) {
         break;
       }
@@ -144,10 +145,20 @@ public class ModuleInterface {
    */
   @JsonIgnore
   public boolean isRegularHandler() {
-    if (interfaceType != null && !"proxy".equals(interfaceType)) {
-      return false; // explicitly some other type, like "multiple" or "system"
+    return isType("proxy");
+  }
+
+  @JsonIgnore
+  public boolean isType(String type) {
+    String haveType;
+    if (id.startsWith("_")) {
+      haveType = "system";
+    } else if (interfaceType == null) {
+      haveType = "proxy";
+    } else {
+      haveType = interfaceType;
     }
-    return this.id.startsWith("_") ? false : true; // old-fashioned _tenant etc. DEPRECATED
+    return type.equals(haveType);
   }
 
   @JsonIgnore

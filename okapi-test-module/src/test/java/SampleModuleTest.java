@@ -2,7 +2,6 @@
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -11,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.sample.MainVerticle;
 import org.junit.After;
@@ -23,9 +23,9 @@ import org.junit.runner.RunWith;
 public class SampleModuleTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final String pidFilename = "sample-module.pid";
 
   @Before
@@ -95,6 +95,7 @@ public class SampleModuleTest {
 
   public void test5(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
+      cli.close();
       context.assertTrue(res.succeeded());
       async.complete();
     });
@@ -107,6 +108,7 @@ public class SampleModuleTest {
     HashMap<String, String> headers = new HashMap<>();
 
     headers.put("X-all-headers", "HB");
+    headers.put("X-delay", "2");
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
 

@@ -17,14 +17,13 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.folio.okapi.MainVerticle;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,12 +32,13 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class DockerTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private Vertx vertx;
-  private HttpClient httpClient;
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final int port = 9230;
   private static final String LS = System.lineSeparator();
   private final LinkedList<String> locations;
+  private boolean haveDocker = false;
+  private HttpClient client;
 
   public DockerTest() {
     this.locations = new LinkedList<>();
@@ -46,15 +46,24 @@ public class DockerTest {
 
   @Before
   public void setUp(TestContext context) {
+    Async async = context.async();
     VertxOptions options = new VertxOptions();
     options.setBlockedThreadCheckInterval(60000); // in ms
     options.setWarningExceptionTime(60000); // in ms
     vertx = Vertx.vertx(options);
-    DeploymentOptions opt = new DeploymentOptions();
-    vertx.deployVerticle(MainVerticle.class.getName(),
-            opt, context.asyncAssertSuccess());
-    httpClient = vertx.createHttpClient();
     RestAssured.port = port;
+    client = vertx.createHttpClient();
+
+    checkDocker(res2 -> {
+      haveDocker = res2.succeeded();
+      logger.info("haveDocker = " + haveDocker);
+
+      DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(new JsonObject().put("port", Integer.toString(port)));
+
+      vertx.deployVerticle(MainVerticle.class.getName(),
+        opt, res -> async.complete());
+    });
   }
 
   @After
@@ -64,20 +73,20 @@ public class DockerTest {
   }
 
   private void td(TestContext context, Async async) {
-    String l = locations.pollLast();
-    if (l != null) {
-      httpClient.delete(port, "localhost", l, res -> {
-        td(context, async);
-      }).end();
-    } else {
+    if (locations.isEmpty()) {
       vertx.close(x -> {
         async.complete();
       });
+    } else {
+      String l = locations.removeFirst();
+      HttpClientRequest req = client.delete(port, "localhost", l, res -> {
+        td(context, async);
+      });
+      req.end();
     }
   }
 
   private void checkDocker(Handler<AsyncResult<Void>> future) {
-    HttpClient client = vertx.createHttpClient();
     final String dockerUrl = "http://localhost:4243";
     final String url = dockerUrl + "/images/json?all=1";
     HttpClientRequest req = client.getAbs(url, res -> {
@@ -126,14 +135,10 @@ public class DockerTest {
   }
 
   @Test
-  public void testDockerModule(TestContext context) {
+  public void dockerTest1(TestContext context) {
     Async async = context.async();
-    checkDocker(res -> {
-      dockerTest1(context, async, res.succeeded());
-    });
-  }
 
-  private void dockerTest1(TestContext context, Async async, boolean haveDocker) {
+    logger.info("dockerTest1");
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -147,7 +152,7 @@ public class DockerTest {
       + "    \"version\" : \"1.0.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/test\"" + LS
+      + "      \"pathPattern\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -155,12 +160,12 @@ public class DockerTest {
       + "    \"dockerPull\" : false," + LS
       + "    \"dockerCMD\" : [\"-Dfoo=bar\"]," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"StopTimeout\" : 12" + LS
+      + "      \"StopTimeout\" : 12," + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8080/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";
 
-    logger.info("module 1 haveDocker " + haveDocker);
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -168,7 +173,8 @@ public class DockerTest {
       .then()
       .statusCode(201).log().ifValidationFails()
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(), c.getLastReport().isEmpty());
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
     locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
@@ -188,23 +194,14 @@ public class DockerTest {
         .body(doc1).post("/_/discovery/modules")
         .then().statusCode(500);
     }
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    if (haveDocker) {
-      dockerTests2(context, async);
-    } else {
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
+
+    if (!haveDocker) {
       async.complete();
+      return;
     }
-  }
-
-  private void dockerTests2(TestContext context, Async async) {
-    RestAssuredClient c;
-
-    Response r;
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
-    final String docSampleDockerModule = "{" + LS
+    final String docUserDockerModule = "{" + LS
       + "  \"id\" : \"mod-users-1\"," + LS
       + "  \"name\" : \"users\"," + LS
       + "  \"provides\" : [ {" + LS
@@ -223,26 +220,26 @@ public class DockerTest {
     c = api.createRestAssured();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleDockerModule).post("/_/proxy/modules")
+      .body(docUserDockerModule).post("/_/proxy/modules")
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
     locations.add(r.getHeader("Location"));
 
-    final String doc1 = "{" + LS
+    final String doc2 = "{" + LS
       + "  \"srvcId\" : \"mod-users-1\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
     c = api.createRestAssured();
     r = c.given().header("Content-Type", "application/json")
-      .body(doc1).post("/_/discovery/modules")
+      .body(doc2).post("/_/discovery/modules")
       .then().statusCode(201)
       .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
     locations.add(r.getHeader("Location"));
     async.complete();
   }

@@ -12,11 +12,11 @@ import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
+import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
@@ -25,17 +25,17 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class PullTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
 
   private static final String LS = System.lineSeparator();
   private String vert1;
   private String vert2;
-  private final int port1 = 9131; // where we define MDs
-  private final int port2 = 9130; // where we pull
-  private final int port3 = 9132; // other non-proxy server
-  private final int port4 = 9133; // non-existing server!
+  private final int port1 = 9231; // where we define MDs
+  private final int port2 = 9230; // where we pull
+  private final int port3 = 9232; // other non-proxy server
+  private final int port4 = 9233; // non-existing server!
 
   private void setupOtherHttpServer(TestContext context, Async async) {
     Router router = Router.router(vertx);

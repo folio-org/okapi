@@ -7,11 +7,11 @@ import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured.RestAssuredClient;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.MainDeploy;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -22,8 +22,8 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class MainDeployTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
+  private final Logger logger = OkapiLogger.get();
+  private final int port = 9230;
   private Async async;
   private Vertx vertx;
   private RamlDefinition api;
@@ -31,6 +31,9 @@ public class MainDeployTest {
   @Before
   public void setUp(TestContext context) {
     logger.debug("starting MainClusterTest");
+
+    // can't set Verticle options so we set a property instead
+    System.setProperty("port", Integer.toString(port));
     async = context.async();
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
     RestAssured.port = port;
@@ -40,6 +43,7 @@ public class MainDeployTest {
   @After
   public void tearDown(TestContext context) {
     async = context.async();
+    System.setProperty("port", ""); // disable port by emptying it
     if (vertx == null) {
       async.complete();
     } else {

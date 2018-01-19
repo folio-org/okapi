@@ -21,8 +21,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   private String[] tags;
   private ModuleId moduleId;
-  private ModuleInterface[] requires;
-  private ModuleInterface[] provides;
+  private InterfaceDescriptor[] requires;
+  private InterfaceDescriptor[] provides;
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
   private UiModuleDescriptor uiDescriptor;
@@ -90,36 +90,36 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   @JsonIgnore
-  public ModuleInterface[] getRequiresList() {
+  public InterfaceDescriptor[] getRequiresList() {
     if (requires == null) {
-      return new ModuleInterface[0];
+      return new InterfaceDescriptor[0];
     } else {
       return requires;
     }
   }
 
-  public ModuleInterface[] getRequires() {
+  public InterfaceDescriptor[] getRequires() {
     return requires;
   }
 
-  public void setRequires(ModuleInterface[] requires) {
+  public void setRequires(InterfaceDescriptor[] requires) {
     this.requires = requires;
   }
 
   @JsonIgnore
-  public ModuleInterface[] getProvidesList() {
+  public InterfaceDescriptor[] getProvidesList() {
     if (provides == null) {
-      return new ModuleInterface[0];
+      return new InterfaceDescriptor[0];
     } else {
       return provides;
     }
   }
 
-  public ModuleInterface[] getProvides() {
+  public InterfaceDescriptor[] getProvides() {
     return provides;
   }
 
-  public void setProvides(ModuleInterface[] provides) {
+  public void setProvides(InterfaceDescriptor[] provides) {
     this.provides = provides;
   }
 
@@ -135,7 +135,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (filters != null) {
       Collections.addAll(all, filters);
     }
-    for (ModuleInterface mi : getProvidesList()) {
+    for (InterfaceDescriptor mi : getProvidesList()) {
       String t = mi.getInterfaceType();
       if (t == null || t.equals("proxy") || t.equals("internal")) {
         all.addAll(mi.getAllRoutingEntries());
@@ -147,7 +147,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public List<RoutingEntry> getMultiRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    for (ModuleInterface mi : getProvidesList()) {
+    for (InterfaceDescriptor mi : getProvidesList()) {
       if ("multiple".equals(mi.getInterfaceType())) {
         all.addAll(mi.getAllRoutingEntries());
       }
@@ -162,8 +162,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @return null if not found, or the interface
    */
   @JsonIgnore
-  public ModuleInterface getSystemInterface(String interfaceId) {
-    for (ModuleInterface prov : getProvidesList()) {
+  public InterfaceDescriptor getSystemInterface(String interfaceId) {
+    for (InterfaceDescriptor prov : getProvidesList()) {
       if ("system".equals(prov.getInterfaceType())
         && interfaceId.equals(prov.getId())) {
         return prov;
@@ -218,7 +218,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
     String mod = getId();
     if (provides != null) {
-      for (ModuleInterface pr : provides) {
+      for (InterfaceDescriptor pr : provides) {
         String err = pr.validate(pc, "provides", mod);
         if (!err.isEmpty()) {
           return err;
@@ -226,7 +226,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     }
     if (requires != null) {
-      for (ModuleInterface pr : requires) {
+      for (InterfaceDescriptor pr : requires) {
         String err = pr.validate(pc, "requires", mod);
         if (!err.isEmpty()) {
           return err;

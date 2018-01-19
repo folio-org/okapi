@@ -9,6 +9,11 @@ public class Config {
   }
 
   public static String getSysConf(String key, String def, JsonObject conf) {
-    return System.getProperty(key, conf.getString(key, def));
+    final String v = System.getProperty(key);
+    if (v == null || (v.isEmpty() && def != null && !def.isEmpty())) {
+      return conf.getString(key, def);
+    } else {
+      return v;
+    }
   }
 }

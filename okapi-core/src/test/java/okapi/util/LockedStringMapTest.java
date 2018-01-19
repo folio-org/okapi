@@ -3,10 +3,10 @@ package okapi.util;
 import org.folio.okapi.util.LockedStringMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -20,7 +20,7 @@ import org.junit.runner.RunWith;
 @RunWith(VertxUnitRunner.class)
 public class LockedStringMapTest {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
   private Async async;

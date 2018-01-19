@@ -11,21 +11,21 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import java.io.InputStream;
 import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.common.Config;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ModuleVersionReporter;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.deployment.DeploymentManager;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.ProxyService;
@@ -44,30 +44,21 @@ import org.folio.okapi.web.InternalModule;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private final LogHelper logHelper = new LogHelper();
 
-  ModuleManager moduleManager;
-  TenantManager tenantManager;
-  EnvManager envManager;
-  ProxyService proxyService;
-  DeploymentManager deploymentManager;
-  DiscoveryManager discoveryManager;
-  ClusterManager clusterManager;
-  PullManager pullManager;
+  private ModuleManager moduleManager;
+  private TenantManager tenantManager;
+  private EnvManager envManager;
+  private ProxyService proxyService;
+  private DeploymentManager deploymentManager;
+  private DiscoveryManager discoveryManager;
+  private ClusterManager clusterManager;
+  private PullManager pullManager;
   private Storage storage;
-  Storage.InitMode initMode = NORMAL;
+  private Storage.InitMode initMode = NORMAL;
   private int port;
   private String okapiVersion = null;
-
-
-  // Little helper to get a config value:
-  // First from System (-D on command line),
-  // then from config (from the way the verticle gets deployed, e.g. in tests)
-  // finally a default value
-  static String conf(String key, String def, JsonObject c) {
-    return System.getProperty(key, c.getString(key, def));
-  }
 
   public void setClusterManager(ClusterManager mgr) {
     clusterManager = mgr;
@@ -75,32 +66,9 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
-    InputStream in = getClass().getClassLoader().
-      getResourceAsStream("META-INF/maven/org.folio.okapi/okapi-core/pom.properties");
-    if (in != null) {
-      try {
-        Properties prop = new Properties();
-        prop.load(in);
-        in.close();
-        okapiVersion = prop.getProperty("version");
-        logger.info(prop.getProperty("artifactId") + " " + okapiVersion);
-      } catch (Exception e) {
-        logger.warn(e);
-      }
-    }
-
-    in = getClass().getClassLoader().getResourceAsStream("git.properties");
-    if (in != null) {
-      try {
-        Properties prop = new Properties();
-        prop.load(in);
-        in.close();
-        logger.info("git: " + prop.getProperty("git.remote.origin.url")
-                + " " + prop.getProperty("git.commit.id"));
-      } catch (Exception e) {
-        logger.warn(e);
-      }
-    }
+    ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
+    okapiVersion = m.getVersion();
+    m.logStart();
 
     boolean enableProxy = false;
     boolean enableDeployment = false;
@@ -108,11 +76,11 @@ public class MainVerticle extends AbstractVerticle {
     super.init(vertx, context);
 
     JsonObject config = context.config();
-    port = Integer.parseInt(conf("port", "9130", config));
-    int portStart = Integer.parseInt(conf("port_start", Integer.toString(port + 1), config));
-    int portEnd = Integer.parseInt(conf("port_end", Integer.toString(portStart + 10), config));
+    port = Integer.parseInt(Config.getSysConf("port", "9130", config));
+    int portStart = Integer.parseInt(Config.getSysConf("port_start", Integer.toString(port + 1), config));
+    int portEnd = Integer.parseInt(Config.getSysConf("port_end", Integer.toString(portStart + 10), config));
 
-    String okapiVersion2 = conf("okapiVersion", null, config);
+    String okapiVersion2 = Config.getSysConf("okapiVersion", null, config);
     if (okapiVersion2 != null) {
       okapiVersion = okapiVersion2;
     }
@@ -122,12 +90,12 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       logger.info("clusterManager not in use");
     }
-    final String host = conf("host", "localhost", config);
-    String okapiUrl = conf("okapiurl", "http://localhost:" + port , config);
+    final String host = Config.getSysConf("host", "localhost", config);
+    String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port , config);
     okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
-    final String nodeName = conf("nodename", null, config);
-    String storageType = conf("storage", "inmemory", config);
-    String loglevel = conf("loglevel", "", config);
+    final String nodeName = Config.getSysConf("nodename", null, config);
+    String storageType = Config.getSysConf("storage", "inmemory", config);
+    String loglevel = Config.getSysConf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
       logHelper.setRootLogLevel(loglevel);
     } else {
@@ -158,8 +126,10 @@ public class MainVerticle extends AbstractVerticle {
         break;
     }
 
-    envManager = new EnvManager();
-    discoveryManager = new DiscoveryManager();
+    storage = new Storage(vertx, storageType, config);
+
+    envManager = new EnvManager(storage.getEnvStore());
+    discoveryManager = new DiscoveryManager(storage.getDeploymentStore());
     if (clusterManager != null) {
       discoveryManager.setClusterManager(clusterManager);
     }
@@ -185,7 +155,6 @@ public class MainVerticle extends AbstractVerticle {
       });
     }
     if (enableProxy) {
-      storage = new Storage(vertx, storageType, config);
       ModuleStore moduleStore = storage.getModuleStore();
       moduleManager = new ModuleManager(moduleStore);
       TenantStore tenantStore = storage.getTenantStore();
@@ -325,12 +294,9 @@ public class MainVerticle extends AbstractVerticle {
           + "', not '" + okapiModule + "'");
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) > 0) {
-          logger.fatal("checkSuperTenant: This Okapi is too old, "
+          logger.warn("checkSuperTenant: This Okapi is too old, "
             + okapiVersion + " we already have " + ev + " in the database. "
             + " Use that!");
-          fut.fail("Too old Okapi, " + okapiVersion
-            + " Need " + ev);
-          return;
         } else {
           logger.info("checkSuperTenant: Need to upgrade the stored version");
           // Use the commit, easier interface.
@@ -378,7 +344,6 @@ public class MainVerticle extends AbstractVerticle {
           return;
         }
         startEnv(fut);
-        return;
       });
     });
   }
@@ -405,7 +370,7 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
-  public void startDeployment(Future<Void> fut) {
+  private void startDeployment(Future<Void> fut) {
     if (deploymentManager == null) {
       startListening(fut);
     } else {
@@ -466,8 +431,8 @@ public class MainVerticle extends AbstractVerticle {
                       if (result.succeeded()) {
                         logger.info("API Gateway started PID "
                                 + ManagementFactory.getRuntimeMXBean().getName()
-                                + ". Listening on port " + port);
-                        fut.complete();
+                          + ". Listening on port " + port);
+                        startRedeploy(fut);
                       } else {
                         logger.fatal("createHttpServer failed", result.cause());
                         fut.fail(result.cause());
@@ -476,5 +441,14 @@ public class MainVerticle extends AbstractVerticle {
             );
   }
 
-
+  private void startRedeploy(Future<Void> fut) {
+    discoveryManager.restartModules(res -> {
+      if (res.succeeded()) {
+        logger.info("Deploy completed succesfully");
+      } else {
+        logger.info("Deploy failed: " + res.cause());
+      }
+      fut.complete();
+    });
+  }
 }

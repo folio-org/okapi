@@ -5,16 +5,17 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInterface;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
@@ -24,6 +25,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ModuleId;
@@ -35,12 +37,12 @@ import org.folio.okapi.util.ProxyContext;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantManager {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager = null;
-  ProxyService proxyService = null;
-  TenantStore tenantStore = null;
-  LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
-  String mapName = "tenants";
+  private ProxyService proxyService = null;
+  private TenantStore tenantStore = null;
+  private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
+  private String mapName = "tenants";
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
@@ -409,7 +411,7 @@ public class TenantManager {
 
     if (mdTo == null) {
       // disable only
-      ead4commit(tenant, mdFrom.getId(), null, pc, fut);
+      ead5commit(tenant, mdFrom.getId(), null, pc, fut);
       return;
     }
     getTenantInterface(mdTo, ires -> {
@@ -435,7 +437,6 @@ public class TenantManager {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
-            // TODO - Copy X-headers over to ctx.resp
             ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
           }
         });
@@ -457,30 +458,77 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Void>> fut) {
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo.getId();
-    if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-      pc.debug("Using the tenantPermissions of this module itself");
-      ead3Permissions(tenant, moduleFrom, mdTo, mdTo, pc, fut);
-      return;
-    }
-    findSystemInterface(tenant, "_tenantPermissions", res -> {
+    findSystemInterface(tenant, res -> {
       if (res.failed()) {
-        if (res.getType() == NOT_FOUND) { // no perms interface. TODO
-          // just continue with the process. Should probably trigger an error
+        if (res.getType() == NOT_FOUND) { // no perms interface.
+          if (mdTo.getSystemInterface("_tenantPermissions") != null) {
+            pc.debug("ead2PermMod: Here we reload perms of all enabled modules");
+            Set<String> listModules = tenant.listModules();
+            pc.debug("Got a list of already-enabled moduled: " + Json.encode(listModules));
+            Iterator<String> modit = listModules.iterator();
+            ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
+            return;
+          }
           pc.debug("enablePermissions: No tenantPermissions interface found. "
             + "Carrying on without it.");
-          ead4commit(tenant, moduleFrom, moduleTo, pc, fut);
+          ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
         } else {
           pc.responseError(res.getType(), res.cause());
         }
       } else {
         ModuleDescriptor permsMod = res.result();
-        ead3Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
+        if (mdTo.getSystemInterface("_tenantPermissions") != null) {
+          pc.debug("Using the tenantPermissions of this module itself");
+          permsMod = mdTo;
+        }
+        ead4Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
       }
     });
   }
 
   /**
-   * enableAndDisable helper 2: Make the tenantPermissions call.
+   * enableAndDisable helper 3: Reload permissions. When we enable a module that
+   * provides the tenantPermissions interface, we may have other modules already
+   * enabled, who have not got their permissions pushed. Now that we have a
+   * place to push those permissions to, we do it recursively for all enabled
+   * modules.
+   *
+   * @param tenant
+   * @param moduleFrom
+   * @param mdTo
+   * @param permsModule
+   * @param pc
+   * @param fut
+   */
+  private void ead3RealoadPerms(Tenant tenant, Iterator<String> modit,
+    String moduleFrom, ModuleDescriptor mdTo, ModuleDescriptor permsModule,
+    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (!modit.hasNext()) {
+      pc.debug("ead3RealoadPerms: No more modules to reload");
+      ead4Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
+      return;
+    }
+    String mdid = modit.next();
+    moduleManager.get(mdid, res -> {
+      if (res.failed()) { // not likely to happen
+        pc.responseError(res.getType(), res.cause());
+        return;
+      }
+      ModuleDescriptor md = res.result();
+      pc.debug("ead3RealoadPerms: Should reload perms for " + md.getName());
+      tenantPerms(tenant, md, permsModule, pc, pres -> {
+        if (pres.failed()) { // not likely to happen
+          pc.responseError(res.getType(), res.cause());
+          return;
+        }
+        ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
+      });
+    });
+  }
+
+  /**
+   * enableAndDisable helper 4: Make the tenantPermissions call. For the module
+   * itself.
    *
    * @param tenant
    * @param moduleFrom
@@ -490,18 +538,62 @@ public class TenantManager {
    * @param pc
    * @param fut
    */
-  private void ead3Permissions(Tenant tenant, String moduleFrom,
+  private void ead4Permissions(Tenant tenant, String moduleFrom,
     ModuleDescriptor mdTo, ModuleDescriptor permsModule,
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    pc.debug("ead3Permissions: Perms interface found in "
-      + permsModule.getId());
+    pc.debug("ead4Permissions: Perms interface found in "
+      + permsModule.getName());
+
+    tenantPerms(tenant, mdTo, permsModule, pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      String moduleTo = mdTo.getId();
+      ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
+    });
+  }
+
+  /**
+   * enableAndDisable helper 5: Commit the change in modules.
+   *
+   * @param tenant
+   * @param moduleFrom
+   * @param moduleTo
+   * @param pc
+   * @param fut
+   */
+  private void ead5commit(Tenant tenant,
+    String moduleFrom, String moduleTo, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
+    updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
+      if (ures.failed()) {
+        pc.responseError(ures.getType(), ures.cause());
+      } else {
+        pc.debug("ead5commit done");
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
+  /**
+   * Helper to make the tenantPermissions call for one module. Used from
+   * ead3RealoadPerms and ead4Permissions.
+   */
+  private void tenantPerms(Tenant tenant, ModuleDescriptor mdTo,
+    ModuleDescriptor permsModule, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    pc.debug("Loading permissions for " + mdTo.getName()
+      + " (using " + permsModule.getName() + ")");
     String moduleTo = mdTo.getId();
     PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
     String pljson = Json.encodePrettily(pl);
-    pc.debug("ead3Permissions Req: " + pljson);
-
-    ModuleInterface permInt = permsModule.getSystemInterface("_tenantPermissions");
+    pc.debug("tenantPerms Req: " + pljson);
+    InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     if (!routingEntries.isEmpty()) {
@@ -520,35 +612,19 @@ public class TenantManager {
         + ". No path to POST to"));
       return;
     }
-    pc.debug("ead3Permissions: " + permsModule.getId() + " and " + permPath);
+    pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
     proxyService.callSystemInterface(tenant.getId(),
       permsModule.getId(), permPath, pljson, pc, cres -> {
-      if (cres.failed()) {
-        fut.handle(new Failure<>(cres.getType(), cres.cause()));
-      } else {
-        pc.debug("enablePermissions: request to " + permsModule.getId()
-          + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
-        ead4commit(tenant, moduleFrom, moduleTo, pc, fut);
-      }
-    });
+        if (cres.failed()) {
+          fut.handle(new Failure<>(cres.getType(), cres.cause()));
+        } else {
+          pc.debug("tenantPerms request to " + permsModule.getName()
+            + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
+          fut.handle(new Success<>());
+        }
+      });
   }
 
-  private void ead4commit(Tenant tenant,
-    String moduleFrom, String moduleTo, ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
-    pc.debug("ead4commit: " + moduleFrom + " " + moduleTo);
-    updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
-      if (ures.failed()) {
-        pc.responseError(ures.getType(), ures.cause());
-      } else {
-        pc.debug("ead4commit done");
-        fut.handle(new Success<>());
-      }
-    });
-  }
-
-  //
   /**
    * Find the tenant API interface. Supports several deprecated versions of the
    * tenant interface: the 'tenantInterface' field in MD; if the module provides
@@ -560,15 +636,13 @@ public class TenantManager {
    * @param fut callback with the path to the interface, "" if no interface, or
    * a failure
    *
-   * TODO - Return a proper failure if no tenantInterface found. Small change in
-   * behavior, don't do while refactoring the rest...
    */
   private void getTenantInterface(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    ModuleInterface[] prov = md.getProvidesList();
+    InterfaceDescriptor[] prov = md.getProvidesList();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));
-    for (ModuleInterface pi : prov) {
+    for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
         getTenantInterface1(pi, fut, md);
@@ -579,7 +653,7 @@ public class TenantManager {
       + md.getId()));
   }
 
-  private void getTenantInterface1(ModuleInterface pi,
+  private void getTenantInterface1(InterfaceDescriptor pi,
     Handler<ExtendedAsyncResult<String>> fut, ModuleDescriptor md) {
 
     if (!"1.0".equals(pi.getVersion())) {
@@ -615,18 +689,15 @@ public class TenantManager {
   /**
    * Find (the first) module that provides a given system interface. Module must
    * be enabled for the tenant.
-   *
-   * @param tenant tenant to check for
-   * @param interfaceName interface name to look for
+   *  @param tenant tenant to check for
    * @param fut callback with a @return ModuleDescriptor for the module
    *
-   * TODO - Take a version too, pass it to getSystemInterface, check there
    */
-  private void findSystemInterface(Tenant tenant, String interfaceName,
-    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  private void findSystemInterface(Tenant tenant,
+                                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
 
     Iterator<String> it = tenant.getEnabled().keySet().iterator();
-    findSystemInterfaceR(tenant, interfaceName, it, fut);
+    findSystemInterfaceR(tenant, "_tenantPermissions", it, fut);
   }
 
   private void findSystemInterfaceR(Tenant tenant, String interfaceName,
@@ -644,9 +715,8 @@ public class TenantManager {
       }
       ModuleDescriptor md = gres.result();
       logger.debug("findSystemInterface: looking at " + mid + ": "
-        + "en: " + tenant.isEnabled(mid) + " si: " + md.getSystemInterface(interfaceName));
-      if (md.getSystemInterface(interfaceName) != null
-        && tenant.isEnabled(mid)) {
+        + " si: " + md.getSystemInterface(interfaceName));
+      if (md.getSystemInterface(interfaceName) != null ) {
         logger.debug("findSystemInterface: found " + mid);
         fut.handle(new Success<>(md));
         return;
@@ -655,11 +725,50 @@ public class TenantManager {
     });
   }
 
-  public void listModulesFromInterface(String tenantId,
-    String interfaceName, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public void listInterfaces(String tenantId, boolean full, String interfaceType,
+          Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
+
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
-        logger.debug("listModulesFromInterface: tenant " + tenantId + " not found");
+        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        return;
+      }
+      Tenant tenant = tres.result();
+      ArrayList<InterfaceDescriptor> intList = new ArrayList<>();
+      moduleManager.getEnabledModules(tenant, mres -> {
+        if (mres.failed()) {
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        List<ModuleDescriptor> modlist = mres.result();
+        Set<String> ids = new HashSet<>();
+        for (ModuleDescriptor md : modlist) {
+          for (InterfaceDescriptor provide : md.getProvidesList()) {
+            if (interfaceType == null || provide.isType(interfaceType)) {
+              if (full) {
+                intList.add(provide);
+              } else {
+                if (ids.add(provide.getId())) {
+                  InterfaceDescriptor tmp = new InterfaceDescriptor();
+                  tmp.setId(provide.getId());
+                  tmp.setVersion(provide.getVersion());
+                  intList.add(tmp);
+                }
+              }
+            }
+          }
+        }
+        fut.handle(new Success<>(intList));
+      });
+    });
+  }
+
+  public void listModulesFromInterface(String tenantId,
+      String interfaceName, String interfaceType,
+      Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
+    tenants.get(tenantId, tres -> {
+      if (tres.failed()) {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
         return;
       }
@@ -667,14 +776,14 @@ public class TenantManager {
       ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
       moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
-          logger.debug("listModulesFromInterface: enabledModules failed for " + tenantId);
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
         List<ModuleDescriptor> modlist = mres.result();
         for (ModuleDescriptor md : modlist) {
-          for (ModuleInterface provide : md.getProvidesList()) {
-            if (interfaceName.equals(provide.getId())) {
+          for (InterfaceDescriptor provide : md.getProvidesList()) {
+            if (interfaceName.equals(provide.getId())
+                    && (interfaceType == null || provide.isType(interfaceType))) {
               mdList.add(md);
               break;
             }
@@ -685,7 +794,7 @@ public class TenantManager {
     }); // tenant
   }
 
-  private void installModules(Map<String, ModuleDescriptor> modsAvailable,
+  private void installCheckDependencies(Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
@@ -789,38 +898,6 @@ public class TenantManager {
     return false;
   }
 
-  private void installCommit(Tenant tenant, ProxyContext pc,
-    Map<String, ModuleDescriptor> modsAvailable,
-    Iterator<TenantModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (it.hasNext()) {
-      TenantModuleDescriptor tm = it.next();
-      ModuleDescriptor mdFrom = null;
-      ModuleDescriptor mdTo = null;
-      if ("enable".equals(tm.getAction())) {
-        if (tm.getFrom() != null) {
-          mdFrom = modsAvailable.get(tm.getFrom());
-        }
-        mdTo = modsAvailable.get(tm.getId());
-      } else if ("disable".equals(tm.getAction())) {
-        mdFrom = modsAvailable.get(tm.getId());
-      }
-      if (mdFrom == null && mdTo == null) {
-        installCommit(tenant, pc, modsAvailable, it, fut);
-      } else {
-        ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            installCommit(tenant, pc, modsAvailable, it, fut);
-          }
-        });
-      }
-    } else {
-      fut.handle(new Success<>());
-    }
-  }
-
   public void installUpgradeModules(String tenantId, ProxyContext pc,
     TenantInstallOptions options, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
@@ -848,12 +925,12 @@ public class TenantManager {
         }
         List<TenantModuleDescriptor> tml2
           = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
-        installAndCommit(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
+        installUpgradeModules2(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
       });
     });
   }
 
-  List<TenantModuleDescriptor> prepareTenantModuleList(
+  private List<TenantModuleDescriptor> prepareTenantModuleList(
     Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
@@ -877,24 +954,117 @@ public class TenantManager {
     }
   }
 
-  private void checkAutoDeploy(Tenant t, ProxyContext pc,
+  /* phase 1 deploy modules if necessary */
+  private void installCommit1(Tenant t, ProxyContext pc,
     TenantInstallOptions options,
-    Map<String, ModuleDescriptor> modsAvailable, List<TenantModuleDescriptor> tml,
+    Map<String, ModuleDescriptor> modsAvailable,
+    List<TenantModuleDescriptor> tml,
+    Iterator<TenantModuleDescriptor> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    if (options.getAutoDeploy()) {
-      fut.handle(new Failure<>(INTERNAL, "autoDeploy unsupported"));
+
+    if (it.hasNext() && options.getDeploy()) {
+      TenantModuleDescriptor tm = it.next();
+      if ("enable".equals(tm.getAction()) || "uptodate".equals(tm.getAction())) {
+        ModuleDescriptor md = modsAvailable.get(tm.getId());
+        proxyService.autoDeploy(md, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            installCommit1(t, pc, options, modsAvailable, tml, it, fut);
+          }
+        });
+      } else {
+        installCommit1(t, pc, options, modsAvailable, tml, it, fut);
+      }
     } else {
-      installCommit(t, pc, modsAvailable, tml.iterator(), fut);
+      installCommit2(t, pc, options, modsAvailable, tml, tml.iterator(), fut);
     }
   }
 
-  private void installAndCommit(Tenant t, ProxyContext pc,
+  /* phase 2 enable modules for tenant */
+  private void installCommit2(Tenant tenant, ProxyContext pc,
+    TenantInstallOptions options,
+    Map<String, ModuleDescriptor> modsAvailable,
+    List<TenantModuleDescriptor> tml,
+    Iterator<TenantModuleDescriptor> it,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    if (it.hasNext()) {
+      TenantModuleDescriptor tm = it.next();
+      ModuleDescriptor mdFrom = null;
+      ModuleDescriptor mdTo = null;
+      if ("enable".equals(tm.getAction())) {
+        if (tm.getFrom() != null) {
+          mdFrom = modsAvailable.get(tm.getFrom());
+        }
+        mdTo = modsAvailable.get(tm.getId());
+      } else if ("disable".equals(tm.getAction())) {
+        mdFrom = modsAvailable.get(tm.getId());
+      }
+      if (mdFrom == null && mdTo == null) {
+        installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
+      } else {
+        ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
+          }
+        });
+      }
+    } else {
+      installCommit3(tenant, pc, options, modsAvailable, tml, tml.iterator(), fut);
+    }
+  }
+
+  /* phase 3 undeploy if no longer needed */
+  private void installCommit3(Tenant tenant, ProxyContext pc,
+    TenantInstallOptions options,
+    Map<String, ModuleDescriptor> modsAvailable,
+    List<TenantModuleDescriptor> tml,
+    Iterator<TenantModuleDescriptor> it,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    if (it.hasNext() && options.getDeploy()) {
+      TenantModuleDescriptor tm = it.next();
+      ModuleDescriptor md = null;
+      if ("enable".equals(tm.getAction())) {
+        md = modsAvailable.get(tm.getFrom());
+      }
+      if ("disable".equals(tm.getAction())) {
+        md = modsAvailable.get(tm.getId());
+      }
+      if (md != null) {
+        final ModuleDescriptor mdF = md;
+        getModuleUser(md.getId(), ures -> {
+          if (ures.failed()) {
+            // in use or other error, so skip
+            installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+          } else {
+            // success means : not in use, so we can undeploy it
+            proxyService.autoUndeploy(mdF, res -> {
+              if (res.failed()) {
+                fut.handle(new Failure<>(res.getType(), res.cause()));
+              } else {
+                installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+              }
+            });
+          }
+        });
+      } else {
+        installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+      }
+    } else {
+      fut.handle(new Success<>());
+    }
+  }
+
+  private void installUpgradeModules2(Tenant t, ProxyContext pc,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
 
-    installModules(modsAvailable, modsEnabled, tml, res -> {
+    installCheckDependencies(modsAvailable, modsEnabled, tml, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -902,13 +1072,14 @@ public class TenantManager {
       if (options.getSimulate()) {
         fut.handle(new Success<>(tml));
       } else {
-        checkAutoDeploy(t, pc, options, modsAvailable, tml, res1 -> {
-          if (res1.failed()) {
-            fut.handle(new Failure<>(res1.getType(), res1.cause()));
-          } else {
-            fut.handle(new Success<>(tml));
-          }
-        });
+        installCommit1(t, pc, options, modsAvailable, tml, tml.iterator(),
+          res1 -> {
+            if (res1.failed()) {
+              fut.handle(new Failure<>(res1.getType(), res1.cause()));
+            } else {
+              fut.handle(new Success<>(tml));
+            }
+          });
       }
     });
   }
@@ -976,7 +1147,7 @@ public class TenantManager {
    *
    * @param fut
    */
-  public void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
+  private void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.getKeys(gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
@@ -986,7 +1157,7 @@ public class TenantManager {
           logger.info("Not loading tenants, looks like someone already did");
           fut.handle(new Success<>());
         } else if (tenantStore == null) {
-          logger.info("No storage to load tenants from from starting with empty");
+          logger.info("No storage to load tenants from, so starting with empty");
           fut.handle(new Success<>());
         } else {
           tenantStore.listTenants(lres -> {

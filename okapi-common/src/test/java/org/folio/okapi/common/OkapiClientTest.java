@@ -6,7 +6,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -25,15 +24,9 @@ import org.junit.runner.RunWith;
 public class OkapiClientTest {
 
   private Vertx vertx;
-  private static final int PORT = 9130;
+  private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
-  private final Logger logger = LoggerFactory.getLogger("okapi");
-
-  public OkapiClientTest() {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-
-  }
+  private final Logger logger = OkapiLogger.get();
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
@@ -95,7 +88,7 @@ public class OkapiClientTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
     router.delete("/test2").handler(this::myStreamHandle2);
-    final int port = Integer.parseInt(System.getProperty("port", "9130"));
+    final int port = Integer.parseInt(System.getProperty("port", "9230"));
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
@@ -120,7 +113,7 @@ public class OkapiClientTest {
   @Test
   public void testBogus(TestContext context) {
     Async async = context.async();
-    final String bogusUrl = "http://xxxx:9131";
+    final String bogusUrl = "http://xxxx:9231";
     OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
     assertEquals(bogusUrl, cli.getOkapiUrl());
 
@@ -143,6 +136,8 @@ public class OkapiClientTest {
     cli.get("/test2?p=%2Ftest1", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
+      cli.close(); // 2nd close should work (ignored)
       async.complete();
     });
   }
@@ -178,15 +173,13 @@ public class OkapiClientTest {
 
     cli.newReqId("920");
 
-    cli.get("/test1", res -> {
+    cli.get("/test1", (ExtendedAsyncResult<String> res) -> {
       assertTrue(res.succeeded());
       assertEquals("hello test-lib", res.result());
       assertEquals(res.result(), cli.getResponsebody());
       MultiMap respH = cli.getRespHeaders();
-      assertTrue(respH != null);
-      if (respH != null) {
-        assertEquals("text/plain", respH.get("Content-Type").toString());
-      }
+      assertNotNull(respH);
+      assertEquals("text/plain", respH.get("Content-Type"));
 
       test2(cli, async);
     });
@@ -226,6 +219,7 @@ public class OkapiClientTest {
   private void test6(OkapiClient cli, Async async) {
     cli.delete("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
+      cli.close();
       async.complete();
     });
   }
@@ -241,6 +235,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=403", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.FORBIDDEN, res.getType());
+      cli.close();
       async.complete();
     });
   }
@@ -255,6 +250,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=400", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, res.getType());
+      cli.close();
       async.complete();
     });
   }
@@ -269,6 +265,7 @@ public class OkapiClientTest {
     cli.get("/test1?e=500", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
       async.complete();
     });
   }

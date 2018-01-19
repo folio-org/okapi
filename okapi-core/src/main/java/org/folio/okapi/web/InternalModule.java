@@ -7,7 +7,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.impl.Utils;
 import java.io.UnsupportedEncodingException;
@@ -31,6 +30,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.deployment.DeploymentManager;
@@ -58,7 +58,7 @@ import org.folio.okapi.util.ProxyContext;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class InternalModule {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
@@ -81,7 +81,7 @@ public class InternalModule {
     this.pullManager = pullManager;
     logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
-    logger.warn("InternalModule starting: " + okapiVersion);
+    logger.warn("InternalModule starting okapiversion=" + okapiVersion);
   }
 
   public static ModuleDescriptor moduleDescriptor(String okapiVersion) {
@@ -416,7 +416,7 @@ public class InternalModule {
       + "   \"displayName\" : \"Okapi - Enable a module and disable another\", "
       + "   \"description\" : \"Enable a module for the tenant, and disable another one\" "
       + " }, {"
-      + "   \"permissionName\" : \"okapi.proxy.tenants.modules.delete\", "
+      + "   \"permissionName\" : \"okapi.proxy.tenants.modules.enabled.delete\", "
       + "   \"displayName\" : \"Okapi - Disable a module for tenant\", "
       + "   \"description\" : \"Disable a module for the tenant\" "
       + " }, "
@@ -512,7 +512,7 @@ public class InternalModule {
   private void location(ProxyContext pc, String id, String baseUri,
     String s, Handler<ExtendedAsyncResult<String>> fut) {
 
-    String uri = "";
+    String uri;
     try {
       if (baseUri == null) {
         uri = pc.getCtx().request().uri();
@@ -537,7 +537,7 @@ public class InternalModule {
         td.setId(UUID.randomUUID().toString());
       }
       final String id = td.getId();
-      if (!id.matches("^[a-z0-9._-]+$")) {
+      if (!id.matches("^[a-z0-9_-]+$")) {
         fut.handle(new Failure<>(USER, "Invalid tenant id '" + id + "'"));
         return;
       }
@@ -665,7 +665,7 @@ public class InternalModule {
 
     options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
-    options.setAutoDeploy(getParamBoolean(ctx.request(), "autoDeploy", false));
+    options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
     return options;
   }
 
@@ -678,9 +678,7 @@ public class InternalModule {
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
         TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
-      for (int i = 0; i < tml.length; i++) {
-        tm.add(tml[i]);
-      }
+      Collections.addAll(tm, tml);
       tenantManager.installUpgradeModules(id, pc, options, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -778,10 +776,26 @@ public class InternalModule {
     });
   }
 
-  private void listModulesFromInterface(String id, String intId,
+  private void listInterfaces(ProxyContext pc, String id,
+          Handler<ExtendedAsyncResult<String>> fut) {
+
+    final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+    final String type = pc.getCtx().request().getParam("type");
+    tenantManager.listInterfaces(id, full, type, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      }
+    });
+  }
+
+  private void listModulesFromInterface(ProxyContext pc, String id, String intId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    tenantManager.listModulesFromInterface(id, intId, res -> {
+    final String type = pc.getCtx().request().getParam("type");
+    tenantManager.listModulesFromInterface(id, intId, type, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1346,10 +1360,15 @@ public class InternalModule {
           upgradeModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
+        // /_/proxy/tenants/:id/interfaces
+        if (n == 6 && m.equals(GET) && segments[5].equals("interfaces")) {
+          listInterfaces(pc, decodedSegs[4], fut);
+          return;
+        }
 
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")) {
-          listModulesFromInterface(decodedSegs[4], decodedSegs[6], fut);
+          listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
       } // /_/proxy/tenants

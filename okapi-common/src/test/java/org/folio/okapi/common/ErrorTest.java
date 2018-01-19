@@ -38,7 +38,7 @@ public class ErrorTest {
     assertEquals(200, ErrorType.httpCode(s.getType()));
   }
 
-  public void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
+  private void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
     if (x == ErrorType.OK) {
       fut.handle(new Success<>("123"));
     } else {
@@ -76,6 +76,14 @@ public class ErrorTest {
 
     conf.put(varName, "124");
     assertEquals("124", Config.getSysConf(varName, "123", conf));
-  }
 
+    System.setProperty(varName, "129");
+    assertEquals("129", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("124", Config.getSysConf(varName, "123", conf));
+
+    System.setProperty(varName, "");
+    assertEquals("", Config.getSysConf(varName, "", conf));
+  }
 }

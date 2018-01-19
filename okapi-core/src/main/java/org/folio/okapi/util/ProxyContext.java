@@ -1,14 +1,17 @@
 package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
+import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -19,12 +22,13 @@ import org.folio.okapi.common.XOkapiHeaders;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
   private String reqId;
   private String tenant;
   private final RoutingContext ctx;
   private Timer.Context timer;
+  private Long timerId;
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -38,14 +42,25 @@ public class ProxyContext {
     this.modList = null;
     reqidHeader(ctx);
     timer = null;
+    timerId = null;
   }
 
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
+    timerId = ctx.vertx().setPeriodic(10000, res -> {
+      logger.warn(reqId + " WAIT "
+        + ctx.request().remoteAddress()
+        + " " + tenant + " " + ctx.request().method()
+        + " " + ctx.request().path());
+    });
   }
 
   public void closeTimer() {
+    if (timerId != null) {
+      ctx.vertx().cancelTimer(timerId);
+      timerId = null;
+    }
     if (timer != null) {
       timer.close();
       timer = null;
@@ -61,7 +76,23 @@ public class ProxyContext {
     if (timer != null) {
       return " " + (timer.stop() / 1000) + "us";
     } else {
-      return "";
+      return " -";
+    }
+  }
+
+  /**
+   * Pass the response headers from an OkapiClient into the response of this
+   * request. Only X-Something headers.
+   *
+   * @param ok OkapiClient to take resp headers from
+   */
+  public void passOkapiTraceHeaders(OkapiClient ok) {
+    MultiMap respH = ok.getRespHeaders();
+    for (Map.Entry<String, String> e : respH.entries()) {
+      if (XOkapiHeaders.TRACE.equals(e.getKey())
+        || "X-Tenant-Perms-Result".equals(e.getKey())) {
+        ctx.response().headers().add(e.getKey(), e.getValue());
+      }
     }
   }
 
@@ -85,7 +116,7 @@ public class ProxyContext {
     return ctx;
   }
 
-  public String getReqId() {
+  private String getReqId() {
     return reqId;
   }
 
@@ -122,7 +153,7 @@ public class ProxyContext {
     StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
       for (ModuleInstance mi : modList) {
-        mods.append(" " + mi.getModuleDescriptor().getId());
+        mods.append(" ").append(mi.getModuleDescriptor().getId());
       }
     }
     logger.info(reqId + " REQ "
@@ -142,7 +173,7 @@ public class ProxyContext {
     responseError(ErrorType.httpCode(t), cause);
   }
 
-  public void responseError(int code, Throwable cause) {
+  private void responseError(int code, Throwable cause) {
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {

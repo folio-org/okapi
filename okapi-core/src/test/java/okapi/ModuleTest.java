@@ -12,6 +12,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import com.jayway.restassured.RestAssured;
+import com.jayway.restassured.response.Header;
+import com.jayway.restassured.response.Headers;
 import com.jayway.restassured.response.Response;
 import com.jayway.restassured.response.ValidatableResponse;
 import de.flapdoodle.embed.mongo.MongodExecutable;
@@ -26,12 +28,13 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
 import io.vertx.ext.web.impl.Utils;
-import java.util.Arrays;
+
+import java.util.*;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
@@ -43,25 +46,31 @@ import de.flapdoodle.embed.process.runtime.Network;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import java.util.Iterator;
-import java.util.Set;
+import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
 @Parameterized.UseParametersRunnerFactory(VertxUnitRunnerWithParametersFactory.class)
 public class ModuleTest {
 
-  // 0 is inmemory, 1 is postgres
   @Parameterized.Parameters
-  public static Iterable<Integer> data() {
-    // 0=inmemory, 1=postgres, 2=mongo
-    return Arrays.asList(0, 1, 2);
+  public static Iterable<String> data() {
+    final String s = System.getProperty("ModuleTestStorage");
+    if (s != null) {
+      return Arrays.asList(s.split(" "));
+    }
+    final String f = System.getenv("okapiFastTest");
+    if (f != null) {
+      return Collections.singletonList("inmemory");
+    } else {
+      return Arrays.asList("inmemory", "postgres", "mongo");
+    }
   }
 
-  private final Logger logger = LoggerFactory.getLogger("okapi");
+  private final Logger logger = OkapiLogger.get();
 
-  Vertx vertx;
-  Async async;
+  private Vertx vertx;
+  private Async async;
 
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
@@ -70,16 +79,17 @@ public class ModuleTest {
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private final int port = Integer.parseInt(System.getProperty("port", "9130"));
-  private static final int POSTGRES_PORT = 9138;
-  private static final int MONGO_PORT = 9139;
+  private final int port = 9230;
+  private static final int POSTGRES_PORT = 9238;
+  private static final int MONGO_PORT = 9239;
   private static EmbeddedPostgres postgres;
   private static MongodExecutable mongoExe;
   private static MongodProcess mongoD;
 
   private final JsonObject conf;
 
-  // the one module that's always there.
+  // the one module that's always there. When running tests, the version is at 0.0.0
+  // It gets set later in the compilation process.
   private static final String internalModuleDoc = "{" + LS
     + "  \"id\" : \"okapi-0.0.0\"," + LS
     + "  \"name\" : \"okapi-0.0.0\"" + LS
@@ -102,24 +112,24 @@ public class ModuleTest {
     }
   }
 
-  public ModuleTest(int value) throws Exception {
+  public ModuleTest(String value) throws Exception {
     conf = new JsonObject();
 
-    conf.put("port_start", "9131")
-      .put("port_end", "9137")
+    conf.put("storage", value)
+      .put("port", "9230")
+      .put("port_start", "9231")
+      .put("port_end", "9237")
       .put("nodename", "node1");
 
-    if (value == 1) {
-      conf.put("storage", "postgres")
-        .put("postgres_host", "localhost")
+    if ("postgres".equals(value)) {
+      conf.put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
         postgres = new EmbeddedPostgres(V9_6);
-        String pUrl = postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
+        postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
-    } else if (value == 2) {
-      conf.put("storage", "mongo")
-        .put("mongo_host", "localhost")
+    } else if ("mongo".equals(value)) {
+      conf.put("mongo_host", "localhost")
         .put("mongo_port", Integer.toString(MONGO_PORT));
       if (mongoD == null) {
         MongodStarter starter = MongodStarter.getDefaultInstance();
@@ -141,7 +151,6 @@ public class ModuleTest {
 
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
-
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
@@ -153,7 +162,7 @@ public class ModuleTest {
     td(context);
   }
 
-  public void td(TestContext context) {
+  private void td(TestContext context) {
     if (locationAuthDeployment != null) {
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
@@ -201,8 +210,8 @@ public class ModuleTest {
     String emptyListDoc = "[ ]";
 
     String superTenantDoc = "[ {" + LS
-      + "  \"id\" : \"okapi.supertenant\"," + LS
-      + "  \"name\" : \"okapi.supertenant\"," + LS
+      + "  \"id\" : \"supertenant\"," + LS
+      + "  \"name\" : \"supertenant\"," + LS
       + "  \"description\" : \"Okapi built-in super tenant\"" + LS
       + "} ]";
     given().get("/_/deployment/modules").then()
@@ -230,7 +239,7 @@ public class ModuleTest {
    * @return the location, for deleting it later. This has to be urldecoded,
    * because restAssured "helpfully" encodes any urls passed to it.
    */
-  public String createTenant() {
+  private String createTenant() {
     final String docTenant = "{" + LS
       + "  \"id\" : \"" + okapiTenant + "\"," + LS
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
@@ -254,7 +263,7 @@ public class ModuleTest {
    * @param md A full ModuleDescriptor
    * @return the URL to delete when done
    */
-  public String createModule(String md) {
+  private String createModule(String md) {
     final String loc = given()
       .header("Content-Type", "application/json")
       .body(md)
@@ -274,7 +283,7 @@ public class ModuleTest {
    * @param modId Id of the module to be deployed.
    * @return url to delete when done
    */
-  public String deployModule(String modId) {
+  private String deployModule(String modId) {
     final String instId = modId.replace("-module", "") + "-inst";
     final String docDeploy = "{" + LS
       + "  \"instId\" : \"" + instId + "\"," + LS
@@ -299,7 +308,7 @@ public class ModuleTest {
    * @param modId The module to enable
    * @return the location, so we can delete it later. Can safely be ignored.
    */
-  public String enableModule(String modId) {
+  private String enableModule(String modId) {
     final String docEnable = "{" + LS
       + "  \"id\" : \"" + modId + "\"" + LS
       + "}";
@@ -374,7 +383,6 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"phase\" : \"auth\"," + LS // Causes a warning
       + "      \"type\" : \"request-response\"," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
       + "      \"permissionsDesired\" : [ \"sample.extra\" ]," + LS
@@ -386,7 +394,7 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response-1.0\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -653,7 +661,7 @@ public class ModuleTest {
       .header("X-all-headers", "H") // ask sample to report all headers
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
-      .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
+      .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module-1+1\":[\"sample.modperm\"]}")
@@ -664,6 +672,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/recurse?depth=5")
       .then().statusCode(200)
+      .log().all()
       .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Call the module via the redirect-url. No tenant header!
@@ -780,6 +789,13 @@ public class ModuleTest {
     // Set up a tenant to test with
     final String locTenant = createTenant();
 
+    // Enable the Okapi internal module for our tenant.
+    // This is not unlike what happens to the superTenant, who has the internal
+    // module enabled from the boot up, before anyone can provide the
+    // _tenantPermissions interface. Its permissions should be (re)loaded
+    // when our Hdr module gets enabled.
+    final String locInternal = enableModule("okapi-0.0.0");
+
     // Set up a module that does the _tenantPermissions interface that will
     // get called when sample gets enabled. We (ab)use the header module for
     // this.
@@ -801,10 +817,33 @@ public class ModuleTest {
       + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
       + "  }" + LS
       + "}";
+
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
     locationHeaderDeployment = deployModule("header-1");
-    final String locHdrEnable = enableModule("header-1");
+    final String docEnableHdr = "{" + LS
+      + "  \"id\" : \"header-1\"" + LS
+      + "}";
+
+    // Enable the header module. Check that tenantPermissions gets called
+    // both for header module, and the already-enabled okapi internal module.
+    Headers headers = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableHdr)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifValidationFails()
+      //.header("X-Tenant-Perms-Result", containsString("okapi.all"))
+      //.header("X-Tenant-Perms-Result", containsString("header-1"))
+      .extract().headers();
+    final String locHdrEnable = headers.getValue("Location");
+    List<Header> list = headers.getList("X-Tenant-Perms-Result");
+    Assert.assertEquals(2, list.size()); // one for okapi, one for header-1
+    Assert.assertThat("okapi perm result",
+      list.get(0).getValue(), containsString("okapi.all"));
+    Assert.assertThat("header-1perm result",
+      list.get(1).getValue(), containsString("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -921,8 +960,8 @@ public class ModuleTest {
     given().delete(locationHeaderDeployment).then().log().ifValidationFails().statusCode(204);
     locationHeaderDeployment = null;
     given().delete(locHdrModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locInternal).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
-
     checkDbIsEmpty("testSystemInterfaces done", context);
     async.complete();
   }
@@ -943,13 +982,13 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
     String nodeDoc = "{" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"NewName\"" + LS
       + "}";
 
@@ -1002,7 +1041,7 @@ public class ModuleTest {
 
     c = api.createRestAssured();
     c.given()
-      .body(nodeDoc.replaceFirst("\"http://localhost:9130\"", "\"MayNotChangeUrl\""))
+      .body(nodeDoc.replaceFirst("\"http://localhost:9230\"", "\"MayNotChangeUrl\""))
       .header("Content-Type", "application/json")
       .put("/_/discovery/nodes/localhost")
       .then()
@@ -1030,7 +1069,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/discovery/nodes/http://localhost:9130")
+    c.given().get("/_/discovery/nodes/http://localhost:9230")
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))
@@ -1057,7 +1096,7 @@ public class ModuleTest {
 
     String nodeListDoc = "[ {" + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9130\"," + LS
+      + "  \"url\" : \"http://localhost:9230\"," + LS
       + "  \"nodeName\" : \"node1\"" + LS
       + "} ]";
 
@@ -1165,7 +1204,7 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
-      + "    \"path\" : \"/\"," + LS // has to be plain '/' for the filter detection
+      + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
@@ -1574,14 +1613,17 @@ public class ModuleTest {
     // Check that okapi sets up the permission headers.
     // Check also the X-Okapi-Url header in the same go, as well as
     // URL parameters.
+    // X-Okapi-Filter can not be checked here, but the log shows that it gets
+    // passed to the auth filter, and not to the handler.
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("X-all-headers", "HB") // ask sample to report all headers
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
+      .log().ifValidationFails()
       .header("X-Okapi-Permissions-Required", "sample.needed")
       .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
-      .header("X-Okapi-Url", "http://localhost:9130") // no trailing slash!
+      .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Okapi-User-Id", "peter")
       .header("X-Url-Params", "query=foo&limit=10")
       .body(containsString("It works"));
@@ -1682,7 +1724,7 @@ public class ModuleTest {
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
       // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
-      + "  \"url\" : \"http://localhost:9132\"" + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -1785,7 +1827,7 @@ public class ModuleTest {
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
-      + "  \"url\" : \"http://localhost:9132\"" + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2042,6 +2084,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc1 = "{" + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS // set so we can compare with result
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2056,7 +2099,7 @@ public class ModuleTest {
 
     // with descriptor, but missing nodeId
     final String doc1a = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2072,7 +2115,7 @@ public class ModuleTest {
 
     // unknown nodeId
     final String doc1b = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"foobarhost\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2088,10 +2131,10 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     final String doc2 = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module5\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"url\" : \"http://localhost:9131\"," + LS
+      + "  \"url\" : \"http://localhost:9231\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -2143,6 +2186,55 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    if ("inmemory".equals(conf.getString("storage"))) {
+      testDeployment2(async, context);
+    } else {
+      // just undeploy but keep it registered in discovery
+      logger.info("doc2 " + doc2);
+      JsonObject o2 = new JsonObject(doc2);
+      String instId = o2.getString("instId");
+      String loc = "http://localhost:9230/_/deployment/modules/" + instId;
+      c = api.createRestAssured();
+      c.given().delete(loc).then().statusCode(204);
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+      undeployFirst(x -> {
+        conf.remove("mongo_db_init");
+        conf.remove("postgres_db_init");
+
+        DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+        vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+          waitDeployment2();
+        });
+      });
+      waitDeployment2(async, context);
+    }
+  }
+
+  synchronized private void waitDeployment2() {
+    this.notify();
+  }
+
+  synchronized private void waitDeployment2(Async async, TestContext context) {
+    try {
+      this.wait();
+    } catch (Exception e) {
+      context.asyncAssertFailure();
+      async.complete();
+      return;
+    }
+    testDeployment2(async, context);
+  }
+
+  private void testDeployment2(Async async, TestContext context) {
+    logger.info("testDeployment2");
+    Response r;
+
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    RestAssuredClient c;
     c = api.createRestAssured();
     c.given().delete(locationSampleDeployment).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2212,16 +2304,15 @@ public class ModuleTest {
 
     // Specify the node via url, to test that too
     final String docDeploy = "{" + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"" + LS
-      + "  \"nodeId\" : \"http://localhost:9130\"" + LS
+      + "  \"nodeId\" : \"http://localhost:9230\"" + LS
       + "}";
     final String DeployResp = "{" + LS
-      + "  \"instId\" : \"localhost-9131\"," + LS
+      + "  \"instId\" : \"localhost-9231\"," + LS
       + "  \"srvcId\" : \"sample-module-depl-1\"," + LS
-      //+ "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"nodeId\" : \"http://localhost:9130\"," + LS
-      + "  \"url\" : \"http://localhost:9131\"," + LS
+      + "  \"nodeId\" : \"http://localhost:9230\"," + LS
+      + "  \"url\" : \"http://localhost:9231\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
@@ -2259,6 +2350,82 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     checkDbIsEmpty("testDeployment done", context);
+
+    async.complete();
+  }
+
+  @Test
+  public void testNotFound(TestContext context) {
+    async = context.async();
+
+    Response r;
+    ValidatableResponse then;
+
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    r = given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String docLaunch1 = "{" + LS
+      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"nodeId\" : \"localhost\"," + LS
+      + "  \"descriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    r = given().header("Content-Type", "application/json")
+      .body(docLaunch1).post("/_/discovery/modules")
+      .then().statusCode(201)
+      .extract().response();
+    locationSampleDeployment = r.getHeader("Location");
+    for (String type : Arrays.asList("request-response", "request-only", "headers")) {
+
+      final String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-module-1\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/test2\"," + LS
+        + "    \"level\" : \"20\"," + LS
+        + "    \"type\" : \"" + type + "\"" + LS
+        + "  } ]" + LS
+        + "}";
+      r = given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+      final String locationSampleModule = r.getHeader("Location");
+
+      final String docEnableSample = "{" + LS
+        + "  \"id\" : \"sample-module-1\"" + LS
+        + "}";
+      r = given()
+        .header("Content-Type", "application/json")
+        .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+        .then().statusCode(201)
+        .body(equalTo(docEnableSample)).extract().response();
+      final String enableLoc = r.getHeader("Location");
+
+      given().header("X-Okapi-Tenant", okapiTenant)
+        .body("bar").post("/test2")
+        .then().statusCode(404);
+
+      given().delete(enableLoc).then().statusCode(204);
+      given().delete(locationSampleModule).then().statusCode(204);
+    }
+    given().delete(locationSampleDeployment).then().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locationTenantRoskilde)
+      .then().statusCode(204);
 
     async.complete();
   }
@@ -2690,7 +2857,7 @@ public class ModuleTest {
       .get("/red")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9131/testr"))
+      .header("X-Okapi-Trace", containsString("GET sample-module-1 http://localhost:9231/testr"))
       .log().ifValidationFails();
 
     // Bad redirect
@@ -2752,7 +2919,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/redlight")
       .then().statusCode(404)
-      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9131/testrlight : 404"))
+      .header("X-Okapi-Trace", containsString("sample-module-1 http://localhost:9231/testrlight : 404"))
       .log().ifValidationFails();
 
     // Verify that we replace only the beginning of the path
@@ -2873,12 +3040,68 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
-      .then().statusCode(200)
-      .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"));
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=true")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS
+                    + "  \"id\" : \"sample\"," + LS
+                    + "  \"version\" : \"1.0\"," + LS
+                    + "  \"interfaceType\" : \"proxy\"," + LS
+                    + "  \"handlers\" : [ {" + LS
+                    + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+                    + "    \"path\" : \"/testb\"" + LS
+                    + "  } ]" + LS
+                    + "} ]"))
+            .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+            c.getLastReport().isEmpty());
 
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=false")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS
+                    + "  \"id\" : \"sample\"," + LS
+                    + "  \"version\" : \"1.0\"" + LS
+                    + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=false&type=proxy")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS
+                    + "  \"id\" : \"sample\"," + LS
+                    + "  \"version\" : \"1.0\"" + LS
+                    + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces?full=false&type=system")
+            .then().statusCode(200)
+            .body(equalTo("[ ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    c = api.createRestAssured();
+    c.given().get("/_/proxy/tenants/" + okapiTenant + "/interfaces/sample?type=proxy")
+            .then().statusCode(200)
+            .body(equalTo("[ {" + LS + "  \"id\" : \"sample-module-1\"" + LS + "} ]"))
+            .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + "foo" + "/interfaces/sample")
       .then().statusCode(404);
@@ -3003,11 +3226,14 @@ public class ModuleTest {
       .get("/testb")
       .then().statusCode(404);
 
-    given()
+    r = given()
       .header("X-Okapi-Module-Id", "sample-module-3")
+      .header("X-all-headers", "H") // makes module echo headers
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
-      .then().statusCode(200);
+      .then().statusCode(200).extract().response();
+    // check that X-Okapi-Module-Id was not passed to it
+    Assert.assertNull(r.headers().get("X-Okapi-Module-Id"));
 
     given()
       .header("X-Okapi-Module-Id", "sample-module-4")
@@ -3151,6 +3377,43 @@ public class ModuleTest {
     async.complete();
   }
 
+  @Test
+  public void testManyModules(TestContext context) {
+    async = context.async();
+
+    RestAssuredClient c;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    Response r;
+
+    int i;
+    for (i = 0; i < 10; i++) {
+      String docSampleModule = "{" + LS
+        + "  \"id\" : \"sample-1.2." + Integer.toString(i) + "\"," + LS
+        + "  \"name\" : \"sample module " + Integer.toString(i) + "\"," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+      c = api.createRestAssured();
+      c.given()
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201)
+        .log().ifValidationFails();
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    }
+    c = api.createRestAssured();
+    r = c.given()
+      .get("/_/proxy/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails().extract().response();
+    Assert.assertTrue(c.getLastReport().isEmpty());
+
+    async.complete();
+  }
+
   private void undeployFirst(Handler<AsyncResult<Void>> fut) {
     Set<String> ids = vertx.deploymentIDs();
     Iterator<String> it = ids.iterator();
@@ -3178,7 +3441,7 @@ public class ModuleTest {
     });
   }
 
-  void testInternalModule2() {
+  private void testInternalModule2() {
     undeployFirst(x -> {
       conf.put("okapiVersion", "3.0.0");
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);

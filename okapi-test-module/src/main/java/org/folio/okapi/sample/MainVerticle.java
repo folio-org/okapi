@@ -5,28 +5,32 @@ package org.folio.okapi.sample;
  */
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Map;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
+
 import static org.folio.okapi.common.HttpResponse.*;
+import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
-  private final Logger logger = LoggerFactory.getLogger("okapi-test-module");
+  private final Logger logger = OkapiLogger.get();
   private String helloGreeting;
   private String tenantRequests = "";
 
-  public void myStreamHandle(RoutingContext ctx) {
+  private void myStreamHandle(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
@@ -43,7 +47,7 @@ public class MainVerticle extends AbstractVerticle {
     }
     String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
     if (tenantReqs != null) {
-      xmlMsg.append(" Tenant requests: " + tenantRequests);
+      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
     }
     ctx.response().putHeader("Content-Type", "text/plain");
 
@@ -61,7 +65,10 @@ public class MainVerticle extends AbstractVerticle {
             ctx.response().putHeader(hdr, tenantReqs);
           }
           if (allh.contains("B")) {
-            xmlMsg.append(" " + hdr + ":" + tenantReqs + "\n");
+            xmlMsg.append(" ").append(hdr).append(":").append(tenantReqs).append("\n");
+          }
+          if (allh.contains("L")) {
+            logger.info(hdr + ":" + tenantReqs);
           }
         }
       }
@@ -72,7 +79,18 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
+    String delayStr = ctx.request().getHeader("X-delay");
+    if (delayStr != null) {
+      ctx.request().pause();
+      long delay = Long.parseLong(delayStr);
+      ctx.vertx().setTimer(delay, res -> response(xmlMsg2, ctx));
+    } else {
+      response(xmlMsg2, ctx);
+    }
+  }
 
+  private void response(String xmlMsg2, RoutingContext ctx) {
+    ctx.request().resume();
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
     } else {
@@ -83,7 +101,7 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  public void myTenantHandle(RoutingContext ctx) {
+  private void myTenantHandle(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
@@ -109,7 +127,7 @@ public class MainVerticle extends AbstractVerticle {
     ctx.request().endHandler(x -> ctx.response().end());
   }
 
-  public void recurseHandle(RoutingContext ctx) {
+  private void recurseHandle(RoutingContext ctx) {
     String d = ctx.request().getParam("depth");
     if (d == null || d.isEmpty()) {
       d = "1";
@@ -125,7 +143,14 @@ public class MainVerticle extends AbstractVerticle {
       OkapiClient ok = new OkapiClient(ctx);
       depth--;
       ok.get("/recurse?depth=" + depth, res -> {
+        ok.close();
         if (res.succeeded()) {
+          MultiMap respH = ok.getRespHeaders();
+          for (Map.Entry<String, String> e : respH.entries()) {
+            if (e.getKey().startsWith("X-") || e.getKey().startsWith("x-")) {
+              ctx.response().headers().add(e.getKey(), e.getValue());
+            }
+          }
           responseText(ctx, 200);
           ctx.response().end(depthstr + " " + res.result());
         } else {
@@ -146,6 +171,9 @@ public class MainVerticle extends AbstractVerticle {
     }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     String bName = ManagementFactory.getRuntimeMXBean().getName();
+
+    ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");
+    m.logStart();
     logger.info("Starting okapi-test-module "
       + bName + " on port " + port);
 

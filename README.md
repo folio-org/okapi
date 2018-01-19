@@ -1,7 +1,7 @@
 Okapi — a multitenant API Gateway
 =================================
 
-Copyright (C) 2017 The Open Library Foundation
+Copyright (C) 2015-2018 The Open Library Foundation
 
 This software is distributed under the terms of the Apache License,
 Version 2.0. See the file "[LICENSE](LICENSE)" for more information.
@@ -15,7 +15,7 @@ The Okapi software has the following compile-time dependencies:
 
 * Apache Maven 3.3.x or higher
 
-In addition, the test suite must be able to bind to ports 9130-9139 to succeed.
+In addition, the test suite must be able to bind to ports 9230-9239 to succeed.
 
 *Note: If tests fail, the API Gateway may be unable in some cases to shut down
 microservices that it has spawned, and they may need to be terminated
