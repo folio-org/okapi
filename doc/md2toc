@@ -20,7 +20,7 @@ if ($opts{a}) {
     }
 
     chomp $line;
-    if ($line =~ /^\s*<!--\s*(.*)\s*-->\s*$/) {
+    if ($line =~ /^\s*<!--\s*(.*?)\s*-->\s*$/) {
 	print "<!-- $1 -->\n";
 	exec $1;
 	die "exec '$1' failed: $!";
@@ -53,10 +53,10 @@ while (my $line = <>) {
         my $link = lc($line);
         $link =~ s/ /-/g;
         $link =~ s/[^a-z0-9-]//g;
-        if ($skip > 0) {
-            $skip--;
-        } else {
-            print '    ' x ($level-$lowest), "* [$line](#$link)\n";
-        }
+	if ($skip > 0) {
+	    $skip--;
+	} else {
+	    print '    ' x ($level-$lowest), "* [$line](#$link)\n";
+	}
     }
 }
