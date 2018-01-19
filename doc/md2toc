@@ -8,14 +8,39 @@ use warnings;
 use Getopt::Std;
 
 my %opts = (l => 1, h => 99, s => 0);
-if (!getopts('l:h:s:', \%opts) || @ARGV == 0) {
+if (!getopts('l:h:s:a', \%opts)) {
+    goto USAGE;
+}
+
+if ($opts{a}) {
+    my $line = <STDIN>;
+    if (!$line) {
+	print STDERR "$0: no standard input: can't parse command\n";	
+	exit 2;
+    }
+
+    chomp $line;
+    if ($line =~ /^\s*<!--\s*(.*)\s*-->\s*$/) {
+	print "<!-- $1 -->\n";
+	exec $1;
+	die "exec '$1' failed: $!";
+    } else {
+	print STDERR "$0: can't parse command from '$line'\n";
+    }
+    exit;
+}
+
+if (@ARGV == 0) {
+  USAGE:
     print STDERR "\
 Usage: md2toc [options] <FILE.md>\
         -l <lowest> specifies lowest heading level to include.\
         -h <highest> specifies highest heading level to include.\
-        -s <skip> skip the first few lines of generated output.\n";
+        -s <skip> skip the first few lines of generated output.\
+	-a specifies automatic mode: run command specified by HTML comment\n";
     exit 1;
 }
+
 my $lowest = $opts{l};
 my $highest = $opts{h};
 my $skip = $opts{s};
