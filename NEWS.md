@@ -1,3 +1,5 @@
+ * Add "-a" (automatic) mode to md2toc OKAPI-504
+
 ## 2.8.1 2018-01-19
 
  * OKAPI-402 The cluster gets confused when deleing nodes
@@ -107,7 +109,6 @@
  * RestAssured : use log ifValidationFails OKAPI-452
  * Strange logformat OKAPI-453
  * Test docker - even if not present OKAPI-454
- * Add "-a" (automatic) mode to md2toc OKAPI-504
 
 ## 2.0.2 2017-10-23
 
