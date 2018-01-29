@@ -1,4 +1,7 @@
- * Add "-a" (automatic) mode to md2toc OKAPI-504
+## 2.8.2 2018-01-29
+
+ * OKAPI-508 Fix WAIT log lines for completed operation
+ * OKAPI-504 Add "-a" (automatic) mode to md2toc
 
 ## 2.8.1 2018-01-19
 
