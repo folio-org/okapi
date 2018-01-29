@@ -661,6 +661,7 @@ public class ProxyService {
               + data.toString() + "'");
           });
           res.endHandler(v -> {
+            pc.closeTimer();
             ctx.response().end();
             pc.trace("ProxyHeaders response end");
           });
@@ -749,6 +750,7 @@ public class ProxyService {
     internalModule.internalService(req, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
+        pc.closeTimer();
         return;
       }
       String resp = res.result();
