@@ -945,16 +945,16 @@ public class ProxyService {
       + ctx.request().path() + " " + qry);
   }
 
-  public void autoDeploy(ModuleDescriptor md,
+  public void autoDeploy(ModuleDescriptor md, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    discoveryManager.autoDeploy(md, fut);
+    discoveryManager.autoDeploy(md, pc, fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md,
+  public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    discoveryManager.autoUndeploy(md, fut);
+    discoveryManager.autoUndeploy(md, pc, fut);
   }
 
 

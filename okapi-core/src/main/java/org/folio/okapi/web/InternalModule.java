@@ -1069,7 +1069,7 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
         DeploymentDescriptor.class);
-      discoveryManager.addAndDeploy(pmd, res -> {
+      discoveryManager.addAndDeploy(pmd, pc, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
@@ -1085,10 +1085,10 @@ public class InternalModule {
     }
   }
 
-  private void discoveryUndeploy(String srvcId, String instId,
+  private void discoveryUndeploy(ProxyContext pc, String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(srvcId, instId, res -> {
+    discoveryManager.removeAndUndeploy(pc, srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1449,7 +1449,7 @@ public class InternalModule {
         return;
       }
       if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(decodedSegs[4], decodedSegs[5], fut);
+        discoveryUndeploy(pc, decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       // /_/discovery/health
