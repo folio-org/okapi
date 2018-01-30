@@ -909,10 +909,8 @@ public class ProxyService {
         headers.put(hdr, ctx.request().headers().get(hdr));
       }
     }
-    if (!headers.containsKey(XOkapiHeaders.TENANT)) {
-      headers.put(XOkapiHeaders.TENANT, tenantId);
-      logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
-    }
+    headers.put(XOkapiHeaders.TENANT, tenantId);
+    logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
     headers.put("Accept", "*/*");
     headers.put("Content-Type", "application/json; charset=UTF-8");
     return headers;
