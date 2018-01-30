@@ -966,7 +966,7 @@ public class TenantManager {
       TenantModuleDescriptor tm = it.next();
       if ("enable".equals(tm.getAction()) || "uptodate".equals(tm.getAction())) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        proxyService.autoDeploy(md, res -> {
+        proxyService.autoDeploy(md, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
@@ -1041,7 +1041,7 @@ public class TenantManager {
             installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
-            proxyService.autoUndeploy(mdF, res -> {
+            proxyService.autoUndeploy(mdF, pc, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
               } else {
