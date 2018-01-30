@@ -1,3 +1,8 @@
+## 2.8.3 2018-01-30
+
+ * OKAPI-514 Pass X-Okapi headers when invoking deploy on a node
+ * OKAPI-512 Fix Incorrect tenant for tenant init (system call)
+
 ## 2.8.2 2018-01-29
 
  * OKAPI-508 Fix WAIT log lines for completed operation
