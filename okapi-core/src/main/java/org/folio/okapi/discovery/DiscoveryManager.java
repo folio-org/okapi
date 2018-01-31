@@ -31,6 +31,7 @@ import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.ProxyContext;
 
@@ -267,12 +268,12 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
-    if (md.getDescriptor() == null) {
+    final String nodeId = md.getNodeId();
+    if (nodeId == null) {
       logger.info("callUndeploy remove");
       remove(md.getSrvcId(), md.getInstId(), fut);
     } else {
       logger.info("callUndeploy calling..");
-      final String nodeId = md.getNodeId();
       getNode(nodeId, res1 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -337,6 +338,11 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy " + md.getId());
+    // internal Okapi modules is not part of discovery so ignore it
+    if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
+      fut.handle(new Success<>());
+      return;
+    }
     nodes.getKeys(res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -359,17 +365,13 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      logger.info("autoDeploy " + md.getId() + " has no launchDescriptor");
-      return;
-    }
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
       logger.info("autoDeploy " + md.getId() + " consider " + node);
       DeploymentDescriptor foundDd = null;
       for (DeploymentDescriptor dd : ddList) {
-        if (node.equals(dd.getNodeId())) {
+        if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
           foundDd = dd;
         }
       }
