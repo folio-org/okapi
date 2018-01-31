@@ -1,7 +1,7 @@
 ## 2.8.3 2018-01-30
 
  * OKAPI-514 Pass X-Okapi headers when invoking deploy on a node
- * OKAPI-512 Fix Incorrect tenant for tenant init (system call)
+ * OKAPI-512 Fix incorrect tenant for tenant init (system call)
 
 ## 2.8.2 2018-01-29
 
@@ -10,10 +10,10 @@
 
 ## 2.8.1 2018-01-19
 
- * OKAPI-402 The cluster gets confused when deleing nodes
+ * OKAPI-402 The cluster gets confused when deleting nodes
  * OKAPI-435 proxy should load balance over available modules
  * OKAPI-443 Upgrade to Vert.x 3.5.0
- * OKAPI-500 Log requests that takes a long time
+ * OKAPI-500 Log requests that take a long time
 
 ## 2.8.0 2018-01-15
 

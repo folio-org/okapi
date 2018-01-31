@@ -15,7 +15,7 @@ if (!getopts('l:h:s:a', \%opts)) {
 if ($opts{a}) {
     my $line = <STDIN>;
     if (!$line) {
-	print STDERR "$0: no standard input: can't parse command\n";	
+	print STDERR "$0: no standard input: can't parse command\n";
 	exit 2;
     }
 
