@@ -17,7 +17,7 @@ public class ModuleStoreMongo implements ModuleStore {
 
 
   public ModuleStoreMongo(MongoClient cli) {
-    this.util = new MongoUtil(COLLECTION, cli);
+    this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
   @Override

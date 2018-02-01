@@ -15,7 +15,7 @@ public class ModuleStorePostgres implements ModuleStore {
   private final PostgresTable<ModuleDescriptor> pgTable;
 
   public ModuleStorePostgres(PostgresHandle pg) {
-    this.pgTable = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "module_id");
+    this.pgTable = new PostgresTable<>(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "module_id");
   }
 
   @Override

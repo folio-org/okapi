@@ -13,7 +13,7 @@ public class DeploymentStoreMongo implements DeploymentStore {
   private final MongoUtil<DeploymentDescriptor> util;
 
   public DeploymentStoreMongo(MongoClient cli) {
-    this.util = new MongoUtil(COLLECTION, cli);
+    this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
   @Override

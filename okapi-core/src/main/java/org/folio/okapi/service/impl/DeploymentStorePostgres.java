@@ -14,7 +14,7 @@ public class DeploymentStorePostgres implements DeploymentStore {
   private final PostgresTable<DeploymentDescriptor> table;
 
   public DeploymentStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable(pg, "deployments", JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
+    this.table = new PostgresTable<>(pg, "deployments", JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
   }
 
   @Override

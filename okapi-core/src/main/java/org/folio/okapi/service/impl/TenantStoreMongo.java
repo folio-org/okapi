@@ -40,7 +40,7 @@ public class TenantStoreMongo implements TenantStore {
 
   public TenantStoreMongo(MongoClient cli) {
     this.cli = cli;
-    this.util = new MongoUtil(COLLECTION, cli);
+    this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
   @Override

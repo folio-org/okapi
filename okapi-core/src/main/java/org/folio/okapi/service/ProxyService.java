@@ -67,7 +67,7 @@ public class ProxyService {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
-  private Random random;
+  private final Random random;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
@@ -863,9 +863,12 @@ public class ProxyService {
   public void callSystemInterface(String tenantId, String module, String path,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
+    //logger.warn("ZZZ callSystemInterface on " + module + " " + path);
 
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
+        logger.warn("callSystemInterface on module " + module + " " + path
+          + "failed. Could not find a the module in discovery", gres.cause());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
