@@ -31,6 +31,7 @@ import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.ProxyContext;
 
@@ -119,7 +120,7 @@ public class DiscoveryManager implements NodeListener {
         logger.debug("documentStore.insert " + res.result().getInstId());
         deploymentStore.insert(res.result(), res1 -> {
           if (res1.failed()) {
-            fut.handle(new Failure(res1.getType(), res1.cause()));
+            fut.handle(new Failure<>(res1.getType(), res1.cause()));
           } else {
             fut.handle(new Success<>(res.result()));
           }
@@ -267,12 +268,12 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
-    if (md.getDescriptor() == null) {
+    final String nodeId = md.getNodeId();
+    if (nodeId == null) {
       logger.info("callUndeploy remove");
       remove(md.getSrvcId(), md.getInstId(), fut);
     } else {
       logger.info("callUndeploy calling..");
-      final String nodeId = md.getNodeId();
       getNode(nodeId, res1 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -337,6 +338,11 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy " + md.getId());
+    // internal Okapi modules is not part of discovery so ignore it
+    if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
+      fut.handle(new Success<>());
+      return;
+    }
     nodes.getKeys(res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -359,17 +365,14 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      logger.info("autoDeploy " + md.getId() + " has no launchDescriptor");
-      return;
-    }
+    List<Future> futures = new LinkedList<>();
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
       logger.info("autoDeploy " + md.getId() + " consider " + node);
       DeploymentDescriptor foundDd = null;
       for (DeploymentDescriptor dd : ddList) {
-        if (node.equals(dd.getNodeId())) {
+        if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
           foundDd = dd;
         }
       }
@@ -379,56 +382,54 @@ public class DiscoveryManager implements NodeListener {
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
-        addAndDeploy(dd, pc, res2 -> {
-          if (res2.failed()) {
-            logger.info("launchIt failed");
-            fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          } else {
-            logger.info("launchIt OK");
-            autoDeploy(md, pc, fut);
-          }
-        });
-        return;
+        Future f = Future.future();
+        addAndDeploy(dd, pc, f::handle);
+        futures.add(f);
       } else {
         logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
       }
     }
-    fut.handle(new Success<>());
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(USER, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
   }
 
   public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy " + md.getId());
-    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      logger.info("autoUndeploy " + md.getId() + " no lunchDescriptor");
+    if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
-    } else {
-      deployments.get(md.getId(), res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          List<DeploymentDescriptor> ddList = res.result();
-          if (ddList.isEmpty()) {
-            fut.handle(new Success<>());
-          } else {
-            callUndeploy(ddList.get(0), pc, res2 -> {
-              if (res2.failed()) {
-                fut.handle(new Failure<>(res2.getType(), res2.cause()));
-              } else {
-                autoUndeploy(md, pc, fut);
-              }
-            });
+      return;
+    }
+    deployments.get(md.getId(), res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        List<DeploymentDescriptor> ddList = res.result();
+        List<Future> futures = new LinkedList<>();
+        for (DeploymentDescriptor dd : ddList) {
+          if (dd.getNodeId() != null) {
+            Future f = Future.future();
+            callUndeploy(dd, pc, f::handle);
+            futures.add(f);
           }
         }
-      });
-    }
+        CompositeFuture.all(futures).setHandler(res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(USER, res2.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
+      }
+    });
   }
 
-  /**
-   * Get the list for one srvcId. May return an empty list.
-   */
   public void get(String srvcId,
     Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
