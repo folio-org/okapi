@@ -120,7 +120,7 @@ public class DiscoveryManager implements NodeListener {
         logger.debug("documentStore.insert " + res.result().getInstId());
         deploymentStore.insert(res.result(), res1 -> {
           if (res1.failed()) {
-            fut.handle(new Failure(res1.getType(), res1.cause()));
+            fut.handle(new Failure<>(res1.getType(), res1.cause()));
           } else {
             fut.handle(new Success<>(res.result()));
           }
@@ -365,6 +365,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    List<Future> futures = new LinkedList<>();
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
@@ -381,21 +382,20 @@ public class DiscoveryManager implements NodeListener {
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
-        addAndDeploy(dd, pc, res2 -> {
-          if (res2.failed()) {
-            logger.info("launchIt failed");
-            fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          } else {
-            logger.info("launchIt OK");
-            autoDeploy(md, pc, fut);
-          }
-        });
-        return;
+        Future f = Future.future();
+        addAndDeploy(dd, pc, f::handle);
+        futures.add(f);
       } else {
         logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
       }
     }
-    fut.handle(new Success<>());
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(USER, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
   }
 
   public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
@@ -421,7 +421,7 @@ public class DiscoveryManager implements NodeListener {
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
           if (res2.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res2.cause()));
+            fut.handle(new Failure<>(USER, res2.cause()));
           } else {
             fut.handle(new Success<>());
           }
@@ -430,9 +430,6 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  /**
-   * Get the list for one srvcId. May return an empty list.
-   */
   public void get(String srvcId,
     Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
