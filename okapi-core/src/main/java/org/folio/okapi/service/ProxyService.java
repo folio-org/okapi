@@ -490,6 +490,26 @@ public class ProxyService {
     });
   }
 
+  private void proxyResponseImmediate(ProxyContext pc, HttpClientResponse res,
+    ModuleInstance mi) {
+
+    RoutingContext ctx = pc.getCtx();
+    relayToResponse(ctx.response(), res);
+    makeTraceHeader(mi, res.statusCode(), pc);
+    res.handler(data -> {
+      ctx.response().write(data);
+      pc.trace("ProxyRequestImmediate response chunk '"
+        + data.toString() + "'");
+    });
+    res.endHandler(v -> {
+      pc.closeTimer();
+      ctx.response().end();
+      pc.trace("ProxyRequestImmediate response end");
+    });
+    res.exceptionHandler(e
+      -> pc.warn("proxyRequestImmediate res exception ", e));
+  }
+
   private void proxyRequestHttpClient(Iterator<ModuleInstance> it,
     ProxyContext pc, Buffer bcontent, ModuleInstance mi) {
 
@@ -497,39 +517,26 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
-        if (res.statusCode() < 200 || res.statusCode() >= 300) {
-          relayToResponse(ctx.response(), res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.handler(data -> {
-            ctx.response().write(data);
-            pc.trace("ProxyRequestHttpClient response chunk '"
-              + data.toString() + "'");
-          });
-          res.endHandler(x -> {
-            pc.closeTimer();
-            ctx.response().end();
-            pc.trace("ProxyRequestHttpClient response end");
-          });
-          res.exceptionHandler(e
-            -> pc.warn("proxyRequestHttpClient: res exception (a)", e));
-        } else if (it.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
+      if (res.statusCode() < 200 || res.statusCode() >= 300) {
+        proxyResponseImmediate(pc, res, mi);
+      } else if (it.hasNext()) {
+        makeTraceHeader(mi, res.statusCode(), pc);
+        pc.closeTimer();
+        relayToRequest(res, pc);
+        proxyR(it, pc, null, bcontent);
+      } else {
+        relayToResponse(ctx.response(), res);
+        makeTraceHeader(mi, res.statusCode(), pc);
+        res.endHandler(x -> {
           pc.closeTimer();
-          relayToRequest(res, pc);
-          proxyR(it, pc, null, bcontent);
-        } else {
-          relayToResponse(ctx.response(), res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x -> {
-            pc.closeTimer();
-            pc.trace("ProxyRequestHttpClient final response buf '"
-              + bcontent + "'");
-            ctx.response().end(bcontent);
-          });
-          res.exceptionHandler(e
-            -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
-        }
-      });
+          pc.trace("ProxyRequestHttpClient final response buf '"
+            + bcontent + "'");
+          ctx.response().end(bcontent);
+        });
+        res.exceptionHandler(e
+          -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
+      }
+    });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
       pc.responseText(500, "proxyRequestHttpClient failure: "
@@ -601,20 +608,7 @@ public class ProxyService {
           res.pause();
           proxyR(it, pc, res, null);
         } else {
-          relayToResponse(ctx.response(), res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.handler(data -> {
-            ctx.response().write(data);
-            pc.trace("ProxyRequestResponse response chunk '"
-              + data.toString() + "'");
-          });
-          res.endHandler(v -> {
-            pc.closeTimer();
-            ctx.response().end();
-            pc.trace("ProxyRequestResponse response end");
-          });
-          res.exceptionHandler(e
-            -> pc.warn("proxyRequestResponse: res exception ", e));
+          proxyResponseImmediate(pc, res, mi);
         }
       });
     cReq.exceptionHandler(e -> {
@@ -652,51 +646,38 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-        if (res.statusCode() < 200 || res.statusCode() >= 300) {
-          relayToResponse(ctx.response(), res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.handler(data -> {
+      if (res.statusCode() < 200 || res.statusCode() >= 300) {
+        proxyResponseImmediate(pc, res, mi);
+        if (bcontent == null) {
+          stream.resume();
+        }
+      } else if (it.hasNext()) {
+        relayToRequest(res, pc);
+        makeTraceHeader(mi, res.statusCode(), pc);
+        res.endHandler(x
+          -> proxyR(it, pc, stream, bcontent));
+      } else {
+        relayToResponse(ctx.response(), res);
+        makeTraceHeader(mi, res.statusCode(), pc);
+        if (bcontent == null) {
+          stream.handler(data -> {
             ctx.response().write(data);
-            pc.trace("ProxyHeaders response chunk '"
+            pc.trace("ProxyHeaders request chunk '"
               + data.toString() + "'");
           });
-          res.endHandler(v -> {
-            pc.closeTimer();
+          stream.endHandler(v -> {
             ctx.response().end();
-            pc.trace("ProxyHeaders response end");
+            pc.trace("ProxyHeaders request end");
           });
-          res.exceptionHandler(e
-            -> pc.warn("proxyHeaders: res exception ", e));
-          if (bcontent == null) {
-            stream.resume();
-          }
-        } else if (it.hasNext()) {
-          relayToRequest(res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x
-            -> proxyR(it, pc, stream, bcontent));
+          stream.exceptionHandler(e
+            -> pc.warn("proxyHeaders: content exception ", e));
+          stream.resume();
         } else {
-          relayToResponse(ctx.response(), res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          if (bcontent == null) {
-            stream.handler(data -> {
-              ctx.response().write(data);
-              pc.trace("ProxyHeaders request chunk '"
-                + data.toString() + "'");
-            });
-            stream.endHandler(v -> {
-              ctx.response().end();
-              pc.trace("ProxyHeaders request end");
-            });
-            stream.exceptionHandler(e
-              -> pc.warn("proxyHeaders: content exception ", e));
-            stream.resume();
-          } else {
-            pc.trace("ProxyHeaders request buf '" + bcontent + "'");
-            ctx.response().end(bcontent);
-          }
+          pc.trace("ProxyHeaders request buf '" + bcontent + "'");
+          ctx.response().end(bcontent);
         }
-      });
+      }
+    });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
       pc.responseText(500, "proxyHeaders failure: "
