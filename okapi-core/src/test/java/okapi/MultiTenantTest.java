@@ -177,7 +177,7 @@ public class MultiTenantTest {
       .then().statusCode(401)
       .log().ifValidationFails();
 
-    // login and get token
+    // supertenant login and get token
     final String docLoginSupertenant = "{" + LS
       + "  \"tenant\" : \"" + supertenant + "\"," + LS
       + "  \"username\" : \"peter\"," + LS
@@ -248,7 +248,7 @@ public class MultiTenantTest {
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(2, ja.size());
 
-    // login and get token
+    // tenant2 login and get token
     final String docLoginTenant2 = "{" + LS
       + "  \"tenant\" : \"" + tenant2 + "\"," + LS
       + "  \"username\" : \"peter\"," + LS
@@ -271,7 +271,8 @@ public class MultiTenantTest {
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
 
-    // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
+    // test failure for enable+deploy sample-module-2.0.0 for tenant2 as tenant2
+    // because no launch descriptor for sample-module-2.0.0
     given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", okapiTokenTenant2)
@@ -279,6 +280,7 @@ public class MultiTenantTest {
       .post("/_/proxy/tenants/" + tenant2 + "/install?deploy=true")
       .then().statusCode(400).log().ifValidationFails();
 
+    // remedy the situation by add it to discovery with same URL as other sample
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module-2.0.0\"," + LS
@@ -299,7 +301,7 @@ public class MultiTenantTest {
       .extract().response();
     logger.info(res.body().asString());
     ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(3, ja.size());
+    Assert.assertEquals(3, ja.size()); // two sample modules and auth module
 
     // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
     given()
@@ -331,7 +333,7 @@ public class MultiTenantTest {
       .then().statusCode(200).log().ifValidationFails()
       .extract().response();
     ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(2, ja.size());
+    Assert.assertEquals(2, ja.size()); // auth + manual discovery for 2.0.0
 
     // undeploy auth-1 for supertenant
     given()
