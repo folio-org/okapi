@@ -3101,7 +3101,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    
+
     c = api.createRestAssured();
     c.given().get("/_/proxy/tenants/" + "foo" + "/interfaces/sample")
       .then().statusCode(404);
