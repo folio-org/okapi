@@ -48,12 +48,12 @@ public class ProxyContext {
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
-    timerId = ctx.vertx().setPeriodic(10000, res -> {
-      logger.warn(reqId + " WAIT "
+    timerId = ctx.vertx().setPeriodic(10000, res
+      -> logger.warn(reqId + " WAIT "
         + ctx.request().remoteAddress()
         + " " + tenant + " " + ctx.request().method()
-        + " " + ctx.request().path());
-    });
+        + " " + ctx.request().path())
+    );
   }
 
   public void closeTimer() {
