@@ -41,7 +41,6 @@ public class DockerModuleHandle implements ModuleHandle {
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     Ports ports, int port) {
-    Vertx vertx1 = vertx;
     this.hostPort = port;
     this.ports = ports;
     this.image = desc.getDockerImage();

@@ -731,35 +731,40 @@ public class TenantManager {
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
+      } else {
+        listInterfaces(tres.result(), full, interfaceType, fut);
+      }
+    });
+  }
+
+  private void listInterfaces(Tenant tenant, boolean full, String interfaceType,
+    Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
+
+    List<InterfaceDescriptor> intList = new ArrayList<>();
+    moduleManager.getEnabledModules(tenant, mres -> {
+      if (mres.failed()) {
+        fut.handle(new Failure<>(mres.getType(), mres.cause()));
         return;
       }
-      Tenant tenant = tres.result();
-      ArrayList<InterfaceDescriptor> intList = new ArrayList<>();
-      moduleManager.getEnabledModules(tenant, mres -> {
-        if (mres.failed()) {
-          fut.handle(new Failure<>(mres.getType(), mres.cause()));
-          return;
-        }
-        List<ModuleDescriptor> modlist = mres.result();
-        Set<String> ids = new HashSet<>();
-        for (ModuleDescriptor md : modlist) {
-          for (InterfaceDescriptor provide : md.getProvidesList()) {
-            if (interfaceType == null || provide.isType(interfaceType)) {
-              if (full) {
-                intList.add(provide);
-              } else {
-                if (ids.add(provide.getId())) {
-                  InterfaceDescriptor tmp = new InterfaceDescriptor();
-                  tmp.setId(provide.getId());
-                  tmp.setVersion(provide.getVersion());
-                  intList.add(tmp);
-                }
+      List<ModuleDescriptor> modlist = mres.result();
+      Set<String> ids = new HashSet<>();
+      for (ModuleDescriptor md : modlist) {
+        for (InterfaceDescriptor provide : md.getProvidesList()) {
+          if (interfaceType == null || provide.isType(interfaceType)) {
+            if (full) {
+              intList.add(provide);
+            } else {
+              if (ids.add(provide.getId())) {
+                InterfaceDescriptor tmp = new InterfaceDescriptor();
+                tmp.setId(provide.getId());
+                tmp.setVersion(provide.getVersion());
+                intList.add(tmp);
               }
             }
           }
         }
-        fut.handle(new Success<>(intList));
-      });
+      }
+      fut.handle(new Success<>(intList));
     });
   }
 
