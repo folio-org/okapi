@@ -851,7 +851,9 @@ public class ProxyService {
   }
 
   /**
-   * Make a request to a system interface, like _tenant.
+   * Make a request to a system interface, like _tenant. Part 1: Check that we
+   * are working as the right tenant, and if not so, change identity to the
+   * correct one.
    *
    * @param tenantId to make the request for
    * @param module id of the module to invoke
@@ -863,12 +865,44 @@ public class ProxyService {
   public void callSystemInterface(String tenantId, String module, String path,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
-    //logger.warn("ZZZ callSystemInterface on " + module + " " + path);
+
+    String curTenant = pc.getTenant();
+    logger.warn("ZZZ callSystemInterface on " + module + " " + path
+      + " for " + tenantId + " as " + curTenant);
+    if (tenantId.equals(curTenant)) {
+      logger.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
+      doCallSystemInterface(tenantId, module, path, request, pc, fut);
+      return;
+    }
+    String authTok = pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN);
+    if (authTok == null) {
+      logger.warn("ZZZ   callSystemInterface: No auth, just setting the tenant");
+      pc.getCtx().request().headers().set(XOkapiHeaders.TOKEN, tenantId);
+      pc.setTenant(tenantId);
+      doCallSystemInterface(tenantId, module, path, request, pc, fut);
+      pc.setTenant(curTenant);  // restore pc
+      pc.getCtx().request().headers().set(XOkapiHeaders.TOKEN, curTenant);
+      return;
+    }
+    logger.warn("ZZZ   callSystemInterface: We should get a new token!");
+    doCallSystemInterface(tenantId, module, path, request, pc, fut);
+  }
+
+  /**
+   * Actually make a request to a system interface, like _tenant. Assumes we are
+   * operating as the correct tenant.
+   */
+  private void doCallSystemInterface(String tenantId, String module, String path,
+    String request, ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    String curTenant = pc.getTenant();
+    logger.warn("ZZZ   doCallSystemInterface on " + module + " " + path
+      + " for " + tenantId + " as " + curTenant);
 
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
-        logger.warn("callSystemInterface on module " + module + " " + path
-          + "failed. Could not find a the module in discovery", gres.cause());
+        logger.warn("callSystemInterface on " + module + " " + path
+          + " failed. Could not find a the module in discovery", gres.cause());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
@@ -912,8 +946,8 @@ public class ProxyService {
         headers.put(hdr, ctx.request().headers().get(hdr));
       }
     }
-    headers.put(XOkapiHeaders.TENANT, tenantId);
-    logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    //headers.put(XOkapiHeaders.TENANT, tenantId);
+    //logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
     headers.put("Accept", "*/*");
     headers.put("Content-Type", "application/json; charset=UTF-8");
     return headers;
