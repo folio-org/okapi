@@ -402,30 +402,32 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy " + md.getId());
-    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    if (modLaunchDesc == null) {
-      logger.info("autoUndeploy " + md.getId() + " no lunchDescriptor");
+    if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
-    } else {
-      deployments.get(md.getId(), res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          List<DeploymentDescriptor> ddList = res.result();
-          if (ddList.isEmpty()) {
-            fut.handle(new Success<>());
-          } else {
-            callUndeploy(ddList.get(0), pc, res2 -> {
-              if (res2.failed()) {
-                fut.handle(new Failure<>(res2.getType(), res2.cause()));
-              } else {
-                autoUndeploy(md, pc, fut);
-              }
-            });
+      return;
+    }
+    deployments.get(md.getId(), res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        List<DeploymentDescriptor> ddList = res.result();
+        List<Future> futures = new LinkedList<>();
+        for (DeploymentDescriptor dd : ddList) {
+          if (dd.getNodeId() != null) {
+            Future f = Future.future();
+            callUndeploy(dd, pc, f::handle);
+            futures.add(f);
           }
         }
-      });
-    }
+        CompositeFuture.all(futures).setHandler(res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res2.cause()));
+          } else {
+            fut.handle(new Success<>());
+          }
+        });
+      }
+    });
   }
 
   /**
