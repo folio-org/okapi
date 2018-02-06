@@ -862,30 +862,62 @@ public class ProxyService {
    * @param pc ProxyContext for logging, and returning resp headers
    * @param fut Callback with the response body, or various errors
    */
-  public void callSystemInterface(String tenantId, String module, String path,
+  public void callSystemInterface(Tenant tenant, String module, String path,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
+    String tenantId = tenant.getId(); // the tenant we are about to enable
+    String curTenantId = pc.getTenant(); // is often the supertenant
 
-    String curTenant = pc.getTenant();
-    logger.warn("ZZZ callSystemInterface on " + module + " " + path
-      + " for " + tenantId + " as " + curTenant);
-    if (tenantId.equals(curTenant)) {
-      logger.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
+    pc.warn("ZZZ callSystemInterface on " + module + " " + path
+      + " for " + tenantId + " as " + curTenantId);
+    if (tenantId.equals(curTenantId)) {
+      pc.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
       doCallSystemInterface(tenantId, module, path, request, pc, fut);
       return;
     }
-    String authTok = pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN);
-    if (authTok == null) {
-      logger.warn("ZZZ   callSystemInterface: No auth, just setting the tenant");
-      pc.getCtx().request().headers().set(XOkapiHeaders.TOKEN, tenantId);
+    // Check if the actual tenant has auth enabled. If yes, get a token for it.
+    // If we have auth for current (super)tenant is irrelevant here!
+    pc.warn("ZZZ callSystemInterface: Checking if " + tenantId + " has auth");
+
+    moduleManager.getEnabledModules(tenant, mres -> {
+      if (mres.failed()) { // Should not happen
+        pc.warn("ZZZ callSystemInterface: getEnabledModules failed: ", mres.cause());
+        fut.handle(new Failure<>(mres.getType(), mres.cause()));
+        return;
+      }
+      List<ModuleDescriptor> enabledModules = mres.result();
+      for (ModuleDescriptor md : enabledModules) {
+        RoutingEntry[] filters = md.getFilters();
+        if (filters != null) {
+          for (RoutingEntry filt : filters) {
+            if ("auth".equals(filt.getPhase())) {
+              pc.warn("ZZZ callSystemInterface: Found auth filter in " + md.getId());
+              //doCallSystemInterface(tenantId, module, path, request, pc, fut); // !!!
+              //return;
+            }
+          }
+        }
+      }
+      pc.warn("ZZZ   callSystemInterface: No auth for " + tenantId
+        + " just setting the tenant header");
+      pc.getCtx().request().headers().set(XOkapiHeaders.TENANT, tenantId);
       pc.setTenant(tenantId);
-      doCallSystemInterface(tenantId, module, path, request, pc, fut);
-      pc.setTenant(curTenant);  // restore pc
-      pc.getCtx().request().headers().set(XOkapiHeaders.TOKEN, curTenant);
-      return;
-    }
-    logger.warn("ZZZ   callSystemInterface: We should get a new token!");
-    doCallSystemInterface(tenantId, module, path, request, pc, fut);
+      doCallSystemInterface(tenantId, module, path, request, pc, cres -> {
+        pc.warn("ZZZ   callSystemInterface: Restoring tenant " + curTenantId);
+        pc.setTenant(curTenantId);  // restore pc
+        pc.getCtx().request().headers().set(XOkapiHeaders.TENANT, curTenantId);
+        if ("-".equals(curTenantId)) {
+          pc.warn("ZZZ   callSystemInterface: Restoring tenant " + curTenantId + " to none");
+          pc.getCtx().request().headers().remove(XOkapiHeaders.TENANT);
+        }
+        if (cres.failed()) {
+          pc.warn("ZZZ callSystemInterface: doCallSystemInterface failed: ", cres.cause());
+          fut.handle(new Failure<>(mres.getType(), mres.cause()));
+          return;
+        }
+        fut.handle(new Success<>(cres.result()));
+      });
+    });
   }
 
   /**
@@ -896,12 +928,12 @@ public class ProxyService {
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     String curTenant = pc.getTenant();
-    logger.warn("ZZZ   doCallSystemInterface on " + module + " " + path
+    pc.warn("ZZZ   doCallSystemInterface on " + module + " " + path
       + " for " + tenantId + " as " + curTenant);
 
     discoveryManager.get(module, gres -> {
       if (gres.failed()) {
-        logger.warn("callSystemInterface on " + module + " " + path
+        pc.warn("callSystemInterface on " + module + " " + path
           + " failed. Could not find a the module in discovery", gres.cause());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
@@ -913,10 +945,11 @@ public class ProxyService {
         return;
       }
       String baseurl = instance.getUrl();
-      pc.debug("callSystemInterface Url: " + baseurl + " and " + path);
+      pc.warn("ZZZ   callSystemInterface Url: " + baseurl + " and " + path);
       Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId);
+      pc.warn("ZZZ   About to create OkapiClient with headers " + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-      cli.newReqId("tenant");
+      cli.newReqId("tenant"); // Should be derived from path!
       cli.enableInfoLog();
       cli.request(HttpMethod.POST, path, request, cres -> {
         cli.close();

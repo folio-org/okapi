@@ -432,8 +432,8 @@ public class TenantManager {
           jo.put("module_from", mdFrom.getId());
         }
         String req = jo.encodePrettily();
-        proxyService.callSystemInterface(tenant.getId(),
-          mdTo.getId(), tenInt, req, pc, cres -> {
+        proxyService.callSystemInterface(tenant, mdTo.getId(), tenInt,
+          req, pc, cres -> {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
@@ -613,8 +613,8 @@ public class TenantManager {
       return;
     }
     pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
-    proxyService.callSystemInterface(tenant.getId(),
-      permsModule.getId(), permPath, pljson, pc, cres -> {
+    proxyService.callSystemInterface(tenant, permsModule.getId(), permPath,
+      pljson, pc, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
         } else {
