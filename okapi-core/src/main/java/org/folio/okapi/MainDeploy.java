@@ -33,7 +33,7 @@ public class MainDeploy {
   private int clusterPort = -1;
 
   public MainDeploy() {
-    conf = new JsonObject();
+    this.conf = new JsonObject();
   }
 
   public MainDeploy(JsonObject conf) {
