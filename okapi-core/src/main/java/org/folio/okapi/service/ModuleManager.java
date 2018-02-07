@@ -603,7 +603,6 @@ public class ModuleManager {
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    // getEnabledModulesR(ten.getEnabled().keySet().iterator(), mdl, fut);
     List<Future> futures = new LinkedList<>();
     for (String id : ten.getEnabled().keySet()) {
       Future<ModuleDescriptor> f = Future.future();
