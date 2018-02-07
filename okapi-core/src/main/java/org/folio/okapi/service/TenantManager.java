@@ -1,5 +1,7 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -14,6 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.PermissionList;
@@ -160,42 +164,27 @@ public class TenantManager {
         logger.warn("TenantManager list: Getting keys FAILED: ", lres);
         fut.handle(new Failure<>(INTERNAL, lres.cause()));
       } else {
-        List<String> ids = new ArrayList<>(lres.result());
-        ids.sort(null); // to keep test resulsts consistent
-        List<TenantDescriptor> tdl = new ArrayList<>();
-        logger.debug("TenantManager list: " + Json.encode(ids));
-        Iterator<String> it = ids.iterator();
-        listR(it, tdl, fut);
+        List<Future> futures = new LinkedList<>();
+        SortedMap<String, TenantDescriptor> tdl = new TreeMap<>();
+        for (String s : lres.result()) {
+          Future future = Future.future();
+          tenants.get(s, res -> {
+            if (res.succeeded()) {
+              tdl.put(s, res.result().getDescriptor());
+            }
+            future.handle(res);
+          });
+          futures.add(future);
+        }
+        CompositeFuture.all(futures).setHandler(res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res.cause()));
+          } else {
+            fut.handle(new Success(new LinkedList(tdl.values())));
+          }
+        });
       }
     });
-  }
-
-  /**
-   * Recursive helper to list tenants.
-   *
-   * @param it iterator to recurse through
-   * @param tdl list to build
-   * @param fut
-   */
-  private void listR(Iterator<String> it, List<TenantDescriptor> tdl,
-    Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(tdl));
-    } else {
-      String tid = it.next();
-      tenants.get(tid, gres -> {
-        if (gres.failed()) {
-          logger.warn("TenantManager list: Getting " + tid + " FAILED: ", gres);
-          fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        } else {
-          Tenant t = gres.result();
-          TenantDescriptor td = t.getDescriptor();
-          tdl.add(td);
-          logger.debug("TenantManager list: Added " + tid + ":" + Json.encode(td));
-          listR(it, tdl, fut);
-        }
-      });
-    }
   }
 
   /**
@@ -740,7 +729,7 @@ public class TenantManager {
   private void listInterfaces(Tenant tenant, boolean full, String interfaceType,
     Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
 
-    List<InterfaceDescriptor> intList = new ArrayList<>();
+    List<InterfaceDescriptor> intList = new LinkedList<>();
     moduleManager.getEnabledModules(tenant, mres -> {
       if (mres.failed()) {
         fut.handle(new Failure<>(mres.getType(), mres.cause()));
@@ -778,7 +767,7 @@ public class TenantManager {
         return;
       }
       Tenant tenant = tres.result();
-      ArrayList<ModuleDescriptor> mdList = new ArrayList<>();
+      List<ModuleDescriptor> mdList = new LinkedList<>();
       moduleManager.getEnabledModules(tenant, mres -> {
         if (mres.failed()) {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
@@ -1165,36 +1154,33 @@ public class TenantManager {
           logger.info("No storage to load tenants from, so starting with empty");
           fut.handle(new Success<>());
         } else {
-          tenantStore.listTenants(lres -> {
-            if (lres.failed()) {
-              fut.handle(new Failure<>(lres.getType(), lres.cause()));
-            } else {
-              Iterator<Tenant> it = lres.result().iterator();
-              loadR(it, fut);
-            }
-          });
+          loadTenants2(fut);
         }
       }
     });
   }
 
-  private void loadR(Iterator<Tenant> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      logger.info("All tenants loaded");
-      fut.handle(new Success<>());
-      return;
-    }
-    Tenant t = it.next();
-    String id = t.getId();
-    tenants.add(id, t, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+  private void loadTenants2(Handler<ExtendedAsyncResult<Void>> fut) {
+    tenantStore.listTenants(lres -> {
+      if (lres.failed()) {
+        fut.handle(new Failure<>(lres.getType(), lres.cause()));
       } else {
-        loadR(it, fut);
+        List<Future> futures = new LinkedList<>();
+        for (Tenant t : lres.result()) {
+          Future<Void> f = Future.future();
+          tenants.add(t.getId(), t, f::handle);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res.cause()));
+          } else {
+            logger.info("All tenants loaded");
+            fut.handle(new Success<>());
+          }
+        });
       }
     });
   }
-
 
 } // class
