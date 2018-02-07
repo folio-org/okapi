@@ -124,17 +124,15 @@ public class LockedStringMap {
 
       List<Future> futures = new LinkedList<>();
       for (String k : keys.keys) {
-        Future<Void> f = Future.future();
+        Future<String> f = Future.future();
         list.get(k, res -> {
-          if (res.failed()) {
-            f.handle(Future.failedFuture(res.cause()));
-          } else {
+          if (res.succeeded()) {
             String v = res.result();
             if (v != null) {
               result.add(k);
             }
-            f.handle(Future.succeededFuture());
           }
+          f.handle(res);
         });
         futures.add(f);
       }
