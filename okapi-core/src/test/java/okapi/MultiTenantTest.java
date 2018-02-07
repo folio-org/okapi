@@ -3,16 +3,14 @@ package okapi;
 import com.jayway.restassured.RestAssured;
 import static com.jayway.restassured.RestAssured.given;
 import com.jayway.restassured.response.Response;
-import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.okapi.MainVerticle;
+import org.folio.okapi.MainDeploy;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -27,7 +25,7 @@ import org.junit.runner.RunWith;
 public class MultiTenantTest {
 
   private final Logger logger = OkapiLogger.get();
-  private int port = 9230;
+  private final int port = 9230;
 
   private Vertx vertx;
   private static final String LS = System.lineSeparator();
@@ -112,12 +110,21 @@ public class MultiTenantTest {
 
   @Before
   public void setUp(TestContext context) {
-    vertx = Vertx.vertx();
+    Async async = context.async();
 
     RestAssured.port = port;
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port)));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    JsonObject conf = new JsonObject();
+    conf.put("port", Integer.toString(port));
+
+    MainDeploy d = new MainDeploy(conf);
+    String[] args = {"cluster"};
+    d.init(args, res -> {
+      if (res.succeeded()) {
+        vertx = res.result();
+      }
+      context.assertTrue(res.succeeded());
+      async.complete();
+    });
   }
 
   @After
@@ -368,5 +375,14 @@ public class MultiTenantTest {
       .extract().response();
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(1, ja.size());
+  }
+
+  @Test
+  public void test2() {
+    given()
+      .header("Content-Type", "application/json")
+      .body(docAuthModule)
+      .post("/_/discovery/modules")
+      .then().statusCode(201).log().ifValidationFails();
   }
 }
