@@ -467,10 +467,12 @@ public class DiscoveryManager implements NodeListener {
         List<Future> futures = new LinkedList<>();
         for (String s : keys) {
           Future<List<DeploymentDescriptor>> f = Future.future();
-          this.get(s, f::handle);
-          if (f.succeeded()) {
-            all.addAll(f.result());
-          }
+          this.get(s, res -> {
+            if (res.succeeded()) {
+              all.addAll(res.result());
+            }
+            f.handle(res);
+          });
           futures.add(f);
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
@@ -524,10 +526,12 @@ public class DiscoveryManager implements NodeListener {
     List<Future> futures = new LinkedList<>();
     for (DeploymentDescriptor md : list) {
       Future<HealthDescriptor> f = Future.future();
-      health(md, f::handle);
-      if (f.succeeded()) {
-        all.add(f.result());
-      }
+      health(md, res -> {
+        if (res.succeeded()) {
+          all.add(res.result());
+        }
+        f.handle(res);
+      });
       futures.add(f);
     }
     CompositeFuture.all(futures).setHandler(res2 -> {
@@ -676,10 +680,12 @@ public class DiscoveryManager implements NodeListener {
         List<Future> futures = new LinkedList<>();
         for (String nodeId : keys) {
           Future<NodeDescriptor> f = Future.future();
-          getNode1(nodeId, f::handle);
-          if (f.succeeded()) {
-            all.add(f.result());
-          }
+          getNode1(nodeId, res -> {
+            if (res.succeeded()) {
+              all.add(res.result());
+            }
+            f.handle(res);
+          });
           futures.add(f);
         }
         CompositeFuture.all(futures).setHandler(res2 -> {
