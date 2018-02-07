@@ -85,6 +85,7 @@ public class OkapiClientTest {
 
     Router router = Router.router(vertx);
     router.get("/test1").handler(this::myStreamHandle1);
+    router.head("/test1").handler(this::myStreamHandle1);
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
     router.delete("/test2").handler(this::myStreamHandle2);
@@ -219,9 +220,20 @@ public class OkapiClientTest {
   private void test6(OkapiClient cli, Async async) {
     cli.delete("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
-      cli.close();
-      async.complete();
+      test7(cli, async);
     });
+  }
+
+  private void test7(OkapiClient cli, Async async) {
+    cli.head("/test1", res -> {
+      assertTrue(res.succeeded());
+      testdone(cli, async);
+    });
+  }
+
+  private void testdone(OkapiClient cli, Async async) {
+    cli.close();
+    async.complete();
   }
 
   @Test

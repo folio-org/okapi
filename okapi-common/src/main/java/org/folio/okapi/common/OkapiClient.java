@@ -177,7 +177,10 @@ public class OkapiClient {
           }
         }
       });
-      reqres.exceptionHandler(e -> fut.handle(new Failure<>(INTERNAL, e)));
+      reqres.exceptionHandler(e -> {
+        logger.warn("OkapiClient exception ", e);
+        fut.handle(new Failure<>(INTERNAL, e));
+      });
     });
     req.exceptionHandler(x -> {
       String msg = x.getMessage();
@@ -188,7 +191,11 @@ public class OkapiClient {
       logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
     }
     req.headers().addAll(headers);
-    req.end(data);
+    if (data == null || data.isEmpty()) {
+      req.end();
+    } else {
+      req.end(data);
+    }
   }
 
   public void post(String path, String data,
@@ -204,6 +211,11 @@ public class OkapiClient {
   public void delete(String path,
     Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
+  }
+
+  public void head(String path,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    request(HttpMethod.HEAD, path, "", fut);
   }
 
   public String getOkapiUrl() {
