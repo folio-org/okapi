@@ -1,5 +1,7 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -1165,36 +1167,33 @@ public class TenantManager {
           logger.info("No storage to load tenants from, so starting with empty");
           fut.handle(new Success<>());
         } else {
-          tenantStore.listTenants(lres -> {
-            if (lres.failed()) {
-              fut.handle(new Failure<>(lres.getType(), lres.cause()));
-            } else {
-              Iterator<Tenant> it = lres.result().iterator();
-              loadR(it, fut);
-            }
-          });
+          loadTenants2(fut);
         }
       }
     });
   }
 
-  private void loadR(Iterator<Tenant> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      logger.info("All tenants loaded");
-      fut.handle(new Success<>());
-      return;
-    }
-    Tenant t = it.next();
-    String id = t.getId();
-    tenants.add(id, t, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+  private void loadTenants2(Handler<ExtendedAsyncResult<Void>> fut) {
+    tenantStore.listTenants(lres -> {
+      if (lres.failed()) {
+        fut.handle(new Failure<>(lres.getType(), lres.cause()));
       } else {
-        loadR(it, fut);
+        List<Future> futures = new LinkedList<>();
+        for (Tenant t : lres.result()) {
+          Future<Void> f = Future.future();
+          tenants.add(t.getId(), t, f::handle);
+          futures.add(f);
+        }
+        CompositeFuture.all(futures).setHandler(res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(INTERNAL, res.cause()));
+          } else {
+            logger.info("All tenants loaded");
+            fut.handle(new Success<>());
+          }
+        });
       }
     });
   }
-
 
 } // class
