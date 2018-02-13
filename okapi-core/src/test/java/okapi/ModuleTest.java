@@ -1511,7 +1511,6 @@ public class ModuleTest {
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    logger.debug("About to enable sample ZZZ");
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
