@@ -1511,6 +1511,7 @@ public class ModuleTest {
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
+    logger.debug("About to enable sample ZZZ");
     c = api.createRestAssured();
     c.given()
       .header("Content-Type", "application/json")
@@ -1583,11 +1584,17 @@ public class ModuleTest {
       .body(equalTo("No suitable module found for path /something.we.do.not.have"));
 
     // Request without an auth token
+    // This is acceptable, we get back a token that certifies that we have no
+    // logged-in username. We can use this for modulePermissions still.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
       .then()
-      .statusCode(401);
+      .statusCode(200)
+      .body(containsString("X-Okapi-Token")) // auth created a token
+      .body(containsString("X-Okapi-User-Id:?"));  // with no good userid
+
 
     // Failed login
     final String docWrongLogin = "{" + LS
@@ -1678,6 +1685,7 @@ public class ModuleTest {
       .get("/testb?p=parameters&q=query")
       .then().statusCode(200);
 
+    // Check that we called the tenant init
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -1685,7 +1693,7 @@ public class ModuleTest {
       .get("/testb")
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
-      .body(equalTo("It works Tenant requests: POST-roskilde "))
+      .body(equalTo("It works Tenant requests: POST-roskilde-auth "))
       .log().ifValidationFails();
 
     // Check that we refuse unknown paths, even with auth module
@@ -1929,7 +1937,7 @@ public class ModuleTest {
       .get("/testb")
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
-      .body(containsString("POST-roskilde POST-roskilde"))
+      .body(containsString("POST-roskilde-auth POST-roskilde-auth"))
       .log().ifValidationFails();
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees

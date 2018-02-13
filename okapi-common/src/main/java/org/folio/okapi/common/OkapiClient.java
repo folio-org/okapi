@@ -178,13 +178,17 @@ public class OkapiClient {
         }
       });
       reqres.exceptionHandler(e -> {
-        logger.warn("OkapiClient exception ", e);
+        logger.warn("OkapiClient exception 1 :", e);
         fut.handle(new Failure<>(INTERNAL, e));
       });
     });
-    req.exceptionHandler(x -> {
+    req.exceptionHandler((Throwable x) -> {
       String msg = x.getMessage();
-      logger.warn(reqId + " OkapiClient exception: " + msg);
+      logger.warn(reqId + " OkapiClient exception 2: " + msg);
+      // Connection gets closed. No idea why !!???
+      if (x.getCause() != null) {
+        logger.debug("   cause: " + x.getCause().getMessage());
+      }
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {

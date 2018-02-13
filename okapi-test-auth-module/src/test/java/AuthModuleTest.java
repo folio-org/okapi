@@ -93,8 +93,6 @@ public class AuthModuleTest {
         logger.debug("res.failed. " + Json.encode(res));
       }
       context.assertTrue(res.succeeded());
-      // OkapiClient complains that the connection was closed, INTERNAL
-      // Who or what closes it? I suspect auth, somehow.
       async.complete();
     });
   }

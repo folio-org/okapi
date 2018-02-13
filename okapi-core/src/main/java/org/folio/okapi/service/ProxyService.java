@@ -867,12 +867,12 @@ public class ProxyService {
     Handler<ExtendedAsyncResult<String>> fut) {
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String curTenantId = pc.getTenant(); // is often the supertenant
-
+    String authToken = pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN);
     pc.warn("ZZZ callSystemInterface on " + module + " " + path
-      + " for " + tenantId + " as " + curTenantId);
+      + " for " + tenantId + " as " + curTenantId + " with authToken " + authToken);
     if (tenantId.equals(curTenantId)) {
       pc.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
-      doCallSystemInterface(tenantId, module, path, request, pc, fut);
+      doCallSystemInterface(tenantId, authToken, module, path, request, pc, fut);
       return;
     }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
@@ -892,31 +892,41 @@ public class ProxyService {
           for (RoutingEntry filt : filters) {
             if ("auth".equals(filt.getPhase())) {
               pc.warn("ZZZ callSystemInterface: Found auth filter in " + md.getId());
-              //doCallSystemInterface(tenantId, module, path, request, pc, fut); // !!!
-              //return;
+              authForSystemInterface(md, filt, tenantId, module, path, request, pc, fut); // !!!
+              return;
             }
           }
         }
       }
       pc.warn("ZZZ   callSystemInterface: No auth for " + tenantId
-        + " just setting the tenant header");
-      pc.getCtx().request().headers().set(XOkapiHeaders.TENANT, tenantId);
-      pc.setTenant(tenantId);
-      doCallSystemInterface(tenantId, module, path, request, pc, cres -> {
-        pc.warn("ZZZ   callSystemInterface: Restoring tenant " + curTenantId);
-        pc.setTenant(curTenantId);  // restore pc
-        pc.getCtx().request().headers().set(XOkapiHeaders.TENANT, curTenantId);
-        if ("-".equals(curTenantId)) {
-          pc.warn("ZZZ   callSystemInterface: Restoring tenant " + curTenantId + " to none");
-          pc.getCtx().request().headers().remove(XOkapiHeaders.TENANT);
-        }
-        if (cres.failed()) {
-          pc.warn("ZZZ callSystemInterface: doCallSystemInterface failed: ", cres.cause());
-          fut.handle(new Failure<>(mres.getType(), mres.cause()));
-          return;
-        }
-        fut.handle(new Success<>(cres.result()));
-      });
+        + " calling with tenant header only");
+      doCallSystemInterface(tenantId, null, module, path, request, pc, fut);
+    });
+  }
+
+  /**
+   * Helper to get a new authtoken before invoking doCallSystemInterface.
+   *
+   * @param tenantId
+   * @param module
+   * @param path
+   * @param request
+   * @param pc
+   * @param fut
+   */
+  private void authForSystemInterface(ModuleDescriptor md, RoutingEntry filt,
+    String tenantId, String module, String path,
+    String request, ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    pc.warn("ZZZ  Calling doCallSystemInterface to get auth token");
+    doCallSystemInterface(tenantId, null, md.getId(), filt.getPath(), "", pc, res -> {
+      if (res.failed()) {
+        pc.debug("Auth check for tenant init failed!");
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      String token = res.result();
+      doCallSystemInterface(tenantId, token, module, path, request, pc, fut);
     });
   }
 
@@ -924,7 +934,8 @@ public class ProxyService {
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
    */
-  private void doCallSystemInterface(String tenantId, String module, String path,
+  private void doCallSystemInterface(String tenantId, String authToken,
+    String module, String path,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     String curTenant = pc.getTenant();
@@ -945,13 +956,19 @@ public class ProxyService {
         return;
       }
       String baseurl = instance.getUrl();
-      pc.warn("ZZZ   callSystemInterface Url: " + baseurl + " and " + path);
-      Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId);
+      pc.warn("ZZZ   doCallSystemInterface Url: " + baseurl + " and " + path);
+      Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId, authToken);
       pc.warn("ZZZ   About to create OkapiClient with headers " + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
       cli.newReqId("tenant"); // Should be derived from path!
       cli.enableInfoLog();
-      cli.request(HttpMethod.POST, path, request, cres -> {
+
+      HttpMethod meth = HttpMethod.POST;
+      if (request.isEmpty()) {
+        pc.warn("ZZZ   doCallSystemInterface: No Req, making a HEAD req");
+        meth = HttpMethod.HEAD;
+      }
+      cli.request(meth, path, request, cres -> {
         cli.close();
         if (cres.failed()) {
           String msg = "Request for "
@@ -963,24 +980,42 @@ public class ProxyService {
         }
         // Pass response headers - needed for unit test, if nothing else
         pc.debug("Request for " + module + " " + path + " ok");
+        String body = cres.result();
+        pc.debug("ZZZ   doCallSystemInterface response: " + body);
+        pc.debug("ZZZ   doCallSystemInterface ret "
+          + " hdrs: " + Json.encode(cli.getRespHeaders()));
         pc.passOkapiTraceHeaders(cli);
-        fut.handle(new Success<>(cli.getResponsebody()));
+        if (authToken == null) { // dirty trick to get the token from auth call
+          String newAuth = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
+          if (newAuth != null && !newAuth.isEmpty()) {
+            body = newAuth; // return the new auth token
+            pc.debug("ZZZ   doCallSystemInterface returning a new auth token: " + body);
+          }
+        }
+        fut.handle(new Success<>(body));
       });
     });
   }
 
   /**
-   * Helper to make request headers for the system requests we make.
+   * Helper to make request headers for the system requests we make. Copies all
+   * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private Map<String, String> sysReqHeaders(RoutingContext ctx, String tenantId) {
+  private Map<String, String> sysReqHeaders(RoutingContext ctx,
+    String tenantId, String authToken) {
     Map<String, String> headers = new HashMap<>();
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.matches("^X-.*$")) {
         headers.put(hdr, ctx.request().headers().get(hdr));
       }
     }
-    //headers.put(XOkapiHeaders.TENANT, tenantId);
-    //logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    headers.put(XOkapiHeaders.TENANT, tenantId);
+    logger.debug("Added " + XOkapiHeaders.TENANT + " : " + tenantId);
+    if (authToken == null) {
+      headers.remove(XOkapiHeaders.TOKEN);
+    } else {
+      headers.put(XOkapiHeaders.TOKEN, authToken);
+    }
     headers.put("Accept", "*/*");
     headers.put("Content-Type", "application/json; charset=UTF-8");
     return headers;
