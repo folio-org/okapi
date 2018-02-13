@@ -1,6 +1,8 @@
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
@@ -15,7 +17,6 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -51,10 +52,10 @@ public class AuthModuleTest {
     headers.put(XOkapiHeaders.URL, URL);
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    cli.get("/testb", res -> {
+    cli.get("/notokentenant", res -> {
       cli.close();
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
     });
   }
@@ -68,9 +69,32 @@ public class AuthModuleTest {
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.setOkapiToken("a.b.c");
-    cli.get("/testb", res -> {
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+    cli.get("/notenant", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testAAANoLoginToken(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    cli.get("/nologintoken", res -> {
+      if (res.succeeded()) {
+        logger.debug("res.succeeded. " + res.result());
+      } else {
+        logger.debug("res.failed. " + Json.encode(res));
+      }
+      context.assertTrue(res.succeeded());
+      // OkapiClient complains that the connection was closed, INTERNAL
+      // Who or what closes it? I suspect auth, somehow.
       async.complete();
     });
   }
@@ -86,10 +110,10 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.setOkapiToken("a.b");
 
-    cli.get("/testb", res -> {
+    cli.get("/badtoken", res -> {
       cli.close();
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.USER, res.getType());
       async.complete();
     });
   }
@@ -105,10 +129,10 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.setOkapiToken("a.b.c");
 
-    cli.get("/testb", res -> {
+    cli.get("/badjwt", res -> {
       cli.close();
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.USER, res.getType());
       async.complete();
     });
   }
@@ -124,10 +148,10 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.setOkapiToken("dummyJwt.b.c");
 
-    cli.get("/testb", res -> {
+    cli.get("/badpayload", res -> {
       cli.close();
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.USER, res.getType());
       async.complete();
     });
   }
@@ -145,13 +169,13 @@ public class AuthModuleTest {
     JsonObject j = new JsonObject();
     j.put("tenant", "my-lib");
     j.put("username", "foo");
-    j.put("password", "bar");
+    j.put("password", "badpassword");
     String body = j.encodePrettily();
 
     cli.post("/authn/login", body, res -> {
       cli.close();
-      assertTrue(res.failed());
-      assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
       async.complete();
     });
   }
@@ -167,7 +191,7 @@ public class AuthModuleTest {
 
     cli.get("/authn/login", res -> {
       cli.close();
-      assertTrue(res.succeeded());
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
@@ -189,17 +213,18 @@ public class AuthModuleTest {
     String body = j.encodePrettily();
 
     cli.post("/authn/login", body, res -> {
-      assertTrue(res.succeeded());
+      context.assertTrue(res.succeeded());
       cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
-      testNormal(cli, async);
+      testNormal(context, cli, async);
     });
   }
 
-  private void testNormal(OkapiClient cli, Async async) {
-    cli.get("/some", res -> {
+  private void testNormal(TestContext context, OkapiClient cli, Async async) {
+    cli.get("/normal", res -> {
       cli.close();
-      assertTrue(res.succeeded());
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
+
 }
