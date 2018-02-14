@@ -438,6 +438,7 @@ public class TenantManager {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
+            // We can ignore the result, the call went well.
             ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
           }
         });
@@ -636,8 +637,8 @@ public class TenantManager {
    * interface, and has a RoutingEntry that supports POST.
    *
    * @param module
-   * @param fut callback with the getPath to the interface, "" if no interface, or
- a failure
+   * @param fut callback with the getPath to the interface, "" if no interface,
+   * or a failure
    *
    */
   private void getTenantInterface(ModuleDescriptor md,
@@ -670,7 +671,6 @@ public class TenantManager {
       if (!res.isEmpty()) {
         for (RoutingEntry re : res) {
           if (re.match(null, "POST")) {
-            String path = null;
             if (re.getPath() != null) {
               logger.debug("findTenantInterface: found path " + re.getPath());
               fut.handle(new Success<>(new ModuleInstance(md, re, re.getPath())));
