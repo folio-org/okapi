@@ -855,7 +855,7 @@ public class ProxyService {
    * are working as the right tenant, and if not so, change identity to the
    * correct one.
    *
-   * @param tenantId to make the request for
+   * @param tenant to make the request for
    * @param module id of the module to invoke
    * @param path of the system service
    * @param request body to send in the request
@@ -921,7 +921,7 @@ public class ProxyService {
     pc.warn("ZZZ  Calling doCallSystemInterface to get auth token");
     doCallSystemInterface(tenantId, null, md.getId(), filt.getPath(), "", pc, res -> {
       if (res.failed()) {
-        pc.debug("Auth check for tenant init failed!");
+        pc.debug("Auth check for systemInterface failed!");
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
