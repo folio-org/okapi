@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.InterfaceDescriptor;
+import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
@@ -424,15 +425,15 @@ public class TenantManager {
           fut.handle(new Failure<>(ires.getType(), ires.cause()));
         }
       } else {
-        String tenInt = ires.result();
-        logger.debug("eadTenantInterface: tenint=" + tenInt);
+        ModuleInstance tenInst = ires.result();
+        logger.debug("eadTenantInterface: tenint=" + tenInst.getPath());
         JsonObject jo = new JsonObject();
         jo.put("module_to", mdTo.getId());
         if (mdFrom != null) {
           jo.put("module_from", mdFrom.getId());
         }
         String req = jo.encodePrettily();
-        proxyService.callSystemInterface(tenant, mdTo.getId(), tenInt,
+        proxyService.callSystemInterface(tenant, tenInst,
           req, pc, cres -> {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
@@ -596,6 +597,7 @@ public class TenantManager {
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
+    ModuleInstance permInst = null;
     if (!routingEntries.isEmpty()) {
       for (RoutingEntry re : routingEntries) {
         if (re.match(null, "POST")) {
@@ -603,17 +605,18 @@ public class TenantManager {
           if (permPath == null || permPath.isEmpty()) {
             permPath = re.getPathPattern();
           }
+          permInst = new ModuleInstance(permsModule, re, permPath);
         }
       }
     }
-    if (permPath == null || permPath.isEmpty()) {
+    if (permInst == null) {
       fut.handle(new Failure<>(USER,
         "Bad _tenantPermissions interface in module " + permsModule.getId()
         + ". No path to POST to"));
       return;
     }
     pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
-    proxyService.callSystemInterface(tenant, permsModule.getId(), permPath,
+    proxyService.callSystemInterface(tenant, permInst,
       pljson, pc, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
@@ -633,19 +636,19 @@ public class TenantManager {
    * interface, and has a RoutingEntry that supports POST.
    *
    * @param module
-   * @param fut callback with the path to the interface, "" if no interface, or
-   * a failure
+   * @param fut callback with the getPath to the interface, "" if no interface, or
+ a failure
    *
    */
   private void getTenantInterface(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
     InterfaceDescriptor[] prov = md.getProvidesList();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
-        getTenantInterface1(pi, fut, md);
+        getTenantInterface1(pi, md, fut);
         return;
       }
     }
@@ -654,7 +657,8 @@ public class TenantManager {
   }
 
   private void getTenantInterface1(InterfaceDescriptor pi,
-    Handler<ExtendedAsyncResult<String>> fut, ModuleDescriptor md) {
+    ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
     if (!"1.0".equals(pi.getVersion())) {
       fut.handle(new Failure<>(USER, "Interface _tenant must be version 1.0 "));
@@ -666,14 +670,15 @@ public class TenantManager {
       if (!res.isEmpty()) {
         for (RoutingEntry re : res) {
           if (re.match(null, "POST")) {
+            String path = null;
             if (re.getPath() != null) {
               logger.debug("findTenantInterface: found path " + re.getPath());
-              fut.handle(new Success<>(re.getPath()));
+              fut.handle(new Success<>(new ModuleInstance(md, re, re.getPath())));
               return;
             }
             if (re.getPathPattern() != null) {
               logger.debug("findTenantInterface: found pattern " + re.getPathPattern());
-              fut.handle(new Success<>(re.getPathPattern()));
+              fut.handle(new Success<>(new ModuleInstance(md, re, re.getPathPattern())));
               return;
             }
           }
@@ -683,7 +688,7 @@ public class TenantManager {
     logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
       + "interface. Define InterfaceType=system, and add a RoutingEntry."
       + " Falling back to calling /_/tenant.");
-    fut.handle(new Success<>("/_/tenant"));
+    fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant")));
   }
 
   /**

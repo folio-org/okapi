@@ -130,7 +130,7 @@ public class ProxyContext {
       path = "";
     }
     path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-      // when rerouting, the query appears as part of the path, so we kill it
+      // when rerouting, the query appears as part of the getPath, so we kill it
     // here with the '?'.
     Random r = new Random();
     StringBuilder newid = new StringBuilder();

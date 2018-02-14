@@ -420,7 +420,7 @@ public class ProxyService {
   }
 
   private String makeUrl(ModuleInstance mi, RoutingContext ctx) {
-    String url = mi.getUrl() + mi.getUri();
+    String url = mi.getUrl() + mi.getPath();
     String rdq = (String) ctx.data().get(REDIRECTQUERY);
     if (rdq != null) { // Parameters smuggled in from redirectProxy
       url += "?" + rdq;
@@ -814,7 +814,7 @@ public class ProxyService {
         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
           + " type " + pType
           + " level " + mi.getRoutingEntry().getPhaseLevel()
-          + " path " + mi.getUri()
+          + " path " + mi.getPath()
           + " url " + mi.getUrl());
       }
       switch (pType) {
@@ -856,23 +856,23 @@ public class ProxyService {
    * correct one.
    *
    * @param tenant to make the request for
-   * @param module id of the module to invoke
-   * @param path of the system service
+   * @param inst carries the moduleDescriptor, RoutinegEntry, and getPath to be
+   * called
    * @param request body to send in the request
    * @param pc ProxyContext for logging, and returning resp headers
    * @param fut Callback with the response body, or various errors
    */
-  public void callSystemInterface(Tenant tenant, String module, String path,
+  public void callSystemInterface(Tenant tenant, ModuleInstance inst,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String curTenantId = pc.getTenant(); // is often the supertenant
     String authToken = pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN);
-    pc.warn("ZZZ callSystemInterface on " + module + " " + path
+    pc.warn("ZZZ callSystemInterface on " + Json.encode(inst)
       + " for " + tenantId + " as " + curTenantId + " with authToken " + authToken);
     if (tenantId.equals(curTenantId)) {
       pc.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
-      doCallSystemInterface(tenantId, authToken, module, path, request, pc, fut);
+      doCallSystemInterface(tenantId, authToken, inst, request, pc, fut);
       return;
     }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
@@ -892,7 +892,7 @@ public class ProxyService {
           for (RoutingEntry filt : filters) {
             if ("auth".equals(filt.getPhase())) {
               pc.warn("ZZZ callSystemInterface: Found auth filter in " + md.getId());
-              authForSystemInterface(md, filt, tenantId, module, path, request, pc, fut); // !!!
+              authForSystemInterface(md, filt, tenantId, inst, request, pc, fut); // !!!
               return;
             }
           }
@@ -900,7 +900,7 @@ public class ProxyService {
       }
       pc.warn("ZZZ   callSystemInterface: No auth for " + tenantId
         + " calling with tenant header only");
-      doCallSystemInterface(tenantId, null, module, path, request, pc, fut);
+      doCallSystemInterface(tenantId, null, inst, request, pc, fut);
     });
   }
 
@@ -914,19 +914,20 @@ public class ProxyService {
    * @param pc
    * @param fut
    */
-  private void authForSystemInterface(ModuleDescriptor md, RoutingEntry filt,
-    String tenantId, String module, String path,
+  private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
+    String tenantId, ModuleInstance inst,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     pc.warn("ZZZ  Calling doCallSystemInterface to get auth token");
-    doCallSystemInterface(tenantId, null, md.getId(), filt.getPath(), "", pc, res -> {
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, filt.getPath());
+    doCallSystemInterface(tenantId, null, authInst, "", pc, res -> {
       if (res.failed()) {
         pc.debug("Auth check for systemInterface failed!");
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
       String token = res.result();
-      doCallSystemInterface(tenantId, token, module, path, request, pc, fut);
+      doCallSystemInterface(tenantId, token, inst, request, pc, fut);
     });
   }
 
@@ -935,16 +936,17 @@ public class ProxyService {
    * operating as the correct tenant.
    */
   private void doCallSystemInterface(String tenantId, String authToken,
-    String module, String path,
+    ModuleInstance inst,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
     String curTenant = pc.getTenant();
-    pc.warn("ZZZ   doCallSystemInterface on " + module + " " + path
+    pc.warn("ZZZ   doCallSystemInterface on " + Json.encode(inst)
       + " for " + tenantId + " as " + curTenant);
 
-    discoveryManager.get(module, gres -> {
+    discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
       if (gres.failed()) {
-        pc.warn("callSystemInterface on " + module + " " + path
+        pc.warn("callSystemInterface on " + inst.getModuleDescriptor().getId() + " "
+          + inst.getPath()
           + " failed. Could not find a the module in discovery", gres.cause());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
@@ -952,15 +954,15 @@ public class ProxyService {
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
         fut.handle(new Failure<>(USER, "No running instances for module "
-          + module + ". Can not invoke " + path));
+          + inst.getModuleDescriptor().getId() + ". Can not invoke " + inst.getPath()));
         return;
       }
       String baseurl = instance.getUrl();
-      pc.warn("ZZZ   doCallSystemInterface Url: " + baseurl + " and " + path);
+      pc.warn("ZZZ   doCallSystemInterface Url: " + baseurl + " and " + inst.getPath());
       Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId, authToken);
       pc.warn("ZZZ   About to create OkapiClient with headers " + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-      cli.newReqId("tenant"); // Should be derived from path!
+      cli.newReqId("tenant"); // Should be derived from getPath!
       cli.enableInfoLog();
 
       HttpMethod meth = HttpMethod.POST;
@@ -968,18 +970,19 @@ public class ProxyService {
         pc.warn("ZZZ   doCallSystemInterface: No Req, making a HEAD req");
         meth = HttpMethod.HEAD;
       }
-      cli.request(meth, path, request, cres -> {
+      cli.request(meth, inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
           String msg = "Request for "
-            + module + " " + path
+            + inst.getModuleDescriptor().getId() + " " + inst.getPath()
             + " failed with " + cres.cause().getMessage();
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));
           return;
         }
         // Pass response headers - needed for unit test, if nothing else
-        pc.debug("Request for " + module + " " + path + " ok");
+        pc.debug("Request for " + inst.getModuleDescriptor().getId()
+          + " " + inst.getPath() + " ok");
         String body = cres.result();
         pc.debug("ZZZ   doCallSystemInterface response: " + body);
         pc.debug("ZZZ   doCallSystemInterface ret "
@@ -1022,8 +1025,8 @@ public class ProxyService {
   }
 
   /**
-   * Extract tenantId from the request, rewrite the path, and proxy it. Expects
-   * a request to something like /_/proxy/tenant/{tid}/mod-something.
+   * Extract tenantId from the request, rewrite the getPath, and proxy it.
+   * Expects   * a request to something like /_/proxy/tenant/{tid}/mod-something.
    * Rewrites that to /mod-something, with the tenantId passed in the proper
    * header. As there is no authtoken, this will not work for many things, but
    * is needed for callbacks in the SSO systems, and who knows what else.
