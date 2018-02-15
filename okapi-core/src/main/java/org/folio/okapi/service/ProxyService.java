@@ -896,7 +896,7 @@ public class ProxyService {
           for (RoutingEntry filt : filters) {
             if ("auth".equals(filt.getPhase())) {
               pc.warn("ZZZ callSystemInterface: Found auth filter in " + md.getId());
-              authForSystemInterface(md, filt, tenantId, inst, request, pc, fut); // !!!
+              authForSystemInterface(md, filt, tenantId, inst, request, pc, fut);
               return;
             }
           }
@@ -939,8 +939,7 @@ public class ProxyService {
     } else {
       logger.debug("YYYY authForSystemInterface: re is null, can't find modPerms");
     }
-
-    ModuleInstance authInst = new ModuleInstance(authMod, filt, filt.getPath());
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath());
     doCallSystemInterface(tenantId, null, authInst, modPerms, "", pc, res -> {
       if (res.failed()) {
         pc.debug("Auth check for systemInterface failed!");
