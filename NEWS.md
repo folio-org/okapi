@@ -1,3 +1,12 @@
+## 2.8.4 2018-02-19
+
+ * OKAPI-523 Fix test-auth closes connection
+ * OKAPI-521 Test cluster mode in unit tests
+ * OKAPI-520 Use CompositeFuture rather than recursion
+ * OKAPI-517 SQ fixes for ProdyService
+ * OKAPI-516 Fix Install problem with Okapi internal and external
+   deployed modules
+
 ## 2.8.3 2018-01-30
 
  * OKAPI-514 Pass X-Okapi headers when invoking deploy on a node
