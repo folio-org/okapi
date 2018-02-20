@@ -2423,6 +2423,7 @@ optional parameter, `deploy`, which takes a boolean value. If true, the
 install operation will also deploy and un-deploy as necessary. This will
 only work if the ModuleDescriptor has the launchDescriptor property.
 
+
 ## Reference
 
 ### Okapi program
@@ -2704,3 +2705,102 @@ mode.
   * Modules invoked by a given tenant
 
       `aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.SOMETENANT.other.*.*.m1_rate, 5),5)`
+
+
+## Module Reference
+
+This section tries to summarize all the things a module author should know
+when creating a module. Like so much else, it is still under construction.
+We hope that we will get enough material here to make it worthwhile to separate
+the section into a stand-alone guide document.
+
+This section concentrates on regular modules that offer regular web services.
+Special modules, filters, and authentication is mostly omitted.
+
+
+### Life cycle of a module
+
+A module goes through a number of different stages in its life.
+
+#### Deployment
+This means somehow starting the process that listens on a given port. There are
+many ways to deploy modules, but the end result is that the process starts running.
+Most of the time the deployment is managed by Okapi, but can also be managed
+by some external entity that is not within the scope of this guide.
+
+There are a few points worth noticing at this stage:
+* The module is supposed to be running on a node on a cluster, so it should not
+use any local storage.
+* There can be multiple instances of the module running, on different nodes, or
+even the same one.
+* Okapi will happily deploy different versions of the same module, even on the
+same node.
+* When starting up, the module should not be doing much more than setting up
+its HTTP listener, and that kind of things. Most of all, it should not be initializing
+any databases, see "enabling" below.
+
+#### Enabling for a tenant
+When a module is enabled for a tenant, Okapi makes a call to its `/_/tenant`
+interface. This is where the module may initialize its database (for that one
+tenant), etc.
+
+#### Upgrading
+When a module gets upgraded to a new version, it happens separately for each tenant.
+Some tenants may not wish to upgrade in the middle of a busy season, others may
+want to have everything in the latest version.
+
+The actual upgrade happens by Okapi disabling the old version of the module, and
+enabling the new one, in the same call. The module sees a request to the `/_/tenant`
+interface, with both old and new version number given as a parameter. This is a
+signal to it to look at its data (still, for that one tenant!), and upgrade what
+needs to be upgraded. j
+
+(TODO - Semantic versioning, breaking changes, default values, etc)
+
+#### Disabling
+(TODO - We have not quite decided our policy about disabling modules, deleting
+old data etc - compare apt-get --uninstall and --purge)
+
+#### Closing down
+When Okapi is closing down, it will close the modules too. When starting up,
+those will be restarted. As a module author, you should not worry too much about
+that.
+
+
+
+### HTTP
+One of the main design criteria for Folio is to base things on RESTful HTTP services,
+using JSON for our data transport. This section describes some details about the way
+we should handle HTTP. (TODO...)
+
+#### HTTP status codes
+See Okapi guide. (TODO - if need be, write some more stuff there, especially
+about the difference between 400 and 500 class errors)
+
+#### X-Okapi headers
+
+Okapi passes a number of X-Okapi headers to the module with every request. The
+following can be useful:
+* X-Okapi-Tenant
+* X-Okapi-User
+* X-Okapi-Token
+* X-Okapi-Request-Id
+
+When making requests to other modules, you should copy those from your request
+into the request you are making. It is often easier to copy all X-Okapi headers,
+Okapi will filter out any that might cause trouble.
+
+When the request returns, it will come with X-Okapi headers too. It would be nice
+to append the following to your response headers:
+* X-Okapi-Trace
+
+It is also permissible to copy all X-Okapi headers from your request into the
+response. Many Folio modules do that.
+
+(TODO - Check that Okapi will filter out the X-Okapi-Request-Id from all responses,
+and add the actual id to the response before returning to the caller. That way,
+deeper IDs don't get passed on.)
+
+
+
+
