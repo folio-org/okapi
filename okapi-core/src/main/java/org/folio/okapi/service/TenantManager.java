@@ -1,6 +1,5 @@
 package org.folio.okapi.service;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -32,6 +31,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ModuleId;
 import org.folio.okapi.util.ProxyContext;
@@ -165,7 +165,7 @@ public class TenantManager {
         logger.warn("TenantManager list: Getting keys FAILED: ", lres);
         fut.handle(new Failure<>(INTERNAL, lres.cause()));
       } else {
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         SortedMap<String, TenantDescriptor> tdl = new TreeMap<>();
         for (String s : lres.result()) {
           Future future = Future.future();
@@ -177,13 +177,7 @@ public class TenantManager {
           });
           futures.add(future);
         }
-        CompositeFuture.all(futures).setHandler(res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res.cause()));
-          } else {
-            fut.handle(new Success(new LinkedList(tdl.values())));
-          }
-        });
+        futures.all(new LinkedList(tdl.values()), fut);
       }
     });
   }
@@ -1170,20 +1164,13 @@ public class TenantManager {
       if (lres.failed()) {
         fut.handle(new Failure<>(lres.getType(), lres.cause()));
       } else {
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         for (Tenant t : lres.result()) {
           Future<Void> f = Future.future();
           tenants.add(t.getId(), t, f::handle);
           futures.add(f);
         }
-        CompositeFuture.all(futures).setHandler(res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res.cause()));
-          } else {
-            logger.info("All tenants loaded");
-            fut.handle(new Success<>());
-          }
-        });
+        futures.all(fut);
       }
     });
   }
