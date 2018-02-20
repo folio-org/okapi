@@ -121,7 +121,13 @@ public class MainVerticle extends AbstractVerticle {
     if (module_to != null) {
       logger.info("module_to=" + module_to);
     }
-    this.tenantRequests += meth + "-" + tenant + " ";
+    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+    if (tok == null) {
+      tok = "";
+    } else {
+      tok = "-auth";
+    }
+    this.tenantRequests += meth + "-" + tenant + tok + " ";
     logger.debug("Tenant requests so far: " + tenantRequests);
     ctx.request().handler(x -> ctx.response().write(x));
     ctx.request().endHandler(x -> ctx.response().end());

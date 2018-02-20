@@ -13,7 +13,7 @@ public class EnvStoreMongo implements EnvStore {
   private static final String COLLECTION = "okapi.env";
 
   public EnvStoreMongo(MongoClient cli) {
-    this.util = new MongoUtil(COLLECTION, cli);
+    this.util = new MongoUtil<>(COLLECTION, cli);
   }
 
   @Override

@@ -872,7 +872,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS
+      + "      \"type\" : \"system\"," + LS
+      + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
@@ -886,6 +887,7 @@ public class ModuleTest {
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS
       + "}";
+
     // Create and deploy the sample module
     final String locSampleModule = createModule(docSampleModule);
     locationSampleDeployment = deployModule("sample-module-1");
@@ -905,7 +907,7 @@ public class ModuleTest {
       + "\"visible\" : true "
       + "} ] }";
 
-    final String locSampleEnable = given()
+    String locSampleEnable = given()
       .header("Content-Type", "application/json")
       .body(docEnable)
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -936,7 +938,7 @@ public class ModuleTest {
       + "\"moduleId\" : \"sample-module2-1\", "
       + "\"perms\" : null }";
 
-    final String locSampleEnable2 = given()
+    String locSampleEnable2 = given()
       .header("Content-Type", "application/json")
       .body(docEnable2)
       .post("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -946,13 +948,78 @@ public class ModuleTest {
       .header("X-Tenant-Perms-Result", expPerms2)
       .extract().header("Location");
 
+    // Tests to see that we get a new auth token for the system calls
+    // Disable sample, so we can re-enable it after we have established auth
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    locSampleEnable = null;
+
+    // Declare and enable test-auth
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-1\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"request-response\"," + LS // Headers-only ?
+      + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    final String docEnableAuth = "{" + LS
+      + "  \"id\" : \"auth-1\"" + LS
+      + "}";
+    final String locAuthModule = createModule(docAuthModule);
+    final String locAuthDeployment = deployModule("auth-1");
+    final String locAuthEnable = given()
+      .header("Content-Type", "application/json")
+      .body(docEnableAuth)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifValidationFails()
+      .extract().header("Location");
+
+    // Re-enable sample.  XXX
+    locSampleEnable = given()
+      .header("Content-Type", "application/json")
+      .body(docEnable)
+      .post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then()
+      .statusCode(201)
+      .log().ifValidationFails()
+      .header("X-Tenant-Perms-Result", expPerms)
+      .extract().header("Location");
+    // Check that the tenant interface and the tenantpermission interfaces
+    // were called with proper auth tokens and with ModulePermissions
 
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testSystemInterfaces cleaning up");
+
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+
+    given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthDeployment).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+
     given().delete(locSampleEnable2).then().log().ifValidationFails().statusCode(204);
     given().delete(locationSampleDeployment2).then().log().ifValidationFails().statusCode(204);
     given().delete(locSampleModule2).then().log().ifValidationFails().statusCode(204);
-    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    //given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
     given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
     given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
@@ -1343,7 +1410,6 @@ public class ModuleTest {
       + "    \"id\" : \"auth\"," + LS
       + "    \"version\" : \"9.9\"" + LS // We only have 1.2
       + "  } ]," + LS
-      + "  \"routingEntries\" : [ ] " + LS
       + "}";
 
     c = api.createRestAssured();
@@ -1369,7 +1435,7 @@ public class ModuleTest {
       + "      \"type\" : \"request-response\"," + LS
       + "      \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "      \"permissionsRequired\" : [ \"sample.needed\" ]," + LS
-      + "       \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
+      + "      \"permissionsDesired\" : [ \"sample.extra\" ]" + LS
       + "      } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1583,11 +1649,17 @@ public class ModuleTest {
       .body(equalTo("No suitable module found for path /something.we.do.not.have"));
 
     // Request without an auth token
+    // This is acceptable, we get back a token that certifies that we have no
+    // logged-in username. We can use this for modulePermissions still.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
       .then()
-      .statusCode(401);
+      .statusCode(200)
+      .body(containsString("X-Okapi-Token")) // auth created a token
+      .body(containsString("X-Okapi-User-Id:?"));  // with no good userid
+
 
     // Failed login
     final String docWrongLogin = "{" + LS
@@ -1678,6 +1750,7 @@ public class ModuleTest {
       .get("/testb?p=parameters&q=query")
       .then().statusCode(200);
 
+    // Check that we called the tenant init
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
@@ -1685,7 +1758,7 @@ public class ModuleTest {
       .get("/testb")
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
-      .body(equalTo("It works Tenant requests: POST-roskilde "))
+      .body(equalTo("It works Tenant requests: POST-roskilde-auth "))
       .log().ifValidationFails();
 
     // Check that we refuse unknown paths, even with auth module
@@ -1929,7 +2002,7 @@ public class ModuleTest {
       .get("/testb")
       .then()
       .statusCode(200) // No longer expects a DELETE. See Okapi-252
-      .body(containsString("POST-roskilde POST-roskilde"))
+      .body(containsString("POST-roskilde-auth POST-roskilde-auth"))
       .log().ifValidationFails();
 
     // Check that the X-Okapi-Stop trick works. Sample will set it if it sees
@@ -1942,10 +2015,6 @@ public class ModuleTest {
       .header("X-Okapi-Stop", "Enough!")
       .body(equalTo("hej OkapiX")); // only one "Hello"
 
-    /*
-     given().get("/_/test/reloadmodules")
-      .then().statusCode(204);
-*/
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/xml")

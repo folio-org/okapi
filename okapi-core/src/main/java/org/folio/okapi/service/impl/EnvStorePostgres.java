@@ -14,7 +14,7 @@ public class EnvStorePostgres implements EnvStore {
   private final PostgresTable<EnvEntry> table;
 
   public EnvStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable(pg, "env", JSON_COLUMN, ID_INDEX, ID_SELECT, "name");
+    this.table = new PostgresTable<>(pg, "env", JSON_COLUMN, ID_INDEX, ID_SELECT, "name");
   }
 
   @Override

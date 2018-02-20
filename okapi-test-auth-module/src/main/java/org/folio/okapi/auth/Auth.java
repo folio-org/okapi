@@ -1,5 +1,6 @@
 package org.folio.okapi.auth;
 
+import io.vertx.core.http.HttpMethod;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
 import static org.folio.okapi.common.HttpResponse.responseText;
@@ -126,47 +127,46 @@ class Auth {
   }
 
   public void check(RoutingContext ctx) {
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (tok == null || tok.isEmpty()) {
-      logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN);
-      responseText(ctx, 401)
-              .end("Auth.check called without " + XOkapiHeaders.TOKEN);
-      return;
-    }
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenant == null || tenant.isEmpty()) {
       responseText(ctx, 401)
-              .end("Auth.check called without " + XOkapiHeaders.TENANT);
+        .end("test-auth: check called without " + XOkapiHeaders.TENANT);
       return;
     }
-    logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
+    String userId = "?";
+    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+    if (tok == null || tok.isEmpty()) {
+      logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN);
+      tok = token(tenant, "-"); // create a dummy token without username
+    } else {
+      logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
 
-    String[] splitTok = tok.split("\\.");
-    logger.debug("test-auth: check: split the jwt into " + splitTok.length
+      String[] splitTok = tok.split("\\.");
+      logger.debug("test-auth: check: split the jwt into " + splitTok.length
         + ": " + Json.encode(splitTok));
-    if ( splitTok.length != 3) {
-      logger.warn("test-auth: Bad JWT, can not split in three parts. '" + tok + "'");
-      responseError(ctx, 400, "Auth.check: Bad JWT");
-      return;
-    }
+      if (splitTok.length != 3) {
+        logger.warn("test-auth: Bad JWT, can not split in three parts. '" + tok + "'");
+        responseError(ctx, 400, "Auth.check: Bad JWT");
+        return;
+      }
 
-    if (!"dummyJwt".equals(splitTok[0])) {
-      logger.warn("test-auth: Bad dummy JWT, starts with '" + splitTok[0] + "', not 'dummyJwt'");
-      responseError(ctx, 400, "Auth.check needs a dummyJwt");
-      return;
-    }
-    String payload = splitTok[1];
+      if (!"dummyJwt".equals(splitTok[0])) {
+        logger.warn("test-auth: Bad dummy JWT, starts with '" + splitTok[0] + "', not 'dummyJwt'");
+        responseError(ctx, 400, "Auth.check needs a dummyJwt");
+        return;
+      }
+      String payload = splitTok[1];
 
-    String userId;
-    try {
-      String decodedJson = new String(Base64.getDecoder().decode(payload));
-      logger.debug("test-auth: check payload: " + decodedJson);
-      JsonObject jtok = new JsonObject(decodedJson);
-      userId = jtok.getString("sub", "");
+      try {
+        String decodedJson = new String(Base64.getDecoder().decode(payload));
+        logger.debug("test-auth: check payload: " + decodedJson);
+        JsonObject jtok = new JsonObject(decodedJson);
+        userId = jtok.getString("sub", "");
 
-    } catch (IllegalArgumentException e) {
-      responseError(ctx, 400, "Bad Json payload " + payload);
-      return;
+      } catch (IllegalArgumentException e) {
+        responseError(ctx, 400, "Bad Json payload " + payload);
+        return;
+      }
     }
 
     // Fake some desired permissions
@@ -182,13 +182,42 @@ class Auth {
       .add(XOkapiHeaders.MODULE_TOKENS, modTok)
       .add(XOkapiHeaders.USER_ID, userId);
     responseText(ctx, 202); // Abusing 202 to say check OK
-    echo(ctx);
+    logger.debug("test-auth: returning 202 and " + Json.encode(ctx.response()));
+    logger.debug("test-auth: req:  " + Json.encode(ctx.request()));
+    logger.debug("test-auth: resp:  " + Json.encode(ctx.response()));
+
+    if (ctx.request().method() == HttpMethod.HEAD) {
+      ctx.response().headers().remove("Content-Length");
+      ctx.response().setChunked(true);
+      logger.debug("test-auth: Head request");
+      //ctx.response().end("ACCEPTED"); // Dirty trick??
+      ctx.response().write("Accpted");
+      logger.debug("test-auth: Done with the HEAD response");
+    } else {
+      echo(ctx);
+    }
   }
 
   private void echo(RoutingContext ctx) {
+    logger.debug("test-auth: echo");
     ctx.response().setChunked(true);
-    ctx.request().handler(x -> ctx.response().write(x));
-    ctx.request().endHandler(x -> ctx.response().end());
+    String ctype = ctx.request().headers().get("Content-Type");
+    if (ctype != null && !ctype.isEmpty()) {
+      ctx.response().headers().add("Content-type", ctype);
+    }
+    ctx.response().closeHandler((Void x) -> { // Debug only
+      logger.debug("test-auth: closeHandler called");
+    });
+
+    ctx.request().handler(x -> {
+      logger.debug("test-auth: echoing " + x);
+      ctx.response().write(x);
+    });
+    ctx.request().endHandler(x -> {
+      logger.debug("test-auth: endhandler");
+      ctx.response().end();
+      logger.debug("test-auth: endhandler ended the response");
+    });
   }
 
   /**

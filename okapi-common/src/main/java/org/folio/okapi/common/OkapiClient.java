@@ -177,18 +177,29 @@ public class OkapiClient {
           }
         }
       });
-      reqres.exceptionHandler(e -> fut.handle(new Failure<>(INTERNAL, e)));
+      reqres.exceptionHandler(e -> {
+        logger.warn("OkapiClient exception 1 :", e);
+        fut.handle(new Failure<>(INTERNAL, e));
+      });
     });
-    req.exceptionHandler(x -> {
+    req.exceptionHandler((Throwable x) -> {
       String msg = x.getMessage();
-      logger.warn(reqId + " OkapiClient exception: " + msg);
+      logger.warn(reqId + " OkapiClient exception 2: " + msg);
+      // Connection gets closed. No idea why !!???
+      if (x.getCause() != null) {
+        logger.debug("   cause: " + x.getCause().getMessage());
+      }
       fut.handle(new Failure<>(INTERNAL, msg));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
       logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
     }
     req.headers().addAll(headers);
-    req.end(data);
+    if (data == null || data.isEmpty()) {
+      req.end();
+    } else {
+      req.end(data);
+    }
   }
 
   public void post(String path, String data,
@@ -204,6 +215,11 @@ public class OkapiClient {
   public void delete(String path,
     Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
+  }
+
+  public void head(String path,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    request(HttpMethod.HEAD, path, "", fut);
   }
 
   public String getOkapiUrl() {

@@ -34,7 +34,7 @@ public class TenantStorePostgres implements TenantStore {
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
-    this.pgTable = new PostgresTable(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "tenant_id");
+    this.pgTable = new PostgresTable<>(pg, TABLE, JSON_COLUMN, ID_INDEX, ID_SELECT, "tenant_id");
   }
 
   @Override

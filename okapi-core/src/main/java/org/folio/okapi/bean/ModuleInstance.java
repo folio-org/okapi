@@ -6,18 +6,18 @@ package org.folio.okapi.bean;
  */
 public class ModuleInstance {
 
-  private ModuleDescriptor md;
-  private String url;
+  private final ModuleDescriptor md;
+  private String url; // Absolute URL to the module instance
   private final RoutingEntry re;
   private String authToken;
-  private String uri;
+  private final String path; // The relative URI from the proxy request
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String uri) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path) {
     this.md = md;
     this.url = null;
     this.re = re;
     this.authToken = null;
-    this.uri = uri;
+    this.path = path;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -44,7 +44,7 @@ public class ModuleInstance {
     this.authToken = authToken;
   }
 
-  public String getUri() {
-    return uri;
+  public String getPath() {
+    return path;
   }
 }
