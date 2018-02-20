@@ -23,7 +23,7 @@ public class CompList<T> {
     futures.add(f);
   }
 
-  public <T> void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
+  public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
     CompositeFuture.all(futures).setHandler(res2 -> {
       if (res2.failed()) {
         fut.handle(new Failure<>(errorType, res2.cause()));
@@ -33,7 +33,7 @@ public class CompList<T> {
     });
   }
 
-  public <T> void all(Handler<ExtendedAsyncResult<Void>> fut) {
+  public void all(Handler<ExtendedAsyncResult<Void>> fut) {
     CompositeFuture.all(futures).setHandler(res2 -> {
       if (res2.failed()) {
         fut.handle(new Failure<>(errorType, res2.cause()));
