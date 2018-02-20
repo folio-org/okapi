@@ -18,7 +18,8 @@ import org.folio.okapi.util.ProxyContext;
  * the InterfaceType, and the routing entries for the interface.
  */
 // S1168: Empty arrays and collections should be returned instead of null
-@java.lang.SuppressWarnings({"squid:S1168"})
+// S1192: String literals should not be duplicated
+@java.lang.SuppressWarnings({"squid:S1168", "squid:S1192"})
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class InterfaceDescriptor {
 

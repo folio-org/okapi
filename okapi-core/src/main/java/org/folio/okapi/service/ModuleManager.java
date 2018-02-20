@@ -603,30 +603,22 @@ public class ModuleManager {
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    getEnabledModulesR(ten.getEnabled().keySet().iterator(), mdl, fut);
-  }
-
-  /**
-   * Recursive helper to get modules from an iterator of ids.
-   *
-   * @param it
-   * @param mdl
-   * @param fut
-   */
-  private void getEnabledModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(mdl));
-      return;
+    List<Future> futures = new LinkedList<>();
+    for (String id : ten.getEnabled().keySet()) {
+      Future<ModuleDescriptor> f = Future.future();
+      modules.get(id, res -> {
+        if (res.succeeded()) {
+          mdl.add(res.result());
+        }
+        f.handle(res);
+      });
+      futures.add(f);
     }
-    String id = it.next();
-    modules.get(id, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
-        ModuleDescriptor md = gres.result();
-        mdl.add(md);
-        getEnabledModulesR(it, mdl, fut);
+        fut.handle(new Success<>(mdl));
       }
     });
   }
