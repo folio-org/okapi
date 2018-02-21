@@ -146,9 +146,11 @@ public class OkapiClient {
       logger.debug(logReqMsg);
     }
 
+    long t1 = System.nanoTime();
     HttpClientRequest req = httpClient.requestAbs(method, url, reqres -> {
+      long ns = System.nanoTime() - t1;
       String logResMsg = reqId
-        + " RES " + reqres.statusCode() + " 0us " // TODO - get timing
+        + " RES " + reqres.statusCode() + " " + ns / 1000 + "us "
         + "okapiClient " + url;
       if (logInfo) {
         logger.info(logResMsg);
