@@ -1,3 +1,11 @@
+## 2.9.0 2018-02-21
+
+ * OKAPI-531 Add timing for OkapiClient
+ * OKAPI-530 Expose CQLUtils (to be used by mod-codex-mux)
+ * OKAPI-529 Make SemVer and ModuleId classes public
+ * OKAPI-526 fix SQ warnings
+ * OKAPI-515 Fix 2nd call during tenant may fail
+
 ## 2.8.4 2018-02-19
 
  * OKAPI-523 Fix test-auth closes connection
