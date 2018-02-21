@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
-import org.folio.okapi.util.ModuleId;
+import org.folio.okapi.common.ModuleId;
 
 /**
  * Description of a module. These are used when creating modules under

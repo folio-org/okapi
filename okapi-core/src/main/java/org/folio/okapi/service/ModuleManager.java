@@ -22,7 +22,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.util.ModuleId;
+import org.folio.okapi.common.ModuleId;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
