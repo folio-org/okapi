@@ -28,9 +28,17 @@ public class MainDeploy {
 
   private VertxOptions vopt = new VertxOptions();
   private Config hConfig = null;
-  private JsonObject conf = new JsonObject();
+  private final JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
+
+  public MainDeploy() {
+    this.conf = new JsonObject();
+  }
+
+  public MainDeploy(JsonObject conf) {
+    this.conf = conf;
+  }
 
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     final Logger logger = OkapiLogger.get();
@@ -47,7 +55,7 @@ public class MainDeploy {
       case "dev":
       case "initdatabase":
       case "purgedatabase":
-        deploy(new MainVerticle(), conf, Vertx.vertx(vopt), fut);
+        deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
         break;
       case "cluster":
       case "proxy":
@@ -165,14 +173,14 @@ public class MainDeploy {
       if (res.succeeded()) {
         MainVerticle v = new MainVerticle();
         v.setClusterManager(mgr);
-        deploy(v, conf, res.result(), fut);
+        deploy(v, res.result(), fut);
       } else {
         fut.handle(Future.failedFuture(res.cause()));
       }
     });
   }
 
-  private void deploy(Verticle v, JsonObject conf, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
+  private void deploy(Verticle v, Vertx vertx, Handler<AsyncResult<Vertx>> fut) {
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(v, opt, dep -> {
       if (dep.failed()) {

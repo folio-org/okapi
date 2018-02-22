@@ -205,9 +205,6 @@ class Auth {
     if (ctype != null && !ctype.isEmpty()) {
       ctx.response().headers().add("Content-type", ctype);
     }
-    ctx.response().closeHandler((Void x) -> { // Debug only
-      logger.debug("test-auth: closeHandler called");
-    });
 
     ctx.request().handler(x -> {
       logger.debug("test-auth: echoing " + x);

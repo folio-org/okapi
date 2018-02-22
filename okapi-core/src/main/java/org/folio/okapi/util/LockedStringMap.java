@@ -5,7 +5,6 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -14,8 +13,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.shareddata.AsyncMap;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
@@ -122,29 +119,21 @@ public class LockedStringMap {
     } else {
       KeyList keys = Json.decodeValue(val, KeyList.class);
 
-      List<Future> futures = new LinkedList<>();
+      CompList futures = new CompList<>(INTERNAL);
       for (String k : keys.keys) {
-        Future<Void> f = Future.future();
+        Future<String> f = Future.future();
         list.get(k, res -> {
-          if (res.failed()) {
-            f.handle(Future.failedFuture(res.cause()));
-          } else {
+          if (res.succeeded()) {
             String v = res.result();
             if (v != null) {
               result.add(k);
             }
-            f.handle(Future.succeededFuture());
           }
+          f.handle(res);
         });
         futures.add(f);
       }
-      CompositeFuture.all(futures).setHandler(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        } else {
-          fut.handle(new Success<>(result));
-        }
-      });
+      futures.all(result, fut);
     }
   }
 

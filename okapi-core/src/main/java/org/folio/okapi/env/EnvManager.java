@@ -1,6 +1,5 @@
 package org.folio.okapi.env;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -16,6 +15,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
+import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 
 public class EnvManager {
@@ -38,19 +38,13 @@ public class EnvManager {
           if (res2.failed()) {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            List<Future> futures = new LinkedList<>();
+            CompList futures = new CompList<>(INTERNAL);
             for (EnvEntry e : res2.result()) {
               Future<Void> f = Future.future();
               add1(e, f::handle);
               futures.add(f);
             }
-            CompositeFuture.all(futures).setHandler(res3 -> {
-              if (res3.failed()) {
-                fut.handle(new Failure<>(INTERNAL, res3.cause()));
-              } else {
-                fut.handle(new Success<>());
-              }
-            });
+            futures.all(fut);
           }
         });
       }

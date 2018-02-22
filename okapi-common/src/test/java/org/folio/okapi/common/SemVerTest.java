@@ -1,6 +1,5 @@
-package okapi.util;
+package org.folio.okapi.common;
 
-import org.folio.okapi.util.SemVer;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

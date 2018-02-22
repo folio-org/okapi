@@ -1,6 +1,5 @@
 package org.folio.okapi.service;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -21,8 +20,9 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.util.ModuleId;
+import org.folio.okapi.common.ModuleId;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -92,20 +92,13 @@ public class ModuleManager {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         for (ModuleDescriptor md : mres.result()) {
           Future<Void> f = Future.future();
           modules.add(md.getId(), md, f::handle);
           futures.add(f);
         }
-        CompositeFuture.all(futures).setHandler(res -> {
-          logger.info("All modules loaded");
-          if (res.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
+        futures.all(fut);
       });
     });
   }
@@ -603,31 +596,17 @@ public class ModuleManager {
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    getEnabledModulesR(ten.getEnabled().keySet().iterator(), mdl, fut);
-  }
-
-  /**
-   * Recursive helper to get modules from an iterator of ids.
-   *
-   * @param it
-   * @param mdl
-   * @param fut
-   */
-  private void getEnabledModulesR(Iterator<String> it, List<ModuleDescriptor> mdl,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(mdl));
-      return;
+    CompList futures = new CompList<>(INTERNAL);
+    for (String id : ten.getEnabled().keySet()) {
+      Future<ModuleDescriptor> f = Future.future();
+      modules.get(id, res -> {
+        if (res.succeeded()) {
+          mdl.add(res.result());
+        }
+        f.handle(res);
+      });
+      futures.add(f);
     }
-    String id = it.next();
-    modules.get(id, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        ModuleDescriptor md = gres.result();
-        mdl.add(md);
-        getEnabledModulesR(it, mdl, fut);
-      }
-    });
+    futures.all(mdl, fut);
   }
 }

@@ -38,7 +38,7 @@ import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
-import org.folio.okapi.util.ModuleId;
+import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.web.InternalModule;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -54,7 +54,6 @@ public class MainVerticle extends AbstractVerticle {
   private DeploymentManager deploymentManager;
   private DiscoveryManager discoveryManager;
   private ClusterManager clusterManager;
-  private PullManager pullManager;
   private Storage storage;
   private Storage.InitMode initMode = NORMAL;
   private int port;
@@ -162,7 +161,7 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
-      pullManager = new PullManager(vertx, okapiUrl);
+      PullManager pullManager = new PullManager(vertx, okapiUrl);
       InternalModule internalModule = new InternalModule(moduleManager,
               tenantManager, deploymentManager, discoveryManager,
               envManager, pullManager,okapiVersion);
