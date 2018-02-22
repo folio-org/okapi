@@ -1,11 +1,11 @@
-package org.folio.okapi.util;
+package org.folio.okapi.common;
 import java.util.Collection;
 
 public class ModuleId implements Comparable<ModuleId> {
 
   private String product;
   private SemVer semVer;
-  private String id;
+  private final String id;
 
   public ModuleId(String s) {
     id = s;

@@ -853,20 +853,20 @@ public class ProxyService {
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String curTenantId = pc.getTenant(); // is often the supertenant
     String authToken = pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN);
-    pc.warn("ZZZ callSystemInterface on " + Json.encode(inst)
+    pc.debug("callSystemInterface on " + Json.encode(inst)
       + " for " + tenantId + " as " + curTenantId + " with authToken " + authToken);
     if (tenantId.equals(curTenantId)) {
-      pc.warn("ZZZ callSystemInterface: Same tenant, no need for trickery");
+      pc.debug("callSystemInterface: Same tenant, no need for trickery");
       doCallSystemInterface(tenantId, authToken, inst, null, request, pc, fut);
       return;
     }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
     // If we have auth for current (super)tenant is irrelevant here!
-    pc.warn("ZZZ callSystemInterface: Checking if " + tenantId + " has auth");
+    pc.debug("callSystemInterface: Checking if " + tenantId + " has auth");
 
     moduleManager.getEnabledModules(tenant, mres -> {
       if (mres.failed()) { // Should not happen
-        pc.warn("ZZZ callSystemInterface: getEnabledModules failed: ", mres.cause());
+        pc.warn("callSystemInterface: getEnabledModules failed: ", mres.cause());
         fut.handle(new Failure<>(mres.getType(), mres.cause()));
         return;
       }
@@ -876,14 +876,14 @@ public class ProxyService {
         if (filters != null) {
           for (RoutingEntry filt : filters) {
             if ("auth".equals(filt.getPhase())) {
-              pc.warn("ZZZ callSystemInterface: Found auth filter in " + md.getId());
-              authForSystemInterface(md, filt, tenantId, inst, request, pc, fut); // !!!
+              pc.debug("callSystemInterface: Found auth filter in " + md.getId());
+              authForSystemInterface(md, filt, tenantId, inst, request, pc, fut);
               return;
             }
           }
         }
       }
-      pc.warn("ZZZ   callSystemInterface: No auth for " + tenantId
+      pc.debug("callSystemInterface: No auth for " + tenantId
         + " calling with tenant header only");
       doCallSystemInterface(tenantId, null, inst, null, request, pc, fut);
     });
@@ -892,18 +892,12 @@ public class ProxyService {
   /**
    * Helper to get a new authtoken before invoking doCallSystemInterface.
    *
-   * @param tenantId
-   * @param module
-   * @param path
-   * @param request
-   * @param pc
-   * @param fut
    */
   private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
     String tenantId, ModuleInstance inst,
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
-    pc.warn("ZZZ  Calling doCallSystemInterface to get auth token");
+    pc.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
 
@@ -912,31 +906,29 @@ public class ProxyService {
       Map<String, String[]> mpMap = new HashMap<>();
       if (modulePermissions != null) {
         mpMap.put(inst.getModuleDescriptor().getId(), modulePermissions);
-        logger.warn("YYYY authForSystemInterface: Found modPerms:" + modPerms);
+        logger.debug("authForSystemInterface: Found modPerms:" + modPerms);
       } else {
-        logger.debug("YYYY Got RoutingEntry, but null modulePermissions");
+        logger.debug("authForSystemInterface: Got RoutingEntry, but null modulePermissions");
       }
       modPerms = Json.encode(mpMap);
     } else {
-      logger.debug("YYYY authForSystemInterface: re is null, can't find modPerms");
+      logger.debug("authForSystemInterface: re is null, can't find modPerms");
     }
-
-    ModuleInstance authInst = new ModuleInstance(authMod, filt, filt.getPath());
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath());
     doCallSystemInterface(tenantId, null, authInst, modPerms, "", pc, res -> {
       if (res.failed()) {
-        pc.debug("Auth check for systemInterface failed!");
+        pc.warn("Auth check for systemInterface failed!");
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
       OkapiClient cli = res.result();
-
       String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-      logger.debug("YYYY authForSystemInterface:"
+      logger.debug("authForSystemInterface:"
         + Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
       String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);
-      logger.debug("YYYY authForSystemInterface: Got token " + token);
+      logger.debug("authForSystemInterface: Got token " + token);
       doCallSystemInterface(tenantId, token, inst, null, request, pc, fut);
     });
   }
@@ -950,14 +942,14 @@ public class ProxyService {
     String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
     String curTenant = pc.getTenant();
-    pc.warn("ZZZ   doCallSystemInterface on " + Json.encode(inst)
+    pc.debug("doCallSystemInterface on " + Json.encode(inst)
       + " for " + tenantId + " as " + curTenant + " with token " + authToken);
 
     discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
       if (gres.failed()) {
-        pc.warn("callSystemInterface on " + inst.getModuleDescriptor().getId() + " "
+        pc.warn("doCallSystemInterface on " + inst.getModuleDescriptor().getId() + " "
           + inst.getPath()
-          + " failed. Could not find a the module in discovery", gres.cause());
+          + " failed. Could not find the module in discovery", gres.cause());
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
         return;
       }
@@ -968,7 +960,7 @@ public class ProxyService {
         return;
       }
       String baseurl = instance.getUrl();
-      pc.warn("ZZZ   doCallSystemInterface Url: " + baseurl + " and " + inst.getPath());
+      pc.debug("doCallSystemInterface Url: " + baseurl + " and " + inst.getPath());
       Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId, authToken);
       if (modPerms != null) { // We are making an auth call
         RoutingEntry re = inst.getRoutingEntry();
@@ -979,21 +971,23 @@ public class ProxyService {
           headers.put(XOkapiHeaders.MODULE_PERMISSIONS, modPerms);
         }
       }
-
-      pc.warn("ZZZ   About to create OkapiClient with headers " + Json.encode(headers));
+      pc.debug("doCallSystemInterface: About to create OkapiClient with headers "
+        + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
-      cli.newReqId("tenant"); // Should be derived from getPath!
+      String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
+      cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
 
       HttpMethod meth = HttpMethod.POST;
       if (request.isEmpty()) {
-        pc.warn("ZZZ   doCallSystemInterface: No Req, making a HEAD req");
+        pc.debug("doCallSystemInterface: No Req, making a HEAD req");
         meth = HttpMethod.HEAD;
       }
+      HttpMethod finalMeth = meth;
       cli.request(meth, inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = "Request for "
+          String msg = finalMeth + " request for "
             + inst.getModuleDescriptor().getId() + " " + inst.getPath()
             + " failed with " + cres.cause().getMessage();
           pc.warn(msg);
@@ -1001,20 +995,11 @@ public class ProxyService {
           return;
         }
         // Pass response headers - needed for unit test, if nothing else
-        pc.debug("Request for " + inst.getModuleDescriptor().getId()
-          + " " + inst.getPath() + " ok");
         String body = cres.result();
-        pc.debug("ZZZ   doCallSystemInterface response: " + body);
-        pc.debug("ZZZ   doCallSystemInterface ret "
+        pc.debug("doCallSystemInterface response: " + body);
+        pc.debug("doCallSystemInterface ret "
           + " hdrs: " + Json.encode(cli.getRespHeaders().entries()));
         pc.passOkapiTraceHeaders(cli);
-        if (modPerms == null) { // It was an auth call
-          String newAuth = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-          if (newAuth != null && !newAuth.isEmpty()) {
-            body = newAuth; // return the new auth token
-            pc.debug("ZZZ   doCallSystemInterface returning a new auth token: " + body);
-          }
-        }
         fut.handle(new Success<>(cli));
       });
     });

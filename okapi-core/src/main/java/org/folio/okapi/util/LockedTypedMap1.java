@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -9,8 +8,6 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
@@ -55,7 +52,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       }
       Collection<String> keys = kres.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      List<Future> futures = new LinkedList<>();
+      CompList futures = new CompList<>(INTERNAL);
       for (String key : keys) {
         Future<String> f = Future.future();
         getString(key, null, res -> {
@@ -67,13 +64,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
         });
         futures.add(f);
       }
-      CompositeFuture.all(futures).setHandler(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        } else {
-          fut.handle(new Success<>(results));
-        }
-      });
+      futures.all(results, fut);
     });
   }
 

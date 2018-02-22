@@ -40,7 +40,7 @@ import org.folio.okapi.pull.PullManager;
 import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.LogHelper;
-import org.folio.okapi.util.ModuleId;
+import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.util.ProxyContext;
 
 /**

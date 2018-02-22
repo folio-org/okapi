@@ -1,4 +1,4 @@
-package org.folio.okapi.util;
+package org.folio.okapi.common;
 
 import java.util.Iterator;
 import java.util.LinkedList;

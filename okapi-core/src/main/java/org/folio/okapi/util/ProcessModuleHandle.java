@@ -64,6 +64,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
     NetClient c = vertx.createNetClient(options);
+    logger.debug("ProcessModuleHandle.tryConnect() port " + port + " count " + count);
     c.connect(port, "localhost", res -> {
       if (res.succeeded()) {
         logger.info("Connected to service at port " + port + " count " + count);
@@ -136,6 +137,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           pb.inheritIO();
           p = pb.start();
         } catch (IOException ex) {
+          logger.debug("ProcessModuleHandle.start2() caught exception ", ex);
           future.fail(ex);
           return;
         }
@@ -143,6 +145,7 @@ public class ProcessModuleHandle implements ModuleHandle {
       future.complete();
     }, false, result -> {
       if (result.failed()) {
+        logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else if (port > 0) {
         tryConnect(startFuture, 0);

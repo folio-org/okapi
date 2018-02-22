@@ -1,6 +1,5 @@
 package org.folio.okapi.discovery;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -32,6 +31,7 @@ import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
+import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -42,7 +42,6 @@ import org.folio.okapi.util.ProxyContext;
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DiscoveryManager implements NodeListener {
-
   private final Logger logger = OkapiLogger.get();
 
   private final LockedTypedMap2<DeploymentDescriptor> deployments = new LockedTypedMap2<>(DeploymentDescriptor.class);
@@ -76,19 +75,13 @@ public class DiscoveryManager implements NodeListener {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
           Future<DeploymentDescriptor> f = Future.future();
           addAndDeploy1(dd, null, f::handle);
           futures.add(f);
         }
-        CompositeFuture.all(futures).setHandler(res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res2.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
+        futures.all(fut);
       }
     });
   }
@@ -364,7 +357,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    List<Future> futures = new LinkedList<>();
+    CompList futures = new CompList<>(USER);
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
@@ -388,13 +381,7 @@ public class DiscoveryManager implements NodeListener {
         logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
       }
     }
-    CompositeFuture.all(futures).setHandler(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(USER, res.cause()));
-      } else {
-        fut.handle(new Success<>());
-      }
-    });
+    futures.all(fut);
   }
 
   public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
@@ -410,7 +397,7 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         List<DeploymentDescriptor> ddList = res.result();
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(USER);
         for (DeploymentDescriptor dd : ddList) {
           if (dd.getNodeId() != null) {
             Future f = Future.future();
@@ -418,13 +405,7 @@ public class DiscoveryManager implements NodeListener {
             futures.add(f);
           }
         }
-        CompositeFuture.all(futures).setHandler(res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(USER, res2.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
+        futures.all(fut);
       }
     });
   }
@@ -464,7 +445,7 @@ public class DiscoveryManager implements NodeListener {
       } else {
         Collection<String> keys = resGet.result();
         List<DeploymentDescriptor> all = new LinkedList<>();
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         for (String s : keys) {
           Future<List<DeploymentDescriptor>> f = Future.future();
           this.get(s, res -> {
@@ -475,13 +456,7 @@ public class DiscoveryManager implements NodeListener {
           });
           futures.add(f);
         }
-        CompositeFuture.all(futures).setHandler(res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res2.cause()));
-          } else {
-            fut.handle(new Success<>(all));
-          }
-        });
+        futures.all(all, fut);
       }
     });
   }
@@ -523,7 +498,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
 
     List<HealthDescriptor> all = new LinkedList<>();
-    List<Future> futures = new LinkedList<>();
+    CompList futures = new CompList<>(INTERNAL);
     for (DeploymentDescriptor md : list) {
       Future<HealthDescriptor> f = Future.future();
       health(md, res -> {
@@ -534,13 +509,7 @@ public class DiscoveryManager implements NodeListener {
       });
       futures.add(f);
     }
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res2.cause()));
-      } else {
-        fut.handle(new Success<>(all));
-      }
-    });
+    futures.all(all, fut);
   }
 
   public void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
@@ -677,7 +646,7 @@ public class DiscoveryManager implements NodeListener {
           keys.retainAll(n);
         }
         List<NodeDescriptor> all = new LinkedList<>();
-        List<Future> futures = new LinkedList<>();
+        CompList futures = new CompList<>(INTERNAL);
         for (String nodeId : keys) {
           Future<NodeDescriptor> f = Future.future();
           getNode1(nodeId, res -> {
@@ -688,13 +657,7 @@ public class DiscoveryManager implements NodeListener {
           });
           futures.add(f);
         }
-        CompositeFuture.all(futures).setHandler(res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(INTERNAL, res2.cause()));
-          } else {
-            fut.handle(new Success<>(all));
-          }
-        });
+        futures.all(all, fut);
       }
     });
   }
