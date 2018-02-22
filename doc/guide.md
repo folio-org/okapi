@@ -2820,7 +2820,7 @@ various parts took. For example
 `GET sample-module-1.0.0 http://localhost:9231/testb : 204 3748us`
 * `X-Okapi-Permissions` Permissions that the module desires, and that have been
 granted. (Note that if a module strictly requires a permission, and it is not
-greanted, the request will never reach the module. These are only for special
+granted, the request will never reach the module. These are only for special
 cases, like including sensitive data about a user, which the module can handle
 on its own).
 
@@ -2837,7 +2837,7 @@ like early stages of setting up an installation, the client does not have that
 to tell which tenant it is acting as). The client may choose to pass the token
 in the more standard `Authorization` header instead.
 
-The client may also pass a `X-Okapi-Request-Id` token along. This will help
+The client may also pass a `X-Okapi-Request-Id` header along. This will help
 debugging by tying Okapis log
 entries to the various requests. Especially useful if one operation in the UI
 requires multiple requests to the back end modules. All requests should pass the
@@ -2849,7 +2849,10 @@ Before Okapi passes the request to the actual module, it does all kind of things
 It asks the auth filter to validate the `X-Okapi-Token` header, and to extract
 various bits of information from it. Okapi passes the following headers to the
 module: `X-Okapi-Token`, `X-Okapi-Tenant`, `X-Okapi-User-Id`, `X-Okapi-Url`,
-`X-Okapi-Request-Id`, `X-Okapi-Permissions`.
+`X-Okapi-Request-Id`, `X-Okapi-Permissions`. (Side note: The `X-Okapi-Request-Id`
+header is a new one, but will contain the value from the header Okapi received.
+Likewise, the `X-Okapi-Token` header is likely to be different from the one
+passed to Okapi, it may contain module-specific permissions etc.)
 
 If the module wishes to make a request to some other module, it should address it
 to the base URL from `X-Okapi-Url`, combined with the path it needs to access. It
