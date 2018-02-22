@@ -1,3 +1,7 @@
+## 2.9.1 2018-02-22
+ * OKAPI-534 Fix null pointer with tenant init and mod-auth
+
+
 ## 2.9.0 2018-02-21
 
  * OKAPI-531 Add timing for OkapiClient
