@@ -1,8 +1,6 @@
 package okapi;
 
 import org.folio.okapi.MainVerticle;
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import org.junit.After;
@@ -10,7 +8,9 @@ import org.junit.Before;
 import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -145,7 +145,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
@@ -160,7 +160,7 @@ public class ModuleTenantsTest {
       + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
       + "  \"nodeId\" :  \"localhost\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docBasicDeployment_1_0_0).post("/_/discovery/modules")
@@ -197,7 +197,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSample_1_0_0).post("/_/proxy/modules").then().statusCode(201)
@@ -211,7 +211,7 @@ public class ModuleTenantsTest {
       + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDeployment_1_0_0).post("/_/discovery/modules")
@@ -228,7 +228,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -247,7 +247,7 @@ public class ModuleTenantsTest {
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSampleNoSemVer).post("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -259,7 +259,7 @@ public class ModuleTenantsTest {
     String locationTenantModule = r.getHeader("Location");
 
     // run module
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
       .body("Okapi").post("/testb")
       .then().statusCode(200)
@@ -292,7 +292,7 @@ public class ModuleTenantsTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleModule_1_2_0).post("/_/proxy/modules").then().statusCode(201)
@@ -306,7 +306,7 @@ public class ModuleTenantsTest {
       + "  \"srvcId\" : \"sample-module-1.2.0\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDeployment_1_2_0).post("/_/discovery/modules")
@@ -318,7 +318,7 @@ public class ModuleTenantsTest {
     locationSampleDeployment_1_2_0 = r.getHeader("Location");
 
     // Upgrade with bad JSON.
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("{").post(locationTenantModule)
@@ -329,7 +329,7 @@ public class ModuleTenantsTest {
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module-1.2.0\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample2).post(locationTenantModule)
@@ -342,7 +342,7 @@ public class ModuleTenantsTest {
     final String docEnableBasic = "{" + LS
       + "  \"id\" : \"basic-module-1.0.0\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docEnableBasic).post("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -355,7 +355,7 @@ public class ModuleTenantsTest {
 
     // Upgrade from sample 1.0.0 to sample 1.2.0
     // supply the new ID in the body and the old ID in the header.
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample2).post(locationTenantModule)
@@ -368,14 +368,14 @@ public class ModuleTenantsTest {
     locationTenantModule = r.getHeader("Location");
 
     // run new module
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
       .body("Okapi").post("/testb")
       .then().statusCode(200)
       .body(equalTo("Hello Okapi"));
 
     // undeploy basic should not work because it is used by sample 1.2.0
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .delete(locationBasicTenantModule)
@@ -387,7 +387,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // undeploy sample 1.2.0 is OK
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .delete(locationTenantModule)
       .then()
@@ -398,7 +398,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // undeploy basic is OK now
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .delete(locationBasicTenantModule)
       .then()
@@ -409,13 +409,13 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // it's now gone
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
       .body("Okapi").post("/testb")
       .then().statusCode(404);
 
     // nothing left
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200)
@@ -425,7 +425,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // upgrade service: nothing is installed yet
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true&preRelease=true")
@@ -436,21 +436,21 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // enable modules -- wrong type
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("{ \"foo\" : \"bar\"}").post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400);
 
     // enable modules -- bad JSON
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("{").post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400);
 
     // enable modules: post unknown module with semver
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo-1.2.3\", \"action\" : \"enable\"} ]")
@@ -461,7 +461,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // enable modules: post unknown module without semver
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo\", \"action\" : \"enable\"} ]")
@@ -472,7 +472,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // enable modules: post known module with simulation
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
@@ -487,7 +487,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // make sure sample-module-1.0.0 is not deployed anymore
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .delete(locationSampleDeployment_1_0_0)
       .then()
@@ -498,7 +498,7 @@ public class ModuleTenantsTest {
     locationSampleDeployment_1_0_0 = null;
 
     // we simulated above.. This time for real
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
@@ -513,7 +513,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // enable modules again: post known module
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
@@ -528,7 +528,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // upgrade from 1.0.0 to 1.2.0 - post known module which require basic
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"enable\"} ]")
@@ -547,7 +547,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // simulate upgrade modules: post module without version (product only)
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module\", \"action\" : \"enable\"} ]")
@@ -566,7 +566,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // upgrade service: will return same as previous one
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
@@ -584,7 +584,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // upgrade service: nothing to be done
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
@@ -620,7 +620,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docBasic_2_0_0).post("/_/proxy/modules").then().statusCode(201)
@@ -634,7 +634,7 @@ public class ModuleTenantsTest {
     // basic 2.0.0 should not be included because bint 2.0 is not used
     // it could be nice to return conflict.. But that is difficult to do.
     // for now 400 ..
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
@@ -670,7 +670,7 @@ public class ModuleTenantsTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleModule_2_0_0).post("/_/proxy/modules").then().statusCode(201)
@@ -680,7 +680,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // upgrade service: now bint 2.0 is in use
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
@@ -701,7 +701,7 @@ public class ModuleTenantsTest {
     locationBasicDeployment_1_0_0 = null;
 
     // try remove sample 1.0.0 which does not exist (removed earlier)
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
@@ -712,7 +712,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // simulate removal of sample
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-2.0.0\", \"action\" : \"disable\"} ]")
@@ -727,7 +727,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // simulate removal of basic
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-2.0.0\", \"action\" : \"disable\"} ]")
@@ -745,7 +745,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // removal of basic with product only (moduleId without version)
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module\", \"action\" : \"disable\"} ]")
@@ -762,7 +762,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .get("/_/discovery/modules")
@@ -799,7 +799,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docMux).post("/_/proxy/modules").then().statusCode(201)
@@ -826,7 +826,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docMul1).post("/_/proxy/modules").then().statusCode(201)
@@ -853,7 +853,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docMul2).post("/_/proxy/modules").then().statusCode(201)
@@ -868,7 +868,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -881,7 +881,7 @@ public class ModuleTenantsTest {
     final String locationTenantRoskilde = r.getHeader("Location");
 
     // install with mult first
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {" + LS
@@ -910,7 +910,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {" + LS
@@ -956,7 +956,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -978,7 +978,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(doc1).post("/_/proxy/modules").then().statusCode(201)
@@ -988,7 +988,7 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // install with mult first
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {" + LS
@@ -1015,7 +1015,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(doc2).post("/_/proxy/modules").then().statusCode(201)
@@ -1024,7 +1024,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
@@ -1038,7 +1038,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ ]")
@@ -1049,7 +1049,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {" + LS
@@ -1083,7 +1083,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"" + okapiTenant + "\"," + LS
       + "  \"description\" : \"Roskilde bibliotek\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -1113,7 +1113,7 @@ public class ModuleTenantsTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(doc1).post("/_/proxy/modules").then().statusCode(201)
@@ -1122,7 +1122,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
@@ -1144,7 +1144,7 @@ public class ModuleTenantsTest {
       .statusCode(200)
       .log().ifValidationFails();
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"disable\"} ]")

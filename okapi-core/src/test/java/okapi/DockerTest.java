@@ -1,10 +1,10 @@
 package okapi;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -166,7 +166,7 @@ public class DockerTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleDockerModule).post("/_/proxy/modules")
@@ -182,7 +182,7 @@ public class DockerTest {
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     if (haveDocker) {
       r = c.given().header("Content-Type", "application/json")
         .body(doc1).post("/_/discovery/modules")
@@ -217,7 +217,7 @@ public class DockerTest {
       + "  }" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docUserDockerModule).post("/_/proxy/modules")
@@ -233,7 +233,7 @@ public class DockerTest {
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given().header("Content-Type", "application/json")
       .body(doc2).post("/_/discovery/modules")
       .then().statusCode(201)
