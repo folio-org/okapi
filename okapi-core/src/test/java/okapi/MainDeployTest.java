@@ -1,10 +1,10 @@
 package okapi;
 
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
@@ -30,8 +30,6 @@ public class MainDeployTest {
 
   @Before
   public void setUp(TestContext context) {
-    logger.debug("starting MainClusterTest");
-
     // can't set Verticle options so we set a property instead
     System.setProperty("port", Integer.toString(port));
     async = context.async();
@@ -120,7 +118,7 @@ public class MainDeployTest {
       RestAssuredClient c;
       Response r;
 
-      c = api.createRestAssured();
+      c = api.createRestAssured3();
       r = c.given().get("/_/version")
         .then().statusCode(200).log().ifValidationFails().extract().response();
 
@@ -144,7 +142,7 @@ public class MainDeployTest {
       RestAssuredClient c;
       Response r;
 
-      c = api.createRestAssured();
+      c = api.createRestAssured3();
       r = c.given().get("/_/deployment/modules")
         .then().statusCode(200).log().ifValidationFails().extract().response();
 
@@ -168,7 +166,7 @@ public class MainDeployTest {
       RestAssuredClient c;
       Response r;
 
-      c = api.createRestAssured();
+      c = api.createRestAssured3();
       r = c.given().get("/_/proxy/modules")
         .then().statusCode(200).log().ifValidationFails().extract().response();
 
@@ -192,10 +190,10 @@ public class MainDeployTest {
       RestAssuredClient c;
       Response r;
 
-      c = api.createRestAssured();
+      c = api.createRestAssured3();
+
       r = c.given().get("/_/proxy/modules")
         .then().statusCode(200).log().ifValidationFails().extract().response();
-
       Assert.assertTrue("raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
       async.complete();

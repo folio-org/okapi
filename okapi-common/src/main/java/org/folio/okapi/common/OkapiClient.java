@@ -11,7 +11,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
+import java.util.Set;
 import static org.folio.okapi.common.ErrorType.*;
 
 /**
@@ -69,7 +71,13 @@ public class OkapiClient {
     init(vertx);
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
     if (headers != null) {
-      this.headers.putAll(headers);
+      for (Entry<String, String> e : headers.entrySet()) {
+        if (e.getValue().isEmpty()) {
+          this.headers.remove(e.getKey());  // We may override headers with ""
+        } else {
+          this.headers.put(e.getKey(), e.getValue());
+        }
+      }
     }
     if (this.headers.containsKey(XOkapiHeaders.REQUEST_ID)) {
       reqId = this.headers.get(XOkapiHeaders.REQUEST_ID);

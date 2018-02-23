@@ -37,7 +37,7 @@ public class ProcessModuleHandleTest {
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, port);
-    pmh.setConnectIterMax(5);
+    pmh.setConnectIterMax(10);
     return pmh;
   }
 
@@ -149,7 +149,6 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res1 -> {
-      context.assertTrue(res1.succeeded());
       mh.stop(res2 -> {
         context.assertTrue(res2.succeeded());
         async.complete();
