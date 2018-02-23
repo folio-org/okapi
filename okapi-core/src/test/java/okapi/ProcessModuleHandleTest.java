@@ -37,7 +37,7 @@ public class ProcessModuleHandleTest {
 
   private ModuleHandle createModuleHandle(LaunchDescriptor desc, int port) {
     ProcessModuleHandle pmh = new ProcessModuleHandle(vertx, desc, ports, port);
-    pmh.setConnectIterMax(5);
+    pmh.setConnectIterMax(10);
     return pmh;
   }
 
