@@ -648,14 +648,6 @@ public class ModuleTest {
     // Make a more complex request that returns all headers and parameters
     // So the headers we check are those that the module sees and reports to
     // us, not necessarily those that Okapi would return to us.
-    // Note that since this is the only module in the pipeline, Okapi assumes
-    // it is the auth module, and passes it those extra headers. Normally
-    // the auth module would have handled those, and indicated to Okapi that
-    // these are no longer needed, and Okapi would not pass them to regular
-    // modules.
-    // TODO - The auth stuff should only be passed to an auth filter, now
-    // that we have such defined. This check should be DEPRECATED and fixed
-    // when releasing v2.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "H") // ask sample to report all headers
@@ -663,8 +655,6 @@ public class ModuleTest {
       .then().statusCode(200)
       .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Url-Params", "query=foo&limit=10")
-      .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module-1+1\":[\"sample.modperm\"]}")
       .body(containsString("It works"));
 
     // Check that the module can call itself recursively, 5 time
@@ -834,8 +824,6 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      //.header("X-Tenant-Perms-Result", containsString("okapi.all"))
-      //.header("X-Tenant-Perms-Result", containsString("header-1"))
       .extract().headers();
     final String locHdrEnable = headers.getValue("Location");
     List<Header> list = headers.getList("X-Tenant-Perms-Result");
@@ -2977,8 +2965,7 @@ public class ModuleTest {
       .get("/chain1")
       .then().statusCode(200)
       .body(containsString("It works"))
-      .body(containsString("X-Okapi-Permissions-Desired:hdr.chain1,hdr.chain2,sample.testr,sample.chain3"))
-      .body(containsString("X-Okapi-Extra-Permissions:[\"hdr.modperm\",\"sample.modperm\"]"))
+      // No auth header should be included any more, since we don't have an auth filter
       .log().ifValidationFails();
 
     // What happens on prefix match

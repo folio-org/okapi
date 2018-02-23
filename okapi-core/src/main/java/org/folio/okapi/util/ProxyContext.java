@@ -82,7 +82,8 @@ public class ProxyContext {
 
   /**
    * Pass the response headers from an OkapiClient into the response of this
-   * request. Only X-Something headers.
+   * request. Only selected X-Something headers: X-Okapi-Trace, and a special
+   * X-Tenant-Perms-Result, which is used in unit tests for the tenantPemissions
    *
    * @param ok OkapiClient to take resp headers from
    */
@@ -116,7 +117,7 @@ public class ProxyContext {
     return ctx;
   }
 
-  private String getReqId() {
+  public String getReqId() {
     return reqId;
   }
 
