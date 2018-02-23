@@ -970,6 +970,12 @@ public class ProxyService {
         if (!modPerms.isEmpty()) {
           headers.put(XOkapiHeaders.MODULE_PERMISSIONS, modPerms);
         }
+        // Clear the permissions-required header that we inherited from the
+        // original request (f.ex. to tenant-enable), as we do not have those
+        // perms set in the target tenant
+        headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "");
+        headers.put(XOkapiHeaders.PERMISSIONS_DESIRED, "");
+        logger.debug("Auth call, some tricks with permissions");
       }
       pc.debug("doCallSystemInterface: About to create OkapiClient with headers "
         + Json.encode(headers));
