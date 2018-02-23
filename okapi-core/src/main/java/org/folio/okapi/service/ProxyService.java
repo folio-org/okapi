@@ -458,8 +458,6 @@ public class ProxyService {
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
     // modules will not accept the response. Maybe later...
-    //ctx.response().headers().add(XOkapiHeaders.REQUEST_ID, pc.getReqId());
-
     String tenantId = tenantHeader(pc);
     if (tenantId == null) {
       stream.resume();
@@ -811,11 +809,8 @@ public class ProxyService {
         String filt = mi.getRoutingEntry().getPhase() + " " + pth;
         pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
-        // TODO - if phase = "auth", set auth headers
-        // Process results in the same place as now, but with phase check
-        // triggering it. Remove them in any case.
+        // The auth filter needs all kinds of special headers
         if ("auth".equals(mi.getRoutingEntry().getPhase())) {
-          String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
           authHeaders(pc.getModList(), ctx.request().headers(), pc);
         }
       }
