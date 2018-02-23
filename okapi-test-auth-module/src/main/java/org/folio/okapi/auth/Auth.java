@@ -16,7 +16,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
-import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
