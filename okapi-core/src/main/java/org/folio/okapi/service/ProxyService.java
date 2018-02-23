@@ -483,7 +483,6 @@ public class ProxyService {
         String metricKey = "proxy." + tenantId + "."
           + ctx.request().method() + "." + ctx.normalisedPath();
         DropwizardHelper.markEvent(metricKey);
-        String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
 
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
