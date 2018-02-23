@@ -150,6 +150,9 @@ public class ProxyService {
 
   /**
    * Builds the pipeline of modules to be invoked for a request.
+   * Sets the
+   * default authToken for each ModuleInstance. Later, these can be overwritten
+   * by the ModuleTokens from the auth, if needed.
    *
    * @param pc
    * @param enabledModules modules enabled for the current tenant
@@ -175,6 +178,7 @@ public class ProxyService {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri());
+            mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
             if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri(), "")) {
               return null;
@@ -277,22 +281,14 @@ public class ProxyService {
 
 
   /**
-   * Get the auth bits from the module list into X-Okapi-Permissions-Required
-   * and X-Okapi-Permissions-Desired headers. Also X-Okapi-Module-Permissions
-   * for each module that has such. At the same time, sets the authToken to
-   * default for each module. Some of these will be overwritten once the auth
-   * module returns with dedicated tokens, but by default we use the one given
-   * to us by the client.
-   *
+   * Set up special auth headers. Get the auth bits from the module list into
+   * X-Okapi-Permissions-Required and X-Okapi-Permissions-Desired headers. Also
+   * X-Okapi-Module-Permissions for each module that has such.
    */
   private void authHeaders(List<ModuleInstance> modlist,
-    MultiMap requestHeaders, String defaultToken, ProxyContext pc) {
+    MultiMap requestHeaders, ProxyContext pc) {
     // Sanitize important headers from the incoming request
-    requestHeaders.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
-    requestHeaders.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
-    requestHeaders.remove(XOkapiHeaders.MODULE_PERMISSIONS);
-    requestHeaders.remove(XOkapiHeaders.EXTRA_PERMISSIONS);
-    requestHeaders.remove(XOkapiHeaders.MODULE_TOKENS);
+    sanitizeAuthHeaders(requestHeaders);
     Set<String> req = new HashSet<>();
     Set<String> want = new HashSet<>();
     Set<String> extraperms = new HashSet<>();
@@ -317,7 +313,6 @@ public class ProxyService {
           modperms.put(mod.getModuleDescriptor().getId(), modp);
         }
       }
-      mod.setAuthToken(defaultToken);
     } // mod loop
     if (!req.isEmpty()) {
       pc.debug("authHeaders: " + XOkapiHeaders.PERMISSIONS_REQUIRED + " " + String.join(",", req));
@@ -398,15 +393,34 @@ public class ProxyService {
         }
       }
     }
-    res.headers().remove(XOkapiHeaders.MODULE_TOKENS); // nobody else should see them
-    res.headers().remove(XOkapiHeaders.MODULE_PERMISSIONS); // They have served their purpose
-
   }
 
-  private void relayToRequest(HttpClientResponse res, ProxyContext pc) {
-    if (res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
+  /**
+   * Remove all headers that are only used between Okapi and mod-authToken
+   *
+   * @param headers
+   */
+  private void sanitizeAuthHeaders(MultiMap headers) {
+    headers.remove(XOkapiHeaders.MODULE_TOKENS);
+    headers.remove(XOkapiHeaders.MODULE_PERMISSIONS);
+    headers.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
+    headers.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
+    headers.remove(XOkapiHeaders.EXTRA_PERMISSIONS);
+    headers.remove(XOkapiHeaders.PERMISSIONS);
+    headers.remove(XOkapiHeaders.FILTER);
+  }
+
+  /**
+   * Pass the X-headers from a response to the nect request. Catches the auth
+   * response headers too.
+   */
+  private void relayToRequest(HttpClientResponse res, ProxyContext pc,
+    ModuleInstance mi) {
+    if ("auth".equals(mi.getRoutingEntry().getPhase())
+      && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
       authResponse(res, pc);
     }
+    sanitizeAuthHeaders(res.headers());
     for (String s : res.headers().names()) {
       if (s.startsWith("X-") || s.startsWith("x-")) {
         final String v = res.headers().get(s);
@@ -441,12 +455,16 @@ public class ProxyService {
 
     ProxyContext pc = new ProxyContext(ctx);
 
+    // It would be nice to pass the request-id to the client, so it knows what
+    // to look for in Okapi logs. But that breaks the schemas, and RMB-based
+    // modules will not accept the response. Maybe later...
     String tenantId = tenantHeader(pc);
     if (tenantId == null) {
       stream.resume();
       return; // Error code already set in ctx
     }
 
+    sanitizeAuthHeaders(ctx.request().headers());
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
         stream.resume();
@@ -465,7 +483,6 @@ public class ProxyService {
         String metricKey = "proxy." + tenantId + "."
           + ctx.request().method() + "." + ctx.normalisedPath();
         DropwizardHelper.markEvent(metricKey);
-        String authToken = ctx.request().getHeader(XOkapiHeaders.TOKEN);
 
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
@@ -478,7 +495,6 @@ public class ProxyService {
 
         ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
         ctx.request().headers().remove(XOkapiHeaders.MODULE_ID);
-        authHeaders(l, ctx.request().headers(), authToken, pc);
 
         resolveUrls(l.iterator(), res -> {
           if (res.failed()) {
@@ -525,7 +541,7 @@ public class ProxyService {
       } else if (it.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         pc.closeTimer();
-        relayToRequest(res, pc);
+        relayToRequest(res, pc, mi);
         proxyR(it, pc, null, bcontent);
       } else {
         relayToResponse(ctx.response(), res);
@@ -607,7 +623,7 @@ public class ProxyService {
         && res.getHeader(XOkapiHeaders.STOP) == null
         && it.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
-          relayToRequest(res, pc);
+          relayToRequest(res, pc, mi);
           res.pause();
           proxyR(it, pc, res, null);
         } else {
@@ -655,7 +671,7 @@ public class ProxyService {
           stream.resume();
         }
       } else if (it.hasNext()) {
-        relayToRequest(res, pc);
+        relayToRequest(res, pc, mi);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x
           -> proxyR(it, pc, stream, bcontent));
@@ -782,6 +798,7 @@ public class ProxyService {
       }
 
       // Pass the X-Okapi-Filter header for filters (only)
+      // And all kind of things for the auth filter
       ctx.request().headers().remove(XOkapiHeaders.FILTER);
       if (mi.getRoutingEntry().getPhase() != null) {
         String pth = mi.getRoutingEntry().getPathPattern();
@@ -791,6 +808,10 @@ public class ProxyService {
         String filt = mi.getRoutingEntry().getPhase() + " " + pth;
         pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
+        // The auth filter needs all kinds of special headers
+        if ("auth".equals(mi.getRoutingEntry().getPhase())) {
+          authHeaders(pc.getModList(), ctx.request().headers(), pc);
+        }
       }
 
       ProxyType pType = mi.getRoutingEntry().getProxyType();
