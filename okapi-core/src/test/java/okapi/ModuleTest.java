@@ -994,7 +994,7 @@ public class ModuleTest {
       .log().ifValidationFails()
       .extract().header("Location");
 
-    // Re-enable sample.  XXX
+    // Re-enable sample.
     locSampleEnable = given()
       .header("Content-Type", "application/json")
       .body(docEnable)
