@@ -92,7 +92,7 @@ public class ModuleManager {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;
         }
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<Void> futures = new CompList<>(INTERNAL);
         for (ModuleDescriptor md : mres.result()) {
           Future<Void> f = Future.future();
           modules.add(md.getId(), md, f::handle);

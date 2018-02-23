@@ -1,8 +1,6 @@
 package okapi;
 
 import org.folio.okapi.MainVerticle;
-import com.jayway.restassured.RestAssured;
-import com.jayway.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import org.junit.After;
@@ -10,7 +8,9 @@ import org.junit.Before;
 import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -76,12 +76,12 @@ public class EnvTest {
     RestAssuredClient c;
     Response r;
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get("/_/env").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get("/_/env/name1").then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
@@ -89,7 +89,7 @@ public class EnvTest {
     final String badDoc = "{" + LS
       + "  \"name\" : \"BADJSON\"," + LS // the comma here makes it bad json!
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given()
             .header("Content-Type", "application/json")
             .body(badDoc).post("/_/env")
@@ -100,7 +100,7 @@ public class EnvTest {
             + "  \"value\" : \"value1\"" + LS
             + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(doc).post("/_/env")
@@ -112,7 +112,7 @@ public class EnvTest {
             c.getLastReport().isEmpty());
     String locationName1 = r.getHeader("Location");
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get(locationName1)
             .then()
             .statusCode(200)
@@ -120,24 +120,24 @@ public class EnvTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get("/_/env").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().delete(locationName1)
             .then()
             .statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get(locationName1).then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get("/_/env").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
@@ -157,7 +157,7 @@ public class EnvTest {
             + "  \"name\" : \"helloGreeting\"," + LS
             + "  \"value\" : \"hejsa\"" + LS
             + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(doc).post("/_/env")
@@ -176,7 +176,7 @@ public class EnvTest {
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSampleDeployment).post("/_/deployment/modules")
@@ -208,7 +208,7 @@ public class EnvTest {
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docSampleModule1).post("/_/proxy/modules").then().statusCode(201)
@@ -222,7 +222,7 @@ public class EnvTest {
             + "  \"name\" : \"" + okapiTenant + "\"," + LS
             + "  \"description\" : \"Roskilde bibliotek\"" + LS
             + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docTenantRoskilde).post("/_/proxy/tenants")
@@ -237,7 +237,7 @@ public class EnvTest {
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     r = c.given()
             .header("Content-Type", "application/json")
             .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -249,7 +249,7 @@ public class EnvTest {
     final String locationTenantModule = r.getHeader("Location");
 
     // run module
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
             .body("Okapi").post("/testb")
             .then().statusCode(200)
