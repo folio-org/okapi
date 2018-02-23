@@ -13,6 +13,7 @@ public class XOkapiHeaders {
   private XOkapiHeaders() {
     throw new IllegalStateException("XOkapiHeaders");
   }
+
   /**
    * The common "X-Okapi" prefix for all the headers defined here.
    *
@@ -61,12 +62,16 @@ public class XOkapiHeaders {
   public static final String USER_ID = "X-Okapi-User-Id";
 
   /** X-Okapi-Trace. Will be added to the responses from Okapi, to help
-   * debugging where the request actually went, and how long did it take.
+   * debugging
+   * where the request actually went, and how long did it take. For example "GET
+   * sample-module-1.0.0 http://localhost:9231/testb : 204 3748us"
    */
   public static final String TRACE = "X-Okapi-Trace";
 
   /**
-   * X-Okapi-Module-Id Explicit call to module
+   * X-Okapi-Module-Id. Explicit call to a given module. Used to distinguish
+   * which of the 'multiple' type modules we mean to call. Not to be used in
+   * regular requests.
    */
   public static final String MODULE_ID = "X-Okapi-Module-Id";
 
@@ -87,7 +92,7 @@ public class XOkapiHeaders {
   /**
    * X-Okapi-Stop. A signal from a module to Okapi to stop the pipeline
    * processing and return the result immediately. Only to be used in special
-   * circumstances, like in the filters like auth
+   * circumstances, like in the filters like auth.
    */
   public static final String STOP = "X-Okapi-Stop";
 
@@ -97,14 +102,13 @@ public class XOkapiHeaders {
    */
   /**
    * X-Okapi-Filter. Passed to filters (but not real handlers). Tells which
-   * phase we are in, etc.
+   * phase we are in, for example 'auth'.
    */
   public static final String FILTER = "X-Okapi-Filter";
 
   /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
-   * requires.
-   * Used only between Okapi and the auth complex.
+   * requires. Used only between Okapi and the auth complex.
    */
   public static final String PERMISSIONS_REQUIRED = "X-Okapi-Permissions-Required";
 

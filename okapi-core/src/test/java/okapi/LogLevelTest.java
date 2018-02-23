@@ -1,13 +1,13 @@
 package okapi;
 
+import io.restassured.RestAssured;
+import static io.restassured.RestAssured.given;
 import org.folio.okapi.MainVerticle;
-import com.jayway.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import static com.jayway.restassured.RestAssured.*;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;

@@ -36,6 +36,9 @@ Documentation
 
 * [Okapi Guide and Reference](doc/guide.md)
 * [Contributing guidelines](CONTRIBUTING.md)
+* [Securing](doc/securing.md) in the doc directory shows how to enable security-related modules.
+* [Folio Sample Modules](https://github.com/folio-org/folio-sample-modules). There
+is a decent README, and some minimal sample modules to get started with
 * Other FOLIO Developer documentation is at [dev.folio.org](http://dev.folio.org/)
 * See project [OKAPI](https://issues.folio.org/browse/OKAPI)
 at the [FOLIO issue tracker](http://dev.folio.org/community/guide-issues)

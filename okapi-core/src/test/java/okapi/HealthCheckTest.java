@@ -1,16 +1,16 @@
 package okapi;
 
 import org.folio.okapi.MainVerticle;
-import com.jayway.restassured.RestAssured;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import static com.jayway.restassured.RestAssured.*;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.RestAssured;
+import static io.restassured.RestAssured.given;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -49,7 +49,7 @@ public class HealthCheckTest {
 
     RestAssuredClient c;
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().get("/_/proxy/health").then().assertThat().statusCode(200);
     Assert.assertTrue("raml report: " + c.getLastReport().toString(), c.getLastReport().isEmpty());
 

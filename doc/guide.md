@@ -43,6 +43,9 @@ managing and running microservices.
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
     * [Instrumentation](#instrumentation)
+* [Module Reference](#module-reference)
+    * [Life cycle of a module](#life-cycle-of-a-module)
+    * [HTTP](#http)
 
 ## Introduction
 
@@ -2300,6 +2303,9 @@ If regular clients need access to the Okapi admin functions, for example to list
 what modules they have available, the internal module needs to be made available
 for them, and if needed, some permissions assigned to some admin user.
 
+There is a more detailed walk-through about securing an Okapi installation in
+[securing.md]
+
 ### Module Descriptor Sharing
 
 Okapi installations may share their module descriptors. With a "pull"
@@ -2422,6 +2428,7 @@ For Okapi 2.3.0 and later, the install and upgrade operations takes an
 optional parameter, `deploy`, which takes a boolean value. If true, the
 install operation will also deploy and un-deploy as necessary. This will
 only work if the ModuleDescriptor has the launchDescriptor property.
+
 
 ## Reference
 
@@ -2704,3 +2711,170 @@ mode.
   * Modules invoked by a given tenant
 
       `aliasByNode(sumSeriesWithWildcards(folio.okapi.localhost.SOMETENANT.other.*.*.m1_rate, 5),5)`
+
+
+## Module Reference
+
+This section tries to summarize all the things a module author should know
+when creating a module. Like so much else, it is still under construction.
+We hope that we will get enough material here to make it worthwhile to separate
+the section into a stand-alone guide document.
+
+This section concentrates on regular modules that offer regular web services.
+Special modules, filters, and authentication is mostly omitted.
+
+There is a lot of useful information in the Okapi guide. See for example
+* [Versioning and Dependencies](#versioning-and-dependencies)
+* [Status Codes](#status-codes)
+
+### Life cycle of a module
+
+A module goes through a number of different stages in its life.
+
+#### Deployment
+This means somehow starting the process that listens on a given port. There are
+many ways to deploy modules, but the end result is that the process starts running.
+Most of the time the deployment is managed by Okapi, but can also be managed
+by some external entity that is not within the scope of this guide.
+
+There are a few points worth noticing at this stage:
+* The module is supposed to be running on a node on a cluster, so it should not
+use any local storage.
+* There can be multiple instances of the module running, on different nodes, or
+even the same one.
+* Okapi will happily deploy different versions of the same module, even on the
+same node.
+* When starting up, the module should not be doing much more than setting up
+its HTTP listener, and that kind of things. Most of all, it should not be initializing
+any databases, see "enabling" below.
+
+#### Enabling for a tenant
+When a module is enabled for a tenant, Okapi makes a call to its `/_/tenant`
+interface. This is where the module may initialize its database (for that one
+tenant), etc.
+
+#### Upgrading
+When a module gets upgraded to a new version, it happens separately for each tenant.
+Some tenants may not wish to upgrade in the middle of a busy season, others may
+want to have everything in the latest version. The process starts by Okapi
+deploying the new version of the module, while the old one is running too. Then
+various tenants can upgrade to the new version, one at a time.
+
+The actual upgrade happens by Okapi disabling the old version of the module, and
+enabling the new one, in the same call. The module sees a request to the `/_/tenant`
+interface, with both old and new module id given as a parameter, including its
+version. This is a signal to it to look at its data (still, for that one
+tenant!), and upgrade what needs to be upgraded.
+
+Upgrading large amounts of data to a newer schema can be slow. We are thinking
+about a way to make it happen asynchronously, but that is not even designed yet.
+(TODO).
+
+We are using semantic versioning, see [Versioning and Dependencies](#versioning-and-dependencies)
+
+
+#### Disabling
+(TODO - We have not quite decided our policy about disabling modules, deleting
+old data etc - compare apt-get --uninstall and --purge)
+
+#### Closing down
+When Okapi is closing down, it will close the modules too. When starting up,
+those will be restarted. As a module author, you should not worry too much about
+that.
+
+
+
+### HTTP
+One of the main design criteria for Folio is to base things on RESTful HTTP services,
+using JSON for our data transport. This section describes some details about the way
+we should handle HTTP. (TODO...)
+
+#### HTTP status codes
+See [Status Codes](#status-codes).
+
+
+#### X-Okapi headers
+
+Okapi uses various X-Okapi headers for passing additional information between
+the client making the request, Okapi itself, and the module serving the request,
+as well as when the module wants to make further requests to other modules (via
+Okapi), and when the module returns its response to Okapi, and from there to the
+client. There are also special headers for the communication between the auth
+module(s) and Okapi, but we can ignore them here.
+
+Here is a quick list of the most relevant headers:
+* `X-Okapi-Token` Authentication token. Carries the tenant and user Ids,
+and some permissions.
+* `X-Okapi-Tenant` The tenant Id we operate as. UUID
+* `X-Okapi-User-Id` The UUID of the logged-in user
+* `X-Okapi-Url` The base URL of the Okapi installation. For example
+http://localhost:9130. This can also point to a load balancer in front to Okapi,
+all you need to know is to use this when making further requests to other modules.
+* `X-Okapi-Request-Id` The Id of the current request, for example
+"821257/user;744931/perms", which tells that this was request 821257 to `/users/...`
+which made a request 744931 to `/perms/...` The numbers are just random, picked
+when Okapi sees the request.
+* `X-Okapi-Trace` A module may return this to add trace and timing info to the
+response headers, so the client can see where the request ended up, and how long
+various parts took. For example
+`GET sample-module-1.0.0 http://localhost:9231/testb : 204 3748us`
+* `X-Okapi-Permissions` Permissions that the module desires, and that have been
+granted. (Note that if a module strictly requires a permission, and it is not
+granted, the request will never reach the module. These are only for special
+cases, like including sensitive data about a user, which the module can handle
+on its own).
+
+The full list is in
+[X-Okapi-Headers.java](../okapi-common/src/main/java/org/folio/okapi/common/XOkapiHeaders.java).
+If writing your module in Java, it is recommended you refer to this file, instead
+of defining your own. That way, you also get the Javadoc for them.
+
+When the UI, or other client program makes a request to Okapi, it needs to pass
+the `X-Okapi-Token` header along. It should have received one when it made a call
+to `authn/login`. (Side note: At the login request, and some other special cases,
+like early stages of setting up an installation, the client does not have that
+`X-Okapi-Token` yet. In such cases it should pass a `X-Okapi-Tenant` header instead,
+to tell which tenant it is acting as). The client may choose to pass the token
+in the more standard `Authorization` header instead.
+
+The client may also pass a `X-Okapi-Request-Id` header along. This will help
+debugging by tying Okapis log
+entries to the various requests. Especially useful if one operation in the UI
+requires multiple requests to the back end modules. All requests should pass the
+same Id, Okapi will distinguish them by appending its own Id to each. For example
+`123456/disable-user`, where the prefix is a random number, and the string is a
+very short description of the operation.
+
+Before Okapi passes the request to the actual module, it does all kind of things.
+It asks the auth filter to validate the `X-Okapi-Token` header, and to extract
+various bits of information from it. Okapi passes the following headers to the
+module: `X-Okapi-Token`, `X-Okapi-Tenant`, `X-Okapi-User-Id`, `X-Okapi-Url`,
+`X-Okapi-Request-Id`, `X-Okapi-Permissions`. (Side note: The `X-Okapi-Request-Id`
+header is a new one, but will contain the value from the header Okapi received.
+Likewise, the `X-Okapi-Token` header is likely to be different from the one
+passed to Okapi, it may contain module-specific permissions etc.)
+
+If the module wishes to make a request to some other module, it should address it
+to the base URL from `X-Okapi-Url`, combined with the path it needs to access. It
+should pass along at least the `X-Okapi-Token`, and preferably also the
+`X-Okapi-Request-Id`. In many cases it is easier to pass all `X-Okapi` headers
+along - Okapi will drop those that could confuse things.
+
+When the module receives a response from the other module, it would be nice it
+it could pass all `X-Okapi-Trace` headers into its own response. That helps the
+client to debug its code, by listing all the requests that were made during the
+process, and how long each took. But this is not strictly necessary.
+
+When the module returns its response, it does not need to pass any headers to Okapi,
+but it may pass one or two `X-Okapi-Trace` headers of its own. It has been a
+tradition that a module copies all `X-Okapi` headers from its request into its
+response. This is perfectly acceptable, but in no way necessary.
+
+When Okapi passes the response to the client, it will pass all `X-Okapi` headers
+mentioned above. It may remove some of the headers it uses internally.
+
+
+
+
+
+

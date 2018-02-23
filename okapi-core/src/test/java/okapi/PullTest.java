@@ -8,7 +8,7 @@ import org.junit.Before;
 import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
-import guru.nidi.ramltester.restassured.RestAssuredClient;
+import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -117,17 +117,17 @@ public class PullTest {
 
     RestAssuredClient c;
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port1).get("/_/version").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2).get("/_/version").then().statusCode(200);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body("{ bad json").post("/_/proxy/pull/modules")
@@ -146,7 +146,7 @@ public class PullTest {
       + "  ]" + LS
       + "}";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullDoc).post("/_/proxy/pull/modules")
@@ -170,7 +170,7 @@ public class PullTest {
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleA).post("/_/proxy/modules")
@@ -185,7 +185,7 @@ public class PullTest {
       + "  \"name\" : \"okapi-0.0.0\"" + LS
       + "} ]";
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules")
@@ -195,7 +195,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullDoc).post("/_/proxy/pull/modules")
@@ -217,7 +217,7 @@ public class PullTest {
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleB).post("/_/proxy/modules")
@@ -238,7 +238,7 @@ public class PullTest {
       + "    \"version\" : \"1.0\"" + LS
       + "  } ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port1)
       .header("Content-Type", "application/json")
       .body(docModuleC).post("/_/proxy/modules")
@@ -248,7 +248,7 @@ public class PullTest {
       c.getLastReport().isEmpty());
 
     // should get b and c
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullDoc).post("/_/proxy/pull/modules")
@@ -257,7 +257,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullDoc).post("/_/proxy/pull/modules")
@@ -267,7 +267,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true")
@@ -289,12 +289,12 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=foo&preRelease=true").then().statusCode(400);
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=asc").then().statusCode(200)
@@ -315,7 +315,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=bogus").then().statusCode(400);
@@ -324,12 +324,12 @@ public class PullTest {
       c.getLastReport().isEmpty());
 
     // no RAML check below because preRelease value is invalid
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?preRelease=sandt").then().statusCode(400);
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module-c&orderBy=id").then().statusCode(200)
@@ -341,7 +341,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module-c-1").then().statusCode(200)
@@ -353,7 +353,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module-2").then().statusCode(200)
@@ -362,7 +362,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module").then().statusCode(200)
@@ -371,7 +371,7 @@ public class PullTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=foo").then().statusCode(200)
@@ -394,7 +394,7 @@ public class PullTest {
       + "  \"http://localhost:" + port3 + "\"" + LS
       + "  ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullPort3).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
@@ -408,7 +408,7 @@ public class PullTest {
       + "  \"http://localhost:" + port4 + "\"" + LS
       + "  ]" + LS
       + "}";
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullPort4).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
@@ -425,7 +425,7 @@ public class PullTest {
       + "}";
 
     // pull from from both
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullBoth1).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
@@ -442,7 +442,7 @@ public class PullTest {
       + "}";
 
     // pull from from both
-    c = api.createRestAssured();
+    c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
       .body(pullBoth2).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
