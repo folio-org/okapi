@@ -149,7 +149,6 @@ public class ProcessModuleHandleTest {
     ModuleHandle mh = createModuleHandle(desc, 9231);
 
     mh.start(res1 -> {
-      context.assertTrue(res1.succeeded());
       mh.stop(res2 -> {
         context.assertTrue(res2.succeeded());
         async.complete();
