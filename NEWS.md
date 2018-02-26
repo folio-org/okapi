@@ -1,6 +1,18 @@
-## 2.9.1 2018-02-22
- * OKAPI-534 Fix null pointer with tenant init and mod-auth
+## 2.9.2 2018-02-26
 
+ * OKAPI-539 Fix Unit test ProcessModuleHandleTest fails on Java 9
+ * OKAPI-538 Fix unable to enable modules for tenant after mod-authtoken
+   is enabled
+ * OKAPI-537 Update to RestAssured 3.0.7
+ * OKAPI-536 Test fails in v2.9.1 (Java 9)
+ * OKAPI-535 Pass auth-headers only to an auth filter 
+ * OKAPI-533 Clean up response headers
+ * OKAPI-528 Create a section about what is expected from a module
+ * OKAPI-527 Dcoument what headers modules are supposed to return
+
+## 2.9.1 2018-02-22
+
+ * OKAPI-534 Fix null pointer with tenant init and mod-auth
 
 ## 2.9.0 2018-02-21
 
