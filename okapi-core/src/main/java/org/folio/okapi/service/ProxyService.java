@@ -396,7 +396,7 @@ public class ProxyService {
   }
 
   /**
-   * Remove all headers that are only used between Okapi and mod-authToken
+   * Remove all headers that are only used between Okapi and mod-authtoken
    *
    * @param headers
    */
@@ -411,7 +411,7 @@ public class ProxyService {
   }
 
   /**
-   * Pass the X-headers from a response to the nect request. Catches the auth
+   * Pass the X-headers from a response to the next request. Catches the auth
    * response headers too.
    */
   private void relayToRequest(HttpClientResponse res, ProxyContext pc,
@@ -861,7 +861,7 @@ public class ProxyService {
    * correct one.
    *
    * @param tenant to make the request for
-   * @param inst carries the moduleDescriptor, RoutinegEntry, and getPath to be
+   * @param inst carries the moduleDescriptor, RoutingEntry, and getPath to be
    * called
    * @param request body to send in the request
    * @param pc ProxyContext for logging, and returning resp headers
@@ -992,7 +992,7 @@ public class ProxyService {
           headers.put(XOkapiHeaders.MODULE_PERMISSIONS, modPerms);
         }
         // Clear the permissions-required header that we inherited from the
-        // original request (f.ex. to tenant-enable), as we do not have those
+        // original request (e.g. to tenant-enable), as we do not have those
         // perms set in the target tenant
         headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "");
         headers.put(XOkapiHeaders.PERMISSIONS_DESIRED, "");
@@ -1058,7 +1058,7 @@ public class ProxyService {
 
   /**
    * Extract tenantId from the request, rewrite the getPath, and proxy it.
-   * Expects   * a request to something like /_/proxy/tenant/{tid}/mod-something.
+   * Expects a request to something like /_/proxy/tenant/{tid}/mod-something.
    * Rewrites that to /mod-something, with the tenantId passed in the proper
    * header. As there is no authtoken, this will not work for many things, but
    * is needed for callbacks in the SSO systems, and who knows what else.
