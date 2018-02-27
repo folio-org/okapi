@@ -596,7 +596,7 @@ The build requirements are:
 
  * Apache Maven 3.3.1 or later.
  * Java 8 JDK
- * [Git](https://git-scm.com)
+ * [Git](https://git-scm.com) 2
 
 As usual, do all development and running as a regular user, not as root.
 
