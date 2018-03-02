@@ -177,16 +177,6 @@ schemas:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
-      put:
-        description: Update registration of a specified instance
-        responses:
-          200:
-            body:
-              application/json:
-                schema: DeploymentDescriptor
-            headers:
-              X-Okapi-Trace:
-                description: Okapi trace and timing
       delete:
         description: Remove registration for a given instance
         responses:
