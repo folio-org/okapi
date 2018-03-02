@@ -96,7 +96,7 @@ public class InternalModule {
       // Tighten that up when we know what is actually needed
       // (except env, it may contain database passwords)
       + " \"id\" : \"" + okapiModule + "\","
-      + " \"name\" : \"" + okapiModule + "\","
+      + " \"name\" : \"" + "Okapi" + "\","
       + " \"provides\" : [ {"
       + "   \"id\" : \"okapi-proxy\","
       + "   \"version\" : \"" + INTERFACE_VERSION + "\","
