@@ -92,7 +92,7 @@ public class ModuleTest {
   // It gets set later in the compilation process.
   private static final String internalModuleDoc = "{" + LS
     + "  \"id\" : \"okapi-0.0.0\"," + LS
-    + "  \"name\" : \"okapi-0.0.0\"" + LS
+    + "  \"name\" : \"Okapi\"" + LS
     + "}";
 
   @BeforeClass

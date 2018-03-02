@@ -182,7 +182,7 @@ public class PullTest {
     // list of the one module that's always there.
     final String internalModuleDoc = "[ {" + LS
       + "  \"id\" : \"okapi-0.0.0\"," + LS
-      + "  \"name\" : \"okapi-0.0.0\"" + LS
+      + "  \"name\" : \"Okapi\"" + LS
       + "} ]";
 
     c = api.createRestAssured3();
@@ -274,7 +274,7 @@ public class PullTest {
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
-        + "  \"name\" : \"okapi-0.0.0\"" + LS
+        + "  \"name\" : \"Okapi\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"module-c-1.0.0\"," + LS
         + "  \"name\" : \"C\"" + LS
@@ -309,7 +309,7 @@ public class PullTest {
         + "  \"name\" : \"C\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
-        + "  \"name\" : \"okapi-0.0.0\"" + LS
+        + "  \"name\" : \"Okapi\"" + LS
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
