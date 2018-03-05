@@ -1,3 +1,13 @@
+## 2.9.3 2018-03-05
+
+ * OKAPI-293 Maven build fails when building from release distributions
+ * OKAPI-522 Fix Upgrade and install POST permissions mismatch
+ * OKAPI-541 Add requirement of Git 2 in Okapi documentation
+ * OKAPI-542 Check RAML and code match
+ * OKAPI-543 RAML: Make module name optional (not required)
+ * OKAPI-545 Do not require Git for "mvn install"
+ * OKAPI-546 Change name of internal module to "Okapi"
+
 ## 2.9.2 2018-02-26
 
  * OKAPI-539 Fix Unit test ProcessModuleHandleTest fails on Java 9
