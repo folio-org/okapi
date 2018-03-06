@@ -52,7 +52,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       }
       Collection<String> keys = kres.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      CompList futures = new CompList<>(INTERNAL);
+      CompList<LinkedHashMap<String,T>> futures = new CompList<>(INTERNAL);
       for (String key : keys) {
         Future<String> f = Future.future();
         getString(key, null, res -> {

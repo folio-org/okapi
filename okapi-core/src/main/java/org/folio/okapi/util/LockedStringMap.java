@@ -119,7 +119,7 @@ public class LockedStringMap {
     } else {
       KeyList keys = Json.decodeValue(val, KeyList.class);
 
-      CompList futures = new CompList<>(INTERNAL);
+      CompList<Collection<String>> futures = new CompList<>(INTERNAL);
       for (String k : keys.keys) {
         Future<String> f = Future.future();
         list.get(k, res -> {
