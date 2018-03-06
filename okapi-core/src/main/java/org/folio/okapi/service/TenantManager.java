@@ -165,10 +165,10 @@ public class TenantManager {
         logger.warn("TenantManager list: Getting keys FAILED: ", lres);
         fut.handle(new Failure<>(INTERNAL, lres.cause()));
       } else {
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<List<TenantDescriptor>> futures = new CompList<>(INTERNAL);
         SortedMap<String, TenantDescriptor> tdl = new TreeMap<>();
         for (String s : lres.result()) {
-          Future future = Future.future();
+          Future<Tenant> future = Future.future();
           tenants.get(s, res -> {
             if (res.succeeded()) {
               tdl.put(s, res.result().getDescriptor());
@@ -177,7 +177,7 @@ public class TenantManager {
           });
           futures.add(future);
         }
-        futures.all(new LinkedList(tdl.values()), fut);
+        futures.all(new LinkedList<TenantDescriptor>(tdl.values()), fut);
       }
     });
   }
@@ -1164,7 +1164,7 @@ public class TenantManager {
       if (lres.failed()) {
         fut.handle(new Failure<>(lres.getType(), lres.cause()));
       } else {
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (Tenant t : lres.result()) {
           Future<Void> f = Future.future();
           tenants.add(t.getId(), t, f::handle);
