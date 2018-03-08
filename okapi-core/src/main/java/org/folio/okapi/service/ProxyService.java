@@ -406,7 +406,6 @@ public class ProxyService {
     headers.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
     headers.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
     headers.remove(XOkapiHeaders.EXTRA_PERMISSIONS);
-    headers.remove(XOkapiHeaders.PERMISSIONS);
     headers.remove(XOkapiHeaders.FILTER);
   }
 

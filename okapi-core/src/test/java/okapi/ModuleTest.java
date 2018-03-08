@@ -1686,10 +1686,9 @@ public class ModuleTest {
       .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Okapi-User-Id", "peter")
       .header("X-Url-Params", "query=foo&limit=10")
+      .header("X-Okapi-Permissions", containsString("sample.extra"))
+      .header("X-Okapi-Permissions", containsString("auth.extra"))
       .body(containsString("It works"));
-    // Check only the required permission bit, since there is only one.
-    // There are wanted bits too, two of them, but their order is not
-    // well defined.
 
     // Check the CORS headers.
     // The presence of the Origin header should provoke the two extra headers.
