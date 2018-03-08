@@ -92,7 +92,7 @@ public class ModuleTest {
   // It gets set later in the compilation process.
   private static final String internalModuleDoc = "{" + LS
     + "  \"id\" : \"okapi-0.0.0\"," + LS
-    + "  \"name\" : \"okapi-0.0.0\"" + LS
+    + "  \"name\" : \"Okapi\"" + LS
     + "}";
 
   @BeforeClass
@@ -687,6 +687,13 @@ public class ModuleTest {
       .body("Testing testb")
       .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
+
+    // double slash does not match invoke
+    given()
+      .header("Content-Type", "application/json")
+      .body("Testing testb")
+      .post("//_/invoke/tenant/" + okapiTenant + "/testb")
+      .then().statusCode(403);
 
     // Check that the tenant API got called (exactly once)
     given()

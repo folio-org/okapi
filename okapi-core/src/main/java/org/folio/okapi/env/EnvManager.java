@@ -38,7 +38,7 @@ public class EnvManager {
           if (res2.failed()) {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            CompList futures = new CompList<>(INTERNAL);
+            CompList<List<Void>> futures = new CompList<>(INTERNAL);
             for (EnvEntry e : res2.result()) {
               Future<Void> f = Future.future();
               add1(e, f::handle);

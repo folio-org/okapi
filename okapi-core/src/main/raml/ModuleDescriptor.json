@@ -41,5 +41,5 @@
       "$ref": "LaunchDescriptor.json"
     }
   },
-  "required": ["id", "name"]
+  "required": ["id"]
 }

@@ -96,7 +96,7 @@ public class InternalModule {
       // Tighten that up when we know what is actually needed
       // (except env, it may contain database passwords)
       + " \"id\" : \"" + okapiModule + "\","
-      + " \"name\" : \"" + okapiModule + "\","
+      + " \"name\" : \"" + "Okapi" + "\","
       + " \"provides\" : [ {"
       + "   \"id\" : \"okapi-proxy\","
       + "   \"version\" : \"" + INTERFACE_VERSION + "\","
@@ -405,7 +405,7 @@ public class InternalModule {
       + "   \"description\" : \"Check if newer versions available, and upgrade\" "
       + " }, { "
       + "   \"permissionName\" : \"okapi.proxy.tenants.install.post\", "
-      + "   \"displayName\" : \"Okapi - Enable modules and dependcencies\", "
+      + "   \"displayName\" : \"Okapi - Enable modules and dependencies\", "
       + "   \"description\" : \"Check dependencies and enable/disable modules as needed\" "
       + " }, { "
       + "   \"permissionName\" : \"okapi.proxy.tenants.modules.post\", "
@@ -475,8 +475,8 @@ public class InternalModule {
       + "     \"okapi.proxy.tenants.modules.post\", "
       + "     \"okapi.proxy.tenants.modules.enabled.post\", "
       + "     \"okapi.proxy.tenants.modules.enabled.delete\", "
-      + "     \"okapi.proxy.tenants.modules.upgrade.post\", "
-      + "     \"okapi.proxy.tenants.modules.install.post\" "
+      + "     \"okapi.proxy.tenants.upgrade.post\", "
+      + "     \"okapi.proxy.tenants.install.post\" "
       + "   ]"
       + " }, "
       + " { "
