@@ -419,7 +419,10 @@ public class ProxyService {
       && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
       authResponse(res, pc);
     }
+    // Sanitize both request headers (to remove the auth stuff we may have added)
+    // and response headers (to remove stuff the auth module may have added)
     sanitizeAuthHeaders(res.headers());
+    sanitizeAuthHeaders(pc.getCtx().request().headers());
     for (String s : res.headers().names()) {
       if (s.startsWith("X-") || s.startsWith("x-")) {
         final String v = res.headers().get(s);
