@@ -181,10 +181,15 @@ class Auth {
     }
     // Fake some desired permissions
     String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
-    if ( des != null && ! des.isEmpty()) {
+    String req = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_REQUIRED);
+    if (des != null && !des.isEmpty()) {
     ctx.response().headers()
       .add(XOkapiHeaders.PERMISSIONS, des);
     }
+    if (req != null)
+      ctx.response().headers().add("X-Auth-Permissions-Required", req);
+    if (des != null)
+      ctx.response().headers().add("X-Auth-Permissions-Desired", des);
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
