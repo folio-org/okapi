@@ -596,7 +596,7 @@ public class ModuleManager {
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    CompList futures = new CompList<>(INTERNAL);
+    CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
       Future<ModuleDescriptor> f = Future.future();
       modules.get(id, res -> {

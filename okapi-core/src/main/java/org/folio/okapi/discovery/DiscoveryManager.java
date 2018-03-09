@@ -75,7 +75,7 @@ public class DiscoveryManager implements NodeListener {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
           Future<DeploymentDescriptor> f = Future.future();
           addAndDeploy1(dd, null, f::handle);
@@ -357,7 +357,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    CompList futures = new CompList<>(USER);
+    CompList<List<Void>> futures = new CompList<>(USER);
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
@@ -374,7 +374,7 @@ public class DiscoveryManager implements NodeListener {
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
-        Future f = Future.future();
+        Future<DeploymentDescriptor> f = Future.future();
         addAndDeploy(dd, pc, f::handle);
         futures.add(f);
       } else {
@@ -397,10 +397,10 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         List<DeploymentDescriptor> ddList = res.result();
-        CompList futures = new CompList<>(USER);
+        CompList<List<Void>> futures = new CompList<>(USER);
         for (DeploymentDescriptor dd : ddList) {
           if (dd.getNodeId() != null) {
-            Future f = Future.future();
+            Future<Void> f = Future.future();
             callUndeploy(dd, pc, f::handle);
             futures.add(f);
           }
@@ -445,7 +445,7 @@ public class DiscoveryManager implements NodeListener {
       } else {
         Collection<String> keys = resGet.result();
         List<DeploymentDescriptor> all = new LinkedList<>();
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<List<DeploymentDescriptor>> futures = new CompList<>(INTERNAL);
         for (String s : keys) {
           Future<List<DeploymentDescriptor>> f = Future.future();
           this.get(s, res -> {
@@ -498,7 +498,7 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
 
     List<HealthDescriptor> all = new LinkedList<>();
-    CompList futures = new CompList<>(INTERNAL);
+    CompList<List<HealthDescriptor>> futures = new CompList<>(INTERNAL);
     for (DeploymentDescriptor md : list) {
       Future<HealthDescriptor> f = Future.future();
       health(md, res -> {
@@ -646,7 +646,7 @@ public class DiscoveryManager implements NodeListener {
           keys.retainAll(n);
         }
         List<NodeDescriptor> all = new LinkedList<>();
-        CompList futures = new CompList<>(INTERNAL);
+        CompList<List<NodeDescriptor>> futures = new CompList<>(INTERNAL);
         for (String nodeId : keys) {
           Future<NodeDescriptor> f = Future.future();
           getNode1(nodeId, res -> {

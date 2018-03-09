@@ -1,3 +1,9 @@
+## 2.9.4 2018-03-09
+
+ * OKAPI-550 Fix X-Okapi-Permissions missing
+ * OKAPI-547 Fix Callback endpoint stackoverflow error (for doubl slash)
+ * OKAPI-548 Fix Unchecked call warnings (compilation phase)
+
 ## 2.9.3 2018-03-05
 
  * OKAPI-293 Maven build fails when building from release distributions

@@ -407,7 +407,7 @@ public class MainVerticle extends AbstractVerticle {
     );
 
     if (proxyService != null) {
-      router.routeWithRegex("/_/invoke/tenant/[^/ ]+/.*")
+      router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*")
         .handler(proxyService::redirectProxy);
       // Note: This can not go into the InternalModule, it reads the req body,
       // and then we can not ctx.reroute(). Unless we do something trickier,

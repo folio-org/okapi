@@ -688,6 +688,13 @@ public class ModuleTest {
       .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
 
+    // double slash does not match invoke
+    given()
+      .header("Content-Type", "application/json")
+      .body("Testing testb")
+      .post("//_/invoke/tenant/" + okapiTenant + "/testb")
+      .then().statusCode(403);
+
     // Check that the tenant API got called (exactly once)
     given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -1639,6 +1646,8 @@ public class ModuleTest {
     // Request without an auth token
     // This is acceptable, we get back a token that certifies that we have no
     // logged-in username. We can use this for modulePermissions still.
+    // A real auth module would refuse the request because we do not have the
+    // permission. But the test-auth lets it pass...
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B") // ask sample to report all headers
@@ -1670,26 +1679,29 @@ public class ModuleTest {
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
     // Actual requests to the module
-    // Check that okapi sets up the permission headers.
-    // Check also the X-Okapi-Url header in the same go, as well as
-    // URL parameters.
+    // Check the X-Okapi-Url header in, as well as URL parameters.
     // X-Okapi-Filter can not be checked here, but the log shows that it gets
     // passed to the auth filter, and not to the handler.
+    // Check that the auth module has seen the right X-Okapi-Permissions-Required
+    // and -Desired, it returns them in X-Auth-Permissions-Required and -Desired.
+    // The X-Okapi-Permissions-Required and -Desired can not be checked here
+    // directly, since Okapi sanitizes them away after invoking the auth module.
+    // The auth module should return X-Okapi-Permissions to the sample module
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .header("X-all-headers", "HB") // ask sample to report all headers
+      .header("X-all-headers", "HBL") // ask sample to report all headers
       .get("/testb?query=foo&limit=10")
       .then().statusCode(200)
       .log().ifValidationFails()
-      .header("X-Okapi-Permissions-Required", "sample.needed")
-      .header("X-Okapi-Module-Permissions", "{\"sample-module-1\":[\"sample.modperm\"]}")
       .header("X-Okapi-Url", "http://localhost:9230") // no trailing slash!
       .header("X-Okapi-User-Id", "peter")
       .header("X-Url-Params", "query=foo&limit=10")
+      .header("X-Okapi-Permissions", containsString("sample.extra"))
+      .header("X-Okapi-Permissions", containsString("auth.extra"))
+      .header("X-Auth-Permissions-Desired", containsString("auth.extra"))
+      .header("X-Auth-Permissions-Desired", containsString("sample.extra"))
+      .header("X-Auth-Permissions-Required", "sample.needed")
       .body(containsString("It works"));
-    // Check only the required permission bit, since there is only one.
-    // There are wanted bits too, two of them, but their order is not
-    // well defined.
 
     // Check the CORS headers.
     // The presence of the Origin header should provoke the two extra headers.
