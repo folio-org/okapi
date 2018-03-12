@@ -125,19 +125,19 @@ master branches here, but beware, things may change under your feet. You can
 add a `git checkout` to get to a known good version.
 
 ```
-git clone https://github.com/folio-org/mod-permissions
+git clone --recursive https://github.com/folio-org/mod-permissions
 cd mod-permissions
 git checkout master # "v4.0.4" is way too old
 mvn clean install
 cd ..
 
-git clone https://github.com/folio-org/mod-users
+git clone --recursive https://github.com/folio-org/mod-users
 cd mod-users
 git checkout master # maybe v14.2.0 works
 mvn clean install
 cd ..
 
-git clone https://github.com/folio-org/mod-login
+git clone --recursive https://github.com/folio-org/mod-login
 git checkout master # v3.1.0 is way too old
 mvn clean install
 cd ..
