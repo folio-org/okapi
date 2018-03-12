@@ -28,7 +28,7 @@ This script assumes you have a fresh Okapi instance running, with nothing
 installed in it. If you do not, you can get one up by running the following.
 
 ```
-git clone git@github.com:folio-org/okapi.git
+git clone https://github.com/folio-org/okapi
 cd okapi
 #git checkout "v2.0.2"  # Or "master" if you want the latest, or any other tag
 mvn clean install
@@ -125,24 +125,24 @@ master branches here, but beware, things may change under your feet. You can
 add a `git checkout` to get to a known good version.
 
 ```
-git clone git@github.com:folio-org/mod-permissions.git
+git clone https://github.com/folio-org/mod-permissions
 cd mod-permissions
 git checkout master # "v4.0.4" is way too old
 mvn clean install
 cd ..
 
-git clone git@github.com:folio-org/mod-users.git
+git clone https://github.com/folio-org/mod-users
 cd mod-users
 git checkout master # maybe v14.2.0 works
 mvn clean install
 cd ..
 
-git clone git@github.com:folio-org/mod-login.git
+git clone https://github.com/folio-org/mod-login
 git checkout master # v3.1.0 is way too old
 mvn clean install
 cd ..
 
-git clone git@github.com:folio-org/mod-authtoken.git
+git clone https://github.com/folio-org/mod-authtoken
 cd mod-authtoken
 git checkout master # v1.1.0
 mvn clean install
