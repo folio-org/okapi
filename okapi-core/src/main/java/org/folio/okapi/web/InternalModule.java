@@ -1219,7 +1219,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     String v = okapiVersion;
     if (v == null) {
-      v = "(null)";
+      v = "0.0.0";
     }
     pc.getCtx().response().putHeader("Content-Type", "text/plain"); // !!
     fut.handle(new Success<>(v));
