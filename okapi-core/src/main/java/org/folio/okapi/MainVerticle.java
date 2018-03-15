@@ -161,7 +161,7 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       logger.info("Proxy using " + storageType + " storage");
-      PullManager pullManager = new PullManager(vertx, okapiUrl);
+      PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
               tenantManager, deploymentManager, discoveryManager,
               envManager, pullManager,okapiVersion);
