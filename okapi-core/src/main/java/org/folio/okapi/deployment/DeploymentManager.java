@@ -97,7 +97,7 @@ public class DeploymentManager {
 
     int usePort = ports.get();
     if (usePort == -1) {
-      fut.handle(new Failure<>(INTERNAL, "all ports in use"));
+      fut.handle(new Failure<>(USER, "all ports in use"));
       tim.close();
       return;
     }
