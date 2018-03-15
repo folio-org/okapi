@@ -339,10 +339,10 @@ public class ModuleManager {
    * @param md
    * @param fut
    */
-  public void create(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void create(ModuleDescriptor md, boolean check, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
-    createList(l, fut);
+    createList(l, check, fut);
   }
 
   /**
@@ -351,7 +351,7 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void createList(List<ModuleDescriptor> list, boolean check, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -375,10 +375,12 @@ public class ModuleManager {
           nList.add(md);
         }
       }
-      String res = checkAllDependencies(tempList);
-      if (!res.isEmpty()) {
-        fut.handle(new Failure<>(USER, res));
-        return;
+      if (check) {
+        String res = checkAllDependencies(tempList);
+        if (!res.isEmpty()) {
+          fut.handle(new Failure<>(USER, res));
+          return;
+        }
       }
       createList2(nList, fut);
     });

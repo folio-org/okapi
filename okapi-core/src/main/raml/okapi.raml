@@ -304,6 +304,11 @@ schemas:
   post:
     description: Announce new module to the proxy. Once successful a module
       can be selected for a specific tenant.
+    queryParameters:
+      check:
+        description: Whether to check dependencies
+        type: boolean
+        required: false
     body:
       application/json:
         schema: ModuleDescriptor

@@ -519,6 +519,10 @@ public class InternalModule {
       } else {
         uri = baseUri;
       }
+      int idx = uri.indexOf('?');
+      if (idx != -1) {
+        uri = uri.substring(0, idx);
+      }
       uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
       pc.getCtx().response().putHeader("Location", uri);
       pc.getCtx().response().setStatusCode(201);
@@ -816,12 +820,14 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
+      final boolean check = getParamBoolean(pc.getCtx().request(), "check", true);
+
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         fut.handle(new Failure<>(USER, validerr));
         return;
       }
-      moduleManager.create(md, cres -> {
+      moduleManager.create(md, check, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;

@@ -492,7 +492,7 @@ public class ModuleTest {
     given()
       .header("Content-Type", "application/json")
       .body(docbadRedir)
-      .post("/_/proxy/modules")
+      .post("/_/proxy/modules?check=false")
       .then()
       .statusCode(400);
 
@@ -501,7 +501,7 @@ public class ModuleTest {
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSampleModule)
-      .post("/_/proxy/modules")
+      .post("/_/proxy/modules?check=true")
       .then()
       .statusCode(201)
       .extract().response();

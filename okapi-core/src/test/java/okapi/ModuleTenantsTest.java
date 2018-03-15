@@ -1159,4 +1159,68 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
   }
 
+  @Test
+  public void testDepCheck() {
+    RestAssured.port = port;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+    RestAssuredClient c;
+    Response r;
+
+    // create basic 1.0.0
+    final String docBasic_1_0_0 = "{" + LS
+      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"bint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"unknown\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasic_1_0_0)
+      .post("/_/proxy/modules?check=true")
+      .then().statusCode(400).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasic_1_0_0)
+      .post("/_/proxy/modules?check=false")
+      .then().statusCode(201).log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String location = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete(location)
+      .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+  }
+
 }
