@@ -347,7 +347,7 @@ to tell where to redirect to.
 
  * `request-response-1.0` -- This is like `request-response`, but
 makes Okapi read the full body before POSTing to the module so that
-Content-Length is set and chunked encoding is enabled. This is useful
+Content-Length is set and chunked encoding is disabled. This is useful
 for modules that have trouble dealing with chunked encoding or require
 getting content length before inspecting. This type appeared in Okapi
 2.5.0.
@@ -370,7 +370,8 @@ he comes from a IP address in the secure office, and abort the sequence of
 events that would lead to a login screen being displayed.
 
 <a id="chunked"/>Although Okapi accepts both HTTP 1.0 and HTTP 1.1 requests, it uses HTTP 1.1 with
-chunked encoding to make the connections to the modules.
+chunked encoding to make the connections to the modules. Exception:
+`request-response-1.0` as explained above.
 
 
 ### Status Codes
