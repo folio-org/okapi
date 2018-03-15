@@ -60,16 +60,8 @@ public class OkapiClient {
     }
   }
 
-  /**
-   * Explicit constructor.
-   *
-   * @param okapiUrl
-   * @param vertx
-   * @param headers may be null
-   */
-  public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
-    init(vertx);
-    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+  public void setHeaders(Map<String, String> headers) {
+    this.headers.clear();
     if (headers != null) {
       for (Entry<String, String> e : headers.entrySet()) {
         if (e.getValue().isEmpty()) {
@@ -82,6 +74,19 @@ public class OkapiClient {
     if (this.headers.containsKey(XOkapiHeaders.REQUEST_ID)) {
       reqId = this.headers.get(XOkapiHeaders.REQUEST_ID);
     }
+  }
+
+  /**
+   * Explicit constructor.
+   *
+   * @param okapiUrl
+   * @param vertx
+   * @param headers may be null
+   */
+  public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
+    init(vertx);
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    setHeaders(headers);
     respHeaders = null;
   }
 
