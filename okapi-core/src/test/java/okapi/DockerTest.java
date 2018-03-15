@@ -192,7 +192,7 @@ public class DockerTest {
     } else {
       c.given().header("Content-Type", "application/json")
         .body(doc1).post("/_/discovery/modules")
-        .then().statusCode(500);
+        .then().statusCode(400);
     }
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
