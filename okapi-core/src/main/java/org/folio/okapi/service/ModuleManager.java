@@ -351,7 +351,7 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  private void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void createList(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -380,23 +380,21 @@ public class ModuleManager {
         fut.handle(new Failure<>(USER, res));
         return;
       }
-      Iterator<ModuleDescriptor> it = nList.iterator();
-      createListR(it, fut);
+      createList2(nList, fut);
     });
   }
 
-  /**
-   * Recursive helper for createList.
-   *
-   * @param it iterator of the module to be created
-   * @param fut
-   */
-  private void createListR(Iterator<ModuleDescriptor> it, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>());
-      return;
+  private void createList2(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
+    CompList<Void> futures = new CompList<>(INTERNAL);
+    for (ModuleDescriptor md : list) {
+      Future<Void> f = Future.future();
+      createList3(md, f::handle);
+      futures.add(f);
     }
-    ModuleDescriptor md = it.next();
+    futures.all(fut);
+  }
+
+  private void createList3(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     String id = md.getId();
     if (moduleStore == null) {
       modules.add(id, md, ares -> {
@@ -404,23 +402,23 @@ public class ModuleManager {
           fut.handle(new Failure<>(ares.getType(), ares.cause()));
           return;
         }
-        createListR(it, fut);
+        fut.handle(new Success<>());
       });
-      return;
-    }
-    moduleStore.insert(md, ires -> {
-      if (ires.failed()) {
-        fut.handle(new Failure<>(ires.getType(), ires.cause()));
-        return;
-      }
-      modules.add(id, md, ares -> {
-        if (ares.failed()) {
-          fut.handle(new Failure<>(ares.getType(), ares.cause()));
+    } else {
+      moduleStore.insert(md, ires -> {
+        if (ires.failed()) {
+          fut.handle(new Failure<>(ires.getType(), ires.cause()));
           return;
         }
-        createListR(it, fut);
+        modules.add(id, md, ares -> {
+          if (ares.failed()) {
+            fut.handle(new Failure<>(ares.getType(), ares.cause()));
+            return;
+          }
+          fut.handle(new Success<>());
+        });
       });
-    });
+    }
   }
 
   /**
