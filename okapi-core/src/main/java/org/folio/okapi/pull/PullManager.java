@@ -19,20 +19,21 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.ModuleManager;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PullManager {
 
   private final Logger logger = OkapiLogger.get();
-  private final String okapiUrl;
   private final HttpClient httpClient;
   private int concurrentRuns;
   private static final int CONCURRENT_MAX = 10;
   private boolean concurrentComplete;
+  private final ModuleManager moduleManager;
 
-  public PullManager(Vertx vertx, String okapiUrl) {
-    this.okapiUrl = okapiUrl;
+  public PullManager(Vertx vertx, ModuleManager moduleManager) {
     this.httpClient = vertx.createHttpClient();
+    this.moduleManager = moduleManager;
   }
 
   private void getRemoteUrl(Iterator<String> it,
@@ -162,84 +163,7 @@ public class PullManager {
     req.end();
   }
 
-  private void addFull(String urlBase, ModuleDescriptor ml,
-    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    String url = urlBase;
-    if (!url.endsWith("/")) {
-      url += "/";
-    }
-    url += "_/proxy/modules";
-    Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.postAbs(url, res -> {
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (res.statusCode() != 201) {
-          fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-        } else {
-          ModuleDescriptor md = Json.decodeValue(body.toString(),
-            ModuleDescriptor.class);
-          fut.handle(new Success<>(md));
-        }
-      });
-      res.exceptionHandler(x
-        -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
-    });
-    req.exceptionHandler(x
-      -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
-    req.end(Json.encodePrettily(ml));
-  }
-
-  private void addList(TreeMap<String, Boolean> enabled, Iterator<ModuleDescriptor> it, int added, int failed,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-    ModuleDescriptor md = null;
-    while (it.hasNext()) {
-      md = it.next();
-      String id = md.getId();
-      if (enabled.get(id) == null) {
-        break;
-      }
-      md = null;
-    }
-    if (md == null) {
-      if (failed == 0 && added == 0) {
-        fut.handle(new Success<>(Boolean.FALSE));
-      } else if (added > 0) {
-        fut.handle(new Success<>(Boolean.TRUE));
-      } else {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, "pull: cannot add list"));
-      }
-    } else {
-      final String id = md.getId();
-      final ModuleDescriptor mdf = md;
-      addFull(okapiUrl, md, res -> {
-        if (res.failed()) {
-          logger.info("adding md " + id + " failed: " + res.cause().getMessage());
-          addList(enabled, it, added, failed + 1, fut);
-        } else {
-          logger.info("adding md " + id + " OK");
-          enabled.put(mdf.getId(), true);
-          addList(enabled, it, added + 1, failed, fut);
-        }
-      });
-    }
-  }
-
-  private void addRepeat(TreeMap<String, Boolean> enabled, List<ModuleDescriptor> md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    addList(enabled, md.iterator(), 0, 0, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        if (res.result()) {
-          addRepeat(enabled, md, fut);
-        } else {
-          fut.handle(new Success<>());
-        }
-      }
-    });
-  }
-
-  private void merge(String urlBase, ModuleDescriptor[] mlLocal,
+  private void merge(String urlBase, List<ModuleDescriptor> mlLocal,
     ModuleDescriptor[] mlRemote, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     TreeMap<String, Boolean> enabled = new TreeMap<>();
@@ -262,7 +186,7 @@ public class PullManager {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         logger.info("pull: local insert");
-        addRepeat(enabled, mlList, res1 -> {
+        moduleManager.createList(mlList, res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
           } else {
@@ -278,7 +202,7 @@ public class PullManager {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
       } else {
-        getList(okapiUrl, resLocal -> {
+        moduleManager.getModulesWithFilter(null, true, resLocal -> {
           if (resLocal.failed()) {
             fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
           } else {
