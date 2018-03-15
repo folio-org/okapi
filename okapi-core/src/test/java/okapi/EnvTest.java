@@ -86,6 +86,24 @@ public class EnvTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
 
+    final String missingNameDoc = "{" + LS
+      + "  \"value\" : \"value1\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(missingNameDoc).post("/_/env")
+      .then().statusCode(400);
+
+    final String missingValueDoc = "{" + LS
+      + "  \"name\" : \"name1\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(missingValueDoc).post("/_/env")
+      .then().statusCode(400);
+
     final String badDoc = "{" + LS
       + "  \"name\" : \"BADJSON\"," + LS // the comma here makes it bad json!
       + "}";

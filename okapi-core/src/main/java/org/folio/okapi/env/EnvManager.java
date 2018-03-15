@@ -9,7 +9,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
+import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
@@ -52,7 +52,13 @@ public class EnvManager {
   }
 
   private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
-    envMap.add(env.getName(), env, fut);
+    if (env.getName() == null) {
+      fut.handle(new Failure<>(USER, "missing name"));
+    } else if (env.getValue() == null) {
+      fut.handle(new Failure<>(USER, "missing value"));
+    } else {
+      envMap.add(env.getName(), env, fut);
+    }
   }
 
   public void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
