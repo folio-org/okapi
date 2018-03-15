@@ -1,3 +1,17 @@
+## 2.10.0 2018-03-15
+
+ * OKAPI-442 Mechanism to disable dependency checks during module descriptor registration
+ * OKAPI-551 Fix documentation about chunked
+ * OKAPI-552 POST _/deployment/modules returns 500 error with invalid
+   descriptor
+ * OKAPI-553 Consider to use 400 over 500 when /env payload has missing
+   required field
+ * OKAPI-554 POST _/deployment/modules returns 500 error when all ports
+   are in use
+ * OKAPI-555 Fix Version service should return 0.0.0 when unknown
+ * OKAPI-556 Add OkapiClient.setHeaders
+ * OKAPI-557 Fix pull takes too long
+
 ## 2.9.4 2018-03-09
 
  * OKAPI-550 Fix X-Okapi-Permissions missing
