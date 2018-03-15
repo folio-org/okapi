@@ -97,7 +97,7 @@ public class DeploymentManager {
 
     int usePort = ports.get();
     if (usePort == -1) {
-      fut.handle(new Failure<>(INTERNAL, "all ports in use"));
+      fut.handle(new Failure<>(USER, "all ports in use"));
       tim.close();
       return;
     }
@@ -159,7 +159,7 @@ public class DeploymentManager {
             tim.close();
             ports.free(usePort);
             logger.warn("Deploying " + md1.getSrvcId() + " failed");
-            fut.handle(new Failure<>(INTERNAL, future.cause()));
+            fut.handle(new Failure<>(USER, future.cause()));
           }
         });
       }
