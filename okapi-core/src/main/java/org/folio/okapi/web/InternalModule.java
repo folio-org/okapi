@@ -519,7 +519,7 @@ public class InternalModule {
       } else {
         uri = baseUri;
       }
-      int idx = uri.indexOf("?");
+      int idx = uri.indexOf('?');
       if (idx != -1) {
         uri = uri.substring(0, idx);
       }
