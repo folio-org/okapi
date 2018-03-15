@@ -1,7 +1,7 @@
 ## 2.9.4 2018-03-09
 
  * OKAPI-550 Fix X-Okapi-Permissions missing
- * OKAPI-547 Fix Callback endpoint stackoverflow error (for doubl slash)
+ * OKAPI-547 Fix Callback endpoint stack overflow error (for double slash)
  * OKAPI-548 Fix Unchecked call warnings (compilation phase)
 
 ## 2.9.3 2018-03-05
@@ -24,7 +24,7 @@
  * OKAPI-535 Pass auth-headers only to an auth filter 
  * OKAPI-533 Clean up response headers
  * OKAPI-528 Create a section about what is expected from a module
- * OKAPI-527 Dcoument what headers modules are supposed to return
+ * OKAPI-527 Document what headers modules are supposed to return
 
 ## 2.9.1 2018-02-22
 
