@@ -1222,7 +1222,7 @@ public class ModuleTest {
       .header("Content-Type", "application/json")
       .body(docUnknownJar).post("/_/deployment/modules")
       .then()
-      .statusCode(500);
+      .statusCode(400);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
