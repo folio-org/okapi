@@ -56,6 +56,7 @@ public class TenantRATest {
             .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
+    Response r;
 
     c = api.createRestAssured3();
     c.given().get("/_/proxy/tenants//modules")
@@ -104,12 +105,12 @@ public class TenantRATest {
       + "}";
 
     c = api.createRestAssured3();
-    Response r = c.given()
-            .header("Content-Type", "application/json").body(doc)
-            .post("/_/proxy/tenants").then().statusCode(201)
-            .body(equalTo(doc)).extract().response();
+    r = c.given()
+      .header("Content-Type", "application/json").body(doc)
+      .post("/_/proxy/tenants").then().statusCode(201)
+      .body(equalTo(doc)).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-             c.getLastReport().isEmpty());
+      c.getLastReport().isEmpty());
     String location = r.getHeader("Location");
 
     // post again, fail because of duplicate
@@ -272,8 +273,47 @@ public class TenantRATest {
     r = c.given()
       .header("Content-Type", "application/json").body(doc6)
       .post("/_/proxy/tenants").then().statusCode(201).extract().response();
-    // Not valid according to RAML at the moment
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     location3 = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    c.given().delete(location3).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // no name
+    String doc7 = "{" + LS
+      + "  \"id\" : \"ringsted\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json").body(doc7)
+      .post("/_/proxy/tenants").then().statusCode(201).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    location3 = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .get("/_/proxy/tenants/ringsted").then().statusCode(200).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    Assert.assertEquals(doc7, r.body().asString());
+
+    String doc8 = "{" + LS
+      + "  \"id\" : \"ringsted\"," + LS
+      + "  \"name\" : \"Ringsted\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json").body(doc8)
+      .put(location3).then().statusCode(200).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    JsonObject j = new JsonObject(r.body().asString());
+    Assert.assertEquals("Ringsted", j.getString("name"));
+    Assert.assertEquals("ringsted", j.getString("id"));
 
     c = api.createRestAssured3();
     c.given().delete(location3).then().statusCode(204);
