@@ -125,7 +125,6 @@ public class MainDeploy {
         i++;
         clusterPort = Integer.parseInt(args[i]);
       } else if ("-enable-metrics".equals(args[i])) {
-        i++;
         final String graphiteHost = getProperty("graphiteHost", "localhost");
         final Integer graphitePort = parseInt(
           getProperty("graphitePort", "2003"));
