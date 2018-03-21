@@ -162,8 +162,9 @@ public class DockerModuleHandle implements ModuleHandle {
     getUrl(dockerUrl + "/images/" + image + "/json", future);
   }
 
-  private void pullImage(Handler<AsyncResult<JsonObject>> future) {
-    getUrl(dockerUrl + "/images/create?fromImage=" + image, future);
+  private void pullImage(Handler<AsyncResult<Void>> future) {
+    logger.info("pull image " + image);
+    postUrlBody(dockerUrl + "/images/create?fromImage=" + image, "", future);
   }
 
   private void postUrlBody(String url, String doc,
