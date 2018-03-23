@@ -1,3 +1,10 @@
+## 2.11.0 2018-03-23
+
+ * OKAPI-558 id and name are not required while creating a tenant
+ * OKAPI-559 -enable-metrics takes a parameter
+ * OKAPI-561 Docker pull not working (anymore)
+ * OKAPI-563 OkapiClient setOkapiUrl and request with Buffer
+
 ## 2.10.0 2018-03-15
 
  * OKAPI-442 Mechanism to disable dependency checks during module descriptor registration
