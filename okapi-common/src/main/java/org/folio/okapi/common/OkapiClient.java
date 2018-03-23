@@ -76,6 +76,10 @@ public class OkapiClient {
     }
   }
 
+  public void setOkapiUrl(String okapiUrl) {
+    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+  }
+
   /**
    * Explicit constructor.
    *
@@ -85,7 +89,7 @@ public class OkapiClient {
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
     init(vertx);
-    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    setOkapiUrl(okapiUrl);
     setHeaders(headers);
     respHeaders = null;
   }
@@ -140,9 +144,29 @@ public class OkapiClient {
    */
   public void request(HttpMethod method, String path, String data,
     Handler<ExtendedAsyncResult<String>> fut) {
+    HttpClientRequest req = request1(method, path, fut);
+    if (req != null) {
+      if (data == null || data.isEmpty()) {
+        req.end();
+      } else {
+        req.end(data);
+      }
+    }
+  }
+
+  public void request(HttpMethod method, String path, Buffer data,
+    Handler<ExtendedAsyncResult<String>> fut) {
+    HttpClientRequest req = request1(method, path, fut);
+    if (req != null) {
+      req.end(data);
+    }
+  }
+
+  private HttpClientRequest request1(HttpMethod method, String path,
+    Handler<ExtendedAsyncResult<String>> fut) {
     if (this.okapiUrl == null) {
       fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
-      return;
+      return null;
     }
     String url = this.okapiUrl + path;
     String tenant = "-";
@@ -210,11 +234,7 @@ public class OkapiClient {
       logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
     }
     req.headers().addAll(headers);
-    if (data == null || data.isEmpty()) {
-      req.end();
-    } else {
-      req.end(data);
-    }
+    return req;
   }
 
   public void post(String path, String data,

@@ -2,6 +2,7 @@ package org.folio.okapi.common;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
@@ -114,7 +115,7 @@ public class OkapiClientTest {
   @Test
   public void testBogus(TestContext context) {
     Async async = context.async();
-    final String bogusUrl = "http://xxxx:9231";
+    final String bogusUrl = "http://xxxx.index.gyf:9231";
     OkapiClient cli = new OkapiClient(bogusUrl, vertx, null);
     assertEquals(bogusUrl, cli.getOkapiUrl());
 
@@ -227,6 +228,16 @@ public class OkapiClientTest {
   private void test7(OkapiClient cli, Async async) {
     cli.head("/test1", res -> {
       assertTrue(res.succeeded());
+      test8(cli, async);
+    });
+  }
+
+  private void test8(OkapiClient cli, Async async) {
+    Buffer buf = Buffer.buffer();
+    buf.appendString("FOOBAR");
+    cli.request(HttpMethod.POST, "/test1", buf, res -> {
+      assertTrue(res.succeeded());
+      assertEquals("FOOBAR", res.result());
       testdone(cli, async);
     });
   }
