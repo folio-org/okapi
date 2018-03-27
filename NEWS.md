@@ -1,3 +1,7 @@
+## 2.12.0 (IN PROGRESS)
+
+ * OKAPI-565 Review and catalog Okapi docs
+
 ## 2.11.0 2018-03-23
 
  * OKAPI-558 id and name are not required while creating a tenant
