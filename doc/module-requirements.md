@@ -14,7 +14,7 @@ In the early days of FOLIO, most server-side modules were written in Java, takin
 
 As we start to build more FOLIO modules, not all of them based on RMB – and as we start to see third-parties creating modules in potentially any language using any tools -– we need to tersely and explicitly summarise what requirements a piece of software must meet to function as a FOLIO module.
 
-The document that summarises these requirements in three sections:
+This document summarises these requirements in three sections:
 1. What you need to do to run under Okapi.
 2. What you need to do to run on Index Data/EBSCO CI.
 3. Best practice (health-check WSAPIs, etc.)
