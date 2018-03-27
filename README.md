@@ -35,6 +35,7 @@ Documentation
 -------------
 
 * [Okapi Guide and Reference](doc/guide.md)
+* [Documentation index](doc/index.md)
 * [Contributing guidelines](CONTRIBUTING.md)
 * [Securing](doc/securing.md) in the doc directory shows how to enable security-related modules.
 * [Folio Sample Modules](https://github.com/folio-org/folio-sample-modules). There
