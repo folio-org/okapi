@@ -24,7 +24,7 @@ managing and running microservices.
     * [Running Okapi itself](#running-okapi-itself)
     * [Example 1: Deploying and using a simple module](#example-1-deploying-and-using-a-simple-module)
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
-    * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-tenant-interface)
+    * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-_tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
     * [Multiple interfaces](#multiple-interfaces)
     * [Cleaning up](#cleaning-up)
