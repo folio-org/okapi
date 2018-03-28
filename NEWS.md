@@ -1,6 +1,7 @@
 ## 2.12.0 (IN PROGRESS)
 
  * OKAPI-565 Review and catalog Okapi docs
+ * OKAPI-568 Allow underscore in md2toc generated ToC links
 
 ## 2.11.0 2018-03-23
 
