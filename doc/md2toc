@@ -52,7 +52,7 @@ while (my $line = <>) {
         next if $level < $lowest || $level > $highest;
         my $link = lc($line);
         $link =~ s/ /-/g;
-        $link =~ s/[^a-z0-9-]//g;
+        $link =~ s/[^a-z0-9-_]//g;
         if ($skip > 0) {
             $skip--;
         } else {
