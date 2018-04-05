@@ -93,6 +93,7 @@ public class ProxyService {
    */
   private void makeTraceHeader(ModuleInstance mi, int statusCode,
     ProxyContext pc) {
+
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx).replaceFirst("[?#].*$", ".."); // rm params
     pc.addTraceHeaderLine(ctx.request().method() + " "
@@ -759,7 +760,8 @@ public class ProxyService {
       int statusCode = pc.getCtx().response().getStatusCode();
       if (statusCode == 200 && resp.isEmpty()) {
         // Say "no content", if there isn't any
-        pc.getCtx().response().setStatusCode(204);
+        statusCode = 204;
+        pc.getCtx().response().setStatusCode(statusCode);
       }
       Buffer respBuf = Buffer.buffer(resp);
       if (it.hasNext()) { // carry on with the pipeline
