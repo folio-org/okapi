@@ -16,6 +16,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
@@ -24,6 +25,12 @@ public class HealthCheckTest {
   private Vertx vertx;
 
   private final int port = 9230;
+  private static RamlDefinition api;
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+  }
 
   @Before
   public void setUp(TestContext context) {
@@ -43,17 +50,16 @@ public class HealthCheckTest {
   @Test
   public void testHealthCheck() {
     RestAssured.port = port;
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-            .assumingBaseUri("https://okapi.cloud");
-
     RestAssuredClient c;
 
     c = api.createRestAssured3();
-    c.given().get("/_/proxy/health").then().assertThat().statusCode(200);
-    Assert.assertTrue("raml report: " + c.getLastReport().toString(), c.getLastReport().isEmpty());
+    c.given().get("/_/proxy/health").then()
+      .log().ifValidationFails().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
-    given().get("/_/proxy/health2").then().assertThat().statusCode(404);
+    given().get("/_/proxy/health2").then()
+      .log().ifValidationFails().statusCode(404);
   }
 
 }

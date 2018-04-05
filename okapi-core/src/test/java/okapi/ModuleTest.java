@@ -85,6 +85,7 @@ public class ModuleTest {
   private static EmbeddedPostgres postgres;
   private static MongodExecutable mongoExe;
   private static MongodProcess mongoD;
+  private static RamlDefinition api;
 
   private final JsonObject conf;
 
@@ -95,8 +96,15 @@ public class ModuleTest {
     + "  \"name\" : \"Okapi\"" + LS
     + "}";
 
+  private String superTenantDoc = "[ {" + LS
+    + "  \"id\" : \"supertenant\"," + LS
+    + "  \"name\" : \"supertenant\"," + LS
+    + "  \"description\" : \"Okapi built-in super tenant\"" + LS
+    + "} ]";
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
   @AfterClass
@@ -209,11 +217,6 @@ public class ModuleTest {
 
     String emptyListDoc = "[ ]";
 
-    String superTenantDoc = "[ {" + LS
-      + "  \"id\" : \"supertenant\"," + LS
-      + "  \"name\" : \"supertenant\"," + LS
-      + "  \"description\" : \"Okapi built-in super tenant\"" + LS
-      + "} ]";
     given().get("/_/deployment/modules").then()
       .log().ifValidationFails().statusCode(200)
       .body(equalTo(emptyListDoc));
@@ -228,7 +231,6 @@ public class ModuleTest {
     given().get("/_/proxy/tenants").then()
       .log().ifValidationFails().statusCode(200).body(equalTo(superTenantDoc));
     logger.debug("Db check '" + label + "' OK");
-
   }
 
   /**
@@ -334,9 +336,6 @@ public class ModuleTest {
   @Test
   public void testOneModule(TestContext context) {
     async = context.async();
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     Response r;
@@ -662,7 +661,7 @@ public class ModuleTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/recurse?depth=5")
       .then().statusCode(200)
-      .log().all()
+      .log().ifValidationFails()
       .body(containsString("5 4 3 2 1 Recursion done"));
 
     // Call the module via the redirect-url. No tenant header!
@@ -752,7 +751,6 @@ public class ModuleTest {
     // Clean up, so the next test starts with a clean slate (in reverse order)
     logger.debug("testOneModule cleaning up");
     given().delete(locUpgEmpty).then().log().ifValidationFails().statusCode(204);
-    //given().delete(locEnableEmpty).then().log().ifValidationFails().statusCode(204);
     given().delete(locEmptyModule2).then().log().ifValidationFails().statusCode(204);
     given().delete(locEmptyModule).then().log().ifValidationFails().statusCode(204);
     given().delete(locEnable).then().log().ifValidationFails().statusCode(204);
@@ -776,9 +774,6 @@ public class ModuleTest {
   public void testSystemInterfaces(TestContext context) {
     async = context.async();
     checkDbIsEmpty("testSystemInterfaces starting", context);
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     Response r;
@@ -1038,8 +1033,6 @@ public class ModuleTest {
     async = context.async();
     RestAssuredClient c;
     Response r;
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
     checkDbIsEmpty("testDiscoveryNodes starting", context);
 
     String nodeListDoc = "[ {" + LS
@@ -1149,9 +1142,6 @@ public class ModuleTest {
   @Test
   public void testProxy(TestContext context) {
     async = context.async();
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     Response r;
@@ -2121,9 +2111,6 @@ public class ModuleTest {
     async = context.async();
     Response r;
 
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
     RestAssuredClient c;
 
     c = api.createRestAssured3();
@@ -2299,9 +2286,6 @@ public class ModuleTest {
   private void testDeployment2(Async async, TestContext context) {
     logger.info("testDeployment2");
     Response r;
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     c = api.createRestAssured3();
@@ -2658,9 +2642,6 @@ public class ModuleTest {
     async = context.async();
     Response r;
 
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
     final String docUiModuleInput = "{" + LS
       + "  \"id\" : \"ui-1\"," + LS
       + "  \"name\" : \"sample-ui\"," + LS
@@ -2720,10 +2701,6 @@ public class ModuleTest {
     async = context.async();
     RestAssuredClient c;
     Response r;
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml")
-      .load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     // Set up a tenant to test with
     final String docTenantRoskilde = "{" + LS
@@ -3026,9 +3003,6 @@ public class ModuleTest {
 
     Assert.assertNull("locationSampleDeployment", locationSampleDeployment);
     Assert.assertNull("locationHeaderDeployment", locationHeaderDeployment);
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
 
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
     final String docSampleModule1 = "{" + LS
@@ -3369,9 +3343,6 @@ public class ModuleTest {
     RestAssuredClient c;
     Response r;
 
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
     c = api.createRestAssured3();
     r = c.given().get("/_/version").then().statusCode(200).log().ifValidationFails().extract().response();
 
@@ -3386,9 +3357,6 @@ public class ModuleTest {
 
     RestAssuredClient c;
     Response r;
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
-
     c = api.createRestAssured3();
 
     String docSampleModule = "{" + LS
@@ -3450,8 +3418,6 @@ public class ModuleTest {
     async = context.async();
 
     RestAssuredClient c;
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-      .assumingBaseUri("https://okapi.cloud");
     Response r;
 
     int i;
@@ -3500,21 +3466,31 @@ public class ModuleTest {
       conf.remove("mongo_db_init");
       conf.remove("postgres_db_init");
 
-      logger.info("testInternalModule 2");
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        logger.info("testInternalModule 3");
+        logger.info("testInternalModule 2");
         testInternalModule2();
       });
     });
   }
 
   private void testInternalModule2() {
+    logger.info("testInternalModule 3");
     undeployFirst(x -> {
       conf.put("okapiVersion", "3.0.0");
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
         logger.info("testInternalModule 4");
+
+        RestAssuredClient c;
+        c = api.createRestAssured3();
+        c.given()
+          .get("/_/proxy/tenants")
+          .then()
+          .statusCode(200).log().ifValidationFails()
+          .body(equalTo(superTenantDoc));
+        Assert.assertTrue(c.getLastReport().isEmpty());
+
         conf.remove("okapiVersion");
         async.complete();
       });

@@ -19,6 +19,7 @@ import io.vertx.ext.web.Router;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -36,6 +37,13 @@ public class PullTest {
   private final int port2 = 9230; // where we pull
   private final int port3 = 9232; // other non-proxy server
   private final int port4 = 9233; // non-existing server!
+
+  private static RamlDefinition api;
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+  }
 
   private void setupOtherHttpServer(TestContext context, Async async) {
     Router router = Router.router(vertx);
@@ -113,8 +121,6 @@ public class PullTest {
 
   @Test
   public void test1() {
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")            .assumingBaseUri("https://okapi.cloud");
-
     RestAssuredClient c;
 
     c = api.createRestAssured3();
@@ -137,7 +143,6 @@ public class PullTest {
 
   @Test
   public void test2() {
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")            .assumingBaseUri("https://okapi.cloud");
     RestAssuredClient c;
 
     final String pullDoc = "{" + LS
@@ -384,8 +389,6 @@ public class PullTest {
 
   @Test
   public void test3() {
-    RamlDefinition api
-      = RamlLoaders.fromFile("src/main/raml").load("okapi.raml").assumingBaseUri("https://okapi.cloud");
     RestAssuredClient c;
 
     // pull frome dummy server
@@ -397,7 +400,8 @@ public class PullTest {
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullPort3).post("/_/proxy/pull/modules").then().statusCode(400).log().ifValidationFails();
+      .body(pullPort3).post("/_/proxy/pull/modules").then()
+      .statusCode(400).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -411,7 +415,8 @@ public class PullTest {
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .body(pullPort4).post("/_/proxy/pull/modules").then().statusCode(404).log().ifValidationFails();
+      .body(pullPort4).post("/_/proxy/pull/modules").then()
+      .statusCode(404).log().ifValidationFails();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
