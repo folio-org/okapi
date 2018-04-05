@@ -19,6 +19,7 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -30,6 +31,13 @@ public class TenantRATest {
 
   private Vertx vertx;
   private static final String LS = System.lineSeparator();
+
+  private static RamlDefinition api;
+
+  @BeforeClass
+  public static void setUpBeforeClass() throws Exception {
+    api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
+  }
 
   @Before
   public void setUp(TestContext context) {
@@ -51,9 +59,6 @@ public class TenantRATest {
   @Test
   public void test1() {
     RestAssured.port = port;
-
-    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
-            .assumingBaseUri("https://okapi.cloud");
 
     RestAssuredClient c;
     Response r;
