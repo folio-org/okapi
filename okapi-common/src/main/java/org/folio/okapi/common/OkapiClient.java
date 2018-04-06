@@ -13,7 +13,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
-import java.util.Set;
 import static org.folio.okapi.common.ErrorType.*;
 
 /**
@@ -36,6 +35,9 @@ public class OkapiClient {
   private String reqId;
   private boolean logInfo; // t: log requests on INFO. f: on DEBUG
   private String responsebody;
+  private int retryClosedCount;
+  private int retryClosedWait;
+  private Vertx vertx;
 
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
@@ -95,6 +97,9 @@ public class OkapiClient {
   }
 
   private void init(Vertx vertx) {
+    this.vertx = vertx;
+    this.retryClosedCount = 0;
+    this.retryClosedWait = 0;
     this.httpClient = vertx.createHttpClient();
     this.headers = new HashMap<>();
     respHeaders = null;
@@ -133,33 +138,29 @@ public class OkapiClient {
     headers.put(XOkapiHeaders.REQUEST_ID, reqId);
   }
 
-  /**
-   * Make a request to Okapi.
-   *
-   * @param method GET or POST or such
-   * @param path like "/foomodule/something"
-   * @param data for the request. Most likely a JSON string.
-   * @param fut callback when done. Most likely a JSON string if all went well,
-   * or a plain text string in case of errors.
-   */
   public void request(HttpMethod method, String path, String data,
     Handler<ExtendedAsyncResult<String>> fut) {
-    HttpClientRequest req = request1(method, path, fut);
-    if (req != null) {
-      if (data == null || data.isEmpty()) {
-        req.end();
-      } else {
-        req.end(data);
-      }
-    }
+
+    request(method, path, Buffer.buffer(data == null ? "" : data), fut);
   }
 
   public void request(HttpMethod method, String path, Buffer data,
     Handler<ExtendedAsyncResult<String>> fut) {
-    HttpClientRequest req = request1(method, path, fut);
-    if (req != null) {
-      req.end(data);
-    }
+
+    HttpClientRequest req = request1(method, path, res -> {
+      if (res.failed() && res.getType() == ANY) {
+        if (retryClosedCount > 0) {
+          retryClosedCount--;
+          vertx.setTimer(retryClosedWait, res1
+            -> request(method, path, data, fut));
+        } else {
+          fut.handle(new Failure<>(INTERNAL, res.cause()));
+        }
+      } else {
+        fut.handle(res);
+      }
+    });
+    req.end(data);
   }
 
   private HttpClientRequest request1(HttpMethod method, String path,
@@ -228,7 +229,7 @@ public class OkapiClient {
       if (x.getCause() != null) {
         logger.debug("   cause: " + x.getCause().getMessage());
       }
-      fut.handle(new Failure<>(INTERNAL, msg));
+      fut.handle(new Failure<>(ANY, msg));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
       logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
@@ -287,6 +288,11 @@ public class OkapiClient {
    */
   public String getOkapiToken() {
     return headers.get(XOkapiHeaders.TOKEN);
+  }
+
+  public void setClosedRetry(int msecs) {
+    retryClosedCount = msecs > 0 ? 10 : 0;
+    retryClosedWait = msecs / 10;
   }
 
   /**

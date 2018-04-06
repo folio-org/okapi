@@ -4,6 +4,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -28,6 +29,7 @@ public class OkapiClientTest {
   private static final int PORT = 9230;
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = OkapiLogger.get();
+  private HttpServer server;
 
   private void myStreamHandle1(RoutingContext ctx) {
     ctx.response().setChunked(true);
@@ -90,13 +92,12 @@ public class OkapiClientTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
     router.delete("/test2").handler(this::myStreamHandle2);
-    final int port = Integer.parseInt(System.getProperty("port", "9230"));
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    server = vertx.createHttpServer(so)
       .requestHandler(router::accept)
       .listen(
-        port,
+        PORT,
         result -> {
           if (result.failed()) {
             context.fail(result.cause());
@@ -289,6 +290,38 @@ public class OkapiClientTest {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
       cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testClosed(TestContext context) {
+    Async async = context.async();
+
+    context.assertTrue(server != null);
+    server.close(res -> {
+      OkapiClient cli = new OkapiClient(URL, vertx, null);
+      cli.get("/test1", res2 -> {
+        context.assertTrue(res2.failed());
+        context.assertEquals(ErrorType.INTERNAL, res2.getType());
+        async.complete();
+      });
+    });
+  }
+
+  @Test
+  public void testReopened(TestContext context) {
+    Async async = context.async();
+
+    context.assertTrue(server != null);
+    server.close(res -> {
+      context.assertTrue(res.succeeded());
+      vertx.setTimer(40, res1 -> server.listen(PORT));
+    });
+    OkapiClient cli = new OkapiClient(URL, vertx, null);
+    cli.setClosedRetry(90);
+    cli.get("/test1", res2 -> {
+      context.assertTrue(res2.succeeded());
       async.complete();
     });
   }

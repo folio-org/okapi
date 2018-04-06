@@ -1008,7 +1008,7 @@ public class ProxyService {
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
-
+      cli.setClosedRetry(15000);
       HttpMethod meth = HttpMethod.POST;
       if (request.isEmpty()) {
         pc.debug("doCallSystemInterface: No Req, making a HEAD req");
