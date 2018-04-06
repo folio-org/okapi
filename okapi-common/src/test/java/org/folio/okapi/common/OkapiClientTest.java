@@ -295,12 +295,13 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testClosed(TestContext context) {
+  public void testClosed1(TestContext context) {
     Async async = context.async();
 
     context.assertTrue(server != null);
     server.close(res -> {
       OkapiClient cli = new OkapiClient(URL, vertx, null);
+      cli.setClosedRetry(0);
       cli.get("/test1", res2 -> {
         context.assertTrue(res2.failed());
         context.assertEquals(ErrorType.INTERNAL, res2.getType());
@@ -310,7 +311,23 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testReopened(TestContext context) {
+  public void testClosed2(TestContext context) {
+    Async async = context.async();
+
+    context.assertTrue(server != null);
+    server.close(res -> {
+      OkapiClient cli = new OkapiClient(URL, vertx, null);
+      cli.setClosedRetry(90);
+      cli.get("/test1", res2 -> {
+        context.assertTrue(res2.failed());
+        context.assertEquals(ErrorType.INTERNAL, res2.getType());
+        async.complete();
+      });
+    });
+  }
+
+  @Test
+  public void testClosed3(TestContext context) {
     Async async = context.async();
 
     context.assertTrue(server != null);
