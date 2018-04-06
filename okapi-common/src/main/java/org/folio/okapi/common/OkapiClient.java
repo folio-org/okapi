@@ -147,6 +147,10 @@ public class OkapiClient {
   public void request(HttpMethod method, String path, Buffer data,
     Handler<ExtendedAsyncResult<String>> fut) {
 
+    if (this.okapiUrl == null) {
+      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
+      return;
+    }
     HttpClientRequest req = request1(method, path, res -> {
       if (res.failed() && res.getType() == ANY) {
         if (retryClosedCount > 0) {
@@ -165,10 +169,7 @@ public class OkapiClient {
 
   private HttpClientRequest request1(HttpMethod method, String path,
     Handler<ExtendedAsyncResult<String>> fut) {
-    if (this.okapiUrl == null) {
-      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
-      return null;
-    }
+
     String url = this.okapiUrl + path;
     String tenant = "-";
     if (headers.containsKey(XOkapiHeaders.TENANT)) {
