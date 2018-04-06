@@ -15,8 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
@@ -166,18 +164,18 @@ public class TenantManager {
         fut.handle(new Failure<>(INTERNAL, lres.cause()));
       } else {
         CompList<List<TenantDescriptor>> futures = new CompList<>(INTERNAL);
-        SortedMap<String, TenantDescriptor> tdl = new TreeMap<>();
+        List<TenantDescriptor> tdl = new LinkedList<>();
         for (String s : lres.result()) {
           Future<Tenant> future = Future.future();
           tenants.get(s, res -> {
             if (res.succeeded()) {
-              tdl.put(s, res.result().getDescriptor());
+              tdl.add(res.result().getDescriptor());
             }
             future.handle(res);
           });
           futures.add(future);
         }
-        futures.all(new LinkedList<TenantDescriptor>(tdl.values()), fut);
+        futures.all(tdl, fut);
       }
     });
   }
