@@ -36,6 +36,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final AnyDescriptor dockerArgs;
   private final boolean dockerPull;
   private final HttpClient client;
+  private final StringBuilder logBuffer;
 
   private String containerId;
 
@@ -48,6 +49,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
     this.client = vertx.createHttpClient();
+    this.logBuffer = new StringBuilder();
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
@@ -109,6 +111,18 @@ public class DockerModuleHandle implements ModuleHandle {
       future);
   }
 
+  private void logHandler(Buffer b) {
+    if (b.getByte(0) < 9) {
+      logBuffer.append(b.getString(8, b.length()));
+    } else {
+      logBuffer.append(b.toString());
+    }
+    if (logBuffer.charAt(logBuffer.length() - 1) == '\n') {
+      logger.info(logBuffer.substring(0, logBuffer.length() - 1));
+      logBuffer.setLength(0);
+    }
+  }
+
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
     final String url = dockerUrl + "/containers/" + containerId
       + "/logs?stderr=1&stdout=1&follow=1";
@@ -116,7 +130,7 @@ public class DockerModuleHandle implements ModuleHandle {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
         // remove 8 bytes of binary data and final newline
-        res.handler(d -> logger.info(d.getString(8, d.length() - 1)));
+        res.handler(this::logHandler);
         future.handle(Future.succeededFuture());
       } else {
         String m = "getContainerLog HTTP error "
