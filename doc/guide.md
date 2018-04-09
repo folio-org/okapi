@@ -488,7 +488,7 @@ But it will reject:
 * 3.1 -- Lesser minor version
 
 See further explanation of
-[Version numbers](http://dev.folio.org/community/contrib-code#version-numbers).
+[Version numbers](https://dev.folio.org/guidelines/contributing#version-numbers).
 
 ### Security
 
@@ -2525,7 +2525,7 @@ in the [RAML](http://raml.org/) syntax.
 
   * The top-level file, [okapi.raml](../okapi-core/src/main/raml/okapi.raml)
   * [Directory of RAML and included JSON Schema files](../okapi-core/src/main/raml)
-  * [API reference documentation](http://dev.folio.org/doc/api/) generated from those files
+  * [API reference documentation](https://dev.folio.org/reference/api/) generated from those files
 
 ### Internal Module
 
