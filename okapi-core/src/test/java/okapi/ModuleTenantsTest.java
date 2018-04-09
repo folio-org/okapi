@@ -404,7 +404,7 @@ public class ModuleTenantsTest {
 
     // undeploy basic is OK now
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .delete(locationBasicTenantModule)
       .then()
       .statusCode(204)
@@ -494,7 +494,7 @@ public class ModuleTenantsTest {
     // make sure sample-module-1.0.0 is not deployed anymore
     c = api.createRestAssured3();
     c.given()
-      .delete(locationSampleDeployment_1_0_0)
+      .delete("/_/discovery/modules/sample-module-1.0.0")
       .then()
       .statusCode(204);
     Assert.assertTrue(
