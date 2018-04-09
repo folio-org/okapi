@@ -1,7 +1,13 @@
-## 2.12.0 (IN PROGRESS)
+## 2.11.1 2018-04-09
 
+ * OKAPI-571 Fix /_/proxy/tenants returns empty list (regression since 2.8.4)
+ * OKAPI-573 Fix install and deploy=true calls tenant init before ready
  * OKAPI-565 Review and catalog Okapi docs
  * OKAPI-568 Allow underscore in md2toc generated ToC links
+ * OKAPI-569 Security update PostgresSQL 9.6.8
+ * OKAPI-572 Harmonize use of RamlLoaders in unit tests
+ * OKAPI-575 Fix distrioni in logs from Docker containers
+ * OKAPI-544 Fix X-Okapi-trace header status 200 (when it is really 204)
 
 ## 2.11.0 2018-03-23
 
