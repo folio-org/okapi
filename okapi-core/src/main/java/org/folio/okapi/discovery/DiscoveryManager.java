@@ -256,6 +256,27 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  public void removeAndUndeploy(ProxyContext pc, String srvcId,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    logger.info("removeAndUndeploy: srvcId " + srvcId);
+    deployments.get(srvcId, res -> {
+      if (res.failed()) {
+        logger.warn("deployment.get failed");
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        CompList<List<Void>> futures = new CompList<>(INTERNAL);
+        for (DeploymentDescriptor dd : res.result()) {
+          Future<Void> f = Future.future();
+          callUndeploy(dd, pc, f::handle);
+          futures.add(f);
+        }
+        futures.all(fut);
+      }
+    });
+
+  }
+
   private void callUndeploy(DeploymentDescriptor md, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
