@@ -1,3 +1,10 @@
+## 2.12.0 2018-04-10
+
+ * OKAPI-578 Fix Unit tests hang
+ * OKAPI-577 Discovery delete with serviceId only
+   delete /_/discovery/modules/serviceId undeploys all modules with
+   serviceId
+
 ## 2.11.1 2018-04-09
 
  * OKAPI-571 Fix /_/proxy/tenants returns empty list (regression since 2.8.4)
