@@ -3481,16 +3481,6 @@ public class ModuleTest {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
         logger.info("testInternalModule 4");
-
-        RestAssuredClient c;
-        c = api.createRestAssured3();
-        c.given()
-          .get("/_/proxy/tenants")
-          .then()
-          .statusCode(200).log().ifValidationFails()
-          .body(equalTo(superTenantDoc));
-        Assert.assertTrue(c.getLastReport().isEmpty());
-
         conf.remove("okapiVersion");
         async.complete();
       });
