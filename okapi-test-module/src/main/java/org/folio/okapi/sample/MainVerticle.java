@@ -183,9 +183,8 @@ public class MainVerticle extends AbstractVerticle {
     logger.info("Starting okapi-test-module "
       + bName + " on port " + port);
 
-    router.get("/testb").handler(this::myStreamHandle);
-    router.post("/testb").handler(this::myStreamHandle);
-    router.delete("/testb").handler(this::myStreamHandle);
+    router.routeWithRegex("/testb").handler(this::myStreamHandle);
+    router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
 

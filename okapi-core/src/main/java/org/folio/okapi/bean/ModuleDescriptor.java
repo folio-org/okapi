@@ -123,6 +123,15 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.provides = provides;
   }
 
+  @JsonIgnore
+  public List<RoutingEntry> getFilterRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    if (filters != null) {
+      Collections.addAll(all, filters);
+    }
+    return all;
+  }
+
   /**
    * Get all RoutingEntries that are type proxy. Either from provided
    * interfaces, or from the global level RoutingEntries.
@@ -132,9 +141,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    if (filters != null) {
-      Collections.addAll(all, filters);
-    }
     for (InterfaceDescriptor mi : getProvidesList()) {
       String t = mi.getInterfaceType();
       if (t == null || t.equals("proxy") || t.equals("internal")) {
