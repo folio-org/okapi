@@ -68,7 +68,7 @@ public class SampleModuleTest {
   }
 
   public void test2(TestContext context, OkapiClient cli, Async async) {
-    cli.post("/testb", "FOO", res -> {
+    cli.post("/testb/extra", "FOO", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("Hello FOO", cli.getResponsebody());
       test3(context, cli, async);
