@@ -3260,13 +3260,13 @@ public class ModuleTest {
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
-      .then().statusCode(404);
+      .then().log().ifValidationFails().statusCode(404);
 
     given()
       .header("X-Okapi-Module-Id", "sample-module-u")
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb")
-      .then().statusCode(404);
+      .then().log().ifValidationFails().statusCode(404);
 
     r = given()
       .header("X-Okapi-Module-Id", "sample-module-3")
