@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
@@ -123,6 +124,15 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.provides = provides;
   }
 
+  @JsonIgnore
+  public List<RoutingEntry> getFilterRoutingEntries() {
+    List<RoutingEntry> all = new ArrayList<>();
+    if (filters != null) {
+      Collections.addAll(all, filters);
+    }
+    return all;
+  }
+
   /**
    * Get all RoutingEntries that are type proxy. Either from provided
    * interfaces, or from the global level RoutingEntries.
@@ -132,9 +142,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
-    if (filters != null) {
-      Collections.addAll(all, filters);
-    }
     for (InterfaceDescriptor mi : getProvidesList()) {
       String t = mi.getInterfaceType();
       if (t == null || t.equals("proxy") || t.equals("internal")) {

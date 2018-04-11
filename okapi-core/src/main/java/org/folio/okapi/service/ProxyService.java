@@ -118,7 +118,8 @@ public class ProxyService {
       boolean found = false;
       final String redirectPath = re.getRedirectPath();
       for (ModuleDescriptor trymod : enabledModules) {
-        List<RoutingEntry> rr = trymod.getProxyRoutingEntries();
+        List<RoutingEntry> rr = trymod.getFilterRoutingEntries();
+        rr.addAll(trymod.getProxyRoutingEntries());
         for (RoutingEntry tryre : rr) {
           if (tryre.match(redirectPath, ctx.request().method().name())) {
             final String newUri = re.getRedirectUri(uri);
@@ -161,7 +162,7 @@ public class ProxyService {
    * returns null.
    */
   private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
-                                                    List<ModuleDescriptor> enabledModules) {
+    List<ModuleDescriptor> enabledModules) {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
@@ -181,12 +182,23 @@ public class ProxyService {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri());
             mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
-            if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri(), "")) {
-              return null;
-            }
             pc.debug("getMods:   Added " + md.getId() + " "
               + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
+            break;
           }
+        }
+      }
+      rr = md.getFilterRoutingEntries();
+      for (RoutingEntry re : rr) {
+        if (match(re, req)) {
+          ModuleInstance mi = new ModuleInstance(md, re, req.uri());
+          mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
+          mods.add(mi);
+          if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri(), "")) {
+            return null;
+          }
+          pc.debug("getMods:   Added " + md.getId() + " "
+            + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
         }
       }
     }

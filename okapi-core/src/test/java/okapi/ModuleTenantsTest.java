@@ -193,7 +193,7 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb\"" + LS
+      + "      \"pathPattern\" : \"/testb/foo\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -266,9 +266,16 @@ public class ModuleTenantsTest {
     // run module
     c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
-      .body("Okapi").post("/testb")
-      .then().statusCode(200)
+      .body("Okapi").post("/testb/foo")
+      .then().log().ifValidationFails()
+      .statusCode(200)
       .body(equalTo("Hello Okapi"));
+
+    c = api.createRestAssured3();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+      .body("Okapi").post("/testb/bar")
+      .then().log().ifValidationFails()
+      .statusCode(404);
 
     // create sample 1.2.0
     final String docSampleModule_1_2_0 = "{" + LS
@@ -287,7 +294,10 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb\"" + LS
+      + "      \"pathPattern\" : \"/testb/foo\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
@@ -372,12 +382,31 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationTenantModule = r.getHeader("Location");
 
-    // run new module
+    // run new module (1st handler)
     c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
-      .body("Okapi").post("/testb")
-      .then().statusCode(200)
+      .body("Okapi").post("/testb/foo")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200)
       .body(equalTo("Hello Okapi"));
+
+    // run new module (2nd handler)
+    c = api.createRestAssured3();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+      .body("Okapi").post("/testb/someid")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(200)
+      .body(equalTo("Hello Okapi"));
+
+    // run new module with non-matched URL
+    c = api.createRestAssured3();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+      .body("Okapi").post("/testb/someid/other")
+      .then()
+      .log().ifValidationFails()
+      .statusCode(404);
 
     // undeploy basic should not work because it is used by sample 1.2.0
     c = api.createRestAssured3();
