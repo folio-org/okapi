@@ -1048,7 +1048,6 @@ public class InternalModule {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      List<DeploymentDescriptor> result = res.result();
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });
