@@ -232,26 +232,15 @@ public class DiscoveryManager implements NodeListener {
   public void removeAndUndeploy(ProxyContext pc, String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    removeAndUndeploy1(pc, srvcId, instId, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        logger.debug("documentStore.delete " + instId);
-        deploymentStore.delete(instId, fut);
-      }
-    });
-  }
-
-  private void removeAndUndeploy1(ProxyContext pc, String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
     logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
     deployments.get(srvcId, instId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        callUndeploy(res.result(), pc, fut);
+        List<DeploymentDescriptor> ddList = new LinkedList<>();
+        ddList.add(res.result());
+        removeAndUndeploy(pc, ddList, fut);
       }
     });
   }
@@ -265,16 +254,27 @@ public class DiscoveryManager implements NodeListener {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        CompList<List<Void>> futures = new CompList<>(INTERNAL);
-        for (DeploymentDescriptor dd : res.result()) {
-          Future<Void> f = Future.future();
-          callUndeploy(dd, pc, f::handle);
-          futures.add(f);
-        }
-        futures.all(fut);
+        removeAndUndeploy(pc, res.result(), fut);
       }
     });
+  }
 
+  private void removeAndUndeploy(ProxyContext pc,
+    List<DeploymentDescriptor> ddList, Handler<ExtendedAsyncResult<Void>> fut) {
+
+    CompList<List<Void>> futures = new CompList<>(INTERNAL);
+    for (DeploymentDescriptor dd : ddList) {
+      Future<Void> f = Future.future();
+      callUndeploy(dd, pc, res -> {
+        if (res.succeeded()) {
+          deploymentStore.delete(dd.getInstId(), fut);
+        } else {
+          fut.handle(res);
+        }
+      });
+      futures.add(f);
+    }
+    futures.all(fut);
   }
 
   private void callUndeploy(DeploymentDescriptor md, ProxyContext pc,
