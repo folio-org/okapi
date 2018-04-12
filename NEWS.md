@@ -1,3 +1,11 @@
+## 2.12.1 2018-04-12
+
+ * OKAPI-576 Invoke only first handler for multiple matches
+ * OKAPI-579 Discovery delete of unknown module should return 404
+ * OKAPI-580 Fix supertenant keeps old version of Okapi if enabled and
+   downgrading
+ * OKAPI-581 Fix /discovery/modules/serviceId/instanceId may throw exception
+
 ## 2.12.0 2018-04-10
 
  * OKAPI-578 Fix Unit tests hang
