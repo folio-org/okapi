@@ -426,8 +426,6 @@ public class DiscoveryManager implements NodeListener {
           }
         }
         futures.all(fut);
-      } else if (res.getType() == NOT_FOUND) {
-        fut.handle(new Success<>());
       } else {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       }
@@ -435,6 +433,17 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void get(String srvcId,
+    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    getNonEmpty(srvcId, res -> {
+      if (res.failed() && res.getType() == NOT_FOUND) {
+        fut.handle(new Success<>(new LinkedList<>()));
+      } else {
+        fut.handle(res);
+      }
+    });
+  }
+
+  public void getNonEmpty(String srvcId,
     Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
     deployments.get(srvcId, res -> {
@@ -537,7 +546,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-    get(res -> {
+    DiscoveryManager.this.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -547,7 +556,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void health(String srvcId, String instId, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
-    get(srvcId, instId, res -> {
+    DiscoveryManager.this.get(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -557,7 +566,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-    get(srvcId, res -> {
+    getNonEmpty(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {

@@ -1047,16 +1047,12 @@ public class InternalModule {
   private void discoveryGetSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.get(srvcId, res -> {
+    discoveryManager.getNonEmpty(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
       List<DeploymentDescriptor> result = res.result();
-      if (result.isEmpty()) {
-        fut.handle(new Failure<>(NOT_FOUND, "srvcId " + srvcId + " not found"));
-        return;
-      }
       final String s = Json.encodePrettily(res.result());
       fut.handle(new Success<>(s));
     });

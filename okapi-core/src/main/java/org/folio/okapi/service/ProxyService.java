@@ -984,11 +984,6 @@ public class ProxyService {
 
     discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
       if (gres.failed()) {
-        if (gres.getType() == NOT_FOUND) {
-          fut.handle(new Failure<>(USER, "No running instances for module "
-            + inst.getModuleDescriptor().getId() + ". Can not invoke " + inst.getPath()));
-          return;
-        }
         pc.warn("doCallSystemInterface on " + inst.getModuleDescriptor().getId() + " "
           + inst.getPath()
           + " failed. Could not find the module in discovery", gres.cause());
