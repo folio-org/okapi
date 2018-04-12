@@ -292,7 +292,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.debug("checkSuperTenant: Enabled version is '" + ev
           + "', not '" + okapiModule + "'");
         // See Okapi-359 about version checks across the cluster
-        if (ModuleId.compare(ev, okapiModule) > 0) {
+        if (ModuleId.compare(ev, okapiModule) >= 4) {
           logger.warn("checkSuperTenant: This Okapi is too old, "
             + okapiVersion + " we already have " + ev + " in the database. "
             + " Use that!");
