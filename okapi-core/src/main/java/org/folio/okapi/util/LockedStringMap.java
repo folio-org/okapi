@@ -94,10 +94,10 @@ public class LockedStringMap {
         StringMap map;
         if (val != null) {
           map = Json.decodeValue(val, StringMap.class);
+          fut.handle(new Success<>(map.strings.values()));
         } else {
-          map = new StringMap(); // not found, just return an empty map
+          fut.handle(new Failure<>(NOT_FOUND, k));
         }
-        fut.handle(new Success<>(map.strings.values()));
       }
     });
   }

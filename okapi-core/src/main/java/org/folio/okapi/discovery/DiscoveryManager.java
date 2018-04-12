@@ -232,26 +232,15 @@ public class DiscoveryManager implements NodeListener {
   public void removeAndUndeploy(ProxyContext pc, String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    removeAndUndeploy1(pc, srvcId, instId, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        logger.debug("documentStore.delete " + instId);
-        deploymentStore.delete(instId, fut);
-      }
-    });
-  }
-
-  private void removeAndUndeploy1(ProxyContext pc, String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
     logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
     deployments.get(srvcId, instId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        callUndeploy(res.result(), pc, fut);
+        List<DeploymentDescriptor> ddList = new LinkedList<>();
+        ddList.add(res.result());
+        removeAndUndeploy(pc, ddList, fut);
       }
     });
   }
@@ -265,16 +254,27 @@ public class DiscoveryManager implements NodeListener {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        CompList<List<Void>> futures = new CompList<>(INTERNAL);
-        for (DeploymentDescriptor dd : res.result()) {
-          Future<Void> f = Future.future();
-          callUndeploy(dd, pc, f::handle);
-          futures.add(f);
-        }
-        futures.all(fut);
+        removeAndUndeploy(pc, res.result(), fut);
       }
     });
+  }
 
+  private void removeAndUndeploy(ProxyContext pc,
+    List<DeploymentDescriptor> ddList, Handler<ExtendedAsyncResult<Void>> fut) {
+
+    CompList<List<Void>> futures = new CompList<>(INTERNAL);
+    for (DeploymentDescriptor dd : ddList) {
+      Future<Void> f = Future.future();
+      callUndeploy(dd, pc, res -> {
+        if (res.succeeded()) {
+          deploymentStore.delete(dd.getInstId(), fut);
+        } else {
+          fut.handle(res);
+        }
+      });
+      futures.add(f);
+    }
+    futures.all(fut);
   }
 
   private void callUndeploy(DeploymentDescriptor md, ProxyContext pc,
@@ -362,11 +362,12 @@ public class DiscoveryManager implements NodeListener {
       } else {
         Collection<String> allNodes = res1.result();
         deployments.get(md.getId(), res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
+          if (res.succeeded()) {
+            autoDeploy2(md, pc, allNodes, res.result(), fut);
+          } else if (res.getType() == NOT_FOUND) {
+            autoDeploy2(md, pc, allNodes, new LinkedList<>(), fut);
           } else {
-            List<DeploymentDescriptor> ddList = res.result();
-            autoDeploy2(md, pc, allNodes, ddList, fut);
+            fut.handle(new Failure<>(res.getType(), res.cause()));
           }
         });
       }
@@ -414,9 +415,7 @@ public class DiscoveryManager implements NodeListener {
       return;
     }
     deployments.get(md.getId(), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
+      if (res.succeeded()) {
         List<DeploymentDescriptor> ddList = res.result();
         CompList<List<Void>> futures = new CompList<>(USER);
         for (DeploymentDescriptor dd : ddList) {
@@ -427,6 +426,10 @@ public class DiscoveryManager implements NodeListener {
           }
         }
         futures.all(fut);
+      } else if (res.getType() == NOT_FOUND) {
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
       }
     });
   }

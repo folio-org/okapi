@@ -521,6 +521,8 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     // make sure sample-module-1.0.0 is not deployed anymore
+    // remove with only serviceId given
+    // same as locationSampleDeployment_1_0_0
     c = api.createRestAssured3();
     c.given()
       .delete("/_/discovery/modules/sample-module-1.0.0")
@@ -531,7 +533,37 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationSampleDeployment_1_0_0 = null;
 
-    // we simulated above.. This time for real
+    // undeploy again
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/discovery/modules/sample-module-1.0.0")
+      .then()
+      .statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // undeploy with unknown serviceId
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/discovery/modules/foo")
+      .then()
+      .statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // undeploy with unknown serviceId and instanceId
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/discovery/modules/foo/bar")
+      .then()
+      .statusCode(404);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // we simulated install earlier .. This time for real
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")

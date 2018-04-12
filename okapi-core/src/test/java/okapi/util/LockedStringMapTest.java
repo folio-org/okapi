@@ -6,6 +6,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Test;
@@ -135,8 +136,8 @@ public class LockedStringMapTest {
 
   private void testgek1Lower(TestContext context) {
     map.getString("k1", res -> {
-      assertTrue(res.succeeded());
-      assertEquals("[]", res.result().toString());
+      assertTrue(res.failed());
+      assertEquals(ErrorType.NOT_FOUND, res.getType());
       listKeys2(context);
     });
   }
