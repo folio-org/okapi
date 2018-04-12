@@ -362,11 +362,12 @@ public class DiscoveryManager implements NodeListener {
       } else {
         Collection<String> allNodes = res1.result();
         deployments.get(md.getId(), res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
+          if (res.succeeded()) {
+            autoDeploy2(md, pc, allNodes, res.result(), fut);
+          } else if (res.getType() == NOT_FOUND) {
+            autoDeploy2(md, pc, allNodes, new LinkedList<>(), fut);
           } else {
-            List<DeploymentDescriptor> ddList = res.result();
-            autoDeploy2(md, pc, allNodes, ddList, fut);
+            fut.handle(new Failure<>(res.getType(), res.cause()));
           }
         });
       }
@@ -414,9 +415,7 @@ public class DiscoveryManager implements NodeListener {
       return;
     }
     deployments.get(md.getId(), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
+      if (res.succeeded()) {
         List<DeploymentDescriptor> ddList = res.result();
         CompList<List<Void>> futures = new CompList<>(USER);
         for (DeploymentDescriptor dd : ddList) {
@@ -427,6 +426,10 @@ public class DiscoveryManager implements NodeListener {
           }
         }
         futures.all(fut);
+      } else if (res.getType() == NOT_FOUND) {
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
       }
     });
   }
