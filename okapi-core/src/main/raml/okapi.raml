@@ -179,7 +179,7 @@ schemas:
             text/plain:
     /{instance_id}:
       get:
-        description: Update registration of a specified instance
+        description: get registration of a specified instance
         responses:
           200:
             body:
@@ -188,6 +188,10 @@ schemas:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
+          404:
+            description: Not Found
+            body:
+              text/plain:
       delete:
         description: Remove registration for a given instance
         responses:
@@ -230,6 +234,10 @@ schemas:
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
+        404:
+          description: Not Found
+          body:
+            text/plain:
     /{instance_id}:
       get:
         description: get health for a particular instance
@@ -241,6 +249,10 @@ schemas:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
+          404:
+            description: Not Found
+            body:
+              text/plain:
 /_/discovery/nodes:
   description: Get information about nodes
   get:

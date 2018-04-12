@@ -704,20 +704,16 @@ public class InternalModule {
   private void upgradeModulesForTenant(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    try {
-      TenantInstallOptions options = createTenantOptions(pc.getCtx());
+    TenantInstallOptions options = createTenantOptions(pc.getCtx());
 
-      tenantManager.installUpgradeModules(id, pc, options, null, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
-          fut.handle(new Success<>(Json.encodePrettily(res.result())));
-        }
-      });
-    } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
-    }
+    tenantManager.installUpgradeModules(id, pc, options, null, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
+        fut.handle(new Success<>(Json.encodePrettily(res.result())));
+      }
+    });
   }
 
   private void upgradeModuleForTenant(ProxyContext pc, String id, String mod,
@@ -1047,14 +1043,9 @@ public class InternalModule {
   private void discoveryGetSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.get(srvcId, res -> {
+    discoveryManager.getNonEmpty(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      List<DeploymentDescriptor> result = res.result();
-      if (result.isEmpty()) {
-        fut.handle(new Failure<>(NOT_FOUND, "srvcId " + srvcId + " not found"));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1134,10 +1125,6 @@ public class InternalModule {
   private void discoveryHealthSrvcId(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    if (srvcId == null || srvcId.isEmpty()) {
-      fut.handle(new Failure<>(USER, "srvcId missing"));
-      return;
-    }
     discoveryManager.health(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));

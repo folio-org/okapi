@@ -77,7 +77,7 @@ public class LockedStringMap {
             if (smap.strings.containsKey(k2)) {
               fut.handle(new Success<>(smap.strings.get(k2)));
             } else {
-              fut.handle(new Success<>(val));
+              fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
             }
           }
         }
