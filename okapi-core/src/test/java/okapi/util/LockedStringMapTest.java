@@ -68,6 +68,22 @@ public class LockedStringMapTest {
     map.getString("k1", "k2", res -> {
       assertTrue(res.succeeded());
       assertEquals("FOOBAR", res.result());
+      testgetK13(context);
+    });
+  }
+
+  private void testgetK13(TestContext context) {
+    map.getString("k1", "k3", res -> {
+      assertTrue(res.failed());
+      assertEquals(ErrorType.NOT_FOUND, res.getType());
+      testgetK14(context);
+    });
+  }
+
+  private void testgetK14(TestContext context) {
+    map.getString("foo", "bar", res -> {
+      assertTrue(res.failed());
+      assertEquals(ErrorType.NOT_FOUND, res.getType());
       testgetK1(context);
     });
   }

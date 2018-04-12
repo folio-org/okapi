@@ -470,6 +470,14 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
+    // Bad RoutingEntry type with PUT
+    given()
+      .header("Content-Type", "application/json")
+      .body(docBadReType)
+      .put("/_/proxy/modules/sample-module-1+1")
+      .then()
+      .statusCode(400);
+
     String docMissingPath = docSampleModule.replace("/testb", "");
     given()
       .header("Content-Type", "application/json")
@@ -1814,6 +1822,30 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // Get with unknown instanceId AND serviceId
+    c = api.createRestAssured3();
+    c.given().get("/_/discovery/modules/foo/xyz")
+      .then().statusCode(404)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // Get with unknown instanceId
+    c = api.createRestAssured3();
+    c.given().get("/_/discovery/modules/sample-module2-1/xyz")
+      .then().statusCode(404)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // Get with unknown serviceId
+    c = api.createRestAssured3();
+    c.given().get("/_/discovery/modules/foo/sample2-inst")
+      .then().statusCode(404)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // health check
     c = api.createRestAssured3();
     c.given().get("/_/discovery/health")
@@ -1832,6 +1864,22 @@ public class ModuleTest {
     c = api.createRestAssured3();
     c.given().get("/_/discovery/health/sample-module2-1/sample2-inst")
       .then().statusCode(200);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // Health with unknown instanceId
+    c = api.createRestAssured3();
+    c.given().get("/_/discovery/health/sample-module2-1/xyz")
+      .then().statusCode(404)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // health with unknown serviceId
+    c = api.createRestAssured3();
+    c.given().get("/_/discovery/health/foo/sample2-inst")
+      .then().statusCode(404)
+      .log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
