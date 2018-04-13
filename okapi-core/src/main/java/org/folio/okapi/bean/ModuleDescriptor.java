@@ -20,7 +20,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private String name;
 
   private String[] tags;
-  private ModuleId moduleId;
   private InterfaceDescriptor[] requires;
   private InterfaceDescriptor[] provides;
   private RoutingEntry[] filters;
@@ -29,7 +28,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private LaunchDescriptor launchDescriptor;
 
   public ModuleDescriptor() {
-    this.moduleId = null;
     this.id = null;
     this.name = null;
     this.tags = null;
@@ -48,7 +46,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @param full
    */
   public ModuleDescriptor(ModuleDescriptor other, boolean full) {
-    this.moduleId = other.moduleId;
     this.id = other.id;
     this.name = other.name;
     this.tags = other.tags;
