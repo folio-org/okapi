@@ -9,7 +9,9 @@ import org.junit.Test;
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
+import io.restassured.response.Response;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
@@ -199,6 +201,22 @@ public class PullTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Response r;
+    c = api.createRestAssured3();
+    r = c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?full=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    JsonArray a = new JsonArray(r.body().asString());
+    Assert.assertEquals(1, a.size());
+    JsonObject j = a.getJsonObject(0);
+    Assert.assertTrue(j.containsKey("provides"));
+    Assert.assertTrue(j.containsKey("permissionSets"));
 
     c = api.createRestAssured3();
     c.given().port(port2)
