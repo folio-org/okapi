@@ -62,6 +62,7 @@ public class SemVerTest {
     assertTrue(p1.equals(p1));
     SemVer p1Copy = new SemVer("1.0.0-alpha");
     assertTrue(p1.equals(p1Copy));
+    assertFalse(p1.equals(this));
 
     assertTrue(p1.hasPrefix(v1));
     assertTrue(p7.hasPrefix(v1));
@@ -98,12 +99,114 @@ public class SemVerTest {
     SemVer snap2 = new SemVer("1.0.0-rc.1+snapshot-2017.2");
     assertEquals("version: 1 0 0 pre: rc 1 metadata: snapshot-2017.2", snap2.toString());
 
+    assertFalse(snap1.hasPrefix(snap2));
+
     SemVer snap3 = new SemVer("1.0.0+snapshot-2017.2");
     assertEquals("version: 1 0 0 metadata: snapshot-2017.2", snap3.toString());
+
+    assertTrue(snap1.hasPrefix(snap1));
+    SemVer snap4 = new SemVer("1.0.0-rc.1");
+    assertTrue(snap1.hasPrefix(snap4));
+    assertFalse(snap4.hasPrefix(snap1));
+    assertEquals(1, snap1.compareTo(snap4));
+    assertEquals(-1, snap4.compareTo(snap1));
 
     assertEquals(-1, snap1.compareTo(snap2));
     assertEquals(1, snap2.compareTo(snap1));
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
+
+    boolean thrown;
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing major version: ", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("x");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing major version: x", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("x.y");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing major version: x.y", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1.y");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1.");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1-");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing pre-release version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1-2.");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing pre-release version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1-2.3.");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing pre-release version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1-123snapshot.");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("missing pre-release version component", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
+    thrown = false;
+    try {
+      SemVer tmp = new SemVer("1x+");
+    } catch (IllegalArgumentException ex) {
+      assertEquals("invalid semver: 1x+", ex.getMessage());
+      thrown = true;
+    }
+    assertTrue(thrown);
+
   }
 }

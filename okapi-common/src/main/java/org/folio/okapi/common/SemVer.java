@@ -13,23 +13,23 @@ public class SemVer implements Comparable<SemVer> {
   public SemVer(String v) {
     int offset = 0;
 
-    offset = parseComp(v, offset, versions);
+    offset = parseComp(v, true, offset, versions);
     if (offset == -1) {
       throw new IllegalArgumentException("missing major version: " + v);
     }
     while (offset < v.length() && v.charAt(offset) == '.') {
-      offset = parseComp(v, offset + 1, versions);
+      offset = parseComp(v, true, offset + 1, versions);
       if (offset == -1) {
         throw new IllegalArgumentException("missing version component");
       }
     }
     if (offset < v.length() && v.charAt(offset) == '-') {
-      offset = parseComp(v, offset + 1, preRelease);
+      offset = parseComp(v, false, offset + 1, preRelease);
       if (offset == -1) {
         throw new IllegalArgumentException("missing pre-release version component");
       }
       while (offset < v.length() && v.charAt(offset) == '.') {
-        offset = parseComp(v, offset + 1, preRelease);
+        offset = parseComp(v, false, offset + 1, preRelease);
         if (offset == -1) {
           throw new IllegalArgumentException("missing pre-release version component");
         }
@@ -52,21 +52,18 @@ public class SemVer implements Comparable<SemVer> {
     }
   }
 
-  private int parseComp(String v, int offset, List<String> result) {
+  private int parseComp(String v, boolean digits, int offset, List<String> result) {
     int i = offset;
-    if (i >= v.length()) {
-      return -1;
-    }
-    if (Character.isDigit(v.charAt(i))) {
-      while (i < v.length() && Character.isDigit(v.charAt(i))) {
-        i++;
-      }
-    } else {
+    if (!digits) {
       while (i < v.length()) {
         char ch = v.charAt(i);
         if (ch == '-' || ch == '+' || ch == '.') {
           break;
         }
+        i++;
+      }
+    } else {
+      while (i < v.length() && Character.isDigit(v.charAt(i))) {
         i++;
       }
     }
