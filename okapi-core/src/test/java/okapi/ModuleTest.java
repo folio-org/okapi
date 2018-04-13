@@ -2290,6 +2290,21 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+
+    final String envDoc = "{" + LS
+      + "  \"name\" : \"name1\"," + LS
+      + "  \"value\" : \"value1\"" + LS
+      + "}";
+
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(envDoc).post("/_/env")
+      .then().statusCode(201)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     if ("inmemory".equals(conf.getString("storage"))) {
       testDeployment2(async, context);
     } else {
@@ -2336,6 +2351,16 @@ public class ModuleTest {
     Response r;
 
     RestAssuredClient c;
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .delete("/_/env/name1")
+      .then().statusCode(204)
+      .log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     c = api.createRestAssured3();
     c.given().delete(locationSampleDeployment).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
