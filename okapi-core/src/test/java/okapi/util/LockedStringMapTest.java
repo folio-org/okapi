@@ -60,6 +60,20 @@ public class LockedStringMapTest {
   public void testadd(TestContext context) {
     map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
       assertTrue(res.succeeded());
+      testReplaceTrue(context);
+    });
+  }
+
+  public void testReplaceTrue(TestContext context) {
+    map.addOrReplace(true, "k1", "k2", "FOOBAR", res -> {
+      assertTrue(res.succeeded());
+      testReplaceFalse(context);
+    });
+  }
+
+  public void testReplaceFalse(TestContext context) {
+    map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
+      assertTrue(res.failed());
       testgetK12(context);
     });
   }
@@ -130,6 +144,13 @@ public class LockedStringMapTest {
     map.remove("k1", "k2", res -> {
       assertTrue(res.succeeded());
       assertFalse(res.result()); // there is still k1/k2.2 left
+      deleteKey1again(context);
+    });
+  }
+
+  private void deleteKey1again(TestContext context) {
+    map.remove("k1", "k2", res -> {
+      assertTrue(res.failed());
       listKeys1(context);
     });
   }
