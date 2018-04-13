@@ -902,6 +902,10 @@ schemas:
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
+        404:
+          description: Not Found
+          body:
+            text/plain:
 
 /_/version:
   description: Service for getting information about Okapi

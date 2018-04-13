@@ -160,6 +160,13 @@ public class EnvTest {
             c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
+    c.given().delete(locationName1)
+      .then()
+      .statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
     c.given().get("/_/env").then().statusCode(200).body(equalTo("[ ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
             c.getLastReport().isEmpty());
