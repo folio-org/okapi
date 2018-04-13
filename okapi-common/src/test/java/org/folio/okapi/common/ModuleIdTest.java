@@ -1,5 +1,7 @@
 package org.folio.okapi.common;
 
+import java.util.LinkedList;
+import java.util.List;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -7,7 +9,34 @@ public class ModuleIdTest {
   @Test
   public void test() {
     ModuleId module_1 = new ModuleId("module-1");
+    assertEquals("module-1", module_1.getId());
+    assertTrue(module_1.hasSemVer());
+    assertFalse(module_1.hasPreRelease());
+    assertEquals("module", module_1.getProduct());
     assertEquals("module: module version: 1", module_1.toString());
+
+    ModuleId module_1plus2 = new ModuleId("module-1-2+3");
+    assertEquals("module-1-2+3", module_1plus2.getId());
+    assertTrue(module_1plus2.hasSemVer());
+    assertTrue(module_1plus2.hasPreRelease());
+    assertEquals("module", module_1plus2.getProduct());
+    assertEquals("module: module version: 1 pre: 2 metadata: 3", module_1plus2.toString());
+
+    List<String> versionsL = new LinkedList<>();
+    versionsL.add("module-1.0");
+    versionsL.add("module-1.0-2");
+    versionsL.add("module-0.9");
+    versionsL.add("other-1.1");
+    versionsL.add("other-0.9");
+    assertEquals("module-1.0", module_1.getLatest(versionsL));
+
+    assertFalse(module_1.equals(module_1plus2));
+    assertFalse(module_1.equals(this));
+    assertTrue(module_1.equals(module_1));
+    ModuleId module_1plus2copy = new ModuleId("module-1-2+3");
+    assertTrue(module_1plus2.equals(module_1plus2copy));
+
+    assertEquals(module_1plus2.hashCode(), module_1plus2copy.hashCode());
 
     ModuleId foobar_1_2 = new ModuleId("foo-bar1-1.2");
     assertEquals("module: foo-bar1 version: 1 2", foobar_1_2.toString());
