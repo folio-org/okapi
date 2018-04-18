@@ -73,34 +73,31 @@ public class ModuleManager {
    */
   private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     if (moduleStore == null) {
-      logger.debug("No ModuleStorage to load from, starting with empty");
       fut.handle(new Success<>());
-      return;
-    }
-    modules.size(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(INTERNAL, kres.cause()));
-        return;
-      }
-      if (kres.result() > 0) {
-        logger.debug("Not loading modules, looks like someone already did");
-        fut.handle(new Success<>());
-        return;
-      }
-      moduleStore.getAll(mres -> {
-        if (mres.failed()) {
-          fut.handle(new Failure<>(mres.getType(), mres.cause()));
-          return;
+    } else {
+      modules.size(kres -> {
+        if (kres.failed()) {
+          fut.handle(new Failure<>(INTERNAL, kres.cause()));
+        } else if (kres.result() > 0) {
+          logger.debug("Not loading modules, looks like someone already did");
+          fut.handle(new Success<>());
+        } else {
+          moduleStore.getAll(mres -> {
+            if (mres.failed()) {
+              fut.handle(new Failure<>(mres.getType(), mres.cause()));
+            } else {
+              CompList<Void> futures = new CompList<>(INTERNAL);
+              for (ModuleDescriptor md : mres.result()) {
+                Future<Void> f = Future.future();
+                modules.add(md.getId(), md, f::handle);
+                futures.add(f);
+              }
+              futures.all(fut);
+            }
+          });
         }
-        CompList<Void> futures = new CompList<>(INTERNAL);
-        for (ModuleDescriptor md : mres.result()) {
-          Future<Void> f = Future.future();
-          modules.add(md.getId(), md, f::handle);
-          futures.add(f);
-        }
-        futures.all(fut);
       });
-    });
+    }
   }
 
   /**
