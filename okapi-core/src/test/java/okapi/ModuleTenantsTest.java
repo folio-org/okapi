@@ -660,6 +660,59 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // create sample 1.3.0
+    final String docSampleModule_1_3_0 = "{" + LS
+      + "  \"id\" : \"sample-module-1.3.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb/foo\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule_1_3_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.3.0\"," + LS
+        + "  \"from\" : \"sample-module-1.2.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // create basic 2.0.0
     final String docBasic_2_0_0 = "{" + LS
       + "  \"id\" : \"basic-module-2.0.0\"," + LS

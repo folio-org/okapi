@@ -225,7 +225,7 @@ public class ProxyService {
       if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
         && !req.path().startsWith("/_/")  ) {  // and not wrong okapi request
            // The /_/ test is to make sure we report same errors as before internalModule stuff
-        pc.responseText(403, "Missing Tenant");
+        pc.responseError(403, "Missing Tenant");
         return null;
       } else {
         pc.responseError(404, "No suitable module found for path " + req.path());
@@ -261,7 +261,7 @@ public class ProxyService {
       }
     }
     if (auth != null && tok != null && !auth.equals(tok)) {
-      pc.responseText(400, "Different tokens in Authentication and X-Okapi-Token. "
+      pc.responseError(400, "Different tokens in Authentication and X-Okapi-Token. "
         + "Use only one of them");
       return null;
     }
@@ -280,7 +280,7 @@ public class ProxyService {
           pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
         }
       } catch (IllegalArgumentException e) {
-        pc.responseText(400, "Invalid Token: " + e.getMessage());
+        pc.responseError(400, "Invalid Token: " + e.getMessage());
         return null;
       }
     }
@@ -483,7 +483,7 @@ public class ProxyService {
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
         stream.resume();
-        pc.responseText(400, "No such Tenant " + tenantId);
+        pc.responseError(400, "No such Tenant " + tenantId);
         return;
       }
       Tenant tenant = gres.result();
@@ -573,7 +573,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
-      pc.responseText(500, "proxyRequestHttpClient failure: "
+      pc.responseError(500, "proxyRequestHttpClient failure: "
         + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
@@ -647,7 +647,7 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseText(500, "proxyRequestResponse failure: "
+      pc.responseError(500, "proxyRequestResponse failure: "
         + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
@@ -714,7 +714,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      pc.responseText(500, "proxyHeaders failure: "
+      pc.responseError(500, "proxyHeaders failure: "
         + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
         + e + " " + e.getMessage());
     });
@@ -765,7 +765,6 @@ public class ProxyService {
     internalModule.internalService(req, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
-        pc.closeTimer();
         return;
       }
       String resp = res.result();
@@ -795,7 +794,7 @@ public class ProxyService {
     if (!it.hasNext()) {
       stream.resume();
       pc.debug("proxyR: Not found");
-      pc.responseText(404, ""); // Should have been caught earlier
+      pc.responseError(404, ""); // Should have been caught earlier
     } else {
       ModuleInstance mi = it.next();
       String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
@@ -859,7 +858,7 @@ public class ProxyService {
           break;
         default:
           // Should not happen
-          pc.responseText(500, "Bad proxy type '" + pType
+          pc.responseError(500, "Bad proxy type '" + pType
             + "' in module " + mi.getModuleDescriptor().getId());
           break;
       }
