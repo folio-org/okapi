@@ -37,13 +37,15 @@ public class DockerModuleHandle implements ModuleHandle {
   private final boolean dockerPull;
   private final HttpClient client;
   private final StringBuilder logBuffer;
+  private final String id;
 
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    Ports ports, int port) {
+    String id, Ports ports, int port) {
     this.hostPort = port;
     this.ports = ports;
+    this.id = id;
     this.image = desc.getDockerImage();
     this.cmd = desc.getDockerCMD();
     this.env = desc.getEnv();
@@ -118,7 +120,7 @@ public class DockerModuleHandle implements ModuleHandle {
       logBuffer.append(b.toString());
     }
     if (logBuffer.charAt(logBuffer.length() - 1) == '\n') {
-      logger.info(logBuffer.substring(0, logBuffer.length() - 1));
+      logger.info(id + " " + logBuffer.substring(0, logBuffer.length() - 1));
       logBuffer.setLength(0);
     }
   }
