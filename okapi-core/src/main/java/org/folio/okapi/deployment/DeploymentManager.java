@@ -145,7 +145,7 @@ public class DeploymentManager {
           }
           descriptor.setEnv(nenv);
         }
-        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, ports, usePort);
+        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, md1.getSrvcId(), ports, usePort);
         mh.start(future -> {
           if (future.succeeded()) {
             DeploymentDescriptor md2
