@@ -114,12 +114,12 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void logHandler(Buffer b) {
-    if (b.getByte(0) < 9) {
+    if (b.length() >= 8 && b.getByte(0) < 9) {
       logBuffer.append(b.getString(8, b.length()));
     } else {
       logBuffer.append(b.toString());
     }
-    if (logBuffer.charAt(logBuffer.length() - 1) == '\n') {
+    if (logBuffer.length() > 0 && logBuffer.charAt(logBuffer.length() - 1) == '\n') {
       logger.info(id + " " + logBuffer.substring(0, logBuffer.length() - 1));
       logBuffer.setLength(0);
     }
