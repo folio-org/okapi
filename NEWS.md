@@ -1,3 +1,10 @@
+## 2.12.2 2018-04-20
+
+ * OKAPI-585 Fix WAIT msg logged when it shouldn't (/saml/check)
+ * OKAPI-586 Include Module Id in okapi.log
+ * OKAPI-587 Fix msg IllegalArgumentException: end must be greater or
+   equal than start
+
 ## 2.12.1 2018-04-12
 
  * OKAPI-576 Invoke only first handler for multiple matches
