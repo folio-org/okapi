@@ -75,7 +75,7 @@
    is enabled
  * OKAPI-537 Update to RestAssured 3.0.7
  * OKAPI-536 Test fails in v2.9.1 (Java 9)
- * OKAPI-535 Pass auth-headers only to an auth filter 
+ * OKAPI-535 Pass auth-headers only to an auth filter
  * OKAPI-533 Clean up response headers
  * OKAPI-528 Create a section about what is expected from a module
  * OKAPI-527 Document what headers modules are supposed to return
