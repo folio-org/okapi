@@ -28,7 +28,7 @@
  * OKAPI-568 Allow underscore in md2toc generated ToC links
  * OKAPI-569 Security update PostgresSQL 9.6.8
  * OKAPI-572 Harmonize use of RamlLoaders in unit tests
- * OKAPI-575 Fix distrioni in logs from Docker containers
+ * OKAPI-575 Fix distortion in logs from Docker containers
  * OKAPI-544 Fix X-Okapi-trace header status 200 (when it is really 204)
 
 ## 2.11.0 2018-03-23
@@ -75,7 +75,7 @@
    is enabled
  * OKAPI-537 Update to RestAssured 3.0.7
  * OKAPI-536 Test fails in v2.9.1 (Java 9)
- * OKAPI-535 Pass auth-headers only to an auth filter 
+ * OKAPI-535 Pass auth-headers only to an auth filter
  * OKAPI-533 Clean up response headers
  * OKAPI-528 Create a section about what is expected from a module
  * OKAPI-527 Document what headers modules are supposed to return
