@@ -28,7 +28,7 @@
  * OKAPI-568 Allow underscore in md2toc generated ToC links
  * OKAPI-569 Security update PostgresSQL 9.6.8
  * OKAPI-572 Harmonize use of RamlLoaders in unit tests
- * OKAPI-575 Fix distrioni in logs from Docker containers
+ * OKAPI-575 Fix distortion in logs from Docker containers
  * OKAPI-544 Fix X-Okapi-trace header status 200 (when it is really 204)
 
 ## 2.11.0 2018-03-23
