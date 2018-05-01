@@ -6,7 +6,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1075,21 +1074,32 @@ public class TenantManager {
     });
   }
 
-  /**
-   * List modules for a given tenant.
-   *
-   * @param id Tenant ID
-   * @param fut callback with a list of moduleIds
-   */
-  public void listModules(String id, Handler<ExtendedAsyncResult<List<String>>> fut) {
+  public void listModules(String id, boolean full,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
     tenants.get(id, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         Tenant t = gres.result();
-        List<String> tl = new ArrayList<>(t.listModules());
-        tl.sort(null);
-        fut.handle(new Success<>(tl));
+        List<ModuleDescriptor> tl = new LinkedList<>();
+        CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
+        for (String mId : t.listModules()) {
+          Future f = Future.future();
+          moduleManager.get(mId, res -> {
+            if (res.succeeded()) {
+              if (full) {
+                tl.add(res.result());
+              } else {
+                ModuleDescriptor md = new ModuleDescriptor(res.result(), false);
+                md.setName(null); // name not part of tenantModuleDescriptor
+                tl.add(md);
+              }
+            }
+            f.handle(res);
+          });
+        }
+        futures.all(tl, fut);
       }
     });
   }

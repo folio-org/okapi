@@ -551,6 +551,11 @@ schemas:
               text/plain:
       get:
         description: Get enabled modules for tenant
+        queryParameters:
+          full:
+            description: whether full or compact MD should be returned
+            type: boolean
+            required: false
         responses:
           200:
             headers:
@@ -558,7 +563,7 @@ schemas:
                 description: Okapi trace and timing
             body:
               application/json:
-                schema: TenantModuleDescriptorList
+                schema: ModuleList
           404:
             description: Not Found
             body:
