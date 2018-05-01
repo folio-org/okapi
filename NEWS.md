@@ -1,3 +1,7 @@
+## 2.13.0 2018-05-01
+
+ * OKAPI-588 Extend /_/proxy/tenants/<t>/modules with full parameter
+
 ## 2.12.2 2018-04-20
 
  * OKAPI-585 Fix WAIT msg logged when it shouldn't (/saml/check)
