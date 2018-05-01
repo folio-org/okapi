@@ -180,6 +180,7 @@ public class ModuleTenantsTest {
     final String docSample_1_0_0 = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
       + "  \"name\" : \"this module\"," + LS
+      + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"," + LS
@@ -196,7 +197,6 @@ public class ModuleTenantsTest {
       + "      \"pathPattern\" : \"/testb/foo\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -206,6 +206,7 @@ public class ModuleTenantsTest {
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSample_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .body(equalTo(docSample_1_0_0))
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -262,6 +263,26 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     String locationTenantModule = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200)
+      .body(equalTo("[ " + docEnableSample + " ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules?full=true")
+      .then().statusCode(200)
+      .body(equalTo("[ " + docSample_1_0_0 + " ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // run module
     c = api.createRestAssured3();

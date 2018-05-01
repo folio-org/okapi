@@ -739,25 +739,23 @@ public class InternalModule {
     }
   }
 
-  private void listModulesForTenant(String id,
+  private void listModulesForTenant(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    tenantManager.listModules(id, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      List<String> ml = res.result();
-      Iterator<String> mli = ml.iterator();  // into a list of objects
-      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
-      while (mli.hasNext()) {
-        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
-        tmd.setId(mli.next());
-        ta.add(tmd);
-      }
-      String s = Json.encodePrettily(ta);
-      fut.handle(new Success<>(s));
-    });
+    try {
+      final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+
+      tenantManager.listModules(id, full, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
   }
 
   private void getModuleForTenant(String id, String mod,
@@ -1340,7 +1338,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/modules
         if (n == 6 && m.equals(GET) && segments[5].equals("modules")) {
-          listModulesForTenant(decodedSegs[4], fut);
+          listModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
         if (n == 6 && m.equals(POST) && segments[5].equals("modules")) {
