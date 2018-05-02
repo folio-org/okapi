@@ -1,3 +1,7 @@
+## 2.13.1 2018-05-02
+
+ * OKAPI-589 Fix GET /_/proxy/tenants/{tenants}/modules empty list
+
 ## 2.13.0 2018-05-01
 
  * OKAPI-588 Extend /_/proxy/tenants/<t>/modules with full parameter

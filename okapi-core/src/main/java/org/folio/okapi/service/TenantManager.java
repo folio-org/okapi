@@ -1098,6 +1098,7 @@ public class TenantManager {
             }
             f.handle(res);
           });
+          futures.add(f);
         }
         futures.all(tl, fut);
       }
