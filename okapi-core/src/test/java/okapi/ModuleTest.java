@@ -1303,7 +1303,7 @@ public class ModuleTest {
       .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
       .extract().response();
@@ -1488,7 +1488,7 @@ public class ModuleTest {
     // add tenant by using PUT (which will insert)
     final String locationTenantRoskilde = "/_/proxy/tenants/" + okapiTenant;
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde)
       .put(locationTenantRoskilde)
@@ -1502,7 +1502,7 @@ public class ModuleTest {
     final String docEnableWithoutDep = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableWithoutDep).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
@@ -1511,8 +1511,7 @@ public class ModuleTest {
     final String docEnableAuthBad = "{" + LS
       + "  \"id\" : \"UnknonwModule-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(404);
@@ -1520,8 +1519,7 @@ public class ModuleTest {
     final String docEnableAuth = "{" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash is no good
@@ -1535,8 +1533,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash again
 
     // Get the list of one enabled module
@@ -1560,8 +1557,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     // Enable with bad JSON
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body("{").post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
@@ -1586,8 +1582,7 @@ public class ModuleTest {
       .then().statusCode(400)
       .body(containsString("already provided"));
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404); // trailing slash
 
     c = api.createRestAssured3();
@@ -1603,7 +1598,7 @@ public class ModuleTest {
 
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
-    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(400);
 
     // Update the tenant
