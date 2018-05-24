@@ -326,6 +326,172 @@ public class ModuleTest {
   }
 
   /**
+   * Various tests around the filter modules.
+   *
+   * @param context
+   */
+  @Test
+  public void testFilters(TestContext context) {
+    //async = context.async();
+    RestAssuredClient c;
+    Response r;
+
+    checkDbIsEmpty("testFilters starting", context);
+    // Set up a test tenant
+    String locTenant = createTenant();
+
+    // Set up our usual sample module
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-f-module-1\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"permissionSets\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locSampleModule = createModule(docSampleModule);
+    String locSampleDeploy = deployModule("sample-f-module-1");
+    String locSampleEnable = enableModule("sample-f-module-1");
+    logger.debug("testFilters sample: " + locSampleModule + " " + locSampleDeploy + " " + locSampleEnable);
+
+    // Declare and enable test-auth.
+    // We use our mod-auth for all the filter phases, it can handle them
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-f-module-1\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locAuthModule = createModule(docAuthModule);
+    String locAuthDeploy = deployModule("auth-f-module-1");
+    String locAuthEnable = enableModule("auth-f-module-1");
+    logger.debug(" testFilters auth: " + locAuthModule + " " + locAuthDeploy + " " + locAuthEnable);
+
+    // login and get token
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    okapiToken = given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+    logger.debug(" testFilters Got auth token " + okapiToken);
+
+    // Make a simple request. Checks that the auth filter gets called
+    c = api.createRestAssured3();
+    List<String> traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+
+    // Create pre- and post- filters
+    final String docFilterModule = "{" + LS
+      + "  \"id\" : \"MODULE\"," + LS
+      + "  \"name\" : \"MODULE\"," + LS
+      + "  \"provides\" : [ ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    String docPreModule = docFilterModule
+      .replaceAll("MODULE", "pre-f-module-1")
+      .replaceAll("PHASE", "pre");
+    logger.debug("testFilters: pre-filter: " + docPreModule);
+    String locPreModule = createModule(docPreModule);
+    String locPreDeploy = deployModule("pre-f-module-1");
+    String locPreEnable = enableModule("pre-f-module-1");
+    logger.debug("testFilters pre: " + locPreModule + " " + locPreDeploy + " " + locPreEnable);
+
+    String docPostModule = docFilterModule
+      .replaceAll("MODULE", "post-f-module-1")
+      .replaceAll("PHASE", "post");
+    logger.debug("testFilters: post-filter: " + docPostModule);
+    String locPostModule = createModule(docPostModule);
+    String locPostDeploy = deployModule("post-f-module-1");
+    String locPostEnable = enableModule("post-f-module-1");
+    logger.debug("testFilters post: " + locPostModule + " " + locPostDeploy + " " + locPostEnable);
+
+    // Make a simple request. All three filters shold be called
+    c = api.createRestAssured3();
+    c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+    logger.debug("testFilters made the last real call");
+
+    // Clean up (in reverse order)
+    logger.debug("testFilters starting to clean up");
+    given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPostDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPreEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPreDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPreModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    logger.debug("testFilters clean up complete");
+    checkDbIsEmpty("testFilters finished", context);
+    //async.complete();
+  }
+
+  /**
    * Tests that declare one module. Declares a single module in many ways, often
    * with errors. In the end the module gets deployed and enabled for a newly
    * created tenant, and a request is made to it. Uses the test module, but not
