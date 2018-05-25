@@ -24,11 +24,12 @@ public class ProxyContext {
 
   private final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
-  private String reqId;
+  private final String reqId;
   private String tenant;
   private final RoutingContext ctx;
   private Timer.Context timer;
   private Long timerId;
+  private final int waitMs;
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -36,11 +37,32 @@ public class ProxyContext {
    *
    * @param ctx - the request we are serving
    */
-  public ProxyContext(RoutingContext ctx) {
+  public ProxyContext(RoutingContext ctx, int waitMs) {
     this.ctx = ctx;
+    this.waitMs = waitMs;
     this.tenant = "-";
     this.modList = null;
-    reqidHeader(ctx);
+    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
+    String path = ctx.request().path();
+    if (path == null) { // defensive coding, should always be there
+      path = "";
+    }
+    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
+      // when rerouting, the query appears as part of the getPath, so we kill it
+    // here with the '?'.
+    Random r = new Random();
+    StringBuilder newid = new StringBuilder();
+    newid.append(String.format("%06d", r.nextInt(1000000)));
+    newid.append(path);
+    if (curid == null || curid.isEmpty()) {
+      reqId = newid.toString();
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
+      this.debug("Assigned new reqId " + newid);
+    } else {
+      reqId = curid + ";" + newid.toString();
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
+      this.debug("Appended a reqId " + newid);
+    }
     timer = null;
     timerId = null;
   }
@@ -48,12 +70,14 @@ public class ProxyContext {
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
-    timerId = ctx.vertx().setPeriodic(10000, res
-      -> logger.warn(reqId + " WAIT "
-        + ctx.request().remoteAddress()
-        + " " + tenant + " " + ctx.request().method()
-        + " " + ctx.request().path())
-    );
+    if (waitMs > 0) {
+      timerId = ctx.vertx().setPeriodic(waitMs, res
+        -> logger.warn(reqId + " WAIT "
+          + ctx.request().remoteAddress()
+          + " " + tenant + " " + ctx.request().method()
+          + " " + ctx.request().path())
+      );
+    }
   }
 
   public void closeTimer() {
@@ -117,37 +141,9 @@ public class ProxyContext {
     return ctx;
   }
 
-  public String getReqId() {
+  private String getReqId() {
     return reqId;
   }
-
-  /**
-   * Update or create the X-Okapi-Request-Id header. Save the id for future use.
-   */
-  private void reqidHeader(RoutingContext ctx) {
-    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
-    String path = ctx.request().path();
-    if (path == null) { // defensive coding, should always be there
-      path = "";
-    }
-    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-      // when rerouting, the query appears as part of the getPath, so we kill it
-    // here with the '?'.
-    Random r = new Random();
-    StringBuilder newid = new StringBuilder();
-    newid.append(String.format("%06d", r.nextInt(1000000)));
-    newid.append(path);
-    if (curid == null || curid.isEmpty()) {
-      reqId = newid.toString();
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Assigned new reqId " + newid);
-    } else {
-      reqId = curid + ";" + newid.toString();
-      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Appended a reqId " + newid);
-    }
-  }
-
 
   /* Helpers for logging and building responses */
   public final void logRequest(RoutingContext ctx, String tenant) {

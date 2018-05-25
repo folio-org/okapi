@@ -103,6 +103,9 @@ public class MainVerticle extends AbstractVerticle {
         logHelper.setRootLogLevel(loglevel);
       }
     }
+    final String logWaitMsStr = Config.getSysConf("logWaitMs", "", config);
+    final int waitMs = logWaitMsStr.isEmpty() ? 0 : Integer.parseInt(logWaitMsStr);
+
     String mode = config.getString("mode", "cluster");
     switch (mode) {
       case "deployment":
@@ -167,7 +170,7 @@ public class MainVerticle extends AbstractVerticle {
               envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl);
+        internalModule, okapiUrl, waitMs);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null);
@@ -182,7 +185,7 @@ public class MainVerticle extends AbstractVerticle {
       // no modules, tenants, or discovery. Only deployment and env.
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl);
+        internalModule, okapiUrl, waitMs);
     }
 
   }

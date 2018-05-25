@@ -49,9 +49,12 @@ public class ModuleTenantsTest {
     logger.debug("starting ModuleTenantsTest");
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
+    JsonObject conf = new JsonObject()
+      .put("port", Integer.toString(port))
+      .put("logWaitMs", "200");
 
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port)));
+      .setConfig(conf);
 
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
@@ -1272,7 +1275,7 @@ public class ModuleTenantsTest {
 
     c.given()
       .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-delay", "11000")
+      .header("X-delay", "600")
       .get("/testb")
       .then()
       .statusCode(200)
