@@ -20,11 +20,12 @@ import org.folio.okapi.common.OkapiLogger;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
- * Mostly for testing Okapi itself.
+ Mostly for
+ * testing Okapi itself.
  *
- * Does generate tokens for module permissions, but otherwise does not
- * check permissions for anything, but does return X-Okapi-Permissions-Desired
- * in X-Okapi-Permissions, as if all desired permissions were granted.
+ * Does generate tokens for module permissions, but otherwise does not filter
+ * permissions for anything, but does return X-Okapi-Permissions-Desired in
+ * X-Okapi-Permissions, as if all desired permissions were granted.
  *
  * @author heikki
  *
@@ -126,6 +127,17 @@ class Auth {
     return alltokens;
   }
 
+  public void filter(RoutingContext ctx) {
+    String phase = ctx.request().headers().get(XOkapiHeaders.FILTER);
+    logger.debug("test-auth filter " + XOkapiHeaders.FILTER + ": '" + phase + "'");
+    if (phase == null || phase.startsWith("auth")) {
+      check(ctx);
+      return;
+    }
+    ctx.response().putHeader("X-Auth-Filter-Phase", phase);
+    echo(ctx);
+  }
+
   public void check(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenant == null || tenant.isEmpty()) {
@@ -196,7 +208,7 @@ class Auth {
       .add(XOkapiHeaders.TOKEN, tok)
       .add(XOkapiHeaders.MODULE_TOKENS, modTok)
       .add(XOkapiHeaders.USER_ID, userId);
-    responseText(ctx, 202); // Abusing 202 to say check OK
+    responseText(ctx, 202); // Abusing 202 to say filter OK
     logger.debug("test-auth: returning 202 and " + Json.encode(ctx.response()));
     logger.debug("test-auth: req:  " + Json.encode(ctx.request()));
     logger.debug("test-auth: resp:  " + Json.encode(ctx.response()));
@@ -234,7 +246,8 @@ class Auth {
 
   /**
    * Accept a request. Gets called with anything else than a POST to "/authn/login".
-   * These need to be accepted, so we can do a pre-check before the proper POST.
+ These need to be accepted, so we can do a pre-filter before
+   * the proper POST.
    *
    * @param ctx
    */

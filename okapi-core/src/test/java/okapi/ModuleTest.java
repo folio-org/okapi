@@ -75,6 +75,8 @@ public class ModuleTest {
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
   private String locationAuthDeployment = null;
+  private String locationPreDeployment = null;
+  private String locationPostDeployment = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
@@ -196,6 +198,26 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPreDeployment != null) {
+      httpClient.delete(port, "localhost", locationPreDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPreDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPostDeployment != null) {
+      httpClient.delete(port, "localhost", locationPostDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPostDeployment = null;
           td(context);
         });
       }).end();
@@ -323,6 +345,176 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
     return Utils.urlDecode(location, false);
+  }
+
+  /**
+   * Various tests around the filter modules.
+   *
+   * @param context
+   */
+  @Test
+  public void testFilters(TestContext context) {
+    //async = context.async();
+    RestAssuredClient c;
+    Response r;
+
+    checkDbIsEmpty("testFilters starting", context);
+    // Set up a test tenant
+    String locTenant = createTenant();
+
+    // Set up our usual sample module
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-f-module-1\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"permissionSets\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locSampleModule = createModule(docSampleModule);
+    locationSampleDeployment = deployModule("sample-f-module-1");
+    String locSampleEnable = enableModule("sample-f-module-1");
+    logger.debug("testFilters sample: " + locSampleModule + " " + locationSampleDeployment + " " + locSampleEnable);
+
+    // Declare and enable test-auth.
+    // We use our mod-auth for all the filter phases, it can handle them
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-f-module-1\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locAuthModule = createModule(docAuthModule);
+    locationAuthDeployment = deployModule("auth-f-module-1");
+    String locAuthEnable = enableModule("auth-f-module-1");
+    logger.debug(" testFilters auth: " + locAuthModule + " " + locationAuthDeployment + " " + locAuthEnable);
+
+    // login and get token
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    okapiToken = given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+    logger.debug(" testFilters Got auth token " + okapiToken);
+
+    // Make a simple request. Checks that the auth filter gets called
+    c = api.createRestAssured3();
+    List<String> traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+
+    // Create pre- and post- filters
+    final String docFilterModule = "{" + LS
+      + "  \"id\" : \"MODULE\"," + LS
+      + "  \"name\" : \"MODULE\"," + LS
+      + "  \"provides\" : [ ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    String docPreModule = docFilterModule
+      .replaceAll("MODULE", "pre-f-module-1")
+      .replaceAll("PHASE", "pre");
+    logger.debug("testFilters: pre-filter: " + docPreModule);
+    String locPreModule = createModule(docPreModule);
+    locationPreDeployment = deployModule("pre-f-module-1");
+    String locPreEnable = enableModule("pre-f-module-1");
+    logger.debug("testFilters pre: " + locPreModule + " " + locationPreDeployment + " " + locPreEnable);
+
+    String docPostModule = docFilterModule
+      .replaceAll("MODULE", "post-f-module-1")
+      .replaceAll("PHASE", "post");
+    logger.debug("testFilters: post-filter: " + docPostModule);
+    String locPostModule = createModule(docPostModule);
+    locationPostDeployment = deployModule("post-f-module-1");
+    String locPostEnable = enableModule("post-f-module-1");
+    logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
+
+    // Make a simple request. All three filters shold be called
+    c = api.createRestAssured3();
+    c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+    logger.debug("testFilters made the last real call");
+
+    // Clean up (in reverse order)
+    logger.debug("testFilters starting to clean up");
+    given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPostDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPostDeployment = null;
+    given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPreEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPreDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPreDeployment = null;
+    given().delete(locPreModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationAuthDeployment).then().log().ifValidationFails().statusCode(204);
+    locationAuthDeployment = null;
+    given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    logger.debug("testFilters clean up complete");
+    checkDbIsEmpty("testFilters finished", context);
+    //async.complete();
   }
 
   /**
@@ -1303,7 +1495,7 @@ public class ModuleTest {
       .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
       .extract().response();
@@ -1488,7 +1680,7 @@ public class ModuleTest {
     // add tenant by using PUT (which will insert)
     final String locationTenantRoskilde = "/_/proxy/tenants/" + okapiTenant;
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde)
       .put(locationTenantRoskilde)
@@ -1502,7 +1694,7 @@ public class ModuleTest {
     final String docEnableWithoutDep = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableWithoutDep).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
@@ -1511,8 +1703,7 @@ public class ModuleTest {
     final String docEnableAuthBad = "{" + LS
       + "  \"id\" : \"UnknonwModule-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(404);
@@ -1520,8 +1711,7 @@ public class ModuleTest {
     final String docEnableAuth = "{" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash is no good
@@ -1535,8 +1725,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash again
 
     // Get the list of one enabled module
@@ -1560,8 +1749,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     // Enable with bad JSON
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body("{").post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
@@ -1586,8 +1774,7 @@ public class ModuleTest {
       .then().statusCode(400)
       .body(containsString("already provided"));
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404); // trailing slash
 
     c = api.createRestAssured3();
@@ -1603,7 +1790,7 @@ public class ModuleTest {
 
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
-    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(400);
 
     // Update the tenant
