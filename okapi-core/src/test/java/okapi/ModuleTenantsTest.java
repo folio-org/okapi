@@ -1272,7 +1272,7 @@ public class ModuleTenantsTest {
 
     c.given()
       .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-delay", "11000")
+      .header("X-delay", "11")
       .get("/testb")
       .then()
       .statusCode(200)
