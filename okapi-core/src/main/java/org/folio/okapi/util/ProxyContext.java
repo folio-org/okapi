@@ -29,6 +29,7 @@ public class ProxyContext {
   private final RoutingContext ctx;
   private Timer.Context timer;
   private Long timerId;
+  private final int waitMs;
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -36,8 +37,9 @@ public class ProxyContext {
    *
    * @param ctx - the request we are serving
    */
-  public ProxyContext(RoutingContext ctx) {
+  public ProxyContext(RoutingContext ctx, int waitMs) {
     this.ctx = ctx;
+    this.waitMs = waitMs;
     this.tenant = "-";
     this.modList = null;
     String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
@@ -68,12 +70,14 @@ public class ProxyContext {
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
-    timerId = ctx.vertx().setPeriodic(10000, res
-      -> logger.warn(reqId + " WAIT "
-        + ctx.request().remoteAddress()
-        + " " + tenant + " " + ctx.request().method()
-        + " " + ctx.request().path())
-    );
+    if (waitMs > 0) {
+      timerId = ctx.vertx().setPeriodic(waitMs, res
+        -> logger.warn(reqId + " WAIT "
+          + ctx.request().remoteAddress()
+          + " " + tenant + " " + ctx.request().method()
+          + " " + ctx.request().path())
+      );
+    }
   }
 
   public void closeTimer() {

@@ -68,16 +68,18 @@ public class ProxyService {
   private final Vertx vertx;
   private final HttpClient httpClient;
   private final Random random;
+  private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
-    DiscoveryManager dm, InternalModule im, String okapiUrl) {
+    DiscoveryManager dm, InternalModule im, String okapiUrl, int waitMs) {
     this.vertx = vertx;
     this.moduleManager = modules;
     this.tenantManager = tm;
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
+    this.waitMs = waitMs;
     this.random = new Random();
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
@@ -468,7 +470,7 @@ public class ProxyService {
     // Pause the request data stream before doing any slow ops, otherwise
     // it will get read into a buffer somewhere.
 
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, waitMs);
 
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
@@ -1081,7 +1083,7 @@ public class ProxyService {
    * @param ctx
    */
   public void redirectProxy(RoutingContext ctx) {
-    ProxyContext pc = new ProxyContext(ctx);
+    ProxyContext pc = new ProxyContext(ctx, waitMs);
     final String origPath = ctx.request().path();
     String qry = ctx.request().query();
     String tid = origPath
