@@ -292,11 +292,15 @@ type by default (see below). If no handlers are found, Okapi will return a 404
 NOTFOUND.
 
 Each request may be passed through one or more filters. The `phase` determines
-the order in which filters are applied. At the moment that seems a bit of an
-overkill, since we have only one phase, `auth`, which will get invoked before
-the handler. It will be used for checking permissions. We assume that later we
-will introduce more phases, for example one to write an audit log after a request
-has been processed by the handler.
+the order in which filters are applied. At the moment we have three phases defined:
+ * `auth` will be invoked first. It is used for checking the X-Okapi-Token, and
+permissions.
+ * `pre` will be invoked just before the handler. It is intended for logging and
+reporting all requests.
+ * `post` will be invoked just after the handler. It is intended for logging and
+reporting all responses.
+
+We expect to add more phases as necessary.
 
 (In previous versions, we had handlers and filters combined in one
 pipeline, with numerical levels for controlling the order. That was deprecated
@@ -1274,9 +1278,10 @@ A pathPattern may also include curly braces pairs to match a path component. For
 example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 
 The phase specifies at which stage the filter is to be applied. At this point,
-we only have one phase, "auth", which gets invoked before the handlers. We are
-likely to come up with different phases as the need arises, both before and
-after the handlers.
+we only have one commonly used phase, "auth", which gets invoked well before the
+handlers. There are two others, "pre" and "post", which will be invoked right
+before and after the handler, respectively. We may define with more phases as
+necessary.
 
 We could have included a launchDescriptor as before, but just to demonstrate
 another way, we have omitted it here. Doing it this way may make more sense in
