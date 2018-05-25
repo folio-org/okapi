@@ -75,6 +75,8 @@ public class ModuleTest {
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
   private String locationAuthDeployment = null;
+  private String locationPreDeployment = null;
+  private String locationPostDeployment = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
@@ -196,6 +198,26 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPreDeployment != null) {
+      httpClient.delete(port, "localhost", locationPreDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPreDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPostDeployment != null) {
+      httpClient.delete(port, "localhost", locationPostDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPostDeployment = null;
           td(context);
         });
       }).end();
@@ -360,9 +382,9 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
     String locSampleModule = createModule(docSampleModule);
-    String locSampleDeploy = deployModule("sample-f-module-1");
+    locationSampleDeployment = deployModule("sample-f-module-1");
     String locSampleEnable = enableModule("sample-f-module-1");
-    logger.debug("testFilters sample: " + locSampleModule + " " + locSampleDeploy + " " + locSampleEnable);
+    logger.debug("testFilters sample: " + locSampleModule + " " + locationSampleDeployment + " " + locSampleEnable);
 
     // Declare and enable test-auth.
     // We use our mod-auth for all the filter phases, it can handle them
@@ -392,9 +414,9 @@ public class ModuleTest {
       + "  }" + LS
       + "}";
     String locAuthModule = createModule(docAuthModule);
-    String locAuthDeploy = deployModule("auth-f-module-1");
+    locationAuthDeployment = deployModule("auth-f-module-1");
     String locAuthEnable = enableModule("auth-f-module-1");
-    logger.debug(" testFilters auth: " + locAuthModule + " " + locAuthDeploy + " " + locAuthEnable);
+    logger.debug(" testFilters auth: " + locAuthModule + " " + locationAuthDeployment + " " + locAuthEnable);
 
     // login and get token
     final String docLogin = "{" + LS
@@ -443,18 +465,18 @@ public class ModuleTest {
       .replaceAll("PHASE", "pre");
     logger.debug("testFilters: pre-filter: " + docPreModule);
     String locPreModule = createModule(docPreModule);
-    String locPreDeploy = deployModule("pre-f-module-1");
+    locationPreDeployment = deployModule("pre-f-module-1");
     String locPreEnable = enableModule("pre-f-module-1");
-    logger.debug("testFilters pre: " + locPreModule + " " + locPreDeploy + " " + locPreEnable);
+    logger.debug("testFilters pre: " + locPreModule + " " + locationPreDeployment + " " + locPreEnable);
 
     String docPostModule = docFilterModule
       .replaceAll("MODULE", "post-f-module-1")
       .replaceAll("PHASE", "post");
     logger.debug("testFilters: post-filter: " + docPostModule);
     String locPostModule = createModule(docPostModule);
-    String locPostDeploy = deployModule("post-f-module-1");
+    locationPostDeployment = deployModule("post-f-module-1");
     String locPostEnable = enableModule("post-f-module-1");
-    logger.debug("testFilters post: " + locPostModule + " " + locPostDeploy + " " + locPostEnable);
+    logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
 
     // Make a simple request. All three filters shold be called
     c = api.createRestAssured3();
@@ -474,16 +496,20 @@ public class ModuleTest {
     // Clean up (in reverse order)
     logger.debug("testFilters starting to clean up");
     given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locPostDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPostDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPostDeployment = null;
     given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
     given().delete(locPreEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locPreDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPreDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPreDeployment = null;
     given().delete(locPreModule).then().log().ifValidationFails().statusCode(204);
     given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locAuthDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationAuthDeployment).then().log().ifValidationFails().statusCode(204);
+    locationAuthDeployment = null;
     given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
     given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
-    given().delete(locSampleDeploy).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
+    locationSampleDeployment = null;
     given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
     logger.debug("testFilters clean up complete");
