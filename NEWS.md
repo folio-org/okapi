@@ -1,3 +1,9 @@
+## 2.14.0 2018-05-25
+
+ * OKAPI-593 Fix X-Okapi-Filter header missing for (some?) auth filters
+ * OKAPI-591 Add pre- and post-handler filters for reporting
+ * OKAPI-594 Disable WAIT lines
+
 ## 2.13.1 2018-05-02
 
  * OKAPI-589 Fix GET /_/proxy/tenants/{tenants}/modules empty list
