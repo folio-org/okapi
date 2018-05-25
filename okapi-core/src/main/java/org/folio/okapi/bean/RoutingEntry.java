@@ -30,7 +30,7 @@ public class RoutingEntry {
   @JsonIgnore
   private String pathRegex;
   @JsonIgnore
-  private String phaseLevel = "50";
+  private String phaseLevel = "50"; // default for regular handler
 
   public enum ProxyType {
     REQUEST_RESPONSE,
@@ -245,11 +245,21 @@ public class RoutingEntry {
   }
 
   public void setPhase(String phase) {
-    if ("auth".equals(phase)) {
-      phaseLevel = "10";
-    } else {
-      throw new DecodeException("Invalid phase " + phase);
-    }
+    if (null == phase) {
+        throw new DecodeException("Invalid phase " + phase);
+    } else switch (phase) {
+          case "auth":
+              phaseLevel = "10";
+              break;
+          case "pre":
+              phaseLevel = "40";
+              break;
+          case "post":
+              phaseLevel = "60";
+              break;
+          default:
+              throw new DecodeException("Invalid phase " + phase);
+      }
     this.phase = phase;
   }
 

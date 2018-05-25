@@ -822,11 +822,12 @@ public class ProxyService {
         }
         String filt = mi.getRoutingEntry().getPhase() + " " + pth;
         pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
-        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
         // The auth filter needs all kinds of special headers
+        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
         if ("auth".equals(mi.getRoutingEntry().getPhase())) {
           authHeaders(pc.getModList(), ctx.request().headers(), pc);
         }
+        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
       }
 
       ProxyType pType = mi.getRoutingEntry().getProxyType();

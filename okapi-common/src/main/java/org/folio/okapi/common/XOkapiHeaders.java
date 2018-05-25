@@ -102,7 +102,9 @@ public class XOkapiHeaders {
    */
   /**
    * X-Okapi-Filter. Passed to filters (but not real handlers). Tells which
-   * phase we are in, for example 'auth'.
+   * phase we are in. Also contains the path pattern that matched, separated by
+   * one space. For example 'X-Okapi-Filter: auth /foo'. (In some rare cases,
+   * like with old-fashioned ModuleDescriptors, it may be plain 'auth')
    */
   public static final String FILTER = "X-Okapi-Filter";
 
