@@ -1085,7 +1085,7 @@ public class TenantManager {
         List<ModuleDescriptor> tl = new LinkedList<>();
         CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
         for (String mId : t.listModules()) {
-          Future f = Future.future();
+          Future<ModuleDescriptor> f = Future.future();
           moduleManager.get(mId, res -> {
             if (res.succeeded()) {
               if (full) {
