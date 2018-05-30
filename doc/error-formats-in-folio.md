@@ -1,6 +1,6 @@
 # A modest proposal for error formats in FOLIO
 
-> **NOTE.** This is a non-normative proposal, not at this stage a description of how things are actually done.
+> **NOTE.** This is a non-normative proposal, not at this stage a description of how things are actually done.  
 > Thu 12 Jan 16:59:27 GMT 2017
 
 In almost all cases, when a server-side module needs to report an error to the client that invoked it, the HTTP status code conveys enough machine-readable information for the client software to decide what do (abort, retry, fail, ignore, etc.) But in a small number of cases, more expressive diagnostics are of use.
