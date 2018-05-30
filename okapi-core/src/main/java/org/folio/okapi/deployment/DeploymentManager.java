@@ -1,9 +1,11 @@
 package org.folio.okapi.deployment;
 
 import com.codahale.metrics.Timer;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -18,6 +20,7 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.util.ModuleHandle;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.discovery.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ModuleHandleFactory;
@@ -27,6 +30,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.env.EnvManager;
+import org.folio.okapi.util.CompList;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -64,22 +68,16 @@ public class DeploymentManager {
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    shutdownR(list.keySet().iterator(), 0, fut);
-  }
-
-  private void shutdownR(Iterator<String> it, int count,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      if (count != 0) {
-        logger.info("All " + count + " modules shut down");
-      }
-      fut.handle(new Success<>());
-    } else {
-      DeploymentDescriptor md = list.get(it.next());
-      ModuleHandle mh = md.getModuleHandle();
-      logger.debug("Shutting down " + md.getSrvcId());
-      mh.stop(future -> shutdownR(it, count + 1, fut));
+    logger.info("fast shutdown");
+    CompList<Void> futures = new CompList<>(INTERNAL);
+    Collection<DeploymentDescriptor > col = list.values();
+    for (DeploymentDescriptor dd : col) {
+      ModuleHandle mh = dd.getModuleHandle();
+      Future<Void> f = Future.future();
+      mh.stop(f::handle);
+      futures.add(f);
     }
+    futures.all(fut);
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
