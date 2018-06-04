@@ -1,3 +1,10 @@
+## 2.14.1 2018-06-04
+
+ * OKAPI-599 Fix binary data in okapi.log
+ * OKAPI-601 Faster undeploy (shutdown)
+ * OKAPI-602 Upgrade to Vert.x 3.5.1
+ * OKAPI-604 Mention module ID on install/upgrade interface mismatch
+
 ## 2.14.0 2018-05-25
 
  * OKAPI-593 Fix X-Okapi-Filter header missing for (some?) auth filters
