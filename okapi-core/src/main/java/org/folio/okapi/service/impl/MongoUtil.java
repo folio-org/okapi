@@ -59,7 +59,7 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(env);
     JsonObject document = new JsonObject(s);
-    encode(document, id);
+    encode(document);
     UpdateOptions options = new UpdateOptions().setUpsert(true);
     cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
@@ -75,7 +75,7 @@ class MongoUtil<T> {
   public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
-    encode(document, id);
+    encode(document);
     document.put("_id", id);
     cli.insert(collection, document, res -> {
       if (res.succeeded()) {
@@ -107,7 +107,7 @@ class MongoUtil<T> {
     });
   }
 
-  public void encode(JsonObject j, String id) {
+  public void encode(JsonObject j) {
     JsonObject o = j.getJsonObject("enabled");
     if (o != null) {
       JsonObject repl = new JsonObject();
