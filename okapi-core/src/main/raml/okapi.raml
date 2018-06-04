@@ -143,6 +143,22 @@ schemas:
         description: Server Error
         body:
           text/plain:
+  delete:
+    description: delete all instances
+    responses:
+      204:
+        description: Ok
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   /{service_id}:
     get:
       description: List all instances for a particular service
