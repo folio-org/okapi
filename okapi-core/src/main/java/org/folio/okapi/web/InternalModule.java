@@ -156,6 +156,11 @@ public class InternalModule {
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"DELETE\" ],"
+      + "    \"pathPattern\" : \"/_/discovery/modules\","
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.delete\" ], "
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"DELETE\" ],"
       + "    \"pathPattern\" : \"/_/discovery/modules/{serviceId}\","
       + "    \"permissionsRequired\" : [ \"okapi.discovery.delete\" ], "
       + "    \"type\" : \"internal\" "
@@ -1108,6 +1113,19 @@ public class InternalModule {
     });
   }
 
+  private void discoveryUndeploy(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    discoveryManager.removeAndUndeploy(pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      fut.handle(new Success<>(""));
+    });
+  }
+
+
   private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.health(res -> {
       if (res.failed()) {
@@ -1461,6 +1479,10 @@ public class InternalModule {
       }
       if (n == 5 && segments[3].equals("modules") && m.equals(DELETE)) {
         discoveryUndeploy(pc, decodedSegs[4], fut);
+        return;
+      }
+      if (n == 4 && segments[3].equals("modules") && m.equals(DELETE)) {
+        discoveryUndeploy(pc, fut);
         return;
       }
       // /_/discovery/health

@@ -31,11 +31,6 @@ public class ModuleTenantsTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private String locationBasicDeployment_1_0_0;
-  private String locationBasicDeployment_2_0_0;
-  private String locationSampleDeployment_1_0_0;
-  private String locationSampleDeployment_1_2_0;
-  private String locationSampleDeployment_2_0_0;
   private final int port = 9230;
   private static RamlDefinition api;
 
@@ -65,59 +60,14 @@ public class ModuleTenantsTest {
   }
 
   private void td(TestContext context, Async async) {
-    if (locationSampleDeployment_1_0_0 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment_1_0_0, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment_1_0_0 = null;
-          td(context, async);
+    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        vertx.close(y -> {
+          async.complete();
         });
-      }).end();
-      return;
-    }
-    if (locationSampleDeployment_1_2_0 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment_1_2_0, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment_1_2_0 = null;
-          td(context, async);
-        });
-      }).end();
-      return;
-    }
-    if (locationSampleDeployment_2_0_0 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment_2_0_0, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment_2_0_0 = null;
-          td(context, async);
-        });
-      }).end();
-      return;
-    }
-    if (locationBasicDeployment_1_0_0 != null) {
-      httpClient.delete(port, "localhost", locationBasicDeployment_1_0_0, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationBasicDeployment_1_0_0 = null;
-          td(context, async);
-        });
-      }).end();
-      return;
-    }
-    if (locationBasicDeployment_2_0_0 != null) {
-      httpClient.delete(port, "localhost", locationBasicDeployment_2_0_0, response -> {
-        context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationBasicDeployment_2_0_0 = null;
-          td(context, async);
-        });
-      }).end();
-      return;
-    }
-    vertx.close(x -> {
-      async.complete();
-    });
+      });
+    }).end();
   }
 
   @Test
@@ -177,7 +127,6 @@ public class ModuleTenantsTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationBasicDeployment_1_0_0 = r.getHeader("Location");
 
     // create sample 1.0.0
     final String docSample_1_0_0 = "{" + LS
@@ -229,7 +178,6 @@ public class ModuleTenantsTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment_1_0_0 = r.getHeader("Location");
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -354,7 +302,6 @@ public class ModuleTenantsTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment_1_2_0 = r.getHeader("Location");
 
     // Upgrade with bad JSON.
     c = api.createRestAssured3();
@@ -555,7 +502,6 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment_1_0_0 = null;
 
     // undeploy again
     c = api.createRestAssured3();
@@ -840,8 +786,6 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment_1_2_0 = null;
-    locationBasicDeployment_1_0_0 = null;
 
     // try remove sample 1.0.0 which does not exist (removed earlier)
     c = api.createRestAssured3();
@@ -912,6 +856,26 @@ public class ModuleTenantsTest {
       .then()
       .statusCode(200).log().ifValidationFails()
       .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // deploy sample 1.0.0 again
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleDeployment_1_0_0).post("/_/discovery/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .delete("/_/discovery/modules")
+      .then()
+      .statusCode(204).log().ifValidationFails();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
   }
@@ -1080,6 +1044,15 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/discovery/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
   }
 
   @Test
@@ -1205,6 +1178,16 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/discovery/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
   }
 
   @Test
@@ -1293,6 +1276,16 @@ public class ModuleTenantsTest {
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/discovery/modules")
+      .then()
+      .statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
   }
 
