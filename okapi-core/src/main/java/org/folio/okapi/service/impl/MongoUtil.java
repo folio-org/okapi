@@ -59,7 +59,7 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(env);
     JsonObject document = new JsonObject(s);
-    encode(document, id);
+    encode(document, null); // _id can not be put for Vert.x 3.5.1
     UpdateOptions options = new UpdateOptions().setUpsert(true);
     cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
@@ -76,7 +76,6 @@ class MongoUtil<T> {
     String s = Json.encodePrettily(md);
     JsonObject document = new JsonObject(s);
     encode(document, id);
-    document.put("_id", id);
     cli.insert(collection, document, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
@@ -108,6 +107,9 @@ class MongoUtil<T> {
   }
 
   public void encode(JsonObject j, String id) {
+    if (id != null) {
+      j.put("_id", id);
+    }
     JsonObject o = j.getJsonObject("enabled");
     if (o != null) {
       JsonObject repl = new JsonObject();
