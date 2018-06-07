@@ -1280,7 +1280,7 @@ example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 The phase specifies at which stage the filter is to be applied. At this point,
 we only have one commonly used phase, "auth", which gets invoked well before the
 handlers. There are two others, "pre" and "post", which will be invoked right
-before and after the handler, respectively. We may define with more phases as
+before and after the handler, respectively. We may define more phases as
 necessary.
 
 We could have included a launchDescriptor as before, but just to demonstrate

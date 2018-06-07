@@ -20,8 +20,7 @@ import org.folio.okapi.common.OkapiLogger;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
- Mostly for
- * testing Okapi itself.
+ * Mostly for testing Okapi itself.
  *
  * Does generate tokens for module permissions, but otherwise does not filter
  * permissions for anything, but does return X-Okapi-Permissions-Desired in
@@ -246,7 +245,7 @@ class Auth {
 
   /**
    * Accept a request. Gets called with anything else than a POST to "/authn/login".
- These need to be accepted, so we can do a pre-filter before
+   * These need to be accepted, so we can do a pre-filter before
    * the proper POST.
    *
    * @param ctx
