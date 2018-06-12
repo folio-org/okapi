@@ -62,7 +62,7 @@ public class MultiTenantTest {
     + "  \"name\" : \"this module\"," + LS
     + "  \"provides\" : [ {" + LS
     + "    \"id\" : \"_tenant\"," + LS
-    + "    \"version\" : \"1.0\"," + LS
+    + "    \"version\" : \"1.1\"," + LS
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -88,7 +88,7 @@ public class MultiTenantTest {
     + "  \"name\" : \"this module\"," + LS
     + "  \"provides\" : [ {" + LS
     + "    \"id\" : \"_tenant\"," + LS
-    + "    \"version\" : \"1.0\"," + LS
+    + "    \"version\" : \"1.1\"," + LS
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -287,18 +287,26 @@ public class MultiTenantTest {
       .post("/_/proxy/tenants/" + tenant2 + "/install?deploy=true")
       .then().statusCode(400).log().ifValidationFails();
 
-    // remedy the situation by add it to discovery with same URL as other sample
-    final String docSample2Deployment = "{" + LS
-      + "  \"instId\" : \"sample2-inst\"," + LS
-      + "  \"srvcId\" : \"sample-module-2.0.0\"," + LS
-      + "  \"url\" : \"http://localhost:9232\"" + LS // same URL as sample-module-1.2.0
-      + "}";
-    res = given()
+    // remedy the situation by adding launchDescriptor to sample-module-2.0.0
+    JsonObject mod1 = new JsonObject(docTestModule);
+    JsonObject mod2 = new JsonObject(docTestModule2);
+    mod2.put("launchDescriptor", mod1.getJsonObject("launchDescriptor"));
+
+    // deploy again .. should succeed
+    given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", okapiTokenSupertenant)
+      .body(mod2.encodePrettily())
+      .put("/_/proxy/modules/sample-module-2.0.0")
+      .then().statusCode(200).log().ifValidationFails();
+
+    // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
+    given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", okapiTokenTenant2)
-      .body(docSample2Deployment).post("/_/discovery/modules")
-      .then()
-      .statusCode(201).extract().response();
+      .body("[ {\"id\" : \"sample-module-2.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + tenant2 + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
 
     res = given()
       .header("Content-Type", "application/json")
@@ -309,14 +317,6 @@ public class MultiTenantTest {
     logger.info(res.body().asString());
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(3, ja.size()); // two sample modules and auth module
-
-    // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
-    given()
-      .header("Content-Type", "application/json")
-      .header("X-Okapi-Token", okapiTokenTenant2)
-      .body("[ {\"id\" : \"sample-module-2.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + tenant2 + "/install?deploy=true")
-      .then().statusCode(200).log().ifValidationFails();
 
     // undeploy sample-module-1.2.0
     given()
@@ -340,7 +340,7 @@ public class MultiTenantTest {
       .then().statusCode(200).log().ifValidationFails()
       .extract().response();
     ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(2, ja.size()); // auth + manual discovery for 2.0.0
+    Assert.assertEquals(1, ja.size());
 
     // undeploy auth-1 for supertenant
     given()
@@ -357,7 +357,7 @@ public class MultiTenantTest {
       .then().statusCode(200).log().ifValidationFails()
       .extract().response();
     ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(2, ja.size());
+    Assert.assertEquals(1, ja.size());
 
     // undeploy auth-1 for tenant2
     given()
@@ -374,7 +374,7 @@ public class MultiTenantTest {
       .then().statusCode(200).log().ifValidationFails()
       .extract().response();
     ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(1, ja.size());
+    Assert.assertEquals(0, ja.size());
   }
 
   @Test

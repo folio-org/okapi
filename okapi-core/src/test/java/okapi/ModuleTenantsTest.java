@@ -83,7 +83,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -135,7 +135,7 @@ public class ModuleTenantsTest {
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -255,7 +255,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -636,7 +636,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -689,7 +689,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -738,7 +738,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -1301,7 +1301,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
