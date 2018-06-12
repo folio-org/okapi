@@ -84,9 +84,9 @@ public class SampleModuleTest {
   }
 
   public void test4(TestContext context, OkapiClient cli, Async async) {
-    cli.get("/_/tenant", res -> {
+    cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\"}", res -> {
       context.assertTrue(res.succeeded());
-      context.assertEquals("GET request to okapi-test-module tenant service for "
+      context.assertEquals("POST request to okapi-test-module tenant service for "
         + "tenant my-lib\n",
         cli.getResponsebody());
       test5(context, cli, async);
@@ -94,6 +94,13 @@ public class SampleModuleTest {
   }
 
   public void test5(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant", "{", res -> {
+      context.assertTrue(res.failed());
+      test6(context, cli, async);
+    });
+  }
+
+  public void test6(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
       cli.close();
       context.assertTrue(res.succeeded());
