@@ -6,8 +6,11 @@ package org.folio.okapi.sample;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -102,25 +105,14 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myTenantHandle(RoutingContext ctx) {
-    ctx.response().setStatusCode(200);
     ctx.response().setChunked(true);
 
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    ctx.response().write(meth + " request to okapi-test-module "
-      + "tenant service for tenant " + tenant + "\n");
     logger.info(meth + " request to okapi-test-module "
       + "tenant service for tenant " + tenant);
     final String cont = ctx.request().getHeader("Content-Type");
     logger.debug("Tenant api content type: '" + cont + "'");
-    final String module_from = ctx.request().getParam("module_from");
-    if (module_from != null) {
-      logger.info("module_from=" + module_from);
-    }
-    final String module_to = ctx.request().getParam("module_to");
-    if (module_to != null) {
-      logger.info("module_to=" + module_to);
-    }
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     if (tok == null) {
       tok = "";
@@ -129,8 +121,22 @@ public class MainVerticle extends AbstractVerticle {
     }
     this.tenantRequests += meth + "-" + tenant + tok + " ";
     logger.debug("Tenant requests so far: " + tenantRequests);
-    ctx.request().handler(x -> ctx.response().write(x));
-    ctx.request().endHandler(x -> ctx.response().end());
+
+    Buffer b = Buffer.buffer();
+    ctx.request().handler(b::appendBuffer);
+    ctx.request().endHandler(x -> {
+      try {
+        JsonObject j = new JsonObject(b);
+        logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+      } catch (DecodeException ex) {
+        responseError(ctx, 400, ex.getLocalizedMessage());
+        return;
+      }
+      ctx.response().setStatusCode(200);
+      ctx.response().write(meth + " request to okapi-test-module "
+        + "tenant service for tenant " + tenant + "\n");
+      ctx.response().end();
+    });
   }
 
   private void recurseHandle(RoutingContext ctx) {
@@ -188,7 +194,6 @@ public class MainVerticle extends AbstractVerticle {
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
 
-    router.get("/_/tenant").handler(this::myTenantHandle);
     router.post("/_/tenant").handler(this::myTenantHandle);
     router.delete("/_/tenant").handler(this::myTenantHandle);
 

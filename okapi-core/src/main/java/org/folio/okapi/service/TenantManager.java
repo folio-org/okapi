@@ -390,17 +390,13 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (mdTo == null) {
-      // disable only
-      ead5commit(tenant, mdFrom.getId(), null, pc, fut);
-      return;
-    }
-    getTenantInterface(mdTo, ires -> {
+    getTenantInterface(mdFrom, mdTo, ires -> {
       if (ires.failed()) {
         if (ires.getType() == NOT_FOUND) {
           logger.debug("eadTenantInterface: "
-            + mdTo.getId() + " has no support for tenant init");
-          ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
+            + (mdTo != null ? mdTo.getId() : mdFrom.getId())
+            + " has no support for tenant init");
+          ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
         } else {
           fut.handle(new Failure<>(ires.getType(), ires.cause()));
         }
@@ -408,7 +404,9 @@ public class TenantManager {
         ModuleInstance tenInst = ires.result();
         logger.debug("eadTenantInterface: tenint=" + tenInst.getPath());
         JsonObject jo = new JsonObject();
-        jo.put("module_to", mdTo.getId());
+        if (mdTo != null) {
+          jo.put("module_to", mdTo.getId());
+        }
         if (mdFrom != null) {
           jo.put("module_from", mdFrom.getId());
         }
@@ -419,11 +417,21 @@ public class TenantManager {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
             // We can ignore the result, the call went well.
-            ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
+            ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
           }
         });
       }
     });
+  }
+
+  private void ead2TenantInterface(Tenant tenant,
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+    if (mdTo == null) {
+      ead5commit(tenant, mdFrom.getId(), null, pc, fut);
+    } else {
+      ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
+    }
   }
 
   /**
@@ -621,16 +629,31 @@ public class TenantManager {
    * or a failure
    *
    */
-  private void getTenantInterface(ModuleDescriptor md,
+  private void getTenantInterface(ModuleDescriptor mdFrom,
+    ModuleDescriptor mdTo,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
     logger.debug("findTenantInterface: prov: " + Json.encode(prov));
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
-        getTenantInterface1(pi, md, fut);
-        return;
+        final String v = pi.getVersion();
+        switch (v) {
+          case "1.1":
+            getTenantInterface1(pi, md, fut);
+            return;
+          case "1.0":
+            if (mdTo != null) {
+              getTenantInterface1(pi, md, fut);
+              return;
+            }
+            break;
+          default:
+            fut.handle(new Failure<>(USER, "Unsupported interface _tenant: " + v));
+            return;
+        }
       }
     }
     fut.handle(new Failure<>(NOT_FOUND, "No _tenant interface found for "
@@ -641,10 +664,6 @@ public class TenantManager {
     ModuleDescriptor md,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
-    if (!"1.0".equals(pi.getVersion())) {
-      fut.handle(new Failure<>(USER, "Interface _tenant must be version 1.0 "));
-      return;
-    }
     if ("system".equals(pi.getInterfaceType())) {
       // looks like a new type
       List<RoutingEntry> res = pi.getAllRoutingEntries();
@@ -1031,6 +1050,7 @@ public class TenantManager {
             installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
+            logger.info("autoUndeploy mdF=" + mdF.getId());
             proxyService.autoUndeploy(mdF, pc, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
