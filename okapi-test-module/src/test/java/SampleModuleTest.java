@@ -86,7 +86,7 @@ public class SampleModuleTest {
   public void test4(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\"}", res -> {
       context.assertTrue(res.succeeded());
-      context.assertEquals("POST request to okapi-test-module tenant service for "
+      context.assertEquals("POST /_/tenant to okapi-test-module for "
         + "tenant my-lib\n",
         cli.getResponsebody());
       test5(context, cli, async);
@@ -94,13 +94,43 @@ public class SampleModuleTest {
   }
 
   public void test5(TestContext context, OkapiClient cli, Async async) {
-    cli.post("/_/tenant", "{", res -> {
-      context.assertTrue(res.failed());
+    cli.post("/_/tenant/enable", "{\"module_to\":\"m-1.0.1\"}", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("POST /_/tenant/enable to okapi-test-module for "
+        + "tenant my-lib\n",
+        cli.getResponsebody());
       test6(context, cli, async);
     });
   }
 
   public void test6(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant/upgrade", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\"}", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("POST /_/tenant/upgrade to okapi-test-module for "
+        + "tenant my-lib\n",
+        cli.getResponsebody());
+      test7(context, cli, async);
+    });
+  }
+
+  public void test7(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant/disable", "{\"module_from\": \"m-1.0.0\"}", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("POST /_/tenant/disable to okapi-test-module for "
+        + "tenant my-lib\n",
+        cli.getResponsebody());
+      test8(context, cli, async);
+    });
+  }
+
+  public void test8(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant", "{", res -> {
+      context.assertTrue(res.failed());
+      test9(context, cli, async);
+    });
+  }
+
+  public void test9(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
       cli.close();
       context.assertTrue(res.succeeded());

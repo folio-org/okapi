@@ -650,6 +650,11 @@ public class TenantManager {
               return;
             }
             break;
+          case "2.0":
+            if (getTenantInterface2(pi, mdFrom, mdTo, fut)) {
+              return;
+            }
+            break;
           default:
             fut.handle(new Failure<>(USER, "Unsupported interface _tenant: " + v));
             return;
@@ -688,6 +693,36 @@ public class TenantManager {
       + "interface. Define InterfaceType=system, and add a RoutingEntry."
       + " Falling back to calling /_/tenant.");
     fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant")));
+  }
+
+  private boolean getTenantInterface2(InterfaceDescriptor pi,
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+    Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
+
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
+    if ("system".equals(pi.getInterfaceType())) {
+      List<RoutingEntry> res = pi.getAllRoutingEntries();
+      if (!res.isEmpty()) {
+        for (RoutingEntry re : res) {
+          String pattern = re.getPathPattern();
+          if (re.match(null, "POST") && pattern != null) {
+            if ("/_/tenant/enable".equals(pattern) && mdFrom == null && mdTo == null) {
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+              return true;
+            }
+            if ("/_/tenant/upgrade".equals(pattern) && mdFrom != null && mdTo != null) {
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+              return true;
+            }
+            if ("/_/tenant/disable".equals(pattern) && mdFrom != null && mdTo == null) {
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**

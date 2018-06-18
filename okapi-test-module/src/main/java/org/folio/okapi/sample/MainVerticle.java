@@ -109,8 +109,8 @@ public class MainVerticle extends AbstractVerticle {
 
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    logger.info(meth + " request to okapi-test-module "
-      + "tenant service for tenant " + tenant);
+    logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
+      + " for tenant " + tenant);
     final String cont = ctx.request().getHeader("Content-Type");
     logger.debug("Tenant api content type: '" + cont + "'");
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
@@ -133,8 +133,8 @@ public class MainVerticle extends AbstractVerticle {
         return;
       }
       ctx.response().setStatusCode(200);
-      ctx.response().write(meth + " request to okapi-test-module "
-        + "tenant service for tenant " + tenant + "\n");
+      ctx.response().write(meth + " " + ctx.request().uri() + " to okapi-test-module"
+        + " for tenant " + tenant + "\n");
       ctx.response().end();
     });
   }
@@ -195,7 +195,9 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/testr").handler(this::myStreamHandle);
 
     router.post("/_/tenant").handler(this::myTenantHandle);
-    router.delete("/_/tenant").handler(this::myTenantHandle);
+    router.post("/_/tenant/enable").handler(this::myTenantHandle);
+    router.post("/_/tenant/upgrade").handler(this::myTenantHandle);
+    router.post("/_/tenant/disable").handler(this::myTenantHandle);
 
     router.get("/recurse").handler(this::recurseHandle);
 
