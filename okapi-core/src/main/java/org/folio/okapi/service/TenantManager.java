@@ -641,12 +641,19 @@ public class TenantManager {
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
         switch (v) {
-          case "1.1":
-            getTenantInterface1(pi, md, fut);
-            return;
           case "1.0":
             if (mdTo != null) {
-              getTenantInterface1(pi, md, fut);
+              if (!getTenantInterface1_1(pi, mdFrom, mdTo, fut)) {
+                logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
+                  + "interface. Define InterfaceType=system, and add a RoutingEntry."
+                  + " Falling back to calling /_/tenant.");
+                fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant")));
+              }
+              return;
+            }
+            break;
+          case "1.1":
+            if (getTenantInterface1_1(pi, mdFrom, mdTo, fut)) {
               return;
             }
             break;
@@ -660,34 +667,39 @@ public class TenantManager {
       + md.getId()));
   }
 
-  private void getTenantInterface1(InterfaceDescriptor pi,
-    ModuleDescriptor md,
+  private boolean getTenantInterface1_1(InterfaceDescriptor pi,
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
+    ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     if ("system".equals(pi.getInterfaceType())) {
       // looks like a new type
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       if (!res.isEmpty()) {
         for (RoutingEntry re : res) {
           if (re.match(null, "POST")) {
-            if (re.getPath() != null) {
-              logger.debug("findTenantInterface: found path " + re.getPath());
-              fut.handle(new Success<>(new ModuleInstance(md, re, re.getPath())));
-              return;
+            String pattern = re.getPathPattern();
+            if (pattern == null) {
+              pattern = re.getPath();
             }
-            if (re.getPathPattern() != null) {
-              logger.debug("findTenantInterface: found pattern " + re.getPathPattern());
-              fut.handle(new Success<>(new ModuleInstance(md, re, re.getPathPattern())));
-              return;
+            if ("/_/tenant/disable".equals(pattern)) {
+              if (mdTo == null) { // disable case
+                fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+                return true;
+              }
+            } else if ("/_/tenant".equals(pattern)) {
+              if (mdTo != null) {
+                fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+                return true;
+              }
+            } else {
+              logger.warn("Unsupported pathPattern " + pattern + " for module " + md.getId());
             }
           }
         }
       }
     }
-    logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
-      + "interface. Define InterfaceType=system, and add a RoutingEntry."
-      + " Falling back to calling /_/tenant.");
-    fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant")));
+    return false;
   }
 
   /**

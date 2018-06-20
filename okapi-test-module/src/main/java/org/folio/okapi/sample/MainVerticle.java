@@ -105,38 +105,43 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myTenantHandle(RoutingContext ctx) {
-    ctx.response().setChunked(true);
-
-    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
-    String meth = ctx.request().method().name();
-    logger.info(meth + " request to okapi-test-module "
-      + "tenant service for tenant " + tenant);
-    final String cont = ctx.request().getHeader("Content-Type");
-    logger.debug("Tenant api content type: '" + cont + "'");
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (tok == null) {
-      tok = "";
-    } else {
-      tok = "-auth";
-    }
-    this.tenantRequests += meth + "-" + tenant + tok + " ";
-    logger.debug("Tenant requests so far: " + tenantRequests);
-
-    Buffer b = Buffer.buffer();
-    ctx.request().handler(b::appendBuffer);
-    ctx.request().endHandler(x -> {
-      try {
-        JsonObject j = new JsonObject(b);
-        logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
-      } catch (DecodeException ex) {
-        responseError(ctx, 400, ex.getLocalizedMessage());
-        return;
-      }
-      ctx.response().setStatusCode(200);
-      ctx.response().write(meth + " request to okapi-test-module "
-        + "tenant service for tenant " + tenant + "\n");
+    if (ctx.request().method().equals(HttpMethod.DELETE)) {
+      ctx.response().setStatusCode(204);
       ctx.response().end();
-    });
+    } else {
+      ctx.response().setChunked(true);
+
+      String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
+      String meth = ctx.request().method().name();
+      logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
+        + " for tenant " + tenant);
+      final String cont = ctx.request().getHeader("Content-Type");
+      logger.debug("Tenant api content type: '" + cont + "'");
+      String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+      if (tok == null) {
+        tok = "";
+      } else {
+        tok = "-auth";
+      }
+      this.tenantRequests += meth + "-" + tenant + tok + " ";
+      logger.debug("Tenant requests so far: " + tenantRequests);
+
+      Buffer b = Buffer.buffer();
+      ctx.request().handler(b::appendBuffer);
+      ctx.request().endHandler(x -> {
+        try {
+          JsonObject j = new JsonObject(b);
+          logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+        } catch (DecodeException ex) {
+          responseError(ctx, 400, ex.getLocalizedMessage());
+          return;
+        }
+        ctx.response().setStatusCode(200);
+        ctx.response().write(meth + " " + ctx.request().uri() + " to okapi-test-module"
+          + " for tenant " + tenant + "\n");
+        ctx.response().end();
+      });
+    }
   }
 
   private void recurseHandle(RoutingContext ctx) {
@@ -195,6 +200,7 @@ public class MainVerticle extends AbstractVerticle {
     router.post("/testr").handler(this::myStreamHandle);
 
     router.post("/_/tenant").handler(this::myTenantHandle);
+    router.post("/_/tenant/disable").handler(this::myTenantHandle);
     router.delete("/_/tenant").handler(this::myTenantHandle);
 
     router.get("/recurse").handler(this::recurseHandle);
