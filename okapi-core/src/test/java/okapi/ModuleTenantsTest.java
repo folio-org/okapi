@@ -87,6 +87,12 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/typo\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
@@ -140,6 +146,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -260,6 +269,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -641,6 +653,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -694,6 +709,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"bint\"," + LS
@@ -743,6 +761,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -1306,6 +1327,9 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"bint\"," + LS

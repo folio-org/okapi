@@ -2754,40 +2754,74 @@ its HTTP listener, and that kind of things. Most of all, it should not be initia
 any databases, see "enabling" below.
 
 #### Enabling for a tenant
-When a module is enabled for a tenant, Okapi makes a call to its `/_/tenant`
-interface. This is where the module may initialize its database (for that one
-tenant), etc.
+
+When a module is enabled for a tenant, Okapi checks if there is a
+`_tenant` interface provided for the module. If that it is defined,
+Okapi makes a HTTP POST to `/_/tenant` for `_tenant` interface version
+1.0 or 1.1.  This is where the module may initialize its database if
+necessary (for that one tenant), etc. With the POST request a JSON
+object is passed: member `module_to` being the module ID that is
+enabled.
 
 #### Upgrading
-When a module gets upgraded to a new version, it happens separately for each tenant.
-Some tenants may not wish to upgrade in the middle of a busy season, others may
-want to have everything in the latest version. The process starts by Okapi
-deploying the new version of the module, while the old one is running too. Then
-various tenants can upgrade to the new version, one at a time.
 
-The actual upgrade happens by Okapi disabling the old version of the module, and
-enabling the new one, in the same call. The module sees a request to the `/_/tenant`
-interface, with both old and new module id given as a parameter, including its
-version. This is a signal to it to look at its data (still, for that one
-tenant!), and upgrade what needs to be upgraded.
+When a module gets upgraded to a new version, it happens separately
+for each tenant.  Some tenants may not wish to upgrade in the middle
+of a busy season, others may want to have everything in the latest
+version. The process starts by Okapi deploying the new version of the
+module, while the old one is running too. Then various tenants can
+upgrade to the new version, one at a time.
 
-Upgrading large amounts of data to a newer schema can be slow. We are thinking
-about a way to make it happen asynchronously, but that is not even designed yet.
-(TODO).
+The actual upgrade happens by Okapi disabling the old version of the
+module, and enabling the new one, in the same call. Okapi makes a POST
+request with path `/_/tenant` if version 1.0 or 1.1 of interface
+`_tenant` is provided. With the POST request, a JSON object is passed:
+member `module_from` being the module ID that we are upgrading from
+and member `module_to` being the module ID that we are upgrading
+'to'. Note that the Module Descriptor of the target module (module_to)
+is being used for the call.
+
+Upgrading large amounts of data to a newer schema can be slow. We are
+thinking about a way to make it happen asynchronously, but that is not
+even designed yet.  (TODO).
 
 We are using semantic versioning, see [Versioning and Dependencies](#versioning-and-dependencies)
 
-
 #### Disabling
-(TODO - We have not quite decided our policy about disabling modules, deleting
-old data etc - compare apt-get --uninstall and --purge)
+
+When a module is disabled for a tenant, Okapi makes a POST request
+with path `/_/tenant/disable` if version 1.1 of interface `_tenant` is
+provided. With the POST request a JSON object is passed: member
+`module_from` being the module ID that is being disabled.
+
+#### Purge
+
+When a module is purged for a tenant, it disables the tenant for the
+module but also removes persistent content. A module may implement
+this by providing `_tenant` interface 1.0/1.1 with a DELETE method
+
+
+### Tenant Interface
+
+The full `_tenant` interface version 1.1 portion:
+
+```
+   "id" : "_tenant",
+   "version" : "1.1",
+   "interfaceType" : "system",
+   "handlers" : [ {
+     "methods" : [ "POST", "DELETE" ],
+     "pathPattern" : "/_/tenant"
+    }, {
+     "methods" : [ "POST" ],
+     "pathPattern" : "/_/tenant/disable"
+    } ]
+```
 
 #### Closing down
 When Okapi is closing down, it will close the modules too. When starting up,
 those will be restarted. As a module author, you should not worry too much about
 that.
-
-
 
 ### HTTP
 One of the main design criteria for FOLIO is to base things on RESTful HTTP services,
