@@ -371,7 +371,7 @@ public class OkapiPerformance {
   public void deploySample3(TestContext context) {
     final String doc = "{" + LS
             + "  \"instId\" : \"sample3-inst\"," + LS
-            + "  \"srvcId\" : \"sample-module3\"," + LS
+            + "  \"srvcId\" : \"sample-module3-1.0.0\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS            + "}";
     httpClient.post(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(201, response.statusCode());
