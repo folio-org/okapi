@@ -132,47 +132,11 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
-    if (dd.getSrvcId() == null) {
+    final String modId = dd.getSrvcId();
+    if (modId == null) {
       fut.handle(new Failure<>(USER, "Needs srvcId"));
       return;
     }
-    LaunchDescriptor launchDesc = dd.getDescriptor();
-    final String nodeId = dd.getNodeId();
-    if (nodeId == null) {
-      if (launchDesc == null) { // 3: externally deployed
-        if (dd.getInstId() == null) {
-          fut.handle(new Failure<>(USER, "Needs instId"));
-        } else {
-          add(dd, res -> { // just add it
-            if (res.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-            } else {
-              fut.handle(new Success<>(dd));
-            }
-          });
-        }
-      } else {
-        fut.handle(new Failure<>(USER, "missing nodeId"));
-      }
-    } else {
-      if (launchDesc == null) {
-        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
-        addAndDeploy2(dd, pc, fut, nodeId);
-      } else { // Have a launchdesc already in dd
-        logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
-        callDeploy(nodeId, pc, dd, fut);
-      }
-    }
-  }
-
-  private void addAndDeploy2(DeploymentDescriptor dd, ProxyContext pc,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
-
-    if (moduleManager == null) {
-      fut.handle(new Failure<>(INTERNAL, "no module manager (should not happen)"));
-      return;
-    }
-    String modId = dd.getSrvcId();
     moduleManager.get(modId, gres -> {
       if (gres.failed()) {
         if (gres.getType() == NOT_FOUND) {
@@ -180,17 +144,51 @@ public class DiscoveryManager implements NodeListener {
         } else {
           fut.handle(new Failure<>(gres.getType(), gres.cause()));
         }
-        return;
+      } else {
+        ModuleDescriptor md = gres.result();
+        LaunchDescriptor launchDesc = dd.getDescriptor();
+        final String nodeId = dd.getNodeId();
+        if (nodeId == null) {
+          if (launchDesc == null) { // 3: externally deployed
+            if (dd.getInstId() == null) {
+              fut.handle(new Failure<>(USER, "Needs instId"));
+            } else {
+              add(dd, res -> { // just add it
+                if (res.failed()) {
+                  fut.handle(new Failure<>(res.getType(), res.cause()));
+                } else {
+                  fut.handle(new Success<>(dd));
+                }
+              });
+            }
+          } else {
+            fut.handle(new Failure<>(USER, "missing nodeId"));
+          }
+        } else {
+          if (launchDesc == null) {
+            logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
+            addAndDeploy2(dd, md, pc, fut, nodeId);
+          } else { // Have a launchdesc already in dd
+            logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
+            callDeploy(nodeId, pc, dd, fut);
+          }
+        }
       }
-      ModuleDescriptor md = gres.result();
-      LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-      if (modLaunchDesc == null) {
-        fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
-        return;
-      }
+    });
+  }
+
+  private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
+    ProxyContext pc,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
+
+    String modId = dd.getSrvcId();
+    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    if (modLaunchDesc == null) {
+      fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
+    } else {
       dd.setDescriptor(modLaunchDesc);
       callDeploy(nodeId, pc, dd, fut);
-    });
+    }
   }
 
   /**
