@@ -761,7 +761,7 @@ public class ModuleTest {
       .body("{\"srvcId\" : \"1\"}")
       .post("/_/discovery/modules")
       .then()
-      .statusCode(400);
+      .statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
