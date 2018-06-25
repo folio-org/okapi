@@ -1,3 +1,13 @@
+## 2.15.0 2018-06-25
+
+ * OKAPI-595 Undeploy all modules operation in one operation:
+     DELETE /_/discovery/modules
+ * OKAPI-603 clean up operation (tenant interface that is called
+   when a module is disabled).
+ * OKAPI-608 Fix Discovery API allows registry of module that has not
+   been created
+ * OKAPI-611 Upgrade to Vert.x 3.5.2
+
 ## 2.14.1 2018-06-04
 
  * OKAPI-599 Fix binary data in okapi.log
