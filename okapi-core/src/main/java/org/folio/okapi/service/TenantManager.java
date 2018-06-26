@@ -367,7 +367,7 @@ public class TenantManager {
         fut.handle(new Failure<>(cres.getType(), cres.cause()));
       } else {
         pc.debug("enableAndDisableModule: depcheck ok");
-        ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
+        ead1TenantInterface(tenant, mdFrom, mdTo, false, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
@@ -387,10 +387,10 @@ public class TenantManager {
    * @param fut
    */
   private void ead1TenantInterface(Tenant tenant,
-    ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo, boolean purge,
+    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    getTenantInterface(mdFrom, mdTo, ires -> {
+    getTenantInterface(mdFrom, mdTo, purge, ires -> {
       if (ires.failed()) {
         if (ires.getType() == NOT_FOUND) {
           logger.debug("eadTenantInterface: "
@@ -410,7 +410,7 @@ public class TenantManager {
         if (mdFrom != null) {
           jo.put("module_from", mdFrom.getId());
         }
-        String req = jo.encodePrettily();
+        final String req = purge ? "" : jo.encodePrettily();
         proxyService.callSystemInterface(tenant, tenInst,
           req, pc, cres -> {
           if (cres.failed()) {
@@ -630,7 +630,7 @@ public class TenantManager {
    *
    */
   private void getTenantInterface(ModuleDescriptor mdFrom,
-    ModuleDescriptor mdTo,
+    ModuleDescriptor mdTo, boolean purge,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
@@ -640,10 +640,11 @@ public class TenantManager {
       logger.debug("findTenantInterface: Looking at " + pi.getId());
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
+        final String method = purge ? "DELETE" : "POST";
         switch (v) {
           case "1.0":
-            if (mdTo != null) {
-              if (!getTenantInterface1_1(pi, mdFrom, mdTo, fut)) {
+            if (mdTo != null && !purge) {
+              if (!getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
                 logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
                   + "interface. Define InterfaceType=system, and add a RoutingEntry."
                   + " Falling back to calling /_/tenant.");
@@ -653,7 +654,7 @@ public class TenantManager {
             }
             break;
           case "1.1":
-            if (getTenantInterface1_1(pi, mdFrom, mdTo, fut)) {
+            if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
               return;
             }
             break;
@@ -667,8 +668,8 @@ public class TenantManager {
       + md.getId()));
   }
 
-  private boolean getTenantInterface1_1(InterfaceDescriptor pi,
-    ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+  private boolean getTenantInterface1(InterfaceDescriptor pi,
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo, String method,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
@@ -677,7 +678,7 @@ public class TenantManager {
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       if (!res.isEmpty()) {
         for (RoutingEntry re : res) {
-          if (re.match(null, "POST")) {
+          if (re.match(null, method)) {
             String pattern = re.getPathPattern();
             if (pattern == null) {
               pattern = re.getPath();
@@ -688,7 +689,7 @@ public class TenantManager {
                 return true;
               }
             } else if ("/_/tenant".equals(pattern)) {
-              if (mdTo != null) {
+              if (mdTo != null || method.equals("DELETE")) {
                 fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
                 return true;
               }
@@ -1013,6 +1014,7 @@ public class TenantManager {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor mdFrom = null;
       ModuleDescriptor mdTo = null;
+      boolean purge = false;
       if ("enable".equals(tm.getAction())) {
         if (tm.getFrom() != null) {
           mdFrom = modsAvailable.get(tm.getFrom());
@@ -1020,11 +1022,14 @@ public class TenantManager {
         mdTo = modsAvailable.get(tm.getId());
       } else if ("disable".equals(tm.getAction())) {
         mdFrom = modsAvailable.get(tm.getId());
+        if (options.getPurge()) {
+          purge = true;
+        }
       }
       if (mdFrom == null && mdTo == null) {
         installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
       } else {
-        ead1TenantInterface(tenant, mdFrom, mdTo, pc, res -> {
+        ead1TenantInterface(tenant, mdFrom, mdTo, purge, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
