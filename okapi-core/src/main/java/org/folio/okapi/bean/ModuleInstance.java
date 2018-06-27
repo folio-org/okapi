@@ -1,5 +1,7 @@
 package org.folio.okapi.bean;
 
+import io.vertx.core.http.HttpMethod;
+
 /**
  * An Instance of a Module that has been enabled for a given tenant.
  * Used internally in the proxy for deciding the routing of requests.
@@ -11,13 +13,15 @@ public class ModuleInstance {
   private final RoutingEntry re;
   private String authToken;
   private final String path; // The relative URI from the proxy request
+  private final HttpMethod method;
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method) {
     this.md = md;
     this.url = null;
     this.re = re;
     this.authToken = null;
     this.path = path;
+    this.method = method;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -46,5 +50,9 @@ public class ModuleInstance {
 
   public String getPath() {
     return path;
+  }
+
+  public HttpMethod getMethod() {
+    return method;
   }
 }

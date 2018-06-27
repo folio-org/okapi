@@ -3,6 +3,7 @@ package org.folio.okapi.service;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -411,8 +412,7 @@ public class TenantManager {
           jo.put("module_from", mdFrom.getId());
         }
         final String req = purge ? "" : jo.encodePrettily();
-        proxyService.callSystemInterface(tenant, tenInst,
-          req, pc, cres -> {
+        proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
@@ -594,7 +594,7 @@ public class TenantManager {
           if (permPath == null || permPath.isEmpty()) {
             permPath = re.getPathPattern();
           }
-          permInst = new ModuleInstance(permsModule, re, permPath);
+          permInst = new ModuleInstance(permsModule, re, permPath, HttpMethod.POST);
         }
       }
     }
@@ -648,7 +648,7 @@ public class TenantManager {
                 logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
                   + "interface. Define InterfaceType=system, and add a RoutingEntry."
                   + " Falling back to calling /_/tenant.");
-                fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant")));
+                fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST)));
               }
               return;
             }
@@ -685,12 +685,16 @@ public class TenantManager {
             }
             if ("/_/tenant/disable".equals(pattern)) {
               if (mdTo == null) { // disable case
-                fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
                 return true;
               }
             } else if ("/_/tenant".equals(pattern)) {
-              if (mdTo != null || method.equals("DELETE")) {
-                fut.handle(new Success<>(new ModuleInstance(md, re, pattern)));
+              if (method.equals("DELETE")) {
+                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
+                return true;
+              }
+              else if (mdTo != null) {
+                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
                 return true;
               }
             } else {
