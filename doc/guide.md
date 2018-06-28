@@ -34,6 +34,7 @@ managing and running microservices.
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
+    * [Purge](#purge)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -45,6 +46,7 @@ managing and running microservices.
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
+    * [Tenant Interface](#tenant-interface)
     * [HTTP](#http)
 
 ## Introduction
@@ -2434,6 +2436,15 @@ optional parameter, `deploy`, which takes a boolean value. If true, the
 install operation will also deploy and un-deploy as necessary. This will
 only work if the ModuleDescriptor has the launchDescriptor property.
 
+### Purge
+
+By default when modules are disabled, persistent data is preserved.
+This can be changed with the optional parameter `purge`, which when set
+to `true`, instructs a module to purge (remove) all persistent
+data. This only has an effect on modules that are also disabled ; has
+no effect on modules that are enabled or upgraded. The purge parameter
+was added in Okapi version 1.16.0. The purge mode calls the `_tenant`
+interface with method DELETE if that is provided for the module.
 
 ## Reference
 
@@ -2798,7 +2809,7 @@ provided. With the POST request a JSON object is passed: member
 
 When a module is purged for a tenant, it disables the tenant for the
 module but also removes persistent content. A module may implement
-this by providing `_tenant` interface 1.0/1.1 with a DELETE method
+this by providing `_tenant` interface 1.0/1.1 with a DELETE method.
 
 
 ### Tenant Interface
