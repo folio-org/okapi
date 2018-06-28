@@ -1,7 +1,12 @@
+## 2.16.0 2018-06-28
+
+ * OKAPI-609 Module purge (remove persistent data for module)
+ * OKAPI-612 Fix `DELETE /_/discovery/modules` broken
+
 ## 2.15.0 2018-06-25
 
  * OKAPI-595 Undeploy all modules operation in one operation:
-     DELETE /_/discovery/modules
+     `DELETE /_/discovery/modules`
  * OKAPI-603 clean up operation (tenant interface that is called
    when a module is disabled).
  * OKAPI-608 Fix Discovery API allows registry of module that has not
