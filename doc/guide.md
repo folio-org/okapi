@@ -2309,7 +2309,7 @@ If regular clients need access to the Okapi admin functions, for example to list
 what modules they have available, the internal module needs to be made available
 for them, and if needed, some permissions assigned to some admin user.
 
-There is a more detailed walk-through about [securing.md](securing an Okapi installation).
+There is a more detailed walk-through about [securing an Okapi installation](securing.md).
 
 ### Module Descriptor Sharing
 
@@ -2776,7 +2776,7 @@ The actual upgrade happens by Okapi disabling the old version of the
 module, and enabling the new one, in the same call. Okapi makes a POST
 request with path `/_/tenant` if version 1.0 or 1.1 of interface
 `_tenant` is provided. With the POST request, a JSON object is passed:
-member `module_from` being the module ID that we are upgrading from
+member `module_from` being the module ID that we are upgrading 'from'
 and member `module_to` being the module ID that we are upgrading
 'to'. Note that the Module Descriptor of the target module (module_to)
 is being used for the call.
