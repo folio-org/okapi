@@ -643,13 +643,15 @@ public class TenantManager {
         final String method = purge ? "DELETE" : "POST";
         switch (v) {
           case "1.0":
-            if (mdTo != null && !purge) {
-              if (!getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
-                logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
-                  + "interface. Define InterfaceType=system, and add a RoutingEntry."
-                  + " Falling back to calling /_/tenant.");
-                fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST)));
-              }
+            if (mdTo == null && !purge) {
+              break;
+            } else if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
+              return;
+            } else if (!purge) {
+              logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
+                + "interface. Define InterfaceType=system, and add a RoutingEntry."
+                + " Falling back to calling /_/tenant.");
+              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST)));
               return;
             }
             break;
