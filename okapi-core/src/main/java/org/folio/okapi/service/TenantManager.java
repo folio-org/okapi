@@ -678,30 +678,27 @@ public class TenantManager {
     if ("system".equals(pi.getInterfaceType())) {
       // looks like a new type
       List<RoutingEntry> res = pi.getAllRoutingEntries();
-      if (!res.isEmpty()) {
-        for (RoutingEntry re : res) {
-          if (re.match(null, method)) {
-            String pattern = re.getPathPattern();
-            if (pattern == null) {
-              pattern = re.getPath();
+      for (RoutingEntry re : res) {
+        if (re.match(null, method)) {
+          String pattern = re.getPathPattern();
+          if (pattern == null) {
+            pattern = re.getPath();
+          }
+          if ("/_/tenant/disable".equals(pattern)) {
+            if (mdTo == null) { // disable case
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
+              return true;
             }
-            if ("/_/tenant/disable".equals(pattern)) {
-              if (mdTo == null) { // disable case
-                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
-                return true;
-              }
-            } else if ("/_/tenant".equals(pattern)) {
-              if (method.equals("DELETE")) {
-                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
-                return true;
-              }
-              else if (mdTo != null) {
-                fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
-                return true;
-              }
-            } else {
-              logger.warn("Unsupported pathPattern " + pattern + " for module " + md.getId());
+          } else if ("/_/tenant".equals(pattern)) {
+            if (method.equals("DELETE")) {
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
+              return true;
+            } else if (mdTo != null) {
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
+              return true;
             }
+          } else {
+            logger.warn("Unsupported pathPattern " + pattern + " for module " + md.getId());
           }
         }
       }
