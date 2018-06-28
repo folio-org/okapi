@@ -2309,7 +2309,7 @@ If regular clients need access to the Okapi admin functions, for example to list
 what modules they have available, the internal module needs to be made available
 for them, and if needed, some permissions assigned to some admin user.
 
-There is a more detailed walk-through about [securing.md](securing an Okapi installation).
+There is a more detailed walk-through about [securing an Okapi installation](securing.md).
 
 ### Module Descriptor Sharing
 
