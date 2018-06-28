@@ -815,6 +815,15 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
 
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docDeploy)
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(400).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // Create a tenant and enable the module
     final String locTenant = createTenant();
     final String locEnable = enableModule("sample-module-1+1");
