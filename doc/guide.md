@@ -2776,7 +2776,7 @@ The actual upgrade happens by Okapi disabling the old version of the
 module, and enabling the new one, in the same call. Okapi makes a POST
 request with path `/_/tenant` if version 1.0 or 1.1 of interface
 `_tenant` is provided. With the POST request, a JSON object is passed:
-member `module_from` being the module ID that we are upgrading from
+member `module_from` being the module ID that we are upgrading 'from'
 and member `module_to` being the module ID that we are upgrading
 'to'. Note that the Module Descriptor of the target module (module_to)
 is being used for the call.
