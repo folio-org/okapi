@@ -133,7 +133,7 @@ public class ProxyService {
               pc.responseError(500, "Redirect loop: " + loop + " -> " + redirectPath);
               return false;
             }
-            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri);
+            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method());
             mods.add(mi);
             if (!resolveRedirects(pc, mods, tryre, enabledModules,
               loop + " -> " + redirectPath, newUri, origMod)) {
@@ -181,7 +181,7 @@ public class ProxyService {
       if (rr != null) {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
-            ModuleInstance mi = new ModuleInstance(md, re, req.uri());
+            ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method());
             mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " "
@@ -193,7 +193,7 @@ public class ProxyService {
       rr = md.getFilterRoutingEntries();
       for (RoutingEntry re : rr) {
         if (match(re, req)) {
-          ModuleInstance mi = new ModuleInstance(md, re, req.uri());
+          ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method());
           mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
           mods.add(mi);
           if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri(), "")) {
@@ -953,7 +953,7 @@ public class ProxyService {
     } else {
       logger.debug("authForSystemInterface: re is null, can't find modPerms");
     }
-    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath());
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD);
     doCallSystemInterface(tenantId, null, authInst, modPerms, "", pc, res -> {
       if (res.failed()) {
         pc.warn("Auth check for systemInterface failed!");
@@ -1023,16 +1023,10 @@ public class ProxyService {
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
       cli.setClosedRetry(15000);
-      HttpMethod meth = HttpMethod.POST;
-      if (request.isEmpty()) {
-        pc.debug("doCallSystemInterface: No Req, making a HEAD req");
-        meth = HttpMethod.HEAD;
-      }
-      HttpMethod finalMeth = meth;
-      cli.request(meth, inst.getPath(), request, cres -> {
+      cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = finalMeth + " request for "
+          String msg = inst.getMethod() + " request for "
             + inst.getModuleDescriptor().getId() + " " + inst.getPath()
             + " failed with " + cres.cause().getMessage();
           pc.warn(msg);

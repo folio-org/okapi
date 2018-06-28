@@ -839,7 +839,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module-2.0.0\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&purge=false")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-2.0.0\"," + LS
@@ -857,7 +857,7 @@ public class ModuleTenantsTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"basic-module\", \"action\" : \"disable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true&purge=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-2.0.0\"," + LS
