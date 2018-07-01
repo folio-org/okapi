@@ -236,9 +236,6 @@ DeploymentDescriptor needs to refer to the version of the module, and we
 do not want to hard code that in this script. Instead we grep the version
 out of the `pom.xml` file for each module.
 
-Also note that these commands start with a meaningless-looking cat. It is there
-to trigger the script-running one-liner.
-
 #### mod-permissions
 
 ```script
