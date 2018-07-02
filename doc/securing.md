@@ -231,64 +231,37 @@ curl -w '\n' -D - -X POST  \
 
 ### Deploying the modules
 
-Now we need to deploy the modules. This is a bit tricky, since the
-DeploymentDescriptor needs to refer to the version of the module, and we
-do not want to hard code that in this script. Instead we grep the version
-out of the `pom.xml` file for each module.
+Now we need to deploy the modules.
 
 #### mod-permissions
 
 ```script
-export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-perm.json <<END
-{
-  "srvcId": "mod-permissions-$PERMVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -Dport=%p -jar mod-permissions/target/mod-permissions-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-permissions/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-permissions.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-perm.json \
+  -d @/tmp/deploy-permissions.json \
   http://localhost:9130/_/discovery/modules
 ```
 
 #### mod-users
 
 ```script
-export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-user.json <<END
-{
-  "srvcId": "mod-users-$USERVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -jar mod-users/target/mod-users-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-users/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-users.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-user.json \
+  -d @/tmp/deploy-users.json \
   http://localhost:9130/_/discovery/modules
 ```
 
 #### mod-login
 
 ```script
-export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-login.json <<END
-{
-  "srvcId": "mod-login-$LOGINVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -jar mod-login/target/mod-login-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-login/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-login.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -299,20 +272,12 @@ curl -w '\n' -D - -X POST  \
 #### mod-authtoken
 
 ```script
-export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-auth.json <<END
-{
-  "srvcId": "mod-authtoken-$AUTHVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -Dport=%p -jar mod-authtoken/target/mod-authtoken-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-authtoken/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-authtoken.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-auth.json \
+  -d @/tmp/deploy-authtoken.json \
   http://localhost:9130/_/discovery/modules
 ```
 
