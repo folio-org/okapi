@@ -86,9 +86,6 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/typo\"" + LS
-      + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
       + "    }, {" + LS
@@ -344,7 +341,9 @@ public class ModuleTenantsTest {
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docEnableBasic).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(201)
+      .then()
+      .log().ifValidationFails()
+      .statusCode(201)
       .body(equalTo(docEnableBasic)).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
