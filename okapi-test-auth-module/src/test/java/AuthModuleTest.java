@@ -78,6 +78,9 @@ public class AuthModuleTest {
 
   @Test
   public void testAAANoLoginToken(TestContext context) {
+    // auth check should fail without a proper token.
+    // Except when we are trying to make a login request. That
+    // will be tested later.
     Async async = context.async();
 
     HashMap<String, String> headers = new HashMap<>();
@@ -88,11 +91,11 @@ public class AuthModuleTest {
 
     cli.get("/nologintoken", res -> {
       if (res.succeeded()) {
-        logger.debug("res.succeeded. " + res.result());
+        logger.warn("testAAANoLoginToken: res.succeeded. " + res.result());
       } else {
-        logger.debug("res.failed. " + Json.encode(res));
+        logger.warn("testAAANoLoginToken: res.failed. " + Json.encode(res));
       }
-      context.assertTrue(res.succeeded());
+      context.assertTrue(res.failed());
       async.complete();
     });
   }

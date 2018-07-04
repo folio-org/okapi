@@ -220,7 +220,7 @@ public class ProxyService {
       if (inst.getRoutingEntry().getPhase() == null) {
         found = true; // No real handler should have a phase any more.
         // It has been deprecated for a long time, and never made any sense anyway.
-        // The auth filter, the only one we have, uses phase 'auth'
+        // The auth filter, uses phase 'auth'. We also have 'pre' and 'post'
       }
     }
     if (!found) {

@@ -1634,7 +1634,7 @@ public class ModuleTest {
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
-      + "  } ]," + LS
+      + "  }]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS
       + "  }" + LS
@@ -1764,6 +1764,9 @@ public class ModuleTest {
       .then().statusCode(400);
 
     // Enable the sample
+    // Note that we can do this without the auth token. The test-auth module
+    // will create a non-login token certifying that we do not have a login,
+    // but will allow requests to any /_/ path,
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
@@ -1771,7 +1774,8 @@ public class ModuleTest {
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(201)
+      .then().log().ifValidationFails()
+      .statusCode(201)
       .body(equalTo(docEnableSample));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1838,18 +1842,16 @@ public class ModuleTest {
       .body(equalTo("No suitable module found for path /something.we.do.not.have"));
 
     // Request without an auth token
-    // This is acceptable, we get back a token that certifies that we have no
-    // logged-in username. We can use this for modulePermissions still.
-    // A real auth module would refuse the request because we do not have the
-    // permission. But the test-auth lets it pass...
+    // In theory, this is acceptable, we should get back a token that certifies
+    // that we have no logged-in username. We can use this for modulePermissions
+    // still. A real auth module would be likely to refuse the request because
+    // we do not have the necessary ModulePermissions. The auth module refuses it too.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
-      .then()
-      .statusCode(200)
-      .body(containsString("X-Okapi-Token")) // auth created a token
-      .body(containsString("X-Okapi-User-Id:?"));  // with no good userid
+      .then().log().ifValidationFails()
+      .statusCode(401);
 
 
     // Failed login
@@ -1935,7 +1937,7 @@ public class ModuleTest {
     // Check that we don't do prefix matching
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .get("/testbXXX")
+      .get("/testbZZZ")
       .then().statusCode(404);
 
     // Check that parameters don't mess with the routing
@@ -2586,7 +2588,7 @@ public class ModuleTest {
     Response r;
 
     RestAssuredClient c;
-    
+
     c = api.createRestAssured3();
     c.given().delete(locationSampleModule1).then().statusCode(204);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
