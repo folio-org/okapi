@@ -653,7 +653,6 @@ public class ProxyService {
             // It was a real handler, remember the return code
             pc.setHandlerRes(res.statusCode());
             logger.warn("proxyRequestResponse: XXX Remembering result " + res.statusCode());
-            // TODO: test this!
           }
           res.pause();
           proxyR(it, pc, res, null);
