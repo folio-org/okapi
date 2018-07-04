@@ -279,9 +279,9 @@ public class DiscoveryManager implements NodeListener {
       logger.info("removeAndUndeploy " + dd.getSrvcId() + " " + dd.getInstId());
       callUndeploy(dd, pc, res -> {
         if (res.succeeded()) {
-          deploymentStore.delete(dd.getInstId(), fut);
+          deploymentStore.delete(dd.getInstId(), f::handle);
         } else {
-          fut.handle(res);
+          f.handle(res);
         }
       });
       futures.add(f);

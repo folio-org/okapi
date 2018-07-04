@@ -671,10 +671,16 @@ schemas:
           simulate:
             description: Whether the installation is simulated
             type: boolean
+            required: false
           preRelease:
             description: Whether pre-releases should be considered for
               installation.
             type: boolean
+            required: false
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
         body:
           application/json:
             schema: TenantModuleDescriptorList
@@ -716,6 +722,10 @@ schemas:
             description: Whether pre-releases should be considered for
               installation.
             type: boolean
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
         responses:
           200:
             description: OK

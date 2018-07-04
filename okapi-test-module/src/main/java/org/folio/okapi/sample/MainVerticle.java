@@ -105,16 +105,16 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myTenantHandle(RoutingContext ctx) {
+    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    String meth = ctx.request().method().name();
+    logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
+      + " for tenant " + tenant);
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
       ctx.response().end();
     } else {
       ctx.response().setChunked(true);
 
-      String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
-      String meth = ctx.request().method().name();
-      logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
-        + " for tenant " + tenant);
       final String cont = ctx.request().getHeader("Content-Type");
       logger.debug("Tenant api content type: '" + cont + "'");
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
