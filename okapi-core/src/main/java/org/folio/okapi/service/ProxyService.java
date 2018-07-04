@@ -785,6 +785,7 @@ public class ProxyService {
       }
       String resp = res.result();
       int statusCode = pc.getCtx().response().getStatusCode();
+      pc.setHandlerRes(statusCode);
       if (statusCode == 200 && resp.isEmpty()) {
         // Say "no content", if there isn't any
         statusCode = 204;
