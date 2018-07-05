@@ -156,9 +156,9 @@ Basically we just need to declare, deploy, and enable the modules declared above
 and load some data into them.
 
 Declaring and deploying the modules can be done in any order, but we have to be
-careful with the order of enabling them, and loading data into them. Most of all,
-we may not enable mod-authtoken, until the very end, when we have all the other
-modules in place and loaded with data, or we risk that mod-authtoken will not let
+careful with the order of enabling them. Specifically,
+we may not enable mod-authtoken until the very end, when we have all the other
+modules in place and loaded with data, as mod-authtoken will not let
 us finish the process, locking us out of our own system.
 
 ### Declaring the modules
@@ -291,7 +291,7 @@ curl -w '\n' -D - http://localhost:9130/_/discovery/modules
 
 ### Enabling modules and loading data
 
-First we need to enable mod-permissions for our supertenant. We do not have to
+Enable the modules for our supertenant. We do not need to
 specify the version number here, Okapi will choose the latest (and only) version
 we have declared.
 
