@@ -25,7 +25,7 @@ All the shell commands assume you are in your top-level directory, for example
 ### Getting Okapi
 
 This script assumes you have a fresh Okapi instance running, with nothing
-installed in it. If you do not, you can get one up by running the following.
+installed in it. If you do not, you can get one up by running the following:
 
 ```
 git clone https://github.com/folio-org/okapi
@@ -36,9 +36,9 @@ cd ..
 ```
 
 The build takes a while. (It will go faster if you append `-DskipTests` to the
-mvn command line)
+mvn command line.)
 
-Check that near the end there is a line that says
+Check that near the end there is a line that says:
 
 ```
 [INFO] BUILD SUCCESS
@@ -75,7 +75,7 @@ CREATE ROLE module_admin_user PASSWORD ‘somepassword’ SUPERUSER CREATEDB INH
 
 See the
 [Storage](https://github.com/folio-org/okapi/blob/master/doc/guide.md#storage)
-section of the Okapi guide for details of setting up your database. Then run
+section of the Okapi guide for details of setting up your database. Then run:
 
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar initdatabase
@@ -97,7 +97,7 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
+X-Okapi-Trace: GET okapi-2.16.1-SNAPSHOT /_/proxy/tenants : 200 11141us
 Content-Length: 105
 
 [ {
@@ -114,7 +114,7 @@ Note on the curl command line options:
 
 ## Required modules
 
-This script requires the following modules.
+This script requires the following modules:
 * mod-permissions
 * mod-users
 * mod-login
@@ -156,9 +156,9 @@ Basically we just need to declare, deploy, and enable the modules declared above
 and load some data into them.
 
 Declaring and deploying the modules can be done in any order, but we have to be
-careful with the order of enabling them, and loading data into them. Most of all,
-we may not enable mod-authtoken, until the very end, when we have all the other
-modules in place and loaded with data, or we risk that mod-authtoken will not let
+careful with the order of enabling them. Specifically,
+we may not enable mod-authtoken until the very end, when we have all the other
+modules in place and loaded with data, as mod-authtoken will not let
 us finish the process, locking us out of our own system.
 
 ### Declaring the modules
@@ -232,6 +232,8 @@ curl -w '\n' -D - -X POST  \
 ### Deploying the modules
 
 Now we need to deploy the modules.
+Here we simply use the default deployment descriptors that are provided by each module
+for its development purposes, so there is some tweaking required.
 
 #### mod-permissions
 
@@ -281,7 +283,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/discovery/modules
 ```
 
-You can see all four modules deployed with
+You can see all four modules deployed with:
 
 ```script
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
@@ -289,7 +291,7 @@ curl -w '\n' -D - http://localhost:9130/_/discovery/modules
 
 ### Enabling modules and loading data
 
-First we need to enable mod-permissions for our supertenant. We do not have to
+Enable the modules for our supertenant. We do not need to
 specify the version number here, Okapi will choose the latest (and only) version
 we have declared.
 
@@ -347,7 +349,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-login
 
-Enable the login module
+Enable the login module:
 
 ```script
 curl -w '\n' -D - -X POST  \
@@ -357,7 +359,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/proxy/tenants/supertenant/modules
 ```
 
-And create a login user
+And create a login user:
 
 ```script
 cat >/tmp/loginuser.json << END
@@ -388,7 +390,7 @@ curl -w '\n' -D - -X POST  \
 #### Log in
 
 We can reuse the credentials we used for creating the login user.
-We need to save the headers in /tmp, so we can extract the auth token
+We need to save the headers in /tmp, so we can extract the auth token.
 
 ```script
 curl -w '\n' -D /tmp/loginheaders -X POST  \
