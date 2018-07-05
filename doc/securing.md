@@ -97,7 +97,7 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
+X-Okapi-Trace: GET okapi-2.16.1-SNAPSHOT /_/proxy/tenants : 200 11141us
 Content-Length: 105
 
 [ {
