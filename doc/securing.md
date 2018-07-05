@@ -232,6 +232,8 @@ curl -w '\n' -D - -X POST  \
 ### Deploying the modules
 
 Now we need to deploy the modules.
+Here we simply use the default deployment descriptors that are provided by each module
+for its development purposes, so there is some tweaking required.
 
 #### mod-permissions
 
