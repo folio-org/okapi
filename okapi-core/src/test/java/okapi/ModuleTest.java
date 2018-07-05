@@ -452,7 +452,10 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
-      + "    \"type\" : \"request-response\"" + LS
+      + "    \"type\" : \"request-only\"" + LS
+      //      + "    \"type\" : \"request-response\"" + LS
+      // The only known use case for these uses req-only, so that's what we
+      // test with. Tested req-resp manually, and it seems to work too
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
