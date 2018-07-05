@@ -379,8 +379,16 @@ public class ProxyService {
     }
   }
 
-  private void relayToResponse(HttpServerResponse hres, HttpClientResponse res) {
-    hres.setStatusCode(res.statusCode());
+  private void relayToResponse(HttpServerResponse hres,
+    HttpClientResponse res, ProxyContext pc) {
+    if (pc.getHandlerRes() != 0) {
+      hres.setStatusCode(pc.getHandlerRes());
+      logger.warn("relayToResponse XXX Reusing handler response "
+        + pc.getHandlerRes() + " (instead of direct " + res.statusCode() + ")");
+    } else {
+      logger.warn("relayToResponse XXX Returning direct response " + res.statusCode());
+      hres.setStatusCode(res.statusCode());
+    }
     hres.headers().addAll(res.headers());
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
@@ -530,7 +538,7 @@ public class ProxyService {
     ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    relayToResponse(ctx.response(), res);
+    relayToResponse(ctx.response(), res, pc);
     makeTraceHeader(mi, res.statusCode(), pc);
     res.handler(data -> {
       ctx.response().write(data);
@@ -561,7 +569,7 @@ public class ProxyService {
         relayToRequest(res, pc, mi);
         proxyR(it, pc, null, bcontent);
       } else {
-        relayToResponse(ctx.response(), res);
+        relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x -> {
           pc.closeTimer();
@@ -641,6 +649,11 @@ public class ProxyService {
         && it.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
+          if (mi.getRoutingEntry().getPhase() == null) {
+            // It was a real handler, remember the return code
+            pc.setHandlerRes(res.statusCode());
+            logger.warn("proxyRequestResponse: XXX Remembering result " + res.statusCode());
+          }
           res.pause();
           proxyR(it, pc, res, null);
         } else {
@@ -693,7 +706,7 @@ public class ProxyService {
         res.endHandler(x
           -> proxyR(it, pc, stream, bcontent));
       } else {
-        relayToResponse(ctx.response(), res);
+        relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
         if (bcontent == null) {
           stream.handler(data -> {
@@ -771,6 +784,7 @@ public class ProxyService {
       }
       String resp = res.result();
       int statusCode = pc.getCtx().response().getStatusCode();
+      pc.setHandlerRes(statusCode);
       if (statusCode == 200 && resp.isEmpty()) {
         // Say "no content", if there isn't any
         statusCode = 204;

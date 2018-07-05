@@ -46,6 +46,7 @@ import io.restassured.response.ValidatableResponse;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -354,7 +355,6 @@ public class ModuleTest {
    */
   @Test
   public void testFilters(TestContext context) {
-    //async = context.async();
     RestAssuredClient c;
     Response r;
 
@@ -478,20 +478,50 @@ public class ModuleTest {
     String locPostEnable = enableModule("post-f-module-1");
     logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
 
-    // Make a simple request. All three filters shold be called
+    // Make a simple GET request. All three filters shold be called
+    //
     c = api.createRestAssured3();
-    c.given()
+    traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
       .get("/testb")
       .then().statusCode(200)
       .log().ifValidationFails()
       .body(containsString("It works"))
       .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
-    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
-    logger.debug("testFilters made the last real call");
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+
+    // Make a simple POST request. All three filters should be called
+    // test-module will return 200, which should not be
+    // overwritten by the pre and post-filters that returns 202 and 203
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      // Those returns coders should be overwritten by the 200 from the handler
+      .body("Testing... ")
+      .post("/testb")
+      .then().statusCode(200)
+      .log().all() //ifValidationFails()
+      .body(containsString("Hello"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("POST auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("POST pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
+    Assert.assertTrue(traces.get(2).contains("POST sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("POST post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("203"));
 
     // Clean up (in reverse order)
     logger.debug("testFilters starting to clean up");

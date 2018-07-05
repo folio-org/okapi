@@ -134,6 +134,13 @@ class Auth {
       return;
     }
     ctx.response().putHeader("X-Auth-Filter-Phase", phase);
+    // Hack to test return codes on various filter phases
+    phase = phase.split(" ")[0];
+    String pHeader = ctx.request().headers().get("X-Filter-" + phase);
+    logger.debug("filter: 'X-Filter-" + phase + "': " + pHeader);
+    if (pHeader != null) {
+      ctx.response().setStatusCode(Integer.parseInt(pHeader));
+    }
     echo(ctx);
   }
 
