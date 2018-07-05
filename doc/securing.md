@@ -127,25 +127,25 @@ add a `git checkout` to get to a known good version.
 ```
 git clone --recursive https://github.com/folio-org/mod-permissions
 cd mod-permissions
-git checkout master # "v4.0.4" is way too old
+git checkout master # v5.2.5 is okay
 mvn clean install
 cd ..
 
 git clone --recursive https://github.com/folio-org/mod-users
 cd mod-users
-git checkout master # maybe v14.2.0 works
+git checkout master # v15.1.0 is okay
 mvn clean install
 cd ..
 
 git clone --recursive https://github.com/folio-org/mod-login
 cd mod-login
-git checkout master # v3.1.0 is way too old
+git checkout master # v4.0.1 is okay
 mvn clean install
 cd ..
 
 git clone https://github.com/folio-org/mod-authtoken
 cd mod-authtoken
-git checkout master # v1.1.0
+git checkout master # v1.4.1 is okay
 mvn clean install
 cd ..
 ```
