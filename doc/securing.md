@@ -25,7 +25,7 @@ All the shell commands assume you are in your top-level directory, for example
 ### Getting Okapi
 
 This script assumes you have a fresh Okapi instance running, with nothing
-installed in it. If you do not, you can get one up by running the following.
+installed in it. If you do not, you can get one up by running the following:
 
 ```
 git clone https://github.com/folio-org/okapi
@@ -36,9 +36,9 @@ cd ..
 ```
 
 The build takes a while. (It will go faster if you append `-DskipTests` to the
-mvn command line)
+mvn command line.)
 
-Check that near the end there is a line that says
+Check that near the end there is a line that says:
 
 ```
 [INFO] BUILD SUCCESS
@@ -75,7 +75,7 @@ CREATE ROLE module_admin_user PASSWORD ‘somepassword’ SUPERUSER CREATEDB INH
 
 See the
 [Storage](https://github.com/folio-org/okapi/blob/master/doc/guide.md#storage)
-section of the Okapi guide for details of setting up your database. Then run
+section of the Okapi guide for details of setting up your database. Then run:
 
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar initdatabase
@@ -114,7 +114,7 @@ Note on the curl command line options:
 
 ## Required modules
 
-This script requires the following modules.
+This script requires the following modules:
 * mod-permissions
 * mod-users
 * mod-login
@@ -281,7 +281,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/discovery/modules
 ```
 
-You can see all four modules deployed with
+You can see all four modules deployed with:
 
 ```script
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
@@ -347,7 +347,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-login
 
-Enable the login module
+Enable the login module:
 
 ```script
 curl -w '\n' -D - -X POST  \
@@ -357,7 +357,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/proxy/tenants/supertenant/modules
 ```
 
-And create a login user
+And create a login user:
 
 ```script
 cat >/tmp/loginuser.json << END
@@ -388,7 +388,7 @@ curl -w '\n' -D - -X POST  \
 #### Log in
 
 We can reuse the credentials we used for creating the login user.
-We need to save the headers in /tmp, so we can extract the auth token
+We need to save the headers in /tmp, so we can extract the auth token.
 
 ```script
 curl -w '\n' -D /tmp/loginheaders -X POST  \
