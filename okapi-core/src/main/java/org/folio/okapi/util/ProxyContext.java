@@ -30,6 +30,7 @@ public class ProxyContext {
   private Timer.Context timer;
   private Long timerId;
   private final int waitMs;
+  private int handlerRes; // http result code from the actual handler
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -65,6 +66,7 @@ public class ProxyContext {
     }
     timer = null;
     timerId = null;
+    handlerRes = 0;
   }
 
   public final void startTimer(String key) {
@@ -143,6 +145,14 @@ public class ProxyContext {
 
   private String getReqId() {
     return reqId;
+  }
+
+  public int getHandlerRes() {
+    return handlerRes;
+  }
+
+  public void setHandlerRes(int handlerRes) {
+    this.handlerRes = handlerRes;
   }
 
   /* Helpers for logging and building responses */

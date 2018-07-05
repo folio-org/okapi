@@ -855,10 +855,10 @@ As above, now stop that simple verification.
 #### Okapi-test-auth-module
 
 Okapi itself does not do authentication: it delegates that to a
-module.  We do not have a fully functional authentication module yet,
-but we have a dummy module that can be used to demonstrate how it
-works. Also this one is mostly used for testing the auth mechanisms in
-Okapi itself.
+module. In real life, the auth stuff is divided between different
+modules, for example mod-authtoken, mod-login, and mod-permissions,
+but for our test purposes we have a dummy module that can be used to
+demonstrate how it works.
 
 The dummy module supports two functions: `/authn/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
@@ -901,8 +901,8 @@ X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/modules : 200 8081us
 Content-Length: 74
 
 [ {
-  "id" : "okapi-2.0.1-SNAPSHOT",
-  "name" : "okapi-2.0.1-SNAPSHOT"
+  "id" : "okapi-2.15.1-SNAPSHOT",
+  "name" : "okapi-2.15.1-SNAPSHOT"
 } ]
 ```
 
@@ -1053,8 +1053,10 @@ Okapi responds with a short list of only one node:
 
 This is not surprising, we are running the whole thing on one machine, in 'dev'
 mode, so we only have one node in the cluster and by default it is called
-'localhost'.  If this was a real cluster, the cluster manager would have given
-ugly UUIDs for all the nodes when they started up. So let's deploy it there.
+'localhost'.  If this was a real cluster, each node would have its own id,
+either given on Okapi command line when started on that node, or an ugly
+UUID assigned by the the cluster manager. So let's deploy it there.
+
 First we create a DeploymentDescriptor:
 
 ```
@@ -1273,7 +1275,9 @@ END
 The module has one handler, for the `/authn/login` path. It also has a filter that
 connects with every incoming request. That is where it decides if the user will
 be allowed to make the request. This one has a type "headers", which means that
-Okapi does not pass the whole request to it, just the headers.
+Okapi does not pass the whole request to it, just the headers. In real world, these
+two services can well come from different modules, for example mod-authtoken for
+the filtering, and some kind of mod-login for authenticating the user.
 
 The pathPattern for the filter uses the wildcard character (`*`) to match any path.
 A pathPattern may also include curly braces pairs to match a path component. For
@@ -1401,7 +1405,7 @@ Content-Type: text/plain
 X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 64187us
 Transfer-Encoding: chunked
 
-Auth.check called without X-Okapi-Token
+test-auth: check called without X-Okapi-Token
 ```
 
 Indeed, we are no longer allowed to call the test module. So, how do we get
