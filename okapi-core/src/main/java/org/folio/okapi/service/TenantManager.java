@@ -676,7 +676,6 @@ public class TenantManager {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     if ("system".equals(pi.getInterfaceType())) {
-      // looks like a new type
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       for (RoutingEntry re : res) {
         if (re.match(null, method)) {
@@ -684,21 +683,17 @@ public class TenantManager {
           if (pattern == null) {
             pattern = re.getPath();
           }
-          if ("/_/tenant/disable".equals(pattern)) {
-            if (mdTo == null) { // disable case
+          if (method.equals("DELETE")) {
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
+            return true;
+          } else if ("/_/tenant/disable".equals(pattern)) {
+            if (mdTo == null) {
               fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
               return true;
             }
-          } else if ("/_/tenant".equals(pattern)) {
-            if (method.equals("DELETE")) {
-              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
-              return true;
-            } else if (mdTo != null) {
-              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
-              return true;
-            }
-          } else {
-            logger.warn("Unsupported pathPattern " + pattern + " for module " + md.getId());
+          } else if (mdTo != null) {
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
+            return true;
           }
         }
       }
