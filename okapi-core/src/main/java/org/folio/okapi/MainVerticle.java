@@ -24,6 +24,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.deployment.DeploymentManager;
@@ -58,6 +59,7 @@ public class MainVerticle extends AbstractVerticle {
   private Storage.InitMode initMode = NORMAL;
   private int port;
   private String okapiVersion = null;
+  private Messages messages = Messages.getInstance();
 
   public void setClusterManager(ClusterManager mgr) {
     clusterManager = mgr;
@@ -85,9 +87,9 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     if (clusterManager != null) {
-      logger.info("cluster NodeId " + clusterManager.getNodeID());
+      logger.info(messages.getMessage("en", "10000", clusterManager.getNodeID()));
     } else {
-      logger.info("clusterManager not in use");
+      logger.info(messages.getMessage("en", "10001"));
     }
     final String host = Config.getSysConf("host", "localhost", config);
     String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port , config);

@@ -13,6 +13,7 @@ import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.Messages;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
@@ -31,6 +32,7 @@ public class ProxyContext {
   private Long timerId;
   private final int waitMs;
   private int handlerRes; // http result code from the actual handler
+  private Messages messages = Messages.getInstance();
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -184,7 +186,7 @@ public class ProxyContext {
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {
-      responseError(code, "(null cause!!??)");
+      responseError(code, messages.getMessage("en", "10300"));
     }
   }
 
