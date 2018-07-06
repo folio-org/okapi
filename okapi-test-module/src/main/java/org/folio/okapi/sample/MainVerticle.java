@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
+import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
@@ -178,6 +179,23 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+  private void myPermissionHandle(RoutingContext ctx) {
+    ReadStream<Buffer> content = ctx.request();
+    final Buffer incoming = Buffer.buffer();
+    content.handler(incoming::appendBuffer);
+    ctx.request().endHandler(x -> {
+      String body = incoming.toString();
+      body = body.replaceAll("\\s+", " "); // remove newlines etc
+      ctx.response().putHeader("X-Tenant-Perms-Result", body);
+      if (body.length() > 80) {
+        body = body.substring(0, 80) + "...";
+      }
+      logger.info("tenantPermissions: " + body);
+      ctx.response().end();
+    });
+  }
+
+  
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
@@ -198,6 +216,8 @@ public class MainVerticle extends AbstractVerticle {
     router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
+    router.post("/_/tenantpermissions")
+      .handler(this::myPermissionHandle);
 
     router.post("/_/tenant").handler(this::myTenantHandle);
     router.post("/_/tenant/disable").handler(this::myTenantHandle);

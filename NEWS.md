@@ -1,3 +1,9 @@
+## 2.16.1 2018-07-05
+
+ * OKAPI-617 Request-only pre/post filter should not change previous HTTP status code
+ * OKAPI-616 okapi-test-auth-module accepted requests without auth token
+ * Updates in docs
+
 ## 2.16.0 2018-06-28
 
  * OKAPI-609 Module purge (remove persistent data for module)
