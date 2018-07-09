@@ -17,6 +17,7 @@ import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleManager;
@@ -30,6 +31,7 @@ public class PullManager {
   private static final int CONCURRENT_MAX = 10;
   private boolean concurrentComplete;
   private final ModuleManager moduleManager;
+  private Messages messages = Messages.getInstance();
 
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
     this.httpClient = vertx.createHttpClient();
@@ -39,7 +41,7 @@ public class PullManager {
   private void getRemoteUrl(Iterator<String> it,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, "pull: none of remote URLs work"));
+      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("en", "11000")));
     } else {
       final String baseUrl = it.next();
       String url = baseUrl;

@@ -15,6 +15,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
@@ -31,6 +32,7 @@ public class TenantStorePostgres implements TenantStore {
   private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = ?";
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
   private final PostgresTable<Tenant> pgTable;
+  private Messages messages = Messages.getInstance();
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
@@ -109,7 +111,7 @@ public class TenantStorePostgres implements TenantStore {
       } else {
         ResultSet rs = res.result();
         if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "1100", id)));
           q.close();
         } else {
           logger.debug("update: replace");

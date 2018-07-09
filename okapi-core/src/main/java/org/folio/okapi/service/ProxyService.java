@@ -1000,8 +1000,8 @@ public class ProxyService {
       }
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(USER, "No running instances for module "
-          + inst.getModuleDescriptor().getId() + ". Can not invoke " + inst.getPath()));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "11000",
+          inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
       String baseurl = instance.getUrl();
@@ -1032,9 +1032,8 @@ public class ProxyService {
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = inst.getMethod() + " request for "
-            + inst.getModuleDescriptor().getId() + " " + inst.getPath()
-            + " failed with " + cres.cause().getMessage();
+          String msg = messages.getMessage("en", "11001", inst.getMethod(), 
+            inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));
           return;

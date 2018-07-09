@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 public class LockedStringMap {
@@ -38,6 +39,7 @@ public class LockedStringMap {
   private static final int DELAY = 10; // ms in recursing for retry of map
   private static final String ALL_KEYS = "_keys"; // keeps a list of all known keys
   protected final Logger logger = OkapiLogger.get();
+  private Messages messages = Messages.getInstance();
 
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -205,7 +207,7 @@ public class LockedStringMap {
             smap.strings.putAll(oldlist.strings);
           }
           if (!allowReplace && smap.strings.containsKey(k2)) {
-            fut.handle(new Failure<>(USER, "Duplicate instance " + k2));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "11400", k2)));
             return;
           }
           smap.strings.put(k2, value);

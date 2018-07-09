@@ -485,8 +485,7 @@ public class ModuleManager {
         if (ures.failed()) {
           if (ures.getType() == ANY) {
             String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(USER, "delete: module " + id
-              + " is used by tenant " + ten));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10209", id, ten)));
             fut.handle(new Failure<>(USER, messages.getMessage("en", "10206", id, ten)));
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));

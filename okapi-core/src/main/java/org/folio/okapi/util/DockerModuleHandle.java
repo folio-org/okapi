@@ -20,6 +20,7 @@ import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -39,6 +40,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final StringBuilder logBuffer;
   private int logSkip;
   private final String id;
+  private Messages messages = Messages.getInstance();
 
   private String containerId;
 
@@ -276,7 +278,7 @@ public class DockerModuleHandle implements ModuleHandle {
           }
         }
         if (hostPort == 0) {
-          startFuture.handle(Future.failedFuture("No exposedPorts in image"));
+          startFuture.handle(Future.failedFuture(messages.getMessage("en", "11300")));
         } else {
           createContainer(exposedPort, res2 -> {
             if (res2.failed()) {

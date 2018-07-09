@@ -21,6 +21,7 @@ import static java.lang.System.*;
 import static java.lang.Integer.*;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
+import org.folio.okapi.common.Messages;
 
 public class MainDeploy {
 
@@ -31,6 +32,7 @@ public class MainDeploy {
   private final JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
+  private Messages messages = Messages.getInstance();
 
   public MainDeploy() {
     this.conf = new JsonObject();
@@ -44,7 +46,7 @@ public class MainDeploy {
     final Logger logger = OkapiLogger.get();
 
     if (args.length < 1) {
-      fut.handle(Future.failedFuture("Missing command; use help"));
+      fut.handle(Future.failedFuture(messages.getMessage("en", "10600")));
       return;
     }
     if (parseOptions(args, fut)) {
@@ -63,7 +65,7 @@ public class MainDeploy {
         deployClustered(logger, fut);
         break;
       default:
-        fut.handle(Future.failedFuture("Unknown command '" + mode + "'"));
+        fut.handle(Future.failedFuture(messages.getMessage("en", "10601",mode)));
     }
   }
 
@@ -133,7 +135,7 @@ public class MainDeploy {
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
-        fut.handle(Future.failedFuture("Invalid option: " + args[i]));
+        fut.handle(Future.failedFuture(messages.getMessage("en", "10602", args[i])));
         return true;
       }
       i++;

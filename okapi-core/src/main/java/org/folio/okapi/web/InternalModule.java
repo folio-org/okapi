@@ -29,6 +29,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -68,6 +69,7 @@ public class InternalModule {
   private final LogHelper logHelper;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
+  private Messages messages = Messages.getInstance();
 
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
     DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
@@ -537,8 +539,7 @@ public class InternalModule {
       pc.getCtx().response().setStatusCode(201);
       fut.handle(new Success<>(s));
     } catch (UnsupportedEncodingException ex) {
-      fut.handle(new Failure<>(INTERNAL, "Error in encoding location id "
-        + id + ". " + ex.getMessage()));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "11600", id, ex.getMessage())));
     }
   }
 
@@ -551,7 +552,7 @@ public class InternalModule {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9_-]+$")) {
-        fut.handle(new Failure<>(USER, "Invalid tenant id '" + id + "'"));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "11601", id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -572,7 +573,7 @@ public class InternalModule {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(USER, "Tenant.id=" + td.getId() + " id=" + id));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "11602", td.getId(), id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -616,7 +617,7 @@ public class InternalModule {
 
   private void deleteTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(USER, "Can not delete the superTenant " + id));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "11603", id)));
       // Change of behavior, used to return 403
       return;
     }
@@ -875,7 +876,7 @@ public class InternalModule {
         List<ModuleDescriptor> mdl = res.result();
         if (orderByStr != null) {
           if (!"id".equals(orderByStr)) {
-            fut.handle(new Failure<>(USER, "unknown orderBy field: " + orderByStr));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "11604", orderByStr)));
             return;
           }
           if (orderStr == null || "desc".equals(orderStr)) {
@@ -883,7 +884,7 @@ public class InternalModule {
           } else if ("asc".equals(orderStr)) {
             Collections.sort(mdl);
           } else {
-            fut.handle(new Failure<>(USER, "invalid order value: " + orderStr));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "11605", orderStr)));
             return;
           }
         } else {
@@ -906,7 +907,7 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       if (!id.equals(md.getId())) {
-        fut.handle(new Failure<>(USER, "Module.id=" + md.getId() + " id=" + id));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "11606", md.getId(), id)));
         return;
       }
       String validerr = md.validate(pc);
@@ -1542,7 +1543,7 @@ public class InternalModule {
         return;
       }
     }
-    fut.handle(new Failure<>(INTERNAL, "Unhandled internal module path=" + p));
+    fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "11607", p)));
   }
 
 }

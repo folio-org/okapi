@@ -13,6 +13,5 @@ public class MessagesTest {
   public void test1() {
     Messages my = Messages.getInstance();
     Assert.assertEquals("Invalid parameters:", my.getMessage("en", "10004"));
-    System.out.println("-----" + my.getMessage("en", "10004") + "-----");
   }
 }
