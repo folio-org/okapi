@@ -85,10 +85,8 @@ public class ProcessModuleHandle implements ModuleHandle {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
           id -> tryConnect(startFuture, count + 1));
       } else {
-        startFuture.handle(Future.failedFuture("Deployment failed. "
-          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
-//        Translation below doesn't work for unknown reason
-//        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11501", port, res.cause().getMessage())));
+        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11501",
+          Integer.toString(port), res.cause().getMessage())));
       }
     });
   }
