@@ -34,27 +34,8 @@ public class MainVerticle extends AbstractVerticle {
   private String helloGreeting;
   private String tenantRequests = "";
 
-  private void myStreamHandle(RoutingContext ctx) {
-    if (HttpMethod.DELETE.equals(ctx.request().method())) {
-      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
-      return;
-    }
-    ctx.response().setStatusCode(200);
-    final String ctype = ctx.request().headers().get("Content-Type");
-    StringBuilder xmlMsg = new StringBuilder();
-    if (ctype != null && ctype.toLowerCase().contains("xml")) {
-      xmlMsg.append(" (XML) ");
-    }
-    String hv = ctx.request().getHeader("X-my-header");
-    if (hv != null) {
-      xmlMsg.append(hv);
-    }
-    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
-    if (tenantReqs != null) {
-      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
-    }
-    ctx.response().putHeader("Content-Type", "text/plain");
-
+  // Report the request headers in response headers, body, and/or log
+  private void headers(RoutingContext ctx, String tenantReqs, StringBuilder xmlMsg) {
     // Report all headers back (in headers and in the body) if requested
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
@@ -80,11 +61,34 @@ public class MainVerticle extends AbstractVerticle {
         }
       }
     }
+  }
+
+  private void myStreamHandle(RoutingContext ctx) {
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+      return;
+    }
+    ctx.response().setStatusCode(200);
+    final String ctype = ctx.request().headers().get("Content-Type");
+    StringBuilder xmlMsg = new StringBuilder();
+    if (ctype != null && ctype.toLowerCase().contains("xml")) {
+      xmlMsg.append(" (XML) ");
+    }
+    String hv = ctx.request().getHeader("X-my-header");
+    if (hv != null) {
+      xmlMsg.append(hv);
+    }
+    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
+    if (tenantReqs != null) {
+      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
+    }
+    ctx.response().putHeader("Content-Type", "text/plain");
+
     String stopper = ctx.request().getHeader("X-stop-here");
     if (stopper != null) {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
-
+    headers(ctx, tenantReqs, xmlMsg);
     final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
     String delayStr = ctx.request().getHeader("X-delay");
     if (delayStr != null) {
