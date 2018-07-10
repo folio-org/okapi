@@ -48,6 +48,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.web.InternalModule;
+import org.folio.okapi.common.Messages;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -70,6 +71,7 @@ public class ProxyService {
   private final Random random;
   private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
+  private Messages messages = Messages.getInstance();
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
     DiscoveryManager dm, InternalModule im, String okapiUrl, int waitMs) {
@@ -130,7 +132,7 @@ public class ProxyService {
               + ctx.request().method() + " " + uri
               + " => " + trymod + " " + newUri);
             if (loop.contains(redirectPath + " ")) {
-              pc.responseError(500, "Redirect loop: " + loop + " -> " + redirectPath);
+              pc.responseError(500, messages.getMessage("en", "10100", loop, redirectPath));
               return false;
             }
             ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method());
@@ -143,9 +145,7 @@ public class ProxyService {
         }
       }
       if (!found) {
-        String msg = "Redirecting " + uri + " to " + redirectPath
-          + " FAILED. No suitable module found";
-        pc.responseError(500, msg);
+        pc.responseError(500, messages.getMessage("en", "10101", uri, redirectPath));
       }
       return found;
     }
@@ -227,10 +227,10 @@ public class ProxyService {
       if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
         && !req.path().startsWith("/_/")  ) {  // and not wrong okapi request
            // The /_/ test is to make sure we report same errors as before internalModule stuff
-        pc.responseError(403, "Missing Tenant");
+        pc.responseError(403, messages.getMessage("en", "10102"));
         return null;
       } else {
-        pc.responseError(404, "No suitable module found for path " + req.path());
+        pc.responseError(404, messages.getMessage("en", "10103", req.path()));
         return null;
       }
     }
@@ -263,8 +263,7 @@ public class ProxyService {
       }
     }
     if (auth != null && tok != null && !auth.equals(tok)) {
-      pc.responseError(400, "Different tokens in Authentication and X-Okapi-Token. "
-        + "Use only one of them");
+      pc.responseError(400, messages.getMessage("en", "10104"));
       return null;
     }
     if (tok == null && auth != null) {
@@ -282,7 +281,7 @@ public class ProxyService {
           pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
         }
       } catch (IllegalArgumentException e) {
-        pc.responseError(400, "Invalid Token: " + e.getMessage());
+        pc.responseError(400, messages.getMessage("en", "10105", e.getMessage()));
         return null;
       }
     }
@@ -493,7 +492,7 @@ public class ProxyService {
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
         stream.resume();
-        pc.responseError(400, "No such Tenant " + tenantId);
+        pc.responseError(400, messages.getMessage("en", "10106", tenantId));
         return;
       }
       Tenant tenant = gres.result();
@@ -583,9 +582,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
-      pc.responseError(500, "proxyRequestHttpClient failure: "
-        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
-        + e + " " + e.getMessage());
+      pc.responseError(500, messages.getMessage("en", "10107", mi.getModuleDescriptor().getId(), mi.getUrl(), e,e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -662,9 +659,7 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseError(500, "proxyRequestResponse failure: "
-        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
-        + e + " " + e.getMessage());
+      pc.responseError(500, messages.getMessage("en", "10108", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -729,9 +724,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      pc.responseError(500, "proxyHeaders failure: "
-        + mi.getModuleDescriptor().getId() + " " + mi.getUrl() + ": "
-        + e + " " + e.getMessage());
+      pc.responseError(500, messages.getMessage("en", "10109", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -884,8 +877,7 @@ public class ProxyService {
           break;
         default:
           // Should not happen
-          pc.responseError(500, "Bad proxy type '" + pType
-            + "' in module " + mi.getModuleDescriptor().getId());
+          pc.responseError(500, messages.getMessage("en", "10110", pType, mi.getModuleDescriptor().getId()));
           break;
       }
     }
@@ -1017,8 +1009,8 @@ public class ProxyService {
       }
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(USER, "No running instances for module "
-          + inst.getModuleDescriptor().getId() + ". Can not invoke " + inst.getPath()));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "11000",
+          inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
       String baseurl = instance.getUrl();
@@ -1049,9 +1041,8 @@ public class ProxyService {
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = inst.getMethod() + " request for "
-            + inst.getModuleDescriptor().getId() + " " + inst.getPath()
-            + " failed with " + cres.cause().getMessage();
+          String msg = messages.getMessage("en", "11001", inst.getMethod(), 
+            inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));
           return;

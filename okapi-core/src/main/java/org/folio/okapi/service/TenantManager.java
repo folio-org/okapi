@@ -27,6 +27,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.util.CompList;
@@ -46,6 +47,7 @@ public class TenantManager {
   private TenantStore tenantStore = null;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
+  private Messages messages = Messages.getInstance();
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
@@ -108,7 +110,7 @@ public class TenantManager {
     String id = t.getId();
     tenants.get(id, gres -> {
       if (gres.succeeded()) {
-        fut.handle(new Failure<>(USER, "Duplicate tenant id " + id));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "1020", id)));
       } else if (gres.getType() == NOT_FOUND) {
         if (tenantStore == null) { // no db, just add it to shared mem
           insert2(t, id, fut);
@@ -661,13 +663,12 @@ public class TenantManager {
             }
             break;
           default:
-            fut.handle(new Failure<>(USER, "Unsupported interface _tenant: " + v));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10401", v)));
             return;
         }
       }
     }
-    fut.handle(new Failure<>(NOT_FOUND, "No _tenant interface found for "
-      + md.getId()));
+    fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10402", md.getId())));
   }
 
   private boolean getTenantInterface1(InterfaceDescriptor pi,
@@ -719,7 +720,7 @@ public class TenantManager {
     Iterator<String> it,
     Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(NOT_FOUND, "No module provides " + interfaceName));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10403", interfaceName)));
       return;
     }
     String mid = it.next();
@@ -855,7 +856,7 @@ public class TenantManager {
     } else if ("disable".equals(action)) {
       return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
     } else {
-      fut.handle(new Failure<>(INTERNAL, "Not implemented: action = " + action));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "10404", action)));
       return true;
     }
   }

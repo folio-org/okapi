@@ -29,6 +29,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.env.EnvManager;
 import org.folio.okapi.util.CompList;
+import org.folio.okapi.common.Messages;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -45,6 +46,7 @@ public class DeploymentManager {
   private final EnvManager em;
   private final int listenPort;
   private final String nodeName;
+  private Messages messages = Messages.getInstance();
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
     String host, Ports ports, int listenPort, String nodeName) {
@@ -81,19 +83,19 @@ public class DeploymentManager {
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getInstId();
     if (id != null && list.containsKey(id)) {
-      fut.handle(new Failure<>(USER, "already deployed: " + id));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10700", id)));
       return;
     }
     String srvc = md1.getSrvcId();
     if (srvc == null) {
-      fut.handle(new Failure<>(USER, "Needs srvcId"));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "1071")));
       return;
     }
     Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
     int usePort = ports.get();
     if (usePort == -1) {
-      fut.handle(new Failure<>(USER, "all ports in use"));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10702")));
       tim.close();
       return;
     }
@@ -113,7 +115,7 @@ public class DeploymentManager {
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
       ports.free(usePort);
-      fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10703")));
       tim.close();
       return;
     }
@@ -127,7 +129,7 @@ public class DeploymentManager {
     em.get(eres -> {
       if (eres.failed()) {
         ports.free(usePort);
-        fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
+        fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "10704", eres.cause().getMessage())));
         tim.close();
       } else {
         for (EnvEntry er : eres.result()) {
@@ -165,7 +167,7 @@ public class DeploymentManager {
   public void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("undeploy instId " + id);
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10705", id)));
     } else {
       Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
@@ -200,7 +202,7 @@ public class DeploymentManager {
 
   public void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10705", id)));
     } else {
       fut.handle(new Success<>(list.get(id)));
     }

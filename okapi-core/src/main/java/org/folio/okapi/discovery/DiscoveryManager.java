@@ -33,6 +33,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.common.Messages;
 
 /**
  * Keeps track of which modules are running where. Uses a shared map to list
@@ -51,6 +52,7 @@ public class DiscoveryManager implements NodeListener {
   private ModuleManager moduleManager;
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
+  private Messages messages = Messages.getInstance();
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -134,13 +136,13 @@ public class DiscoveryManager implements NodeListener {
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
     final String modId = dd.getSrvcId();
     if (modId == null) {
-      fut.handle(new Failure<>(USER, "Needs srvcId"));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10800")));
       return;
     }
     moduleManager.get(modId, gres -> {
       if (gres.failed()) {
         if (gres.getType() == NOT_FOUND) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + modId + " not found"));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10801", modId)));
         } else {
           fut.handle(new Failure<>(gres.getType(), gres.cause()));
         }
@@ -151,7 +153,7 @@ public class DiscoveryManager implements NodeListener {
         if (nodeId == null) {
           if (launchDesc == null) { // 3: externally deployed
             if (dd.getInstId() == null) {
-              fut.handle(new Failure<>(USER, "Needs instId"));
+              fut.handle(new Failure<>(USER, messages.getMessage("en", "10802")));
             } else {
               add(dd, res -> { // just add it
                 if (res.failed()) {
@@ -162,7 +164,7 @@ public class DiscoveryManager implements NodeListener {
               });
             }
           } else {
-            fut.handle(new Failure<>(USER, "missing nodeId"));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10803")));
           }
         } else {
           if (launchDesc == null) {
@@ -184,7 +186,7 @@ public class DiscoveryManager implements NodeListener {
     String modId = dd.getSrvcId();
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
-      fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10804", modId)));
     } else {
       dd.setDescriptor(modLaunchDesc);
       callDeploy(nodeId, pc, dd, fut);
@@ -351,7 +353,7 @@ public class DiscoveryManager implements NodeListener {
         // check that the node is alive, but only on non-url instances
         if (clusterManager != null && url == null
           && !clusterManager.getNodes().contains(md.getNodeId())) {
-          fut.handle(new Failure<>(NOT_FOUND, "gone"));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10805")));
           return;
         }
         fut.handle(new Success<>(md));
@@ -640,7 +642,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10806", nodeId)));
         return;
       }
     }
@@ -652,7 +654,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10806", nodeId)));
         return;
       }
     }
@@ -662,11 +664,11 @@ public class DiscoveryManager implements NodeListener {
       } else {
         NodeDescriptor old = gres.result();
         if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
-          fut.handle(new Failure<>(USER, "Can not change nodeId for node " + nodeId));
+          fut.handle(new Failure<>(USER, messages.getMessage("en", "10807", nodeId)));
           return;
         }
         if (!old.getUrl().equals(nd.getUrl())) {
-          fut.handle(new Failure<>(USER, "Can not change the URL for node " + nodeId));
+          fut.handle(new Failure<>(USER, messages.getMessage("en", "10808", nodeId)));
           return;
         }
         nodes.put(nodeId, nd, pres -> {
