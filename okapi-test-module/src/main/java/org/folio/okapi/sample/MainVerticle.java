@@ -35,8 +35,12 @@ public class MainVerticle extends AbstractVerticle {
   private String tenantRequests = "";
 
   // Report the request headers in response headers, body, and/or log
-  private void headers(RoutingContext ctx, String tenantReqs, StringBuilder xmlMsg) {
+  private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
     // Report all headers back (in headers and in the body) if requested
+    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
+    if (tenantReqs != null) {
+      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
+    }
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
       String qry = ctx.request().query();
@@ -47,16 +51,16 @@ public class MainVerticle extends AbstractVerticle {
         logger.info("Headers, as seen by okapi-test-module:");
       }
       for (String hdr : ctx.request().headers().names()) {
-        tenantReqs = ctx.request().getHeader(hdr);
-        if (tenantReqs != null) {
+        String hdrval = ctx.request().getHeader(hdr);
+        if (hdrval != null) {
           if (allh.contains("H") && hdr.startsWith("X-")) {
-            ctx.response().putHeader(hdr, tenantReqs);
+            ctx.response().putHeader(hdr, hdrval);
           }
           if (allh.contains("B")) {
-            xmlMsg.append(" ").append(hdr).append(":").append(tenantReqs).append("\n");
+            xmlMsg.append(" ").append(hdr).append(":").append(hdrval).append("\n");
           }
           if (allh.contains("L")) {
-            logger.info(hdr + ":" + tenantReqs);
+            logger.info(hdr + ":" + hdrval);
           }
         }
       }
@@ -78,17 +82,13 @@ public class MainVerticle extends AbstractVerticle {
     if (hv != null) {
       xmlMsg.append(hv);
     }
-    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
-    if (tenantReqs != null) {
-      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
-    }
     ctx.response().putHeader("Content-Type", "text/plain");
 
     String stopper = ctx.request().getHeader("X-stop-here");
     if (stopper != null) {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
-    headers(ctx, tenantReqs, xmlMsg);
+    headers(ctx, xmlMsg);
     final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
     String delayStr = ctx.request().getHeader("X-delay");
     if (delayStr != null) {
