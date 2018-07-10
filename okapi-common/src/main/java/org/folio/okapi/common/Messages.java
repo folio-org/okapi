@@ -178,22 +178,6 @@ public class Messages {
     return getMessageSingle(DEFAULT_LANGUAGE, code);
   }
 
-  /**
-   * Return the message from the properties file.
-   * @param language - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
-   * @param consts - message code
-   * @return the message, or null if not found
-   */
-//  
-//  public String getMessage(String language, MessageEnum consts) {
-//    String message = getMessageSingle(language, consts.getCode());
-//    if (message != null) {
-//      return message;
-//    }
-//    return getMessageSingle(DEFAULT_LANGUAGE, consts.getCode());
-//  }
-
 
   /**
    * Return the message from the properties file.
@@ -211,20 +195,5 @@ public class Messages {
     return MessageFormat.format(pattern, messageArguments);
   }
 
-  /**
-   * Return the message from the properties file.
-   * @param language - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
-   * @param consts - message code
-   * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
-   * @return the message, or null if not found
-   */
-//  public String getMessage(String language, MessageEnum consts, Object... messageArguments) {
-//    String pattern = getMessage(language, consts.getCode());
-//    if (pattern == null) {
-//      return "Error message not found: " + language + " " + consts.getCode();
-//    }
-//    return MessageFormat.format(pattern, messageArguments);
-//  }
 }
 

@@ -149,7 +149,6 @@ public class OkapiClient {
 
     if (this.okapiUrl == null) {
       fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
-//      fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "10500")));
       return;
     }
     HttpClientRequest req = request1(method, path, res -> {
