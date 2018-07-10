@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -26,6 +27,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final String cmdlineStart;
   private final String cmdlineStop;
   private final EnvEntry[] env;
+  private Messages messages = Messages.getInstance();
 
   private Process p;
   private final int port;
@@ -78,14 +80,13 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         logger.warn("Service returned with exit code " + p.exitValue());
-        startFuture.handle(Future.failedFuture("Service returned with exit code "
-          + p.exitValue()));
+        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11500", p.exitValue())));
       } else if (count < maxIterations) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
           id -> tryConnect(startFuture, count + 1));
       } else {
-        startFuture.handle(Future.failedFuture("Deployment failed. "
-          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
+        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11501",
+          Integer.toString(port), res.cause().getMessage())));
       }
     });
   }
@@ -100,7 +101,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          startFuture.handle(Future.failedFuture("port " + port + " already in use"));
+          startFuture.handle(Future.failedFuture(messages.getMessage("en", "11502", port)));
         } else {
           start2(startFuture);
         }
@@ -167,7 +168,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            stopFuture.handle(Future.failedFuture("port " + port + " not shut down"));
+            stopFuture.handle(Future.failedFuture(messages.getMessage("en", "11503", port)));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());

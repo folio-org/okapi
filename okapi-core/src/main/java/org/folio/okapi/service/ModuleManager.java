@@ -23,6 +23,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.common.Messages;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -37,6 +38,7 @@ public class ModuleManager {
   private LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
   private ModuleStore moduleStore;
+  private Messages messages = Messages.getInstance();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -127,11 +129,10 @@ public class ModuleManager {
       }
     }
     if (seenversion == null) {
-      return "Missing dependency: " + md.getId()
-              + " requires " + req.getId() + ": " + req.getVersion();
+      return messages.getMessage("en", "10200", md.getId(), req.getId(), req.getVersion());
+      
     } else {
-      return "Incompatible version for module " + md.getId() + " interface " + req.getId() + ". "
-              + "Need " + req.getVersion() + ". have " + seenversion.getVersion();
+      return messages.getMessage("en", "10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
     }
   }
 
@@ -319,8 +320,7 @@ public class ModuleManager {
           if (confl == null || confl.isEmpty()) {
             provs.put(mi.getId(), md.getId());
           } else {
-            String msg = "Interface " + mi.getId()
-              + " is provided by " + md.getId() + " and " + confl + ". ";
+            String msg = messages.getMessage("en", "10202", mi.getId(), md.getId(), confl);
             conflicts.append(msg);
           }
         }
@@ -364,7 +364,7 @@ public class ModuleManager {
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
-            fut.handle(new Failure<>(USER, "create: module " + id + " exists already"));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10203", id)));
             return;
           }
         } else {
@@ -437,15 +437,14 @@ public class ModuleManager {
       tempList.put(id, md);
       String res = checkAllDependencies(tempList);
       if (!res.isEmpty()) {
-        fut.handle(new Failure<>(USER, "update: module " + id + ": " + res));
+        fut.handle(new Failure<>(USER, messages.getMessage("en", "10204", id, res)));
         return;
       }
       tenantManager.getModuleUser(id, gres -> {
         if (gres.failed()) {
           if (gres.getType() == ANY) {
             String ten = gres.cause().getMessage();
-            fut.handle(new Failure<>(USER, "update: module " + id
-              + " is used by tenant " + ten));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10205", id, ten)));
           } else { // any other error
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
           }
@@ -486,8 +485,8 @@ public class ModuleManager {
         if (ures.failed()) {
           if (ures.getType() == ANY) {
             String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(USER, "delete: module " + id
-              + " is used by tenant " + ten));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10209", id, ten)));
+            fut.handle(new Failure<>(USER, messages.getMessage("en", "10206", id, ten)));
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
           }
@@ -510,13 +509,13 @@ public class ModuleManager {
     LinkedHashMap<String, ModuleDescriptor> mods) {
 
     if (!mods.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "delete: module does not exist"));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10207")));
       return true;
     }
     mods.remove(id);
     String res = checkAllDependencies(mods);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, "delete: module " + id + ": " + res));
+      fut.handle(new Failure<>(USER, messages.getMessage("en", "10208", id, res)));
       return true;
     } else {
       return false;
