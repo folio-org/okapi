@@ -141,6 +141,13 @@ class Auth {
     if (pHeader != null) {
       ctx.response().setStatusCode(Integer.parseInt(pHeader));
     }
+    String handlerResult = ctx.request().getHeader("X-Okapi-Handler-Result");
+    if (handlerResult != null && !handlerResult.trim().isEmpty()) {
+      logger.debug("test-auth-module: Seen X-Okapi-Handler-Result: '" + handlerResult + "'");
+      ctx.response().putHeader("X-Handler-Result-Seen", handlerResult);
+    } else {
+      logger.debug("test-auth-module: No X-Okapi-Handler-Result");
+    }
     echo(ctx);
   }
 

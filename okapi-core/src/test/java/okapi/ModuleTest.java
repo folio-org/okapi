@@ -492,6 +492,7 @@ public class ModuleTest {
       .header("X-filter-post", "203") // ask post-filter to return 203
       .get("/testb")
       .then().statusCode(200)
+      .header("X-Handler-Result-Seen", "200")
       .log().ifValidationFails()
       .body(containsString("It works"))
       .extract().headers().getValues("X-Okapi-Trace");
