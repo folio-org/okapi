@@ -383,10 +383,10 @@ public class ProxyService {
     HttpClientResponse res, ProxyContext pc) {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
-      logger.warn("relayToResponse XXX Reusing handler response "
+      logger.debug("relayToResponse: Reusing handler response "
         + pc.getHandlerRes() + " (instead of direct " + res.statusCode() + ")");
     } else {
-      logger.warn("relayToResponse XXX Returning direct response " + res.statusCode());
+      logger.debug("relayToResponse: Returning direct response " + res.statusCode());
       hres.setStatusCode(res.statusCode());
     }
     hres.headers().addAll(res.headers());
@@ -652,7 +652,7 @@ public class ProxyService {
           if (mi.getRoutingEntry().getPhase() == null) {
             // It was a real handler, remember the return code
             pc.setHandlerRes(res.statusCode());
-            logger.warn("proxyRequestResponse: XXX Remembering result " + res.statusCode());
+            logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
           }
           res.pause();
           proxyR(it, pc, res, null);
@@ -842,6 +842,15 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
         if ("auth".equals(mi.getRoutingEntry().getPhase())) {
           authHeaders(pc.getModList(), ctx.request().headers(), pc);
+        } else if ("post".equals(mi.getRoutingEntry().getPhase())) {
+          // the post filter needs to know the handler result code
+          if (pc.getHandlerRes() > 0) {
+            String hresult = String.valueOf(pc.getHandlerRes());
+            logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
+            ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
+          } else {
+            logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
+          }
         }
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
       }

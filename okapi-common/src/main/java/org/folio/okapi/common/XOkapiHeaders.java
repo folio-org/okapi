@@ -98,7 +98,7 @@ public class XOkapiHeaders {
 
   /*
    The rest are only used internally, in Okapi, or between Okapi and the
-   auth complex.
+   auth complex or the post filter.
    */
   /**
    * X-Okapi-Filter. Passed to filters (but not real handlers). Tells which
@@ -138,6 +138,12 @@ public class XOkapiHeaders {
    * Used only between Okapi and the authorization module.
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
+
+  /**
+   * X-Okapi-Handler-Result. Used for passing the HTTP result code of the actual
+   * handler to the post filter(s).
+   */
+  public static final String HANDLER_RESULT = "X-Okapi-Handler-Result";
 
   /**
    * The id of the always-present super tenant.

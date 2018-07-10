@@ -62,6 +62,9 @@ public class MainVerticle extends AbstractVerticle {
       if (qry != null) {
         ctx.request().headers().add("X-Url-Params", qry);
       }
+      if (allh.contains("L")) {
+        logger.info("Headers, as seen by okapi-test-module:");
+      }
       for (String hdr : ctx.request().headers().names()) {
         tenantReqs = ctx.request().getHeader(hdr);
         if (tenantReqs != null) {
@@ -195,7 +198,7 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
-  
+
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
