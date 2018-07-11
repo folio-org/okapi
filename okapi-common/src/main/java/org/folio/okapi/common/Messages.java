@@ -166,12 +166,11 @@ public class Messages {
 
   /**
    * Return the message from the properties file.
-   * @param language - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
    * @param code - message code
    * @return the message, or null if not found
    */
-  public String getMessage(String language, String code) {
+ 
+  public String getMessage(String code) {
     String message = getMessageSingle(language, code);
     if (message != null) {
       return message;
@@ -182,23 +181,13 @@ public class Messages {
 
   /**
    * Return the message from the properties file.
-   * @param language  - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
    * @param code - message code
    * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
    * @return the message with arguments inserted
    */
-  public String getMessage(String language, String code, Object... messageArguments) {
-    String pattern = getMessage(language, code);
-    if (pattern == null) {
-      return "Error message not found: " + language + " " + code;
-    }
-    return MessageFormat.format(pattern, messageArguments);
-  }
   
-  /** Use default language */
   public String getMessage(String code, Object... messageArguments) {
-    String pattern = getMessage(language, code);
+    String pattern = getMessage(code);
     if (pattern == null) {
       return "Error message not found: " + language + " " + code;
     }

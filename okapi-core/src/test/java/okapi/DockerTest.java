@@ -119,10 +119,10 @@ public class DockerTest {
           if (gotIt) {
             future.handle(Future.succeededFuture());
           } else {
-            future.handle(Future.failedFuture(messages.getMessage("en", "11700")));
+            future.handle(Future.failedFuture(messages.getMessage("11700")));
           }
         } else {
-          String m = messages.getMessage("en", "11701",
+          String m = messages.getMessage("11701",
             Integer.toString(res.statusCode()), body.toString());
           logger.error(m);
           future.handle(Future.failedFuture(m));

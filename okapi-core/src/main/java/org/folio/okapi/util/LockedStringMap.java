@@ -207,7 +207,7 @@ public class LockedStringMap {
             smap.strings.putAll(oldlist.strings);
           }
           if (!allowReplace && smap.strings.containsKey(k2)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "11400", k2)));
+            fut.handle(new Failure<>(USER, messages.getMessage("11400", k2)));
             return;
           }
           smap.strings.put(k2, value);

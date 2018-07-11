@@ -539,7 +539,7 @@ public class InternalModule {
       pc.getCtx().response().setStatusCode(201);
       fut.handle(new Success<>(s));
     } catch (UnsupportedEncodingException ex) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "11600", id, ex.getMessage())));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
     }
   }
 
@@ -552,7 +552,7 @@ public class InternalModule {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9_-]+$")) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "11601", id)));
+        fut.handle(new Failure<>(USER, messages.getMessage("11601", id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -573,7 +573,7 @@ public class InternalModule {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "11602", td.getId(), id)));
+        fut.handle(new Failure<>(USER, messages.getMessage("11602", td.getId(), id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -617,7 +617,7 @@ public class InternalModule {
 
   private void deleteTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(USER, messages.getMessage("en", "11603", id)));
+      fut.handle(new Failure<>(USER, messages.getMessage("11603", id)));
       // Change of behavior, used to return 403
       return;
     }
@@ -876,7 +876,7 @@ public class InternalModule {
         List<ModuleDescriptor> mdl = res.result();
         if (orderByStr != null) {
           if (!"id".equals(orderByStr)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "11604", orderByStr)));
+            fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));
             return;
           }
           if (orderStr == null || "desc".equals(orderStr)) {
@@ -884,7 +884,7 @@ public class InternalModule {
           } else if ("asc".equals(orderStr)) {
             Collections.sort(mdl);
           } else {
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "11605", orderStr)));
+            fut.handle(new Failure<>(USER, messages.getMessage("11605", orderStr)));
             return;
           }
         } else {
@@ -907,7 +907,7 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       if (!id.equals(md.getId())) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "11606", md.getId(), id)));
+        fut.handle(new Failure<>(USER, messages.getMessage("11606", md.getId(), id)));
         return;
       }
       String validerr = md.validate(pc);
@@ -1543,7 +1543,7 @@ public class InternalModule {
         return;
       }
     }
-    fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "11607", p)));
+    fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
   }
 
 }

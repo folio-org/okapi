@@ -110,7 +110,7 @@ public class TenantManager {
     String id = t.getId();
     tenants.get(id, gres -> {
       if (gres.succeeded()) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "1020", id)));
+        fut.handle(new Failure<>(USER, messages.getMessage("1020", id)));
       } else if (gres.getType() == NOT_FOUND) {
         if (tenantStore == null) { // no db, just add it to shared mem
           insert2(t, id, fut);
@@ -663,12 +663,12 @@ public class TenantManager {
             }
             break;
           default:
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "10401", v)));
+            fut.handle(new Failure<>(USER, messages.getMessage("10401", v)));
             return;
         }
       }
     }
-    fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10402", md.getId())));
+    fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10402", md.getId())));
   }
 
   private boolean getTenantInterface1(InterfaceDescriptor pi,
@@ -720,7 +720,7 @@ public class TenantManager {
     Iterator<String> it,
     Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10403", interfaceName)));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10403", interfaceName)));
       return;
     }
     String mid = it.next();
@@ -856,7 +856,7 @@ public class TenantManager {
     } else if ("disable".equals(action)) {
       return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
     } else {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("en", "10404", action)));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action)));
       return true;
     }
   }

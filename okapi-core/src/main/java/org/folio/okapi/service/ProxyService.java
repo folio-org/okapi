@@ -132,7 +132,7 @@ public class ProxyService {
               + ctx.request().method() + " " + uri
               + " => " + trymod + " " + newUri);
             if (loop.contains(redirectPath + " ")) {
-              pc.responseError(500, messages.getMessage("en", "10100", loop, redirectPath));
+              pc.responseError(500, messages.getMessage("10100", loop, redirectPath));
               return false;
             }
             ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method());
@@ -145,7 +145,7 @@ public class ProxyService {
         }
       }
       if (!found) {
-        pc.responseError(500, messages.getMessage("en", "10101", uri, redirectPath));
+        pc.responseError(500, messages.getMessage("10101", uri, redirectPath));
       }
       return found;
     }
@@ -227,10 +227,10 @@ public class ProxyService {
       if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
         && !req.path().startsWith("/_/")  ) {  // and not wrong okapi request
            // The /_/ test is to make sure we report same errors as before internalModule stuff
-        pc.responseError(403, messages.getMessage("en", "10102"));
+        pc.responseError(403, messages.getMessage("10102"));
         return null;
       } else {
-        pc.responseError(404, messages.getMessage("en", "10103", req.path()));
+        pc.responseError(404, messages.getMessage("10103", req.path()));
         return null;
       }
     }
@@ -263,7 +263,7 @@ public class ProxyService {
       }
     }
     if (auth != null && tok != null && !auth.equals(tok)) {
-      pc.responseError(400, messages.getMessage("en", "10104"));
+      pc.responseError(400, messages.getMessage("10104"));
       return null;
     }
     if (tok == null && auth != null) {
@@ -281,7 +281,7 @@ public class ProxyService {
           pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
         }
       } catch (IllegalArgumentException e) {
-        pc.responseError(400, messages.getMessage("en", "10105", e.getMessage()));
+        pc.responseError(400, messages.getMessage("10105", e.getMessage()));
         return null;
       }
     }
@@ -492,7 +492,7 @@ public class ProxyService {
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
         stream.resume();
-        pc.responseError(400, messages.getMessage("en", "10106", tenantId));
+        pc.responseError(400, messages.getMessage("10106", tenantId));
         return;
       }
       Tenant tenant = gres.result();
@@ -582,7 +582,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestHttpClient failure: " + url, e);
-      pc.responseError(500, messages.getMessage("en", "10107", mi.getModuleDescriptor().getId(), mi.getUrl(), e,e.getMessage()));
+      pc.responseError(500, messages.getMessage("10107", mi.getModuleDescriptor().getId(), mi.getUrl(), e,e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -659,7 +659,7 @@ public class ProxyService {
       });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseError(500, messages.getMessage("en", "10108", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
+      pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -724,7 +724,7 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      pc.responseError(500, messages.getMessage("en", "10109", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
+      pc.responseError(500, messages.getMessage("10109", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
     });
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -868,7 +868,7 @@ public class ProxyService {
           break;
         default:
           // Should not happen
-          pc.responseError(500, messages.getMessage("en", "10110", pType, mi.getModuleDescriptor().getId()));
+          pc.responseError(500, messages.getMessage("10110", pType, mi.getModuleDescriptor().getId()));
           break;
       }
     }
@@ -1000,7 +1000,7 @@ public class ProxyService {
       }
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "11000",
+        fut.handle(new Failure<>(USER, messages.getMessage("11000",
           inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
@@ -1032,7 +1032,7 @@ public class ProxyService {
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = messages.getMessage("en", "11001", inst.getMethod(), 
+          String msg = messages.getMessage("11001", inst.getMethod(), 
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));

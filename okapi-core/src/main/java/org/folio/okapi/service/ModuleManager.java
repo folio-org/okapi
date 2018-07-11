@@ -129,10 +129,10 @@ public class ModuleManager {
       }
     }
     if (seenversion == null) {
-      return messages.getMessage("en", "10200", md.getId(), req.getId(), req.getVersion());
+      return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
       
     } else {
-      return messages.getMessage("en", "10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
+      return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
     }
   }
 
@@ -320,7 +320,7 @@ public class ModuleManager {
           if (confl == null || confl.isEmpty()) {
             provs.put(mi.getId(), md.getId());
           } else {
-            String msg = messages.getMessage("en", "10202", mi.getId(), md.getId(), confl);
+            String msg = messages.getMessage("10202", mi.getId(), md.getId(), confl);
             conflicts.append(msg);
           }
         }
@@ -364,7 +364,7 @@ public class ModuleManager {
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "10203", id)));
+            fut.handle(new Failure<>(USER, messages.getMessage("10203", id)));
             return;
           }
         } else {
@@ -437,14 +437,14 @@ public class ModuleManager {
       tempList.put(id, md);
       String res = checkAllDependencies(tempList);
       if (!res.isEmpty()) {
-        fut.handle(new Failure<>(USER, messages.getMessage("en", "10204", id, res)));
+        fut.handle(new Failure<>(USER, messages.getMessage("10204", id, res)));
         return;
       }
       tenantManager.getModuleUser(id, gres -> {
         if (gres.failed()) {
           if (gres.getType() == ANY) {
             String ten = gres.cause().getMessage();
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "10205", id, ten)));
+            fut.handle(new Failure<>(USER, messages.getMessage("10205", id, ten)));
           } else { // any other error
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
           }
@@ -485,8 +485,8 @@ public class ModuleManager {
         if (ures.failed()) {
           if (ures.getType() == ANY) {
             String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "10209", id, ten)));
-            fut.handle(new Failure<>(USER, messages.getMessage("en", "10206", id, ten)));
+            fut.handle(new Failure<>(USER, messages.getMessage("10209", id, ten)));
+            fut.handle(new Failure<>(USER, messages.getMessage("10206", id, ten)));
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
           }
@@ -509,13 +509,13 @@ public class ModuleManager {
     LinkedHashMap<String, ModuleDescriptor> mods) {
 
     if (!mods.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("en", "10207")));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10207")));
       return true;
     }
     mods.remove(id);
     String res = checkAllDependencies(mods);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, messages.getMessage("en", "10208", id, res)));
+      fut.handle(new Failure<>(USER, messages.getMessage("10208", id, res)));
       return true;
     } else {
       return false;

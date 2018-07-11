@@ -46,7 +46,7 @@ public class MainDeploy {
     final Logger logger = OkapiLogger.get();
 
     if (args.length < 1) {
-      fut.handle(Future.failedFuture(messages.getMessage("en", "10600")));
+      fut.handle(Future.failedFuture(messages.getMessage("10600")));
       return;
     }
     if (parseOptions(args, fut)) {
@@ -65,7 +65,7 @@ public class MainDeploy {
         deployClustered(logger, fut);
         break;
       default:
-        fut.handle(Future.failedFuture(messages.getMessage("en", "10601",mode)));
+        fut.handle(Future.failedFuture(messages.getMessage("10601",mode)));
     }
   }
 
@@ -135,7 +135,7 @@ public class MainDeploy {
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else {
-        fut.handle(Future.failedFuture(messages.getMessage("en", "10602", args[i])));
+        fut.handle(Future.failedFuture(messages.getMessage("10602", args[i])));
         return true;
       }
       i++;

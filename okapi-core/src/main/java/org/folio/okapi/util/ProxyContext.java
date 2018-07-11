@@ -186,7 +186,7 @@ public class ProxyContext {
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {
-      responseError(code, messages.getMessage("en", "10300"));
+      responseError(code, messages.getMessage("10300"));
     }
   }
 
