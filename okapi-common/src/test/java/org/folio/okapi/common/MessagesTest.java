@@ -12,6 +12,9 @@ public class MessagesTest {
   @Test
   public void test1() {
     Messages my = Messages.getInstance();
-    Assert.assertEquals("Invalid parameters:", my.getMessage("en", "10004"));
+    my.setLanguage("pl");
+    Assert.assertEquals("Nie można przetworzyć żądania", my.getMessage("10003"));
+    my.setLanguage("en");
+    Assert.assertEquals("Unable to process request", my.getMessage("10003"));
   }
 }
