@@ -1055,7 +1055,7 @@ This is not surprising, we are running the whole thing on one machine, in 'dev'
 mode, so we only have one node in the cluster and by default it is called
 'localhost'.  If this was a real cluster, each node would have its own id,
 either given on Okapi command line when started on that node, or an ugly
-UUID assigned by the the cluster manager. So let's deploy it there.
+UUID assigned by the cluster manager. So let's deploy it there.
 
 First we create a DeploymentDescriptor:
 

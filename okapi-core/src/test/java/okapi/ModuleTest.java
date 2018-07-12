@@ -481,7 +481,7 @@ public class ModuleTest {
     String locPostEnable = enableModule("post-f-module-1");
     logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
 
-    // Make a simple GET request. All three filters shold be called
+    // Make a simple GET request. All three filters should be called
     //
     c = api.createRestAssured3();
     traces = c.given()
