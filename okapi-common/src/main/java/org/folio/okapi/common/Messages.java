@@ -38,7 +38,7 @@ public class Messages {
   public static final String      MESSAGES_DIR           = "messages";
   /** default language used for fall-back */
   public static final String      DEFAULT_LANGUAGE       = "en";
-  public static String            language               = DEFAULT_LANGUAGE;
+  private static String           language               = DEFAULT_LANGUAGE;
 
   private static final Logger log = LoggerFactory.getLogger(Messages.class);
 
