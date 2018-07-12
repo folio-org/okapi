@@ -376,17 +376,4 @@ public class MultiTenantTest {
     ja = new JsonArray(res.body().asString());
     Assert.assertEquals(0, ja.size());
   }
-
-  @Test
-  public void test2() {
-    Response res;
-    JsonArray ja;
-
-    res = given()
-      .header("Content-Type", "application/json")
-      .get("/_/discovery/modules")
-      .then().statusCode(200).log().ifValidationFails().extract().response();
-    ja = new JsonArray(res.body().asString());
-    Assert.assertEquals(0, ja.size());
-  }
 }
