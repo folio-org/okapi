@@ -80,7 +80,7 @@ public class DiscoveryManager implements NodeListener {
         CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
           Future<DeploymentDescriptor> f = Future.future();
-          addAndDeploy1(dd, null, f::handle);
+          addAndDeploy0(dd, null, f::handle);
           futures.add(f);
         }
         futures.all(fut);
@@ -107,7 +107,7 @@ public class DiscoveryManager implements NodeListener {
 
   public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    addAndDeploy1(dd, pc, res -> {
+    addAndDeploy0(dd, pc, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -130,7 +130,7 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc,
+  private void addAndDeploy0(DeploymentDescriptor dd, ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
@@ -147,36 +147,41 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(gres.getType(), gres.cause()));
         }
       } else {
-        ModuleDescriptor md = gres.result();
-        LaunchDescriptor launchDesc = dd.getDescriptor();
-        final String nodeId = dd.getNodeId();
-        if (nodeId == null) {
-          if (launchDesc == null) { // 3: externally deployed
-            if (dd.getInstId() == null) {
-              fut.handle(new Failure<>(USER, messages.getMessage("10802")));
-            } else {
-              add(dd, res -> { // just add it
-                if (res.failed()) {
-                  fut.handle(new Failure<>(res.getType(), res.cause()));
-                } else {
-                  fut.handle(new Success<>(dd));
-                }
-              });
-            }
-          } else {
-            fut.handle(new Failure<>(USER, messages.getMessage("10803")));
-          }
-        } else {
-          if (launchDesc == null) {
-            logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
-            addAndDeploy2(dd, md, pc, fut, nodeId);
-          } else { // Have a launchdesc already in dd
-            logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
-            callDeploy(nodeId, pc, dd, fut);
-          }
-        }
+        addAndDeploy1(dd, pc, gres.result(), fut);
       }
     });
+  }
+
+  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc, ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+
+    LaunchDescriptor launchDesc = dd.getDescriptor();
+    final String nodeId = dd.getNodeId();
+    if (nodeId == null) {
+      if (launchDesc == null) { // 3: externally deployed
+        if (dd.getInstId() == null) {
+          fut.handle(new Failure<>(USER, messages.getMessage("10802")));
+        } else {
+          add(dd, res -> { // just add it
+            if (res.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+            } else {
+              fut.handle(new Success<>(dd));
+            }
+          });
+        }
+      } else {
+        fut.handle(new Failure<>(USER, messages.getMessage("10803")));
+      }
+    } else {
+      if (launchDesc == null) {
+        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
+        addAndDeploy2(dd, md, pc, fut, nodeId);
+      } else { // Have a launchdesc already in dd
+        logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
+        callDeploy(nodeId, pc, dd, fut);
+      }
+    }
   }
 
   private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,

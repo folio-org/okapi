@@ -31,6 +31,7 @@ import org.folio.okapi.common.OkapiLogger;
  *
  *
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 class Auth {
 
   private final Logger logger = OkapiLogger.get();
