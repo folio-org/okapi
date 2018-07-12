@@ -12,7 +12,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
