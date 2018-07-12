@@ -118,6 +118,14 @@ public class SampleModuleTest {
   }
 
   public void test9(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenantpermissions", "{}", res -> {
+      context.assertTrue(res.succeeded());
+      test10(context, cli, async);
+    });
+  }
+
+
+  public void test10(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
       cli.close();
       context.assertTrue(res.succeeded());

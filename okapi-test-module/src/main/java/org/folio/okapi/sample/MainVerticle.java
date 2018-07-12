@@ -186,22 +186,16 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  private void myPermissionHandle(RoutingContext ctx) {
-    ReadStream<Buffer> content = ctx.request();
+ private void myPermissionHandle(RoutingContext ctx) {
     final Buffer incoming = Buffer.buffer();
-    content.handler(incoming::appendBuffer);
+    ctx.request().handler(incoming::appendBuffer);
     ctx.request().endHandler(x -> {
       String body = incoming.toString();
       body = body.replaceAll("\\s+", " "); // remove newlines etc
       ctx.response().putHeader("X-Tenant-Perms-Result", body);
-      if (body.length() > 80) {
-        body = body.substring(0, 80) + "...";
-      }
-      logger.info("tenantPermissions: " + body);
       ctx.response().end();
     });
   }
-
 
   @Override
   public void start(Future<Void> fut) throws IOException {
