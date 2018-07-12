@@ -114,6 +114,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private void start2(Handler<AsyncResult<Void>> startFuture) {
     vertx.executeBlocking(future -> {
       if (p == null) {
+        String c = "";
         try {
           String[] l;
           if (exec != null) {
@@ -121,14 +122,14 @@ public class ProcessModuleHandle implements ModuleHandle {
               future.fail("Can not deploy: No %p in the exec line");
               return;
             }
-            String c = exec.replace("%p", Integer.toString(port));
+            c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
           } else if (cmdlineStart != null) {
             if (!cmdlineStart.contains("%p")) {
               future.fail("Can not deploy: No %p in the cmdlineStart");
               return;
             }
-            String c = cmdlineStart.replace("%p", Integer.toString(port));
+            c = cmdlineStart.replace("%p", Integer.toString(port));
             l = new String[]{"sh", "-c", c};
           } else {
             future.fail("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
@@ -137,9 +138,17 @@ public class ProcessModuleHandle implements ModuleHandle {
           ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
           p = pb.start();
+          p.waitFor(1, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+          logger.warn("Caught InterruptedException " + ex + " when starting " + c);
+          Thread.currentThread().interrupt();
         } catch (IOException ex) {
-          logger.debug("ProcessModuleHandle.start2() caught exception ", ex);
+          logger.warn("Caught IOException ", ex + " when starting " + c);
           future.fail(ex);
+          return;
+        }
+        if (!p.isAlive() && p.exitValue() != 0) {
+          future.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
           return;
         }
       }
@@ -190,18 +199,28 @@ public class ProcessModuleHandle implements ModuleHandle {
       stopProcess(stopFuture);
     } else {
       vertx.executeBlocking(future -> {
+        String c = "";
         try {
-          String c = cmdlineStop.replace("%p", Integer.toString(port));
+          c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
-          Process start = pb.start();
+          Process pp = pb.start();
           logger.debug("Waiting for the port to be closed");
-          start.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+          pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
-        } catch (IOException | InterruptedException ex) {
-          logger.debug("Caught exception " + ex);
+          if (!pp.isAlive() && pp.exitValue() != 0) {
+            future.handle(Future.failedFuture(messages.getMessage("11500", pp.exitValue())));
+            return;
+          }
+        } catch (IOException ex) {
+          logger.debug("Caught IOException " + ex + " when invoking " + c);
           future.fail(ex);
+          return;
+        } catch (InterruptedException ex) {
+          logger.debug("Caught InterruptedException " + ex + " when invoking " + c);
+          future.fail(ex);
+          Thread.currentThread().interrupt();
           return;
         }
         future.complete();
