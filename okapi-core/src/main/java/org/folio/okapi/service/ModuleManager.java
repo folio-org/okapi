@@ -130,7 +130,7 @@ public class ModuleManager {
     }
     if (seenversion == null) {
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
-      
+
     } else {
       return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
     }

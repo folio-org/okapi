@@ -164,7 +164,7 @@ public class Messages {
    * @param code - message code
    * @return the message, or null if not found
    */
- 
+
   public String getMessage(String code) {
     String message = getMessageSingle(language, code);
     if (message != null) {
@@ -180,7 +180,7 @@ public class Messages {
    * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
    * @return the message with arguments inserted
    */
-  
+
   public String getMessage(String code, Object... messageArguments) {
     String pattern = getMessage(code);
     if (pattern == null) {
@@ -188,7 +188,7 @@ public class Messages {
     }
     return MessageFormat.format(pattern, messageArguments);
   }
-  
+
   /** Set default language */
   public static void setLanguage(String language){
     Messages.language = language;
