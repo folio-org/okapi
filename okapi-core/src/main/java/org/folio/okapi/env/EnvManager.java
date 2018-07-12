@@ -55,9 +55,9 @@ public class EnvManager {
 
   private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
     if (env.getName() == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("en", "10900")));
+      fut.handle(new Failure<>(USER, messages.getMessage("10900")));
     } else if (env.getValue() == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("en", "10901")));
+      fut.handle(new Failure<>(USER, messages.getMessage("10901")));
     } else {
       envMap.add(env.getName(), env, fut);
     }

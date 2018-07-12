@@ -87,9 +87,9 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     if (clusterManager != null) {
-      logger.info(messages.getMessage("en", "10000", clusterManager.getNodeID()));
+      logger.info(messages.getMessage("10000", clusterManager.getNodeID()));
     } else {
-      logger.info(messages.getMessage("en", "10001"));
+      logger.info(messages.getMessage("10001"));
     }
     final String host = Config.getSysConf("host", "localhost", config);
     String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port , config);

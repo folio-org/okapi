@@ -38,6 +38,7 @@ public class Messages {
   public static final String      MESSAGES_DIR           = "messages";
   /** default language used for fall-back */
   public static final String      DEFAULT_LANGUAGE       = "en";
+  public static String            language               = DEFAULT_LANGUAGE;
 
   private static final Logger log = LoggerFactory.getLogger(Messages.class);
 
@@ -165,12 +166,11 @@ public class Messages {
 
   /**
    * Return the message from the properties file.
-   * @param language - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
    * @param code - message code
    * @return the message, or null if not found
    */
-  public String getMessage(String language, String code) {
+ 
+  public String getMessage(String code) {
     String message = getMessageSingle(language, code);
     if (message != null) {
       return message;
@@ -181,19 +181,22 @@ public class Messages {
 
   /**
    * Return the message from the properties file.
-   * @param language  - the language of the properties file to search in. If not found, also tries
-   *                   the default language.
    * @param code - message code
    * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
    * @return the message with arguments inserted
    */
-  public String getMessage(String language, String code, Object... messageArguments) {
-    String pattern = getMessage(language, code);
+  
+  public String getMessage(String code, Object... messageArguments) {
+    String pattern = getMessage(code);
     if (pattern == null) {
       return "Error message not found: " + language + " " + code;
     }
     return MessageFormat.format(pattern, messageArguments);
   }
-
+  
+  /** Set default language */
+  public static void setLanguage(String language){
+    Messages.language = language;
+  }
 }
 

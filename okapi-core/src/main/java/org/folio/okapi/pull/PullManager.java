@@ -41,7 +41,7 @@ public class PullManager {
   private void getRemoteUrl(Iterator<String> it,
     Handler<ExtendedAsyncResult<String>> fut) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("en", "11000")));
+      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11000")));
     } else {
       final String baseUrl = it.next();
       String url = baseUrl;

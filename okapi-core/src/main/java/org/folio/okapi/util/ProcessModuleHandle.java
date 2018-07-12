@@ -80,12 +80,12 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         logger.warn("Service returned with exit code " + p.exitValue());
-        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11500", p.exitValue())));
+        startFuture.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
       } else if (count < maxIterations) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
           id -> tryConnect(startFuture, count + 1));
       } else {
-        startFuture.handle(Future.failedFuture(messages.getMessage("en", "11501",
+        startFuture.handle(Future.failedFuture(messages.getMessage("11501",
           Integer.toString(port), res.cause().getMessage())));
       }
     });
@@ -101,7 +101,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          startFuture.handle(Future.failedFuture(messages.getMessage("en", "11502", port)));
+          startFuture.handle(Future.failedFuture(messages.getMessage("11502", port)));
         } else {
           start2(startFuture);
         }
@@ -168,7 +168,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            stopFuture.handle(Future.failedFuture(messages.getMessage("en", "11503", port)));
+            stopFuture.handle(Future.failedFuture(messages.getMessage("11503", port)));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());
