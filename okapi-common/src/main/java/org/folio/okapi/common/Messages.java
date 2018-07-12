@@ -195,7 +195,7 @@ public class Messages {
   }
   
   /** Set default language */
-  public void setLanguage(String language){
+  public static void setLanguage(String language){
     Messages.language = language;
   }
 }
