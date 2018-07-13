@@ -101,7 +101,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          startFuture.handle(Future.failedFuture(messages.getMessage("11502", port)));
+          startFuture.handle(Future.failedFuture(messages.getMessage("11502", Integer.toString(port))));
         } else {
           start2(startFuture);
         }
@@ -177,7 +177,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            stopFuture.handle(Future.failedFuture(messages.getMessage("11503", port)));
+            stopFuture.handle(Future.failedFuture(messages.getMessage("11503", Integer.toString(port))));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());
