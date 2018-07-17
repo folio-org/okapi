@@ -382,13 +382,14 @@ public class ProxyService {
     HttpClientResponse res, ProxyContext pc) {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
+      hres.headers().addAll(pc.getHandlerHeaders());
       logger.debug("relayToResponse: Reusing handler response "
         + pc.getHandlerRes() + " (instead of direct " + res.statusCode() + ")");
     } else {
       logger.debug("relayToResponse: Returning direct response " + res.statusCode());
       hres.setStatusCode(res.statusCode());
+      hres.headers().addAll(res.headers());
     }
-    hres.headers().addAll(res.headers());
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
     hres.setChunked(res.statusCode() != 204);
@@ -647,9 +648,15 @@ public class ProxyService {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
           if (mi.getRoutingEntry().getPhase() == null) {
-            // It was a real handler, remember the return code
-            pc.setHandlerRes(res.statusCode());
+            // It was a real handler, remember the response code and headers
             logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
+            pc.setHandlerRes(res.statusCode());
+            pc.getHandlerHeaders().clear().addAll(res.headers());
+            // Also pass along response headers to Post filter for logging
+            // Using filter because relayToResquest() took care of X- headers
+            res.headers().entries().stream()
+              .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
+              .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
           }
           res.pause();
           proxyR(it, pc, res, null);

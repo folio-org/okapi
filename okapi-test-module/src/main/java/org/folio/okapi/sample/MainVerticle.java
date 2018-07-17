@@ -71,7 +71,10 @@ public class MainVerticle extends AbstractVerticle {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
     }
+    // both client and Post filter should see handler response code and headers
     ctx.response().setStatusCode(200);
+    ctx.response().putHeader("X-Handler-header", "OK");
+    
     final String ctype = ctx.request().headers().get("Content-Type");
     StringBuilder xmlMsg = new StringBuilder();
     if (ctype != null && ctype.toLowerCase().contains("xml")) {
