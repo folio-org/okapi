@@ -845,7 +845,6 @@ public class ProxyService {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
           }
         }
-        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
       }
 
       ProxyType pType = mi.getRoutingEntry().getProxyType();
