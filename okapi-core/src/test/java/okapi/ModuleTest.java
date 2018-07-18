@@ -491,8 +491,8 @@ public class ModuleTest {
       .header("X-filter-pre", "202") // ask pre-filter to return 202
       .header("X-filter-post", "203") // ask post-filter to return 203
       .get("/testb")
-      .then().statusCode(200)
-      .header("X-Handler-Result-Seen", "200")
+      .then().statusCode(200) // should see handler result
+      .header("X-Handler-header", "OK") // should see handler headers
       .log().ifValidationFails()
       .body(containsString("It works"))
       .extract().headers().getValues("X-Okapi-Trace");

@@ -31,7 +31,10 @@ public class ProxyContext {
   private Timer.Context timer;
   private Long timerId;
   private final int waitMs;
-  private int handlerRes; // http result code from the actual handler
+  // store handler response status code
+  private int handlerRes;
+  // store handler response headers
+  private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
   private Messages messages = Messages.getInstance();
 
   /**
@@ -147,6 +150,10 @@ public class ProxyContext {
 
   private String getReqId() {
     return reqId;
+  }
+
+  public MultiMap getHandlerHeaders() {
+    return handlerHeaders;
   }
 
   public int getHandlerRes() {
