@@ -561,13 +561,17 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
+      Iterator<ModuleInstance> newIt;  
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        proxyResponseImmediate(pc, res, mi);
-      } else if (it.hasNext()) {
+        newIt = getNewIterator(it);
+      } else {
+        newIt = it;
+      }
+      if (newIt.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         pc.closeTimer();
         relayToRequest(res, pc, mi);
-        proxyR(it, pc, null, bcontent);
+        proxyR(newIt, pc, null, bcontent);
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
@@ -642,9 +646,13 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-        if (res.statusCode() >= 200 && res.statusCode() < 300
-        && res.getHeader(XOkapiHeaders.STOP) == null
-        && it.hasNext()) {
+        Iterator<ModuleInstance> newIt;  
+        if (res.statusCode() < 200 || res.statusCode() >= 300) {
+          newIt = getNewIterator(it);
+        } else {
+          newIt = it;
+        }
+        if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
           if (mi.getRoutingEntry().getPhase() == null) {
@@ -659,7 +667,7 @@ public class ProxyService {
               .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
           }
           res.pause();
-          proxyR(it, pc, res, null);
+          proxyR(newIt, pc, res, null);
         } else {
           proxyResponseImmediate(pc, res, mi);
         }
@@ -697,16 +705,17 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
+      Iterator<ModuleInstance> newIt;  
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        proxyResponseImmediate(pc, res, mi);
-        if (bcontent == null) {
-          stream.resume();
-        }
-      } else if (it.hasNext()) {
+        newIt = getNewIterator(it);
+      } else {
+        newIt = it;
+      }
+      if (newIt.hasNext()) {
         relayToRequest(res, pc, mi);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x
-          -> proxyR(it, pc, stream, bcontent));
+          -> proxyR(newIt, pc, stream, bcontent));
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
@@ -1129,5 +1138,15 @@ public class ProxyService {
     discoveryManager.autoUndeploy(md, pc, fut);
   }
 
+  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it) {
+    List<ModuleInstance> list = new ArrayList<>();
+    it.forEachRemaining(mi -> {
+      if (mi.getRoutingEntry().getPhase() != null) {
+        list.add(mi);
+      }
+    });
+    return list.iterator();
+  }
+  
 
 } // class
