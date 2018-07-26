@@ -110,7 +110,7 @@ public class TenantManager {
     String id = t.getId();
     tenants.get(id, gres -> {
       if (gres.succeeded()) {
-        fut.handle(new Failure<>(USER, messages.getMessage("1020", id)));
+        fut.handle(new Failure<>(USER, messages.getMessage("10400", id)));
       } else if (gres.getType() == NOT_FOUND) {
         if (tenantStore == null) { // no db, just add it to shared mem
           insert2(t, id, fut);
