@@ -502,6 +502,27 @@ public class ModuleTest {
     Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
     Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
 
+    // Make a simple GET request. All three filters including post-filter
+    // should be called even though handler returns error
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-handler-error", true) // ask sample to return 500
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .get("/testb")
+      .then().statusCode(500) // should see handler error
+      .log().ifValidationFails()
+      .body(containsString("It does not work")) // should see error content
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    // should see post-filter even though handler returns error
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+
     // Make a simple POST request. All three filters should be called
     // test-module will return 200, which should not be
     // overwritten by the pre and post-filters that returns 202 and 203
