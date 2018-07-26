@@ -71,6 +71,13 @@ public class MainVerticle extends AbstractVerticle {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
     }
+    
+    // hack to return 500 
+    if (ctx.request().headers().contains("X-Handler-error")) {
+      ctx.response().setStatusCode(500).end("It does not work");
+      return;
+    }
+    
     // both client and Post filter should see handler response code and headers
     ctx.response().setStatusCode(200);
     ctx.response().putHeader("X-Handler-header", "OK");
