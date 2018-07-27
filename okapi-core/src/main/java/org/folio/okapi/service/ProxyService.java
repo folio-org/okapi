@@ -1056,7 +1056,7 @@ public class ProxyService {
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = messages.getMessage("11001", inst.getMethod(),
+          String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));
