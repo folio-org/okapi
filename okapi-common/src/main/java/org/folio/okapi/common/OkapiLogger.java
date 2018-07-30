@@ -10,8 +10,19 @@ public class OkapiLogger {
   }
 
   public static Logger get() {
+    return get("okapi");
+  }
+
+  public static Logger get(Class<?> cl) {
     System.setProperty("vertx.logger-delegate-factory-class-name",
       "io.vertx.core.logging.SLF4JLogDelegateFactory");
-    return LoggerFactory.getLogger("okapi");
+    return LoggerFactory.getLogger(cl);
   }
+
+  public static Logger get(String name) {
+    System.setProperty("vertx.logger-delegate-factory-class-name",
+      "io.vertx.core.logging.SLF4JLogDelegateFactory");
+    return LoggerFactory.getLogger(name);
+  }
+
 }
