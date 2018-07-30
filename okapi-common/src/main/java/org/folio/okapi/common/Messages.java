@@ -1,7 +1,6 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -35,7 +34,7 @@ public class Messages {
   public static final String      DEFAULT_LANGUAGE       = "en";
   private static String           language               = DEFAULT_LANGUAGE;
 
-  private static final Logger log = LoggerFactory.getLogger(Messages.class);
+  private static final Logger log = OkapiLogger.get(Messages.class);
 
   /** messageMap.get(language).getProperty(code) is the text */
   Map<String, Properties> messageMap       = new HashMap<>();
