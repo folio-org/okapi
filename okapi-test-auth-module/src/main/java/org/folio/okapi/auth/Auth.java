@@ -142,6 +142,12 @@ class Auth {
     if (pHeader != null) {
       ctx.response().setStatusCode(Integer.parseInt(pHeader));
     }
+    
+    // Hack to test pre/post filter returns error
+    if (ctx.request().headers().contains("X-filter-" + phase + "-error")) {
+      ctx.response().setStatusCode(500);
+    }
+
     echo(ctx);
   }
 

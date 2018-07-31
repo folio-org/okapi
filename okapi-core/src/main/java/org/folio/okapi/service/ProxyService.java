@@ -385,6 +385,11 @@ public class ProxyService {
       hres.headers().addAll(pc.getHandlerHeaders());
       logger.debug("relayToResponse: Reusing handler response "
         + pc.getHandlerRes() + " (instead of direct " + res.statusCode() + ")");
+    } else if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+      hres.setStatusCode(pc.getAuthRes());
+      hres.headers().addAll(pc.getAuthHeaders());
+      logger.debug("relayToResponse: Reusing auth response "
+        + pc.getAuthRes() + " (instead of direct " + res.statusCode() + ")");
     } else {
       logger.debug("relayToResponse: Returning direct response " + res.statusCode());
       hres.setStatusCode(res.statusCode());
@@ -563,7 +568,7 @@ public class ProxyService {
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
       Iterator<ModuleInstance> newIt;  
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it);
+        newIt = getNewIterator(it, mi);
       } else {
         newIt = it;
       }
@@ -648,24 +653,14 @@ public class ProxyService {
       makeUrl(mi, ctx), res -> {
         Iterator<ModuleInstance> newIt;  
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
-          newIt = getNewIterator(it);
+          newIt = getNewIterator(it, mi);
         } else {
           newIt = it;
         }
         if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
-          if (mi.getRoutingEntry().getPhase() == null) {
-            // It was a real handler, remember the response code and headers
-            logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
-            pc.setHandlerRes(res.statusCode());
-            pc.getHandlerHeaders().clear().addAll(res.headers());
-            // Also pass along response headers to Post filter for logging
-            // Using filter because relayToResquest() took care of X- headers
-            res.headers().entries().stream()
-              .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
-              .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
-          }
+          storeResponseInfo(pc, mi, res);
           res.pause();
           proxyR(newIt, pc, res, null);
         } else {
@@ -707,12 +702,13 @@ public class ProxyService {
       makeUrl(mi, ctx), res -> {
       Iterator<ModuleInstance> newIt;  
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it);
+        newIt = getNewIterator(it, mi);
       } else {
         newIt = it;
       }
       if (newIt.hasNext()) {
         relayToRequest(res, pc, mi);
+        storeResponseInfo(pc, mi, res);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x
           -> proxyR(newIt, pc, stream, bcontent));
@@ -849,9 +845,9 @@ public class ProxyService {
         pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
         // The auth filter needs all kinds of special headers
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
-        if ("auth".equals(mi.getRoutingEntry().getPhase())) {
+        if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())) {
           authHeaders(pc.getModList(), ctx.request().headers(), pc);
-        } else if ("post".equals(mi.getRoutingEntry().getPhase())) {
+        } else if (XOkapiHeaders.FILTER_POST.equals(mi.getRoutingEntry().getPhase())) {
           // the post filter needs to know the handler result code
           if (pc.getHandlerRes() > 0) {
             String hresult = String.valueOf(pc.getHandlerRes());
@@ -859,6 +855,10 @@ public class ProxyService {
             ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
           } else {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
+          }
+          if (pc.getAuthRes() > 0) {
+            String hresult = String.valueOf(pc.getAuthRes());
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, hresult);
           }
         }
       }
@@ -1138,11 +1138,43 @@ public class ProxyService {
     discoveryManager.autoUndeploy(md, pc, fut);
   }
 
-  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it) {
+  // store Auth/Handler response, and pass header as needed
+  private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
+    String phase = mi.getRoutingEntry().getPhase();
+    boolean passHeaders = false;
+    // It was a real handler, remember the response code and headers
+    if (phase == null) {
+      logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
+      pc.setHandlerRes(res.statusCode());
+      pc.getHandlerHeaders().clear().addAll(res.headers());
+      passHeaders = true;
+    } else if (XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(phase)) {
+      logger.debug("proxyAuth: Remembering result " + res.statusCode());
+      pc.setAuthRes(res.statusCode());
+      pc.getAuthHeaders().clear().addAll(res.headers());
+      if (res.statusCode() < 200 || res.statusCode() >= 300) {
+        passHeaders = true;
+      }
+    }
+    if (passHeaders) {
+      // Pass along response headers to Post filter for logging
+      // Note: relayToResquest() already took care of X- headers
+      res.headers().entries().stream()
+        .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
+        .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
+    }
+  }
+  
+  // skip handler, but not if at pre/post filter phase
+  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi) {
+    String phase = mi.getRoutingEntry().getPhase();
+    if (XOkapiHeaders.FILTER_PRE.equals(phase) || XOkapiHeaders.FILTER_POST.equals(phase)) {
+      return it;
+    }
     List<ModuleInstance> list = new ArrayList<>();
-    it.forEachRemaining(mi -> {
-      if (mi.getRoutingEntry().getPhase() != null) {
-        list.add(mi);
+    it.forEachRemaining(m -> {
+      if (m.getRoutingEntry().getPhase() != null) {
+        list.add(m);
       }
     });
     return list.iterator();

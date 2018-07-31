@@ -31,10 +31,14 @@ public class ProxyContext {
   private Timer.Context timer;
   private Long timerId;
   private final int waitMs;
-  // store handler response status code
+  
+  // store auth filter response status code and headers
+  private int authRes;
+  private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
+  // store handler response status code and headers
   private int handlerRes;
-  // store handler response headers
   private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
+  
   private Messages messages = Messages.getInstance();
 
   /**
@@ -152,8 +156,16 @@ public class ProxyContext {
     return reqId;
   }
 
-  public MultiMap getHandlerHeaders() {
-    return handlerHeaders;
+  public int getAuthRes() {
+    return authRes;
+  }
+
+  public void setAuthRes(int authRes) {
+    this.authRes = authRes;
+  }
+
+  public MultiMap getAuthHeaders() {
+    return authHeaders;
   }
 
   public int getHandlerRes() {
@@ -162,6 +174,10 @@ public class ProxyContext {
 
   public void setHandlerRes(int handlerRes) {
     this.handlerRes = handlerRes;
+  }
+
+  public MultiMap getHandlerHeaders() {
+    return handlerHeaders;
   }
 
   /* Helpers for logging and building responses */

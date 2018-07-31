@@ -48,6 +48,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
@@ -508,9 +509,10 @@ public class ModuleTest {
     traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .header("X-handler-error", true) // ask sample to return 500
+      .header("X-all-headers", "BL") // ask sample to report all headers
       .header("X-filter-pre", "202") // ask pre-filter to return 202
       .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-handler-error", true) // ask sample to return 500
       .get("/testb")
       .then().statusCode(500) // should see handler error
       .log().ifValidationFails()
@@ -523,6 +525,33 @@ public class ModuleTest {
     // should see post-filter even though handler returns error
     Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
 
+    // Test Auth filter returns error. 
+    // Handler should be skipped, but not Pre/Post filters.
+    // Callers should see Auth filter error.
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", "bad token") // ask Auth to return error
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .get("/testb")
+      .then().statusCode(400) // should see Auth error
+      .log().ifValidationFails()
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    // should not see Handler in trace
+    Assert.assertTrue(traces.get(2).contains("GET post-f-module-1"));
+
+    // Test Pre/Post filter returns error.
+    // All phases should be seen in trace.
+    // Caller should see Handler response.
+    List<String> modTraces = Arrays.asList("GET auth-f-module-1", "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
+    testPrePostFilterError(XOkapiHeaders.FILTER_PRE, modTraces);
+    testPrePostFilterError(XOkapiHeaders.FILTER_POST, modTraces);
+    
     // Make a simple POST request. All three filters should be called
     // test-module will return 200, which should not be
     // overwritten by the pre and post-filters that returns 202 and 203
@@ -572,6 +601,25 @@ public class ModuleTest {
     //async.complete();
   }
 
+  private void testPrePostFilterError(String phase, List<String> modTraces) {
+    RestAssuredClient c = api.createRestAssured3();
+    List<String> traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-filter-" + phase + "-error", true) // ask filter to return 500
+      .get("/testb")
+      .then().statusCode(200) // caller should not see pre/post filter error
+      .log().ifValidationFails()
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    for (int i = 0, n = modTraces.size(); i < n; i++) {
+      Assert.assertTrue(traces.get(i).contains(modTraces.get(i)));
+    }
+  }
+  
   /**
    * Tests that declare one module. Declares a single module in many ways, often
    * with errors. In the end the module gets deployed and enabled for a newly

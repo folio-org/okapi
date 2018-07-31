@@ -107,6 +107,9 @@ public class XOkapiHeaders {
    * like with old-fashioned ModuleDescriptors, it may be plain 'auth')
    */
   public static final String FILTER = "X-Okapi-Filter";
+  public static final String FILTER_AUTH = "auth";
+  public static final String FILTER_PRE = "pre";
+  public static final String FILTER_POST = "post";
 
   /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
@@ -138,6 +141,12 @@ public class XOkapiHeaders {
    * Used only between Okapi and the authorization module.
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
+
+  /**
+   * X-Okapi-Auth-Result. Used for passing the HTTP result code of the auth filter
+   * to the post filter(s).
+   */
+  public static final String AUTH_RESULT = "X-Okapi-Auth-Result";
 
   /**
    * X-Okapi-Handler-Result. Used for passing the HTTP result code of the actual
