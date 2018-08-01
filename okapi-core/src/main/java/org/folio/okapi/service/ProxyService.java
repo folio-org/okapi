@@ -561,7 +561,7 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
-      Iterator<ModuleInstance> newIt;  
+      Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it);
       } else {
@@ -646,7 +646,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-        Iterator<ModuleInstance> newIt;  
+        Iterator<ModuleInstance> newIt;
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           newIt = getNewIterator(it);
         } else {
@@ -705,7 +705,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-      Iterator<ModuleInstance> newIt;  
+      Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it);
       } else {
@@ -1147,6 +1147,6 @@ public class ProxyService {
     });
     return list.iterator();
   }
-  
+
 
 } // class
