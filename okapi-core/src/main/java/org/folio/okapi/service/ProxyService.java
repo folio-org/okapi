@@ -566,7 +566,7 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
-      Iterator<ModuleInstance> newIt;  
+      Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
       } else {
@@ -651,7 +651,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-        Iterator<ModuleInstance> newIt;  
+        Iterator<ModuleInstance> newIt;
         if (res.statusCode() < 200 || res.statusCode() >= 300) {
           newIt = getNewIterator(it, mi);
         } else {
@@ -700,7 +700,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-      Iterator<ModuleInstance> newIt;  
+      Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
       } else {
@@ -1056,7 +1056,7 @@ public class ProxyService {
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
-          String msg = messages.getMessage("11001", inst.getMethod(),
+          String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           pc.warn(msg);
           fut.handle(new Failure<>(INTERNAL, msg));
@@ -1158,7 +1158,7 @@ public class ProxyService {
     }
     if (passHeaders) {
       // Pass along response headers to Post filter for logging
-      // Note: relayToResquest() already took care of X- headers
+      // Note: relayToRequest() already took care of X- headers
       res.headers().entries().stream()
         .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
         .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
@@ -1179,6 +1179,6 @@ public class ProxyService {
     });
     return list.iterator();
   }
-  
+
 
 } // class
