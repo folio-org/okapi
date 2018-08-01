@@ -661,7 +661,7 @@ public class ProxyService {
             pc.setHandlerRes(res.statusCode());
             pc.getHandlerHeaders().clear().addAll(res.headers());
             // Also pass along response headers to Post filter for logging
-            // Using filter because relayToResquest() took care of X- headers
+            // Using filter because relayToRequest() took care of X- headers
             res.headers().entries().stream()
               .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
               .forEach(e -> res.headers().add(e.getKey(), e.getValue()));

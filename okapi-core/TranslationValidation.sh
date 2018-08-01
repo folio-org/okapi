@@ -1,5 +1,5 @@
 #!/bin/bash
-# find all usages of getMessage() and check if there is coresponding transtaltion in properties file.
+# find all usages of getMessage() and check if there are corresponding translations in properties file.
 okapi_dir=$(cd ../ && pwd)
 translations=$okapi_dir'/okapi-core/src/main/resources/infra-messages/Messages_en.properties'
 
