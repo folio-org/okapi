@@ -407,7 +407,7 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
+      + "    \"type\" : \"headers\"" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -538,6 +538,7 @@ public class ModuleTest {
       .get("/testb")
       .then().statusCode(400) // should see Auth error
       .log().ifValidationFails()
+      .body(containsString("Auth.check: Bad JWT")) // should see Auth error content
       .extract().headers().getValues("X-Okapi-Trace");
     logger.debug("Filter test. Traces: " + Json.encode(traces));
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
