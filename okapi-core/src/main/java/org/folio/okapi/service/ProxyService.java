@@ -1161,7 +1161,7 @@ public class ProxyService {
       // Note: relayToRequest() already took care of X- headers
       res.headers().entries().stream()
         .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
-        .forEach(e -> res.headers().add(e.getKey(), e.getValue()));
+        .forEach(e -> pc.getCtx().request().headers().add(e.getKey(), e.getValue()));
     }
   }
   
