@@ -2479,6 +2479,7 @@ Defaults to `localhost`
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
+* `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules

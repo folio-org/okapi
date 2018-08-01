@@ -44,6 +44,7 @@ public class MainDeploy {
 
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     final Logger logger = OkapiLogger.get();
+    Messages.setLanguage(getProperty("lang", "en"));
 
     if (args.length < 1) {
       fut.handle(Future.failedFuture(messages.getMessage("10600")));
