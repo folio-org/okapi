@@ -444,6 +444,22 @@ public class ModuleTest {
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
     Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
 
+    // Test Auth filter returns error. 
+    // Caller should see Auth filter error.
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", "bad token") // ask Auth to return error
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(400) // should see Auth error
+      .log().ifValidationFails()
+      .body(containsString("Auth.check: Bad JWT")) // should see Auth error content
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertEquals(1,  traces.size()); // should be just one module in the trace
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    
     // Create pre- and post- filters
     final String docFilterModule = "{" + LS
       + "  \"id\" : \"MODULE\"," + LS
@@ -527,7 +543,7 @@ public class ModuleTest {
 
     // Test Auth filter returns error. 
     // Handler should be skipped, but not Pre/Post filters.
-    // Callers should see Auth filter error.
+    // Caller should see Auth filter error.
     c = api.createRestAssured3();
     traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
