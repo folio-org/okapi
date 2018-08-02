@@ -584,7 +584,11 @@ public class ProxyService {
           pc.closeTimer();
           pc.trace("ProxyRequestHttpClient final response buf '"
             + bcontent + "'");
-          ctx.response().end(bcontent);
+          if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+            ctx.response().end(pc.getAuthResBody());
+          } else {
+            ctx.response().end(bcontent);
+          }
         });
         res.exceptionHandler(e
           -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
@@ -858,7 +862,7 @@ public class ProxyService {
           }
           if (pc.getAuthRes() > 0) {
             String hresult = String.valueOf(pc.getAuthRes());
-            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, hresult);
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, hresult + " : " + pc.getAuthResBody().toString());
           }
         }
       }
@@ -1152,6 +1156,8 @@ public class ProxyService {
       logger.debug("proxyAuth: Remembering result " + res.statusCode());
       pc.setAuthRes(res.statusCode());
       pc.getAuthHeaders().clear().addAll(res.headers());
+      pc.setAuthResBody(Buffer.buffer());
+      res.handler(data -> pc.getAuthResBody().appendBuffer(data));
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         passHeaders = true;
       }

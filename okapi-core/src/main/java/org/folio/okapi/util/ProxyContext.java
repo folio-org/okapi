@@ -2,6 +2,7 @@ package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
@@ -32,9 +33,10 @@ public class ProxyContext {
   private Long timerId;
   private final int waitMs;
   
-  // store auth filter response status code and headers
+  // store auth filter response status code, headers, and body
   private int authRes;
   private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
+  private Buffer authResBody = Buffer.buffer();
   // store handler response status code and headers
   private int handlerRes;
   private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -166,6 +168,14 @@ public class ProxyContext {
 
   public MultiMap getAuthHeaders() {
     return authHeaders;
+  }
+
+  public Buffer getAuthResBody() {
+    return authResBody;
+  }
+
+  public void setAuthResBody(Buffer authResBody) {
+    this.authResBody = authResBody;
   }
 
   public int getHandlerRes() {
