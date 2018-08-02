@@ -707,6 +707,10 @@ public class ProxyService {
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
+        if (!newIt.hasNext() && XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(mi.getRoutingEntry().getPhase())) {
+          proxyResponseImmediate(pc, res, mi);
+          return;
+        }
       } else {
         newIt = it;
       }
