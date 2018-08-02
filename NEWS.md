@@ -1,3 +1,15 @@
+## 2.17.0 2018-08-02
+
+ * OKAPI-615 Regression with pathPattern for tenant interface
+ * OKAPI-619 Pass module HTTP response code to POST filter
+ * OKAPI-622 Remove redundant test in MultiTenantTest
+ * OKAPI-623 SQ fixes for ProcessModuleHandle
+ * OKAPI-625 ProcessModuleHandle coverage
+ * OKAPI-627 Duplicated Okapi filter header
+ * OKAPI-620 Language dependent messages (i18N)
+ * OKAPI-632 Filter phase error handling
+ * OKAPI-634 Return Auth filter error to handler
+
 ## 2.16.1 2018-07-05
 
  * OKAPI-617 Request-only pre/post filter should not change previous HTTP status code
