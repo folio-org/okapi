@@ -709,6 +709,9 @@ public class ProxyService {
         newIt = getNewIterator(it, mi);
         if (!newIt.hasNext() && XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(mi.getRoutingEntry().getPhase())) {
           proxyResponseImmediate(pc, res, mi);
+          if (bcontent == null) {
+            stream.resume();
+          }
           return;
         }
       } else {
