@@ -270,4 +270,44 @@ public class AuthModuleTest {
     });
   }
 
+  @Test
+  public void testFilterResponse(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put(XOkapiHeaders.FILTER, "pre");
+    headers.put("X-filter-pre", "404");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    cli.get("/normal", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+      cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testFilterError(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put(XOkapiHeaders.FILTER, "pre");
+    headers.put("X-filter-pre-error", "true");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    cli.get("/normal", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
+      async.complete();
+    });
+  }
+
 }
