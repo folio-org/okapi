@@ -32,7 +32,7 @@ public class Messages {
   public static final String      MESSAGES_DIR           = "messages";
   /** default language used for fall-back */
   public static final String      DEFAULT_LANGUAGE       = "en";
-  private static String           language               = DEFAULT_LANGUAGE;
+  private static String           currentLanguage        = DEFAULT_LANGUAGE;
 
   private static final Logger log = OkapiLogger.get(Messages.class);
 
@@ -161,35 +161,25 @@ public class Messages {
   /**
    * Return the message from the properties file.
    * @param code - message code
-   * @return the message, or null if not found
-   */
-
-  public String getMessage(String code) {
-    String message = getMessageSingle(language, code);
-    if (message != null) {
-      return message;
-    }
-    return getMessageSingle(DEFAULT_LANGUAGE, code);
-  }
-
-
-  /**
-   * Return the message from the properties file.
-   * @param code - message code
    * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
    * @return the message with arguments inserted
    */
 
   public String getMessage(String code, Object... messageArguments) {
-    String pattern = getMessage(code);
+    final String language = currentLanguage;
+    String pattern = getMessageSingle(language, code);
+    if (pattern == null) {
+      pattern = getMessageSingle(DEFAULT_LANGUAGE, code);
+    }
     if (pattern == null) {
       return "Error message not found: " + language + " " + code;
+    } else {
+      return MessageFormat.format(pattern, messageArguments);
     }
-    return MessageFormat.format(pattern, messageArguments);
   }
 
   /** Set default language */
   public static void setLanguage(String language){
-    Messages.language = language;
+    Messages.currentLanguage = language;
   }
 }
