@@ -484,6 +484,11 @@ public class ProxyService {
     // it will get read into a buffer somewhere.
 
     ProxyContext pc = new ProxyContext(ctx, waitMs);
+    
+    // Store request IP, timestamp, and method
+    pc.setReqIp(ctx.request().remoteAddress().host());
+    pc.setReqTimestamp(System.currentTimeMillis());
+    pc.setReqMethod(ctx.request().rawMethod());
 
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
@@ -856,21 +861,36 @@ public class ProxyService {
         pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
         // The auth filter needs all kinds of special headers
         ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
-        if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())) {
+        
+        String phase = mi.getRoutingEntry().getPhase();
+        boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
+        switch (phase) {
+        case XOkapiHeaders.FILTER_AUTH:
           authHeaders(pc.getModList(), ctx.request().headers(), pc);
-        } else if (XOkapiHeaders.FILTER_POST.equals(mi.getRoutingEntry().getPhase())) {
-          // the post filter needs to know the handler result code
+          break;
+        case XOkapiHeaders.FILTER_PRE:
+          // pass request headers and failed auth result
+          passRequestInfo(ctx, pc);
+          if (badAuth) {
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+          }
+          break;
+        case XOkapiHeaders.FILTER_POST:
+          // pass request headers and failed handler/auth result
+          passRequestInfo(ctx, pc);
           if (pc.getHandlerRes() > 0) {
             String hresult = String.valueOf(pc.getHandlerRes());
             logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
             ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
+          } else if (badAuth) {
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
           } else {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
           }
-          if (pc.getAuthRes() > 0) {
-            String hresult = String.valueOf(pc.getAuthRes());
-            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, hresult + " : " + pc.getAuthResBody().toString());
-          }
+          break;
+        default:
+          logger.error("Not supported phase: " + phase);
+          break;
         }
       }
 
@@ -907,6 +927,12 @@ public class ProxyService {
           break;
       }
     }
+  }
+  
+  private void passRequestInfo(RoutingContext ctx, ProxyContext pc) {
+    ctx.request().headers().add(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
+    ctx.request().headers().add(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
+    ctx.request().headers().add(XOkapiHeaders.REQUEST_METHOD, pc.getReqMethod());
   }
 
   private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {

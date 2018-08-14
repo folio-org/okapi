@@ -516,8 +516,35 @@ public class ModuleTest {
     logger.debug("Filter test. Traces: " + Json.encode(traces));
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
     Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
     Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
     Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("203"));
+
+    // Make a GET request with special headers to test pre/post filters can
+    // see request header IP, timestamp, and method (by returning 500) 
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-request-pre-error", true) // overrule pre-filter to return 500
+      .header("X-request-post-error", true) // overrule post-filter to return 500
+      .get("/testb")
+      .then().statusCode(200) // should see handler result
+      .header("X-Handler-header", "OK") // should see handler headers
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("500"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("500"));
 
     // Make a simple GET request. All three filters including post-filter
     // should be called even though handler returns error
@@ -565,7 +592,8 @@ public class ModuleTest {
     // Test Pre/Post filter returns error.
     // All phases should be seen in trace.
     // Caller should see Handler response.
-    List<String> modTraces = Arrays.asList("GET auth-f-module-1", "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
+    List<String> modTraces = Arrays.asList("GET auth-f-module-1",
+        "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
     testPrePostFilterError(XOkapiHeaders.FILTER_PRE, modTraces);
     testPrePostFilterError(XOkapiHeaders.FILTER_POST, modTraces);
     
@@ -634,6 +662,9 @@ public class ModuleTest {
     logger.debug("Filter test. Traces: " + Json.encode(traces));
     for (int i = 0, n = modTraces.size(); i < n; i++) {
       Assert.assertTrue(traces.get(i).contains(modTraces.get(i)));
+      if (modTraces.get(i).contains(phase)) {
+        Assert.assertTrue(traces.get(i).contains("500"));
+      }
     }
   }
   
