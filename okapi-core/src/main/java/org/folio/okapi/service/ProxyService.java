@@ -849,51 +849,10 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TOKEN, token);
       }
 
-      // Pass the X-Okapi-Filter header for filters (only)
-      // And all kind of things for the auth filter
-      ctx.request().headers().remove(XOkapiHeaders.FILTER);
-      if (mi.getRoutingEntry().getPhase() != null) {
-        String pth = mi.getRoutingEntry().getPathPattern();
-        if (pth == null) {
-          pth = mi.getRoutingEntry().getPath();
-        }
-        String filt = mi.getRoutingEntry().getPhase() + " " + pth;
-        pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
-        // The auth filter needs all kinds of special headers
-        ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
-        
-        String phase = mi.getRoutingEntry().getPhase();
-        boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
-        switch (phase) {
-        case XOkapiHeaders.FILTER_AUTH:
-          authHeaders(pc.getModList(), ctx.request().headers(), pc);
-          break;
-        case XOkapiHeaders.FILTER_PRE:
-          // pass request headers and failed auth result
-          passRequestInfo(ctx, pc);
-          if (badAuth) {
-            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
-          }
-          break;
-        case XOkapiHeaders.FILTER_POST:
-          // pass request headers and failed handler/auth result
-          passRequestInfo(ctx, pc);
-          if (pc.getHandlerRes() > 0) {
-            String hresult = String.valueOf(pc.getHandlerRes());
-            logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
-            ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
-          } else if (badAuth) {
-            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
-          } else {
-            logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
-          }
-          break;
-        default:
-          logger.error("Not supported phase: " + phase);
-          break;
-        }
-      }
+      // Pass headers for filters
+      passFilterHeaders(ctx, pc, mi);
 
+      // Do proxy work
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
@@ -924,6 +883,53 @@ public class ProxyService {
         default:
           // Should not happen
           pc.responseError(500, messages.getMessage("10110", pType, mi.getModuleDescriptor().getId()));
+          break;
+      }
+    }
+  }
+  
+  private void passFilterHeaders(RoutingContext ctx, ProxyContext pc, ModuleInstance mi) {
+    // Pass the X-Okapi-Filter header for filters (only)
+    // And all kind of things for the auth filter
+    ctx.request().headers().remove(XOkapiHeaders.FILTER);
+    if (mi.getRoutingEntry().getPhase() != null) {
+      String pth = mi.getRoutingEntry().getPathPattern();
+      if (pth == null) {
+        pth = mi.getRoutingEntry().getPath();
+      }
+      String filt = mi.getRoutingEntry().getPhase() + " " + pth;
+      pc.debug("Adding " + XOkapiHeaders.FILTER + ": " + filt);
+      // The auth filter needs all kinds of special headers
+      ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
+
+      String phase = mi.getRoutingEntry().getPhase();
+      boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
+      switch (phase) {
+        case XOkapiHeaders.FILTER_AUTH:
+          authHeaders(pc.getModList(), ctx.request().headers(), pc);
+          break;
+        case XOkapiHeaders.FILTER_PRE:
+          // pass request headers and failed auth result
+          passRequestInfo(ctx, pc);
+          if (badAuth) {
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+          }
+          break;
+        case XOkapiHeaders.FILTER_POST:
+          // pass request headers and failed handler/auth result
+          passRequestInfo(ctx, pc);
+          if (pc.getHandlerRes() > 0) {
+            String hresult = String.valueOf(pc.getHandlerRes());
+            logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
+            ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
+          } else if (badAuth) {
+            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+          } else {
+            logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
+          }
+          break;
+        default:
+          logger.error("Not supported phase: " + phase);
           break;
       }
     }
