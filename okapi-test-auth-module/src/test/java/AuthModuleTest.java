@@ -1,13 +1,14 @@
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
@@ -308,6 +309,32 @@ public class AuthModuleTest {
       cli.close();
       async.complete();
     });
+  }
+
+  @Test
+  public void testFilterRequestHeaders(TestContext context) {
+    for (String phase : Arrays.asList(XOkapiHeaders.FILTER_PRE,
+        XOkapiHeaders.FILTER_POST)) {
+      Async async = context.async();
+      HashMap<String, String> headers = new HashMap<>();
+      headers.put(XOkapiHeaders.URL, URL);
+      headers.put(XOkapiHeaders.TENANT, "my-lib");
+      headers.put(XOkapiHeaders.FILTER, phase);
+      
+      headers.put("X-request-" + phase + "-error", "true");
+      headers.put(XOkapiHeaders.REQUEST_IP, "10.0.0.1");
+      headers.put(XOkapiHeaders.REQUEST_TIMESTAMP, "123");
+      headers.put(XOkapiHeaders.REQUEST_METHOD, "GET");
+  
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+      
+      cli.get("/normal", res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        cli.close();
+        async.complete();
+      });
+    }
   }
 
 }
