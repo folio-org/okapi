@@ -117,7 +117,7 @@ public class XOkapiHeaders {
   public static final String REQUEST_IP = "X-Okapi-request-ip";
   public static final String REQUEST_TIMESTAMP = "X-Okapi-request-timestamp";
   public static final String REQUEST_METHOD = "X-Okapi-request-method";
-  
+
   /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
    * requires. Used only between Okapi and the auth complex.

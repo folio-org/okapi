@@ -484,7 +484,7 @@ public class ProxyService {
     // it will get read into a buffer somewhere.
 
     ProxyContext pc = new ProxyContext(ctx, waitMs);
-    
+
     // Store request IP, timestamp, and method
     pc.setReqIp(ctx.request().remoteAddress().host());
     pc.setReqTimestamp(System.currentTimeMillis());
@@ -887,7 +887,7 @@ public class ProxyService {
       }
     }
   }
-  
+
   private void passFilterHeaders(RoutingContext ctx, ProxyContext pc, ModuleInstance mi) {
     // Pass the X-Okapi-Filter header for filters (only)
     // And all kind of things for the auth filter
@@ -934,7 +934,7 @@ public class ProxyService {
       }
     }
   }
-  
+
   private void passRequestInfo(RoutingContext ctx, ProxyContext pc) {
     ctx.request().headers().add(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
     ctx.request().headers().add(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
@@ -1209,7 +1209,7 @@ public class ProxyService {
         .forEach(e -> pc.getCtx().request().headers().add(e.getKey(), e.getValue()));
     }
   }
-  
+
   // skip handler, but not if at pre/post filter phase
   private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi) {
     String phase = mi.getRoutingEntry().getPhase();

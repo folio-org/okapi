@@ -142,12 +142,12 @@ class Auth {
     if (pHeader != null) {
       ctx.response().setStatusCode(Integer.parseInt(pHeader));
     }
-    
+
     // Hack to test pre/post filter returns error
     if (ctx.request().headers().contains("X-filter-" + phase + "-error")) {
       ctx.response().setStatusCode(500);
     }
-    
+
     // Hack to test pre/post filter can see request headers
     if (ctx.request().headers().contains("X-request-" + phase + "-error") &&
         ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP) &&
@@ -155,7 +155,7 @@ class Auth {
         ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
       ctx.response().setStatusCode(500);
     }
-    
+
     echo(ctx);
   }
 

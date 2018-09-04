@@ -444,7 +444,7 @@ public class ModuleTest {
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
     Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
 
-    // Test Auth filter returns error. 
+    // Test Auth filter returns error.
     // Caller should see Auth filter error.
     c = api.createRestAssured3();
     traces = c.given()
@@ -459,7 +459,7 @@ public class ModuleTest {
     logger.debug("Filter test. Traces: " + Json.encode(traces));
     Assert.assertEquals(1,  traces.size()); // should be just one module in the trace
     Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
-    
+
     // Create pre- and post- filters
     final String docFilterModule = "{" + LS
       + "  \"id\" : \"MODULE\"," + LS
@@ -522,7 +522,7 @@ public class ModuleTest {
     Assert.assertTrue(traces.get(3).contains("203"));
 
     // Make a GET request with special headers to test pre/post filters can
-    // see request header IP, timestamp, and method (by returning 500) 
+    // see request header IP, timestamp, and method (by returning 500)
     c = api.createRestAssured3();
     traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -568,7 +568,7 @@ public class ModuleTest {
     // should see post-filter even though handler returns error
     Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
 
-    // Test Auth filter returns error. 
+    // Test Auth filter returns error.
     // Handler should be skipped, but not Pre/Post filters.
     // Caller should see Auth filter error.
     c = api.createRestAssured3();
@@ -596,7 +596,7 @@ public class ModuleTest {
         "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
     testPrePostFilterError(XOkapiHeaders.FILTER_PRE, modTraces);
     testPrePostFilterError(XOkapiHeaders.FILTER_POST, modTraces);
-    
+
     // Make a simple POST request. All three filters should be called
     // test-module will return 200, which should not be
     // overwritten by the pre and post-filters that returns 202 and 203
@@ -667,7 +667,7 @@ public class ModuleTest {
       }
     }
   }
-  
+
   /**
    * Tests that declare one module. Declares a single module in many ways, often
    * with errors. In the end the module gets deployed and enabled for a newly
