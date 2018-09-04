@@ -320,14 +320,14 @@ public class AuthModuleTest {
       headers.put(XOkapiHeaders.URL, URL);
       headers.put(XOkapiHeaders.TENANT, "my-lib");
       headers.put(XOkapiHeaders.FILTER, phase);
-      
+
       headers.put("X-request-" + phase + "-error", "true");
       headers.put(XOkapiHeaders.REQUEST_IP, "10.0.0.1");
       headers.put(XOkapiHeaders.REQUEST_TIMESTAMP, "123");
       headers.put(XOkapiHeaders.REQUEST_METHOD, "GET");
-  
+
       OkapiClient cli = new OkapiClient(URL, vertx, headers);
-      
+
       cli.get("/normal", res -> {
         context.assertTrue(res.failed());
         context.assertEquals(ErrorType.INTERNAL, res.getType());

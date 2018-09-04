@@ -32,12 +32,12 @@ public class ProxyContext {
   private Timer.Context timer;
   private Long timerId;
   private final int waitMs;
-  
+
   // store request IP, timestamp, and method
   private String reqIp;
   private long reqTimestamp;
   private String reqMethod;
-  
+
   // store auth filter response status code, headers, and body
   private int authRes;
   private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -45,7 +45,7 @@ public class ProxyContext {
   // store handler response status code and headers
   private int handlerRes;
   private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
-  
+
   private Messages messages = Messages.getInstance();
 
   /**
