@@ -85,8 +85,10 @@ public class ProcessModuleHandle implements ModuleHandle {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
           id -> tryConnect(startFuture, count + 1));
       } else {
-        startFuture.handle(Future.failedFuture(messages.getMessage("11501",
-          Integer.toString(port), res.cause().getMessage())));
+        this.stopProcess(res2 -> {
+          startFuture.handle(Future.failedFuture(messages.getMessage("11501",
+           Integer.toString(port), res.cause().getMessage())));
+        });
       }
     });
   }
