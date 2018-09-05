@@ -55,7 +55,7 @@ public class OkapiClientTest {
   private void myStreamHandle2(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> {
-        HttpResponse.responseText(ctx, 204).end();
+        HttpResponse.responseError(ctx, 204, "");
       });
       return;
     }

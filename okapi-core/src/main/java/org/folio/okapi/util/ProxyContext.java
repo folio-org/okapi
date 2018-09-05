@@ -255,7 +255,7 @@ public class ProxyContext {
   public void responseError(int code, String msg) {
     logResponse("okapi", msg, code);
     closeTimer();
-    HttpResponse.responseText(ctx, code).end(msg);
+    HttpResponse.responseError(ctx, code, msg);
   }
 
   public void addTraceHeaderLine(String h) {
