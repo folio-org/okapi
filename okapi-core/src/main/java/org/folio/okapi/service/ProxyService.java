@@ -168,7 +168,7 @@ public class ProxyService {
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
     final String id = req.getHeader(XOkapiHeaders.MODULE_ID);
-    pc.debug("getMods: Matching " + req.method() + " " + req.absoluteURI());
+    pc.debug("getMods: Matching " + req.method() + " " + req.uri());
 
     for (ModuleDescriptor md : enabledModules) {
       pc.debug("getMods:  looking at " + md.getId());
@@ -210,7 +210,7 @@ public class ProxyService {
 
     // Check that our pipeline has a real module in it, not just filters,
     // so that we can return a proper 404 for requests that only hit auth
-    pc.debug("Checking filters for " + req.absoluteURI());
+    pc.debug("Checking filters for " + req.uri());
     boolean found = false;
     for (ModuleInstance inst : mods) {
       pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
@@ -460,7 +460,7 @@ public class ProxyService {
   }
 
   private void log(ProxyContext pc, HttpClientRequest creq) {
-    pc.debug(creq.method().name() + " " + creq.absoluteURI());
+    pc.debug(creq.method().name() + " " + creq.uri());
     for (Map.Entry<String, String> next : creq.headers()) {
       pc.debug(" " + next.getKey() + ":" + next.getValue());
     }
