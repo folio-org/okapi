@@ -821,9 +821,12 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-
     for (TenantModuleDescriptor tm : tml) {
-      if (tmAction(tm, modsAvailable, modsEnabled, tml2, fut)) {
+      tml2.add(tm);
+    }
+
+    for (TenantModuleDescriptor tm : tml2) {
+      if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
         return;
       }
     }
@@ -834,10 +837,6 @@ public class TenantManager {
       return;
     }
 
-    tml.clear();
-    for (TenantModuleDescriptor tm : tml2) {
-      tml.add(tm);
-    }
     logger.info("installModules.returning OK");
     fut.handle(new Success<>(Boolean.TRUE));
   }
@@ -848,6 +847,11 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     String id = tm.getId();
+    ModuleId moduleId = new ModuleId(id);
+    if (!moduleId.hasSemVer()) {
+      id = moduleId.getLatest(modsAvailable.keySet());
+      tml.remove(tm);
+    }
     String action = tm.getAction();
     if ("enable".equals(action)) {
       return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
@@ -865,26 +869,15 @@ public class TenantManager {
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
-    ModuleId moduleId = new ModuleId(id);
-    if (!moduleId.hasSemVer()) {
-      id = moduleId.getLatest(modsAvailable.keySet());
-    }
     if (!modsAvailable.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, id));
       return true;
     }
     if (modsEnabled.containsKey(id)) {
-      boolean alreadyEnabled = false;
       for (TenantModuleDescriptor tm : tml) {
-        if (tm.getId().equals(id)) {
-          alreadyEnabled = true;
+        if (tm.getId().equals(id) && tm.getFrom() == null) {
+          tm.setAction("uptodate");
         }
-      }
-      if (!alreadyEnabled) {
-        TenantModuleDescriptor tmu = new TenantModuleDescriptor();
-        tmu.setAction("uptodate");
-        tmu.setId(id);
-        tml.add(tmu);
       }
     } else {
       moduleManager.addModuleDependencies(modsAvailable.get(id),
@@ -904,18 +897,14 @@ public class TenantManager {
   }
 
   private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml2,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
-    ModuleId moduleId = new ModuleId(id);
-    if (!moduleId.hasSemVer()) {
-      id = moduleId.getLatest(modsEnabled.keySet());
-    }
     if (tmUpToDate(modsEnabled, id, fut)) {
       return true;
     }
     moduleManager.removeModuleDependencies(modsAvailable.get(id),
-      modsEnabled, tml2);
+      modsEnabled, tml);
     return false;
   }
 

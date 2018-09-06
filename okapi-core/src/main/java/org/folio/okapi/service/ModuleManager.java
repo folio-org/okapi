@@ -160,7 +160,6 @@ public class ModuleManager {
   private int checkInterfaceDependency(InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
-    logger.info("checkInterfaceDependency1");
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
@@ -170,7 +169,16 @@ public class ModuleManager {
         }
       }
     }
-    logger.info("checkInterfaceDependency2");
+    for (TenantModuleDescriptor tm : tml) {
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (tm.getAction().equals("enable") && md != null) {
+        for (InterfaceDescriptor pi : md.getProvidesList()) {
+          if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+            return 0;
+          }
+        }
+      }
+    }
     ModuleDescriptor foundMd = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
@@ -242,13 +250,22 @@ public class ModuleManager {
 
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
-    TenantModuleDescriptor tm = new TenantModuleDescriptor();
-    tm.setAction("enable");
-    if (!fromModule.isEmpty()) {
-      tm.setFrom(fromModule.get(0).getId());
+    TenantModuleDescriptor t = null;
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getAction().equals("enable") && tm.getId().equals(md.getId())) {
+        t = tm;
+        break;
+      }
     }
-    tm.setId(md.getId());
-    tml.add(tm);
+    if (t == null) {
+       t = new TenantModuleDescriptor();
+       t.setAction("enable");
+       t.setId(md.getId());
+       tml.add(t);
+    }
+    if (!fromModule.isEmpty()) {
+      t.setFrom(fromModule.get(0).getId());
+    }
     return sum + 1;
   }
 
@@ -279,10 +296,19 @@ public class ModuleManager {
       }
     }
     modsEnabled.remove(md.getId());
-    TenantModuleDescriptor tm = new TenantModuleDescriptor();
-    tm.setAction("disable");
-    tm.setId(md.getId());
-    tml.add(tm);
+    TenantModuleDescriptor t = null;
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getAction().equals("disable") && tm.getId().equals(md.getId())) {
+        t = tm;
+        break;
+      }
+    }
+    if (t == null) {
+       t = new TenantModuleDescriptor();
+       t.setAction("disable");
+       t.setId(md.getId());
+       tml.add(t);
+    }
     return sum + 1;
   }
 
