@@ -170,15 +170,11 @@ public class ModuleManager {
       }
     }
     for (TenantModuleDescriptor tm : tml) {
-      if (tm.getAction().equals("enable")) {
-        ModuleDescriptor md = modsAvailable.get(tm.getId());
-        if (md != null) {
-          for (InterfaceDescriptor pi : md.getProvidesList()) {
-            if (req.getId().equals(pi.getId())) {
-              if (pi.isCompatible(req)) {
-                return 0;
-              }
-            }
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      if (tm.getAction().equals("enable") && md != null) {
+        for (InterfaceDescriptor pi : md.getProvidesList()) {
+          if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+            return 0;
           }
         }
       }
