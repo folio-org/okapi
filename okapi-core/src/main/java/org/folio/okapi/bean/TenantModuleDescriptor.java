@@ -20,7 +20,7 @@ public class TenantModuleDescriptor {
   // we really want these lowercase as they reflect the JSON property values
   // S00115: Constant names should comply with a naming convention
   @java.lang.SuppressWarnings({"squid:S00115"})
-  enum Action {
+  public enum Action {
     enable, disable, uptodate, suggest, conflict
   }
 
@@ -44,16 +44,12 @@ public class TenantModuleDescriptor {
     this.from = id;
   }
 
-  public String getAction() {
-    if (action == null) {
-      return null;
-    } else {
-      return action.name();
-    }
+  public Action getAction() {
+    return action;
   }
 
-  public void setAction(String action) {
-    this.action = Action.valueOf(action);
+  public void setAction(Action action) {
+    this.action = action;
   }
 
   public String getMessage() {
