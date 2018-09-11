@@ -38,7 +38,7 @@ public class OkapiClient {
   private int retryClosedCount;
   private int retryClosedWait;
   private Vertx vertx;
-  private Random rand = new Random();
+  private static Random rand = new Random();
 
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
