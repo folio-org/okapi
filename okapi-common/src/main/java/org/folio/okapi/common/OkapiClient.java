@@ -38,6 +38,7 @@ public class OkapiClient {
   private int retryClosedCount;
   private int retryClosedWait;
   private Vertx vertx;
+  private Random rand = new Random();
 
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
@@ -128,8 +129,7 @@ public class OkapiClient {
    * request to the modules, like the tenant interface.
    */
   public void newReqId(String path) {
-    Random r = new Random();
-    String newId = String.format("%06d", r.nextInt(1000000)) + "/" + path;
+    String newId = String.format("%06d", rand.nextInt(1000000)) + "/" + path;
     if (reqId.isEmpty()) {
       reqId = newId;
     } else {
