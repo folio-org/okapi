@@ -855,7 +855,7 @@ public class TenantManager {
     }
     Action action = tm.getAction();
     if (null == action) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
       return true;
     } else switch (action) {
       case enable:
