@@ -24,6 +24,7 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.bean.TenantModuleDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -852,16 +853,20 @@ public class TenantManager {
       id = moduleId.getLatest(modsAvailable.keySet());
       tml.remove(tm);
     }
-    String action = tm.getAction();
-    if ("enable".equals(action)) {
-      return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
-    } else if ("uptodate".equals(action)) {
-      return tmUpToDate(modsEnabled, id, fut);
-    } else if ("disable".equals(action)) {
-      return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
-    } else {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action)));
+    Action action = tm.getAction();
+    if (null == action) {
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
       return true;
+    } else switch (action) {
+      case enable:
+        return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
+      case uptodate:
+        return tmUpToDate(modsEnabled, id, fut);
+      case disable:
+        return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
+      default:
+        fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
+        return true;
     }
   }
 
@@ -876,7 +881,7 @@ public class TenantManager {
     if (modsEnabled.containsKey(id)) {
       for (TenantModuleDescriptor tm : tml) {
         if (tm.getId().equals(id) && tm.getFrom() == null) {
-          tm.setAction("uptodate");
+          tm.setAction(Action.uptodate);
         }
       }
     } else {
@@ -951,7 +956,7 @@ public class TenantManager {
         String uId = moduleId.getLatest(modsAvailable.keySet());
         if (!uId.equals(fId)) {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
-          tmd.setAction("enable");
+          tmd.setAction(Action.enable);
           tmd.setId(uId);
           logger.info("upgrade.. enable " + uId);
           tmd.setFrom(fId);
@@ -974,7 +979,7 @@ public class TenantManager {
 
     if (it.hasNext() && options.getDeploy()) {
       TenantModuleDescriptor tm = it.next();
-      if ("enable".equals(tm.getAction()) || "uptodate".equals(tm.getAction())) {
+      if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
         proxyService.autoDeploy(md, pc, res -> {
           if (res.failed()) {
@@ -1003,12 +1008,12 @@ public class TenantManager {
       ModuleDescriptor mdFrom = null;
       ModuleDescriptor mdTo = null;
       boolean purge = false;
-      if ("enable".equals(tm.getAction())) {
+      if (tm.getAction() == Action.enable) {
         if (tm.getFrom() != null) {
           mdFrom = modsAvailable.get(tm.getFrom());
         }
         mdTo = modsAvailable.get(tm.getId());
-      } else if ("disable".equals(tm.getAction())) {
+      } else if (tm.getAction() == Action.disable) {
         mdFrom = modsAvailable.get(tm.getId());
         if (options.getPurge()) {
           purge = true;
@@ -1041,10 +1046,10 @@ public class TenantManager {
     if (it.hasNext() && options.getDeploy()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = null;
-      if ("enable".equals(tm.getAction())) {
+      if (tm.getAction() == Action.enable) {
         md = modsAvailable.get(tm.getFrom());
       }
-      if ("disable".equals(tm.getAction())) {
+      if (tm.getAction() == Action.disable) {
         md = modsAvailable.get(tm.getId());
       }
       if (md != null) {

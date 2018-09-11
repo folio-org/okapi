@@ -15,6 +15,7 @@ import java.util.Map;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantModuleDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -171,7 +172,7 @@ public class ModuleManager {
     }
     for (TenantModuleDescriptor tm : tml) {
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (tm.getAction().equals("enable") && md != null) {
+      if (tm.getAction() == Action.enable && md != null) {
         for (InterfaceDescriptor pi : md.getProvidesList()) {
           if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
             return 0;
@@ -218,7 +219,7 @@ public class ModuleManager {
                 && modsEnabled.containsKey(runningmodule)) {
                 logger.info("resolveModuleConflicts remove " + runningmodule);
                 TenantModuleDescriptor tm = new TenantModuleDescriptor();
-                tm.setAction("disable");
+                tm.setAction(Action.disable);
                 tm.setId(runningmodule);
                 tml.add(tm);
                 modsEnabled.remove(runningmodule);
@@ -231,6 +232,23 @@ public class ModuleManager {
       }
     }
     return v;
+  }
+
+  private TenantModuleDescriptor addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md, Action action) {
+    TenantModuleDescriptor t = null;
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
+        t = tm;
+        break;
+      }
+    }
+    if (t == null) {
+      t = new TenantModuleDescriptor();
+      t.setAction(action);
+      t.setId(md.getId());
+      tml.add(t);
+    }
+    return t;
   }
 
   public int addModuleDependencies(ModuleDescriptor md,
@@ -250,19 +268,8 @@ public class ModuleManager {
 
     logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
-    TenantModuleDescriptor t = null;
-    for (TenantModuleDescriptor tm : tml) {
-      if (tm.getAction().equals("enable") && tm.getId().equals(md.getId())) {
-        t = tm;
-        break;
-      }
-    }
-    if (t == null) {
-       t = new TenantModuleDescriptor();
-       t.setAction("enable");
-       t.setId(md.getId());
-       tml.add(t);
-    }
+
+    TenantModuleDescriptor t = addOrReplace(tml, md, Action.enable);
     if (!fromModule.isEmpty()) {
       t.setFrom(fromModule.get(0).getId());
     }
@@ -296,19 +303,7 @@ public class ModuleManager {
       }
     }
     modsEnabled.remove(md.getId());
-    TenantModuleDescriptor t = null;
-    for (TenantModuleDescriptor tm : tml) {
-      if (tm.getAction().equals("disable") && tm.getId().equals(md.getId())) {
-        t = tm;
-        break;
-      }
-    }
-    if (t == null) {
-       t = new TenantModuleDescriptor();
-       t.setAction("disable");
-       t.setId(md.getId());
-       tml.add(t);
-    }
+    addOrReplace(tml, md, Action.disable);
     return sum + 1;
   }
 
