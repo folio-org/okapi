@@ -175,16 +175,18 @@ public class ModuleManager {
     while (it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (tm.getAction() == Action.enable && md != null) {
-        for (InterfaceDescriptor pi : md.getProvidesList()) {
-          if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
-            it.remove();
-            foundMd = md;
+      if (md != null) {
+        if (tm.getAction() == Action.enable) {
+          for (InterfaceDescriptor pi : md.getProvidesList()) {
+            if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+              it.remove();
+              foundMd = md;
+            }
           }
         }
-      }
-      if (tm.getAction() == Action.disable && md != null) {
-        tm.setAction(Action.conflict);
+        if (tm.getAction() == Action.disable) {
+          tm.setAction(Action.conflict);
+        }
       }
     }
     if (foundMd == null) {

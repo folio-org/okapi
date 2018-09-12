@@ -816,6 +816,28 @@ public class TenantManager {
     }); // tenant
   }
 
+  private TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
+    List<TenantModuleDescriptor> tml) {
+
+    Iterator<TenantModuleDescriptor> it = tml.iterator();
+    TenantModuleDescriptor tm = null;
+    while (it.hasNext()) {
+      tm = it.next();
+      Action action = tm.getAction();
+      String id = tm.getId();
+      if (action == Action.enable && !modsEnabled.containsKey(id)) {
+        return tm;
+      }
+      if (action == Action.disable && modsEnabled.containsKey(id)) {
+        return tm;
+      }
+      if (action == Action.conflict) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   private void installCheckDependencies(Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml,
@@ -843,23 +865,7 @@ public class TenantManager {
       }
     }
     while (true) {
-      Iterator<TenantModuleDescriptor> it = tml.iterator();
-      TenantModuleDescriptor tm = null;
-      while (it.hasNext()) {
-        tm = it.next();
-        Action action = tm.getAction();
-        String id = tm.getId();
-        if (action == Action.enable && !modsEnabled.containsKey(id)) {
-          break;
-        }
-        if (action == Action.disable && modsEnabled.containsKey(id)) {
-          break;
-        }
-        tm = null;
-        if (action == Action.conflict) {
-          break;
-        }
-      }
+      TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
       if (tm == null) {
         break;
       }
@@ -890,11 +896,11 @@ public class TenantManager {
       return true;
     } else switch (action) {
       case enable:
-        return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
+        return tmEnable(id, modsAvailable, modsEnabled, tml);
       case uptodate:
         return false;
       case disable:
-        return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
+        return tmDisable(id, modsAvailable, modsEnabled, tml);
       default:
         fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
         return true;
@@ -902,8 +908,7 @@ public class TenantManager {
   }
 
   private boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
     moduleManager.addModuleDependencies(modsAvailable.get(id),
       modsAvailable, modsEnabled, tml);
@@ -911,8 +916,7 @@ public class TenantManager {
   }
 
   private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
 
     moduleManager.removeModuleDependencies(modsAvailable.get(id),
       modsEnabled, tml);
