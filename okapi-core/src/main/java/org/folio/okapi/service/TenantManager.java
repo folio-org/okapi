@@ -821,16 +821,62 @@ public class TenantManager {
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
+    for (TenantModuleDescriptor tm : tml) {
+      String id = tm.getId();
+      ModuleId moduleId = new ModuleId(id);
+      if (!moduleId.hasSemVer()) {
+        id = moduleId.getLatest(modsAvailable.keySet());
+        tm.setId(id);
+      }
+      if (modsEnabled.containsKey(id) && tm.getAction() == Action.enable) {
+        tm.setAction(Action.uptodate);
+      }
+      if (!modsEnabled.containsKey(id) && tm.getAction() == Action.disable) {
+        fut.handle(new Failure<>(NOT_FOUND, id));
+        return;
+      }
+    }
+    while (true) {
+      logger.info("install loop outer sz=" + tml.size());
+      Iterator<TenantModuleDescriptor> it = tml.iterator();
+      TenantModuleDescriptor tm = null;
+      while (it.hasNext()) {
+        tm = it.next();
+        Action action = tm.getAction();
+        String id = tm.getId();
+        logger.info("install loop inner id=" + id + " action=" + action.name());
+        if (action == Action.enable && !modsEnabled.containsKey(id)) {
+          logger.info("  inner match enable");
+          break;
+        }
+        if (action == Action.disable && modsEnabled.containsKey(id)) {
+          logger.info("  inner match disable");
+          break;
+        }
+        tm = null;
+        if (action == Action.conflict) {
+          logger.info("  inner match conflict");
+          break;
+        }
+      }
+      if (tm == null) {
+        break;
+      }
+      if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
+        return;
+      }
+    }
+/*
     List<TenantModuleDescriptor> tml2 = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       tml2.add(tm);
     }
-
     for (TenantModuleDescriptor tm : tml2) {
       if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
         return;
       }
     }
+    */
     String s = moduleManager.checkAllDependencies(modsEnabled);
     if (!s.isEmpty()) {
       logger.warn("installModules.checkAllDependencies: " + s);
@@ -848,11 +894,6 @@ public class TenantManager {
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     String id = tm.getId();
-    ModuleId moduleId = new ModuleId(id);
-    if (!moduleId.hasSemVer()) {
-      id = moduleId.getLatest(modsAvailable.keySet());
-      tml.remove(tm);
-    }
     Action action = tm.getAction();
     if (null == action) {
       fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
@@ -878,16 +919,8 @@ public class TenantManager {
       fut.handle(new Failure<>(NOT_FOUND, id));
       return true;
     }
-    if (modsEnabled.containsKey(id)) {
-      for (TenantModuleDescriptor tm : tml) {
-        if (tm.getId().equals(id) && tm.getFrom() == null) {
-          tm.setAction(Action.uptodate);
-        }
-      }
-    } else {
-      moduleManager.addModuleDependencies(modsAvailable.get(id),
-        modsAvailable, modsEnabled, tml);
-    }
+    moduleManager.addModuleDependencies(modsAvailable.get(id),
+      modsAvailable, modsEnabled, tml);
     return false;
   }
 
@@ -905,9 +938,11 @@ public class TenantManager {
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
+    logger.info("tmDisable id=" + id);
     if (tmUpToDate(modsEnabled, id, fut)) {
       return true;
     }
+    logger.info("OK !!!");
     moduleManager.removeModuleDependencies(modsAvailable.get(id),
       modsEnabled, tml);
     return false;
