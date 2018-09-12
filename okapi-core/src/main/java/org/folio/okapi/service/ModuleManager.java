@@ -170,23 +170,33 @@ public class ModuleManager {
         }
       }
     }
-    for (TenantModuleDescriptor tm : tml) {
+    ModuleDescriptor foundMd = null;
+    Iterator<TenantModuleDescriptor> it = tml.iterator();
+    while (it.hasNext()) {
+      TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (tm.getAction() == Action.enable && md != null) {
-        for (InterfaceDescriptor pi : md.getProvidesList()) {
-          if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
-            return 0;
+      if (md != null) {
+        if (tm.getAction() == Action.enable) {
+          for (InterfaceDescriptor pi : md.getProvidesList()) {
+            if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+              it.remove();
+              foundMd = md;
+            }
           }
+        }
+        if (tm.getAction() == Action.disable) {
+          tm.setAction(Action.conflict);
         }
       }
     }
-    ModuleDescriptor foundMd = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
-      for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (req.getId().equals(pi.getId()) && pi.isCompatible(req)
-          && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
-          foundMd = md;
+    if (foundMd == null) {
+      for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
+        ModuleDescriptor md = entry.getValue();
+        for (InterfaceDescriptor pi : md.getProvidesList()) {
+          if (req.getId().equals(pi.getId()) && pi.isCompatible(req)
+            && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
+            foundMd = md;
+          }
         }
       }
     }
@@ -235,19 +245,17 @@ public class ModuleManager {
   }
 
   private TenantModuleDescriptor addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md, Action action) {
-    TenantModuleDescriptor t = null;
-    for (TenantModuleDescriptor tm : tml) {
+    Iterator<TenantModuleDescriptor> it = tml.iterator();
+    while (it.hasNext()) {
+      TenantModuleDescriptor tm = it.next();
       if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
-        t = tm;
-        break;
+        it.remove();
       }
     }
-    if (t == null) {
-      t = new TenantModuleDescriptor();
-      t.setAction(action);
-      t.setId(md.getId());
-      tml.add(t);
-    }
+    TenantModuleDescriptor t = new TenantModuleDescriptor();
+    t.setAction(action);
+    t.setId(md.getId());
+    tml.add(t);
     return t;
   }
 
