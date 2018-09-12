@@ -24,6 +24,8 @@ import static org.folio.okapi.common.ErrorType.*;
  *
  * @author heikki
  */
+// S2245: Using pseudorandom number generators (PRNGs) is security-sensitive
+@java.lang.SuppressWarnings({"squid:S2245"})
 public class OkapiClient {
 
   private final Logger logger = OkapiLogger.get();
