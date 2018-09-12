@@ -56,7 +56,8 @@ import org.folio.okapi.common.Messages;
  */
 // S1168: Empty arrays and collections should be returned instead of null
 // S1192: String literals should not be duplicated
-@java.lang.SuppressWarnings({"squid:S1168", "squid:S1192"})
+// S2245: Using pseudorandom number generators (PRNGs) is security-sensitive
+@java.lang.SuppressWarnings({"squid:S1168", "squid:S1192", "squid:S2245"})
 public class ProxyService {
 
   private final Logger logger = OkapiLogger.get();
@@ -68,7 +69,8 @@ public class ProxyService {
   private final String okapiUrl;
   private final Vertx vertx;
   private final HttpClient httpClient;
-  private final Random random;
+  // for load balancing, so security is not an issue
+  private static Random random = new Random();
   private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private Messages messages = Messages.getInstance();
@@ -82,7 +84,6 @@ public class ProxyService {
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
     this.waitMs = waitMs;
-    this.random = new Random();
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = vertx.createHttpClient(opt);
