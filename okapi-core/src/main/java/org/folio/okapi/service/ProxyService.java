@@ -1067,7 +1067,7 @@ public class ProxyService {
       }
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(USER, messages.getMessage("11000",
+        fut.handle(new Failure<>(USER, messages.getMessage("11100",
           inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
