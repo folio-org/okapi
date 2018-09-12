@@ -1,3 +1,13 @@
+## 2.17.1 2018-09-12
+
+ * OKAPI-636 Fix deployment leave a process behind if can not connect to port
+ * OKAPI-636 Upgrade to Vert.x 3.5.3
+ * OKAPI-635 Return Auth filter error to caller wo relying on pre/post filter
+ * OKAPI-639 Pass request IP, timestamp and methjod to pre/post filter
+ * OKAPI-641 Fix install: moduels order affects dependency resolution
+ * OKAPI-643 Fix exception with queries with double-quotes
+ * OKAPI-645 Fix wrong error code used in proxy service
+
 ## 2.17.0 2018-08-02
 
  * OKAPI-615 Regression with pathPattern for tenant interface
