@@ -1,3 +1,6 @@
+## 2.17.2 2018-09-13
+ * OKAPI-646 Fix regression install and interface type multiple
+
 ## 2.17.1 2018-09-12
 
  * OKAPI-636 Fix deployment leave a process behind if can not connect to port
