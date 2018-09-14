@@ -1,3 +1,6 @@
+## 2.17.3 2018-09-14
+ * OKAPI-647 Fix Tight loop in module dependency resolution
+
 ## 2.17.2 2018-09-13
  * OKAPI-646 Fix regression install and interface type multiple
 
