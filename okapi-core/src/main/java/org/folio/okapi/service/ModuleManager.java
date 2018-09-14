@@ -165,7 +165,7 @@ public class ModuleManager {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (req.getId().equals(pi.getId()) && pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.debug("Dependency OK");
+          logger.info("Dependency OK already enabled id=" + md.getId());
           return 0;
         }
       }
@@ -180,6 +180,7 @@ public class ModuleManager {
           for (InterfaceDescriptor pi : md.getProvidesList()) {
             if (req.getId().equals(pi.getId()) && pi.isRegularHandler() && pi.isCompatible(req)) {
               it.remove();
+              logger.info("Dependency OK for existing enable id=" + md.getId());
               foundMd = md;
             }
           }
@@ -208,6 +209,8 @@ public class ModuleManager {
 
   private int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
+
+
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
     while (it.hasNext()) {
@@ -215,9 +218,8 @@ public class ModuleManager {
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
       if (md.getProduct().equals(rm.getProduct())) {
         logger.info("resolveModuleConflicts from " + runningmodule);
+        it.remove();
         fromModule.add(rm);
-        modsEnabled.remove(runningmodule);
-        it = modsEnabled.keySet().iterator();
         v++;
       } else {
         for (InterfaceDescriptor pi : rm.getProvidesList()) {
@@ -232,8 +234,7 @@ public class ModuleManager {
                 tm.setAction(Action.disable);
                 tm.setId(runningmodule);
                 tml.add(tm);
-                modsEnabled.remove(runningmodule);
-                it = modsEnabled.keySet().iterator();
+                it.remove();
                 v++;
               }
             }
@@ -274,9 +275,21 @@ public class ModuleManager {
     List<ModuleDescriptor> fromModule = new LinkedList<>();
     sum += resolveModuleConflicts(md, modsEnabled, tml, fromModule);
 
-    logger.info("addModuleDependencies - add " + md.getId());
     modsEnabled.put(md.getId(), md);
 
+    if (!fromModule.isEmpty()) {
+      ModuleDescriptor fm = fromModule.get(0);
+
+      Iterator<TenantModuleDescriptor> it = tml.iterator();
+      while (it.hasNext()) {
+        TenantModuleDescriptor tm = it.next();
+        if (tm.getAction() == Action.enable && tm.getId().equals(fm.getId())) {
+          logger.info("resolveConflict .. patch id=" + md.getId());
+          tm.setId(md.getId());
+          return sum + 1;
+        }
+      }
+    }
     TenantModuleDescriptor t = addOrReplace(tml, md, Action.enable);
     if (!fromModule.isEmpty()) {
       t.setFrom(fromModule.get(0).getId());
