@@ -825,16 +825,21 @@ public class TenantManager {
       tm = it.next();
       Action action = tm.getAction();
       String id = tm.getId();
+      logger.info("getNextTM: loop id=" + id + " action=" + action.name());
       if (action == Action.enable && !modsEnabled.containsKey(id)) {
+        logger.info("getNextMT: return tm for action=enable");
         return tm;
       }
       if (action == Action.disable && modsEnabled.containsKey(id)) {
+        logger.info("getNextTM: return tm for action=disable");
         return tm;
       }
       if (action == Action.conflict) {
+        logger.info("getNextTM: return null on conflict");
         return null;
       }
     }
+    logger.info("getNextTM done null");
     return null;
   }
 
@@ -864,7 +869,8 @@ public class TenantManager {
         return;
       }
     }
-    while (true) {
+    for (int i = 0; i < 10; i++) {
+      logger.info("outer loop i=" + i + " tml.size=" + tml.size());
       TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
       if (tm == null) {
         break;
