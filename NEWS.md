@@ -1,3 +1,6 @@
+## 2.17.4 2018-09-18
+ * OKAPI-648 Fix Okapi dedendency resolution omits req interfaces
+
 ## 2.17.3 2018-09-14
  * OKAPI-647 Fix Tight loop in module dependency resolution
 
