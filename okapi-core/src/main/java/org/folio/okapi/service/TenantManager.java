@@ -869,7 +869,8 @@ public class TenantManager {
         return;
       }
     }
-    for (int i = 0; i < 10; i++) {
+    final int lim = tml.size();
+    for (int i = 0; i <= lim; i++) {
       logger.info("outer loop i=" + i + " tml.size=" + tml.size());
       TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
       if (tm == null) {
