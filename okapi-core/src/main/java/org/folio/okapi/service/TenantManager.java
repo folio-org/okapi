@@ -816,120 +816,6 @@ public class TenantManager {
     }); // tenant
   }
 
-  private TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
-    Iterator<TenantModuleDescriptor> it = tml.iterator();
-    TenantModuleDescriptor tm = null;
-    while (it.hasNext()) {
-      tm = it.next();
-      Action action = tm.getAction();
-      String id = tm.getId();
-      logger.info("getNextTM: loop id=" + id + " action=" + action.name());
-      if (action == Action.enable && !modsEnabled.containsKey(id)) {
-        logger.info("getNextMT: return tm for action=enable");
-        return tm;
-      }
-      if (action == Action.disable && modsEnabled.containsKey(id)) {
-        logger.info("getNextTM: return tm for action=disable");
-        return tm;
-      }
-      if (action == Action.conflict) {
-        logger.info("getNextTM: return null on conflict");
-        return null;
-      }
-    }
-    logger.info("getNextTM done null");
-    return null;
-  }
-
-  private void installCheckDependencies(Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
-    for (TenantModuleDescriptor tm : tml) {
-      String id = tm.getId();
-      ModuleId moduleId = new ModuleId(id);
-      if (!moduleId.hasSemVer()) {
-        id = moduleId.getLatest(modsAvailable.keySet());
-        tm.setId(id);
-      }
-      if (tm.getAction() == Action.enable) {
-        if (!modsAvailable.containsKey(id)) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return;
-        }
-        if (modsEnabled.containsKey(id)) {
-          tm.setAction(Action.uptodate);
-        }
-      }
-      if (tm.getAction() == Action.disable && !modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return;
-      }
-    }
-    final int lim = tml.size();
-    for (int i = 0; i <= lim; i++) {
-      logger.info("outer loop i=" + i + " tml.size=" + tml.size());
-      TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
-      if (tm == null) {
-        break;
-      }
-      if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
-        return;
-      }
-    }
-    String s = moduleManager.checkAllDependencies(modsEnabled);
-    if (!s.isEmpty()) {
-      logger.warn("installModules.checkAllDependencies: " + s);
-      fut.handle(new Failure<>(USER, s));
-      return;
-    }
-
-    logger.info("installModules.returning OK");
-    fut.handle(new Success<>(Boolean.TRUE));
-  }
-
-  private boolean tmAction(TenantModuleDescriptor tm,
-    Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
-    String id = tm.getId();
-    Action action = tm.getAction();
-    if (null == action) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
-      return true;
-    } else switch (action) {
-      case enable:
-        return tmEnable(id, modsAvailable, modsEnabled, tml);
-      case uptodate:
-        return false;
-      case disable:
-        return tmDisable(id, modsAvailable, modsEnabled, tml);
-      default:
-        fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
-        return true;
-    }
-  }
-
-  private boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-
-    moduleManager.addModuleDependencies(modsAvailable.get(id),
-      modsAvailable, modsEnabled, tml);
-    return false;
-  }
-
-  private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-
-    moduleManager.removeModuleDependencies(modsAvailable.get(id),
-      modsEnabled, tml);
-    return false;
-  }
-
   public void installUpgradeModules(String tenantId, ProxyContext pc,
     TenantInstallOptions options, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
@@ -1101,7 +987,7 @@ public class TenantManager {
     Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
 
-    installCheckDependencies(modsAvailable, modsEnabled, tml, res -> {
+    moduleManager.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;

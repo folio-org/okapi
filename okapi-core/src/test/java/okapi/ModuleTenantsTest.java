@@ -1375,8 +1375,8 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
   }
 
-   @Test
-  public void test5() {
+  @Test
+  public void test641() {
     final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
@@ -1674,7 +1674,7 @@ public class ModuleTenantsTest {
   }
 
   @Test
-  public void test6() {
+  public void test647() {
     final String okapiTenant = "roskilde";
     RestAssured.port = port;
     RestAssuredClient c;
@@ -1738,6 +1738,36 @@ public class ModuleTenantsTest {
       .body(docProv2)
       .post("/_/proxy/modules")
       .then().statusCode(201).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"prov-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"prov-2.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"prov-2.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"prov-2.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"prov-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200)
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"prov-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
