@@ -164,7 +164,7 @@ public class ModuleManager {
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (req.getId().equals(pi.getId()) && pi.isRegularHandler() && pi.isCompatible(req)) {
+        if (pi.isRegularHandler() && pi.isCompatible(req)) {
           logger.info("Dependency OK already enabled id=" + md.getId());
           return 0;
         }
@@ -178,15 +178,12 @@ public class ModuleManager {
       if (md != null) {
         if (tm.getAction() == Action.enable) {
           for (InterfaceDescriptor pi : md.getProvidesList()) {
-            if (req.getId().equals(pi.getId()) && pi.isRegularHandler() && pi.isCompatible(req)) {
+            if (pi.isRegularHandler() && pi.isCompatible(req)) {
               it.remove();
               logger.info("Dependency OK for existing enable id=" + md.getId());
               foundMd = md;
             }
           }
-        }
-        if (tm.getAction() == Action.disable) {
-          tm.setAction(Action.conflict);
         }
       }
     }
@@ -194,7 +191,7 @@ public class ModuleManager {
       for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
         ModuleDescriptor md = entry.getValue();
         for (InterfaceDescriptor pi : md.getProvidesList()) {
-          if (req.getId().equals(pi.getId()) && pi.isRegularHandler() && pi.isCompatible(req)
+          if (pi.isRegularHandler() && pi.isCompatible(req)
             && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
             foundMd = md;
           }
