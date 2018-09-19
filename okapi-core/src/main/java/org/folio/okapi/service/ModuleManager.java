@@ -277,47 +277,72 @@ public class ModuleManager {
   private int checkInterfaceDependency(InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
-    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+
+    // check if already enabled
+    if (checkInterfaceDepAlreadyEnabled(modsEnabled, req)) {
+      return 0;
+    }
+    // check if mentioned already in other install action
+    ModuleDescriptor foundMd = checkInterfaceDepOtherInstall(tml, modsAvailable, req);
+    if (foundMd != null) {
+      return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
+    }
+    // see if we can find it in available modules
+    foundMd = checkInterfaceDepAvailable(modsAvailable, req);
+    if (foundMd != null) {
+      return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
+    }
+    return -1;
+  }
+
+  private ModuleDescriptor checkInterfaceDepAvailable(Map<String, ModuleDescriptor> modsAvailable,
+    InterfaceDescriptor req) {
+
+    ModuleDescriptor foundMd = null;
+    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.info("Dependency OK already enabled id=" + md.getId());
-          return 0;
+        if (pi.isRegularHandler() && pi.isCompatible(req)
+          && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
+          foundMd = md;
         }
       }
     }
+    return foundMd;
+  }
+
+  private ModuleDescriptor checkInterfaceDepOtherInstall(List<TenantModuleDescriptor> tml,
+    Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
+
     ModuleDescriptor foundMd = null;
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     while (it.hasNext()) {
       TenantModuleDescriptor tm = it.next();
       ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (md != null) {
-        if (tm.getAction() == Action.enable) {
-          for (InterfaceDescriptor pi : md.getProvidesList()) {
-            if (pi.isRegularHandler() && pi.isCompatible(req)) {
-              it.remove();
-              logger.info("Dependency OK for existing enable id=" + md.getId());
-              foundMd = md;
-            }
-          }
-        }
-      }
-    }
-    if (foundMd == null) {
-      for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-        ModuleDescriptor md = entry.getValue();
+      if (md != null && tm.getAction() == Action.enable) {
         for (InterfaceDescriptor pi : md.getProvidesList()) {
-          if (pi.isRegularHandler() && pi.isCompatible(req)
-            && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
+          if (pi.isRegularHandler() && pi.isCompatible(req)) {
+            it.remove();
+            logger.info("Dependency OK for existing enable id=" + md.getId());
             foundMd = md;
           }
         }
       }
     }
-    if (foundMd == null) {
-      return -1;
+    return foundMd;
+  }
+
+  private boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
+    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
+        if (pi.isRegularHandler() && pi.isCompatible(req)) {
+          logger.info("Dependency OK already enabled id=" + md.getId());
+          return true;
+        }
+      }
     }
-    return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
+    return false;
   }
 
   private int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
@@ -402,7 +427,6 @@ public class ModuleManager {
     sum += resolveModuleConflicts(md, modsEnabled, tml, fromModule);
 
     modsEnabled.put(md.getId(), md);
-    ModuleDescriptor fm = null;
     addOrReplace(tml, md, Action.enable, fromModule.isEmpty() ? null : fromModule.get(0));
     return sum + 1;
   }
