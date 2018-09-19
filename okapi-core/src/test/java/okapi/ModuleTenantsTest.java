@@ -1752,9 +1752,6 @@ public class ModuleTenantsTest {
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"prov-2.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
-        + "  \"id\" : \"prov-2.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -1768,9 +1765,6 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"prov-1.0.0\"," + LS
-        + "  \"action\" : \"enable\"" + LS
-        + "}, {" + LS
         + "  \"id\" : \"prov-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
