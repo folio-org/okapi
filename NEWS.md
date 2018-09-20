@@ -1,3 +1,7 @@
+## 2.18.0 unreleased
+
+ * OKAPI-653 Document that X-Okapi-Url may end with a path
+
 ## 2.17.0 2018-08-02
 
  * OKAPI-615 Regression with pathPattern for tenant interface
