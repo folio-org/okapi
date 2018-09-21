@@ -1,3 +1,6 @@
+## 2.17.5 2018-09-21
+ * OKAPI-654 Set chunked based on server not client response
+
 ## 2.17.4 2018-09-18
  * OKAPI-648 Fix Okapi dedendency resolution omits req interfaces
 
