@@ -119,6 +119,11 @@ public class XOkapiHeaders {
   public static final String REQUEST_METHOD = "X-Okapi-request-method";
 
   /**
+   * X-Okapi-Match-Path-Pattern. Path pattern that has matched when invoking a handler
+   */
+  public static final String MATCH_PATH_PATTERN = "X-Okapi-Match-Path-Pattern";
+
+  /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
    * requires. Used only between Okapi and the auth complex.
    */
