@@ -398,7 +398,7 @@ public class ProxyService {
     }
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
-    hres.setChunked(res.statusCode() != 204);
+    hres.setChunked(hres.getStatusCode() != 204);
   }
 
   /**
@@ -861,6 +861,10 @@ public class ProxyService {
           + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getPath()
           + " url " + mi.getUrl());
+      }
+      final String pathPattern = mi.getRoutingEntry().getPathPattern();
+      if (pathPattern != null) {
+        ctx.request().headers().add(XOkapiHeaders.MATCH_PATH_PATTERN, pathPattern);
       }
       switch (pType) {
         case REQUEST_ONLY:
