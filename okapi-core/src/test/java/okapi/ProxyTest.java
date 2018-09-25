@@ -33,6 +33,7 @@ public class ProxyTest {
   private final int port = 9230;
 
   private static RamlDefinition api;
+
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
@@ -66,7 +67,7 @@ public class ProxyTest {
       });
     }).end();
   }
-  
+
   @Test
   public void test1(TestContext context) {
     RestAssuredClient c;
@@ -135,7 +136,7 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationBasic_1_0_0 = r.getHeader("Location");
-    
+
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
@@ -182,6 +183,168 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/testb/client_id/x")
       .then().statusCode(404).log().ifValidationFails();
- 
+
+  }
+
+  @Test
+  public void testAuthOverride(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String okapiTenant = "roskilde";
+
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-module-1.0.0\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"headers\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docBasic_1_0_0 = "{" + LS
+      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\"]," + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"auth-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"auth-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    final String okapiToken = c.given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B")
+      .get("/testb/hugo")
+      .then().statusCode(401).log().ifValidationFails();
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("X-Okapi-Token", okapiToken)
+      .get("/testb/hugo")
+      .then().statusCode(200).log().ifValidationFails()
+      .extract().response();
+    Assert.assertEquals("It works", r.getBody().asString());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("X-all-headers", "B")
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-Okapi-Auth-Override", "dummyJwt")
+      .get("/testb/hugo")
+      .then().statusCode(200).log().ifValidationFails()
+      .extract().response();
+    String b = r.getBody().asString();
+    Assert.assertTrue(b.contains("It works"));
+    // test module must NOT receive the X-Okapi-Auth-Override header
+    Assert.assertTrue(!b.contains("X-Okapi-Auth-Override"));
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("X-all-headers", "B")
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-Okapi-Auth-Override", "nomatch")
+      .get("/testb/hugo")
+      .then().statusCode(400).log().ifValidationFails();
   }
 }

@@ -211,6 +211,12 @@ class Auth {
         responseError(ctx, 400, "Bad Json payload " + payload);
         return;
       }
+      final String ovTok = ctx.request().getHeader(XOkapiHeaders.AUTH_OVERRIDE);
+      logger.info("ovTok=" + ovTok);
+      if (ovTok != null && !"dummyJwt".equals(ovTok)) {
+        responseError(ctx, 400, "Bad override token: " + ovTok);
+        return;
+      }
     }
 
     // Fail a call to /_/tenant that requires permissions (Okapi-538)

@@ -29,6 +29,11 @@ public class XOkapiHeaders {
    */
   public static final String TOKEN = "X-Okapi-Token";
 
+  /** X-Auth-Auth-Override. A token that identifies allows auth
+   * to give privilege on behalf as other user (sudo)
+   */
+  public static final String AUTH_OVERRIDE = "X-Okapi-Auth-Override";
+
   /**
    * Authorization. Used for carrying the same token as in X-Okapi-Token, using
    * the "Bearer" schema (to distinguish it from HTTP Basic auth), for example:

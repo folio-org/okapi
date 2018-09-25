@@ -897,7 +897,12 @@ public class ProxyService {
     // Pass the X-Okapi-Filter header for filters (only)
     // And all kind of things for the auth filter
     ctx.request().headers().remove(XOkapiHeaders.FILTER);
-    if (mi.getRoutingEntry().getPhase() != null) {
+
+    final String phase = mi.getRoutingEntry().getPhase();
+    if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
+      ctx.request().headers().remove(XOkapiHeaders.AUTH_OVERRIDE);
+    }
+    if (phase != null) {
       String pth = mi.getRoutingEntry().getPathPattern();
       if (pth == null) {
         pth = mi.getRoutingEntry().getPath();
@@ -907,7 +912,6 @@ public class ProxyService {
       // The auth filter needs all kinds of special headers
       ctx.request().headers().add(XOkapiHeaders.FILTER, filt);
 
-      String phase = mi.getRoutingEntry().getPhase();
       boolean badAuth = pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300);
       switch (phase) {
         case XOkapiHeaders.FILTER_AUTH:
