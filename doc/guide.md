@@ -2486,6 +2486,7 @@ system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 as X-Okapi-Url header, and the modules can use this to make further requests
 to Okapi. Defaults to `http://localhost:9130` or what ever port specified. There
 should be no trailing slash, but if there happens to be one, Okapi will remove it.
+Note that it may end with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
 `http://localhost:4243`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
@@ -2865,6 +2866,9 @@ and some permissions.
 * `X-Okapi-Url` The base URL of the Okapi installation. For example
 http://localhost:9130. This can also point to a load balancer in front to Okapi,
 all you need to know is to use this when making further requests to other modules.
+The base URL can end with a path like `https://folio.example.com/okapi` to
+ensure that hostname and port match those of the frontend URL
+`https://folio.example.com` avoiding preflight CORS HTTP OPTIONS requests.
 * `X-Okapi-Request-Id` The Id of the current request, for example
 "821257/user;744931/perms", which tells that this was request 821257 to `/users/...`
 which made a request 744931 to `/perms/...` The numbers are just random, picked
