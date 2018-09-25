@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -27,6 +28,7 @@ public class SampleModuleTest {
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = OkapiLogger.get();
   private final String pidFilename = "sample-module.pid";
+  private static final String LS = System.lineSeparator();
 
   @Before
   public void setUp(TestContext context) {
@@ -134,20 +136,47 @@ public class SampleModuleTest {
   }
 
   @Test
+  public void test500(TestContext context) {
+    Async async = context.async();
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put("X-Handler-error", "true");
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.get("/testb", res -> {
+      cli.close();
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testAllHeaders(TestContext context) {
     Async async = context.async();
 
     HashMap<String, String> headers = new HashMap<>();
 
-    headers.put("X-all-headers", "HB");
+    headers.put("X-all-headers", "HBL");
     headers.put("X-delay", "2");
+    headers.put("X-my-header", "my");
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put(XOkapiHeaders.MATCH_PATH_PATTERN, "/testb");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.enableInfoLog();
-    cli.get("/testb", res -> {
+    cli.get("/testb?q=a", res -> {
       context.assertTrue(res.succeeded());
+      context.assertEquals(
+        "It worksmy X-delay:2" + LS
+     + " X-Okapi-Url:http://localhost:9230" + LS
+     + " X-all-headers:HBL" + LS
+     + " X-Okapi-Match-Path-Pattern:/testb" + LS
+     + " X-my-header:my" + LS
+     + " X-Okapi-Tenant:my-lib" + LS
+     + " Content-Length:0" + LS
+     + " Host:localhost:9230" + LS
+     + " X-Url-Params:q=a" + LS,
+        cli.getResponsebody());
       async.complete();
     });
   }
