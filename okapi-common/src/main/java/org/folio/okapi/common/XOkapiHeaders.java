@@ -29,10 +29,10 @@ public class XOkapiHeaders {
    */
   public static final String TOKEN = "X-Okapi-Token";
 
-  /** X-Auth-Auth-Override. A token that identifies allows auth
+  /** X-Okapi-Additional-Token. A token that identifies allows auth
    * to give privilege on behalf as other user (sudo)
    */
-  public static final String AUTH_OVERRIDE = "X-Okapi-Auth-Override";
+  public static final String ADDITIONAL_TOKEN = "X-Okapi-Additional-Token";
 
   /**
    * Authorization. Used for carrying the same token as in X-Okapi-Token, using

@@ -900,7 +900,7 @@ public class ProxyService {
 
     final String phase = mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
-      ctx.request().headers().remove(XOkapiHeaders.AUTH_OVERRIDE);
+      ctx.request().headers().remove(XOkapiHeaders.ADDITIONAL_TOKEN);
     }
     if (phase != null) {
       String pth = mi.getRoutingEntry().getPathPattern();

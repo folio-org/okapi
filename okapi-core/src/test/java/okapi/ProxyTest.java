@@ -187,7 +187,7 @@ public class ProxyTest {
   }
 
   @Test
-  public void testAuthOverride(TestContext context) {
+  public void testAdditionalToken(TestContext context) {
     RestAssuredClient c;
     Response r;
     final String okapiTenant = "roskilde";
@@ -330,7 +330,7 @@ public class ProxyTest {
     r = c.given()
       .header("X-all-headers", "B")
       .header("X-Okapi-Token", okapiToken)
-      .header("X-Okapi-Auth-Override", "dummyJwt")
+      .header("X-Okapi-Additional-Token", "dummyJwt")
       .get("/testb/hugo")
       .then().statusCode(200).log().ifValidationFails()
       .extract().response();
@@ -343,7 +343,7 @@ public class ProxyTest {
     c.given()
       .header("X-all-headers", "B")
       .header("X-Okapi-Token", okapiToken)
-      .header("X-Okapi-Auth-Override", "nomatch")
+      .header("X-Okapi-Additional-Token", "nomatch")
       .get("/testb/hugo")
       .then().statusCode(400).log().ifValidationFails();
   }

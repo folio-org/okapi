@@ -211,10 +211,10 @@ class Auth {
         responseError(ctx, 400, "Bad Json payload " + payload);
         return;
       }
-      final String ovTok = ctx.request().getHeader(XOkapiHeaders.AUTH_OVERRIDE);
+      final String ovTok = ctx.request().getHeader(XOkapiHeaders.ADDITIONAL_TOKEN);
       logger.info("ovTok=" + ovTok);
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
-        responseError(ctx, 400, "Bad override token: " + ovTok);
+        responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
       }
     }
