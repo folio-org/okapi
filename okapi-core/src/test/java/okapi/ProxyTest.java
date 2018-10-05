@@ -336,8 +336,8 @@ public class ProxyTest {
       .extract().response();
     String b = r.getBody().asString();
     Assert.assertTrue(b.contains("It works"));
-    // test module must NOT receive the X-Okapi-Auth-Override header
-    Assert.assertTrue(!b.contains("X-Okapi-Auth-Override"));
+    // test module must NOT receive the X-Okapi-Additional-Token
+    Assert.assertTrue(!b.contains("X-Okapi-Additional-Token"));
 
     c = api.createRestAssured3();
     c.given()
