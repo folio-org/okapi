@@ -14,6 +14,7 @@ import java.util.concurrent.TimeUnit;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -26,6 +27,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final String cmdlineStart;
   private final String cmdlineStop;
   private final EnvEntry[] env;
+  private Messages messages = Messages.getInstance();
 
   private Process p;
   private final int port;
@@ -78,14 +80,15 @@ public class ProcessModuleHandle implements ModuleHandle {
         startFuture.handle(Future.succeededFuture());
       } else if (!p.isAlive() && p.exitValue() != 0) {
         logger.warn("Service returned with exit code " + p.exitValue());
-        startFuture.handle(Future.failedFuture("Service returned with exit code "
-          + p.exitValue()));
+        startFuture.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
       } else if (count < maxIterations) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
           id -> tryConnect(startFuture, count + 1));
       } else {
-        startFuture.handle(Future.failedFuture("Deployment failed. "
-          + "Could not connect to port " + port + ": " + res.cause().getMessage()));
+        this.stopProcess(res2 ->
+          startFuture.handle(Future.failedFuture(messages.getMessage("11501",
+           Integer.toString(port), res.cause().getMessage())))
+        );
       }
     });
   }
@@ -100,7 +103,7 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          startFuture.handle(Future.failedFuture("port " + port + " already in use"));
+          startFuture.handle(Future.failedFuture(messages.getMessage("11502", Integer.toString(port))));
         } else {
           start2(startFuture);
         }
@@ -113,6 +116,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private void start2(Handler<AsyncResult<Void>> startFuture) {
     vertx.executeBlocking(future -> {
       if (p == null) {
+        String c = "";
         try {
           String[] l;
           if (exec != null) {
@@ -120,14 +124,14 @@ public class ProcessModuleHandle implements ModuleHandle {
               future.fail("Can not deploy: No %p in the exec line");
               return;
             }
-            String c = exec.replace("%p", Integer.toString(port));
+            c = exec.replace("%p", Integer.toString(port));
             l = c.split(" ");
           } else if (cmdlineStart != null) {
             if (!cmdlineStart.contains("%p")) {
               future.fail("Can not deploy: No %p in the cmdlineStart");
               return;
             }
-            String c = cmdlineStart.replace("%p", Integer.toString(port));
+            c = cmdlineStart.replace("%p", Integer.toString(port));
             l = new String[]{"sh", "-c", c};
           } else {
             future.fail("Can not deploy: No exec, no CmdlineStart in LaunchDescriptor");
@@ -136,9 +140,17 @@ public class ProcessModuleHandle implements ModuleHandle {
           ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
           p = pb.start();
+          p.waitFor(1, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+          logger.warn("Caught InterruptedException " + ex + " when starting " + c);
+          Thread.currentThread().interrupt();
         } catch (IOException ex) {
-          logger.debug("ProcessModuleHandle.start2() caught exception ", ex);
+          logger.warn("Caught IOException ", ex + " when starting " + c);
           future.fail(ex);
+          return;
+        }
+        if (!p.isAlive() && p.exitValue() != 0) {
+          future.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
           return;
         }
       }
@@ -167,7 +179,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            stopFuture.handle(Future.failedFuture("port " + port + " not shut down"));
+            stopFuture.handle(Future.failedFuture(messages.getMessage("11503", Integer.toString(port))));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());
@@ -189,18 +201,28 @@ public class ProcessModuleHandle implements ModuleHandle {
       stopProcess(stopFuture);
     } else {
       vertx.executeBlocking(future -> {
+        String c = "";
         try {
-          String c = cmdlineStop.replace("%p", Integer.toString(port));
+          c = cmdlineStop.replace("%p", Integer.toString(port));
           String[] l = new String[]{"sh", "-c", c};
           ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
-          Process start = pb.start();
+          Process pp = pb.start();
           logger.debug("Waiting for the port to be closed");
-          start.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
+          pp.waitFor(30, TimeUnit.SECONDS); // 10 seconds for Dockers to stop
           logger.debug("Wait done");
-        } catch (IOException | InterruptedException ex) {
-          logger.debug("Caught exception " + ex);
+          if (!pp.isAlive() && pp.exitValue() != 0) {
+            future.handle(Future.failedFuture(messages.getMessage("11500", pp.exitValue())));
+            return;
+          }
+        } catch (IOException ex) {
+          logger.debug("Caught IOException " + ex + " when invoking " + c);
           future.fail(ex);
+          return;
+        } catch (InterruptedException ex) {
+          logger.debug("Caught InterruptedException " + ex + " when invoking " + c);
+          future.fail(ex);
+          Thread.currentThread().interrupt();
           return;
         }
         future.complete();

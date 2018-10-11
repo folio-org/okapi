@@ -5,6 +5,7 @@ public class TenantInstallOptions {
   private boolean preRelease = false;
   private boolean simulate = false;
   private boolean deploy = false;
+  private boolean purge = false;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -29,4 +30,13 @@ public class TenantInstallOptions {
   public boolean getDeploy() {
     return deploy;
   }
+
+  public void setPurge(boolean v) {
+    purge = v;
+  }
+
+  public boolean getPurge() {
+    return purge;
+  }
+
 }

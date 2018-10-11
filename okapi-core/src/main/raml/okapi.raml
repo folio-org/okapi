@@ -143,6 +143,22 @@ schemas:
         description: Server Error
         body:
           text/plain:
+  delete:
+    description: delete all instances
+    responses:
+      204:
+        description: Ok
+        headers:
+          X-Okapi-Trace:
+            description: Okapi trace and timing
+      400:
+        description: Bad Request
+        body:
+          text/plain:
+      500:
+        description: Server Error
+        body:
+          text/plain:
   /{service_id}:
     get:
       description: List all instances for a particular service
@@ -551,6 +567,11 @@ schemas:
               text/plain:
       get:
         description: Get enabled modules for tenant
+        queryParameters:
+          full:
+            description: whether full or compact MD should be returned
+            type: boolean
+            required: false
         responses:
           200:
             headers:
@@ -558,7 +579,7 @@ schemas:
                 description: Okapi trace and timing
             body:
               application/json:
-                schema: TenantModuleDescriptorList
+                schema: ModuleList
           404:
             description: Not Found
             body:
@@ -650,10 +671,16 @@ schemas:
           simulate:
             description: Whether the installation is simulated
             type: boolean
+            required: false
           preRelease:
             description: Whether pre-releases should be considered for
               installation.
             type: boolean
+            required: false
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
         body:
           application/json:
             schema: TenantModuleDescriptorList
@@ -695,6 +722,10 @@ schemas:
             description: Whether pre-releases should be considered for
               installation.
             type: boolean
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
         responses:
           200:
             description: OK

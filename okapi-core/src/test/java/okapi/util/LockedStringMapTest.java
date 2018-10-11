@@ -135,7 +135,7 @@ public class LockedStringMapTest {
   public void listKeys(TestContext context) {
     map.getKeys(res -> {
       assertTrue(res.succeeded());
-      assertTrue("[k1, k1.1]".equals(res.result().toString()));
+      assertEquals("[k1, k1.1]", res.result().toString());
       deleteKey1(context);
     });
   }

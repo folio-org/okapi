@@ -1,13 +1,14 @@
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+
+import java.util.Arrays;
 import java.util.HashMap;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
@@ -78,6 +79,9 @@ public class AuthModuleTest {
 
   @Test
   public void testAAANoLoginToken(TestContext context) {
+    // auth check should fail without a proper token.
+    // Except when we are trying to make a login request. That
+    // will be tested later.
     Async async = context.async();
 
     HashMap<String, String> headers = new HashMap<>();
@@ -88,11 +92,11 @@ public class AuthModuleTest {
 
     cli.get("/nologintoken", res -> {
       if (res.succeeded()) {
-        logger.debug("res.succeeded. " + res.result());
+        logger.warn("testAAANoLoginToken: res.succeeded. " + res.result());
       } else {
-        logger.debug("res.failed. " + Json.encode(res));
+        logger.warn("testAAANoLoginToken: res.failed. " + Json.encode(res));
       }
-      context.assertTrue(res.succeeded());
+      context.assertTrue(res.failed());
       async.complete();
     });
   }
@@ -179,6 +183,39 @@ public class AuthModuleTest {
   }
 
   @Test
+  public void testEmptyLogin(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.post("/authn/login", "", res -> {
+      cli.close();
+      context.assertTrue(res.succeeded());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testBadJsonLogin(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.post("/authn/login", "{", res -> {
+      cli.close();
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.USER, res.getType());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testGetLogin(TestContext context) {
     Async async = context.async();
 
@@ -201,6 +238,7 @@ public class AuthModuleTest {
     HashMap<String, String> headers = new HashMap<>();
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "application/json");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
 
@@ -219,10 +257,84 @@ public class AuthModuleTest {
 
   private void testNormal(TestContext context, OkapiClient cli, Async async) {
     cli.get("/normal", res -> {
+      if (res.succeeded()) {
+        cli.post("/normal", "{}", res2 -> {
+          cli.close();
+          context.assertTrue(res2.succeeded());
+          async.complete();
+        });
+      } else {
+        cli.close();
+        context.assertTrue(res.succeeded());
+        async.complete();
+      }
+    });
+  }
+
+  @Test
+  public void testFilterResponse(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put(XOkapiHeaders.FILTER, "pre");
+    headers.put("X-filter-pre", "404");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    cli.get("/normal", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.NOT_FOUND, res.getType());
       cli.close();
-      context.assertTrue(res.succeeded());
       async.complete();
     });
+  }
+
+  @Test
+  public void testFilterError(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put(XOkapiHeaders.FILTER, "pre");
+    headers.put("X-filter-pre-error", "true");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    cli.get("/normal", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      cli.close();
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testFilterRequestHeaders(TestContext context) {
+    for (String phase : Arrays.asList(XOkapiHeaders.FILTER_PRE,
+        XOkapiHeaders.FILTER_POST)) {
+      Async async = context.async();
+      HashMap<String, String> headers = new HashMap<>();
+      headers.put(XOkapiHeaders.URL, URL);
+      headers.put(XOkapiHeaders.TENANT, "my-lib");
+      headers.put(XOkapiHeaders.FILTER, phase);
+
+      headers.put("X-request-" + phase + "-error", "true");
+      headers.put(XOkapiHeaders.REQUEST_IP, "10.0.0.1");
+      headers.put(XOkapiHeaders.REQUEST_TIMESTAMP, "123");
+      headers.put(XOkapiHeaders.REQUEST_METHOD, "GET");
+
+      OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+      cli.get("/normal", res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        cli.close();
+        async.complete();
+      });
+    }
   }
 
 }

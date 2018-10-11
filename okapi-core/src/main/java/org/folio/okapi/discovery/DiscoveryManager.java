@@ -33,6 +33,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.common.Messages;
 
 /**
  * Keeps track of which modules are running where. Uses a shared map to list
@@ -51,6 +52,7 @@ public class DiscoveryManager implements NodeListener {
   private ModuleManager moduleManager;
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
+  private Messages messages = Messages.getInstance();
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -78,7 +80,7 @@ public class DiscoveryManager implements NodeListener {
         CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
           Future<DeploymentDescriptor> f = Future.future();
-          addAndDeploy1(dd, null, f::handle);
+          addAndDeploy0(dd, null, f::handle);
           futures.add(f);
         }
         futures.all(fut);
@@ -105,7 +107,7 @@ public class DiscoveryManager implements NodeListener {
 
   public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    addAndDeploy1(dd, pc, res -> {
+    addAndDeploy0(dd, pc, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -128,20 +130,37 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc,
+  private void addAndDeploy0(DeploymentDescriptor dd, ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
-    if (dd.getSrvcId() == null) {
-      fut.handle(new Failure<>(USER, "Needs srvcId"));
+    final String modId = dd.getSrvcId();
+    if (modId == null) {
+      fut.handle(new Failure<>(USER, messages.getMessage("10800")));
       return;
     }
+    moduleManager.get(modId, gres -> {
+      if (gres.failed()) {
+        if (gres.getType() == NOT_FOUND) {
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10801", modId)));
+        } else {
+          fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        }
+      } else {
+        addAndDeploy1(dd, pc, gres.result(), fut);
+      }
+    });
+  }
+
+  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc, ModuleDescriptor md,
+    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
     if (nodeId == null) {
       if (launchDesc == null) { // 3: externally deployed
         if (dd.getInstId() == null) {
-          fut.handle(new Failure<>(USER, "Needs instId"));
+          fut.handle(new Failure<>(USER, messages.getMessage("10802")));
         } else {
           add(dd, res -> { // just add it
             if (res.failed()) {
@@ -152,12 +171,12 @@ public class DiscoveryManager implements NodeListener {
           });
         }
       } else {
-        fut.handle(new Failure<>(USER, "missing nodeId"));
+        fut.handle(new Failure<>(USER, messages.getMessage("10803")));
       }
     } else {
       if (launchDesc == null) {
         logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
-        addAndDeploy2(dd, pc, fut, nodeId);
+        addAndDeploy2(dd, md, pc, fut, nodeId);
       } else { // Have a launchdesc already in dd
         logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
         callDeploy(nodeId, pc, dd, fut);
@@ -165,32 +184,18 @@ public class DiscoveryManager implements NodeListener {
     }
   }
 
-  private void addAndDeploy2(DeploymentDescriptor dd, ProxyContext pc,
+  private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
+    ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
 
-    if (moduleManager == null) {
-      fut.handle(new Failure<>(INTERNAL, "no module manager (should not happen)"));
-      return;
-    }
     String modId = dd.getSrvcId();
-    moduleManager.get(modId, gres -> {
-      if (gres.failed()) {
-        if (gres.getType() == NOT_FOUND) {
-          fut.handle(new Failure<>(NOT_FOUND, "Module " + modId + " not found"));
-        } else {
-          fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        }
-        return;
-      }
-      ModuleDescriptor md = gres.result();
-      LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-      if (modLaunchDesc == null) {
-        fut.handle(new Failure<>(USER, "Module " + modId + " has no launchDescriptor"));
-        return;
-      }
+    LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
+    if (modLaunchDesc == null) {
+      fut.handle(new Failure<>(USER, messages.getMessage("10804", modId)));
+    } else {
       dd.setDescriptor(modLaunchDesc);
       callDeploy(nodeId, pc, dd, fut);
-    });
+    }
   }
 
   /**
@@ -259,17 +264,31 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  public void removeAndUndeploy(ProxyContext pc,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    logger.info("removeAndUndeploy all");
+    this.get(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+      } else {
+        removeAndUndeploy(pc, res.result(), fut);
+      }
+    });
+  }
+
   private void removeAndUndeploy(ProxyContext pc,
     List<DeploymentDescriptor> ddList, Handler<ExtendedAsyncResult<Void>> fut) {
 
     CompList<List<Void>> futures = new CompList<>(INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
       Future<Void> f = Future.future();
+      logger.info("removeAndUndeploy " + dd.getSrvcId() + " " + dd.getInstId());
       callUndeploy(dd, pc, res -> {
         if (res.succeeded()) {
-          deploymentStore.delete(dd.getInstId(), fut);
+          deploymentStore.delete(dd.getInstId(), f::handle);
         } else {
-          fut.handle(res);
+          f.handle(res);
         }
       });
       futures.add(f);
@@ -339,7 +358,7 @@ public class DiscoveryManager implements NodeListener {
         // check that the node is alive, but only on non-url instances
         if (clusterManager != null && url == null
           && !clusterManager.getNodes().contains(md.getNodeId())) {
-          fut.handle(new Failure<>(NOT_FOUND, "gone"));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
           return;
         }
         fut.handle(new Success<>(md));
@@ -628,7 +647,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10806", nodeId)));
         return;
       }
     }
@@ -640,7 +659,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, "Node " + nodeId + " not found"));
+        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10806", nodeId)));
         return;
       }
     }
@@ -650,11 +669,11 @@ public class DiscoveryManager implements NodeListener {
       } else {
         NodeDescriptor old = gres.result();
         if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
-          fut.handle(new Failure<>(USER, "Can not change nodeId for node " + nodeId));
+          fut.handle(new Failure<>(USER, messages.getMessage("10807", nodeId)));
           return;
         }
         if (!old.getUrl().equals(nd.getUrl())) {
-          fut.handle(new Failure<>(USER, "Can not change the URL for node " + nodeId));
+          fut.handle(new Failure<>(USER, messages.getMessage("10808", nodeId)));
           return;
         }
         nodes.put(nodeId, nd, pres -> {

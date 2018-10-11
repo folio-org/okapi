@@ -24,6 +24,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.deployment.DeploymentManager;
@@ -58,6 +59,7 @@ public class MainVerticle extends AbstractVerticle {
   private Storage.InitMode initMode = NORMAL;
   private int port;
   private String okapiVersion = null;
+  private Messages messages = Messages.getInstance();
 
   public void setClusterManager(ClusterManager mgr) {
     clusterManager = mgr;
@@ -85,9 +87,9 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     if (clusterManager != null) {
-      logger.info("cluster NodeId " + clusterManager.getNodeID());
+      logger.info(messages.getMessage("10000", clusterManager.getNodeID()));
     } else {
-      logger.info("clusterManager not in use");
+      logger.info(messages.getMessage("10001"));
     }
     final String host = Config.getSysConf("host", "localhost", config);
     String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port , config);
@@ -103,6 +105,9 @@ public class MainVerticle extends AbstractVerticle {
         logHelper.setRootLogLevel(loglevel);
       }
     }
+    final String logWaitMsStr = Config.getSysConf("logWaitMs", "", config);
+    final int waitMs = logWaitMsStr.isEmpty() ? 0 : Integer.parseInt(logWaitMsStr);
+
     String mode = config.getString("mode", "cluster");
     switch (mode) {
       case "deployment":
@@ -167,7 +172,7 @@ public class MainVerticle extends AbstractVerticle {
               envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl);
+        internalModule, okapiUrl, waitMs);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null);
@@ -182,7 +187,7 @@ public class MainVerticle extends AbstractVerticle {
       // no modules, tenants, or discovery. Only deployment and env.
       proxyService = new ProxyService(vertx,
         moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl);
+        internalModule, okapiUrl, waitMs);
     }
 
   }

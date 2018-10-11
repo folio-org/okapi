@@ -13,6 +13,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
@@ -26,6 +27,7 @@ public class TenantStoreMongo implements TenantStore {
   private final MongoClient cli;
   private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";
+  private Messages messages = Messages.getInstance();
 
   private JsonObject encodeTenant(Tenant t, String id) {
     JsonObject j = new JsonObject(Json.encode(t));
@@ -113,7 +115,7 @@ public class TenantStoreMongo implements TenantStore {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
           logger.debug("disableModule: not found: " + id);
-          fut.handle(new Failure<>(NOT_FOUND, "Tenant " + id + " not found"));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("1100", id)));
         } else {
           JsonObject d = l.get(0);
           final Tenant t = decodeTenant(d);

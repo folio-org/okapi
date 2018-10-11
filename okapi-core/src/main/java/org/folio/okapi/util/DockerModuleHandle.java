@@ -20,6 +20,7 @@ import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -37,7 +38,9 @@ public class DockerModuleHandle implements ModuleHandle {
   private final boolean dockerPull;
   private final HttpClient client;
   private final StringBuilder logBuffer;
+  private int logSkip;
   private final String id;
+  private Messages messages = Messages.getInstance();
 
   private String containerId;
 
@@ -52,6 +55,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.dockerArgs = desc.getDockerArgs();
     this.client = vertx.createHttpClient();
     this.logBuffer = new StringBuilder();
+    this.logSkip = 0;
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
     String u = System.getProperty("dockerUrl", "http://localhost:4243");
@@ -114,10 +118,14 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void logHandler(Buffer b) {
-    if (b.length() >= 8 && b.getByte(0) < 9) {
-      logBuffer.append(b.getString(8, b.length()));
+    if (logSkip == 0 && b.getByte(0) < 3) {
+      logSkip = 8;
+    }
+    if (b.length() > logSkip) {
+      logBuffer.append(b.getString(logSkip, b.length()));
+      logSkip = 0;
     } else {
-      logBuffer.append(b.toString());
+      logSkip = logSkip - b.length();
     }
     if (logBuffer.length() > 0 && logBuffer.charAt(logBuffer.length() - 1) == '\n') {
       logger.info(id + " " + logBuffer.substring(0, logBuffer.length() - 1));
@@ -270,7 +278,7 @@ public class DockerModuleHandle implements ModuleHandle {
           }
         }
         if (hostPort == 0) {
-          startFuture.handle(Future.failedFuture("No exposedPorts in image"));
+          startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
         } else {
           createContainer(exposedPort, res2 -> {
             if (res2.failed()) {

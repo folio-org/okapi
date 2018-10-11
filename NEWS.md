@@ -1,3 +1,77 @@
+## 2.18.0 2018-10-11
+
+ * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfaces
+ * OKAPI-636 Deployment leaves a process behind if can not connect to port
+ * OKAPI-633 Upgrade to Vert 3.5.3
+ * OKAPI-635 Return Auth filter error to caller without relying on pre/post filter
+ * OKAPI-639 Pass request IP, timestamp, and method to pre/post filter
+ * OKAPI-640 Fix extremely long startup time for Okapi on folio-snapshot-stable
+ * OKAPI-641 Fix install: Modules order affects dependency resolution
+ * OKAPI-643 Queries with double quotes crash
+ * OKAPI-645 Wrong error code used in proxy service
+ * OKAPI-647 Fix tight loop in module dependency resolution
+ * OKAPI-648 Okapi dependency resolution omitting required interfaces
+ * OKAPI-653 Document that X-Okapi-Url may end with a path like https://folio.example.com/okapi
+ * OKAPI-654 Fix Set chunked based on server not client response
+ * OKAPI-656 Add support for additional token header
+ * OKAPI-657 Pass matching pathPattern to handler
+ * OKAPI-658 Module descriptor pull performance in cluster mode
+ * OKAPI-664 Optimize shared map usage
+
+## 2.17.0 2018-08-02
+
+ * OKAPI-615 Regression with pathPattern for tenant interface
+ * OKAPI-619 Pass module HTTP response code to POST filter
+ * OKAPI-622 Remove redundant test in MultiTenantTest
+ * OKAPI-623 SQ fixes for ProcessModuleHandle
+ * OKAPI-625 ProcessModuleHandle coverage
+ * OKAPI-627 Duplicated Okapi filter header
+ * OKAPI-620 Language dependent messages (i18N)
+ * OKAPI-632 Filter phase error handling
+ * OKAPI-634 Return Auth filter error to handler
+
+## 2.16.1 2018-07-05
+
+ * OKAPI-617 Request-only pre/post filter should not change previous HTTP status code
+ * OKAPI-616 okapi-test-auth-module accepted requests without auth token
+ * Updates in docs
+
+## 2.16.0 2018-06-28
+
+ * OKAPI-609 Module purge (remove persistent data for module)
+ * OKAPI-612 Fix `DELETE /_/discovery/modules` broken
+
+## 2.15.0 2018-06-25
+
+ * OKAPI-595 Undeploy all modules operation in one operation:
+     `DELETE /_/discovery/modules`
+ * OKAPI-603 clean up operation (tenant interface that is called
+   when a module is disabled).
+ * OKAPI-608 Fix Discovery API allows registry of module that has not
+   been created
+ * OKAPI-611 Upgrade to Vert.x 3.5.2
+
+## 2.14.1 2018-06-04
+
+ * OKAPI-599 Fix binary data in okapi.log
+ * OKAPI-601 Faster undeploy (shutdown)
+ * OKAPI-602 Upgrade to Vert.x 3.5.1
+ * OKAPI-604 Mention module ID on install/upgrade interface mismatch
+
+## 2.14.0 2018-05-25
+
+ * OKAPI-593 Fix X-Okapi-Filter header missing for (some?) auth filters
+ * OKAPI-591 Add pre- and post-handler filters for reporting
+ * OKAPI-594 Disable WAIT lines
+
+## 2.13.1 2018-05-02
+
+ * OKAPI-589 Fix GET /_/proxy/tenants/{tenants}/modules empty list
+
+## 2.13.0 2018-05-01
+
+ * OKAPI-588 Extend /_/proxy/tenants/<t>/modules with full parameter
+
 ## 2.12.2 2018-04-20
 
  * OKAPI-585 Fix WAIT msg logged when it shouldn't (/saml/check)

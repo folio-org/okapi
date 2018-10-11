@@ -2,6 +2,7 @@ package org.folio.okapi.util;
 
 import com.codahale.metrics.Timer;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
@@ -13,6 +14,7 @@ import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.Messages;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
@@ -24,11 +26,27 @@ public class ProxyContext {
 
   private final Logger logger = OkapiLogger.get();
   private List<ModuleInstance> modList;
-  private String reqId;
+  private final String reqId;
   private String tenant;
   private final RoutingContext ctx;
   private Timer.Context timer;
   private Long timerId;
+  private final int waitMs;
+
+  // store request IP, timestamp, and method
+  private String reqIp;
+  private long reqTimestamp;
+  private String reqMethod;
+
+  // store auth filter response status code, headers, and body
+  private int authRes;
+  private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
+  private Buffer authResBody = Buffer.buffer();
+  // store handler response status code and headers
+  private int handlerRes;
+  private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
+
+  private Messages messages = Messages.getInstance();
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -36,24 +54,48 @@ public class ProxyContext {
    *
    * @param ctx - the request we are serving
    */
-  public ProxyContext(RoutingContext ctx) {
+  public ProxyContext(RoutingContext ctx, int waitMs) {
     this.ctx = ctx;
+    this.waitMs = waitMs;
     this.tenant = "-";
     this.modList = null;
-    reqidHeader(ctx);
+    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
+    String path = ctx.request().path();
+    if (path == null) { // defensive coding, should always be there
+      path = "";
+    }
+    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
+      // when rerouting, the query appears as part of the getPath, so we kill it
+    // here with the '?'.
+    Random r = new Random();
+    StringBuilder newid = new StringBuilder();
+    newid.append(String.format("%06d", r.nextInt(1000000)));
+    newid.append(path);
+    if (curid == null || curid.isEmpty()) {
+      reqId = newid.toString();
+      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
+      this.debug("Assigned new reqId " + newid);
+    } else {
+      reqId = curid + ";" + newid.toString();
+      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
+      this.debug("Appended a reqId " + newid);
+    }
     timer = null;
     timerId = null;
+    handlerRes = 0;
   }
 
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
-    timerId = ctx.vertx().setPeriodic(10000, res
-      -> logger.warn(reqId + " WAIT "
-        + ctx.request().remoteAddress()
-        + " " + tenant + " " + ctx.request().method()
-        + " " + ctx.request().path())
-    );
+    if (waitMs > 0) {
+      timerId = ctx.vertx().setPeriodic(waitMs, res
+        -> logger.warn(reqId + " WAIT "
+          + ctx.request().remoteAddress()
+          + " " + tenant + " " + ctx.request().method()
+          + " " + ctx.request().path())
+      );
+    }
   }
 
   public void closeTimer() {
@@ -117,37 +159,65 @@ public class ProxyContext {
     return ctx;
   }
 
-  public String getReqId() {
+  private String getReqId() {
     return reqId;
   }
 
-  /**
-   * Update or create the X-Okapi-Request-Id header. Save the id for future use.
-   */
-  private void reqidHeader(RoutingContext ctx) {
-    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
-    String path = ctx.request().path();
-    if (path == null) { // defensive coding, should always be there
-      path = "";
-    }
-    path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-      // when rerouting, the query appears as part of the getPath, so we kill it
-    // here with the '?'.
-    Random r = new Random();
-    StringBuilder newid = new StringBuilder();
-    newid.append(String.format("%06d", r.nextInt(1000000)));
-    newid.append(path);
-    if (curid == null || curid.isEmpty()) {
-      reqId = newid.toString();
-      ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Assigned new reqId " + newid);
-    } else {
-      reqId = curid + ";" + newid.toString();
-      ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
-      this.debug("Appended a reqId " + newid);
-    }
+  public String getReqIp() {
+    return reqIp;
   }
 
+  public void setReqIp(String reqIp) {
+    this.reqIp = reqIp;
+  }
+
+  public long getReqTimestamp() {
+    return reqTimestamp;
+  }
+
+  public void setReqTimestamp(long reqTimestamp) {
+    this.reqTimestamp = reqTimestamp;
+  }
+
+  public String getReqMethod() {
+    return reqMethod;
+  }
+
+  public void setReqMethod(String reqMethod) {
+    this.reqMethod = reqMethod;
+  }
+
+  public int getAuthRes() {
+    return authRes;
+  }
+
+  public void setAuthRes(int authRes) {
+    this.authRes = authRes;
+  }
+
+  public MultiMap getAuthHeaders() {
+    return authHeaders;
+  }
+
+  public Buffer getAuthResBody() {
+    return authResBody;
+  }
+
+  public void setAuthResBody(Buffer authResBody) {
+    this.authResBody = authResBody;
+  }
+
+  public int getHandlerRes() {
+    return handlerRes;
+  }
+
+  public void setHandlerRes(int handlerRes) {
+    this.handlerRes = handlerRes;
+  }
+
+  public MultiMap getHandlerHeaders() {
+    return handlerHeaders;
+  }
 
   /* Helpers for logging and building responses */
   public final void logRequest(RoutingContext ctx, String tenant) {
@@ -178,14 +248,14 @@ public class ProxyContext {
     if (cause != null && cause.getMessage() != null) {
       responseError(code, cause.getMessage());
     } else {
-      responseError(code, "(null cause!!??)");
+      responseError(code, messages.getMessage("10300"));
     }
   }
 
   public void responseError(int code, String msg) {
     logResponse("okapi", msg, code);
     closeTimer();
-    HttpResponse.responseText(ctx, code).end(msg);
+    HttpResponse.responseError(ctx, code, msg);
   }
 
   public void addTraceHeaderLine(String h) {

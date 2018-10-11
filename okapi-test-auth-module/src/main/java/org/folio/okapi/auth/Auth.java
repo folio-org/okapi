@@ -22,15 +22,16 @@ import org.folio.okapi.common.OkapiLogger;
  * A dummy auth module. Provides a minimal authentication mechanism.
  * Mostly for testing Okapi itself.
  *
- * Does generate tokens for module permissions, but otherwise does not
- * check permissions for anything, but does return X-Okapi-Permissions-Desired
- * in X-Okapi-Permissions, as if all desired permissions were granted.
+ * Does generate tokens for module permissions, but otherwise does not filter
+ * permissions for anything, but does return X-Okapi-Permissions-Desired in
+ * X-Okapi-Permissions, as if all desired permissions were granted.
  *
  * @author heikki
  *
  *
  *
  */
+@java.lang.SuppressWarnings({"squid:S1192"})
 class Auth {
 
   private final Logger logger = OkapiLogger.get();
@@ -126,6 +127,38 @@ class Auth {
     return alltokens;
   }
 
+  public void filter(RoutingContext ctx) {
+    String phase = ctx.request().headers().get(XOkapiHeaders.FILTER);
+    logger.debug("test-auth filter " + XOkapiHeaders.FILTER + ": '" + phase + "'");
+    if (phase == null || phase.startsWith("auth")) {
+      check(ctx);
+      return;
+    }
+    ctx.response().putHeader("X-Auth-Filter-Phase", phase);
+    // Hack to test return codes on various filter phases
+    phase = phase.split(" ")[0];
+    String pHeader = ctx.request().headers().get("X-Filter-" + phase);
+    logger.debug("filter: 'X-Filter-" + phase + "': " + pHeader);
+    if (pHeader != null) {
+      ctx.response().setStatusCode(Integer.parseInt(pHeader));
+    }
+
+    // Hack to test pre/post filter returns error
+    if (ctx.request().headers().contains("X-filter-" + phase + "-error")) {
+      ctx.response().setStatusCode(500);
+    }
+
+    // Hack to test pre/post filter can see request headers
+    if (ctx.request().headers().contains("X-request-" + phase + "-error") &&
+        ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP) &&
+        ctx.request().headers().contains(XOkapiHeaders.REQUEST_TIMESTAMP) &&
+        ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
+      ctx.response().setStatusCode(500);
+    }
+
+    echo(ctx);
+  }
+
   public void check(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenant == null || tenant.isEmpty()) {
@@ -136,8 +169,19 @@ class Auth {
     String userId = "?";
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     if (tok == null || tok.isEmpty()) {
-      logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN);
-      tok = token(tenant, "-"); // create a dummy token without username
+      if (!ctx.request().path().startsWith("/_/")) {
+        logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN
+          + " for " + ctx.request().path());
+        responseText(ctx, 401)
+          .end("test-auth: check called without " + XOkapiHeaders.TOKEN);
+        return;
+      } else {
+        tok = token(tenant, "-"); // create a dummy token without username
+        // We call /_/tenant and /_/tenantPermissions in our tests without a token.
+        // In real life, this is more complex, mod-authtoken creates a non-
+        // login token, possibly with modulePermissions, and then checks that
+        // against the permissions required for the tenant interface...
+      }
     } else {
       logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
 
@@ -165,6 +209,12 @@ class Auth {
 
       } catch (IllegalArgumentException e) {
         responseError(ctx, 400, "Bad Json payload " + payload);
+        return;
+      }
+      final String ovTok = ctx.request().getHeader(XOkapiHeaders.ADDITIONAL_TOKEN);
+      logger.info("ovTok=" + ovTok);
+      if (ovTok != null && !"dummyJwt".equals(ovTok)) {
+        responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
       }
     }
@@ -196,7 +246,7 @@ class Auth {
       .add(XOkapiHeaders.TOKEN, tok)
       .add(XOkapiHeaders.MODULE_TOKENS, modTok)
       .add(XOkapiHeaders.USER_ID, userId);
-    responseText(ctx, 202); // Abusing 202 to say check OK
+    responseText(ctx, 202); // Abusing 202 to say filter OK
     logger.debug("test-auth: returning 202 and " + Json.encode(ctx.response()));
     logger.debug("test-auth: req:  " + Json.encode(ctx.request()));
     logger.debug("test-auth: resp:  " + Json.encode(ctx.response()));
@@ -234,7 +284,8 @@ class Auth {
 
   /**
    * Accept a request. Gets called with anything else than a POST to "/authn/login".
-   * These need to be accepted, so we can do a pre-check before the proper POST.
+   * These need to be accepted, so we can do a pre-filter before
+   * the proper POST.
    *
    * @param ctx
    */

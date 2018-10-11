@@ -46,7 +46,9 @@ import io.restassured.response.ValidatableResponse;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(Parameterized.class)
@@ -75,6 +77,8 @@ public class ModuleTest {
   private String locationSampleDeployment;
   private String locationHeaderDeployment;
   private String locationAuthDeployment = null;
+  private String locationPreDeployment = null;
+  private String locationPostDeployment = null;
   private String okapiToken;
   private final String okapiTenant = "roskilde";
   private HttpClient httpClient;
@@ -196,6 +200,26 @@ public class ModuleTest {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPreDeployment != null) {
+      httpClient.delete(port, "localhost", locationPreDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPreDeployment = null;
+          td(context);
+        });
+      }).end();
+      return;
+    }
+    if (locationPostDeployment != null) {
+      httpClient.delete(port, "localhost", locationPostDeployment, response -> {
+        context.assertEquals(204, response.statusCode());
+        response.endHandler(x -> {
+          locationPostDeployment = null;
           td(context);
         });
       }).end();
@@ -323,6 +347,325 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
     return Utils.urlDecode(location, false);
+  }
+
+  /**
+   * Various tests around the filter modules.
+   *
+   * @param context
+   */
+  @Test
+  public void testFilters(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    checkDbIsEmpty("testFilters starting", context);
+    // Set up a test tenant
+    String locTenant = createTenant();
+
+    // Set up our usual sample module
+    final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-f-module-1\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"permissionSets\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locSampleModule = createModule(docSampleModule);
+    locationSampleDeployment = deployModule("sample-f-module-1");
+    String locSampleEnable = enableModule("sample-f-module-1");
+    logger.debug("testFilters sample: " + locSampleModule + " " + locationSampleDeployment + " " + locSampleEnable);
+
+    // Declare and enable test-auth.
+    // We use our mod-auth for all the filter phases, it can handle them
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-f-module-1\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"headers\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    String locAuthModule = createModule(docAuthModule);
+    locationAuthDeployment = deployModule("auth-f-module-1");
+    String locAuthEnable = enableModule("auth-f-module-1");
+    logger.debug(" testFilters auth: " + locAuthModule + " " + locationAuthDeployment + " " + locAuthEnable);
+
+    // login and get token
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    okapiToken = given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+    logger.debug(" testFilters Got auth token " + okapiToken);
+
+    // Make a simple request. Checks that the auth filter gets called
+    c = api.createRestAssured3();
+    List<String> traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(200)
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET sample-f-module-1"));
+
+    // Test Auth filter returns error.
+    // Caller should see Auth filter error.
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", "bad token") // ask Auth to return error
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .get("/testb")
+      .then().statusCode(400) // should see Auth error
+      .log().ifValidationFails()
+      .body(containsString("Auth.check: Bad JWT")) // should see Auth error content
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertEquals(1,  traces.size()); // should be just one module in the trace
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+
+    // Create pre- and post- filters
+    final String docFilterModule = "{" + LS
+      + "  \"id\" : \"MODULE\"," + LS
+      + "  \"name\" : \"MODULE\"," + LS
+      + "  \"provides\" : [ ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
+      + "    \"type\" : \"request-only\"" + LS
+      //      + "    \"type\" : \"request-response\"" + LS
+      // The only known use case for these uses req-only, so that's what we
+      // test with. Tested req-resp manually, and it seems to work too
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    String docPreModule = docFilterModule
+      .replaceAll("MODULE", "pre-f-module-1")
+      .replaceAll("PHASE", "pre");
+    logger.debug("testFilters: pre-filter: " + docPreModule);
+    String locPreModule = createModule(docPreModule);
+    locationPreDeployment = deployModule("pre-f-module-1");
+    String locPreEnable = enableModule("pre-f-module-1");
+    logger.debug("testFilters pre: " + locPreModule + " " + locationPreDeployment + " " + locPreEnable);
+
+    String docPostModule = docFilterModule
+      .replaceAll("MODULE", "post-f-module-1")
+      .replaceAll("PHASE", "post");
+    logger.debug("testFilters: post-filter: " + docPostModule);
+    String locPostModule = createModule(docPostModule);
+    locationPostDeployment = deployModule("post-f-module-1");
+    String locPostEnable = enableModule("post-f-module-1");
+    logger.debug("testFilters post: " + locPostModule + " " + locationPostDeployment + " " + locPostEnable);
+
+    // Make a simple GET request. All three filters should be called
+    //
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .get("/testb")
+      .then().statusCode(200) // should see handler result
+      .header("X-Handler-header", "OK") // should see handler headers
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("203"));
+
+    // Make a GET request with special headers to test pre/post filters can
+    // see request header IP, timestamp, and method (by returning 500)
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-request-pre-error", true) // overrule pre-filter to return 500
+      .header("X-request-post-error", true) // overrule post-filter to return 500
+      .get("/testb")
+      .then().statusCode(200) // should see handler result
+      .header("X-Handler-header", "OK") // should see handler headers
+      .log().ifValidationFails()
+      .body(containsString("It works"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("500"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("500"));
+
+    // Make a simple GET request. All three filters including post-filter
+    // should be called even though handler returns error
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-handler-error", true) // ask sample to return 500
+      .get("/testb")
+      .then().statusCode(500) // should see handler error
+      .log().ifValidationFails()
+      .body(containsString("It does not work")) // should see error content
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    Assert.assertTrue(traces.get(2).contains("GET sample-f-module-1"));
+    // should see post-filter even though handler returns error
+    Assert.assertTrue(traces.get(3).contains("GET post-f-module-1"));
+
+    // Test Auth filter returns error.
+    // Handler should be skipped, but not Pre/Post filters.
+    // Caller should see Auth filter error.
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", "bad token") // ask Auth to return error
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .get("/testb")
+      .then().statusCode(400) // should see Auth error
+      .log().ifValidationFails()
+      .body(containsString("Auth.check: Bad JWT")) // should see Auth error content
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("GET auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("GET pre-f-module-1"));
+    // should not see Handler in trace
+    Assert.assertTrue(traces.get(2).contains("GET post-f-module-1"));
+
+    // Test Pre/Post filter returns error.
+    // All phases should be seen in trace.
+    // Caller should see Handler response.
+    List<String> modTraces = Arrays.asList("GET auth-f-module-1",
+        "GET pre-f-module-1", "GET sample-f-module-1", "GET post-f-module-1");
+    testPrePostFilterError(XOkapiHeaders.FILTER_PRE, modTraces);
+    testPrePostFilterError(XOkapiHeaders.FILTER_POST, modTraces);
+
+    // Make a simple POST request. All three filters should be called
+    // test-module will return 200, which should not be
+    // overwritten by the pre and post-filters that returns 202 and 203
+    c = api.createRestAssured3();
+    traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      // Those returns coders should be overwritten by the 200 from the handler
+      .body("Testing... ")
+      .post("/testb")
+      .then().statusCode(200)
+      .log().all() //ifValidationFails()
+      .body(containsString("Hello"))
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    Assert.assertTrue(traces.get(0).contains("POST auth-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("POST pre-f-module-1"));
+    Assert.assertTrue(traces.get(1).contains("202"));
+    Assert.assertTrue(traces.get(2).contains("POST sample-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("POST post-f-module-1"));
+    Assert.assertTrue(traces.get(3).contains("203"));
+
+    // Clean up (in reverse order)
+    logger.debug("testFilters starting to clean up");
+    given().delete(locPostEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPostDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPostDeployment = null;
+    given().delete(locPostModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locPreEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationPreDeployment).then().log().ifValidationFails().statusCode(204);
+    locationPreDeployment = null;
+    given().delete(locPreModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locAuthEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationAuthDeployment).then().log().ifValidationFails().statusCode(204);
+    locationAuthDeployment = null;
+    given().delete(locAuthModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locSampleEnable).then().log().ifValidationFails().statusCode(204);
+    given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
+    locationSampleDeployment = null;
+    given().delete(locSampleModule).then().log().ifValidationFails().statusCode(204);
+    given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
+    logger.debug("testFilters clean up complete");
+    checkDbIsEmpty("testFilters finished", context);
+    //async.complete();
+  }
+
+  private void testPrePostFilterError(String phase, List<String> modTraces) {
+    RestAssuredClient c = api.createRestAssured3();
+    List<String> traces = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("X-all-headers", "BL") // ask sample to report all headers
+      .header("X-filter-pre", "202") // ask pre-filter to return 202
+      .header("X-filter-post", "203") // ask post-filter to return 203
+      .header("X-filter-" + phase + "-error", true) // ask filter to return 500
+      .get("/testb")
+      .then().statusCode(200) // caller should not see pre/post filter error
+      .log().ifValidationFails()
+      .extract().headers().getValues("X-Okapi-Trace");
+    logger.debug("Filter test. Traces: " + Json.encode(traces));
+    for (int i = 0, n = modTraces.size(); i < n; i++) {
+      Assert.assertTrue(traces.get(i).contains(modTraces.get(i)));
+      if (modTraces.get(i).contains(phase)) {
+        Assert.assertTrue(traces.get(i).contains("500"));
+      }
+    }
   }
 
   /**
@@ -569,7 +912,7 @@ public class ModuleTest {
       .body("{\"srvcId\" : \"1\"}")
       .post("/_/discovery/modules")
       .then()
-      .statusCode(400);
+      .statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -622,6 +965,15 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
+
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docDeploy)
+      .post("/_/discovery/modules")
+      .then()
+      .statusCode(400).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // Create a tenant and enable the module
     final String locTenant = createTenant();
@@ -1303,7 +1655,7 @@ public class ModuleTest {
       .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
 
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
       .extract().response();
@@ -1433,7 +1785,7 @@ public class ModuleTest {
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
       + "    \"version\" : \"1.0\"" + LS // TODO - Define paths - add test
-      + "  } ]," + LS
+      + "  }]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"/usr/bin/false\"" + LS
       + "  }" + LS
@@ -1488,7 +1840,7 @@ public class ModuleTest {
     // add tenant by using PUT (which will insert)
     final String locationTenantRoskilde = "/_/proxy/tenants/" + okapiTenant;
     c = api.createRestAssured3();
-    r = c.given()
+    c.given()
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde)
       .put(locationTenantRoskilde)
@@ -1502,7 +1854,7 @@ public class ModuleTest {
     final String docEnableWithoutDep = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableWithoutDep).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
@@ -1511,8 +1863,7 @@ public class ModuleTest {
     final String docEnableAuthBad = "{" + LS
       + "  \"id\" : \"UnknonwModule-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuthBad).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(404);
@@ -1520,8 +1871,7 @@ public class ModuleTest {
     final String docEnableAuth = "{" + LS
       + "  \"id\" : \"auth-1\"" + LS
       + "}";
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body(docEnableAuth).post("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash is no good
@@ -1535,8 +1885,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404);  // trailing slash again
 
     // Get the list of one enabled module
@@ -1560,13 +1909,15 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     // Enable with bad JSON
-    c = api.createRestAssured3();
-    c.given()
+    given()
       .header("Content-Type", "application/json")
       .body("{").post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(400);
 
     // Enable the sample
+    // Note that we can do this without the auth token. The test-auth module
+    // will create a non-login token certifying that we do not have a login,
+    // but will allow requests to any /_/ path,
     final String docEnableSample = "{" + LS
       + "  \"id\" : \"sample-module-1\"" + LS
       + "}";
@@ -1574,7 +1925,8 @@ public class ModuleTest {
     c.given()
       .header("Content-Type", "application/json")
       .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
-      .then().statusCode(201)
+      .then().log().ifValidationFails()
+      .statusCode(201)
       .body(equalTo(docEnableSample));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1586,8 +1938,7 @@ public class ModuleTest {
       .then().statusCode(400)
       .body(containsString("already provided"));
 
-    c = api.createRestAssured3();
-    c.given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
+    given().get("/_/proxy/tenants/" + okapiTenant + "/modules/")
       .then().statusCode(404); // trailing slash
 
     c = api.createRestAssured3();
@@ -1603,7 +1954,7 @@ public class ModuleTest {
 
     // Try to disable the auth module for the tenant.
     // Ought to fail, because it is needed by sample module
-    c.given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/auth-1")
       .then().statusCode(400);
 
     // Update the tenant
@@ -1642,18 +1993,16 @@ public class ModuleTest {
       .body(equalTo("No suitable module found for path /something.we.do.not.have"));
 
     // Request without an auth token
-    // This is acceptable, we get back a token that certifies that we have no
-    // logged-in username. We can use this for modulePermissions still.
-    // A real auth module would refuse the request because we do not have the
-    // permission. But the test-auth lets it pass...
+    // In theory, this is acceptable, we should get back a token that certifies
+    // that we have no logged-in username. We can use this for modulePermissions
+    // still. A real auth module would be likely to refuse the request because
+    // we do not have the necessary ModulePermissions. The auth module refuses it too.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
-      .then()
-      .statusCode(200)
-      .body(containsString("X-Okapi-Token")) // auth created a token
-      .body(containsString("X-Okapi-User-Id:?"));  // with no good userid
+      .then().log().ifValidationFails()
+      .statusCode(401);
 
 
     // Failed login
@@ -1739,7 +2088,7 @@ public class ModuleTest {
     // Check that we don't do prefix matching
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .get("/testbXXX")
+      .get("/testbZZZ")
       .then().statusCode(404);
 
     // Check that parameters don't mess with the routing
@@ -1787,6 +2136,30 @@ public class ModuleTest {
       .get("/testb")
       .then().log().ifValidationFails()
       .statusCode(400);
+
+    // Declare sample2
+    final String docSample2Module = "{" + LS
+      + "  \"id\" : \"sample-module2-1\"," + LS
+      + "  \"name\" : \"another-sample-module2\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"31\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample2Module).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSample2Module = r.getHeader("Location");
 
     // 2nd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one). Then we delete it again.
@@ -1883,30 +2256,6 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    // Declare sample2
-    final String docSample2Module = "{" + LS
-      + "  \"id\" : \"sample-module2-1\"," + LS
-      + "  \"name\" : \"another-sample-module2\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  } ]," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"31\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
-      + "}";
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSample2Module).post("/_/proxy/modules").then().statusCode(201)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationSample2Module = r.getHeader("Location");
-
     // enable sample2
     final String docEnableSample2 = "{" + LS
       + "  \"id\" : \"sample-module2-1\"" + LS
@@ -1931,24 +2280,6 @@ public class ModuleTest {
       .body(docEnableSample2).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .body(equalTo(docEnableSample2));
-
-    // 3rd sample module. We only create it in discovery and give it same URL as
-    // for sample-module (first one), just like sample2 above.
-    c = api.createRestAssured3();
-    final String docSample3Deployment = "{" + LS
-      + "  \"instId\" : \"sample3-instance\"," + LS
-      + "  \"srvcId\" : \"sample-module3-1\"," + LS
-      + "  \"url\" : \"http://localhost:9232\"" + LS
-      + "}";
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSample3Deployment).post("/_/discovery/modules")
-      .then()
-      .statusCode(201).extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-    final String locationSample3Inst = r.getHeader("Location");
-    logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
 
     final String docSample3Module = "{" + LS
       + "  \"id\" : \"sample-module3-1\"," + LS
@@ -1982,6 +2313,24 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationSample3Module = r.getHeader("Location");
+
+    // 3rd sample module. We only create it in discovery and give it same URL as
+    // for sample-module (first one), just like sample2 above.
+    c = api.createRestAssured3();
+    final String docSample3Deployment = "{" + LS
+      + "  \"instId\" : \"sample3-instance\"," + LS
+      + "  \"srvcId\" : \"sample-module3-1\"," + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
+      + "}";
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample3Deployment).post("/_/discovery/modules")
+      .then()
+      .statusCode(201).extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSample3Inst = r.getHeader("Location");
+    logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
 
     final String docEnableSample3 = "{" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS
@@ -2161,6 +2510,36 @@ public class ModuleTest {
 
     RestAssuredClient c;
 
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module-5.0\"," + LS
+      + "  \"name\" : \"sample module for deployment test\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"level\" : \"30\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).post("/_/proxy/modules")
+      .then()
+      //.log().all()
+      .statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
     c = api.createRestAssured3();
     c.given().get("/_/deployment/modules")
       .then().statusCode(200)
@@ -2189,7 +2568,7 @@ public class ModuleTest {
 
     final String doc1 = "{" + LS
       + "  \"instId\" : \"localhost-9231\"," + LS // set so we can compare with result
-      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2204,7 +2583,7 @@ public class ModuleTest {
     // with descriptor, but missing nodeId
     final String doc1a = "{" + LS
       + "  \"instId\" : \"localhost-9231\"," + LS
-      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -2220,7 +2599,7 @@ public class ModuleTest {
     // unknown nodeId
     final String doc1b = "{" + LS
       + "  \"instId\" : \"localhost-9231\"," + LS
-      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"," + LS
       + "  \"nodeId\" : \"foobarhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2236,7 +2615,7 @@ public class ModuleTest {
 
     final String doc2 = "{" + LS
       + "  \"instId\" : \"localhost-9231\"," + LS
-      + "  \"srvcId\" : \"sample-module5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"url\" : \"http://localhost:9231\"," + LS
       + "  \"descriptor\" : {" + LS
@@ -2276,7 +2655,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/sample-module5")
+    c.given().get("/_/discovery/modules/sample-module-5.0")
       .then().statusCode(200)
       .body(equalTo("[ " + doc2 + " ]"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -2305,8 +2684,15 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    ////////////////
+    /*
+    c = api.createRestAssured3();
+    c.given().delete(locationSampleModule).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+*/
     if ("inmemory".equals(conf.getString("storage"))) {
-      testDeployment2(async, context);
+      testDeployment2(async, context, locationSampleModule);
     } else {
       // just undeploy but keep it registered in discovery
       logger.info("doc2 " + doc2);
@@ -2327,7 +2713,7 @@ public class ModuleTest {
           waitDeployment2();
         });
       });
-      waitDeployment2(async, context);
+      waitDeployment2(async, context, locationSampleModule);
     }
   }
 
@@ -2335,7 +2721,8 @@ public class ModuleTest {
     this.notify();
   }
 
-  synchronized private void waitDeployment2(Async async, TestContext context) {
+  synchronized private void waitDeployment2(Async async, TestContext context,
+    String locationSampleModule) {
     try {
       this.wait();
     } catch (Exception e) {
@@ -2343,14 +2730,20 @@ public class ModuleTest {
       async.complete();
       return;
     }
-    testDeployment2(async, context);
+    testDeployment2(async, context, locationSampleModule);
   }
 
-  private void testDeployment2(Async async, TestContext context) {
+  private void testDeployment2(Async async, TestContext context,
+    String locationSampleModule1) {
     logger.info("testDeployment2");
     Response r;
 
     RestAssuredClient c;
+
+    c = api.createRestAssured3();
+    c.given().delete(locationSampleModule1).then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given()
@@ -2382,7 +2775,7 @@ public class ModuleTest {
 
     // verify that module5 is no longer there
     c = api.createRestAssured3();
-    c.given().get("/_/discovery/modules/sample-module5")
+    c.given().get("/_/discovery/modules/sample-module-5.0")
       .then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2483,7 +2876,6 @@ public class ModuleTest {
   @Test
   public void testNotFound(TestContext context) {
     async = context.async();
-
     Response r;
     ValidatableResponse then;
 
@@ -2500,22 +2892,7 @@ public class ModuleTest {
       .extract().response();
     final String locationTenantRoskilde = r.getHeader("Location");
 
-    final String docLaunch1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
-      + "  \"nodeId\" : \"localhost\"," + LS
-      + "  \"descriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
-
-    r = given().header("Content-Type", "application/json")
-      .body(docLaunch1).post("/_/discovery/modules")
-      .then().statusCode(201)
-      .extract().response();
-    locationSampleDeployment = r.getHeader("Location");
     for (String type : Arrays.asList("request-response", "request-only", "headers")) {
-
       final String docSampleModule = "{" + LS
         + "  \"id\" : \"sample-module-1\"," + LS
         + "  \"filters\" : [ {" + LS
@@ -2530,6 +2907,21 @@ public class ModuleTest {
         .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
         .extract().response();
       final String locationSampleModule = r.getHeader("Location");
+
+      final String docLaunch1 = "{" + LS
+        + "  \"srvcId\" : \"sample-module-1\"," + LS
+        + "  \"nodeId\" : \"localhost\"," + LS
+        + "  \"descriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+
+      r = given().header("Content-Type", "application/json")
+        .body(docLaunch1).post("/_/discovery/modules")
+        .then().statusCode(201)
+        .extract().response();
+      locationSampleDeployment = r.getHeader("Location");
 
       final String docEnableSample = "{" + LS
         + "  \"id\" : \"sample-module-1\"" + LS
@@ -2547,9 +2939,9 @@ public class ModuleTest {
 
       given().delete(enableLoc).then().statusCode(204);
       given().delete(locationSampleModule).then().statusCode(204);
+      given().delete(locationSampleDeployment).then().statusCode(204);
+      locationSampleDeployment = null;
     }
-    given().delete(locationSampleDeployment).then().statusCode(204);
-    locationSampleDeployment = null;
     given().delete(locationTenantRoskilde)
       .then().statusCode(204);
 
@@ -2560,11 +2952,43 @@ public class ModuleTest {
   public void testHeader(TestContext context) {
     async = context.async();
 
+    RestAssuredClient c;
     Response r;
     ValidatableResponse then;
 
+    final String docSampleModule = "{" + LS
+      + "  \"id\" : \"sample-module-5.0\"," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"5\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    r = given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    final String locationSampleModule = r.getHeader("Location");
+
+    final String docHeaderModule = "{" + LS
+      + "  \"id\" : \"header-module-1.0\"," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"headers\"" + LS
+      + "  } ]" + LS
+      + "}";
+    r = given()
+      .header("Content-Type", "application/json")
+      .body(docHeaderModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    final String locationHeaderModule = r.getHeader("Location");
+
     final String docLaunch1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module-5\"," + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2579,7 +3003,7 @@ public class ModuleTest {
     locationSampleDeployment = r.getHeader("Location");
 
     final String docLaunch2 = "{" + LS
-      + "  \"srvcId\" : \"header-module-1\"," + LS
+      + "  \"srvcId\" : \"header-module-1.0\"," + LS
       + "  \"nodeId\" : \"localhost\"," + LS
       + "  \"descriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2592,36 +3016,6 @@ public class ModuleTest {
       .then().statusCode(201)
       .extract().response();
     locationHeaderDeployment = r.getHeader("Location");
-
-    final String docSampleModule = "{" + LS
-      + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
-      + "}";
-    r = given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule).post("/_/proxy/modules").then().statusCode(201)
-      .extract().response();
-    final String locationSampleModule = r.getHeader("Location");
-
-    final String docHeaderModule = "{" + LS
-      + "  \"id\" : \"header-module-1\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"10\"," + LS
-      + "    \"type\" : \"headers\"" + LS
-      + "  } ]" + LS
-      + "}";
-    r = given()
-      .header("Content-Type", "application/json")
-      .body(docHeaderModule).post("/_/proxy/modules").then().statusCode(201)
-      .extract().response();
-    final String locationHeaderModule = r.getHeader("Location");
 
     final String docTenantRoskilde = "{" + LS
       + "  \"id\" : \"" + okapiTenant + "\"," + LS
@@ -2637,7 +3031,7 @@ public class ModuleTest {
     final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docEnableSample = "{" + LS
-      + "  \"id\" : \"sample-module-5\"" + LS
+      + "  \"id\" : \"sample-module-5.0\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")
@@ -2646,7 +3040,7 @@ public class ModuleTest {
       .body(equalTo(docEnableSample));
 
     final String docEnableHeader = "{" + LS
-      + "  \"id\" : \"header-module-1\"" + LS
+      + "  \"id\" : \"header-module-1.0\"" + LS
       + "}";
     given()
       .header("Content-Type", "application/json")
@@ -2659,27 +3053,8 @@ public class ModuleTest {
       .then().statusCode(200).body(equalTo("Hello foobar"))
       .extract().response();
 
-    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-5")
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-5.0")
       .then().statusCode(204);
-
-    given().delete(locationSampleModule)
-      .then().statusCode(204);
-
-    final String docSampleModule2 = "{" + LS
-      + "  \"id\" : \"sample-module-5\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"5\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  } ]" + LS
-      + "}";
-
-    given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule2).post("/_/proxy/modules").then().statusCode(201)
-      .extract().response();
-    final String locationSampleModule2 = r.getHeader("Location");
 
     given()
       .header("Content-Type", "application/json")

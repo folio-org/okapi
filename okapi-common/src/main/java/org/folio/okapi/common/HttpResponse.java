@@ -29,18 +29,29 @@ public class HttpResponse {
     if (code < 200 || code >= 300) {
       logger.error("HTTP response code=" + code + " msg=" + text);
     }
-    responseText(ctx, code).end(text);
+    HttpServerResponse res = responseText(ctx, code);
+    if (!res.closed()) {
+      res.end(text);
+    }
   }
 
   public static HttpServerResponse responseText(RoutingContext ctx, int code) {
-    return ctx.response()
-            .setStatusCode(code)
-            .putHeader("Content-Type", "text/plain");
+    HttpServerResponse res = ctx.response();
+    if (!res.closed()) {
+      res
+        .setStatusCode(code)
+        .putHeader("Content-Type", "text/plain");
+    }
+    return res;
   }
 
   public static HttpServerResponse responseJson(RoutingContext ctx, int code) {
-    return ctx.response()
-            .setStatusCode(code)
-            .putHeader("Content-Type", "application/json");
+    HttpServerResponse res = ctx.response();
+    if (!res.closed()) {
+      res
+        .setStatusCode(code)
+        .putHeader("Content-Type", "application/json");
+    }
+    return res;
   }
 }

@@ -6,8 +6,11 @@ package org.folio.okapi.sample;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -30,12 +33,55 @@ public class MainVerticle extends AbstractVerticle {
   private String helloGreeting;
   private String tenantRequests = "";
 
+  // Report the request headers in response headers, body, and/or log
+  private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
+    // Report all headers back (in headers and in the body) if requested
+    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
+    if (tenantReqs != null) {
+      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
+    }
+    String allh = ctx.request().getHeader("X-all-headers");
+    if (allh != null) {
+      String qry = ctx.request().query();
+      if (qry != null) {
+        ctx.request().headers().add("X-Url-Params", qry);
+      }
+      if (allh.contains("L")) {
+        logger.info("Headers, as seen by okapi-test-module:");
+      }
+      for (String hdr : ctx.request().headers().names()) {
+        String hdrval = ctx.request().getHeader(hdr);
+        if (hdrval != null) {
+          if (allh.contains("H") && hdr.startsWith("X-")) {
+            ctx.response().putHeader(hdr, hdrval);
+          }
+          if (allh.contains("B")) {
+            xmlMsg.append(" ").append(hdr).append(":").append(hdrval).append("\n");
+          }
+          if (allh.contains("L")) {
+            logger.info(hdr + ":" + hdrval);
+          }
+        }
+      }
+    }
+  }
+
   private void myStreamHandle(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
       return;
     }
+
+    // hack to return 500
+    if (ctx.request().headers().contains("X-Handler-error")) {
+      ctx.response().setStatusCode(500).end("It does not work");
+      return;
+    }
+
+    // both client and Post filter should see handler response code and headers
     ctx.response().setStatusCode(200);
+    ctx.response().putHeader("X-Handler-header", "OK");
+
     final String ctype = ctx.request().headers().get("Content-Type");
     StringBuilder xmlMsg = new StringBuilder();
     if (ctype != null && ctype.toLowerCase().contains("xml")) {
@@ -45,39 +91,13 @@ public class MainVerticle extends AbstractVerticle {
     if (hv != null) {
       xmlMsg.append(hv);
     }
-    String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
-    if (tenantReqs != null) {
-      xmlMsg.append(" Tenant requests: ").append(tenantRequests);
-    }
     ctx.response().putHeader("Content-Type", "text/plain");
 
-    // Report all headers back (in headers and in the body) if requested
-    String allh = ctx.request().getHeader("X-all-headers");
-    if (allh != null) {
-      String qry = ctx.request().query();
-      if (qry != null) {
-        ctx.request().headers().add("X-Url-Params", qry);
-      }
-      for (String hdr : ctx.request().headers().names()) {
-        tenantReqs = ctx.request().getHeader(hdr);
-        if (tenantReqs != null) {
-          if (allh.contains("H") && hdr.startsWith("X-")) {
-            ctx.response().putHeader(hdr, tenantReqs);
-          }
-          if (allh.contains("B")) {
-            xmlMsg.append(" ").append(hdr).append(":").append(tenantReqs).append("\n");
-          }
-          if (allh.contains("L")) {
-            logger.info(hdr + ":" + tenantReqs);
-          }
-        }
-      }
-    }
     String stopper = ctx.request().getHeader("X-stop-here");
     if (stopper != null) {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
-
+    headers(ctx, xmlMsg);
     final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
     String delayStr = ctx.request().getHeader("X-delay");
     if (delayStr != null) {
@@ -102,35 +122,43 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myTenantHandle(RoutingContext ctx) {
-    ctx.response().setStatusCode(200);
-    ctx.response().setChunked(true);
-
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    ctx.response().write(meth + " request to okapi-test-module "
-      + "tenant service for tenant " + tenant + "\n");
-    logger.info(meth + " request to okapi-test-module "
-      + "tenant service for tenant " + tenant);
-    final String cont = ctx.request().getHeader("Content-Type");
-    logger.debug("Tenant api content type: '" + cont + "'");
-    final String module_from = ctx.request().getParam("module_from");
-    if (module_from != null) {
-      logger.info("module_from=" + module_from);
-    }
-    final String module_to = ctx.request().getParam("module_to");
-    if (module_to != null) {
-      logger.info("module_to=" + module_to);
-    }
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-    if (tok == null) {
-      tok = "";
+    logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
+      + " for tenant " + tenant);
+    if (ctx.request().method().equals(HttpMethod.DELETE)) {
+      ctx.response().setStatusCode(204);
+      ctx.response().end();
     } else {
-      tok = "-auth";
+      ctx.response().setChunked(true);
+
+      final String cont = ctx.request().getHeader("Content-Type");
+      logger.debug("Tenant api content type: '" + cont + "'");
+      String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+      if (tok == null) {
+        tok = "";
+      } else {
+        tok = "-auth";
+      }
+      this.tenantRequests += meth + "-" + tenant + tok + " ";
+      logger.debug("Tenant requests so far: " + tenantRequests);
+
+      Buffer b = Buffer.buffer();
+      ctx.request().handler(b::appendBuffer);
+      ctx.request().endHandler(x -> {
+        try {
+          JsonObject j = new JsonObject(b);
+          logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+        } catch (DecodeException ex) {
+          responseError(ctx, 400, ex.getLocalizedMessage());
+          return;
+        }
+        ctx.response().setStatusCode(200);
+        ctx.response().write(meth + " " + ctx.request().uri() + " to okapi-test-module"
+          + " for tenant " + tenant + "\n");
+        ctx.response().end();
+      });
     }
-    this.tenantRequests += meth + "-" + tenant + tok + " ";
-    logger.debug("Tenant requests so far: " + tenantRequests);
-    ctx.request().handler(x -> ctx.response().write(x));
-    ctx.request().endHandler(x -> ctx.response().end());
   }
 
   private void recurseHandle(RoutingContext ctx) {
@@ -167,6 +195,17 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
+ private void myPermissionHandle(RoutingContext ctx) {
+    final Buffer incoming = Buffer.buffer();
+    ctx.request().handler(incoming::appendBuffer);
+    ctx.request().endHandler(x -> {
+      String body = incoming.toString();
+      body = body.replaceAll("\\s+", " "); // remove newlines etc
+      ctx.response().putHeader("X-Tenant-Perms-Result", body);
+      ctx.response().end();
+    });
+  }
+
   @Override
   public void start(Future<Void> fut) throws IOException {
     Router router = Router.router(vertx);
@@ -187,9 +226,11 @@ public class MainVerticle extends AbstractVerticle {
     router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
+    router.post("/_/tenantpermissions")
+      .handler(this::myPermissionHandle);
 
-    router.get("/_/tenant").handler(this::myTenantHandle);
     router.post("/_/tenant").handler(this::myTenantHandle);
+    router.post("/_/tenant/disable").handler(this::myTenantHandle);
     router.delete("/_/tenant").handler(this::myTenantHandle);
 
     router.get("/recurse").handler(this::recurseHandle);

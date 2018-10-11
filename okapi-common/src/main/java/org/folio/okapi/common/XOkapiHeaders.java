@@ -29,6 +29,11 @@ public class XOkapiHeaders {
    */
   public static final String TOKEN = "X-Okapi-Token";
 
+  /** X-Okapi-Additional-Token. A token that identifies allows auth
+   * to give privilege on behalf as other user (sudo)
+   */
+  public static final String ADDITIONAL_TOKEN = "X-Okapi-Additional-Token";
+
   /**
    * Authorization. Used for carrying the same token as in X-Okapi-Token, using
    * the "Bearer" schema (to distinguish it from HTTP Basic auth), for example:
@@ -98,13 +103,30 @@ public class XOkapiHeaders {
 
   /*
    The rest are only used internally, in Okapi, or between Okapi and the
-   auth complex.
+   auth complex or the post filter.
    */
   /**
    * X-Okapi-Filter. Passed to filters (but not real handlers). Tells which
-   * phase we are in, for example 'auth'.
+   * phase we are in. Also contains the path pattern that matched, separated by
+   * one space. For example 'X-Okapi-Filter: auth /foo'. (In some rare cases,
+   * like with old-fashioned ModuleDescriptors, it may be plain 'auth')
    */
   public static final String FILTER = "X-Okapi-Filter";
+  public static final String FILTER_AUTH = "auth";
+  public static final String FILTER_PRE = "pre";
+  public static final String FILTER_POST = "post";
+
+  /**
+   * X-Okapi-request info. Passed to pre/post filters.
+   */
+  public static final String REQUEST_IP = "X-Okapi-request-ip";
+  public static final String REQUEST_TIMESTAMP = "X-Okapi-request-timestamp";
+  public static final String REQUEST_METHOD = "X-Okapi-request-method";
+
+  /**
+   * X-Okapi-Match-Path-Pattern. Path pattern that has matched when invoking a handler
+   */
+  public static final String MATCH_PATH_PATTERN = "X-Okapi-Match-Path-Pattern";
 
   /**
    * X-Okapi-Permissions-Required. Lists the permissions a given module
@@ -136,6 +158,18 @@ public class XOkapiHeaders {
    * Used only between Okapi and the authorization module.
    */
   public static final String MODULE_TOKENS = "X-Okapi-Module-Tokens";
+
+  /**
+   * X-Okapi-Auth-Result. Used for passing the HTTP result code of the auth filter
+   * to the post filter(s).
+   */
+  public static final String AUTH_RESULT = "X-Okapi-Auth-Result";
+
+  /**
+   * X-Okapi-Handler-Result. Used for passing the HTTP result code of the actual
+   * handler to the post filter(s).
+   */
+  public static final String HANDLER_RESULT = "X-Okapi-Handler-Result";
 
   /**
    * The id of the always-present super tenant.

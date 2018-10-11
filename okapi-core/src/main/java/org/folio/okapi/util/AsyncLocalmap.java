@@ -103,8 +103,8 @@ class AsyncLocalmap<K, V> implements AsyncMap<K, V> {
   }
 
   @Override
-  public void keys(Handler<AsyncResult<Set<K>>> hndlr) {
-    throw new UnsupportedOperationException("Not supported yet.");
+  public void keys(Handler<AsyncResult<Set<K>>> resultHandler) {
+    resultHandler.handle(Future.succeededFuture(map.keySet()));
   }
 
   @Override

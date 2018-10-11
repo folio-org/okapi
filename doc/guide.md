@@ -34,6 +34,7 @@ managing and running microservices.
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
+    * [Purge](#purge)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
     * [Environment Variables](#environment-variables)
@@ -45,6 +46,7 @@ managing and running microservices.
     * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
+    * [Tenant Interface](#tenant-interface)
     * [HTTP](#http)
 
 ## Introduction
@@ -292,11 +294,15 @@ type by default (see below). If no handlers are found, Okapi will return a 404
 NOTFOUND.
 
 Each request may be passed through one or more filters. The `phase` determines
-the order in which filters are applied. At the moment that seems a bit of an
-overkill, since we have only one phase, `auth`, which will get invoked before
-the handler. It will be used for checking permissions. We assume that later we
-will introduce more phases, for example one to write an audit log after a request
-has been processed by the handler.
+the order in which filters are applied. At the moment we have three phases defined:
+ * `auth` will be invoked first. It is used for checking the X-Okapi-Token, and
+permissions.
+ * `pre` will be invoked just before the handler. It is intended for logging and
+reporting all requests.
+ * `post` will be invoked just after the handler. It is intended for logging and
+reporting all responses.
+
+We expect to add more phases as necessary.
 
 (In previous versions, we had handlers and filters combined in one
 pipeline, with numerical levels for controlling the order. That was deprecated
@@ -849,10 +855,10 @@ As above, now stop that simple verification.
 #### Okapi-test-auth-module
 
 Okapi itself does not do authentication: it delegates that to a
-module.  We do not have a fully functional authentication module yet,
-but we have a dummy module that can be used to demonstrate how it
-works. Also this one is mostly used for testing the auth mechanisms in
-Okapi itself.
+module. In real life, the auth stuff is divided between different
+modules, for example mod-authtoken, mod-login, and mod-permissions,
+but for our test purposes we have a dummy module that can be used to
+demonstrate how it works.
 
 The dummy module supports two functions: `/authn/login` is, as its name implies,
 a login function that takes a username and password, and if acceptable,
@@ -895,8 +901,8 @@ X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/modules : 200 8081us
 Content-Length: 74
 
 [ {
-  "id" : "okapi-2.0.1-SNAPSHOT",
-  "name" : "okapi-2.0.1-SNAPSHOT"
+  "id" : "okapi-2.15.1-SNAPSHOT",
+  "name" : "okapi-2.15.1-SNAPSHOT"
 } ]
 ```
 
@@ -1047,8 +1053,10 @@ Okapi responds with a short list of only one node:
 
 This is not surprising, we are running the whole thing on one machine, in 'dev'
 mode, so we only have one node in the cluster and by default it is called
-'localhost'.  If this was a real cluster, the cluster manager would have given
-ugly UUIDs for all the nodes when they started up. So let's deploy it there.
+'localhost'.  If this was a real cluster, each node would have its own id,
+either given on Okapi command line when started on that node, or an ugly
+UUID assigned by the cluster manager. So let's deploy it there.
+
 First we create a DeploymentDescriptor:
 
 ```
@@ -1267,16 +1275,19 @@ END
 The module has one handler, for the `/authn/login` path. It also has a filter that
 connects with every incoming request. That is where it decides if the user will
 be allowed to make the request. This one has a type "headers", which means that
-Okapi does not pass the whole request to it, just the headers.
+Okapi does not pass the whole request to it, just the headers. In real world, these
+two services can well come from different modules, for example mod-authtoken for
+the filtering, and some kind of mod-login for authenticating the user.
 
 The pathPattern for the filter uses the wildcard character (`*`) to match any path.
 A pathPattern may also include curly braces pairs to match a path component. For
 example `/users/{id}` would match `/users/abc`, but not `/users/abc/d`.
 
 The phase specifies at which stage the filter is to be applied. At this point,
-we only have one phase, "auth", which gets invoked before the handlers. We are
-likely to come up with different phases as the need arises, both before and
-after the handlers.
+we only have one commonly used phase, "auth", which gets invoked well before the
+handlers. There are two others, "pre" and "post", which will be invoked right
+before and after the handler, respectively. We may define more phases as
+necessary.
 
 We could have included a launchDescriptor as before, but just to demonstrate
 another way, we have omitted it here. Doing it this way may make more sense in
@@ -1394,7 +1405,7 @@ Content-Type: text/plain
 X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 64187us
 Transfer-Encoding: chunked
 
-Auth.check called without X-Okapi-Token
+test-auth: check called without X-Okapi-Token
 ```
 
 Indeed, we are no longer allowed to call the test module. So, how do we get
@@ -2304,7 +2315,7 @@ If regular clients need access to the Okapi admin functions, for example to list
 what modules they have available, the internal module needs to be made available
 for them, and if needed, some permissions assigned to some admin user.
 
-There is a more detailed walk-through about [securing.md](securing an Okapi installation).
+There is a more detailed walk-through about [securing an Okapi installation](securing.md).
 
 ### Module Descriptor Sharing
 
@@ -2429,6 +2440,15 @@ optional parameter, `deploy`, which takes a boolean value. If true, the
 install operation will also deploy and un-deploy as necessary. This will
 only work if the ModuleDescriptor has the launchDescriptor property.
 
+### Purge
+
+By default when modules are disabled, persistent data is preserved.
+This can be changed with the optional parameter `purge`, which when set
+to `true`, instructs a module to purge (remove) all persistent
+data. This only has an effect on modules that are also disabled ; has
+no effect on modules that are enabled or upgraded. The purge parameter
+was added in Okapi version 1.16.0. The purge mode calls the `_tenant`
+interface with method DELETE if that is provided for the module.
 
 ## Reference
 
@@ -2459,12 +2479,14 @@ Defaults to `localhost`
 system-generated UUID (in cluster mode), or `localhost` (in dev mode)
 * `storage`: Defines the storage back end, `postgres`, `mongo` or (the default)
 `inmemory`
+* `lang`: Default language for messages returned by Okapi.
 * `loglevel`: The logging level. Defaults to `INFO`; other useful values are
 `DEBUG`, `TRACE`, `WARN` and `ERROR`.
 * `okapiurl`: Tells Okapi its own official URL. This gets passed to the modules
 as X-Okapi-Url header, and the modules can use this to make further requests
 to Okapi. Defaults to `http://localhost:9130` or what ever port specified. There
 should be no trailing slash, but if there happens to be one, Okapi will remove it.
+Note that it may end with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon is. Defaults to
 `http://localhost:4243`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
@@ -2749,40 +2771,74 @@ its HTTP listener, and that kind of things. Most of all, it should not be initia
 any databases, see "enabling" below.
 
 #### Enabling for a tenant
-When a module is enabled for a tenant, Okapi makes a call to its `/_/tenant`
-interface. This is where the module may initialize its database (for that one
-tenant), etc.
+
+When a module is enabled for a tenant, Okapi checks if there is a
+`_tenant` interface provided for the module. If that it is defined,
+Okapi makes a HTTP POST to `/_/tenant` for `_tenant` interface version
+1.0 or 1.1.  This is where the module may initialize its database if
+necessary (for that one tenant), etc. With the POST request a JSON
+object is passed: member `module_to` being the module ID that is
+enabled.
 
 #### Upgrading
-When a module gets upgraded to a new version, it happens separately for each tenant.
-Some tenants may not wish to upgrade in the middle of a busy season, others may
-want to have everything in the latest version. The process starts by Okapi
-deploying the new version of the module, while the old one is running too. Then
-various tenants can upgrade to the new version, one at a time.
 
-The actual upgrade happens by Okapi disabling the old version of the module, and
-enabling the new one, in the same call. The module sees a request to the `/_/tenant`
-interface, with both old and new module id given as a parameter, including its
-version. This is a signal to it to look at its data (still, for that one
-tenant!), and upgrade what needs to be upgraded.
+When a module gets upgraded to a new version, it happens separately
+for each tenant.  Some tenants may not wish to upgrade in the middle
+of a busy season, others may want to have everything in the latest
+version. The process starts by Okapi deploying the new version of the
+module, while the old one is running too. Then various tenants can
+upgrade to the new version, one at a time.
 
-Upgrading large amounts of data to a newer schema can be slow. We are thinking
-about a way to make it happen asynchronously, but that is not even designed yet.
-(TODO).
+The actual upgrade happens by Okapi disabling the old version of the
+module, and enabling the new one, in the same call. Okapi makes a POST
+request with path `/_/tenant` if version 1.0 or 1.1 of interface
+`_tenant` is provided. With the POST request, a JSON object is passed:
+member `module_from` being the module ID that we are upgrading 'from'
+and member `module_to` being the module ID that we are upgrading
+'to'. Note that the Module Descriptor of the target module (module_to)
+is being used for the call.
+
+Upgrading large amounts of data to a newer schema can be slow. We are
+thinking about a way to make it happen asynchronously, but that is not
+even designed yet.  (TODO).
 
 We are using semantic versioning, see [Versioning and Dependencies](#versioning-and-dependencies)
 
-
 #### Disabling
-(TODO - We have not quite decided our policy about disabling modules, deleting
-old data etc - compare apt-get --uninstall and --purge)
+
+When a module is disabled for a tenant, Okapi makes a POST request
+with path `/_/tenant/disable` if version 1.1 of interface `_tenant` is
+provided. With the POST request a JSON object is passed: member
+`module_from` being the module ID that is being disabled.
+
+#### Purge
+
+When a module is purged for a tenant, it disables the tenant for the
+module but also removes persistent content. A module may implement
+this by providing `_tenant` interface 1.0/1.1 with a DELETE method.
+
+
+### Tenant Interface
+
+The full `_tenant` interface version 1.1 portion:
+
+```
+   "id" : "_tenant",
+   "version" : "1.1",
+   "interfaceType" : "system",
+   "handlers" : [ {
+     "methods" : [ "POST", "DELETE" ],
+     "pathPattern" : "/_/tenant"
+    }, {
+     "methods" : [ "POST" ],
+     "pathPattern" : "/_/tenant/disable"
+    } ]
+```
 
 #### Closing down
 When Okapi is closing down, it will close the modules too. When starting up,
 those will be restarted. As a module author, you should not worry too much about
 that.
-
-
 
 ### HTTP
 One of the main design criteria for FOLIO is to base things on RESTful HTTP services,
@@ -2810,6 +2866,9 @@ and some permissions.
 * `X-Okapi-Url` The base URL of the Okapi installation. For example
 http://localhost:9130. This can also point to a load balancer in front to Okapi,
 all you need to know is to use this when making further requests to other modules.
+The base URL can end with a path like `https://folio.example.com/okapi` to
+ensure that hostname and port match those of the frontend URL
+`https://folio.example.com` avoiding preflight CORS HTTP OPTIONS requests.
 * `X-Okapi-Request-Id` The Id of the current request, for example
 "821257/user;744931/perms", which tells that this was request 821257 to `/users/...`
 which made a request 744931 to `/perms/...` The numbers are just random, picked

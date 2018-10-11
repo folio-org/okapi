@@ -3,6 +3,7 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
@@ -11,6 +12,7 @@ import static org.folio.okapi.common.ErrorType.INTERNAL;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -18,6 +20,7 @@ class MongoUtil<T> {
 
   private final String collection;
   private final MongoClient cli;
+  private Logger logger = OkapiLogger.get();
 
   public MongoUtil(String collection, MongoClient cli) {
     this.collection = collection;
@@ -28,6 +31,7 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.removeDocument(collection, jq, rres -> {
       if (rres.failed()) {
+        logger.warn("MongoUtil.delete " + id + " failed : " + rres.cause());
         fut.handle(new Failure<>(INTERNAL, rres.cause()));
       } else if (rres.result().getRemovedCount() == 0) {
         fut.handle(new Failure<>(NOT_FOUND, id));
@@ -55,12 +59,14 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     String s = Json.encodePrettily(env);
     JsonObject document = new JsonObject(s);
-    encode(document, id);
+    encode(document, null); // _id can not be put for Vert.x 3.5.1
     UpdateOptions options = new UpdateOptions().setUpsert(true);
     cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
+        logger.warn("MongoUtil.add " + id + " failed : " + res.cause());
+        logger.warn("Document: " + document.encodePrettily());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
@@ -74,6 +80,8 @@ class MongoUtil<T> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
+        logger.warn("MongoUtil.insert " + id + " failed : " + res.cause());
+        logger.warn("Document: " + document.encodePrettily());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
@@ -99,7 +107,9 @@ class MongoUtil<T> {
   }
 
   public void encode(JsonObject j, String id) {
-    j.put("_id", id);
+    if (id != null) {
+      j.put("_id", id);
+    }
     JsonObject o = j.getJsonObject("enabled");
     if (o != null) {
       JsonObject repl = new JsonObject();

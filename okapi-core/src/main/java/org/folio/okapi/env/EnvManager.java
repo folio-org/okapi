@@ -12,6 +12,7 @@ import org.folio.okapi.bean.EnvEntry;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
@@ -23,6 +24,7 @@ public class EnvManager {
   private final Logger logger = OkapiLogger.get();
   private final LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
   private final EnvStore envStore;
+  private Messages messages = Messages.getInstance();
 
   public EnvManager(EnvStore s) {
     envStore = s;
@@ -53,9 +55,9 @@ public class EnvManager {
 
   private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
     if (env.getName() == null) {
-      fut.handle(new Failure<>(USER, "missing name"));
+      fut.handle(new Failure<>(USER, messages.getMessage("10900")));
     } else if (env.getValue() == null) {
-      fut.handle(new Failure<>(USER, "missing value"));
+      fut.handle(new Failure<>(USER, messages.getMessage("10901")));
     } else {
       envMap.add(env.getName(), env, fut);
     }

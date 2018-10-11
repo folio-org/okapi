@@ -1,11 +1,12 @@
 package org.folio.okapi.deployment;
 
 import com.codahale.metrics.Timer;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
+import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -27,6 +28,8 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.env.EnvManager;
+import org.folio.okapi.util.CompList;
+import org.folio.okapi.common.Messages;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -43,6 +46,7 @@ public class DeploymentManager {
   private final EnvManager em;
   private final int listenPort;
   private final String nodeName;
+  private Messages messages = Messages.getInstance();
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
     String host, Ports ports, int listenPort, String nodeName) {
@@ -64,40 +68,34 @@ public class DeploymentManager {
   }
 
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
-    shutdownR(list.keySet().iterator(), 0, fut);
-  }
-
-  private void shutdownR(Iterator<String> it, int count,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      if (count != 0) {
-        logger.info("All " + count + " modules shut down");
-      }
-      fut.handle(new Success<>());
-    } else {
-      DeploymentDescriptor md = list.get(it.next());
-      ModuleHandle mh = md.getModuleHandle();
-      logger.debug("Shutting down " + md.getSrvcId());
-      mh.stop(future -> shutdownR(it, count + 1, fut));
+    logger.info("fast shutdown");
+    CompList<Void> futures = new CompList<>(INTERNAL);
+    Collection<DeploymentDescriptor > col = list.values();
+    for (DeploymentDescriptor dd : col) {
+      ModuleHandle mh = dd.getModuleHandle();
+      Future<Void> f = Future.future();
+      mh.stop(f::handle);
+      futures.add(f);
     }
+    futures.all(fut);
   }
 
   public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getInstId();
     if (id != null && list.containsKey(id)) {
-      fut.handle(new Failure<>(USER, "already deployed: " + id));
+      fut.handle(new Failure<>(USER, messages.getMessage("10700", id)));
       return;
     }
     String srvc = md1.getSrvcId();
     if (srvc == null) {
-      fut.handle(new Failure<>(USER, "Needs srvcId"));
+      fut.handle(new Failure<>(USER, messages.getMessage("10701")));
       return;
     }
     Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
 
     int usePort = ports.get();
     if (usePort == -1) {
-      fut.handle(new Failure<>(USER, "all ports in use"));
+      fut.handle(new Failure<>(USER, messages.getMessage("10702")));
       tim.close();
       return;
     }
@@ -117,7 +115,7 @@ public class DeploymentManager {
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
       ports.free(usePort);
-      fut.handle(new Failure<>(USER, "No LaunchDescriptor"));
+      fut.handle(new Failure<>(USER, messages.getMessage("10703")));
       tim.close();
       return;
     }
@@ -131,7 +129,7 @@ public class DeploymentManager {
     em.get(eres -> {
       if (eres.failed()) {
         ports.free(usePort);
-        fut.handle(new Failure<>(INTERNAL, "get env: " + eres.cause().getMessage()));
+        fut.handle(new Failure<>(INTERNAL, messages.getMessage("10704", eres.cause().getMessage())));
         tim.close();
       } else {
         for (EnvEntry er : eres.result()) {
@@ -169,7 +167,7 @@ public class DeploymentManager {
   public void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("undeploy instId " + id);
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10705", id)));
     } else {
       Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
@@ -204,7 +202,7 @@ public class DeploymentManager {
 
   public void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, "not found: " + id));
+      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10705", id)));
     } else {
       fut.handle(new Success<>(list.get(id)));
     }

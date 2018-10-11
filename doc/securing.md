@@ -25,20 +25,20 @@ All the shell commands assume you are in your top-level directory, for example
 ### Getting Okapi
 
 This script assumes you have a fresh Okapi instance running, with nothing
-installed in it. If you do not, you can get one up by running the following.
+installed in it. If you do not, you can get one up by running the following:
 
 ```
 git clone https://github.com/folio-org/okapi
 cd okapi
-#git checkout "v2.0.2"  # Or "master" if you want the latest, or any other tag
+#git checkout "v2.3.1"  # Or "master" if you want the latest, or any other tag
 mvn clean install
 cd ..
 ```
 
 The build takes a while. (It will go faster if you append `-DskipTests` to the
-mvn command line)
+mvn command line.)
 
-Check that near the end there is a line that says
+Check that near the end there is a line that says:
 
 ```
 [INFO] BUILD SUCCESS
@@ -75,7 +75,7 @@ CREATE ROLE module_admin_user PASSWORD ‘somepassword’ SUPERUSER CREATEDB INH
 
 See the
 [Storage](https://github.com/folio-org/okapi/blob/master/doc/guide.md#storage)
-section of the Okapi guide for details of setting up your database. Then run
+section of the Okapi guide for details of setting up your database. Then run:
 
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar initdatabase
@@ -97,7 +97,7 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
+X-Okapi-Trace: GET okapi-2.16.1-SNAPSHOT /_/proxy/tenants : 200 11141us
 Content-Length: 105
 
 [ {
@@ -114,7 +114,7 @@ Note on the curl command line options:
 
 ## Required modules
 
-This script requires the following modules.
+This script requires the following modules:
 * mod-permissions
 * mod-users
 * mod-login
@@ -127,24 +127,25 @@ add a `git checkout` to get to a known good version.
 ```
 git clone --recursive https://github.com/folio-org/mod-permissions
 cd mod-permissions
-git checkout master # "v4.0.4" is way too old
+git checkout master # v5.2.5 is okay
 mvn clean install
 cd ..
 
 git clone --recursive https://github.com/folio-org/mod-users
 cd mod-users
-git checkout master # maybe v14.2.0 works
+git checkout master # v15.1.0 is okay
 mvn clean install
 cd ..
 
 git clone --recursive https://github.com/folio-org/mod-login
-git checkout master # v3.1.0 is way too old
+cd mod-login
+git checkout master # v4.0.1 is okay
 mvn clean install
 cd ..
 
 git clone https://github.com/folio-org/mod-authtoken
 cd mod-authtoken
-git checkout master # v1.1.0
+git checkout master # v1.4.1 is okay
 mvn clean install
 cd ..
 ```
@@ -155,26 +156,10 @@ Basically we just need to declare, deploy, and enable the modules declared above
 and load some data into them.
 
 Declaring and deploying the modules can be done in any order, but we have to be
-careful with the order of enabling them, and loading data into them. Most of all,
-we may not enable mod-authtoken, until the very end, when we have all the other
-modules in place and loaded with data, or we risk that mod-authtoken will not let
+careful with the order of enabling them. Specifically,
+we may not enable mod-authtoken until the very end, when we have all the other
+modules in place and loaded with data, as mod-authtoken will not let
 us finish the process, locking us out of our own system.
-
-
-### Workaround for a known bug
-
-When a module gets enabled, Okapi loads its permissions into mod-permissions,
-if such is already enabled. Unfortunately there is a bug in Okapi, so it will
-not reload permissions of already-existing modules when mod-permissions is
-enabled for the first time. This makes it necessary for mod-permissions to be
-the first module to be installed, but that is not possible, since the internal
-module is already there when Okapi starts. So its permissions will never get
-into mod-permissions, and thus the superuser will never have the permissions to
-use Okapi's admin functions. To work around that problem, we post the permissions
-of the internal module into mod-permissions when we set that one up.
-See [Okapi-388](https://issues.folio.org/browse/OKAPI-388).
-<!-- TODO: Remove this paragraph when -388 gets fixed, and update the Okapi
-version above -->
 
 ### Declaring the modules
 
@@ -246,67 +231,39 @@ curl -w '\n' -D - -X POST  \
 
 ### Deploying the modules
 
-Now we need to deploy the modules. This is a bit tricky, since the
-DeploymentDescriptor needs to refer to the version of the module, and we
-do not want to hard code that in this script. Instead we grep the version
-out of the `pom.xml` file for each module.
-
-Also note that these commands start with a meaningless-looking cat. It is there
-to trigger the script-running one-liner.
+Now we need to deploy the modules.
+Here we simply use the default deployment descriptors that are provided by each module
+for its development purposes, so there is some tweaking required.
 
 #### mod-permissions
 
 ```script
-export PERMVER=`grep '<version>' mod-permissions/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-perm.json <<END
-{
-  "srvcId": "mod-permissions-$PERMVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -Dport=%p -jar mod-permissions/target/mod-permissions-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-permissions/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-permissions.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-perm.json \
+  -d @/tmp/deploy-permissions.json \
   http://localhost:9130/_/discovery/modules
 ```
 
 #### mod-users
 
 ```script
-export USERVER=`grep '<version>' mod-users/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-user.json <<END
-{
-  "srvcId": "mod-users-$USERVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -jar mod-users/target/mod-users-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-users/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-users.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-user.json \
+  -d @/tmp/deploy-users.json \
   http://localhost:9130/_/discovery/modules
 ```
 
 #### mod-login
 
 ```script
-export LOGINVER=`grep '<version>' mod-login/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-login.json <<END
-{
-  "srvcId": "mod-login-$LOGINVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -jar mod-login/target/mod-login-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-login/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-login.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
@@ -317,24 +274,16 @@ curl -w '\n' -D - -X POST  \
 #### mod-authtoken
 
 ```script
-export AUTHVER=`grep '<version>' mod-authtoken/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-cat > /tmp/deploy-auth.json <<END
-{
-  "srvcId": "mod-authtoken-$AUTHVER",
-  "nodeId": "localhost",
-  "descriptor": {
-    "exec": "java -Dport=%p -jar mod-authtoken/target/mod-authtoken-fat.jar -Dhttp.port=%p"
-  }
-}
-END
+cat mod-authtoken/target/DeploymentDescriptor.json \
+  | sed 's/..\///' | sed 's/embed_postgres=true//' > /tmp/deploy-authtoken.json
 
 curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
-  -d @/tmp/deploy-auth.json \
+  -d @/tmp/deploy-authtoken.json \
   http://localhost:9130/_/discovery/modules
 ```
 
-You can see all four modules deployed with
+You can see all four modules deployed with:
 
 ```script
 curl -w '\n' -D - http://localhost:9130/_/discovery/modules
@@ -342,7 +291,7 @@ curl -w '\n' -D - http://localhost:9130/_/discovery/modules
 
 ### Enabling modules and loading data
 
-First we need to enable mod-permissions for our supertenant. We do not have to
+Enable the modules for our supertenant. We do not need to
 specify the version number here, Okapi will choose the latest (and only) version
 we have declared.
 
@@ -351,24 +300,6 @@ curl -w '\n' -D - -X POST  \
   -H "Content-type: application/json" \
    -d'{"id":"mod-permissions"}' \
    http://localhost:9130/_/proxy/tenants/supertenant/modules
-```
-
-#### Workaround: Load the permissions of the Internal Module
-
-Because of bug OKAPI-388, the permissions for the internal module have not
-been loaded in the perms module. Re-enabling that will fix that.
-
-```script
-export OKAPIVER=`grep '<version>' okapi/pom.xml | head -1 | sed 's/[^0-9.A-Z-]//g'`
-
-cat > /tmp/re-enable.json <<END
-{"id":"okapi-$OKAPIVER"}
-END
-
-curl -w '\n' -D - -X POST  \
-  -H "Content-type: application/json" \
-   -d@/tmp/re-enable.json \
-   http://localhost:9130/_/proxy/tenants/supertenant/modules/okapi-$OKAPIVER
 ```
 
 #### Create our superuser in the perms module
@@ -418,7 +349,7 @@ curl -w '\n' -D - -X POST  \
 
 #### mod-login
 
-Enable the login module
+Enable the login module:
 
 ```script
 curl -w '\n' -D - -X POST  \
@@ -428,7 +359,7 @@ curl -w '\n' -D - -X POST  \
   http://localhost:9130/_/proxy/tenants/supertenant/modules
 ```
 
-And create a login user
+And create a login user:
 
 ```script
 cat >/tmp/loginuser.json << END
@@ -459,7 +390,7 @@ curl -w '\n' -D - -X POST  \
 #### Log in
 
 We can reuse the credentials we used for creating the login user.
-We need to save the headers in /tmp, so we can extract the auth token
+We need to save the headers in /tmp, so we can extract the auth token.
 
 ```script
 curl -w '\n' -D /tmp/loginheaders -X POST  \

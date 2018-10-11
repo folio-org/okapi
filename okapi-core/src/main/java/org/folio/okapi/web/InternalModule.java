@@ -13,7 +13,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +29,7 @@ import org.folio.okapi.bean.TenantModuleDescriptor;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -69,6 +69,7 @@ public class InternalModule {
   private final LogHelper logHelper;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
+  private Messages messages = Messages.getInstance();
 
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
     DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
@@ -154,6 +155,11 @@ public class InternalModule {
       + "    \"methods\" :  [ \"PUT\" ],"
       + "    \"pathPattern\" : \"/_/discovery/modules/{serviceId}/{instanceId}\","
       + "    \"permissionsRequired\" : [ \"okapi.discovery.put\" ], "
+      + "    \"type\" : \"internal\" "
+      + "   }, {"
+      + "    \"methods\" :  [ \"DELETE\" ],"
+      + "    \"pathPattern\" : \"/_/discovery/modules\","
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.delete\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"DELETE\" ],"
@@ -533,8 +539,7 @@ public class InternalModule {
       pc.getCtx().response().setStatusCode(201);
       fut.handle(new Success<>(s));
     } catch (UnsupportedEncodingException ex) {
-      fut.handle(new Failure<>(INTERNAL, "Error in encoding location id "
-        + id + ". " + ex.getMessage()));
+      fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
     }
   }
 
@@ -547,7 +552,7 @@ public class InternalModule {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9_-]+$")) {
-        fut.handle(new Failure<>(USER, "Invalid tenant id '" + id + "'"));
+        fut.handle(new Failure<>(USER, messages.getMessage("11601", id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -568,7 +573,7 @@ public class InternalModule {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(USER, "Tenant.id=" + td.getId() + " id=" + id));
+        fut.handle(new Failure<>(USER, messages.getMessage("11602", td.getId(), id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -612,7 +617,7 @@ public class InternalModule {
 
   private void deleteTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(USER, "Can not delete the superTenant " + id));
+      fut.handle(new Failure<>(USER, messages.getMessage("11603", id)));
       // Change of behavior, used to return 403
       return;
     }
@@ -675,6 +680,7 @@ public class InternalModule {
     options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
     options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
+    options.setPurge(getParamBoolean(ctx.request(), "purge", false));
     return options;
   }
 
@@ -739,25 +745,23 @@ public class InternalModule {
     }
   }
 
-  private void listModulesForTenant(String id,
+  private void listModulesForTenant(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    tenantManager.listModules(id, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      List<String> ml = res.result();
-      Iterator<String> mli = ml.iterator();  // into a list of objects
-      ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
-      while (mli.hasNext()) {
-        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
-        tmd.setId(mli.next());
-        ta.add(tmd);
-      }
-      String s = Json.encodePrettily(ta);
-      fut.handle(new Success<>(s));
-    });
+    try {
+      final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+
+      tenantManager.listModules(id, full, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        String s = Json.encodePrettily(res.result());
+        fut.handle(new Success<>(s));
+      });
+    } catch (DecodeException ex) {
+      fut.handle(new Failure<>(USER, ex));
+    }
   }
 
   private void getModuleForTenant(String id, String mod,
@@ -872,7 +876,7 @@ public class InternalModule {
         List<ModuleDescriptor> mdl = res.result();
         if (orderByStr != null) {
           if (!"id".equals(orderByStr)) {
-            fut.handle(new Failure<>(USER, "unknown orderBy field: " + orderByStr));
+            fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));
             return;
           }
           if (orderStr == null || "desc".equals(orderStr)) {
@@ -880,7 +884,7 @@ public class InternalModule {
           } else if ("asc".equals(orderStr)) {
             Collections.sort(mdl);
           } else {
-            fut.handle(new Failure<>(USER, "invalid order value: " + orderStr));
+            fut.handle(new Failure<>(USER, messages.getMessage("11605", orderStr)));
             return;
           }
         } else {
@@ -903,7 +907,7 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       if (!id.equals(md.getId())) {
-        fut.handle(new Failure<>(USER, "Module.id=" + md.getId() + " id=" + id));
+        fut.handle(new Failure<>(USER, messages.getMessage("11606", md.getId(), id)));
         return;
       }
       String validerr = md.validate(pc);
@@ -1110,6 +1114,19 @@ public class InternalModule {
       fut.handle(new Success<>(""));
     });
   }
+
+  private void discoveryUndeploy(ProxyContext pc,
+    Handler<ExtendedAsyncResult<String>> fut) {
+
+    discoveryManager.removeAndUndeploy(pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      fut.handle(new Success<>(""));
+    });
+  }
+
 
   private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.health(res -> {
@@ -1340,7 +1357,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/modules
         if (n == 6 && m.equals(GET) && segments[5].equals("modules")) {
-          listModulesForTenant(decodedSegs[4], fut);
+          listModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
         if (n == 6 && m.equals(POST) && segments[5].equals("modules")) {
@@ -1466,6 +1483,10 @@ public class InternalModule {
         discoveryUndeploy(pc, decodedSegs[4], fut);
         return;
       }
+      if (n == 4 && segments[3].equals("modules") && m.equals(DELETE)) {
+        discoveryUndeploy(pc, fut);
+        return;
+      }
       // /_/discovery/health
       if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
         discoveryHealthAll(fut);
@@ -1522,7 +1543,7 @@ public class InternalModule {
         return;
       }
     }
-    fut.handle(new Failure<>(INTERNAL, "Unhandled internal module path=" + p));
+    fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
   }
 
 }
