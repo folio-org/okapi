@@ -1,11 +1,11 @@
 ## 2.18.0 2018-10-11
 
- * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfacee
+ * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfaces
  * OKAPI-636 Deployment leaves a process behind if can not connect to port
  * OKAPI-633 Upgrade to Vert 3.5.3
  * OKAPI-635 Return Auth filter error to caller without relying on pre/post filter
  * OKAPI-639 Pass request IP, timestamp, and method to pre/post filter
- * OKAPI-640 Fix etremely long startup time for Okapi on folio-snapshot-stable
+ * OKAPI-640 Fix extremely long startup time for Okapi on folio-snapshot-stable
  * OKAPI-641 Fix install: Modules order affects dependency resolution
  * OKAPI-643 Queries with double quotes crash
  * OKAPI-645 Wrong error code used in proxy service
