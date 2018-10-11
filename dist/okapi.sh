@@ -38,6 +38,12 @@ parse_okapi_conf()  {
 
    # if role is not set to 'dev', get cluster options
    if [ "$role" != "dev" ]; then
+      if [ "$nodename" ]; then
+         OKAPI_JAVA_OPTS+=" -Dnodename=${nodename}"
+      else 
+         NODENAME=`hostname`
+         OKAPI_JAVA_OPTS+=" -Dnodename=${NODENAME}"
+      fi
 
       if [ "$cluster_interface" ]; then
          CLUSTER_IP=`ip addr show dev $cluster_interface | grep ' inet ' \
