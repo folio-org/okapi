@@ -1,3 +1,23 @@
+## 2.18.0 2018-10-11
+
+ * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfacee
+ * OKAPI-636 Deployment leaves a process behind if can not connect to port
+ * OKAPI-633 Upgrade to Vert 3.5.3
+ * OKAPI-635 Return Auth filter error to caller without relying on pre/post filter
+ * OKAPI-639 Pass request IP, timestamp, and method to pre/post filter
+ * OKAPI-640 Fix etremely long startup time for Okapi on folio-snapshot-stable
+ * OKAPI-641 Fix install: Modules order affects dependency resolution
+ * OKAPI-643 Queries with double quotes crash
+ * OKAPI-645 Wrong error code used in proxy service
+ * OKAPI-647 Fix tight loop in module dependency resolution
+ * OKAPI-648 Okapi dependency resolution omitting required interfaces
+ * OKAPI-653 Document that X-Okapi-Url may end with a path like https://folio.example.com/okapi
+ * OKAPI-654 Fix Set chunked based on server not client response
+ * OKAPI-656 Add support for additional token header
+ * OKAPI-657 Pass matching pathPattern to handler
+ * OKAPI-658 Module descriptor pull performance in cluster mode
+ * OKAPI-664 Optimize shared map usage
+
 ## 2.17.0 2018-08-02
 
  * OKAPI-615 Regression with pathPattern for tenant interface
