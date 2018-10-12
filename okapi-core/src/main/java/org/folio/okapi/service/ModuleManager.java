@@ -246,11 +246,11 @@ public class ModuleManager {
     } else {
       switch (action) {
         case enable:
-          return tmEnable(id, modsAvailable, modsEnabled, tml);
+          return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
         case uptodate:
           return false;
         case disable:
-          return tmDisable(id, modsAvailable, modsEnabled, tml);
+          return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
         default:
           fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
           return true;
@@ -259,18 +259,27 @@ public class ModuleManager {
   }
 
   private boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
 
-    addModuleDependencies(modsAvailable.get(id),
-      modsAvailable, modsEnabled, tml);
+    if (addModuleDependencies(modsAvailable.get(id), modsAvailable,
+      modsEnabled, tml) == -1) {
+      fut.handle(new Failure<>(USER, "install: can not enable " + id
+        + " due to missing dependencies or conflict"));
+      return true;
+    }
     return false;
   }
 
   private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-
-    removeModuleDependencies(modsAvailable.get(id),
-      modsEnabled, tml);
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<Boolean>> fut) {
+    if (removeModuleDependencies(modsAvailable.get(id),
+      modsEnabled, tml) == -1) {
+      fut.handle(new Failure<>(USER, "install: can not disable " + id
+        + " due to missing dependencies or conflict"));
+      return true;
+    }
     return false;
   }
 
@@ -292,6 +301,7 @@ public class ModuleManager {
     if (foundMd != null) {
       return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
     }
+    logger.warn("interface req=" + req.getId() + " NOT FOUND");
     return -1;
   }
 

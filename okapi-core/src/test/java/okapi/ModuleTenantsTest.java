@@ -2217,4 +2217,96 @@ public class ModuleTenantsTest {
     }
   }
 
+  @Test
+  public void test666() {
+    final String okapiTenant = "roskilde";
+    RestAssured.port = port;
+    RestAssuredClient c;
+    Response r;
+
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String docProv_1_0_0 = "{" + LS
+      + "  \"id\" : \"prov-1.0.0-alpha\"," + LS
+      + "  \"name\" : \"prov module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"i1\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docProv_1_0_0)
+      .post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docReq1 = "{" + LS
+      + "  \"id\" : \"req-1.0.0\"," + LS
+      + "  \"name\" : \"req module\"," + LS
+      + "  \"provides\" : [ ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"1.0\" } ]" + LS
+      + "}";
+    System.out.println(docReq1);
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docReq1)
+      .post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    StringBuilder b = new StringBuilder();
+    b.append("[ ");
+    b.append("{" + LS
+      + "  \"id\" : \"req-1.0.0\"," + LS + ""
+      + "  \"action\" : \"enable\"" + LS
+      + "} ]");
+    System.out.println(b);
+
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(b.toString())
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&preRelease=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    String s = r.getBody().asString();
+    JsonArray a = new JsonArray(s);
+    Assert.assertEquals("prov-1.0.0-alpha", a.getJsonObject(0).getString("id"));
+    Assert.assertEquals("req-1.0.0", a.getJsonObject(1).getString("id"));
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(b.toString())
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&preRelease=false")
+      .then().statusCode(400).log().ifValidationFails().extract().response();
+  }
 }
