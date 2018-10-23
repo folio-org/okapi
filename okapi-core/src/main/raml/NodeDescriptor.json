@@ -1,16 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "NodeDescriptor",
+  "description": "Deployment node information",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
     "nodeId": {
+      "description": "Node ID",
       "type": "string"
     },
     "url": {
+      "description": "Host:port fot for this node",
       "type": "string"
     },
     "nodeName": {
+      "description": "Human readable node name",
       "type": "string"
     }
   },

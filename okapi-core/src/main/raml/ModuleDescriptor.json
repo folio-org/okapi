@@ -5,39 +5,56 @@
   "type": "object",
   "additionalProperties" : false,
   "properties": {
-    "id": {"type": "string"},
-    "name": {"type": "string"},
-    "tags" : {"type" : ["array", "null"],
-      "items" : {"type": "string"}
+    "id": {
+      "description": "Module ID with format product-semver",
+      "type": "string"
+    },
+    "name": {
+      "description": "Short name for module (should not include version)",
+      "type": "string"
+    },
+    "tags" : {
+      "description": "Module tags",
+      "type" : ["array", "null"],
+      "items" : {
+        "description": "Module tag",
+        "type": "string"
+      }
     },
     "requires": {
+      "description": "Required interfaces",
       "type": ["array", "null"],
       "items": {
         "$ref": "InterfaceReference.json"
       }
     },
     "provides": {
+      "description": "Provided interfaces",
       "type": ["array", "null"],
       "items": {
         "$ref": "InterfaceDescriptor.json"
       }
     },
     "filters": {
+      "description": "Provided filters",
       "type": "array",
       "items": {
         "$ref": "RoutingEntry.json"
       }
     },
     "permissionSets": {
+      "description": "Module Permission Sets",
       "type": ["array", "null"],
       "items": {
         "$ref": "Permission.json"
       }
     },
     "uiDescriptor": {
+      "description": "UI module descriptor",
       "$ref": "UiModuleDescriptor.json"
     },
     "launchDescriptor": {
+      "description": "Default deployment for this module",
       "$ref": "LaunchDescriptor.json"
     }
   },

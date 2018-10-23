@@ -1,18 +1,23 @@
 {
   "title": "Permissions Definition Schema",
+  "description": "Permission entity",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
     "permissionName": {
+      "description": "Permission ID (usually module.service.method or similar)",
       "type": "string"
     },
     "displayName": {
+      "description": "Human readable name for permission",
       "type": "string"
     },
     "description": {
+      "description": "Description for permission",
       "type": "string"
     },
     "subPermissions": {
+      "description": "Sub permissions",
       "type": "array",
       "items": {
         "type": "string"

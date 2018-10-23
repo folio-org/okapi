@@ -1,11 +1,21 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "TenantDescriptor",
+  "description": "Tenant information",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
-    "id": {"type": "string"},
-    "name": {"type": "string"},
-    "description": {"type": "string"}
+    "id": {
+      "description": "Tenant ID",
+      "type": "string"
+    },
+    "name": {
+      "description": "Tenant name",
+      "type": "string"
+    },
+    "description": {
+      "description": "Tenant description",
+      "type": "string"
+    }
   }
 }

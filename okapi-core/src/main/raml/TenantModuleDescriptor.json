@@ -1,14 +1,22 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "TenantModuleDescriptor",
+  "description": "Module transitions",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
-    "id": {"type": "string"},
-    "from": {"type": "string"},
+    "id": {
+      "description": "Module ID (or just product part)",
+      "type": "string"
+    },
+    "from": {
+      "description": "Original Module ID when transitioning from one module to another",
+      "type": "string"
+    },
     "action" : {
-       "type" : "string",
-       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
+      "description": "Module action",
+      "type" : "string",
+      "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
     "message": {"type": "string"}
   },
