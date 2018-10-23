@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "InterfaceList",
+  "description": "Interface List",
   "type": "array",
   "items": {
     "$ref": "InterfaceDescriptor.json"

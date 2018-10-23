@@ -1,11 +1,18 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "HealthStatus",
+  "title": "Health for module as seen from proxy",
+  "description": "Proxy health status",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
-    "id": {"type": "string"},
-    "status": {"type": "string"}
+    "id": {
+      "description": "Module ID",
+      "type": "string"
+    },
+    "status": {
+      "description": "Status message",
+      "type": "string"
+    }
   },
   "required": ["id", "status"]
 }

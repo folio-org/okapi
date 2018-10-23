@@ -1,9 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "PullDescriptor",
+  "description": "Information controlling the pull facility",
   "type": "object",
   "properties": {
     "urls": {
+      "description": "URL from which Okapi attempts pulling from",
       "type": "array",
       "items" : {
          "type" : "string"

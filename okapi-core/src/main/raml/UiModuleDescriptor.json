@@ -1,12 +1,25 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "UiModuleDescriptor",
+  "description": "UI Module description",
   "type": ["object", "null"],
   "additionalProperties" : false,
   "properties": {
-    "npm" : {"type" : ["string", "null"]},
-    "url" : {"type" : ["string", "null"]},
-    "local" : {"type" : ["string", "null"]},
-    "args" : {"type" : ["string", "null"]}
+    "npm" : {
+      "description": "NPM module",
+      "type" : ["string", "null"]
+    },
+    "url" : {
+      "description": "URL",
+       "type" : ["string", "null"]
+    },
+    "local" : {
+      "description": "Local",
+       "type" : ["string", "null"]
+    },
+    "args" : {
+      "description": "arguments",
+      "type" : ["string", "null"]
+    }
   }
 }
