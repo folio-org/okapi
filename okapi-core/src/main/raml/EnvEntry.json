@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "name": {
-      "descripption": "Key",
+      "description": "Key",
       "type": "string"
     },
     "value": {

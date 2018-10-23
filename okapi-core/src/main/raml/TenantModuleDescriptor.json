@@ -18,7 +18,10 @@
       "type" : "string",
       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
-    "message": {"type": "string"}
+    "message": {
+      "description": "Diagnostic Message",
+      "type": "string"
+    }
   },
   "required" : ["id"]
 }

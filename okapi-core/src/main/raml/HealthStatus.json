@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Health for module as seen from proxy",
+  "description": "Proxy health status",
   "type": "object",
   "additionalProperties" : false,
   "properties": {
