@@ -654,7 +654,16 @@ public class ProxyService {
   }
 
   private void copyHeaders(HttpClientRequest cReq, RoutingContext ctx, ModuleInstance mi) {
-    cReq.headers().setAll(ctx.request().headers());
+    for(Map.Entry<String,String> entry : ctx.request().headers().entries()) {
+        String key = entry.getKey();
+        String value = entry.getValue();
+        if(cReq.headers().contains(key, value, true)) {
+          logger.debug("! {}: {}", key, value);
+        } else {
+          logger.debug("+ {}: {}", key, value);
+          cReq.headers().add(key, value);
+        }
+    }
     cReq.headers().remove("Content-Length");
     final String phase = mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
