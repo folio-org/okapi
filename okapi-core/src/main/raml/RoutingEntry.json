@@ -30,7 +30,7 @@
         "type": "string"
       },
       "type": {
-        "description": "Proxy handling. One of: request-response, request-only, headers, redirect, system, internal, reuqest-response-1.0. The default is request-response",
+        "description": "Proxy handling. One of: request-response, request-only, headers, redirect, system, internal, request-response-1.0. The default is request-response",
         "type": "string"
       },
       "redirectPath": {
