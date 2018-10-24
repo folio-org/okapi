@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "ModuleDescriptor",
-  "description": "A Folio Module",
+  "description": "A FOLIO Module",
   "type": "object",
   "additionalProperties" : false,
   "properties": {

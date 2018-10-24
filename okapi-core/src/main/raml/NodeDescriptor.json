@@ -10,7 +10,7 @@
       "type": "string"
     },
     "url": {
-      "description": "Host:port fot for this node",
+      "description": "Host:port for for this node",
       "type": "string"
     },
     "nodeName": {

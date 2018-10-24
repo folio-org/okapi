@@ -18,7 +18,7 @@
        "type" : ["string", "null"]
     },
     "args" : {
-      "description": "arguments",
+      "description": "Arguments",
       "type" : ["string", "null"]
     }
   }

@@ -5,7 +5,7 @@
   "type": "object",
   "properties": {
     "urls": {
-      "description": "URL from which Okapi attempts pulling from",
+      "description": "List of URLs from which Okapi attempts pulling",
       "type": "array",
       "items" : {
          "type" : "string"
