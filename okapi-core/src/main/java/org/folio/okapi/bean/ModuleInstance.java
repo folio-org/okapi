@@ -13,6 +13,7 @@ public class ModuleInstance {
   private final RoutingEntry re;
   private String authToken;
   private final String path; // The relative URI from the proxy request
+  private String rewritePath; // The relative URI in which to proxy request to
   private final HttpMethod method;
 
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method) {
@@ -21,6 +22,7 @@ public class ModuleInstance {
     this.re = re;
     this.authToken = null;
     this.path = path;
+    this.rewritePath = re != null ? re.getRewritePath() : null;
     this.method = method;
   }
 
@@ -52,7 +54,12 @@ public class ModuleInstance {
     return path;
   }
 
+  public String getRewritePath() {
+    return rewritePath;
+  }
+
   public HttpMethod getMethod() {
     return method;
   }
+
 }
