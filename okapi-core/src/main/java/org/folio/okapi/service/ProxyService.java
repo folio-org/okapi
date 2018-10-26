@@ -468,7 +468,7 @@ public class ProxyService {
   }
 
   private String makeUrl(ModuleInstance mi, RoutingContext ctx) {
-    String url = mi.getUrl() + mi.getPath();
+    String url = mi.getUrl() + mi.getBasePath() + mi.getPath();
     String rdq = (String) ctx.data().get(REDIRECTQUERY);
     if (rdq != null) { // Parameters smuggled in from redirectProxy
       url += "?" + rdq;
@@ -476,7 +476,6 @@ public class ProxyService {
     }
     return url;
   }
-
 
   public void proxy(RoutingContext ctx) {
     ctx.request().pause();
@@ -654,10 +653,10 @@ public class ProxyService {
   }
 
   private void copyHeaders(HttpClientRequest cReq, RoutingContext ctx, ModuleInstance mi) {
-    for(Map.Entry<String,String> entry : ctx.request().headers().entries()) {
+    for (Map.Entry<String,String> entry : ctx.request().headers().entries()) {
         String key = entry.getKey();
         String value = entry.getValue();
-        if(cReq.headers().contains(key, value, true)) {
+        if (cReq.headers().contains(key, value, true)) {
           logger.debug("! {}: {}", key, value);
         } else {
           logger.debug("+ {}: {}", key, value);

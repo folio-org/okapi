@@ -19,6 +19,9 @@ public class RoutingEntry {
   private String[] methods;
   private String pathPattern;
   private String path;
+  // use to proxy filters to a base path of the module implementing filter
+  // could also be used to scope interface and simplify the pathPattern
+  private String basePath;
   private String phase;
   private String level;
   private String type;
@@ -134,6 +137,14 @@ public class RoutingEntry {
 
   public void setPath(String path) {
     this.path = path;
+  }
+
+  public String getBasePath() {
+    return basePath;
+  }
+
+  public void setBasePath(String basePath) {
+    this.basePath = basePath;
   }
 
   public String getPathPattern() {

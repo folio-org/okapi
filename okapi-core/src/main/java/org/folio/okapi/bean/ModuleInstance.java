@@ -13,6 +13,7 @@ public class ModuleInstance {
   private final RoutingEntry re;
   private String authToken;
   private final String path; // The relative URI from the proxy request
+  private final String basePath; // The base path of relative URI for a filter proxy request
   private final HttpMethod method;
 
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method) {
@@ -21,6 +22,7 @@ public class ModuleInstance {
     this.re = re;
     this.authToken = null;
     this.path = path;
+    this.basePath = (re != null && re.getBasePath() != null) ? re.getBasePath() : "";
     this.method = method;
   }
 
@@ -50,6 +52,10 @@ public class ModuleInstance {
 
   public String getPath() {
     return path;
+  }
+
+  public String getBasePath() {
+    return basePath;
   }
 
   public HttpMethod getMethod() {
