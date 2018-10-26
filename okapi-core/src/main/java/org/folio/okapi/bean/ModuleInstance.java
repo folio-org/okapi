@@ -13,7 +13,7 @@ public class ModuleInstance {
   private final RoutingEntry re;
   private String authToken;
   private final String path; // The relative URI from the proxy request
-  private final String basePath; // The base path of relative URI for a filter proxy request
+  private final String basePath; // The base path of relative URI form the proxy request
   private final HttpMethod method;
 
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method) {
