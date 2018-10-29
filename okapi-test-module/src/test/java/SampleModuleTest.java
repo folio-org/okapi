@@ -167,15 +167,15 @@ public class SampleModuleTest {
     cli.get("/testb?q=a", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals(
-        "It worksmy X-delay:2" + LS
-     + " X-Okapi-Url:http://localhost:9230" + LS
-     + " X-all-headers:HBL" + LS
-     + " X-Okapi-Match-Path-Pattern:/testb" + LS
-     + " X-my-header:my" + LS
-     + " X-Okapi-Tenant:my-lib" + LS
-     + " Content-Length:0" + LS
-     + " Host:localhost:9230" + LS
-     + " X-Url-Params:q=a" + LS,
+        "It worksmy X-delay:2\n"
+     + " X-Okapi-Url:http://localhost:9230\n"
+     + " X-all-headers:HBL\n"
+     + " X-Okapi-Match-Path-Pattern:/testb\n"
+     + " X-my-header:my\n"
+     + " X-Okapi-Tenant:my-lib\n"
+     + " Content-Length:0\n"
+     + " Host:localhost:9230\n"
+     + " X-Url-Params:q=a\n",
         cli.getResponsebody());
       async.complete();
     });
