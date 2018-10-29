@@ -159,4 +159,16 @@ public class RoutingEntryTest {
     assertEquals("/res/1234", t.getRedirectUri("/req/a/s"));
 
   }
+
+  @Test
+  public void test3() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    methods[0] = "*";
+    t.setMethods(methods);
+    t.setPathPattern("/*");
+    t.setRewritePath("/events");
+    assertTrue(t.match("/", "GET"));
+    assertEquals("/events", t.getRewritePath());
+  }
 }
