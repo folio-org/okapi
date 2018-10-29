@@ -145,7 +145,7 @@ public class RoutingEntry {
     return rewritePath;
   }
 
-  public void getRewritePath(String rewritePath) {
+  public void setRewritePath(String rewritePath) {
     this.rewritePath = rewritePath;
   }
 
