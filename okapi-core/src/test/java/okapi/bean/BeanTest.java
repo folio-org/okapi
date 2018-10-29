@@ -202,8 +202,10 @@ public class BeanTest {
         ModuleDescriptor.class);
       String pretty = Json.encodePrettily(md);
       assertEquals(docModuleDescriptor, pretty);
-      final ModuleInstance mi = new ModuleInstance(md, md.getFilters()[0], "/test", HttpMethod.GET);
+      final ModuleInstance mi = new ModuleInstance(md, md.getFilters()[0], "/test/123", HttpMethod.GET);
+      assertEquals("/test/123", mi.getPath());
       assertEquals("/events", mi.getRewritePath());
+      assertEquals("/events/test/123", mi.getRewritePath() + mi.getPath());
     } catch (DecodeException ex) {
       ex.printStackTrace();
       fail = 400;
