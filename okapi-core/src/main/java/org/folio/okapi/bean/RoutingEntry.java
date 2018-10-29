@@ -19,6 +19,7 @@ public class RoutingEntry {
   private String[] methods;
   private String pathPattern;
   private String path;
+  private String rewritePath; // used to rewrite base of proxy request, used for filters
   private String phase;
   private String level;
   private String type;
@@ -138,6 +139,14 @@ public class RoutingEntry {
 
   public String getPathPattern() {
     return pathPattern;
+  }
+
+  public String getRewritePath() {
+    return rewritePath;
+  }
+
+  public void setRewritePath(String rewritePath) {
+    this.rewritePath = rewritePath;
   }
 
   private int skipNamedPattern(String pathPattern, int i, char c) {

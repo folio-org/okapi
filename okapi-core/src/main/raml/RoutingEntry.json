@@ -21,6 +21,10 @@
         "description": "Path prefix match",
         "type": "string"
       },
+      "rewritePath": {
+        "description": "Rewrite path. e.g. have filter rewrite '/*' to '/events/*'",
+        "type": "string"
+      },
       "phase": {
         "description": "If given, may be auth, pre or post",
         "type": "string"
