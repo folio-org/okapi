@@ -28,7 +28,6 @@ public class SampleModuleTest {
   private static final String URL = "http://localhost:" + Integer.toString(PORT);
   private final Logger logger = OkapiLogger.get();
   private final String pidFilename = "sample-module.pid";
-  private static final String LS = System.lineSeparator();
 
   @Before
   public void setUp(TestContext context) {
