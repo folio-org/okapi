@@ -19,7 +19,7 @@ public class RoutingEntry {
   private String[] methods;
   private String pathPattern;
   private String path;
-  private String rewritePath; // used to rewrite proxy request, used for filters
+  private String rewritePath; // used to rewrite base of proxy request, used for filters
   private String phase;
   private String level;
   private String type;

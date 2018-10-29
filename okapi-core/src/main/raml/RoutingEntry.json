@@ -22,7 +22,7 @@
         "type": "string"
       },
       "rewritePath": {
-        "description": "Rewrite path. e.g. have filter rewrite '/*' to '/events'",
+        "description": "Rewrite path. e.g. have filter rewrite '/*' to '/events/*'",
         "type": "string"
       },
       "phase": {
