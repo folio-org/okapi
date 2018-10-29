@@ -56,7 +56,8 @@ public class MainVerticle extends AbstractVerticle {
             ctx.response().putHeader(hdr, hdrval);
           }
           if (allh.contains("B")) {
-            xmlMsg.append(" ").append(hdr).append(":").append(hdrval).append("\n");
+            xmlMsg.append(" ").append(hdr).append(":").append(hdrval)
+              .append("\r\n");  // always CRLF: https://tools.ietf.org/html/rfc7230#section-3
           }
           if (allh.contains("L")) {
             logger.info(hdr + ":" + hdrval);
