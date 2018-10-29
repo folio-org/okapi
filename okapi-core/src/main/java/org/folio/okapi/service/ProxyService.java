@@ -398,7 +398,9 @@ public class ProxyService {
     }
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
-    hres.setChunked(hres.getStatusCode() != 204);
+    if (hres.getStatusCode() != 204) {
+      hres.setChunked(true);
+    }
   }
 
   /**
@@ -833,7 +835,6 @@ public class ProxyService {
       } else { // produce a result
         makeTraceHeader(mi, statusCode, pc);
         pc.closeTimer();
-        ctx.response().setChunked(false);
         ctx.response().end(respBuf);
       }
     });
