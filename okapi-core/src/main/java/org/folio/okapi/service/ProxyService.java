@@ -536,7 +536,7 @@ public class ProxyService {
 
         pc.logRequest(ctx, tenantId);
 
-        ctx.request().headers().add(XOkapiHeaders.URL, okapiUrl);
+        ctx.request().headers().set(XOkapiHeaders.URL, okapiUrl);
         ctx.request().headers().remove(XOkapiHeaders.MODULE_ID);
 
         resolveUrls(l.iterator(), res -> {
@@ -661,16 +661,13 @@ public class ProxyService {
   }
 
   private void copyHeaders(HttpClientRequest cReq, RoutingContext ctx, ModuleInstance mi) {
-    for(Map.Entry<String,String> entry : ctx.request().headers().entries()) {
-        String key = entry.getKey();
-        String value = entry.getValue();
-        if(cReq.headers().contains(key, value, true)) {
-          logger.debug("! {}: {}", key, value);
-        } else {
-          logger.debug("+ {}: {}", key, value);
-          cReq.headers().add(key, value);
-        }
+    for (String n : ctx.request().headers().names()) {
+      List<String> l = ctx.request().headers().getAll(n);
+      if (l.size() > 1) {
+        logger.warn("dup HTTP header " + n + ": " + l);
+      }
     }
+    cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
     final String phase = mi.getRoutingEntry().getPhase();
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
@@ -885,7 +882,7 @@ public class ProxyService {
       }
       final String pathPattern = mi.getRoutingEntry().getPathPattern();
       if (pathPattern != null) {
-        ctx.request().headers().add(XOkapiHeaders.MATCH_PATH_PATTERN, pathPattern);
+        ctx.request().headers().set(XOkapiHeaders.MATCH_PATH_PATTERN, pathPattern);
       }
       switch (pType) {
         case REQUEST_ONLY:
@@ -948,9 +945,9 @@ public class ProxyService {
           if (pc.getHandlerRes() > 0) {
             String hresult = String.valueOf(pc.getHandlerRes());
             logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
-            ctx.request().headers().add(XOkapiHeaders.HANDLER_RESULT, hresult);
+            ctx.request().headers().set(XOkapiHeaders.HANDLER_RESULT, hresult);
           } else if (badAuth) {
-            ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+            ctx.request().headers().set(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
           } else {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
           }
@@ -963,9 +960,9 @@ public class ProxyService {
   }
 
   private void passRequestInfo(RoutingContext ctx, ProxyContext pc) {
-    ctx.request().headers().add(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
-    ctx.request().headers().add(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
-    ctx.request().headers().add(XOkapiHeaders.REQUEST_METHOD, pc.getReqMethod());
+    ctx.request().headers().set(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
+    ctx.request().headers().set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
+    ctx.request().headers().set(XOkapiHeaders.REQUEST_METHOD, pc.getReqMethod());
   }
 
   private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
@@ -1228,13 +1225,7 @@ public class ProxyService {
         passHeaders = true;
       }
     }
-    if (passHeaders) {
-      // Pass along response headers to Post filter for logging
-      // Note: relayToRequest() already took care of X- headers
-      res.headers().entries().stream()
-        .filter(e -> !e.getKey().toLowerCase().startsWith("x-"))
-        .forEach(e -> pc.getCtx().request().headers().add(e.getKey(), e.getValue()));
-    }
+    logger.debug("{}", passHeaders);
   }
 
   // skip handler, but not if at pre/post filter phase
