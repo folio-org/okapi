@@ -40,6 +40,7 @@
             <systemPropertyVariables>
               <vertx.logger-delegate-factory-class-name>io.vertx.core.logging.SLF4JLogDelegateFactory</vertx.logger-delegate-factory-class-name>
             </systemPropertyVariables>
+            <useSystemClassLoader>false</useSystemClassLoader>
           </configuration>
         </plugin>
       </plugins>
