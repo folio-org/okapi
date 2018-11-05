@@ -15,8 +15,9 @@ public class ModuleInstance {
   private final String path; // The relative URI from the proxy request
   private String rewritePath; // The base rewrite of relative URI in which to proxy request to
   private final HttpMethod method;
+  private boolean handler;  // is true if handler; false otherwise (filter)
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method, boolean handler) {
     this.md = md;
     this.url = null;
     this.re = re;
@@ -24,6 +25,7 @@ public class ModuleInstance {
     this.path = path;
     this.rewritePath = re != null ? re.getRewritePath() : null;
     this.method = method;
+    this.handler = handler;
   }
 
   public ModuleDescriptor getModuleDescriptor() {
@@ -62,4 +64,7 @@ public class ModuleInstance {
     return method;
   }
 
+  public boolean isHandler() {
+    return handler;
+  }
 }

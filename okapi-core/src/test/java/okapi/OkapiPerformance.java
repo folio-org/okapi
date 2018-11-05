@@ -113,20 +113,23 @@ public class OkapiPerformance {
 
   public void declareAuth(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"auth-1.0.0\"," + LS
-            + "  \"name\" : \"authmodule\"," + LS
-            + "  \"filters\" : [ {" + LS
-            + "    \"methods\" : [ \"*\" ]," + LS
-            + "    \"path\" : \"/s\"," + LS
-            + "    \"level\" : \"10\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  }, {"
-            + "    \"methods\" : [ \"POST\" ]," + LS
-            + "    \"path\" : \"/authn/login\"," + LS
-            + "    \"level\" : \"20\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]" + LS
-            + "}";
+      + "  \"id\" : \"auth-1.0.0\"," + LS
+      + "  \"name\" : \"authmodule\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"login\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/authn/login\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/s\"," + LS
+      + "    \"level\" : \"10\"," + LS
+      + "    \"type\" : \"request-response\"" + LS
+      + "  } ]" + LS
+      + "}";
     httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
       logger.debug("declareAuth: " + response.statusCode() + " " + response.statusMessage());
       context.assertEquals(201, response.statusCode());
@@ -158,15 +161,18 @@ public class OkapiPerformance {
 
   public void declareSample(TestContext context) {
     final String doc = "{" + LS
-            + "  \"id\" : \"sample-module-1.0.0\"," + LS
-            + "  \"name\" : \"sample module\"," + LS
-            + "  \"filters\" : [ {" + LS
-            + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "    \"path\" : \"/testb\"," + LS
-            + "    \"level\" : \"30\"," + LS
-            + "    \"type\" : \"request-response\"" + LS
-            + "  } ]" + LS
-            + "}";
+      + "  \"id\" : \"sample-module-1.0.0\"," + LS
+      + "  \"name\" : \"sample module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+
     httpClient.post(port, "localhost", "/_/proxy/modules", response -> {
       context.assertEquals(201, response.statusCode());
       response.handler(body -> {
