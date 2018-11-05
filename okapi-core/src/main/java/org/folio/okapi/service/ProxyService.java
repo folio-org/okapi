@@ -493,11 +493,6 @@ public class ProxyService {
 
     ProxyContext pc = new ProxyContext(ctx, waitMs);
 
-    // Store request IP, timestamp, and method
-    pc.setReqIp(ctx.request().remoteAddress().host());
-    pc.setReqTimestamp(System.currentTimeMillis());
-    pc.setReqMethod(ctx.request().rawMethod());
-
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
     // modules will not accept the response. Maybe later...
@@ -538,6 +533,9 @@ public class ProxyService {
 
         ctx.request().headers().set(XOkapiHeaders.URL, okapiUrl);
         ctx.request().headers().remove(XOkapiHeaders.MODULE_ID);
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_METHOD, ctx.request().rawMethod());
 
         resolveUrls(l.iterator(), res -> {
           if (res.failed()) {
@@ -934,14 +932,12 @@ public class ProxyService {
           break;
         case XOkapiHeaders.FILTER_PRE:
           // pass request headers and failed auth result
-          passRequestInfo(ctx, pc);
           if (badAuth) {
             ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
           }
           break;
         case XOkapiHeaders.FILTER_POST:
           // pass request headers and failed handler/auth result
-          passRequestInfo(ctx, pc);
           if (pc.getHandlerRes() > 0) {
             String hresult = String.valueOf(pc.getHandlerRes());
             logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
@@ -959,12 +955,6 @@ public class ProxyService {
           break;
       }
     }
-  }
-
-  private void passRequestInfo(RoutingContext ctx, ProxyContext pc) {
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_METHOD, pc.getReqMethod());
   }
 
   private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
@@ -1211,14 +1201,14 @@ public class ProxyService {
   private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
     String phase = mi.getRoutingEntry().getPhase();
     // It was a real handler, remember the response code and headers
-    if (phase == null) {
+    if (mi.isHandler()) {
       logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
       pc.setHandlerRes(res.statusCode());
-      pc.getHandlerHeaders().clear().addAll(res.headers());
+      pc.getHandlerHeaders().setAll(res.headers());
     } else if (XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(phase)) {
       logger.debug("proxyAuth: Remembering result " + res.statusCode());
       pc.setAuthRes(res.statusCode());
-      pc.getAuthHeaders().clear().addAll(res.headers());
+      pc.getAuthHeaders().setAll(res.headers());
       pc.setAuthResBody(Buffer.buffer());
       res.handler(data -> pc.getAuthResBody().appendBuffer(data));
     }
