@@ -33,11 +33,6 @@ public class ProxyContext {
   private Long timerId;
   private final int waitMs;
 
-  // store request IP, timestamp, and method
-  private String reqIp;
-  private long reqTimestamp;
-  private String reqMethod;
-
   // store auth filter response status code, headers, and body
   private int authRes;
   private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
@@ -161,30 +156,6 @@ public class ProxyContext {
 
   private String getReqId() {
     return reqId;
-  }
-
-  public String getReqIp() {
-    return reqIp;
-  }
-
-  public void setReqIp(String reqIp) {
-    this.reqIp = reqIp;
-  }
-
-  public long getReqTimestamp() {
-    return reqTimestamp;
-  }
-
-  public void setReqTimestamp(long reqTimestamp) {
-    this.reqTimestamp = reqTimestamp;
-  }
-
-  public String getReqMethod() {
-    return reqMethod;
-  }
-
-  public void setReqMethod(String reqMethod) {
-    this.reqMethod = reqMethod;
   }
 
   public int getAuthRes() {

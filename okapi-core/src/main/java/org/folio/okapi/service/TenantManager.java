@@ -597,7 +597,7 @@ public class TenantManager {
           if (permPath == null || permPath.isEmpty()) {
             permPath = re.getPathPattern();
           }
-          permInst = new ModuleInstance(permsModule, re, permPath, HttpMethod.POST);
+          permInst = new ModuleInstance(permsModule, re, permPath, HttpMethod.POST, true);
         }
       }
     }
@@ -654,7 +654,7 @@ public class TenantManager {
               logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
                 + "interface. Define InterfaceType=system, and add a RoutingEntry."
                 + " Falling back to calling /_/tenant.");
-              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST)));
+              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST, true)));
               return;
             }
             break;
@@ -686,15 +686,15 @@ public class TenantManager {
             pattern = re.getPath();
           }
           if (method.equals("DELETE")) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE)));
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE, true)));
             return true;
           } else if ("/_/tenant/disable".equals(pattern)) {
             if (mdTo == null) {
-              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
+              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true)));
               return true;
             }
           } else if (mdTo != null) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST)));
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true)));
             return true;
           }
         }

@@ -2958,11 +2958,14 @@ public class ModuleTest {
 
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-5.0\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"5\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
       + "  } ]" + LS
       + "}";
 
@@ -3171,28 +3174,29 @@ public class ModuleTest {
     // Set up, deploy, and enable a sample module
     final String docSampleModule = "{" + LS
       + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"interfaceType\" : \"proxy\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"path\" : \"/testr\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"50\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  }, {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testr\"," + LS
-      + "    \"level\" : \"59\"," + LS
-      + "    \"type\" : \"request-response\"," + LS
-      + "    \"permissionsDesired\" : [ \"sample.testr\" ]" + LS
-      + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/loop2\"," + LS
-      + "    \"level\" : \"52\"," + LS
+      + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/loop1\"" + LS
       + "  }, {" + LS
       + "    \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/chain3\"," + LS
-      + "    \"level\" : \"53\"," + LS
+      + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"," + LS
       + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
@@ -3245,11 +3249,6 @@ public class ModuleTest {
     final String docHeaderModule = "{" + LS
       + "  \"id\" : \"header-module-1\"," + LS
       + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"20\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
-      + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/red\"," + LS
       + "    \"level\" : \"21\"," + LS

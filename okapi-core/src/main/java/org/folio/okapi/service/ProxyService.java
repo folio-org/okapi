@@ -113,19 +113,16 @@ public class ProxyService {
   }
 
   private boolean resolveRedirects(ProxyContext pc,
-    List<ModuleInstance> mods,
-    RoutingEntry re,
+    List<ModuleInstance> mods, RoutingEntry re,
     List<ModuleDescriptor> enabledModules,
-    final String loop, final String uri, final String origMod) {
+    final String loop, final String uri) {
 
     RoutingContext ctx = pc.getCtx();
     if (re.getProxyType() == ProxyType.REDIRECT) { // resolve redirects
       boolean found = false;
       final String redirectPath = re.getRedirectPath();
       for (ModuleDescriptor trymod : enabledModules) {
-        List<RoutingEntry> rr = trymod.getFilterRoutingEntries();
-        rr.addAll(trymod.getProxyRoutingEntries());
-        for (RoutingEntry tryre : rr) {
+        for (RoutingEntry tryre : trymod.getFilterRoutingEntries()) {
           if (tryre.match(redirectPath, ctx.request().method().name())) {
             final String newUri = re.getRedirectUri(uri);
             found = true;
@@ -136,12 +133,23 @@ public class ProxyService {
               pc.responseError(500, messages.getMessage("10100", loop, redirectPath));
               return false;
             }
-            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method());
+            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method(), false);
             mods.add(mi);
             if (!resolveRedirects(pc, mods, tryre, enabledModules,
-              loop + " -> " + redirectPath, newUri, origMod)) {
+              loop + " -> " + redirectPath, newUri)) {
               return false;
             }
+          }
+        }
+        for (RoutingEntry tryre : trymod.getProxyRoutingEntries()) {
+          if (tryre.match(redirectPath, ctx.request().method().name())) {
+            final String newUri = re.getRedirectUri(uri);
+            found = true;
+            pc.debug("resolveRedirects: "
+              + ctx.request().method() + " " + uri
+              + " => " + trymod + " " + newUri);
+            ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri, ctx.request().method(), true);
+            mods.add(mi);
           }
         }
       }
@@ -182,8 +190,8 @@ public class ProxyService {
       if (rr != null) {
         for (RoutingEntry re : rr) {
           if (match(re, req)) {
-            ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method());
-            mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
+            ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
+            mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " "
               + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
@@ -194,10 +202,10 @@ public class ProxyService {
       rr = md.getFilterRoutingEntries();
       for (RoutingEntry re : rr) {
         if (match(re, req)) {
-          ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method());
-          mi.setAuthToken(pc.getCtx().request().headers().get(XOkapiHeaders.TOKEN));
+          ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), false);
+          mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
           mods.add(mi);
-          if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri(), "")) {
+          if (!resolveRedirects(pc, mods, re, enabledModules, "", req.uri())) {
             return null;
           }
           pc.debug("getMods:   Added " + md.getId() + " "
@@ -218,10 +226,8 @@ public class ProxyService {
         + "'" + inst.getRoutingEntry().getPhase() + "' "
         + "'" + inst.getRoutingEntry().getLevel() + "' "
       );
-      if (inst.getRoutingEntry().getPhase() == null) {
-        found = true; // No real handler should have a phase any more.
-        // It has been deprecated for a long time, and never made any sense anyway.
-        // The auth filter, uses phase 'auth'. We also have 'pre' and 'post'
+      if (inst.isHandler()) {
+        found = true;
       }
     }
     if (!found) {
@@ -493,11 +499,6 @@ public class ProxyService {
 
     ProxyContext pc = new ProxyContext(ctx, waitMs);
 
-    // Store request IP, timestamp, and method
-    pc.setReqIp(ctx.request().remoteAddress().host());
-    pc.setReqTimestamp(System.currentTimeMillis());
-    pc.setReqMethod(ctx.request().rawMethod());
-
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
     // modules will not accept the response. Maybe later...
@@ -538,6 +539,9 @@ public class ProxyService {
 
         ctx.request().headers().set(XOkapiHeaders.URL, okapiUrl);
         ctx.request().headers().remove(XOkapiHeaders.MODULE_ID);
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
+        ctx.request().headers().set(XOkapiHeaders.REQUEST_METHOD, ctx.request().rawMethod());
 
         resolveUrls(l.iterator(), res -> {
           if (res.failed()) {
@@ -934,20 +938,20 @@ public class ProxyService {
           break;
         case XOkapiHeaders.FILTER_PRE:
           // pass request headers and failed auth result
-          passRequestInfo(ctx, pc);
           if (badAuth) {
             ctx.request().headers().add(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
           }
           break;
         case XOkapiHeaders.FILTER_POST:
           // pass request headers and failed handler/auth result
-          passRequestInfo(ctx, pc);
           if (pc.getHandlerRes() > 0) {
             String hresult = String.valueOf(pc.getHandlerRes());
             logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
             ctx.request().headers().set(XOkapiHeaders.HANDLER_RESULT, hresult);
+            ctx.request().headers().set(XOkapiHeaders.HANDLER_HEADERS, Json.encode(pc.getHandlerHeaders()));
           } else if (badAuth) {
             ctx.request().headers().set(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+            ctx.request().headers().set(XOkapiHeaders.AUTH_HEADERS, Json.encode(pc.getAuthHeaders()));
           } else {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
           }
@@ -957,12 +961,6 @@ public class ProxyService {
           break;
       }
     }
-  }
-
-  private void passRequestInfo(RoutingContext ctx, ProxyContext pc) {
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_IP, pc.getReqIp());
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + pc.getReqTimestamp());
-    ctx.request().headers().set(XOkapiHeaders.REQUEST_METHOD, pc.getReqMethod());
   }
 
   private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
@@ -1050,7 +1048,7 @@ public class ProxyService {
     } else {
       logger.debug("authForSystemInterface: re is null, can't find modPerms");
     }
-    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD);
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD, inst.isHandler());
     doCallSystemInterface(tenantId, null, authInst, modPerms, "", pc, res -> {
       if (res.failed()) {
         pc.warn("Auth check for systemInterface failed!");
@@ -1208,24 +1206,18 @@ public class ProxyService {
   // store Auth/Handler response, and pass header as needed
   private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
     String phase = mi.getRoutingEntry().getPhase();
-    boolean passHeaders = false;
     // It was a real handler, remember the response code and headers
-    if (phase == null) {
+    if (mi.isHandler()) {
       logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
       pc.setHandlerRes(res.statusCode());
-      pc.getHandlerHeaders().clear().addAll(res.headers());
-      passHeaders = true;
+      pc.getHandlerHeaders().setAll(res.headers());
     } else if (XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(phase)) {
       logger.debug("proxyAuth: Remembering result " + res.statusCode());
       pc.setAuthRes(res.statusCode());
-      pc.getAuthHeaders().clear().addAll(res.headers());
+      pc.getAuthHeaders().setAll(res.headers());
       pc.setAuthResBody(Buffer.buffer());
       res.handler(data -> pc.getAuthResBody().appendBuffer(data));
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        passHeaders = true;
-      }
     }
-    logger.debug("{}", passHeaders);
   }
 
   // skip handler, but not if at pre/post filter phase
