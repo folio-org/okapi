@@ -946,8 +946,10 @@ public class ProxyService {
             String hresult = String.valueOf(pc.getHandlerRes());
             logger.debug("proxyR: postHeader: Setting " + XOkapiHeaders.HANDLER_RESULT + " to '" + hresult + "'");
             ctx.request().headers().set(XOkapiHeaders.HANDLER_RESULT, hresult);
+            ctx.request().headers().set(XOkapiHeaders.HANDLER_HEADERS, Json.encode(pc.getHandlerHeaders()));
           } else if (badAuth) {
             ctx.request().headers().set(XOkapiHeaders.AUTH_RESULT, "" + pc.getAuthRes());
+            ctx.request().headers().set(XOkapiHeaders.AUTH_HEADERS, Json.encode(pc.getAuthHeaders()));
           } else {
             logger.warn("proxyR: postHeader: Oops, no result to pass to post handler");
           }
@@ -1208,24 +1210,18 @@ public class ProxyService {
   // store Auth/Handler response, and pass header as needed
   private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
     String phase = mi.getRoutingEntry().getPhase();
-    boolean passHeaders = false;
     // It was a real handler, remember the response code and headers
     if (phase == null) {
       logger.debug("proxyRequestResponse: Remembering result " + res.statusCode());
       pc.setHandlerRes(res.statusCode());
       pc.getHandlerHeaders().clear().addAll(res.headers());
-      passHeaders = true;
     } else if (XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(phase)) {
       logger.debug("proxyAuth: Remembering result " + res.statusCode());
       pc.setAuthRes(res.statusCode());
       pc.getAuthHeaders().clear().addAll(res.headers());
       pc.setAuthResBody(Buffer.buffer());
       res.handler(data -> pc.getAuthResBody().appendBuffer(data));
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        passHeaders = true;
-      }
     }
-    logger.debug("{}", passHeaders);
   }
 
   // skip handler, but not if at pre/post filter phase
