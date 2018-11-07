@@ -52,81 +52,95 @@ public class SampleModuleTest {
     vertx.close(x -> async.complete());
   }
 
-  @Test
-  public void test1(TestContext context) {
-    Async async = context.async();
+  private HashMap<String, String> headers = new HashMap<>();
 
-    HashMap<String, String> headers = new HashMap<>();
+  @Test
+  public void testGet(TestContext context) {
+    Async async = context.async();
 
     headers.put(XOkapiHeaders.URL, URL);
     headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "text/plain");
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/testb", res -> {
       context.assertTrue(res.succeeded());
-      test2(context, cli, async);
+      context.assertEquals("It works", cli.getResponsebody());
+      testPostText(context, cli, async);
     });
   }
 
-  public void test2(TestContext context, OkapiClient cli, Async async) {
+  public void testPostText(TestContext context, OkapiClient cli, Async async) {
     cli.post("/testb/extra", "FOO", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("Hello FOO", cli.getResponsebody());
-      test3(context, cli, async);
+      testPostXML(context, cli, async);
     });
   }
 
-  public void test3(TestContext context, OkapiClient cli, Async async) {
+  public void testPostXML(TestContext context, OkapiClient cli, Async async) {
+    headers.put("Accept", "text/xml");
+    cli.setHeaders(headers);
+    headers.remove("Accept");
+    cli.post("/testb/extra", "FOO", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("<test>Hello FOO</test>", cli.getResponsebody());
+      testRecurse(context, cli, async);
+    });
+  }
+
+  public void testRecurse(TestContext context, OkapiClient cli, Async async) {
+    cli.setHeaders(headers);
     cli.get("/recurse?depth=2", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("2 1 Recursion done", cli.getResponsebody());
-      test4(context, cli, async);
+      testTenantPost(context, cli, async);
     });
   }
 
-  public void test4(TestContext context, OkapiClient cli, Async async) {
+  public void testTenantPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\"}", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("POST /_/tenant to okapi-test-module for "
         + "tenant my-lib\n",
         cli.getResponsebody());
-      test5(context, cli, async);
+      testTenantDelete(context, cli, async);
     });
   }
 
-  public void test5(TestContext context, OkapiClient cli, Async async) {
+  public void testTenantDelete(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/_/tenant", res -> {
       context.assertTrue(res.succeeded());
-      test7(context, cli, async);
+      testTenantDisable(context, cli, async);
     });
   }
 
-  public void test7(TestContext context, OkapiClient cli, Async async) {
+  public void testTenantDisable(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant/disable", "{\"module_from\": \"m-1.0.0\"}", res -> {
       context.assertTrue(res.succeeded());
       context.assertEquals("POST /_/tenant/disable to okapi-test-module for "
         + "tenant my-lib\n",
         cli.getResponsebody());
-      test8(context, cli, async);
+      testTenantBadPost(context, cli, async);
     });
   }
 
-  public void test8(TestContext context, OkapiClient cli, Async async) {
+  public void testTenantBadPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{", res -> {
       context.assertTrue(res.failed());
-      test9(context, cli, async);
+      testPermissionsPost(context, cli, async);
     });
   }
 
-  public void test9(TestContext context, OkapiClient cli, Async async) {
+  public void testPermissionsPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenantpermissions", "{}", res -> {
       context.assertTrue(res.succeeded());
-      test10(context, cli, async);
+      testDelete(context, cli, async);
     });
   }
 
 
-  public void test10(TestContext context, OkapiClient cli, Async async) {
+  public void testDelete(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
       cli.close();
       context.assertTrue(res.succeeded());

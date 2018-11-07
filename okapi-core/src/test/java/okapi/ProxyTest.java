@@ -353,7 +353,6 @@ public class ProxyTest {
   @Test
   public void testProxy(TestContext context) {
     final String okapiTenant = "roskilde";
-    Async async = context.async();
 
     RestAssuredClient c;
     Response r;
@@ -917,12 +916,14 @@ public class ProxyTest {
     // Test also URL parameters.
     given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
-      .header("Content-Type", "text/xml")
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
       .header("X-all-headers", "H") // ask sample to report all headers
       .body("Okapi").post("/testb?query=foo")
       .then().statusCode(200)
       .header("X-Url-Params", "query=foo")
-      .body(equalTo("hej  (XML) Okapi"));
+      .header("Content-Type", "text/xml")
+      .body(equalTo("<test>hej Okapi</test>"));
 
     // Verify that the path matching is case sensitive
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -1257,7 +1258,14 @@ public class ProxyTest {
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/xml")
       .get("/testb")
-      .then().statusCode(200).body(equalTo("It works (XML) "));
+      .then().statusCode(200).body(equalTo("It works"));
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("OkapiX").post("/testb")
+      .then().statusCode(200).body(equalTo("<test>hej <test>hej OkapiX</test></test>"));
 
     c = api.createRestAssured3();
     final String exp4Modules = "[ {" + LS
@@ -1347,8 +1355,6 @@ public class ProxyTest {
     locationAuthDeployment = null;
     given().delete(locationSampleDeployment).then().log().ifValidationFails().statusCode(204);
     locationSampleDeployment = null;
-
-    async.complete();
   }
 
  
