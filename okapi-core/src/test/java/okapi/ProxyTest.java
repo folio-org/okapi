@@ -1265,7 +1265,7 @@ public class ProxyTest {
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("OkapiX").post("/testb")
-      .then().statusCode(200).body(equalTo("<test>hej <test>hej OkapiX</test></test>"));
+      .then().statusCode(200).body(equalTo("hej <test>hej OkapiX</test>"));
 
     c = api.createRestAssured3();
     final String exp4Modules = "[ {" + LS
