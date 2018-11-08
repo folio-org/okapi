@@ -695,6 +695,10 @@ public class ProxyService {
         if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
           relayToRequest(res, pc, mi);
+          final String ct = res.getHeader("Content-Type");
+          if (ct != null) {
+            ctx.request().headers().set("Content-Type", ct);
+          }
           storeResponseInfo(pc, mi, res);
           res.pause();
           proxyR(newIt, pc, res, null);

@@ -268,7 +268,7 @@ class Auth {
     ctx.response().setChunked(true);
     String ctype = ctx.request().headers().get("Content-Type");
     if (ctype != null && !ctype.isEmpty()) {
-      ctx.response().headers().add("Content-type", ctype);
+      ctx.response().headers().set("Content-type", ctype);
     }
 
     ctx.request().handler(x -> {

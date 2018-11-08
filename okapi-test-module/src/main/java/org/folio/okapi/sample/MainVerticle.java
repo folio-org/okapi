@@ -77,46 +77,58 @@ public class MainVerticle extends AbstractVerticle {
       ctx.response().setStatusCode(500).end("It does not work");
       return;
     }
-
-    // both client and Post filter should see handler response code and headers
     ctx.response().setStatusCode(200);
     ctx.response().putHeader("X-Handler-header", "OK");
 
     final String ctype = ctx.request().headers().get("Content-Type");
-    StringBuilder xmlMsg = new StringBuilder();
-    if (ctype != null && ctype.toLowerCase().contains("xml")) {
-      xmlMsg.append(" (XML) ");
-    }
+    final String accept = ctx.request().headers().get("Accept");
+    // see if POSTed text should be converted to XML.. To simulate a real handler
+    // with request/response of different content types
+    final boolean xmlConversion = accept != null && accept.toLowerCase().contains("text/xml")
+      && ctype != null && ctype.contains("text/plain");
+
+    final StringBuilder msg = new StringBuilder();
     String hv = ctx.request().getHeader("X-my-header");
     if (hv != null) {
-      xmlMsg.append(hv);
+      msg.append(hv);
     }
-    ctx.response().putHeader("Content-Type", "text/plain");
+    if (xmlConversion) {
+      ctx.response().putHeader("Content-Type", "text/xml");
+    } else if (ctype != null) {
+      ctx.response().putHeader("Content-Type", ctype);
+    }
 
     String stopper = ctx.request().getHeader("X-stop-here");
     if (stopper != null) {
       ctx.response().putHeader("X-Okapi-Stop", stopper);
     }
-    headers(ctx, xmlMsg);
-    final String xmlMsg2 = xmlMsg.toString(); // it needs to be final, in the callbacks
+    headers(ctx, msg);
     String delayStr = ctx.request().getHeader("X-delay");
     if (delayStr != null) {
       ctx.request().pause();
       long delay = Long.parseLong(delayStr);
-      ctx.vertx().setTimer(delay, res -> response(xmlMsg2, ctx));
+      ctx.vertx().setTimer(delay, res -> response(msg.toString(), xmlConversion, ctx));
     } else {
-      response(xmlMsg2, ctx);
+      response(msg.toString(), xmlConversion, ctx);
     }
   }
 
-  private void response(String xmlMsg2, RoutingContext ctx) {
+  private void response(String msg, boolean xmlConversion, RoutingContext ctx) {
     ctx.request().resume();
     if (ctx.request().method().equals(HttpMethod.GET)) {
-      ctx.request().endHandler(x -> ctx.response().end("It works" + xmlMsg2));
+      ctx.request().endHandler(x -> ctx.response().end("It works" + msg));
     } else {
       ctx.response().setChunked(true);
-      ctx.response().write(helloGreeting + " " + xmlMsg2);
-      ctx.request().handler(x -> ctx.response().write(x));
+      if (xmlConversion) {
+        ctx.response().write("<test>");
+      }
+      ctx.response().write(helloGreeting + " " + msg);
+      ctx.request().handler(x -> {
+        ctx.response().write(x);
+        if (xmlConversion) {
+          ctx.response().write("</test>");
+        }
+      });
       ctx.request().endHandler(x -> ctx.response().end());
     }
   }

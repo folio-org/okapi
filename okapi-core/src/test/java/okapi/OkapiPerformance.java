@@ -289,13 +289,14 @@ public class OkapiPerformance {
         body.appendBuffer(x);
       });
       response.endHandler(x -> {
-        context.assertEquals("Hello  (XML) Okapi", body.toString());
+        context.assertEquals("<test>Hello Okapi</test>", body.toString());
         declareSample2(context);
       });
     });
     req.headers().add("X-Okapi-Token", okapiToken);
     req.putHeader("X-Okapi-Tenant", okapiTenant);
-    req.putHeader("Content-Type", "text/xml");
+    req.putHeader("Accept", "text/xml");
+    req.putHeader("Content-Type", "text/plain");
     req.end("Okapi");
   }
 
