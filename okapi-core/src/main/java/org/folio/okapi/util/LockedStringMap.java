@@ -102,7 +102,6 @@ public class LockedStringMap {
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<String> s2 = new ArrayList<>(res.result());
-        s2.remove("_keys"); // older OKAPI to implement getKeys
         java.util.Collections.sort(s2);
         fut.handle(new Success<>(s2));
       }
