@@ -57,9 +57,9 @@ public class ModuleTest {
 
   @Parameterized.Parameters
   public static Iterable<String> data() {
-    final String s = System.getProperty("ModuleTestStorage");
+    final String s = System.getProperty("testStorage");
     if (s != null) {
-      return Arrays.asList(s.split(" "));
+      return Arrays.asList(s.split("[ ,]+"));
     }
     final String f = System.getenv("okapiFastTest");
     if (f != null) {
