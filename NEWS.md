@@ -1,3 +1,18 @@
+## 2.19.0 2018-11-09
+
+ * OKAPI-681 Implement and document the testStorage option
+ * OKAPI-680 Update to RAML 1.0
+ * OKAPI-678 Fix incorrect Content-Type for mixed content
+ * OKAPI-677 Pass auth/handler headers to POST filter
+ * OKAPI-676 Fix broken maven-surefire-plugin
+ * OKAPI-675 CRLF at the end of each HTTP header line
+ * OKAPI-674 Afford module to specify rewritePath in order to scope filters
+ * OKAPI-673 Update to Vert.x 3.5.4
+ * OKAPI-671 Fix POST request-response filter making bad requests
+ * OKAPI-666 install: does not report about missing deps
+ * OKAPI-651 Upgrade Hazelcast and include Hazelcast Discovery Plugin for Kubernetes
+ * OKAPI-241 Use description field in JSON schemas
+
 ## 2.18.0 2018-10-11
 
  * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfaces
