@@ -615,7 +615,7 @@ cd okapi
 mvn install
 ```
 
-The install rule also runs a few tests. Tests should not fail.
+The install rule also runs tests. Tests should not fail.
 If they do then please report it, and in the meantime fall back to:
 
 ```
@@ -629,7 +629,13 @@ the end:
 [INFO] BUILD SUCCESS
 ```
 
-The okapi directory contains a few sub modules. These are:
+Some tests use embedded databases, which takes time to run. In order to
+skip these tests, use something like:
+```
+mvn install -DtestStorage=inmemory
+```
+
+The `okapi` directory contains a few sub modules. These are:
 
  * `okapi-core` -- The gateway server itself.
  * `okapi-common` -- Utilities used by both gateway and modules.
@@ -654,7 +660,7 @@ java -Dport=8600 -jar target/okapi-test-auth-module-fat.jar
 
 In the same way, to run the okapi-core, specify its jar file. It is
 also necessary to provide a further command-line argument: a command
-telling okapi-core what mode to run in. When playing with okapi on a
+telling okapi-core what mode to run in. When playing with Okapi on a
 single node, we use the `dev` mode.
 
 ```
@@ -2559,7 +2565,7 @@ since it depends on what the modules provide. Its main use is that modules can
 depend on it, especially if they require some new proxying functionality. It is
 expected that this interface will remain fairly stable over time.
 
-The internal module was introduced in okapi version 1.9.0, and a fully detailed
+The internal module was introduced in Okapi version 1.9.0, and a fully detailed
 ModuleDescriptor in version 1.10.0.
 
 ### Deployment
