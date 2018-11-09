@@ -1,29 +1,28 @@
-#%RAML 0.8
+#%RAML 1.0
 title: Okapi Core API
 version: 2.0
-schemas:
-  - DeploymentDescriptor: !include DeploymentDescriptor.json
-  - LaunchDescriptor: !include LaunchDescriptor.json
-  - DeploymentDescriptorList: !include DeploymentDescriptorList.json
-  - ModuleDescriptor: !include ModuleDescriptor.json
-  - ModuleList: !include ModuleList.json
-  - InterfaceDescriptor: !include InterfaceDescriptor.json
-  - InterfaceList: !include InterfaceList.json
-  - TenantDescriptor: !include TenantDescriptor.json
-  - TenantList: !include TenantList.json
-  - TenantModuleDescriptor: !include TenantModuleDescriptor.json
-  - TenantModuleDescriptorList: !include TenantModuleDescriptorList.json
-  - HealthStatus: !include HealthStatus.json
-  - HealthStatusList: !include HealthStatusList.json
-  - HealthDescriptor: !include HealthDescriptor.json
-  - HealthDescriptorList: !include HealthDescriptorList.json
-  - NodeDescriptor: !include NodeDescriptor.json
-  - NodeDescriptorList: !include NodeDescriptorList.json
-  - EnvEntry: !include EnvEntry.json
-  - EnvEntryList: !include EnvEntryList.json
-  - Permission: !include Permission.json
-  - PullDescriptor: !include PullDescriptor.json
-
+types:
+  DeploymentDescriptor: !include DeploymentDescriptor.json
+  LaunchDescriptor: !include LaunchDescriptor.json
+  DeploymentDescriptorList: !include DeploymentDescriptorList.json
+  ModuleDescriptor: !include ModuleDescriptor.json
+  ModuleList: !include ModuleList.json
+  InterfaceDescriptor: !include InterfaceDescriptor.json
+  InterfaceList: !include InterfaceList.json
+  TenantDescriptor: !include TenantDescriptor.json
+  TenantList: !include TenantList.json
+  TenantModuleDescriptor: !include TenantModuleDescriptor.json
+  TenantModuleDescriptorList: !include TenantModuleDescriptorList.json
+  HealthStatus: !include HealthStatus.json
+  HealthStatusList: !include HealthStatusList.json
+  HealthDescriptor: !include HealthDescriptor.json
+  HealthDescriptorList: !include HealthDescriptorList.json
+  NodeDescriptor: !include NodeDescriptor.json
+  NodeDescriptorList: !include NodeDescriptorList.json
+  EnvEntry: !include EnvEntry.json
+  EnvEntryList: !include EnvEntryList.json
+  Permission: !include Permission.json
+  PullDescriptor: !include PullDescriptor.json
 
 /_/deployment/modules:
   description: Deployment service. This is responsible for starting and
@@ -33,7 +32,7 @@ schemas:
       particular service, according to the deployment descriptor.
     body:
       application/json:
-        schema: DeploymentDescriptor
+        type: DeploymentDescriptor
     responses:
       201:
         description: Created
@@ -44,7 +43,7 @@ schemas:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: DeploymentDescriptor
+            type: DeploymentDescriptor
       400:
         description: Bad Request
         body:
@@ -63,7 +62,7 @@ schemas:
       200:
         body:
           application/json:
-            schema: DeploymentDescriptorList
+            type: DeploymentDescriptorList
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -75,7 +74,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: DeploymentDescriptor
+              type: DeploymentDescriptor
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
@@ -98,7 +97,7 @@ schemas:
     description: Register instance under a specified service id
     body:
       application/json:
-        schema: DeploymentDescriptor
+        type: DeploymentDescriptor
     responses:
       201:
         description: Created
@@ -109,7 +108,7 @@ schemas:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: DeploymentDescriptor
+            type: DeploymentDescriptor
       400:
         description: Bad Request
         body:
@@ -128,13 +127,11 @@ schemas:
       200:
         description: Ok
         headers:
-          Location:
-            description: URI to the registered instance
           X-Okapi-Trace:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: DeploymentDescriptorList
+            type: DeploymentDescriptorList
       400:
         description: Bad Request
         body:
@@ -166,7 +163,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: DeploymentDescriptorList
+              type: DeploymentDescriptorList
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
@@ -200,7 +197,7 @@ schemas:
           200:
             body:
               application/json:
-                schema: DeploymentDescriptor
+                type: DeploymentDescriptor
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
@@ -227,7 +224,7 @@ schemas:
       200:
         body:
           application/json:
-            schema: HealthDescriptorList
+            type: HealthDescriptorList
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -246,7 +243,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: HealthDescriptorList
+              type: HealthDescriptorList
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
@@ -261,7 +258,7 @@ schemas:
           200:
             body:
               application/json:
-                schema: HealthDescriptor
+                type: HealthDescriptor
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
@@ -277,7 +274,7 @@ schemas:
       200:
         body:
           application/json:
-            schema: NodeDescriptorList
+            type: NodeDescriptorList
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -294,7 +291,7 @@ schemas:
       description: Update descriptor of a particular node, only the name can be changed
       body:
         application/json:
-          schema: NodeDescriptor
+          type: NodeDescriptor
       responses:
         200:
           headers:
@@ -302,7 +299,7 @@ schemas:
               description: Okapi trace and timing
           body:
             application/json:
-              schema: NodeDescriptor
+              type: NodeDescriptor
         400:
           description: Bad Request
           body:
@@ -321,7 +318,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: NodeDescriptor
+              type: NodeDescriptor
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
@@ -350,7 +347,7 @@ schemas:
         required: false
     body:
       application/json:
-        schema: ModuleDescriptor
+        type: ModuleDescriptor
     responses:
       201:
         description: Created
@@ -361,7 +358,7 @@ schemas:
             description: URI to the created module instance
         body:
           application/json:
-            schema: ModuleDescriptor
+            type: ModuleDescriptor
       400:
         description: Bad Request
         body:
@@ -400,7 +397,7 @@ schemas:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: ModuleList
+            type: ModuleList
       400:
         description: Bad Request
         body:
@@ -419,12 +416,12 @@ schemas:
               description: Okapi trace and timing
           body:
             application/json:
-              schema: ModuleDescriptor
+              type: ModuleDescriptor
     put:
       description: Update descriptor of a particular module
       body:
         application/json:
-          schema: ModuleDescriptor
+          type: ModuleDescriptor
       responses:
         200:
           headers:
@@ -432,7 +429,7 @@ schemas:
               description: Okapi trace and timing
           body:
             application/json:
-              schema: ModuleDescriptor
+              type: ModuleDescriptor
         400:
           description: Bad Request
           body:
@@ -452,7 +449,7 @@ schemas:
     description: Create a new tenant
     body:
       application/json:
-        schema: TenantDescriptor
+        type: TenantDescriptor
     responses:
       201:
         description: Tenant has been created
@@ -463,7 +460,7 @@ schemas:
             description: URI to the created tenant
         body:
           application/json:
-            schema: TenantDescriptor
+            type: TenantDescriptor
       400:
         description: Bad Request
         body:
@@ -478,7 +475,7 @@ schemas:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: TenantList
+            type: TenantList
   /{tenant_id}:
     get:
       description: Retrieve a tenant
@@ -489,7 +486,7 @@ schemas:
               description: Okapi trace and timing
           body:
             application/json:
-              schema: TenantDescriptor
+              type: TenantDescriptor
         404:
           description: Not Found
           body:
@@ -498,7 +495,7 @@ schemas:
       description: Update a tenant
       body:
         application/json:
-          schema: TenantDescriptor
+          type: TenantDescriptor
       responses:
         200:
           headers:
@@ -506,7 +503,7 @@ schemas:
               description: Okapi trace and timing
           body:
             application/json:
-              schema: TenantDescriptor
+              type: TenantDescriptor
         400:
           description: Bad Request
           body:
@@ -541,7 +538,7 @@ schemas:
           This call will eventually be replaced by the 'install' service.
         body:
           application/json:
-            schema: TenantModuleDescriptor
+            type: TenantModuleDescriptor
         responses:
           201:
             description: Created
@@ -552,7 +549,7 @@ schemas:
                 description: URI to the enabled module
             body:
               application/json:
-                schema: TenantModuleDescriptor
+                type: TenantModuleDescriptor
           400:
             description: Bad Request
             body:
@@ -579,7 +576,7 @@ schemas:
                 description: Okapi trace and timing
             body:
               application/json:
-                schema: ModuleList
+                type: ModuleList
           404:
             description: Not Found
             body:
@@ -600,7 +597,7 @@ schemas:
                   description: Okapi trace and timing
               body:
                 application/json:
-                  schema: TenantModuleDescriptor
+                  type: TenantModuleDescriptor
             404:
               description: Not Found
               body:
@@ -612,7 +609,7 @@ schemas:
             This call will eventually be replaced by the 'install' service.
           body:
             application/json:
-              schema: TenantModuleDescriptor
+              type: TenantModuleDescriptor
           responses:
             201:
               description: Created
@@ -623,7 +620,7 @@ schemas:
                   description: URI to the enabled module
               body:
                 application/json:
-                  schema: TenantModuleDescriptor
+                  type: TenantModuleDescriptor
             400:
               description: Client Error
               body:
@@ -683,13 +680,13 @@ schemas:
             required: false
         body:
           application/json:
-            schema: TenantModuleDescriptorList
+            type: TenantModuleDescriptorList
         responses:
           200:
             description: OK
             body:
               application/json:
-                schema: TenantModuleDescriptorList
+                type: TenantModuleDescriptorList
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
@@ -718,10 +715,12 @@ schemas:
           simulate:
             description: whether the upgrade is simulated
             type: boolean
+            required: false
           preRelease:
             description: Whether pre-releases should be considered for
               installation.
             type: boolean
+            required: false
           purge:
             description: Disabled modules will also be purged.
             type: boolean
@@ -731,7 +730,7 @@ schemas:
             description: OK
             body:
               application/json:
-                schema: TenantModuleDescriptorList
+                type: TenantModuleDescriptorList
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
@@ -766,7 +765,7 @@ schemas:
                 description: Okapi trace and timing
             body:
               application/json:
-                schema: InterfaceList
+                type: InterfaceList
           400:
             description: Client Error
             body:
@@ -794,7 +793,7 @@ schemas:
                   description: Okapi trace and timing
               body:
                 application/json:
-                  schema: TenantModuleDescriptorList
+                  type: TenantModuleDescriptorList
             400:
               description: Client Error
               body:
@@ -816,7 +815,7 @@ schemas:
         description: OK
         body:
           application/json:
-            schema: HealthStatusList
+            type: HealthStatusList
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -832,18 +831,16 @@ schemas:
       the URLs should be pointing to identical remote repositories.
     body:
       application/json:
-        schema: PullDescriptor
+        type: PullDescriptor
     responses:
       200:
         description: OK
         headers:
-          Location:
-            description:
           X-Okapi-Trace:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: ModuleList
+            type: ModuleList
       400:
         description: Bad Request
         body:
@@ -865,7 +862,7 @@ schemas:
     description: Add environment entry
     body:
       application/json:
-        schema: EnvEntry
+        type: EnvEntry
     responses:
       201:
         description: Created
@@ -876,7 +873,7 @@ schemas:
             description: Okapi trace and timing
         body:
           application/json:
-            schema: EnvEntry
+            type: EnvEntry
       400:
         description: Bad Request
         body:
@@ -891,7 +888,7 @@ schemas:
       200:
         body:
           application/json:
-            schema: EnvEntryList
+            type: EnvEntryList
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -910,7 +907,7 @@ schemas:
         200:
           body:
             application/json:
-              schema: EnvEntry
+              type: EnvEntry
           headers:
             X-Okapi-Trace:
               description: Okapi trace and timing
