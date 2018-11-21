@@ -1121,7 +1121,7 @@ public class ProxyService {
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
-      cli.setClosedRetry(15000);
+      // cli.setClosedRetry(15000);
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {

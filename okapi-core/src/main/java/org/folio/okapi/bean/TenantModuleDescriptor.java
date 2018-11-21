@@ -9,7 +9,6 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.*;
 
-
 @JsonInclude(Include.NON_NULL)
 public class TenantModuleDescriptor {
 
@@ -27,6 +26,8 @@ public class TenantModuleDescriptor {
   private Action action;
 
   private String message;
+
+  private Parameter[] parameters;
 
   public String getId() {
     return id;
@@ -59,4 +60,13 @@ public class TenantModuleDescriptor {
   public void setMessage(String message) {
     this.message = message;
   }
+
+  public Parameter[] getParameters() {
+    return parameters;
+  }
+
+  public void setParameters(Parameter[] parameters) {
+    this.parameters = parameters;
+  }
+
 }

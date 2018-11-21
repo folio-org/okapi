@@ -150,6 +150,7 @@ public class OkapiClient {
     Handler<ExtendedAsyncResult<String>> fut) {
 
     if (this.okapiUrl == null) {
+      logger.warn("OkapiClient: No OkapiUrl specified");
       fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
       return;
     }
@@ -157,6 +158,7 @@ public class OkapiClient {
       if (res.failed() && res.getType() == ANY) {
         if (retryClosedCount > 0) {
           retryClosedCount--;
+          logger.warn("Client retry counter " + retryClosedCount);
           vertx.setTimer(retryClosedWait, res1
             -> request(method, path, data, fut));
         } else {

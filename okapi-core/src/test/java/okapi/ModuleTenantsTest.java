@@ -139,7 +139,7 @@ public class ModuleTenantsTest {
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -262,7 +262,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -323,7 +323,8 @@ public class ModuleTenantsTest {
     // Upgrade from sample 1.0.0 to 1.2.0
     // supply the new ID in the body and the old ID in the header.
     final String docEnableSample2 = "{" + LS
-      + "  \"id\" : \"sample-module-1.2.0\"" + LS
+      + "  \"id\" : \"sample-module-1.2.0\"," + LS
+      + "  \"parameters\" : [ { \"key\" : \"foo\", \"value\" : \"bar\" }]" + LS
       + "}";
     c = api.createRestAssured3();
     c.given()
@@ -545,11 +546,14 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    logger.info("REAL INSTALL");
     // we simulated install earlier .. This time for real
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\","
+        + "  \"parameters\" : [{ \"key\" : \"some1\", \"value\" : \"some2\" }]" + LS
+        + " } ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
@@ -560,6 +564,14 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-tenant-parameters", "true")
+      .get("/testb/foo")
+      .then().log().ifValidationFails()
+      .statusCode(200)
+      .body(equalTo("It works Tenant parameters:"));
+    
     // enable modules again: post known module
     c = api.createRestAssured3();
     c.given()
@@ -704,7 +716,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -756,7 +768,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS

@@ -5,6 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import java.util.Collection;
@@ -18,6 +19,7 @@ import java.util.Set;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.bean.Parameter;
 import org.folio.okapi.bean.PermissionList;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.Tenant;
@@ -327,7 +329,7 @@ public class TenantManager {
    * To avoid too much callback hell, this has been split into several helpers.
    */
   public void enableAndDisableModule(String tenantId,
-    String moduleFrom, String moduleTo, ProxyContext pc,
+    String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
     tenants.get(tenantId, tres -> {
@@ -335,33 +337,44 @@ public class TenantManager {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
       } else {
         Tenant tenant = tres.result();
-        enableAndDisableModule(tenant, moduleFrom, moduleTo, pc, fut);
+        enableAndDisableModule(tenant, moduleFrom, td, pc, fut);
       }
     });
   }
 
   private void enableAndDisableModule(Tenant tenant,
-    String moduleFrom, String moduleTo, ProxyContext pc,
+    String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    moduleManager.getLatest(moduleTo, resTo -> {
-      if (resTo.failed()) {
-        fut.handle(new Failure<>(resTo.getType(), resTo.cause()));
-      } else {
-        ModuleDescriptor mdTo = resTo.result();
-        moduleManager.get(moduleFrom, resFrom -> {
-          if (resFrom.failed()) {
-            fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
-          } else {
-            ModuleDescriptor mdFrom = resFrom.result();
-            enableAndDisableModule2(tenant, mdFrom, mdTo, pc, fut);
-          }
-        });
-      }
-    });
+    if (td == null) {
+      moduleManager.get(moduleFrom, resFrom -> {
+        if (resFrom.failed()) {
+          fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
+        } else {
+          ModuleDescriptor mdFrom = resFrom.result();
+          enableAndDisableModule2(tenant, null, mdFrom, null, pc, fut);
+        }
+      });
+    } else {
+      moduleManager.getLatest(td.getId(), resTo -> {
+        if (resTo.failed()) {
+          fut.handle(new Failure<>(resTo.getType(), resTo.cause()));
+        } else {
+          ModuleDescriptor mdTo = resTo.result();
+          moduleManager.get(moduleFrom, resFrom -> {
+            if (resFrom.failed()) {
+              fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
+            } else {
+              ModuleDescriptor mdFrom = resFrom.result();
+              enableAndDisableModule2(tenant, td.getParameters(), mdFrom, mdTo, pc, fut);
+            }
+          });
+        }
+      });
+    }
   }
 
-  private void enableAndDisableModule2(Tenant tenant,
+  private void enableAndDisableModule2(Tenant tenant, Parameter [] parameters,
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
@@ -371,7 +384,7 @@ public class TenantManager {
         fut.handle(new Failure<>(cres.getType(), cres.cause()));
       } else {
         pc.debug("enableAndDisableModule: depcheck ok");
-        ead1TenantInterface(tenant, mdFrom, mdTo, false, pc, res -> {
+        ead1TenantInterface(tenant, parameters, mdFrom, mdTo, false, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
@@ -390,11 +403,19 @@ public class TenantManager {
    * @param mdTo
    * @param fut
    */
-  private void ead1TenantInterface(Tenant tenant,
+  private void ead1TenantInterface(Tenant tenant, Parameter[] parameters,
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, boolean purge,
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    getTenantInterface(mdFrom, mdTo, purge, ires -> {
+    logger.info("ead1TenantInterface parameters = " + parameters);
+    JsonObject jo = new JsonObject();
+    if (mdTo != null) {
+      jo.put("module_to", mdTo.getId());
+    }
+    if (mdFrom != null) {
+      jo.put("module_from", mdFrom.getId());
+    }
+    getTenantInterface(mdFrom, mdTo, jo, parameters, purge, ires -> {
       if (ires.failed()) {
         if (ires.getType() == NOT_FOUND) {
           logger.debug("eadTenantInterface: "
@@ -406,19 +427,16 @@ public class TenantManager {
         }
       } else {
         ModuleInstance tenInst = ires.result();
-        logger.debug("eadTenantInterface: tenint=" + tenInst.getPath());
-        JsonObject jo = new JsonObject();
-        if (mdTo != null) {
-          jo.put("module_to", mdTo.getId());
-        }
-        if (mdFrom != null) {
-          jo.put("module_from", mdFrom.getId());
-        }
+        logger.info("eadTenantInterface: tenint=" + tenInst.getPath());
         final String req = purge ? "" : jo.encodePrettily();
+        logger.info("Content: " + req);
         proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
+          logger.info("ead1TenantInterface 1");
           if (cres.failed()) {
+            logger.info("ead1TenantInterface failure");
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
+            logger.info("ead1TenantInterface success");
             // We can ignore the result, the call went well.
             ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
           }
@@ -633,7 +651,7 @@ public class TenantManager {
    *
    */
   private void getTenantInterface(ModuleDescriptor mdFrom,
-    ModuleDescriptor mdTo, boolean purge,
+    ModuleDescriptor mdTo, JsonObject jo, Parameter[] parameters, boolean purge,
     Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
@@ -659,6 +677,19 @@ public class TenantManager {
             }
             break;
           case "1.1":
+            if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
+              return;
+            }
+            break;
+          case "1.2":
+            if (parameters != null) {
+              JsonArray ja = new JsonArray();
+              for (Parameter p : parameters) {
+                ja.add(new JsonObject().put("key", p.getKey()).put("value", p.getValue()));
+              }
+              logger.info("applying " + ja.size() + " parameters to call to " + md.getId());
+              jo.put("parameters", ja);
+            }
             if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
               return;
             }
@@ -925,7 +956,7 @@ public class TenantManager {
       if (mdFrom == null && mdTo == null) {
         installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
       } else {
-        ead1TenantInterface(tenant, mdFrom, mdTo, purge, pc, res -> {
+        ead1TenantInterface(tenant, tm.getParameters(), mdFrom, mdTo, purge, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {

@@ -21,6 +21,10 @@
     "message": {
       "description": "Diagnostic Message",
       "type": "string"
+    },
+    "parameters": {
+      "description": "Tenant init parameters",
+      "$ref": "raml-util/schemas/parameters.schema"
     }
   },
   "required" : ["id"]

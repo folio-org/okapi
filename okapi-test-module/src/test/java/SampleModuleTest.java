@@ -104,6 +104,17 @@ public class SampleModuleTest {
       context.assertEquals("POST /_/tenant to okapi-test-module for "
         + "tenant my-lib\n",
         cli.getResponsebody());
+      testTenantPostWithParameters(context, cli, async);
+    });
+  }
+
+  public void testTenantPostWithParameters(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\", "
+      + "\"parameters\" : [ {\"key\": \"a\",  \"value\" : \"b\"} ] }", res -> {
+      context.assertTrue(res.succeeded());
+      context.assertEquals("POST /_/tenant to okapi-test-module for "
+        + "tenant my-lib\n",
+        cli.getResponsebody());
       testTenantDelete(context, cli, async);
     });
   }
@@ -125,13 +136,24 @@ public class SampleModuleTest {
     });
   }
 
+  
   public void testTenantBadPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{", res -> {
+      context.assertTrue(res.failed());
+      testTenantBadParameters(context, cli, async);
+    });
+  }
+
+  public void testTenantBadParameters(TestContext context, OkapiClient cli, Async async) {
+    cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\", "
+      + "\"parameters\" : {\"key\": \"a\",  \"value\" : \"b\"} }", res -> {
       context.assertTrue(res.failed());
       testPermissionsPost(context, cli, async);
     });
   }
 
+
+  
   public void testPermissionsPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenantpermissions", "{}", res -> {
       context.assertTrue(res.succeeded());

@@ -10,6 +10,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
@@ -32,6 +33,7 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = OkapiLogger.get();
   private String helloGreeting;
   private String tenantRequests = "";
+  private JsonArray tenantParameters;
 
   // Report the request headers in response headers, body, and/or log
   private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
@@ -39,6 +41,12 @@ public class MainVerticle extends AbstractVerticle {
     String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
     if (tenantReqs != null) {
       xmlMsg.append(" Tenant requests: ").append(tenantRequests);
+    }
+    if (ctx.request().getHeader("X-tenant-parameters") != null) {
+      xmlMsg.append(" Tenant parameters: ");
+      if (tenantParameters != null) {
+        xmlMsg.append(tenantParameters.encodePrettily());
+      }
     }
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
@@ -138,6 +146,8 @@ public class MainVerticle extends AbstractVerticle {
     String meth = ctx.request().method().name();
     logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
       + " for tenant " + tenant);
+    logger.info("RESET parameters");
+    tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
       ctx.response().end();
@@ -148,7 +158,6 @@ public class MainVerticle extends AbstractVerticle {
       logger.debug("Tenant api content type: '" + cont + "'");
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
       if (tok == null) {
-        tok = "";
       } else {
         tok = "-auth";
       }
@@ -160,8 +169,18 @@ public class MainVerticle extends AbstractVerticle {
       ctx.request().endHandler(x -> {
         try {
           JsonObject j = new JsonObject(b);
+          logger.info("GOT " + b.toString());
           logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+          tenantParameters = j.getJsonArray("parameters");
+          if (tenantParameters != null) {
+            logger.info("Setting parameters to " + tenantParameters.encodePrettily());
+          } else {
+            logger.info("Setting parameters to NULL");        
+          }
         } catch (DecodeException ex) {
+          responseError(ctx, 400, ex.getLocalizedMessage());
+          return;
+        } catch (ClassCastException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
           return;
         }

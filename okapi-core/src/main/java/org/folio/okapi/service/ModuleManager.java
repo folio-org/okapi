@@ -733,7 +733,7 @@ public class ModuleManager {
   }
 
   public void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    ModuleId moduleId = id != null ? new ModuleId(id) : null;
+    ModuleId moduleId = new ModuleId(id);
     if (moduleId == null || moduleId.hasSemVer()) {
       get(id, fut);
     } else {
