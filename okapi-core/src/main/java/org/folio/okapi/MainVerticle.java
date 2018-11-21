@@ -256,7 +256,7 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.debug("Creating the internal Okapi module " + okapiModule
         + " with interface version " + interfaceVersion);
-      moduleManager.create(md, true, ires -> {
+      moduleManager.create(md, true, true, ires -> {
         if (ires.failed()) {
           logger.warn("Failed to create the internal Okapi module"
             + okapiModule + " " + ires.cause());

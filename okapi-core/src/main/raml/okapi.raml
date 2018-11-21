@@ -345,6 +345,10 @@ types:
         description: Whether to check dependencies
         type: boolean
         required: false
+      preRelease:
+        description: whether to allow pre-release modules in dependency check
+        type: boolean
+        required: false
     body:
       application/json:
         type: ModuleDescriptor

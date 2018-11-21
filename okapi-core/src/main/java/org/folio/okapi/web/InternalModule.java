@@ -826,13 +826,14 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       final boolean check = getParamBoolean(pc.getCtx().request(), "check", true);
+      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
 
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         fut.handle(new Failure<>(USER, validerr));
         return;
       }
-      moduleManager.create(md, check, cres -> {
+      moduleManager.create(md, check, preRelease, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
           return;

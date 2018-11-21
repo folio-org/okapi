@@ -522,10 +522,10 @@ public class ModuleManager {
    * @param md
    * @param fut
    */
-  public void create(ModuleDescriptor md, boolean check, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void create(ModuleDescriptor md, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
-    createList(l, check, fut);
+    createList(l, check, preRelease, fut);
   }
 
   /**
@@ -534,13 +534,16 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  public void createList(List<ModuleDescriptor> list, boolean check, Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.getAll(ares -> {
+  public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
+    getModulesWithFilter(null, preRelease, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
-      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
+      Map<String,ModuleDescriptor> tempList = new HashMap<>();
+      for (ModuleDescriptor md : ares.result()) {
+        tempList.put(md.getId(), md);
+      }
       LinkedList<ModuleDescriptor> nList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();

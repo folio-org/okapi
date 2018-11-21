@@ -80,7 +80,7 @@ public class ModuleTenantsTest {
 
     // create basic 1.0.0
     final String docBasic_1_0_0 = "{" + LS
-      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -119,7 +119,7 @@ public class ModuleTenantsTest {
 
     // deploy basic 1.0.0
     final String docBasicDeployment_1_0_0 = "{" + LS
-      + "  \"srvcId\" : \"basic-module-1.0.0\"," + LS
+      + "  \"srvcId\" : \"basic-module-1.0.0-alpha\"," + LS
       + "  \"nodeId\" :  \"localhost\"" + LS
       + "}";
     c = api.createRestAssured3();
@@ -289,10 +289,20 @@ public class ModuleTenantsTest {
       + "  }" + LS
       + "}";
 
+    // try to rely on alpha module fails because we do not consider pre-releases
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule_1_2_0).post("/_/proxy/modules?preRelease=false").then().statusCode(400);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // works better when we do take alpha in
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleModule_1_2_0).post("/_/proxy/modules").then().statusCode(201)
+      .body(docSampleModule_1_2_0).post("/_/proxy/modules?preRelease=true").then().statusCode(201)
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
@@ -336,7 +346,7 @@ public class ModuleTenantsTest {
 
     // remedy the situation by enabling basic 1.0.0 which provides bint
     final String docEnableBasic = "{" + LS
-      + "  \"id\" : \"basic-module-1.0.0\"" + LS
+      + "  \"id\" : \"basic-module-1.0.0-alpha\"" + LS
       + "}";
     c = api.createRestAssured3();
     r = c.given()
@@ -583,7 +593,7 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -602,7 +612,7 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -620,7 +630,7 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=false&deploy=true")
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"basic-module-1.0.0\"," + LS
+        + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-1.2.0\"," + LS
@@ -797,7 +807,7 @@ public class ModuleTenantsTest {
       .then().statusCode(200)
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"basic-module-2.0.0\"," + LS
-        + "  \"from\" : \"basic-module-1.0.0\"," + LS
+        + "  \"from\" : \"basic-module-1.0.0-alpha\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"sample-module-2.0.0\"," + LS
@@ -1318,7 +1328,7 @@ public class ModuleTenantsTest {
 
     // create basic 1.0.0
     final String docBasic_1_0_0 = "{" + LS
-      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"id\" : \"basic-module-1.0.0-alpha\"," + LS
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS

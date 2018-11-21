@@ -188,7 +188,7 @@ public class PullManager {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         logger.info("pull: local insert");
-        moduleManager.createList(mlList, true, res1 -> {
+        moduleManager.createList(mlList, true, true, res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
           } else {
