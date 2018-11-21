@@ -110,7 +110,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .body(docBasic_1_0_0).post("/_/proxy/modules?preRelease=false").then().statusCode(201)
       .extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
