@@ -171,10 +171,7 @@ public class MainVerticle extends AbstractVerticle {
           JsonObject j = new JsonObject(b);
           logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
           tenantParameters = j.getJsonArray("parameters");
-        } catch (DecodeException ex) {
-          responseError(ctx, 400, ex.getLocalizedMessage());
-          return;
-        } catch (ClassCastException ex) {
+        } catch (DecodeException|ClassCastException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
           return;
         }

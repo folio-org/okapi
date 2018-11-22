@@ -675,21 +675,7 @@ public class TenantManager {
             }
             break;
           case "1.2":
-            if (tenantParameters != null) {
-              JsonArray ja = new JsonArray();
-              for (String p : tenantParameters.split(",")) {
-                String[] kv = p.split("=");
-                if (kv.length > 0) {
-                  JsonObject jsonKv = new JsonObject();
-                  jsonKv.put("key", kv[0]);
-                  if (kv.length > 1) {
-                    jsonKv.put("value", kv[1]);
-                  }
-                  ja.add(jsonKv);
-                }
-              }
-              jo.put("parameters", ja);
-            }
+            putTenantParameters(jo, tenantParameters);
             if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
               return;
             }
@@ -701,6 +687,24 @@ public class TenantManager {
       }
     }
     fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10402", md.getId())));
+  }
+
+  private void putTenantParameters(JsonObject jo, String tenantParameters) {
+    if (tenantParameters != null) {
+      JsonArray ja = new JsonArray();
+      for (String p : tenantParameters.split(",")) {
+        String[] kv = p.split("=");
+        if (kv.length > 0) {
+          JsonObject jsonKv = new JsonObject();
+          jsonKv.put("key", kv[0]);
+          if (kv.length > 1) {
+            jsonKv.put("value", kv[1]);
+          }
+          ja.add(jsonKv);
+        }
+      }
+      jo.put("parameters", ja);
+    }
   }
 
   private boolean getTenantInterface1(InterfaceDescriptor pi,
