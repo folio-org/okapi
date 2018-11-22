@@ -139,7 +139,7 @@ public class ModuleTenantsTest {
       + "  \"requires\" : [ ]," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -262,7 +262,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -559,8 +559,9 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\""
+        + " } ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true&tenantParameters=refdata,a=b")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -569,6 +570,19 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-tenant-parameters", "true")
+      .get("/testb/foo")
+      .then().log().ifValidationFails()
+      .statusCode(200)
+      .body(equalTo("It works Tenant parameters: [ {" + LS
+        + "  \"key\" : \"refdata\"" + LS
+        + "}, {" + LS
+        + "  \"key\" : \"a\"," + LS
+        + "  \"value\" : \"b\"" + LS
+        + "} ]"));
 
     // enable modules again: post known module
     c = api.createRestAssured3();
@@ -714,7 +728,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -766,7 +780,7 @@ public class ModuleTenantsTest {
       + "  \"name\" : \"this module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS

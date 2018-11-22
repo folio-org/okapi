@@ -736,15 +736,15 @@ public class ModuleManager {
   }
 
   public void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    ModuleId moduleId = id != null ? new ModuleId(id) : null;
-    if (moduleId == null || moduleId.hasSemVer()) {
+    ModuleId moduleId = new ModuleId(id);
+    if (moduleId.hasSemVer()) {
       get(id, fut);
     } else {
-      modules.getKeys(res2 -> {
-        if (res2.failed()) {
-          fut.handle(new Failure<>(res2.getType(), res2.cause()));
+      modules.getKeys(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          String latest = moduleId.getLatest(res2.result());
+          String latest = moduleId.getLatest(res.result());
           get(latest, fut);
         }
       });

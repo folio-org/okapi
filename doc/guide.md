@@ -2427,6 +2427,14 @@ or not. For Okapi 1.11.0, it is possible to add filter `preRelease` which
 takes a boolean value. If false, the install will only consider modules
 without pre-release information.
 
+Okapi 2.20.0 and later allows parameter `tenantParameters` to be passed
+to modules when enabled or upgraded for a tenant if the _tenant interface
+provided by the module is verion 1.2 and lter. The `tenantParameters` is a
+string consisting of key-value pairs separated by comma with key and value
+separated by equal sign (`=`). It is a single argument as far as URI is
+concerned so be sure to encode comma as `%2C` and equal as `%2D`.
+See [Tenant Interface](#tenant-interface) for more information.
+
 ### Upgrading modules per tenant
 
 The upgrade facility consists of a POST request with ignored body
@@ -2453,7 +2461,7 @@ This can be changed with the optional parameter `purge`, which when set
 to `true`, instructs a module to purge (remove) all persistent
 data. This only has an effect on modules that are also disabled ; has
 no effect on modules that are enabled or upgraded. The purge parameter
-was added in Okapi version 1.16.0. The purge mode calls the `_tenant`
+was added in Okapi version 2.16.0. The purge mode calls the `_tenant`
 interface with method DELETE if that is provided for the module.
 
 ## Reference
@@ -2656,7 +2664,7 @@ The okapi-test-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.
 
-The tenant interface was introduced in version 1.0
+The tenant interface was introduced in Okapi version 1.0
 
 #### TenantPermissions Interface
 
@@ -2683,7 +2691,7 @@ The okapi-test-header-module
 has a very trivial implementation of this, and the moduleTest shows a module
 Descriptor that defines this interface.
 
-The tenantPermissions interface was introduced in version 1.1
+The tenantPermissions interface was introduced in Okapi version 1.1
 
 
 ### Instrumentation
@@ -2781,10 +2789,13 @@ any databases, see "enabling" below.
 When a module is enabled for a tenant, Okapi checks if there is a
 `_tenant` interface provided for the module. If that it is defined,
 Okapi makes a HTTP POST to `/_/tenant` for `_tenant` interface version
-1.0 or 1.1.  This is where the module may initialize its database if
+1.0 and later.  This is where the module may initialize its database if
 necessary (for that one tenant), etc. With the POST request a JSON
 object is passed: member `module_to` being the module ID that is
 enabled.
+
+Refer to https://github.com/folio-org/raml/blob/raml1.0/ramls/tenant.raml
+for the RAML definition.
 
 #### Upgrading
 
@@ -2797,7 +2808,7 @@ upgrade to the new version, one at a time.
 
 The actual upgrade happens by Okapi disabling the old version of the
 module, and enabling the new one, in the same call. Okapi makes a POST
-request with path `/_/tenant` if version 1.0 or 1.1 of interface
+request with path `/_/tenant` if version 1.0 or later of interface
 `_tenant` is provided. With the POST request, a JSON object is passed:
 member `module_from` being the module ID that we are upgrading 'from'
 and member `module_to` being the module ID that we are upgrading
@@ -2813,24 +2824,32 @@ We are using semantic versioning, see [Versioning and Dependencies](#versioning-
 #### Disabling
 
 When a module is disabled for a tenant, Okapi makes a POST request
-with path `/_/tenant/disable` if version 1.1 of interface `_tenant` is
-provided. With the POST request a JSON object is passed: member
-`module_from` being the module ID that is being disabled.
+with path `/_/tenant/disable` if version 1.1 and later of interface
+`_tenant` is provided. With the POST request a JSON object is passed:
+member `module_from` being the module ID that is being disabled.
 
 #### Purge
 
 When a module is purged for a tenant, it disables the tenant for the
 module but also removes persistent content. A module may implement
-this by providing `_tenant` interface 1.0/1.1 with a DELETE method.
+this by providing `_tenant` interface 1.0 and later with a DELETE method.
 
+#### Tenant Parameters
+
+A module may, besides doing the fundamental initialization of storage etc.
+also load sets of reference data. This can be controlled by supplying
+tenant parameters. These are properties (key-value-pairs) that are
+passed to the module when enabled or upgraded. Passing those
+are only performed when tenantParameters is specified for install and
+when the tenant interface is version 1.2.
 
 ### Tenant Interface
 
-The full `_tenant` interface version 1.1 portion:
+The full `_tenant` interface version 1.1/1.2 portion:
 
 ```
    "id" : "_tenant",
-   "version" : "1.1",
+   "version" : "1.2",
    "interfaceType" : "system",
    "handlers" : [ {
      "methods" : [ "POST", "DELETE" ],

@@ -10,6 +10,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
@@ -32,6 +33,7 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = OkapiLogger.get();
   private String helloGreeting;
   private String tenantRequests = "";
+  private JsonArray tenantParameters;
 
   // Report the request headers in response headers, body, and/or log
   private void headers(RoutingContext ctx, StringBuilder xmlMsg) {
@@ -39,6 +41,12 @@ public class MainVerticle extends AbstractVerticle {
     String tenantReqs = ctx.request().getHeader("X-tenant-reqs");
     if (tenantReqs != null) {
       xmlMsg.append(" Tenant requests: ").append(tenantRequests);
+    }
+    if (ctx.request().getHeader("X-tenant-parameters") != null) {
+      xmlMsg.append(" Tenant parameters: ");
+      if (tenantParameters != null) {
+        xmlMsg.append(tenantParameters.encodePrettily());
+      }
     }
     String allh = ctx.request().getHeader("X-all-headers");
     if (allh != null) {
@@ -138,6 +146,7 @@ public class MainVerticle extends AbstractVerticle {
     String meth = ctx.request().method().name();
     logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
       + " for tenant " + tenant);
+    tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
       ctx.response().end();
@@ -161,7 +170,8 @@ public class MainVerticle extends AbstractVerticle {
         try {
           JsonObject j = new JsonObject(b);
           logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
-        } catch (DecodeException ex) {
+          tenantParameters = j.getJsonArray("parameters");
+        } catch (DecodeException|ClassCastException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
           return;
         }

@@ -9,7 +9,6 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.*;
 
-
 @JsonInclude(Include.NON_NULL)
 public class TenantModuleDescriptor {
 

@@ -635,8 +635,7 @@ public class InternalModule {
     try {
       final TenantModuleDescriptor td = Json.decodeValue(body,
         TenantModuleDescriptor.class);
-      String moduleTo = td.getId();
-      tenantManager.enableAndDisableModule(id, null, moduleTo, pc, eres -> {
+      tenantManager.enableAndDisableModule(id, null, td, pc, eres -> {
         if (eres.failed()) {
           fut.handle(new Failure<>(eres.getType(), eres.cause()));
           return;
@@ -681,6 +680,7 @@ public class InternalModule {
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
     options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
     options.setPurge(getParamBoolean(ctx.request(), "purge", false));
+    options.setTenantParameters(ctx.request().getParam("tenantParameters"));
     return options;
   }
 
@@ -728,8 +728,7 @@ public class InternalModule {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
         TenantModuleDescriptor.class);
-      final String module_to = td.getId();
-      tenantManager.enableAndDisableModule(id, module_from, module_to, pc, res -> {
+      tenantManager.enableAndDisableModule(id, module_from, td, pc, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
