@@ -109,7 +109,7 @@ public class ModuleManager {
    * @param md module to check
    * @param req required dependency
    * @param modlist the list to check against
-   * @return "" if ok, or error message
+   * @return null if ok, or error message
    */
   private String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
     Map<String, ModuleDescriptor> modlist) {
@@ -121,19 +121,31 @@ public class ModuleManager {
           + req.getId() + " " + req.getVersion()
           + " against " + pi.getId() + " " + pi.getVersion());
         if (req.getId().equals(pi.getId())) {
-          seenversion = pi;
           if (pi.isCompatible(req)) {
             logger.debug("Dependency OK");
-            return "";  // ok
+            return null;  // ok
           }
+          seenversion = pi;
         }
       }
     }
     if (seenversion == null) {
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
-
     } else {
-      return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
+      List<ModuleDescriptor> reqList = new LinkedList<>();
+      for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
+        ModuleDescriptor rm = entry.getValue();
+        for (InterfaceDescriptor ri : rm.getRequiresList()) {
+          if (seenversion.getId().equals(ri.getId()) && seenversion.isCompatible(ri)) {
+            reqList.add(rm);
+          }
+        }
+      }
+      String modUses = "<unknown>";
+      if (!reqList.isEmpty()) {
+        modUses = reqList.get(0).getId();
+      }
+      return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion() + "/" + modUses);
     }
   }
 
@@ -141,21 +153,23 @@ public class ModuleManager {
    * Check that the dependencies are satisfied.
    *
    * @param md Module to be checked
-   * @return "" if no problems, or an error message
+   * @return empty list if if no problems, or list of error messages
    *
    * This could be done like we do conflicts, by building a map and checking
    * against that...
    */
-  private String checkDependencies(ModuleDescriptor md,
+  private List<String> checkDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist) {
+
+    List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of " + md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
       String res = checkOneDependency(md, req, modlist);
-      if (!res.isEmpty()) {
-        return res;
+      if (res != null) {
+        list.add(res);
       }
     }
-    return "";  // ok
+    return list;
   }
 
   private TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
@@ -480,13 +494,16 @@ public class ModuleManager {
    * @return error message, or "" if all is ok
    */
   public String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
+    List<String> list = new LinkedList<>();
     for (ModuleDescriptor md : modlist.values()) {
-      String res = checkDependencies(md, modlist);
-      if (!res.isEmpty()) {
-        return res;
-      }
+      List<String> res = checkDependencies(md, modlist);
+      list.addAll(res);
     }
-    return "";
+    if (list.isEmpty()) {
+      return "";
+    } else {
+      return String.join(". ", list);
+    }
   }
 
   /**
