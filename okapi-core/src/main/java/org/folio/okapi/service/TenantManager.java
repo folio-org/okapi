@@ -406,7 +406,6 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, boolean purge,
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("ead1TenantInterface parameters = " + tenantParameters);
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());
@@ -426,16 +425,11 @@ public class TenantManager {
         }
       } else {
         ModuleInstance tenInst = ires.result();
-        logger.info("eadTenantInterface: tenint=" + tenInst.getPath());
         final String req = purge ? "" : jo.encodePrettily();
-        logger.info("Content: " + req);
         proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
-          logger.info("ead1TenantInterface 1");
           if (cres.failed()) {
-            logger.info("ead1TenantInterface failure");
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
-            logger.info("ead1TenantInterface success");
             // We can ignore the result, the call went well.
             ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
           }
@@ -694,7 +688,6 @@ public class TenantManager {
                   ja.add(jsonKv);
                 }
               }
-              logger.info("applying " + ja.size() + " parameters to call to " + md.getId());
               jo.put("parameters", ja);
             }
             if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {

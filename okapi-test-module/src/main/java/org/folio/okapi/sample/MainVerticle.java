@@ -146,7 +146,6 @@ public class MainVerticle extends AbstractVerticle {
     String meth = ctx.request().method().name();
     logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
       + " for tenant " + tenant);
-    logger.info("RESET parameters");
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
@@ -158,6 +157,7 @@ public class MainVerticle extends AbstractVerticle {
       logger.debug("Tenant api content type: '" + cont + "'");
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
       if (tok == null) {
+        tok = "";
       } else {
         tok = "-auth";
       }
@@ -169,14 +169,8 @@ public class MainVerticle extends AbstractVerticle {
       ctx.request().endHandler(x -> {
         try {
           JsonObject j = new JsonObject(b);
-          logger.info("GOT " + b.toString());
           logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
           tenantParameters = j.getJsonArray("parameters");
-          if (tenantParameters != null) {
-            logger.info("Setting parameters to " + tenantParameters.encodePrettily());
-          } else {
-            logger.info("Setting parameters to NULL");        
-          }
         } catch (DecodeException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
           return;

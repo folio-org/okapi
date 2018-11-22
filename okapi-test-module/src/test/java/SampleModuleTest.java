@@ -111,12 +111,12 @@ public class SampleModuleTest {
   public void testTenantPostWithParameters(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\", "
       + "\"parameters\" : [ {\"key\": \"a\",  \"value\" : \"b\"} ] }", res -> {
-      context.assertTrue(res.succeeded());
-      context.assertEquals("POST /_/tenant to okapi-test-module for "
-        + "tenant my-lib\n",
-        cli.getResponsebody());
-      testTenantDelete(context, cli, async);
-    });
+        context.assertTrue(res.succeeded());
+        context.assertEquals("POST /_/tenant to okapi-test-module for "
+          + "tenant my-lib\n",
+          cli.getResponsebody());
+        testTenantDelete(context, cli, async);
+      });
   }
 
   public void testTenantDelete(TestContext context, OkapiClient cli, Async async) {
@@ -136,7 +136,6 @@ public class SampleModuleTest {
     });
   }
 
-  
   public void testTenantBadPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{", res -> {
       context.assertTrue(res.failed());
@@ -147,20 +146,17 @@ public class SampleModuleTest {
   public void testTenantBadParameters(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenant", "{\"module_from\": \"m-1.0.0\", \"module_to\":\"m-1.0.1\", "
       + "\"parameters\" : {\"key\": \"a\",  \"value\" : \"b\"} }", res -> {
-      context.assertTrue(res.failed());
-      testPermissionsPost(context, cli, async);
-    });
+        context.assertTrue(res.failed());
+        testPermissionsPost(context, cli, async);
+      });
   }
 
-
-  
   public void testPermissionsPost(TestContext context, OkapiClient cli, Async async) {
     cli.post("/_/tenantpermissions", "{}", res -> {
       context.assertTrue(res.succeeded());
       testDelete(context, cli, async);
     });
   }
-
 
   public void testDelete(TestContext context, OkapiClient cli, Async async) {
     cli.delete("/testb", res -> {
@@ -203,14 +199,14 @@ public class SampleModuleTest {
       context.assertTrue(res.succeeded());
       context.assertEquals(
         "It worksmy X-delay:2\n"
-     + " X-Okapi-Url:http://localhost:9230\n"
-     + " X-all-headers:HBL\n"
-     + " X-Okapi-Match-Path-Pattern:/testb\n"
-     + " X-my-header:my\n"
-     + " X-Okapi-Tenant:my-lib\n"
-     + " Content-Length:0\n"
-     + " Host:localhost:9230\n"
-     + " X-Url-Params:q=a\n",
+        + " X-Okapi-Url:http://localhost:9230\n"
+        + " X-all-headers:HBL\n"
+        + " X-Okapi-Match-Path-Pattern:/testb\n"
+        + " X-my-header:my\n"
+        + " X-Okapi-Tenant:my-lib\n"
+        + " Content-Length:0\n"
+        + " Host:localhost:9230\n"
+        + " X-Url-Params:q=a\n",
         cli.getResponsebody());
       async.complete();
     });

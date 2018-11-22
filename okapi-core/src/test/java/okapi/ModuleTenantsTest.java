@@ -545,7 +545,6 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    logger.info("REAL INSTALL");
     // we simulated install earlier .. This time for real
     c = api.createRestAssured3();
     c.given()
@@ -569,12 +568,12 @@ public class ModuleTenantsTest {
       .then().log().ifValidationFails()
       .statusCode(200)
       .body(equalTo("It works Tenant parameters: [ {" + LS
-       + "  \"key\" : \"refdata\"" + LS
-       + "}, {" + LS
-       + "  \"key\" : \"a\"," + LS
-       + "  \"value\" : \"b\"" + LS
-       + "} ]"));
-    
+        + "  \"key\" : \"refdata\"" + LS
+        + "}, {" + LS
+        + "  \"key\" : \"a\"," + LS
+        + "  \"value\" : \"b\"" + LS
+        + "} ]"));
+
     // enable modules again: post known module
     c = api.createRestAssured3();
     c.given()
