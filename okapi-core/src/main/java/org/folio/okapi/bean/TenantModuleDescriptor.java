@@ -27,8 +27,6 @@ public class TenantModuleDescriptor {
 
   private String message;
 
-  private Parameter[] parameters;
-
   public String getId() {
     return id;
   }
@@ -60,13 +58,4 @@ public class TenantModuleDescriptor {
   public void setMessage(String message) {
     this.message = message;
   }
-
-  public Parameter[] getParameters() {
-    return parameters;
-  }
-
-  public void setParameters(Parameter[] parameters) {
-    this.parameters = parameters;
-  }
-
 }

@@ -6,6 +6,7 @@ public class TenantInstallOptions {
   private boolean simulate = false;
   private boolean deploy = false;
   private boolean purge = false;
+  private String tenantParameters;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -37,6 +38,14 @@ public class TenantInstallOptions {
 
   public boolean getPurge() {
     return purge;
+  }
+
+  public void setTenantParameters(String v) {
+    tenantParameters = v;
+  }
+
+  public String getTenantParameters() {
+    return tenantParameters;
   }
 
 }

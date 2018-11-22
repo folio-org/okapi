@@ -680,6 +680,7 @@ public class InternalModule {
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
     options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
     options.setPurge(getParamBoolean(ctx.request(), "purge", false));
+    options.setTenantParameters(ctx.request().getParam("tenantParameters"));
     return options;
   }
 

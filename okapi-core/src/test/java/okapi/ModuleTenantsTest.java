@@ -323,8 +323,7 @@ public class ModuleTenantsTest {
     // Upgrade from sample 1.0.0 to 1.2.0
     // supply the new ID in the body and the old ID in the header.
     final String docEnableSample2 = "{" + LS
-      + "  \"id\" : \"sample-module-1.2.0\"," + LS
-      + "  \"parameters\" : [ { \"key\" : \"foo\", \"value\" : \"bar\" }]" + LS
+      + "  \"id\" : \"sample-module-1.2.0\"" + LS
       + "}";
     c = api.createRestAssured3();
     c.given()
@@ -551,10 +550,9 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\","
-        + "  \"parameters\" : [{ \"key\" : \"some1\", \"value\" : \"some2\" }]" + LS
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\""
         + " } ]")
-      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true&tenantParameters=refdata,a=b")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
@@ -570,7 +568,12 @@ public class ModuleTenantsTest {
       .get("/testb/foo")
       .then().log().ifValidationFails()
       .statusCode(200)
-      .body(equalTo("It works Tenant parameters:"));
+      .body(equalTo("It works Tenant parameters: [ {" + LS
+       + "  \"key\" : \"refdata\"" + LS
+       + "}, {" + LS
+       + "  \"key\" : \"a\"," + LS
+       + "  \"value\" : \"b\"" + LS
+       + "} ]"));
     
     // enable modules again: post known module
     c = api.createRestAssured3();
