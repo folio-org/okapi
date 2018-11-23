@@ -1,5 +1,6 @@
 package org.folio.okapi.service;
 
+import org.folio.okapi.util.DepResolution;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -7,15 +8,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.bean.TenantModuleDescriptor;
-import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -103,417 +100,40 @@ public class ModuleManager {
     }
   }
 
-  /**
-   * Check one dependency.
-   *
-   * @param md module to check
-   * @param req required dependency
-   * @param modlist the list to check against
-   * @return "" if ok, or error message
-   */
-  private String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, ModuleDescriptor> modlist) {
-    InterfaceDescriptor seenversion = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
-      ModuleDescriptor rm = entry.getValue();
-      for (InterfaceDescriptor pi : rm.getProvidesList()) {
-        logger.debug("Checking dependency of " + md.getId() + ": "
-          + req.getId() + " " + req.getVersion()
-          + " against " + pi.getId() + " " + pi.getVersion());
-        if (req.getId().equals(pi.getId())) {
-          seenversion = pi;
-          if (pi.isCompatible(req)) {
-            logger.debug("Dependency OK");
-            return "";  // ok
-          }
-        }
-      }
-    }
-    if (seenversion == null) {
-      return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
+  public void enableAndDisableCheck(Tenant tenant,
+    ModuleDescriptor modFrom, ModuleDescriptor modTo,
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
-    } else {
-      return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion());
-    }
-  }
-
-  /**
-   * Check that the dependencies are satisfied.
-   *
-   * @param md Module to be checked
-   * @return "" if no problems, or an error message
-   *
-   * This could be done like we do conflicts, by building a map and checking
-   * against that...
-   */
-  private String checkDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modlist) {
-    logger.debug("Checking dependencies of " + md.getId());
-    for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, modlist);
-      if (!res.isEmpty()) {
-        return res;
+    getEnabledModules(tenant, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
       }
-    }
-    return "";  // ok
-  }
-
-  private TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
-    Iterator<TenantModuleDescriptor> it = tml.iterator();
-    TenantModuleDescriptor tm = null;
-    while (it.hasNext()) {
-      tm = it.next();
-      Action action = tm.getAction();
-      String id = tm.getId();
-      logger.info("getNextTM: loop id=" + id + " action=" + action.name());
-      if (action == Action.enable && !modsEnabled.containsKey(id)) {
-        logger.info("getNextMT: return tm for action=enable");
-        return tm;
+      List<ModuleDescriptor> modlist = gres.result();
+      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
+      for (ModuleDescriptor md : modlist) {
+        mods.put(md.getId(), md);
       }
-      if (action == Action.disable && modsEnabled.containsKey(id)) {
-        logger.info("getNextTM: return tm for action=disable");
-        return tm;
+      if (modFrom != null) {
+        mods.remove(modFrom.getId());
       }
-      if (action == Action.conflict) {
-        logger.info("getNextTM: return null on conflict");
-        return null;
-      }
-    }
-    logger.info("getNextTM done null");
-    return null;
-  }
-
-  public void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
-    for (TenantModuleDescriptor tm : tml) {
-      String id = tm.getId();
-      ModuleId moduleId = new ModuleId(id);
-      if (!moduleId.hasSemVer()) {
-        id = moduleId.getLatest(modsAvailable.keySet());
-        tm.setId(id);
-      }
-      if (tm.getAction() == Action.enable) {
-        if (!modsAvailable.containsKey(id)) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
+      if (modTo != null) {
+        ModuleDescriptor already = mods.get(modTo.getId());
+        if (already != null) {
+          fut.handle(new Failure<>(USER,
+            "Module " + modTo.getId() + " already provided"));
           return;
         }
-        if (modsEnabled.containsKey(id)) {
-          tm.setAction(Action.uptodate);
-        }
+        mods.put(modTo.getId(), modTo);
       }
-      if (tm.getAction() == Action.disable && !modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return;
-      }
-    }
-    final int lim = tml.size();
-    for (int i = 0; i <= lim; i++) {
-      logger.info("outer loop i=" + i + " tml.size=" + tml.size());
-      TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
-      if (tm == null) {
-        break;
-      }
-      if (tmAction(tm, modsAvailable, modsEnabled, tml, fut)) {
-        return;
-      }
-    }
-    String s = checkAllDependencies(modsEnabled);
-    if (!s.isEmpty()) {
-      logger.warn("installModules.checkAllDependencies: " + s);
-      fut.handle(new Failure<>(USER, s));
-      return;
-    }
-
-    logger.info("installModules.returning OK");
-    fut.handle(new Success<>(Boolean.TRUE));
-  }
-
-  private boolean tmAction(TenantModuleDescriptor tm,
-    Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
-    String id = tm.getId();
-    Action action = tm.getAction();
-    if (null == action) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
-      return true;
-    } else {
-      switch (action) {
-        case enable:
-          return tmEnable(id, modsAvailable, modsEnabled, tml, fut);
-        case uptodate:
-          return false;
-        case disable:
-          return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
-        default:
-          fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
-          return true;
-      }
-    }
-  }
-
-  private boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
-    if (addModuleDependencies(modsAvailable.get(id), modsAvailable,
-      modsEnabled, tml) == -1) {
-      fut.handle(new Failure<>(USER, "install: can not enable " + id
-        + " due to missing dependencies or conflict"));
-      return true;
-    }
-    return false;
-  }
-
-  private boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-    if (removeModuleDependencies(modsAvailable.get(id),
-      modsEnabled, tml) == -1) {
-      fut.handle(new Failure<>(USER, "install: can not disable " + id
-        + " due to missing dependencies or conflict"));
-      return true;
-    }
-    return false;
-  }
-
-  private int checkInterfaceDependency(InterfaceDescriptor req,
-    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
-    // check if already enabled
-    if (checkInterfaceDepAlreadyEnabled(modsEnabled, req)) {
-      return 0;
-    }
-    // check if mentioned already in other install action
-    ModuleDescriptor foundMd = checkInterfaceDepOtherInstall(tml, modsAvailable, req);
-    if (foundMd != null) {
-      return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
-    }
-    // see if we can find it in available modules
-    foundMd = checkInterfaceDepAvailable(modsAvailable, req);
-    if (foundMd != null) {
-      return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
-    }
-    logger.warn("interface req=" + req.getId() + " NOT FOUND");
-    return -1;
-  }
-
-  private ModuleDescriptor checkInterfaceDepAvailable(Map<String, ModuleDescriptor> modsAvailable,
-    InterfaceDescriptor req) {
-
-    ModuleDescriptor foundMd = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
-      for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)
-          && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
-          foundMd = md;
-        }
-      }
-    }
-    return foundMd;
-  }
-
-  private ModuleDescriptor checkInterfaceDepOtherInstall(List<TenantModuleDescriptor> tml,
-    Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
-
-    ModuleDescriptor foundMd = null;
-    Iterator<TenantModuleDescriptor> it = tml.iterator();
-    while (it.hasNext()) {
-      TenantModuleDescriptor tm = it.next();
-      ModuleDescriptor md = modsAvailable.get(tm.getId());
-      if (md != null && tm.getAction() == Action.enable) {
-        for (InterfaceDescriptor pi : md.getProvidesList()) {
-          if (pi.isRegularHandler() && pi.isCompatible(req)) {
-            it.remove();
-            logger.info("Dependency OK for existing enable id=" + md.getId());
-            foundMd = md;
-          }
-        }
-      }
-    }
-    return foundMd;
-  }
-
-  private boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
-    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
-      for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.info("Dependency OK already enabled id=" + md.getId());
-          return true;
-        }
-      }
-    }
-    return false;
-  }
-
-  private int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
-
-    int v = 0;
-    Iterator<String> it = modsEnabled.keySet().iterator();
-    while (it.hasNext()) {
-      String runningmodule = it.next();
-      ModuleDescriptor rm = modsEnabled.get(runningmodule);
-      if (md.getProduct().equals(rm.getProduct())) {
-        logger.info("resolveModuleConflicts from " + runningmodule);
-        it.remove();
-        fromModule.add(rm);
-        v++;
+      String conflicts = DepResolution.checkAllConflicts(mods);
+      String deps = DepResolution.checkAllDependencies(mods);
+      if (conflicts.isEmpty() && deps.isEmpty()) {
+        fut.handle(new Success<>());
       } else {
-        for (InterfaceDescriptor pi : rm.getProvidesList()) {
-          if (pi.isRegularHandler()) {
-            String confl = pi.getId();
-            for (InterfaceDescriptor mi : md.getProvidesList()) {
-              if (mi.getId().equals(confl)
-                && mi.isRegularHandler()
-                && modsEnabled.containsKey(runningmodule)) {
-                logger.info("resolveModuleConflicts remove " + runningmodule);
-                TenantModuleDescriptor tm = new TenantModuleDescriptor();
-                tm.setAction(Action.disable);
-                tm.setId(runningmodule);
-                tml.add(tm);
-                it.remove();
-                v++;
-              }
-            }
-          }
-        }
+        fut.handle(new Failure<>(USER, conflicts + " " + deps));
       }
-    }
-    return v;
-  }
-
-  private void addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md,
-    Action action, ModuleDescriptor fm) {
-
-    logger.info("addOrReplace md.id=" + md.getId());
-    Iterator<TenantModuleDescriptor> it = tml.iterator();
-    boolean found = false;
-    while (it.hasNext()) {
-      TenantModuleDescriptor tm = it.next();
-      if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
-        it.remove();
-      } else if (fm != null && tm.getAction() == Action.enable && tm.getId().equals(fm.getId())) {
-        logger.info("resolveConflict .. patch id=" + md.getId());
-        tm.setId(md.getId());
-        found = true;
-      }
-    }
-    if (found) {
-      return;
-    }
-    TenantModuleDescriptor t = new TenantModuleDescriptor();
-    t.setAction(action);
-    t.setId(md.getId());
-    if (fm != null) {
-      t.setFrom(fm.getId());
-    }
-    tml.add(t);
-  }
-
-  private int addModuleDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
-    int sum = 0;
-    logger.info("addModuleDependencies " + md.getId());
-    for (InterfaceDescriptor req : md.getRequiresList()) {
-      int v = checkInterfaceDependency(req, modsAvailable, modsEnabled, tml);
-      if (v == -1) {
-        return v;
-      }
-      sum += v;
-    }
-    List<ModuleDescriptor> fromModule = new LinkedList<>();
-    sum += resolveModuleConflicts(md, modsEnabled, tml, fromModule);
-
-    modsEnabled.put(md.getId(), md);
-    addOrReplace(tml, md, Action.enable, fromModule.isEmpty() ? null : fromModule.get(0));
-    return sum + 1;
-  }
-
-  private int removeModuleDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-    int sum = 0;
-    logger.info("removeModuleDependencies " + md.getId());
-
-    if (!modsEnabled.containsKey(md.getId())) {
-      return 0;
-    }
-    InterfaceDescriptor[] provides = md.getProvidesList();
-    for (InterfaceDescriptor prov : provides) {
-      if (prov.isRegularHandler()) {
-        Iterator<String> it = modsEnabled.keySet().iterator();
-        while (it.hasNext()) {
-          String runningmodule = it.next();
-          ModuleDescriptor rm = modsEnabled.get(runningmodule);
-          InterfaceDescriptor[] requires = rm.getRequiresList();
-          for (InterfaceDescriptor ri : requires) {
-            if (prov.getId().equals(ri.getId())) {
-              sum += removeModuleDependencies(rm, modsEnabled, tml);
-              it = modsEnabled.keySet().iterator();
-            }
-          }
-        }
-      }
-    }
-    modsEnabled.remove(md.getId());
-    addOrReplace(tml, md, Action.disable, null);
-    return sum + 1;
-  }
-
-  /**
-   * Check that all dependencies are satisfied. Usually called with a copy of
-   * the modules list, after making some change.
-   *
-   * @param modlist list to check
-   * @return error message, or "" if all is ok
-   */
-  public String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
-    for (ModuleDescriptor md : modlist.values()) {
-      String res = checkDependencies(md, modlist);
-      if (!res.isEmpty()) {
-        return res;
-      }
-    }
-    return "";
-  }
-
-  /**
-   * Check a module list for conflicts.
-   *
-   * @param modlist modules to be checked
-   * @return error message listing conflicts, or "" if no problems
-   */
-  public String checkAllConflicts(Map<String, ModuleDescriptor> modlist) {
-    Map<String, String> provs = new HashMap<>(); // interface name to module name
-    StringBuilder conflicts = new StringBuilder();
-    for (ModuleDescriptor md : modlist.values()) {
-      InterfaceDescriptor[] provides = md.getProvidesList();
-      for (InterfaceDescriptor mi : provides) {
-        if (mi.isRegularHandler()) {
-          String confl = provs.get(mi.getId());
-          if (confl == null || confl.isEmpty()) {
-            provs.put(mi.getId(), md.getId());
-          } else {
-            String msg = messages.getMessage("10202", mi.getId(), md.getId(), confl);
-            conflicts.append(msg);
-          }
-        }
-      }
-    }
-    logger.debug("checkAllConflicts: " + conflicts.toString());
-    return conflicts.toString();
+    });
   }
 
   /**
@@ -562,7 +182,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = checkAllDependencies(tempList);
+        String res = DepResolution.checkAllDependencies(tempList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(USER, res));
           return;
@@ -624,7 +244,7 @@ public class ModuleManager {
       }
       LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
       tempList.put(id, md);
-      String res = checkAllDependencies(tempList);
+      String res = DepResolution.checkAllDependencies(tempList);
       if (!res.isEmpty()) {
         fut.handle(new Failure<>(USER, messages.getMessage("10204", id, res)));
         return;
@@ -702,7 +322,7 @@ public class ModuleManager {
       return true;
     }
     mods.remove(id);
-    String res = checkAllDependencies(mods);
+    String res = DepResolution.checkAllDependencies(mods);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, messages.getMessage("10208", id, res)));
       return true;

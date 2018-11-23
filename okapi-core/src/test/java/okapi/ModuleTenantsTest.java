@@ -1363,22 +1363,27 @@ public class ModuleTenantsTest {
       + "      \"pathPattern\" : \"/foo\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ { \"id\" : \"unknown\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"requires\" : [ { " + LS
+      + "    \"id\" : \"unknown1\", \"version\" : \"1.0\""
+      + "  }, {"
+      + "    \"id\" : \"unknown2\", \"version\" : \"2.0\""
+      + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
       + "  }" + LS
       + "}";
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("Content-Type", "application/json")
       .body(docBasic_1_0_0)
       .post("/_/proxy/modules?check=true")
-      .then().statusCode(400).log().ifValidationFails();
+      .then().statusCode(400).log().ifValidationFails().extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-
+    Assert.assertEquals("Missing dependency: basic-module-1.0.0-alpha requires unknown1: 1.0" + ". "
+      + "Missing dependency: basic-module-1.0.0-alpha requires unknown2: 2.0", r.getBody().asString());
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -1901,37 +1906,43 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"req1-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"req2-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(400);
+      .then().statusCode(400).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"req1-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"req2-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(400);
+      .then().statusCode(400).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"req2-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"req1-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(400);
+      .then().statusCode(400).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    Assert.assertEquals("Incompatible version for module req2-1.0.0 interface i1. "
+      + "Need 2.0. Have 1.0/req1-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     c.given()
@@ -2133,15 +2144,17 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"reqI1-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"req2-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(400);
+      .then().statusCode(400).extract().response();
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+    Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
   }
 
   @Test
