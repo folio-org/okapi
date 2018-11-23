@@ -132,20 +132,18 @@ public class ModuleManager {
     if (seenversion == null) {
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
     } else {
-      List<ModuleDescriptor> reqList = new LinkedList<>();
+      StringBuilder modUses = new StringBuilder();
       for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
         ModuleDescriptor rm = entry.getValue();
         for (InterfaceDescriptor ri : rm.getRequiresList()) {
           if (seenversion.getId().equals(ri.getId()) && seenversion.isCompatible(ri)) {
-            reqList.add(rm);
+            modUses.append("/");
+            modUses.append(rm.getId());
           }
         }
       }
-      String modUses = "<unknown>";
-      if (!reqList.isEmpty()) {
-        modUses = reqList.get(0).getId();
-      }
-      return messages.getMessage("10201", md.getId(), req.getId(), req.getVersion(), seenversion.getVersion() + "/" + modUses);
+      return messages.getMessage("10201", md.getId(), req.getId(),
+        req.getVersion(), seenversion.getVersion() + modUses.toString());
     }
   }
 

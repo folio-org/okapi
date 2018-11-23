@@ -1916,7 +1916,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-      + "Need 1.0. Have 2.0", r.getBody().asString());
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     r = c.given()
@@ -1929,7 +1929,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-      + "Need 1.0. Have 2.0", r.getBody().asString());
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     r = c.given()
@@ -1942,7 +1942,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     Assert.assertEquals("Incompatible version for module req2-1.0.0 interface i1. "
-      + "Need 2.0. Have 1.0", r.getBody().asString());
+      + "Need 2.0. Have 1.0/req1-1.0.0", r.getBody().asString());
 
     c = api.createRestAssured3();
     c.given()
@@ -2154,7 +2154,7 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     Assert.assertEquals("Incompatible version for module req1-1.0.0 interface i1. "
-      + "Need 1.0. Have 2.0", r.getBody().asString());
+      + "Need 1.0. Have 2.0/req2-1.0.0", r.getBody().asString());
   }
 
   @Test
