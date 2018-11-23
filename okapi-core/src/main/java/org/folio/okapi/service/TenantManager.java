@@ -217,50 +217,6 @@ public class TenantManager {
   }
 
   /**
-   * Check module dependencies and conflicts.
-   *
-   * @param tenant to check for
-   * @param modFrom module to be removed. Ignored in the checks
-   * @param modTo module to be added
-   * @param fut Callback for error messages, or a simple Success
-   */
-  private void checkDependencies(Tenant tenant,
-    ModuleDescriptor modFrom, ModuleDescriptor modTo,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
-    moduleManager.getEnabledModules(tenant, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      List<ModuleDescriptor> modlist = gres.result();
-      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
-      for (ModuleDescriptor md : modlist) {
-        mods.put(md.getId(), md);
-      }
-      if (modFrom != null) {
-        mods.remove(modFrom.getId());
-      }
-      if (modTo != null) {
-        ModuleDescriptor already = mods.get(modTo.getId());
-        if (already != null) {
-          fut.handle(new Failure<>(USER,
-            "Module " + modTo.getId() + " already provided"));
-          return;
-        }
-        mods.put(modTo.getId(), modTo);
-      }
-      String conflicts = moduleManager.checkAllConflicts(mods);
-      String deps = moduleManager.checkAllDependencies(mods);
-      if (conflicts.isEmpty() && deps.isEmpty()) {
-        fut.handle(new Success<>());
-      } else {
-        fut.handle(new Failure<>(USER, conflicts + " " + deps));
-      }
-    });
-  }
-
-  /**
    * Actually update the enabled modules. Assumes dependencies etc have been
    * checked.
    *
@@ -377,7 +333,7 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    checkDependencies(tenant, mdFrom, mdTo, cres -> {
+    moduleManager.checkDependencies(tenant, mdFrom, mdTo, cres -> {
       if (cres.failed()) {
         pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
         fut.handle(new Failure<>(cres.getType(), cres.cause()));

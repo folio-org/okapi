@@ -1,5 +1,6 @@
 package org.folio.okapi.service;
 
+import org.folio.okapi.util.DepResolution;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -103,73 +104,6 @@ public class ModuleManager {
     }
   }
 
-  /**
-   * Check one dependency.
-   *
-   * @param md module to check
-   * @param req required dependency
-   * @param modlist the list to check against
-   * @return null if ok, or error message
-   */
-  private String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, ModuleDescriptor> modlist) {
-    InterfaceDescriptor seenversion = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
-      ModuleDescriptor rm = entry.getValue();
-      for (InterfaceDescriptor pi : rm.getProvidesList()) {
-        logger.debug("Checking dependency of " + md.getId() + ": "
-          + req.getId() + " " + req.getVersion()
-          + " against " + pi.getId() + " " + pi.getVersion());
-        if (req.getId().equals(pi.getId())) {
-          if (pi.isCompatible(req)) {
-            logger.debug("Dependency OK");
-            return null;  // ok
-          }
-          seenversion = pi;
-        }
-      }
-    }
-    if (seenversion == null) {
-      return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
-    } else {
-      StringBuilder modUses = new StringBuilder();
-      for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
-        ModuleDescriptor rm = entry.getValue();
-        for (InterfaceDescriptor ri : rm.getRequiresList()) {
-          if (seenversion.getId().equals(ri.getId()) && seenversion.isCompatible(ri)) {
-            modUses.append("/");
-            modUses.append(rm.getId());
-          }
-        }
-      }
-      return messages.getMessage("10201", md.getId(), req.getId(),
-        req.getVersion(), seenversion.getVersion() + modUses.toString());
-    }
-  }
-
-  /**
-   * Check that the dependencies are satisfied.
-   *
-   * @param md Module to be checked
-   * @return empty list if if no problems, or list of error messages
-   *
-   * This could be done like we do conflicts, by building a map and checking
-   * against that...
-   */
-  private List<String> checkDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modlist) {
-
-    List<String> list = new LinkedList<>(); // error messages (empty=no errors)
-    logger.debug("Checking dependencies of " + md.getId());
-    for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, modlist);
-      if (res != null) {
-        list.add(res);
-      }
-    }
-    return list;
-  }
-
   private TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
 
@@ -234,7 +168,7 @@ public class ModuleManager {
         return;
       }
     }
-    String s = checkAllDependencies(modsEnabled);
+    String s = DepResolution.checkAllDependencies(modsEnabled);
     if (!s.isEmpty()) {
       logger.warn("installModules.checkAllDependencies: " + s);
       fut.handle(new Failure<>(USER, s));
@@ -243,6 +177,42 @@ public class ModuleManager {
 
     logger.info("installModules.returning OK");
     fut.handle(new Success<>(Boolean.TRUE));
+  }
+
+  public void checkDependencies(Tenant tenant,
+    ModuleDescriptor modFrom, ModuleDescriptor modTo,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    getEnabledModules(tenant, gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        return;
+      }
+      List<ModuleDescriptor> modlist = gres.result();
+      HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
+      for (ModuleDescriptor md : modlist) {
+        mods.put(md.getId(), md);
+      }
+      if (modFrom != null) {
+        mods.remove(modFrom.getId());
+      }
+      if (modTo != null) {
+        ModuleDescriptor already = mods.get(modTo.getId());
+        if (already != null) {
+          fut.handle(new Failure<>(USER,
+            "Module " + modTo.getId() + " already provided"));
+          return;
+        }
+        mods.put(modTo.getId(), modTo);
+      }
+      String conflicts = DepResolution.checkAllConflicts(mods);
+      String deps = DepResolution.checkAllDependencies(mods);
+      if (conflicts.isEmpty() && deps.isEmpty()) {
+        fut.handle(new Success<>());
+      } else {
+        fut.handle(new Failure<>(USER, conflicts + " " + deps));
+      }
+    });
   }
 
   private boolean tmAction(TenantModuleDescriptor tm,
@@ -485,53 +455,6 @@ public class ModuleManager {
   }
 
   /**
-   * Check that all dependencies are satisfied. Usually called with a copy of
-   * the modules list, after making some change.
-   *
-   * @param modlist list to check
-   * @return error message, or "" if all is ok
-   */
-  public String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
-    List<String> list = new LinkedList<>();
-    for (ModuleDescriptor md : modlist.values()) {
-      List<String> res = checkDependencies(md, modlist);
-      list.addAll(res);
-    }
-    if (list.isEmpty()) {
-      return "";
-    } else {
-      return String.join(". ", list);
-    }
-  }
-
-  /**
-   * Check a module list for conflicts.
-   *
-   * @param modlist modules to be checked
-   * @return error message listing conflicts, or "" if no problems
-   */
-  public String checkAllConflicts(Map<String, ModuleDescriptor> modlist) {
-    Map<String, String> provs = new HashMap<>(); // interface name to module name
-    StringBuilder conflicts = new StringBuilder();
-    for (ModuleDescriptor md : modlist.values()) {
-      InterfaceDescriptor[] provides = md.getProvidesList();
-      for (InterfaceDescriptor mi : provides) {
-        if (mi.isRegularHandler()) {
-          String confl = provs.get(mi.getId());
-          if (confl == null || confl.isEmpty()) {
-            provs.put(mi.getId(), md.getId());
-          } else {
-            String msg = messages.getMessage("10202", mi.getId(), md.getId(), confl);
-            conflicts.append(msg);
-          }
-        }
-      }
-    }
-    logger.debug("checkAllConflicts: " + conflicts.toString());
-    return conflicts.toString();
-  }
-
-  /**
    * Create a module.
    *
    * @param md
@@ -577,7 +500,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = checkAllDependencies(tempList);
+        String res = DepResolution.checkAllDependencies(tempList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(USER, res));
           return;
@@ -639,7 +562,7 @@ public class ModuleManager {
       }
       LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
       tempList.put(id, md);
-      String res = checkAllDependencies(tempList);
+      String res = DepResolution.checkAllDependencies(tempList);
       if (!res.isEmpty()) {
         fut.handle(new Failure<>(USER, messages.getMessage("10204", id, res)));
         return;
@@ -717,7 +640,7 @@ public class ModuleManager {
       return true;
     }
     mods.remove(id);
-    String res = checkAllDependencies(mods);
+    String res = DepResolution.checkAllDependencies(mods);
     if (!res.isEmpty()) {
       fut.handle(new Failure<>(USER, messages.getMessage("10208", id, res)));
       return true;
