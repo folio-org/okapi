@@ -35,6 +35,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -333,7 +334,7 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    moduleManager.checkDependencies(tenant, mdFrom, mdTo, cres -> {
+    moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo, cres -> {
       if (cres.failed()) {
         pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
         fut.handle(new Failure<>(cres.getType(), cres.cause()));
@@ -863,6 +864,32 @@ public class TenantManager {
     }
   }
 
+  private void installUpgradeModules2(Tenant t, ProxyContext pc,
+    TenantInstallOptions options,
+    Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      if (options.getSimulate()) {
+        fut.handle(new Success<>(tml));
+      } else {
+        installCommit1(t, pc, options, modsAvailable, tml, tml.iterator(),
+          res1 -> {
+            if (res1.failed()) {
+              fut.handle(new Failure<>(res1.getType(), res1.cause()));
+            } else {
+              fut.handle(new Success<>(tml));
+            }
+          });
+      }
+    });
+  }
+
   /* phase 1 deploy modules if necessary */
   private void installCommit1(Tenant t, ProxyContext pc,
     TenantInstallOptions options,
@@ -970,32 +997,6 @@ public class TenantManager {
     } else {
       fut.handle(new Success<>());
     }
-  }
-
-  private void installUpgradeModules2(Tenant t, ProxyContext pc,
-    TenantInstallOptions options,
-    Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
-
-    moduleManager.installSimulate(modsAvailable, modsEnabled, tml, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      if (options.getSimulate()) {
-        fut.handle(new Success<>(tml));
-      } else {
-        installCommit1(t, pc, options, modsAvailable, tml, tml.iterator(),
-          res1 -> {
-            if (res1.failed()) {
-              fut.handle(new Failure<>(res1.getType(), res1.cause()));
-            } else {
-              fut.handle(new Success<>(tml));
-            }
-          });
-      }
-    });
   }
 
   public void listModules(String id, boolean full,
