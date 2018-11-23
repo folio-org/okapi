@@ -21,7 +21,11 @@ import org.folio.okapi.common.Success;
 public class DepResolution {
   private static Logger logger = OkapiLogger.get();
   private static Messages messages = Messages.getInstance();
-  
+
+  private DepResolution() {
+     throw new IllegalAccessError("DepResolution");
+  }
+
     /**
    * Check one dependency.
    *
