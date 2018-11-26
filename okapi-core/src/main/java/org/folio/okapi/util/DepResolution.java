@@ -172,26 +172,35 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
+    List<String> errors = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
       ModuleId moduleId = new ModuleId(id);
-      if (!moduleId.hasSemVer()) {
-        id = moduleId.getLatest(modsAvailable.keySet());
-        tm.setId(id);
-      }
       if (tm.getAction() == TenantModuleDescriptor.Action.enable) {
+        if (!moduleId.hasSemVer()) {
+          id = moduleId.getLatest(modsAvailable.keySet());
+          tm.setId(id);
+        }
         if (!modsAvailable.containsKey(id)) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return;
+          errors.add(messages.getMessage("10801", id));
         }
         if (modsEnabled.containsKey(id)) {
           tm.setAction(TenantModuleDescriptor.Action.uptodate);
         }
       }
-      if (tm.getAction() == TenantModuleDescriptor.Action.disable && !modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return;
+      if (tm.getAction() == TenantModuleDescriptor.Action.disable) {
+        if (!moduleId.hasSemVer()) {
+          id = moduleId.getLatest(modsEnabled.keySet());
+          tm.setId(id);
+        }
+        if (!modsEnabled.containsKey(id)) {
+          errors.add(messages.getMessage("10801", id));
+        }
       }
+    }
+    if (!errors.isEmpty()) {
+      fut.handle(new Failure<>(USER, String.join(". ", errors)));
+      return;
     }
     final int lim = tml.size();
     for (int i = 0; i <= lim; i++) {
