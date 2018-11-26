@@ -1,3 +1,13 @@
+## 2.20.0 2018-11-26
+
+ * OKAPI-684 better report dependency issues
+ * OKAPI-683 Allow checking if uploaded Module Descriptor depends ONLY
+   on released modules
+ * OKAPI-682 Tenant init parameters
+ * OKAPI-665 Report conflict when multiple modules provides
+   compatible interface
+ * OKAPI-614 Response to /_/proxy/tenants/{tenant_id}/install
+
 ## 2.19.0 2018-11-09
 
  * OKAPI-681 Implement and document the testStorage option
