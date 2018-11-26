@@ -482,7 +482,7 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo-1.2.3\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -493,7 +493,7 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-foo\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -838,7 +838,7 @@ public class ModuleTenantsTest {
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.2.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1673,7 +1673,7 @@ public class ModuleTenantsTest {
       .body("[ {\"id\" : \"level1\", \"action\" : \"enable\"},"
         + " {\"id\" : \"level2\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1684,7 +1684,7 @@ public class ModuleTenantsTest {
       .body("[ {\"id\" : \"level1-1.0.1\", \"action\" : \"enable\"},"
         + " {\"id\" : \"level2-1.0.1\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1695,7 +1695,7 @@ public class ModuleTenantsTest {
       .body("[ {\"id\" : \"level2-1.0.1\", \"action\" : \"enable\"},"
         + " {\"id\" : \"level1-1.0.1\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
-      .then().statusCode(404);
+      .then().statusCode(400);
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());

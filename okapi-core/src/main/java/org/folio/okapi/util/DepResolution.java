@@ -172,6 +172,7 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
+    List<String> errors = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
       String id = tm.getId();
       ModuleId moduleId = new ModuleId(id);
@@ -181,17 +182,19 @@ public class DepResolution {
       }
       if (tm.getAction() == TenantModuleDescriptor.Action.enable) {
         if (!modsAvailable.containsKey(id)) {
-          fut.handle(new Failure<>(NOT_FOUND, id));
-          return;
+          errors.add(messages.getMessage("10801", id));
         }
         if (modsEnabled.containsKey(id)) {
           tm.setAction(TenantModuleDescriptor.Action.uptodate);
         }
       }
       if (tm.getAction() == TenantModuleDescriptor.Action.disable && !modsEnabled.containsKey(id)) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
-        return;
+        errors.add(messages.getMessage("10801", id));
       }
+    }
+    if (!errors.isEmpty()) {
+      fut.handle(new Failure<>(USER, String.join(". ", errors)));
+      return;
     }
     final int lim = tml.size();
     for (int i = 0; i <= lim; i++) {
