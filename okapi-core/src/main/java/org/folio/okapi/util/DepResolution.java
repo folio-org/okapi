@@ -7,6 +7,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
@@ -19,14 +20,15 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 public class DepResolution {
+
   private static Logger logger = OkapiLogger.get();
   private static Messages messages = Messages.getInstance();
 
   private DepResolution() {
-     throw new IllegalAccessError("DepResolution");
+    throw new IllegalAccessError("DepResolution");
   }
 
-    /**
+  /**
    * Check one dependency.
    *
    * @param md module to check
@@ -93,7 +95,6 @@ public class DepResolution {
     return list;
   }
 
-
   /**
    * Check that all dependencies are satisfied. Usually called with a copy of
    * the modules list, after making some change.
@@ -113,8 +114,8 @@ public class DepResolution {
       return String.join(". ", list);
     }
   }
-  
-    /**
+
+  /**
    * Check a module list for conflicts.
    *
    * @param modlist modules to be checked
@@ -292,24 +293,40 @@ public class DepResolution {
     if (foundMd != null) {
       return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
     }
-    logger.warn("interface req=" + req.getId() + " NOT FOUND");
+    logger.warn("interface req=" + req.getId() + " not found or multiple implementations thereof");
     return -1;
   }
 
   private static ModuleDescriptor checkInterfaceDepAvailable(Map<String, ModuleDescriptor> modsAvailable,
     InterfaceDescriptor req) {
 
-    ModuleDescriptor foundMd = null;
+    Map<String, ModuleDescriptor> productMd = new HashMap<>();
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
+      String product = md.getProduct();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)
-          && (foundMd == null || md.compareTo(foundMd) > 0)) {// newest module
-          foundMd = md;
+        if (pi.isRegularHandler() && pi.isCompatible(req)) {
+          if (productMd.containsKey(product)) {
+            ModuleDescriptor fMd = productMd.get(product);
+            if (md.compareTo(fMd) > 0) {
+              productMd.put(product, md);
+            }
+          } else {
+            productMd.put(product, md);
+          }
         }
       }
     }
-    return foundMd;
+    if (productMd.isEmpty()) {
+      return null;
+    } else if (productMd.size() == 1) {
+      Set<String> s = productMd.keySet();
+      String k = s.iterator().next();
+      return productMd.get(k);
+    } else {
+      logger.warn("multiple products match interface " + req.getId());
+      return null;
+    }
   }
 
   private static ModuleDescriptor checkInterfaceDepOtherInstall(List<TenantModuleDescriptor> tml,
