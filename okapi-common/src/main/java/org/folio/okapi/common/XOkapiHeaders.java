@@ -166,7 +166,7 @@ public class XOkapiHeaders {
   public static final String AUTH_RESULT = "X-Okapi-Auth-Result";
 
   /**
-   * X-Okapi-Auth-Headers. Used for passing the HTTP headers response of of the auth filter
+   * X-Okapi-Auth-Headers. Used for passing the HTTP headers response of the auth filter
    * to the post filter(s).
    */
   public static final String AUTH_HEADERS = "X-Okapi-Auth-Headers";
@@ -178,7 +178,7 @@ public class XOkapiHeaders {
   public static final String HANDLER_RESULT = "X-Okapi-Handler-Result";
 
     /**
-   * X-Okapi-Handler-Headers. Used for passing the HTTP headers response of of the handler
+   * X-Okapi-Handler-Headers. Used for passing the HTTP headers response of the handler
    * to the post filter(s).
    */
   public static final String HANDLER_HEADERS = "X-Okapi-Handler-Headers";

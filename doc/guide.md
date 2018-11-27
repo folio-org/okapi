@@ -2428,8 +2428,8 @@ takes a boolean value. If false, the install will only consider modules
 without pre-release information.
 
 Okapi 2.20.0 and later allows parameter `tenantParameters` to be passed
-to modules when enabled or upgraded for a tenant if the _tenant interface
-provided by the module is verion 1.2 and lter. The `tenantParameters` is a
+to modules when enabled or upgraded for a tenant if the `_tenant` interface
+provided by the module is version 1.2 and later. The `tenantParameters` is a
 string consisting of key-value pairs separated by comma with key and value
 separated by equal sign (`=`). It is a single argument as far as URI is
 concerned so be sure to encode comma as `%2C` and equal as `%2D`.
@@ -2838,7 +2838,7 @@ this by providing `_tenant` interface 1.0 and later with a DELETE method.
 
 A module may, besides doing the fundamental initialization of storage etc.
 also load sets of reference data. This can be controlled by supplying
-tenant parameters. These are properties (key-value-pairs) that are
+tenant parameters. These are properties (key-value pairs) that are
 passed to the module when enabled or upgraded. Passing those
 are only performed when tenantParameters is specified for install and
 when the tenant interface is version 1.2.
