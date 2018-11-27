@@ -1,3 +1,7 @@
+## 2.21.0 2018-11-27
+
+ * OKAPI-685 list modules that provides (or requires) a given interface
+
 ## 2.20.0 2018-11-26
 
  * OKAPI-684 better report dependency issues
