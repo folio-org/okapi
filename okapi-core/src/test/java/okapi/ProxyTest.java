@@ -349,7 +349,7 @@ public class ProxyTest {
       .get("/testb/hugo")
       .then().statusCode(400).log().ifValidationFails();
   }
-  
+
   @Test
   public void testProxy(TestContext context) {
     final String okapiTenant = "roskilde";
@@ -1357,7 +1357,7 @@ public class ProxyTest {
     locationSampleDeployment = null;
   }
 
- 
+
   /*
    * Test redirect types. Sets up two modules, our sample, and the header test
    * module.
@@ -1660,5 +1660,5 @@ public class ProxyTest {
 
     async.complete();
   }
-   
+
 }

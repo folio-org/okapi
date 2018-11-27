@@ -2127,7 +2127,7 @@ public class ModuleTest {
 
     async.complete();
   }
-  
+
   @Test
   public void testMultipleInterface(TestContext context) {
     logger.info("Redirect test starting");
