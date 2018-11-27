@@ -204,7 +204,7 @@ public class PullManager {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
       } else {
-        moduleManager.getModulesWithFilter(null, true, resLocal -> {
+        moduleManager.getModulesWithFilter(null, null, null, true, resLocal -> {
           if (resLocal.failed()) {
             fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
           } else {

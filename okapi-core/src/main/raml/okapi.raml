@@ -394,6 +394,14 @@ types:
         description: whether to include modules with pre-release info
         type: boolean
         required: false
+      provide:
+        description: limit to provided interface
+        type: string
+        required: false
+      require:
+        description: limit to required interface
+        type: string
+        required: false
     responses:
       200:
         headers:
