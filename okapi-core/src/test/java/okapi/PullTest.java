@@ -315,6 +315,52 @@ public class PullTest {
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&require=int-b")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"name\" : \"C\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&provide=int-b=1.0")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"module-b-1.0.0\"," + LS
+        + "  \"name\" : \"B\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&provide=int-b=1.1")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&provide=int-C")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=foo&preRelease=true").then().statusCode(400);
 
     c = api.createRestAssured3();

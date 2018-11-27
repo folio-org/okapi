@@ -817,7 +817,7 @@ public class TenantManager {
         return;
       }
       Tenant t = gres.result();
-      moduleManager.getModulesWithFilter(null, options.getPreRelease(), mres -> {
+      moduleManager.getModulesWithFilter(null, null, null, options.getPreRelease(), mres -> {
         if (mres.failed()) {
           fut.handle(new Failure<>(mres.getType(), mres.cause()));
           return;

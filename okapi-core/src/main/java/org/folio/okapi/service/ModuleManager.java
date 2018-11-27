@@ -12,6 +12,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -155,7 +156,7 @@ public class ModuleManager {
    * @param fut
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(null, preRelease, ares -> {
+    getModulesWithFilter(null, null, null, preRelease, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -371,7 +372,24 @@ public class ModuleManager {
     }
   }
 
-  public void getModulesWithFilter(ModuleId filter, boolean preRelease,
+  private boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfaceStr) {
+    if (interfaceStr == null) {
+      return true;
+    } else {
+      if (interfaces != null) {
+        for (InterfaceDescriptor pi : interfaces) {
+          String[] kv = interfaceStr.split("=");
+          if (pi.getId().equals(kv[0])
+            && (kv.length != 2 || pi.getVersion().equals(kv[1]))) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+  }
+
+  public void getModulesWithFilter(ModuleId filter, String provide, String require, boolean preRelease,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getAll(kres -> {
       if (kres.failed()) {
@@ -382,7 +400,9 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((filter == null || idThis.hasPrefix(filter))
-            && (preRelease || !idThis.hasPreRelease())) {
+            && (preRelease || !idThis.hasPreRelease())
+            && interfaceCheck(md.getRequires(), require)
+            && interfaceCheck(md.getProvides(), provide)) {
             mdl.add(md);
           }
         }

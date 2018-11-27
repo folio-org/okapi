@@ -864,11 +864,14 @@ public class InternalModule {
       if (filterStr != null) {
         filter = new ModuleId(filterStr);
       }
+      final String provideStr = pc.getCtx().request().getParam("provide");
+      final String requireStr = pc.getCtx().request().getParam("require");
       final String orderByStr = pc.getCtx().request().getParam("orderBy");
       final String orderStr = pc.getCtx().request().getParam("order");
       final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
       final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
-      moduleManager.getModulesWithFilter(filter, preRelease, res -> {
+      moduleManager.getModulesWithFilter(filter, provideStr, requireStr, 
+        preRelease, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;

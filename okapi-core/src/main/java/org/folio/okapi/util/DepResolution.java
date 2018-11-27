@@ -324,7 +324,8 @@ public class DepResolution {
       String k = s.iterator().next();
       return productMd.get(k);
     } else {
-      logger.warn("multiple products match interface " + req.getId());
+      logger.warn("multiple products match interface " + req.getId() + ": " +
+        String.join(", ", productMd.keySet()));
       return null;
     }
   }
