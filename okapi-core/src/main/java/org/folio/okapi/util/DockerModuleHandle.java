@@ -157,8 +157,12 @@ public class DockerModuleHandle implements ModuleHandle {
     HttpClientRequest req = client.getAbs(url, res -> {
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
-        logger.warn(url + ": " + d.getMessage());
-        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
+        String msg = d.getMessage();
+        if (msg == null) {
+          msg = "null message for res.exceptionHandler";
+        }
+        logger.warn(url + ": " + msg);
+        future.handle(Future.failedFuture(url + ": " + msg));
       });
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
@@ -176,8 +180,12 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
-      logger.warn(url + ": " + d.getMessage());
-      future.handle(Future.failedFuture(url + ": " + d.getMessage()));
+      String msg = d.getMessage();
+      if (msg == null) {
+        msg = "null message for req.exceptionHandler";
+      }
+      logger.warn(url + ": " + msg);
+      future.handle(Future.failedFuture(url + ": " + msg));
     });
     req.end();
   }
