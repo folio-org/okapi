@@ -22,7 +22,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.folio.okapi.MainVerticle;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
@@ -40,7 +39,6 @@ public class DockerTest {
   private final LinkedList<String> locations;
   private boolean haveDocker = false;
   private HttpClient client;
-  private Messages messages = Messages.getInstance();
 
   public DockerTest() {
     this.locations = new LinkedList<>();
@@ -119,11 +117,11 @@ public class DockerTest {
           if (gotIt) {
             future.handle(Future.succeededFuture());
           } else {
-            future.handle(Future.failedFuture(messages.getMessage("11700")));
+            future.handle(Future.failedFuture("okapi-test-module not found"));
           }
         } else {
-          String m = messages.getMessage("11701",
-            Integer.toString(res.statusCode()), body.toString());
+          String m = "checkDocker HTTP error " + res.statusCode() + "\n"
+            + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }
