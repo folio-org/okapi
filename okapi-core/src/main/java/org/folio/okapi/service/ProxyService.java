@@ -1100,6 +1100,7 @@ public class ProxyService {
       String baseurl = instance.getUrl();
       pc.debug("doCallSystemInterface Url: " + baseurl + " and " + inst.getPath());
       Map<String, String> headers = sysReqHeaders(pc.getCtx(), tenantId, authToken);
+      headers.put(XOkapiHeaders.URL_TO, baseurl);
       if (modPerms != null) { // We are making an auth call
         RoutingEntry re = inst.getRoutingEntry();
         if (re != null) {

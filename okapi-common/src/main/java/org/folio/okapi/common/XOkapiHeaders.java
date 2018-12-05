@@ -43,14 +43,20 @@ public class XOkapiHeaders {
    */
   public static final String AUTHORIZATION = "Authorization";
 
-  /** X-Okapi-Url. Tells the URL where the modules may contact Okapi, for
-   * making requests to other modules. Can be set on Okapi's command line
-   * when starting up. Note that it may point to some kind of load balancer
-   * or other network trickery, but in the end there will be an Okapi instance
-   * listening on it. Does not include a trailing slash. Defaults to
-   * http://localhost:9130
+  /**
+   * X-Okapi-Url. Tells the URL where the modules may contact Okapi, for making
+   * requests to other modules. Can be set on Okapi's command line when starting
+   * up. Note that it may point to some kind of load balancer or other network
+   * trickery, but in the end there will be an Okapi instance listening on it.
+   * Does not include a trailing slash. Defaults to http://localhost:9130
    */
   public static final String URL = "X-Okapi-Url";
+
+  /**
+   * X-Okapi-Url-to. Like X-Okapi-Url but is the instance of the new service
+   * when calling a system interface (/_/tenant in particular)
+   */
+  public static final String URL_TO = "X-Okapi-Url-to";
 
   /** X-Okapi-Tenant. Tells which tenant is making the request. Every request
    * to Okapi should have this header set to a valid tenant ID. When making a
