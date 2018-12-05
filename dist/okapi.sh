@@ -95,7 +95,7 @@ parse_okapi_conf()  {
 
    # configure dockerURL
    if [ "$dockerurl" ] ; then
-      OKAPI_JAVA_OPTS+=" -DdockerURL=${dockerurl}"
+      OKAPI_JAVA_OPTS+=" -DdockerUrl=${dockerurl}"
    fi
 
    # configure okapi URL
