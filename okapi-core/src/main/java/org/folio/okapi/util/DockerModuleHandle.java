@@ -261,42 +261,58 @@ public class DockerModuleHandle implements ModuleHandle {
     postUrlBody(dockerUrl + "/containers/create", doc, future);
   }
 
+  private int getExposedPort(JsonObject b) {
+    JsonObject config = b.getJsonObject("Config");
+    if (config == null) {
+      throw (new IllegalArgumentException(messages.getMessage("11302")));
+    }
+    JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
+    if (exposedPorts == null) {
+      throw (new IllegalArgumentException(messages.getMessage("11301")));
+    }
+    int exposedPort = 0;
+    Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
+    while (iterator.hasNext()) {
+      Map.Entry<String, Object> next = iterator.next();
+      String key = next.getKey();
+      String sPort = key.split("/")[0];
+      if (exposedPort == 0) {
+        exposedPort = Integer.valueOf(sPort);
+      }
+    }
+    return exposedPort;
+  }
+
   private void prepareContainer(Handler<AsyncResult<Void>> startFuture) {
     getImage(res1 -> {
       if (res1.failed()) {
         logger.warn("getImage failed 1 : " + res1.cause().getMessage());
         startFuture.handle(Future.failedFuture(res1.cause()));
       } else {
-        JsonObject b = res1.result();
-        JsonObject config = b.getJsonObject("Config");
-        JsonObject exposedPorts = config.getJsonObject("ExposedPorts");
-        Iterator<Map.Entry<String, Object>> iterator = exposedPorts.iterator();
-        int exposedPort = 0;
-        while (iterator.hasNext()) {
-          Map.Entry<String, Object> next = iterator.next();
-          String key = next.getKey();
-          String sPort = key.split("/")[0];
-          if (exposedPort == 0) {
-            exposedPort = Integer.valueOf(sPort);
-          }
-        }
         if (hostPort == 0) {
           startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
-        } else {
-          createContainer(exposedPort, res2 -> {
-            if (res2.failed()) {
-              startFuture.handle(Future.failedFuture(res2.cause()));
-            } else {
-              startContainer(res3 -> {
-                if (res3.failed()) {
-                  startFuture.handle(Future.failedFuture(res3.cause()));
-                } else {
-                  getContainerLog(startFuture);
-                }
-              });
-            }
-          });
+          return;
         }
+        int exposedPort = 0;
+        try {
+          exposedPort = getExposedPort(res1.result());
+        } catch (Exception ex) {
+          startFuture.handle(Future.failedFuture(ex));
+          return;
+        }
+        createContainer(exposedPort, res2 -> {
+          if (res2.failed()) {
+            startFuture.handle(Future.failedFuture(res2.cause()));
+          } else {
+            startContainer(res3 -> {
+              if (res3.failed()) {
+                startFuture.handle(Future.failedFuture(res3.cause()));
+              } else {
+                getContainerLog(startFuture);
+              }
+            });
+          }
+        });
       }
     });
   }
