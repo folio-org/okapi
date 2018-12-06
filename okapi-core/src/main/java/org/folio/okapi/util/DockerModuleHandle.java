@@ -62,6 +62,9 @@ public class DockerModuleHandle implements ModuleHandle {
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
     }
+    if (!u.contains("/v")) {
+      u += "/v1.25";
+    }
     this.dockerUrl = u;
   }
 
@@ -198,7 +201,7 @@ public class DockerModuleHandle implements ModuleHandle {
       res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
-        if (res.statusCode() == 201) {
+        if (res.statusCode() >= 200 && res.statusCode() <= 201) {
           containerId = body.toJsonObject().getString("Id");
           future.handle(Future.succeededFuture());
         } else {
