@@ -1,3 +1,10 @@
+## 2.22.0 2018-12-06
+
+  * OKAPI-688 tenant ref problem: own module not available at
+    tenant init phase
+  * OKAPI-689 Docker test hangs
+  * OKAPI-690 Include version in Docker Engine API
+
 ## 2.21.0 2018-11-27
 
  * OKAPI-685 list modules that provides (or requires) a given interface
