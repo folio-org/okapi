@@ -41,6 +41,7 @@ import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.GraphML;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -864,42 +865,53 @@ public class InternalModule {
       if (filterStr != null) {
         filter = new ModuleId(filterStr);
       }
+      final String graphml = pc.getCtx().request().getParam("graphml");
       final String provideStr = pc.getCtx().request().getParam("provide");
       final String requireStr = pc.getCtx().request().getParam("require");
       final String orderByStr = pc.getCtx().request().getParam("orderBy");
       final String orderStr = pc.getCtx().request().getParam("order");
       final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
       final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
-      moduleManager.getModulesWithFilter(filter, provideStr, requireStr, 
+      moduleManager.getModulesWithFilter(filter, provideStr, requireStr,
         preRelease, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
-        List<ModuleDescriptor> mdl = res.result();
-        if (orderByStr != null) {
-          if (!"id".equals(orderByStr)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));
+          if (res.failed()) {
+            fut.handle(new Failure<>(res.getType(), res.cause()));
             return;
           }
-          if (orderStr == null || "desc".equals(orderStr)) {
-            Collections.sort(mdl, Collections.reverseOrder());
-          } else if ("asc".equals(orderStr)) {
-            Collections.sort(mdl);
+          List<ModuleDescriptor> mdl = res.result();
+          if (orderByStr != null) {
+            if (!"id".equals(orderByStr)) {
+              fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));
+              return;
+            }
+            if (orderStr == null || "desc".equals(orderStr)) {
+              Collections.sort(mdl, Collections.reverseOrder());
+            } else if ("asc".equals(orderStr)) {
+              Collections.sort(mdl);
+            } else {
+              fut.handle(new Failure<>(USER, messages.getMessage("11605", orderStr)));
+              return;
+            }
           } else {
-            fut.handle(new Failure<>(USER, messages.getMessage("11605", orderStr)));
-            return;
+            Collections.sort(mdl, Collections.reverseOrder());
           }
-        } else {
-          Collections.sort(mdl, Collections.reverseOrder());
-        }
-        List<ModuleDescriptor> ml = new ArrayList<>(mdl.size());
-        for (ModuleDescriptor md : mdl) {
-          ml.add(new ModuleDescriptor(md, full));
-        }
-        String s = Json.encodePrettily(ml);
-        fut.handle(new Success<>(s));
-      });
+          if (graphml != null && !graphml.equalsIgnoreCase("no")) {
+            String s = GraphML.report(mdl);
+            if (s != null) {
+              pc.getCtx().response().putHeader("Content-Type", "text/xml");
+              fut.handle(new Success<>(s));
+            } else {
+              fut.handle(new Failure(INTERNAL, "GraphML reporting failed"));
+            }
+          } else {
+            List<ModuleDescriptor> ml = new ArrayList<>(mdl.size());
+            for (ModuleDescriptor md : mdl) {
+              ml.add(new ModuleDescriptor(md, full));
+            }
+            String s = Json.encodePrettily(ml);
+            fut.handle(new Success<>(s));
+          }
+        });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
     }
