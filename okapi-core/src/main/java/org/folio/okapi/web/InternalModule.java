@@ -41,7 +41,7 @@ import org.folio.okapi.service.ModuleManager;
 import org.folio.okapi.service.TenantManager;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.util.GraphML;
+import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -865,7 +865,7 @@ public class InternalModule {
       if (filterStr != null) {
         filter = new ModuleId(filterStr);
       }
-      final String graphml = pc.getCtx().request().getParam("graphml");
+      final boolean dot = getParamBoolean(pc.getCtx().request(), "dot", false);
       final String provideStr = pc.getCtx().request().getParam("provide");
       final String requireStr = pc.getCtx().request().getParam("require");
       final String orderByStr = pc.getCtx().request().getParam("orderBy");
@@ -895,10 +895,10 @@ public class InternalModule {
           } else {
             Collections.sort(mdl, Collections.reverseOrder());
           }
-          if (graphml != null && !graphml.equalsIgnoreCase("no")) {
-            String s = GraphML.report(mdl);
+          if (dot == true) {
+            String s = GraphDot.report(mdl);
             if (s != null) {
-              pc.getCtx().response().putHeader("Content-Type", "text/xml");
+              pc.getCtx().response().putHeader("Content-Type", "text/plain");
               fut.handle(new Success<>(s));
             } else {
               fut.handle(new Failure(INTERNAL, "GraphML reporting failed"));
