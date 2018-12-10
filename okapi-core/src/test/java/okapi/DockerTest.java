@@ -39,6 +39,7 @@ public class DockerTest {
   private final LinkedList<String> locations;
   private boolean haveDocker = false;
   private HttpClient client;
+  private JsonArray dockerImages;
 
   public DockerTest() {
     this.locations = new LinkedList<>();
@@ -54,15 +55,15 @@ public class DockerTest {
     RestAssured.port = port;
     client = vertx.createHttpClient();
 
-    checkDocker(res2 -> {
-      haveDocker = res2.succeeded();
-      logger.info("haveDocker = " + haveDocker);
+    checkDocker(res -> {
+      haveDocker = res.succeeded();
+      dockerImages = res.result();
 
       DeploymentOptions opt = new DeploymentOptions()
         .setConfig(new JsonObject().put("port", Integer.toString(port)));
 
       vertx.deployVerticle(MainVerticle.class.getName(),
-        opt, res -> async.complete());
+        opt, x -> async.complete());
     });
   }
 
@@ -86,7 +87,7 @@ public class DockerTest {
     }
   }
 
-  private void checkDocker(Handler<AsyncResult<Void>> future) {
+  private void checkDocker(Handler<AsyncResult<JsonArray>> future) {
     final String dockerUrl = "http://localhost:4243";
     final String url = dockerUrl + "/images/json?all=1";
     HttpClientRequest req = client.getAbs(url, res -> {
@@ -99,25 +100,10 @@ public class DockerTest {
           boolean gotIt = false;
           try {
             JsonArray ar = body.toJsonArray();
-            for (int i = 0; i < ar.size(); i++) {
-              JsonObject ob = ar.getJsonObject(i);
-              JsonArray ar1 = ob.getJsonArray("RepoTags");
-              if (ar1 != null) {
-                for (int j = 0; j < ar1.size(); j++) {
-                  String tag = ar1.getString(j);
-                  if (tag != null && tag.startsWith("okapi-test-module")) {
-                    gotIt = true;
-                  }
-                }
-              }
-            }
+            future.handle(Future.succeededFuture(ar));
           } catch (Exception ex) {
             logger.warn(ex);
-          }
-          if (gotIt) {
-            future.handle(Future.succeededFuture());
-          } else {
-            future.handle(Future.failedFuture("okapi-test-module not found"));
+            future.handle(Future.failedFuture(ex));
           }
         } else {
           String m = "checkDocker HTTP error " + res.statusCode() + "\n"
@@ -133,11 +119,34 @@ public class DockerTest {
     req.end();
   }
 
-  @Test
-  public void dockerTest1(TestContext context) {
-    Async async = context.async();
+  private static boolean checkTestModulePresent(JsonArray ar) {
+    if (ar != null) {
+      for (int i = 0; i < ar.size(); i++) {
+        JsonObject ob = ar.getJsonObject(i);
+        JsonArray ar1 = ob.getJsonArray("RepoTags");
+        if (ar1 != null) {
+          for (int j = 0; j < ar1.size(); j++) {
+            String tag = ar1.getString(j);
+            if (tag != null && tag.startsWith("okapi-test-module")) {
+              return true;
+            }
+          }
+        }
+      }
+    }
+    return false;
+  }
 
-    logger.info("dockerTest1");
+  // deploys okapi-test-module 
+  // to avoid skip, use:
+  // cd okapi-test-module
+  // docker build -t okapi-test-module .
+  @Test
+  public void deploySampleModule(TestContext context) {
+    org.junit.Assume.assumeTrue(checkTestModulePresent(dockerImages));
+    if (!checkTestModulePresent(dockerImages)) {
+      return;
+    }
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -182,24 +191,70 @@ public class DockerTest {
       + "}";
 
     c = api.createRestAssured3();
-    if (haveDocker) {
-      r = c.given().header("Content-Type", "application/json")
-        .body(doc1).post("/_/discovery/modules")
-        .then().statusCode(201)
-        .extract().response();
-      locations.add(r.getHeader("Location"));
-    } else {
-      c.given().header("Content-Type", "application/json")
-        .body(doc1).post("/_/discovery/modules")
-        .then().statusCode(400);
-    }
+    r = c.given().header("Content-Type", "application/json")
+      .body(doc1).post("/_/discovery/modules")
+      .then().statusCode(201)
+      .extract().response();
+    locations.add(r.getHeader("Location"));
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
+  }
 
+  @Test
+  public void deployUnkownModule(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    final String docSampleDockerModule = "{" + LS
+      + "  \"id\" : \"sample-unknown-1\"," + LS
+      + "  \"name\" : \"sample unknown\"," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"dockerImage\" : \"okapi-unknown\"," + LS
+      + "    \"dockerPull\" : false," + LS
+      + "    \"dockerArgs\" : {" + LS
+      + "      \"StopTimeout\" : 12," + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8080/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
+      + "    }" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleDockerModule).post("/_/proxy/modules")
+      .then()
+      .statusCode(201).log().ifValidationFails()
+      .extract().response();
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
+    locations.add(r.getHeader("Location"));
+
+    final String doc1 = "{" + LS
+      + "  \"srvcId\" : \"sample-unknown-1\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(doc1).post("/_/discovery/modules")
+      .then().statusCode(400);
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
+  }
+
+  @Test
+  public void deployModUsers(TestContext context) {
+    org.junit.Assume.assumeTrue(haveDocker);
     if (!haveDocker) {
-      async.complete();
       return;
     }
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
     final String docUserDockerModule = "{" + LS
       + "  \"id\" : \"mod-users-1\"," + LS
       + "  \"name\" : \"users\"," + LS
@@ -240,6 +295,5 @@ public class DockerTest {
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
     locations.add(r.getHeader("Location"));
-    async.complete();
   }
 }
