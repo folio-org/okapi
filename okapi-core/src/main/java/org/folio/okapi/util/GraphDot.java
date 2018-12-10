@@ -46,10 +46,10 @@ public class GraphDot {
           }
         }
         if (number == 0) {
-          final String k = "missing-" + req.getId();
+          final String k = "missing-" + req.getId() + "-" + req.getVersion();
           if (!pseudoNodes.contains(k)) {
             pseudoNodes.add(k);
-            doc.append("  " + encodeDotId(k) + " [label=\"" + k + " " + req.getVersion() + "\"];\n");
+            doc.append("  " + encodeDotId(k) + " [label=\"" + k + "\"];\n");
           }
           doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(k) + ";\n");
         }
