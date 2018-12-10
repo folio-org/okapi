@@ -1,6 +1,6 @@
 package org.folio.okapi;
 
-import org.folio.okapi.service.ModuleManager;
+import org.folio.okapi.managers.ModuleManager;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -27,20 +27,20 @@ import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.deployment.DeploymentManager;
+import org.folio.okapi.managers.DeploymentManager;
 import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.service.ProxyService;
-import org.folio.okapi.service.TenantManager;
+import org.folio.okapi.managers.ProxyService;
+import org.folio.okapi.managers.TenantManager;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.discovery.DiscoveryManager;
-import org.folio.okapi.env.EnvManager;
-import org.folio.okapi.pull.PullManager;
+import org.folio.okapi.managers.DiscoveryManager;
+import org.folio.okapi.managers.EnvManager;
+import org.folio.okapi.managers.PullManager;
 import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.web.InternalModule;
+import org.folio.okapi.managers.InternalModule;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
