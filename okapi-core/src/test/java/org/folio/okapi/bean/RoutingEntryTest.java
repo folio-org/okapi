@@ -1,7 +1,6 @@
 package org.folio.okapi.bean;
 
 import io.vertx.core.json.DecodeException;
-import org.folio.okapi.bean.RoutingEntry;
 import org.junit.Test;
 import static org.junit.Assert.*;
 

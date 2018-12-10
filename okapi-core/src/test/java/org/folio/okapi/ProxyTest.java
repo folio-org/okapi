@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
-import org.folio.okapi.MainVerticle;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;

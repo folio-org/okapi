@@ -3,7 +3,6 @@ package org.folio.okapi;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
-import org.folio.okapi.MainVerticle;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;

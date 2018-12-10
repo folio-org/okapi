@@ -2,7 +2,6 @@ package org.folio.okapi;
 
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
-import org.folio.okapi.MainVerticle;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

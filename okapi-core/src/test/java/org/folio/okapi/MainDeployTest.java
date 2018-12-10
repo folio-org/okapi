@@ -10,7 +10,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.okapi.MainDeploy;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Assert;

@@ -1,6 +1,5 @@
 package org.folio.okapi.bean;
 
-import org.folio.okapi.bean.InterfaceDescriptor;
 import io.vertx.core.logging.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;

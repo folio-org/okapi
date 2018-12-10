@@ -3,9 +3,6 @@ package org.folio.okapi.bean;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
-import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.ModuleInstance;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
