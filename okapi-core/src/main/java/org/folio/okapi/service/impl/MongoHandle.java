@@ -21,7 +21,7 @@ class MongoHandle {
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  public MongoHandle(Vertx vertx, JsonObject conf) {
+  protected MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
     String h = Config.getSysConf("mongo_host", "localhost", conf);
     if (!h.isEmpty()) {

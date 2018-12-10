@@ -19,7 +19,6 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import static org.folio.okapi.common.ErrorType.*;
@@ -27,7 +26,6 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.managers.EnvManager;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.common.Messages;
 

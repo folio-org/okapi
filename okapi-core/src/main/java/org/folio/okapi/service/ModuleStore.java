@@ -5,10 +5,6 @@ import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 
-/**
- *
- *
- */
 public interface ModuleStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);

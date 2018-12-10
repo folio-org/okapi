@@ -1,7 +1,5 @@
 package org.folio.okapi.managers;
 
-import org.folio.okapi.managers.ModuleManager;
-import org.folio.okapi.managers.TenantManager;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -37,7 +35,6 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
-import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.util.DropwizardHelper;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import static org.folio.okapi.common.ErrorType.USER;

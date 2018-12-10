@@ -20,7 +20,6 @@ import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.managers.ModuleManager;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;

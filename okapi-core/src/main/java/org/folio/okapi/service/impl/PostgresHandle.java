@@ -41,7 +41,7 @@ class PostgresHandle {
 
   private AsyncSQLClient cli;
 
-  public PostgresHandle(Vertx vertx, JsonObject conf) {
+  protected PostgresHandle(Vertx vertx, JsonObject conf) {
     JsonObject pgconf = new JsonObject();
     String val;
 
