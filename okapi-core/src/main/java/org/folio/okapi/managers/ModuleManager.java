@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import org.folio.okapi.managers.TenantManager;
 import org.folio.okapi.util.DepResolution;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
