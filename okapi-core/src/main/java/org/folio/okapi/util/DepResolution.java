@@ -2,8 +2,10 @@ package org.folio.okapi.util;
 
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -324,8 +326,8 @@ public class DepResolution {
       String k = s.iterator().next();
       return productMd.get(k);
     } else {
-      logger.warn("multiple products match interface " + req.getId() + ": " +
-        String.join(", ", productMd.keySet()));
+      logger.warn("multiple products match interface " + req.getId() + ": "
+        + String.join(", ", productMd.keySet()));
       return null;
     }
   }
@@ -481,4 +483,22 @@ public class DepResolution {
     return sum + 1;
   }
 
+  public static List<ModuleDescriptor> getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
+
+    Collections.sort(mdl, Collections.reverseOrder());
+    Iterator<ModuleDescriptor> it = mdl.listIterator();
+    String product = "";
+    int no = 0;
+    while (it.hasNext()) {
+      ModuleDescriptor md = it.next();
+      if (!product.equals(md.getProduct())) {
+        product = md.getProduct();
+        no = 0;
+      } else if (no >= limit) {
+        it.remove();
+      }
+      no++;
+    }
+    return mdl;
+  }
 }

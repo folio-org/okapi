@@ -28,6 +28,7 @@ public class DepResolutionTest {
   private ModuleDescriptor mdB = new ModuleDescriptor();
   private ModuleDescriptor mdC = new ModuleDescriptor();
   private ModuleDescriptor mdA110 = new ModuleDescriptor();
+  private ModuleDescriptor mdA200 = new ModuleDescriptor();
   private ModuleDescriptor mdE = new ModuleDescriptor();
 
   @Before
@@ -55,9 +56,38 @@ public class DepResolutionTest {
     mdA110.setId("moduleA-1.1.0");
     mdA110.setProvides(int11a);
 
+    mdA200 = new ModuleDescriptor();
+    mdA200.setId("moduleA-2.0.0");
+    mdA200.setProvides(int11a);
+
     mdE = new ModuleDescriptor();
     mdE.setId("moduleE-1.0.0");
     mdE.setRequires(int10a);
+  }
+
+  @Test
+  public void testLatest(TestContext context) {
+    List<ModuleDescriptor> mdl = new LinkedList<>();
+
+    mdl.add(mdA200);
+    mdl.add(mdA100);
+    mdl.add(mdB);
+    mdl.add(mdC);
+    mdl.add(mdA110);
+    mdl.add(mdE);
+
+    DepResolution.getLatestProducts(2, mdl);
+
+    context.assertEquals(5, mdl.size());
+    context.assertEquals(mdE, mdl.get(0));
+    context.assertEquals(mdC, mdl.get(1));
+    context.assertEquals(mdB, mdl.get(2));
+    context.assertEquals(mdA200, mdl.get(3));
+    context.assertEquals(mdA110, mdl.get(4));
+
+    DepResolution.getLatestProducts(1, mdl);
+    context.assertEquals(4, mdl.size());
+    context.assertEquals(mdA200, mdl.get(3));
   }
 
   @Test
@@ -285,4 +315,5 @@ public class DepResolutionTest {
       async.complete();
     });
   }
+
 }

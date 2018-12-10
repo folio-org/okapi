@@ -35,6 +35,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ProxyContext;
 
@@ -859,6 +860,7 @@ public class InternalModule {
       if (filterStr != null) {
         filter = new ModuleId(filterStr);
       }
+      final String latestStr = pc.getCtx().request().getParam("latest");
       final boolean dot = getParamBoolean(pc.getCtx().request(), "dot", false);
       final String provideStr = pc.getCtx().request().getParam("provide");
       final String requireStr = pc.getCtx().request().getParam("require");
@@ -873,6 +875,15 @@ public class InternalModule {
             return;
           }
           List<ModuleDescriptor> mdl = res.result();
+          if (latestStr != null) {
+            try {
+              int limit = Integer.parseInt(latestStr);
+              mdl = DepResolution.getLatestProducts(limit, mdl);
+            } catch (NumberFormatException ex) {
+              fut.handle(new Failure<>(USER, messages.getMessage("11608", "latest", ex.getMessage())));
+              return;
+            }
+          }
           if (orderByStr != null) {
             if (!"id".equals(orderByStr)) {
               fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));

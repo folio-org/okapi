@@ -49,7 +49,7 @@ public class GraphDot {
           final String k = "missing-" + req.getId();
           if (!pseudoNodes.contains(k)) {
             pseudoNodes.add(k);
-            doc.append("  " + encodeDotId(k) + " [label=\"" + k + "\"];\n");
+            doc.append("  " + encodeDotId(k) + " [label=\"" + k + " " + req.getVersion() + "\"];\n");
           }
           doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(k) + ";\n");
         }
