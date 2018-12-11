@@ -74,6 +74,10 @@ public class SemVer implements Comparable<SemVer> {
     return i;
   }
 
+  public boolean hasNpmSnapshot() {
+    return versions.size() == 3 && versions.get(2).length() >= 5;
+  }
+
   public boolean hasPreRelease() {
     return !preRelease.isEmpty();
   }

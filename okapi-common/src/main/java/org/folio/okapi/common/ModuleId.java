@@ -28,6 +28,10 @@ public class ModuleId implements Comparable<ModuleId> {
     return semVer != null;
   }
 
+  public boolean hasNpmSnapshot() {
+    return semVer != null && semVer.hasNpmSnapshot();
+  }
+
   public boolean hasPreRelease() {
     return semVer != null && semVer.hasPreRelease();
   }

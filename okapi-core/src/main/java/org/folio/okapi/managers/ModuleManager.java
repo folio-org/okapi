@@ -157,7 +157,7 @@ public class ModuleManager {
    * @param fut
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(null, null, null, preRelease, ares -> {
+    getModulesWithFilter(null, null, null, preRelease, true, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -391,7 +391,7 @@ public class ModuleManager {
   }
 
   public void getModulesWithFilter(ModuleId filter, String provide, String require, boolean preRelease,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    boolean npmSnapshot, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
@@ -401,6 +401,7 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((filter == null || idThis.hasPrefix(filter))
+            && (npmSnapshot || !idThis.hasNpmSnapshot())
             && (preRelease || !idThis.hasPreRelease())
             && interfaceCheck(md.getRequires(), require)
             && interfaceCheck(md.getProvides(), provide)) {

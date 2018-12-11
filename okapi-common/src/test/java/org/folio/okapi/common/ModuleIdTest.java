@@ -19,6 +19,7 @@ public class ModuleIdTest {
     assertEquals("module-1-2+3", module_1plus2.getId());
     assertTrue(module_1plus2.hasSemVer());
     assertTrue(module_1plus2.hasPreRelease());
+    assertFalse(module_1plus2.hasNpmSnapshot());
     assertEquals("module", module_1plus2.getProduct());
     assertEquals("module: module version: 1 pre: 2 metadata: 3", module_1plus2.toString());
 
@@ -72,5 +73,13 @@ public class ModuleIdTest {
 
     assertTrue(module_1.equals(module_1));
     assertFalse(module_1.equals(foobar_1_2));
+  }
+
+  @Test
+  public void test2() {
+    ModuleId module_1_10000 = new ModuleId("module-1.2.10000");
+    assertTrue(module_1_10000.hasSemVer());
+    assertFalse(module_1_10000.hasPreRelease());
+    assertTrue(module_1_10000.hasNpmSnapshot());
   }
 }

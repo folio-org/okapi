@@ -23,7 +23,7 @@ public class GraphDot {
   }
 
   private static String encodeDotId(String s) {
-    return s.replace("-", "__").replace(".", "_");
+    return s.replace("-", "__").replace(".", "_").replace(' ', '_');
   }
 
   public static String report(List<ModuleDescriptor> modlist) {
@@ -46,10 +46,10 @@ public class GraphDot {
           }
         }
         if (number == 0) {
-          final String k = "missing-" + req.getId() + "-" + req.getVersion();
+          final String k = "missing " + req.getId() + " " + req.getVersion();
           if (!pseudoNodes.contains(k)) {
             pseudoNodes.add(k);
-            doc.append("  " + encodeDotId(k) + " [label=\"" + k + "\"];\n");
+            doc.append("  " + encodeDotId(k) + " [label=\"" + k + "\", color=red];\n");
           }
           doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(k) + ";\n");
         }

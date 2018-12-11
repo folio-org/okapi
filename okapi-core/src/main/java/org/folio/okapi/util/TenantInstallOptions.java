@@ -7,6 +7,7 @@ public class TenantInstallOptions {
   private boolean deploy = false;
   private boolean purge = false;
   private String tenantParameters;
+  private boolean npmSnapshot = false;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -47,5 +48,14 @@ public class TenantInstallOptions {
   public String getTenantParameters() {
     return tenantParameters;
   }
+
+  public void setNpmSnapshot(boolean v) {
+    npmSnapshot = v;
+  }
+
+  public boolean getNpmSnapshot() {
+    return npmSnapshot;
+  }
+
 
 }

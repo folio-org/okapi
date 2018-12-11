@@ -100,8 +100,8 @@ public class GraphDotTest {
     assertEquals("digraph okapi {\n"
       + "  mod__a__1_0_0 [label=\"mod-a-1.0.0\"];\n"
       + "  mod__b__1_0_0 [label=\"mod-b-1.0.0\"];\n"
-      + "  missing__int [label=\"missing-int\"];\n"
-      + "  mod__b__1_0_0 -> missing__int;\n"
+      + "  missing_int_1_1 [label=\"missing int 1.1\", color=red];\n"
+      + "  mod__b__1_0_0 -> missing_int_1_1;\n"
       + "}\n", s);
   }
 
@@ -120,8 +120,8 @@ public class GraphDotTest {
     System.out.println(s);
     assertEquals("digraph okapi {\n"
       + "  mod__a__1_0_0 [label=\"mod-a-1.0.0\"];\n"
-      + "  missing__int [label=\"missing-int\"];\n"
-      + "  mod__a__1_0_0 -> missing__int;\n"
+      + "  missing_int_1_1 [label=\"missing int 1.1\", color=red];\n"
+      + "  mod__a__1_0_0 -> missing_int_1_1;\n"
       + "}\n", s);
   }
 

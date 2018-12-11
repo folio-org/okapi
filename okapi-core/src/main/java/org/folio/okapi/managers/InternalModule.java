@@ -674,6 +674,7 @@ public class InternalModule {
 
     options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
     options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
+    options.setNpmSnapshot(getParamBoolean(ctx.request(), "npmSnapshot", true));
     options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
     options.setPurge(getParamBoolean(ctx.request(), "purge", false));
     options.setTenantParameters(ctx.request().getParam("tenantParameters"));
@@ -867,9 +868,10 @@ public class InternalModule {
       final String orderByStr = pc.getCtx().request().getParam("orderBy");
       final String orderStr = pc.getCtx().request().getParam("order");
       final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+      final boolean npmSnapshot = getParamBoolean(pc.getCtx().request(), "npmSnapshot", true);
       final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
       moduleManager.getModulesWithFilter(filter, provideStr, requireStr,
-        preRelease, res -> {
+        preRelease, npmSnapshot, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
             return;
