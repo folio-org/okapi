@@ -374,6 +374,10 @@ types:
   get:
     description: List all or subset of modules for proxy
     queryParameters:
+      dot:
+        description: If true, return graphiz DOT content as plain text
+        type: boolean
+        required: false
       filter:
         description: Filter by module ID
         type: string
@@ -420,6 +424,7 @@ types:
         body:
           application/json:
             type: ModuleList
+          text/plain:
       400:
         description: Bad Request
         body:
