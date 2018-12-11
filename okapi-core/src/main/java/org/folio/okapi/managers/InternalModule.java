@@ -902,7 +902,7 @@ public class InternalModule {
           } else {
             Collections.sort(mdl, Collections.reverseOrder());
           }
-          if (dot == true) {
+          if (dot) {
             String s = GraphDot.report(mdl);
             if (s != null) {
               pc.getCtx().response().putHeader("Content-Type", "text/plain");
