@@ -3,7 +3,6 @@ package org.folio.okapi.managers;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import static io.vertx.core.http.HttpMethod.*;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
@@ -34,7 +33,8 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.LogHelper;
-import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.GraphDot;
+import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -655,34 +655,11 @@ public class InternalModule {
     });
   }
 
-  private boolean getParamBoolean(HttpServerRequest req, String name, boolean defValue) {
-    String v = req.getParam(name);
-    if (v == null) {
-      return defValue;
-    } else if ("true".equals(v)) {
-      return true;
-    } else if ("false".equals(v)) {
-      return false;
-    }
-    throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
-  }
-
-  private TenantInstallOptions createTenantOptions(RoutingContext ctx) {
-    TenantInstallOptions options = new TenantInstallOptions();
-
-    options.setSimulate(getParamBoolean(ctx.request(), "simulate", false));
-    options.setPreRelease(getParamBoolean(ctx.request(), "preRelease", true));
-    options.setDeploy(getParamBoolean(ctx.request(), "deploy", false));
-    options.setPurge(getParamBoolean(ctx.request(), "purge", false));
-    options.setTenantParameters(ctx.request().getParam("tenantParameters"));
-    return options;
-  }
-
   private void installModulesForTenant(ProxyContext pc, String id,
     String body, Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      TenantInstallOptions options = createTenantOptions(pc.getCtx());
+      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
 
       final TenantModuleDescriptor[] tml = Json.decodeValue(body,
         TenantModuleDescriptor[].class);
@@ -704,7 +681,7 @@ public class InternalModule {
   private void upgradeModulesForTenant(ProxyContext pc, String id,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    TenantInstallOptions options = createTenantOptions(pc.getCtx());
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
 
     tenantManager.installUpgradeModules(id, pc, options, null, res -> {
       if (res.failed()) {
@@ -742,7 +719,7 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+      final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
 
       tenantManager.listModules(id, full, res -> {
         if (res.failed()) {
@@ -781,7 +758,7 @@ public class InternalModule {
   private void listInterfaces(ProxyContext pc, String id,
           Handler<ExtendedAsyncResult<String>> fut) {
 
-    final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
+    final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
     final String type = pc.getCtx().request().getParam("type");
     tenantManager.listInterfaces(id, full, type, res -> {
       if (res.failed()) {
@@ -818,8 +795,8 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
-      final boolean check = getParamBoolean(pc.getCtx().request(), "check", true);
-      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
+      final boolean check = ModuleUtil.getParamBoolean(pc.getCtx().request(), "check", true);
+      final boolean preRelease = ModuleUtil.getParamBoolean(pc.getCtx().request(), "preRelease", true);
 
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
@@ -852,51 +829,27 @@ public class InternalModule {
 
   private void listModules(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
-    try {
-      ModuleId filter = null;
-      String filterStr = pc.getCtx().request().getParam("filter");
-      if (filterStr != null) {
-        filter = new ModuleId(filterStr);
+    moduleManager.getModulesWithFilter(true, true, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
       }
-      final String provideStr = pc.getCtx().request().getParam("provide");
-      final String requireStr = pc.getCtx().request().getParam("require");
-      final String orderByStr = pc.getCtx().request().getParam("orderBy");
-      final String orderStr = pc.getCtx().request().getParam("order");
-      final boolean preRelease = getParamBoolean(pc.getCtx().request(), "preRelease", true);
-      final boolean full = getParamBoolean(pc.getCtx().request(), "full", false);
-      moduleManager.getModulesWithFilter(filter, provideStr, requireStr, 
-        preRelease, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
+      try {
         List<ModuleDescriptor> mdl = res.result();
-        if (orderByStr != null) {
-          if (!"id".equals(orderByStr)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("11604", orderByStr)));
-            return;
-          }
-          if (orderStr == null || "desc".equals(orderStr)) {
-            Collections.sort(mdl, Collections.reverseOrder());
-          } else if ("asc".equals(orderStr)) {
-            Collections.sort(mdl);
-          } else {
-            fut.handle(new Failure<>(USER, messages.getMessage("11605", orderStr)));
-            return;
-          }
+        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl);
+        final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
+        if (dot) {
+          String s = GraphDot.report(mdl);
+          pc.getCtx().response().putHeader("Content-Type", "text/plain");
+          fut.handle(new Success<>(s));
         } else {
-          Collections.sort(mdl, Collections.reverseOrder());
+          String s = Json.encodePrettily(mdl);
+          fut.handle(new Success<>(s));
         }
-        List<ModuleDescriptor> ml = new ArrayList<>(mdl.size());
-        for (ModuleDescriptor md : mdl) {
-          ml.add(new ModuleDescriptor(md, full));
-        }
-        String s = Json.encodePrettily(ml);
-        fut.handle(new Success<>(s));
-      });
-    } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
-    }
+      } catch (DecodeException ex) {
+        fut.handle(new Failure<>(USER, ex));
+      }
+    });
   }
 
   private void updateModule(ProxyContext pc, String id, String body,

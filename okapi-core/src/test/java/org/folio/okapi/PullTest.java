@@ -249,7 +249,7 @@ public class PullTest {
       c.getLastReport().isEmpty());
 
     final String docModuleC = "{" + LS
-      + "  \"id\" : \"module-c-1.0.0\"," + LS
+      + "  \"id\" : \"module-c-1.0.10000\"," + LS
       + "  \"name\" : \"C\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"int-c\"," + LS
@@ -292,13 +292,13 @@ public class PullTest {
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
-      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&npmSnapshot=true&latest=2")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
         + "  \"name\" : \"Okapi\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"id\" : \"module-c-1.0.10000\"," + LS
         + "  \"name\" : \"C\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"module-b-1.0.0\"," + LS
@@ -314,10 +314,38 @@ public class PullTest {
     c = api.createRestAssured3();
     c.given().port(port2)
       .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&npmSnapshot=false")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"okapi-0.0.0\"," + LS
+        + "  \"name\" : \"Okapi\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"module-b-1.0.0\"," + LS
+        + "  \"name\" : \"B\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"module-a-1.0.0\"," + LS
+        + "  \"name\" : \"A\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?dot=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().port(port2)
+      .header("Content-Type", "application/json")
       .get("/_/proxy/modules?orderBy=id&order=desc&preRelease=true&require=int-b")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"id\" : \"module-c-1.0.10000\"," + LS
         + "  \"name\" : \"C\"" + LS
         + "} ]"));
     Assert.assertTrue(
@@ -373,7 +401,7 @@ public class PullTest {
         + "  \"id\" : \"module-b-1.0.0\"," + LS
         + "  \"name\" : \"B\"" + LS
         + "}, {" + LS
-        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"id\" : \"module-c-1.0.10000\"," + LS
         + "  \"name\" : \"C\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"okapi-0.0.0\"," + LS
@@ -402,7 +430,7 @@ public class PullTest {
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module-c&orderBy=id").then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"id\" : \"module-c-1.0.10000\"," + LS
         + "  \"name\" : \"C\"" + LS
         + "} ]"));
     Assert.assertTrue(
@@ -414,7 +442,7 @@ public class PullTest {
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules?filter=module-c-1").then().statusCode(200)
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"module-c-1.0.0\"," + LS
+        + "  \"id\" : \"module-c-1.0.10000\"," + LS
         + "  \"name\" : \"C\"" + LS
         + "} ]"));
     Assert.assertTrue(

@@ -374,6 +374,10 @@ types:
   get:
     description: List all or subset of modules for proxy
     queryParameters:
+      dot:
+        description: If true, return graphiz DOT content as plain text
+        type: boolean
+        required: false
       filter:
         description: Filter by module ID
         type: string
@@ -381,6 +385,10 @@ types:
       full:
         description: whether full or compact MD should be returned
         type: boolean
+        required: false
+      latest:
+        description: limit to latest N releases (most likely 1 if given)
+        type: integer
         required: false
       orderBy:
         description: Order by field
@@ -392,6 +400,12 @@ types:
         required: false
       preRelease:
         description: whether to include modules with pre-release info
+          (default:true).
+        type: boolean
+        required: false
+      npmSnapshot:
+        description: whether to include NPM module snapshots
+          (default:true).
         type: boolean
         required: false
       provide:
@@ -410,6 +424,7 @@ types:
         body:
           application/json:
             type: ModuleList
+          text/plain:
       400:
         description: Bad Request
         body:
@@ -684,6 +699,11 @@ types:
           preRelease:
             description: Whether pre-releases should be considered for
               installation.
+            type: boolean
+            required: false
+          npmSnapshot:
+            description: whether to include NPM module snapshots
+              (default:true).
             type: boolean
             required: false
           purge:

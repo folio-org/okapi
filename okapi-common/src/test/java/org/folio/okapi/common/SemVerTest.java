@@ -4,6 +4,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class SemVerTest {
+
   @Test
   public void test() {
     SemVer v1 = new SemVer("1");
@@ -35,6 +36,8 @@ public class SemVerTest {
 
     SemVer v1_5 = new SemVer("1.5.0");
     assertEquals("version: 1 5 0", v1_5.toString());
+    assertFalse(v1_5.hasPreRelease());
+    assertFalse(v1_5.hasNpmSnapshot());
     SemVer v1_10 = new SemVer("1.10.0");
     assertEquals("version: 1 10 0", v1_10.toString());
     assertEquals(3, v1_10.compareTo(v1_5));
@@ -43,6 +46,8 @@ public class SemVerTest {
     assertFalse(v1_10.hasPrefix(v1_5));
 
     SemVer p1 = new SemVer("1.0.0-alpha");
+    assertTrue(p1.hasPreRelease());
+    assertFalse(p1.hasNpmSnapshot());
     assertEquals("version: 1 0 0 pre: alpha", p1.toString());
     SemVer p2 = new SemVer("1.0.0-alpha.1");
     assertEquals("version: 1 0 0 pre: alpha 1", p2.toString());
@@ -115,6 +120,10 @@ public class SemVerTest {
     assertEquals(1, snap2.compareTo(snap1));
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
+
+    SemVer npmSnapshot = new SemVer("1.7.10001");
+    assertFalse(npmSnapshot.hasPreRelease());
+    assertTrue(npmSnapshot.hasNpmSnapshot());
 
     boolean thrown;
 

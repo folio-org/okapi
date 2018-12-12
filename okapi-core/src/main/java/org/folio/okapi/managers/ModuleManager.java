@@ -12,7 +12,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -157,7 +156,7 @@ public class ModuleManager {
    * @param fut
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(null, null, null, preRelease, ares -> {
+    getModulesWithFilter(preRelease, true, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -373,37 +372,18 @@ public class ModuleManager {
     }
   }
 
-  private boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfaceStr) {
-    if (interfaceStr == null) {
-      return true;
-    } else {
-      if (interfaces != null) {
-        for (InterfaceDescriptor pi : interfaces) {
-          String[] kv = interfaceStr.split("=");
-          if (pi.getId().equals(kv[0])
-            && (kv.length != 2 || pi.getVersion().equals(kv[1]))) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-  }
-
-  public void getModulesWithFilter(ModuleId filter, String provide, String require, boolean preRelease,
+  public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {
+      } else {       
         List<ModuleDescriptor> mdl = new LinkedList<>();
         for (ModuleDescriptor md : kres.result().values()) {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
-          if ((filter == null || idThis.hasPrefix(filter))
-            && (preRelease || !idThis.hasPreRelease())
-            && interfaceCheck(md.getRequires(), require)
-            && interfaceCheck(md.getProvides(), provide)) {
+          if ((npmSnapshot || !idThis.hasNpmSnapshot())
+            && (preRelease || !idThis.hasPreRelease())) {
             mdl.add(md);
           }
         }
