@@ -78,13 +78,11 @@ public class ModuleUtil {
       ModuleDescriptor md = iterator.next();
       String id = md.getId();
       ModuleId idThis = new ModuleId(id);
-      if ((filter == null || idThis.hasPrefix(filter))
-        && (npmSnapshot || !idThis.hasNpmSnapshot())
-        && (preRelease || !idThis.hasPreRelease())
-        && interfaceCheck(md.getRequires(), requireStr)
-        && interfaceCheck(md.getProvides(), provideStr)) {
-        ;
-      } else {
+      if ((filter != null && !idThis.hasPrefix(filter))
+        || (!npmSnapshot && idThis.hasNpmSnapshot())
+        || (!preRelease && idThis.hasPreRelease())
+        || !interfaceCheck(md.getRequires(), requireStr)
+        || !interfaceCheck(md.getProvides(), provideStr)) {
         iterator.remove();
       }
     }

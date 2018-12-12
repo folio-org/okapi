@@ -373,23 +373,6 @@ public class ModuleManager {
     }
   }
 
-  private boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfaceStr) {
-    if (interfaceStr == null) {
-      return true;
-    } else {
-      if (interfaces != null) {
-        for (InterfaceDescriptor pi : interfaces) {
-          String[] kv = interfaceStr.split("=");
-          if (pi.getId().equals(kv[0])
-            && (kv.length != 2 || pi.getVersion().equals(kv[1]))) {
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-  }
-
   public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getAll(kres -> {
