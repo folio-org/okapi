@@ -157,7 +157,7 @@ public class ModuleManager {
    * @param fut
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(null, null, null, preRelease, true, ares -> {
+    getModulesWithFilter(preRelease, true, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -390,21 +390,18 @@ public class ModuleManager {
     }
   }
 
-  public void getModulesWithFilter(ModuleId filter, String provide, String require, boolean preRelease,
-    boolean npmSnapshot, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {
+      } else {       
         List<ModuleDescriptor> mdl = new LinkedList<>();
         for (ModuleDescriptor md : kres.result().values()) {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
-          if ((filter == null || idThis.hasPrefix(filter))
-            && (npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())
-            && interfaceCheck(md.getRequires(), require)
-            && interfaceCheck(md.getProvides(), provide)) {
+          if ((npmSnapshot || !idThis.hasNpmSnapshot())
+            && (preRelease || !idThis.hasPreRelease())) {
             mdl.add(md);
           }
         }
