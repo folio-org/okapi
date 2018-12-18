@@ -36,7 +36,8 @@ public class GraphDot {
         int number = 0;
         for (ModuleDescriptor smd : modlist) {
           for (InterfaceDescriptor pi : smd.getProvidesList()) {
-            if (req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+            if (pi.isRegularHandler() &&
+              req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
               doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(smd.getId()) + ";\n");
               number++;
             }
