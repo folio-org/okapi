@@ -836,8 +836,8 @@ public class InternalModule {
       }
       try {
         List<ModuleDescriptor> mdl = res.result();
-        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl);
         final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
+        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot);
         if (dot) {
           String s = GraphDot.report(mdl);
           pc.getCtx().response().putHeader("Content-Type", "text/plain");

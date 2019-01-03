@@ -59,7 +59,8 @@ public class ModuleUtil {
     }
   }
 
-  public static List<ModuleDescriptor> filter(HttpServerRequest req, List<ModuleDescriptor> list) {
+  public static List<ModuleDescriptor> filter(HttpServerRequest req, List<ModuleDescriptor> list,
+    boolean full) {
     ModuleId filter = null;
     String filterStr = req.getParam("filter");
     if (filterStr != null) {
@@ -72,7 +73,9 @@ public class ModuleUtil {
     final String orderStr = req.getParam("order");
     final boolean preRelease = getParamBoolean(req, "preRelease", true);
     final boolean npmSnapshot = getParamBoolean(req, "npmSnapshot", true);
-    final boolean full = getParamBoolean(req, "full", false);
+    if (!full) {
+        full = getParamBoolean(req, "full", false);
+    }
     Iterator<ModuleDescriptor> iterator = list.iterator();
     while (iterator.hasNext()) {
       ModuleDescriptor md = iterator.next();
