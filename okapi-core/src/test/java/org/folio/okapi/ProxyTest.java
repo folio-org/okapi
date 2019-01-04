@@ -1660,4 +1660,92 @@ public class ProxyTest {
     async.complete();
   }
 
+ @Test
+  public void testRequestOnly(TestContext context) {
+    final String okapiTenant = "roskilde";
+    RestAssuredClient c;
+    Response r;
+
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde))
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationTenantRoskilde = r.getHeader("Location");
+
+    final String docSampleModule1 = "{" + LS
+      + "  \"id\" : \"sample-module-1.0.0\"," + LS
+      + "  \"name\" : \"sample-module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myfirst\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\"]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"33\"," + LS
+      + "    \"type\" : \"request-only\"" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule1).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    final String locationSampleModule = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").post("/testb")
+      .then().statusCode(200)
+      .header("Content-Type", "text/xml")
+      .body(equalTo("<test>Hello Okapi</test>"));
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("X-Handler-error", "true")
+      .header("Accept", "text/xml")
+      .body("Okapi").post("/testb")
+      .then().statusCode(500)
+      .body(equalTo("Okapi"));
+  }
 }
