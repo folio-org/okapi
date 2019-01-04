@@ -620,6 +620,28 @@ public class ProxyService {
     log(pc, cReq);
   }
 
+  private void proxyRequestLog(Iterator<ModuleInstance> it,
+    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+    ModuleInstance mi) {
+
+    if (bcontent != null) {
+      proxyRequestHttpClient(it, pc, bcontent, mi);
+    } else {
+      final Buffer incoming = Buffer.buffer();
+      stream.handler(data -> {
+        incoming.appendBuffer(data);
+        pc.trace("ProxyRequestOnly request chunk '"
+          + data.toString() + "'");
+      });
+      stream.endHandler(v -> {
+        pc.trace("ProxyRequestOnly request end");
+        proxyRequestHttpClient(it, pc, incoming, mi);
+      });
+      stream.resume();
+    }
+  }
+
+
   private void proxyRequestOnly(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     ModuleInstance mi) {
@@ -908,6 +930,9 @@ public class ProxyService {
           break;
         case REQUEST_RESPONSE_1_0:
           proxyRequestResponse10(it, pc, stream, bcontent, mi);
+          break;
+        case REQUEST_LOG:
+          proxyRequestLog(it, pc, stream, bcontent, mi);
           break;
         default:
           // Should not happen
