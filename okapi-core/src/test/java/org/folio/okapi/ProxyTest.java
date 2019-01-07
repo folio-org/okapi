@@ -8,7 +8,10 @@ import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.core.logging.Logger;
@@ -18,6 +21,9 @@ import org.junit.Before;
 import org.junit.runner.RunWith;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import org.folio.okapi.common.HttpResponse;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;
@@ -31,8 +37,9 @@ public class ProxyTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private final int port3 = 9236;
   private final int port = 9230;
-
+  private Buffer requestLogBuffer;
   private static RamlDefinition api;
 
   @BeforeClass
@@ -40,15 +47,57 @@ public class ProxyTest {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
+  private void myStreamHandle(RoutingContext ctx) {
+    logger.info("myStreamHandle!");
+    requestLogBuffer = Buffer.buffer();
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else {
+      ctx.response().setStatusCode(200);
+      ctx.request().handler(requestLogBuffer::appendBuffer);
+      ctx.request().endHandler(res -> {
+        logger.info("myStreamHandle end=" + requestLogBuffer.toString());
+        ctx.response().end();
+      });
+    }
+  }
+
+  private void setupOtherHttpServer(TestContext context, Async async) {
+    Router router = Router.router(vertx);
+
+    router.routeWithRegex("/.*").handler(this::myStreamHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
+      .requestHandler(router::accept)
+      .listen(
+        port3,
+        result -> {
+          if (result.failed()) {
+            context.fail(result.cause());
+          }
+          async.complete();
+        }
+      );
+  }
+
+
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
+    Async async = context.async();
 
     RestAssured.port = port;
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject().put("port", Integer.toString(port)));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+      if (res.failed()) {
+        context.fail(res.cause());
+      } else {
+        this.setupOtherHttpServer(context, async);
+      }
+    });
   }
 
   private void td(TestContext context, Async async) {
@@ -1684,20 +1733,31 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
 
-    final String docSampleModule1 = "{" + LS
-      + "  \"id\" : \"sample-module-1.0.0\"," + LS
-      + "  \"name\" : \"sample-module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"myfirst\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\"]," + LS
-      + "      \"path\" : \"/testb\"" + LS
-      + "    } ]" + LS
+    final String docRequestLog = "{" + LS
+      + "  \"id\" : \"request-log-1.0.0\"," + LS
+      + "  \"name\" : \"request-log\"," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"30\"," + LS
+      + "    \"type\" : \"request-log\"" + LS
       + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docRequestLog).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    
+    final String docRequestOnly = "{" + LS
+      + "  \"id\" : \"request-only-1.0.0\"," + LS
+      + "  \"name\" : \"request-only\"," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
@@ -1712,20 +1772,50 @@ public class ProxyTest {
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docSampleModule1).post("/_/proxy/modules").then().statusCode(201)
+      .body(docRequestOnly).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    final String locationSampleModule = r.getHeader("Location");
 
+    final String docSample = "{" + LS
+      + "  \"id\" : \"sample-module-1.0.0\"," + LS
+      + "  \"name\" : \"sample-module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myfirst\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\"]," + LS
+      + "      \"path\" : \"/testb\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"},"
+       + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"request-only-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "} ]"));
     Assert.assertTrue(
@@ -1747,5 +1837,45 @@ public class ProxyTest {
       .body("Okapi").post("/testb")
       .then().statusCode(500)
       .body(equalTo("Okapi"));
+
+    final String nodeDoc1 = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(port3) + "\"," + LS
+      + "  \"srvcId\" : \"request-log-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(port3) + "\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc1).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"request-log-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"request-log-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"request-only-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").post("/testb")
+      .then().statusCode(200)
+      .header("Content-Type", "text/xml")
+      .body(equalTo("<test>Hello Okapi</test>"));
+    Assert.assertEquals("Okapi", requestLogBuffer.toString());
   }
 }

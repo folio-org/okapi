@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -546,7 +547,8 @@ public class ProxyService {
             stream.resume();
             pc.responseError(res.getType(), res.cause());
           } else {
-            proxyR(l.iterator(), pc, stream, null);
+            List<HttpClientRequest> cReqs = new LinkedList<>();
+            proxyR(l.iterator(), pc, stream, null, cReqs);
           }
         });
       });
@@ -575,7 +577,8 @@ public class ProxyService {
   }
 
   private void proxyRequestHttpClient(Iterator<ModuleInstance> it,
-    ProxyContext pc, Buffer bcontent, ModuleInstance mi) {
+    ProxyContext pc, Buffer bcontent, List<HttpClientRequest> cReqs,
+    ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
@@ -591,7 +594,7 @@ public class ProxyService {
         makeTraceHeader(mi, res.statusCode(), pc);
         pc.closeTimer();
         relayToRequest(res, pc, mi);
-        proxyR(newIt, pc, null, bcontent);
+        proxyR(newIt, pc, null, bcontent, new LinkedList<>());
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
@@ -616,38 +619,38 @@ public class ProxyService {
     copyHeaders(cReq, ctx, mi);
     pc.trace("ProxyRequestHttpClient request buf '"
       + bcontent + "'");
+    for (HttpClientRequest r : cReqs) {
+      r.end(bcontent);
+    }
     cReq.end(bcontent);
     log(pc, cReq);
   }
 
   private void proxyRequestLog(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
-    if (bcontent != null) {
-      proxyRequestHttpClient(it, pc, bcontent, mi);
+    RoutingContext ctx = pc.getCtx();
+    HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
+      makeUrl(mi, ctx), res -> {
+        logger.info("proxyRequestLog 2");
+      });
+    copyHeaders(cReq, ctx, mi);
+    if (!it.hasNext()) {
+      logger.warn("proxyRequestLog TODO");
     } else {
-      final Buffer incoming = Buffer.buffer();
-      stream.handler(data -> {
-        incoming.appendBuffer(data);
-        pc.trace("ProxyRequestOnly request chunk '"
-          + data.toString() + "'");
-      });
-      stream.endHandler(v -> {
-        pc.trace("ProxyRequestOnly request end");
-        proxyRequestHttpClient(it, pc, incoming, mi);
-      });
-      stream.resume();
+      cReqs.add(cReq);
+      proxyR(it, pc, stream, bcontent, cReqs);
     }
+    log(pc, cReq);
   }
-
 
   private void proxyRequestOnly(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     if (bcontent != null) {
-      proxyRequestHttpClient(it, pc, bcontent, mi);
+      proxyRequestHttpClient(it, pc, bcontent, cReqs, mi);
     } else {
       final Buffer incoming = Buffer.buffer();
       stream.handler(data -> {
@@ -657,7 +660,7 @@ public class ProxyService {
       });
       stream.endHandler(v -> {
         pc.trace("ProxyRequestOnly request end");
-        proxyRequestHttpClient(it, pc, incoming, mi);
+        proxyRequestHttpClient(it, pc, incoming, cReqs, mi);
       });
       stream.resume();
     }
@@ -665,10 +668,10 @@ public class ProxyService {
 
   private void proxyRequestResponse10(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     if (bcontent != null) {
-      proxyRequestResponse(it, pc, null, bcontent, mi);
+      proxyRequestResponse(it, pc, null, bcontent, cReqs, mi);
     } else {
       final Buffer incoming = Buffer.buffer();
       stream.handler(data -> {
@@ -678,7 +681,7 @@ public class ProxyService {
       });
       stream.endHandler(v -> {
         pc.trace("ProxyRequestBlock request end");
-        proxyRequestResponse(it, pc, null, incoming, mi);
+        proxyRequestResponse(it, pc, null, incoming, cReqs, mi);
       });
       stream.resume();
     }
@@ -701,7 +704,7 @@ public class ProxyService {
 
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
@@ -721,7 +724,7 @@ public class ProxyService {
           }
           storeResponseInfo(pc, mi, res);
           res.pause();
-          proxyR(newIt, pc, res, null);
+          proxyR(newIt, pc, res, null, new LinkedList<>());
         } else {
           proxyResponseImmediate(pc, res, mi);
         }
@@ -733,16 +736,28 @@ public class ProxyService {
     copyHeaders(cReq, ctx, mi);
     if (bcontent != null) {
       pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
+      for (HttpClientRequest r : cReqs) {
+        r.end(bcontent);
+      }
       cReq.end(bcontent);
     } else {
       cReq.setChunked(true);
+      for (HttpClientRequest r : cReqs) {
+        r.setChunked(true);
+      }
       stream.handler(data -> {
         pc.trace("proxyRequestResponse request chunk '"
           + data.toString() + "'");
         cReq.write(data);
+        for (HttpClientRequest r : cReqs) {
+          r.write(data);
+        }
       });
       stream.endHandler(v -> {
         pc.trace("proxyRequestResponse request complete");
+        for (HttpClientRequest r : cReqs) {
+          r.end();
+        }
         cReq.end();
       });
       stream.exceptionHandler(e
@@ -753,7 +768,8 @@ public class ProxyService {
   }
 
   private void proxyHeaders(Iterator<ModuleInstance> it, ProxyContext pc,
-    ReadStream<Buffer> stream, Buffer bcontent, ModuleInstance mi) {
+    ReadStream<Buffer> stream, Buffer bcontent,
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
@@ -776,7 +792,7 @@ public class ProxyService {
         storeResponseInfo(pc, mi, res);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x
-          -> proxyR(newIt, pc, stream, bcontent));
+          -> proxyR(newIt, pc, stream, bcontent, cReqs));
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
@@ -810,21 +826,21 @@ public class ProxyService {
 
   private void proxyRedirect(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     pc.trace("ProxyNull " + mi.getModuleDescriptor().getId());
     pc.closeTimer();
     // if no more entries in it, proxyR will return 404
-    proxyR(it, pc, stream, bcontent);
+    proxyR(it, pc, stream, bcontent, cReqs);
   }
 
   private void proxyInternal(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    ModuleInstance mi) {
+    List<HttpClientRequest> cReqs, ModuleInstance mi) {
 
     pc.debug("proxyInternal " + mi.getModuleDescriptor().getId());
     if (bcontent != null) {
-      proxyInternalBuffer(it, pc, bcontent, mi);
+      proxyInternalBuffer(it, pc, bcontent, cReqs, mi);
     } else { // read the whole request into a buffer
       final Buffer incoming = Buffer.buffer();
       stream.handler(data -> {
@@ -834,14 +850,15 @@ public class ProxyService {
       });
       stream.endHandler(v -> {
         pc.trace("proxyInternal request end");
-        proxyInternalBuffer(it, pc, incoming, mi);
+        proxyInternalBuffer(it, pc, incoming, cReqs, mi);
       });
       stream.resume();
     }
   }
 
   private void proxyInternalBuffer(Iterator<ModuleInstance> it,
-    ProxyContext pc, Buffer bcontent, ModuleInstance mi) {
+    ProxyContext pc, Buffer bcontent, List<HttpClientRequest> cReqs,
+    ModuleInstance mi) {
 
     String req = bcontent.toString();
     pc.debug("proxyInternalBuffer " + req);
@@ -861,7 +878,7 @@ public class ProxyService {
       }
       Buffer respBuf = Buffer.buffer(resp);
       if (it.hasNext()) { // carry on with the pipeline
-        proxyR(it, pc, null, respBuf);
+        proxyR(it, pc, null, respBuf, cReqs);
       } else { // produce a result
         makeTraceHeader(mi, statusCode, pc);
         pc.closeTimer();
@@ -872,7 +889,8 @@ public class ProxyService {
 
 
   private void proxyR(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent) {
+    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+    List<HttpClientRequest> cReqs) {
 
     RoutingContext ctx = pc.getCtx();
     if (!it.hasNext()) {
@@ -914,25 +932,25 @@ public class ProxyService {
       }
       switch (pType) {
         case REQUEST_ONLY:
-          proxyRequestOnly(it, pc, stream, bcontent, mi);
+          proxyRequestOnly(it, pc, stream, bcontent, cReqs, mi);
           break;
         case REQUEST_RESPONSE:
-          proxyRequestResponse(it, pc, stream, bcontent, mi);
+          proxyRequestResponse(it, pc, stream, bcontent, cReqs, mi);
           break;
         case HEADERS:
-          proxyHeaders(it, pc, stream, bcontent, mi);
+          proxyHeaders(it, pc, stream, bcontent, cReqs, mi);
           break;
         case REDIRECT:
-          proxyRedirect(it, pc, stream, bcontent, mi);
+          proxyRedirect(it, pc, stream, bcontent, cReqs, mi);
           break;
         case INTERNAL:
-          proxyInternal(it, pc, stream, bcontent, mi);
+          proxyInternal(it, pc, stream, bcontent, cReqs, mi);
           break;
         case REQUEST_RESPONSE_1_0:
-          proxyRequestResponse10(it, pc, stream, bcontent, mi);
+          proxyRequestResponse10(it, pc, stream, bcontent, cReqs, mi);
           break;
         case REQUEST_LOG:
-          proxyRequestLog(it, pc, stream, bcontent, mi);
+          proxyRequestLog(it, pc, stream, bcontent, cReqs, mi);
           break;
         default:
           // Should not happen
