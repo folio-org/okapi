@@ -389,17 +389,14 @@ public class ProxyService {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
       hres.headers().addAll(pc.getHandlerHeaders());
-      logger.debug("relayToResponse: Reusing handler response "
-        + pc.getHandlerRes() + " (instead of direct " + res.statusCode() + ")");
     } else if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
       hres.setStatusCode(pc.getAuthRes());
       hres.headers().addAll(pc.getAuthHeaders());
-      logger.debug("relayToResponse: Reusing auth response "
-        + pc.getAuthRes() + " (instead of direct " + res.statusCode() + ")");
     } else {
-      logger.debug("relayToResponse: Returning direct response " + res.statusCode());
-      hres.setStatusCode(res.statusCode());
-      hres.headers().addAll(res.headers());
+      if (res != null) {
+        hres.setStatusCode(res.statusCode());
+        hres.headers().addAll(res.headers());
+      }
     }
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
@@ -556,19 +553,24 @@ public class ProxyService {
     });
   }
 
-  private void proxyResponseImmediate(ProxyContext pc, HttpClientResponse res,
-    ModuleInstance mi) {
+  private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> res,
+    List<HttpClientRequest> cReqs) {
 
     RoutingContext ctx = pc.getCtx();
-    relayToResponse(ctx.response(), res, pc);
-    makeTraceHeader(mi, res.statusCode(), pc);
     res.handler(data -> {
+      for (HttpClientRequest r : cReqs) {
+        logger.info("proxyResponseImmediate data=" + data.toString());
+        r.write(data);
+      }
       ctx.response().write(data);
       pc.trace("ProxyRequestImmediate response chunk '"
         + data.toString() + "'");
     });
     res.endHandler(v -> {
       pc.closeTimer();
+      for (HttpClientRequest r : cReqs) {
+        r.end();
+      }
       ctx.response().end();
       pc.trace("ProxyRequestImmediate response end");
     });
@@ -633,13 +635,17 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
-        logger.info("proxyRequestLog 2");
-      });
-    copyHeaders(cReq, ctx, mi);
+      logger.info("proxyRequestLog 2");
+    });
+    cReqs.add(cReq);
+    cReq.setChunked(true);
     if (!it.hasNext()) {
-      logger.warn("proxyRequestLog TODO");
+      relayToResponse(ctx.response(), null, pc);
+      copyHeaders(cReq, ctx, mi);
+      proxyResponseImmediate(pc, stream, cReqs);
+      stream.resume();
     } else {
-      cReqs.add(cReq);
+      copyHeaders(cReq, ctx, mi);
       proxyR(it, pc, stream, bcontent, cReqs);
     }
     log(pc, cReq);
@@ -726,7 +732,9 @@ public class ProxyService {
           res.pause();
           proxyR(newIt, pc, res, null, new LinkedList<>());
         } else {
-          proxyResponseImmediate(pc, res, mi);
+          relayToResponse(ctx.response(), res, pc);
+          makeTraceHeader(mi, res.statusCode(), pc);
+          proxyResponseImmediate(pc, res, new LinkedList<>());
         }
       });
     cReq.exceptionHandler(e -> {
@@ -778,7 +786,9 @@ public class ProxyService {
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
         if (!newIt.hasNext() && XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(mi.getRoutingEntry().getPhase())) {
-          proxyResponseImmediate(pc, res, mi);
+          relayToResponse(ctx.response(), res, pc);
+          makeTraceHeader(mi, res.statusCode(), pc);
+          proxyResponseImmediate(pc, res, new LinkedList<>());
           if (bcontent == null) {
             stream.resume();
           }

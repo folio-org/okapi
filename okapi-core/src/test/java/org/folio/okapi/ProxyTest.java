@@ -37,9 +37,11 @@ public class ProxyTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
-  private final int port3 = 9236;
+  private final int portPre = 9236;
+  private final int portPost = 9237;
   private final int port = 9230;
-  private Buffer requestLogBuffer;
+  private Buffer preBuffer;
+  private Buffer postBuffer;
   private static RamlDefinition api;
 
   @BeforeClass
@@ -47,31 +49,60 @@ public class ProxyTest {
     api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml");
   }
 
-  private void myStreamHandle(RoutingContext ctx) {
-    logger.info("myStreamHandle!");
-    requestLogBuffer = Buffer.buffer();
+  private void myPreHandle(RoutingContext ctx) {
+    logger.info("myPreHandle!");
+    preBuffer = Buffer.buffer();
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else {
       ctx.response().setStatusCode(200);
-      ctx.request().handler(requestLogBuffer::appendBuffer);
+      ctx.request().handler(preBuffer::appendBuffer);
       ctx.request().endHandler(res -> {
-        logger.info("myStreamHandle end=" + requestLogBuffer.toString());
+        logger.info("myPreHandle end=" + preBuffer.toString());
         ctx.response().end();
       });
     }
   }
 
-  private void setupOtherHttpServer(TestContext context, Async async) {
+  private void myPostHandle(RoutingContext ctx) {
+    logger.info("myPostHandle!");
+    postBuffer = Buffer.buffer();
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else {
+      ctx.response().setStatusCode(200);
+      ctx.request().handler(postBuffer::appendBuffer);
+      ctx.request().endHandler(res -> {
+        logger.info("myPostHandle end=" + postBuffer.toString());
+        ctx.response().end();
+      });
+    }
+  }
+
+  private void setupPreServer(TestContext context, Async async) {
     Router router = Router.router(vertx);
 
-    router.routeWithRegex("/.*").handler(this::myStreamHandle);
+    router.routeWithRegex("/.*").handler(this::myPreHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
       .requestHandler(router::accept)
       .listen(
-        port3,
+        portPre,
+        result -> setupPostServer(context, async)
+      );
+  }
+
+  private void setupPostServer(TestContext context, Async async) {
+    Router router = Router.router(vertx);
+
+    router.routeWithRegex("/.*").handler(this::myPostHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
+      .requestHandler(router::accept)
+      .listen(
+        portPost,
         result -> {
           if (result.failed()) {
             context.fail(result.cause());
@@ -80,7 +111,6 @@ public class ProxyTest {
         }
       );
   }
-
 
   @Before
   public void setUp(TestContext context) {
@@ -95,7 +125,7 @@ public class ProxyTest {
       if (res.failed()) {
         context.fail(res.cause());
       } else {
-        this.setupOtherHttpServer(context, async);
+        this.setupPreServer(context, async);
       }
     });
   }
@@ -1733,24 +1763,38 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationTenantRoskilde = r.getHeader("Location");
 
-    final String docRequestLog = "{" + LS
-      + "  \"id\" : \"request-log-1.0.0\"," + LS
-      + "  \"name\" : \"request-log\"," + LS
+    final String docRequestPre = "{" + LS
+      + "  \"id\" : \"request-pre-1.0.0\"," + LS
+      + "  \"name\" : \"request-pre\"," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"30\"," + LS
       + "    \"type\" : \"request-log\"" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
+      + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
-      .body(docRequestLog).post("/_/proxy/modules").then().statusCode(201)
+      .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docRequestPost = "{" + LS
+      + "  \"id\" : \"request-post-1.0.0\"," + LS
+      + "  \"name\" : \"request-post\"," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "    \"path\" : \"/testb\"," + LS
+      + "    \"level\" : \"80\"," + LS
+      + "    \"type\" : \"request-log\"" + LS
+      + "  } ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docRequestPost).post("/_/proxy/modules").then().statusCode(201)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1839,9 +1883,9 @@ public class ProxyTest {
       .body(equalTo("Okapi"));
 
     final String nodeDoc1 = "{" + LS
-      + "  \"instId\" : \"localhost-" + Integer.toString(port3) + "\"," + LS
-      + "  \"srvcId\" : \"request-log-1.0.0\"," + LS
-      + "  \"url\" : \"http://localhost:" + Integer.toString(port3) + "\"" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portPre) + "\"," + LS
+      + "  \"srvcId\" : \"request-pre-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portPre) + "\"" + LS
       + "}";
 
     c = api.createRestAssured3();
@@ -1850,16 +1894,29 @@ public class ProxyTest {
       .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    
+
+    final String nodeDoc2 = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portPost) + "\"," + LS
+      + "  \"srvcId\" : \"request-post-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portPost) + "\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc2).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body("[ {\"id\" : \"request-log-1.0.0\", \"action\" : \"enable\"},"
+      .body("[ {\"id\" : \"request-pre-1.0.0\", \"action\" : \"enable\"},"
         + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
-        + "  \"id\" : \"request-log-1.0.0\"," + LS
+        + "  \"id\" : \"request-pre-1.0.0\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"request-only-1.0.0\"," + LS
@@ -1873,9 +1930,35 @@ public class ProxyTest {
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").post("/testb")
-      .then().statusCode(200)
+      .then().statusCode(200).log().ifValidationFails()
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
-    Assert.assertEquals("Okapi", requestLogBuffer.toString());
+    Assert.assertEquals("Okapi", preBuffer.toString());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"request-post-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"request-post-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").post("/testb")
+      .then().statusCode(200).log().ifValidationFails()
+      .header("Content-Type", "text/xml")
+      .body(equalTo("<test>Hello Okapi</test>"));
+    Assert.assertEquals("Okapi", preBuffer.toString());
+
+    Async async = context.async();
+    vertx.runOnContext(res -> {
+      context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
+      async.complete();
+    });
   }
 }
