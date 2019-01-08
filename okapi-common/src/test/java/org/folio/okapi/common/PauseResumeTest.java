@@ -29,10 +29,14 @@ public class PauseResumeTest {
   private void myStreamHandle2(RoutingContext ctx) {
     ctx.request().pause();
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.get(PORT, "localhost", "/test1", res -> {
-      ctx.request().endHandler(x -> {
-        ctx.response().end("OK2");
-      });
+    HttpClientRequest req = cli.post(PORT, "localhost", "/test1", res -> {
+      if (ctx.request().isEnded()) {
+        ctx.response().end("OK2"); // Vert.x 3.6 series
+      } else {
+        ctx.request().endHandler(x -> {
+          ctx.response().end("OK2");
+        });
+      }
       ctx.request().resume();
     });
     req.exceptionHandler(x -> {
@@ -47,8 +51,8 @@ public class PauseResumeTest {
     vertx = Vertx.vertx();
 
     Router router = Router.router(vertx);
-    router.get("/test1").handler(this::myStreamHandle1);
-    router.get("/test2").handler(this::myStreamHandle2);
+    router.post("/test1").handler(this::myStreamHandle1);
+    router.post("/test2").handler(this::myStreamHandle2);
 
     server = vertx.createHttpServer()
       .requestHandler(router::accept)
@@ -65,7 +69,7 @@ public class PauseResumeTest {
     Async async = context.async();
 
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.get(PORT, "localhost", "/test1", res -> {
+    HttpClientRequest req = cli.post(PORT, "localhost", "/test1", res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(res2 -> {
@@ -82,7 +86,24 @@ public class PauseResumeTest {
     Async async = context.async();
 
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.get(PORT, "localhost", "/test2", res -> {
+    HttpClientRequest req = cli.post(PORT, "localhost", "/test2", res -> {
+      Buffer b = Buffer.buffer();
+      res.handler(b::appendBuffer);
+      res.endHandler(res2 -> {
+        context.assertEquals("OK2", b.toString());
+        context.assertEquals(200, res.statusCode());
+        async.complete();
+      });
+    });
+    req.end("foo");
+  }
+
+  @Test
+  public void test3(TestContext context) {
+    Async async = context.async();
+
+    HttpClient cli = vertx.createHttpClient();
+    HttpClientRequest req = cli.post(PORT, "localhost", "/test2", res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(res2 -> {
