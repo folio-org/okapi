@@ -554,28 +554,37 @@ public class ProxyService {
   }
 
   private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> res,
-    List<HttpClientRequest> cReqs) {
+    Buffer bcontent, List<HttpClientRequest> cReqs) {
 
     RoutingContext ctx = pc.getCtx();
-    res.handler(data -> {
-      for (HttpClientRequest r : cReqs) {
-        logger.info("proxyResponseImmediate data=" + data.toString());
-        r.write(data);
-      }
-      ctx.response().write(data);
-      pc.trace("ProxyRequestImmediate response chunk '"
-        + data.toString() + "'");
-    });
-    res.endHandler(v -> {
+    if (bcontent != null) {
       pc.closeTimer();
       for (HttpClientRequest r : cReqs) {
-        r.end();
+        r.end(bcontent);
       }
-      ctx.response().end();
-      pc.trace("ProxyRequestImmediate response end");
-    });
-    res.exceptionHandler(e
-      -> pc.warn("proxyRequestImmediate res exception ", e));
+      ctx.response().end(bcontent);
+    } else {
+      res.handler(data -> {
+        for (HttpClientRequest r : cReqs) {
+          logger.info("proxyResponseImmediate data=" + data.toString());
+          r.write(data);
+        }
+        ctx.response().write(data);
+        pc.trace("ProxyRequestImmediate response chunk '"
+          + data.toString() + "'");
+      });
+      res.endHandler(v -> {
+        pc.closeTimer();
+        for (HttpClientRequest r : cReqs) {
+          r.end();
+        }
+        ctx.response().end();
+        pc.trace("ProxyRequestImmediate response end");
+      });
+      res.exceptionHandler(e
+        -> pc.warn("proxyRequestImmediate res exception ", e));
+      res.resume();
+    }
   }
 
   private void proxyRequestHttpClient(Iterator<ModuleInstance> it,
@@ -640,8 +649,7 @@ public class ProxyService {
     if (!it.hasNext()) {
       relayToResponse(ctx.response(), null, pc);
       copyHeaders(cReq, ctx, mi);
-      proxyResponseImmediate(pc, stream, cReqs);
-      stream.resume();
+      proxyResponseImmediate(pc, stream, bcontent, cReqs);
     } else {
       copyHeaders(cReq, ctx, mi);
       proxyR(it, pc, stream, bcontent, cReqs);
@@ -732,7 +740,7 @@ public class ProxyService {
         } else {
           relayToResponse(ctx.response(), res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, new LinkedList<>());
+          proxyResponseImmediate(pc, res, null, new LinkedList<>());
         }
       });
     cReq.exceptionHandler(e -> {
@@ -786,10 +794,7 @@ public class ProxyService {
         if (!newIt.hasNext() && XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(mi.getRoutingEntry().getPhase())) {
           relayToResponse(ctx.response(), res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, new LinkedList<>());
-          if (bcontent == null) {
-            stream.resume();
-          }
+          proxyResponseImmediate(pc, res, null, new LinkedList<>());
           return;
         }
       } else {
@@ -804,23 +809,7 @@ public class ProxyService {
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
-        if (bcontent == null) {
-          stream.handler(data -> {
-            ctx.response().write(data);
-            pc.trace("ProxyHeaders request chunk '"
-              + data.toString() + "'");
-          });
-          stream.endHandler(v -> {
-            ctx.response().end();
-            pc.trace("ProxyHeaders request end");
-          });
-          stream.exceptionHandler(e
-            -> pc.warn("proxyHeaders: content exception ", e));
-          stream.resume();
-        } else {
-          pc.trace("ProxyHeaders request buf '" + bcontent + "'");
-          ctx.response().end(bcontent);
-        }
+        proxyResponseImmediate(pc, stream, bcontent, new LinkedList<>());
       }
     });
     cReq.exceptionHandler(e -> {
