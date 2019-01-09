@@ -324,12 +324,12 @@ rules below.
 
  * `request-only` -- The module is interested in the full client
 request: header/parameters and the entity body attached to the
-request. It does not produce a modified version or a new entity in the
-response but performs an associated action and returns optional
-headers and a status code to indicate further processing or
-termination. In cases when an entity is returned, Okapi will discard
-it and continue forwarding the original request body to the subsequent
-modules in the pipeline.
+request. The headers returned including the response code affects
+further processing but the response body is ingored.
+Note that type `request-only` Okapi will buffer an incoming request
+body (POST presumably) into memory. This does not scale for large
+import(s) or the like. Use `request-log` instead if the response
+may be ignored.
 
  * `request-response` -- The module is interested in both
 headers/parameters and the request body. It is also expected that the
@@ -351,6 +351,12 @@ requests to list and get users to the simpler user module. If a handler
 (or a filter) is marked as a redirect, it must also have a redirectPath
 to tell where to redirect to.
 
+* `request-log` -- The module is interested in the full client
+request: header/parameters and the entity body attached to the
+request. This is similar to `request-only` but the entire response,
+including headers and response code, is ignored by Okapi.
+This type appeared in Okapi version 2.23.0.
+
  * `request-response-1.0` -- This is like `request-response`, but
 makes Okapi read the full body before POSTing to the module so that
 Content-Length is set and chunked encoding is disabled. This is useful
@@ -367,6 +373,9 @@ of the request, and returns no body, so it is of type
 `headers`. However, the same module's initial login request consults
 the request body to determine the login parameters, and it also
 returns a message; so it must be of type `request-response`.
+
+Avoid using `request-only`  and `request-response-1.0` if possible, because
+those require Okapi to buffer whole HTTP request bodies into memory.
 
 Okapi has a feature where a module can exceptionally return a X-Okapi-Stop
 header, and that will cause Okapi to terminate the pipeline with the result
