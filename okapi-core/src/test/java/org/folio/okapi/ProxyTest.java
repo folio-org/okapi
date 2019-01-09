@@ -932,7 +932,6 @@ public class ProxyTest {
       .then().log().ifValidationFails()
       .statusCode(401);
 
-
     // Failed login
     final String docWrongLogin = "{" + LS
       + "  \"tenant\" : \"t1\"," + LS
@@ -1739,7 +1738,7 @@ public class ProxyTest {
     async.complete();
   }
 
- @Test
+  @Test
   public void testRequestOnly(TestContext context) {
     final String okapiTenant = "roskilde";
     RestAssuredClient c;
@@ -1798,7 +1797,7 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    
+
     final String docRequestOnly = "{" + LS
       + "  \"id\" : \"request-only-1.0.0\"," + LS
       + "  \"name\" : \"request-only\"," + LS
@@ -1847,12 +1846,12 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    
+
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"sample-module-1.0.0\", \"action\" : \"enable\"},"
-       + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"enable\"} ]")
+        + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"enable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
