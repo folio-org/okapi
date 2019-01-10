@@ -7,11 +7,10 @@ import io.vertx.core.json.DecodeException;
 import org.folio.okapi.util.ProxyContext;
 
 /**
- * One entry in Okapi's routing table.
- * Each entry contains one or more HTTP methods, and the path they mean,
- * for example "GET /foo". Incoming requests are mapped to a series of
- * routingEntries, ordered by their level. Also carries the permission bits
- * required and desired for this operation.
+ * One entry in Okapi's routing table. Each entry contains one or more HTTP
+ * methods, and the path they mean, for example "GET /foo". Incoming requests
+ * are mapped to a series of routingEntries, ordered by their level. Also
+ * carries the permission bits required and desired for this operation.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class RoutingEntry {
@@ -258,20 +257,22 @@ public class RoutingEntry {
 
   public void setPhase(String phase) {
     if (null == phase) {
-        throw new DecodeException("Invalid phase " + phase);
-    } else switch (phase) {
-          case "auth":
-              phaseLevel = "10";
-              break;
-          case "pre":
-              phaseLevel = "40";
-              break;
-          case "post":
-              phaseLevel = "60";
-              break;
-          default:
-              throw new DecodeException("Invalid phase " + phase);
+      throw new DecodeException("Invalid phase " + phase);
+    } else {
+      switch (phase) {
+        case "auth":
+          phaseLevel = "10";
+          break;
+        case "pre":
+          phaseLevel = "40";
+          break;
+        case "post":
+          phaseLevel = "60";
+          break;
+        default:
+          throw new DecodeException("Invalid phase " + phase);
       }
+    }
     this.phase = phase;
   }
 
