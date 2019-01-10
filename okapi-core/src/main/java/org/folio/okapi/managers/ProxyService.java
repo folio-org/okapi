@@ -612,9 +612,7 @@ public class ProxyService {
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
-        res.endHandler(x -> {
-          proxyResponseImmediate(pc, null, bcontent, cReqs);
-        });
+        res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, cReqs));
         res.exceptionHandler(e
           -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
       }
