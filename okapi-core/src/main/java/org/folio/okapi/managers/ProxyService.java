@@ -787,7 +787,7 @@ public class ProxyService {
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
-        if (!newIt.hasNext() && XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(mi.getRoutingEntry().getPhase())) {
+        if (!newIt.hasNext()) {
           relayToResponse(ctx.response(), res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
           proxyResponseImmediate(pc, res, null, new LinkedList<>());
