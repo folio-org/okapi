@@ -557,6 +557,9 @@ public class ProxyService {
     Buffer bcontent, List<HttpClientRequest> cReqs) {
 
     RoutingContext ctx = pc.getCtx();
+    if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
+      bcontent = pc.getAuthResBody();
+    }
     if (bcontent != null) {
       pc.closeTimer();
       for (HttpClientRequest r : cReqs) {
@@ -610,14 +613,7 @@ public class ProxyService {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x -> {
-          pc.closeTimer();
-          pc.trace("ProxyRequestHttpClient final response buf '"
-            + bcontent + "'");
-          if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
-            ctx.response().end(pc.getAuthResBody());
-          } else {
-            ctx.response().end(bcontent);
-          }
+          proxyResponseImmediate(pc, null, bcontent, cReqs);
         });
         res.exceptionHandler(e
           -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
