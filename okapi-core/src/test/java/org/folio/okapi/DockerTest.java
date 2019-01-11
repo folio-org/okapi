@@ -136,7 +136,7 @@ public class DockerTest {
     return false;
   }
 
-  // deploys okapi-test-module 
+  // deploys okapi-test-module
   // to avoid skip, use:
   // cd okapi-test-module
   // docker build -t okapi-test-module .

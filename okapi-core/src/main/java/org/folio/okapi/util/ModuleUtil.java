@@ -15,9 +15,9 @@ public class ModuleUtil {
   private ModuleUtil() {
     throw new IllegalAccessError(this.toString());
   }
-  
+
   private static Messages messages = Messages.getInstance();
-  
+
   public static TenantInstallOptions createTenantOptions(HttpServerRequest req) {
     TenantInstallOptions options = new TenantInstallOptions();
 

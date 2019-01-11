@@ -40,7 +40,7 @@ parse_okapi_conf()  {
    if [ "$role" != "dev" ]; then
       if [ "$nodename" ]; then
          OKAPI_JAVA_OPTS+=" -Dnodename=${nodename}"
-      else 
+      else
          NODENAME=`hostname`
          OKAPI_JAVA_OPTS+=" -Dnodename=${NODENAME}"
       fi

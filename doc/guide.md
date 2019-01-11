@@ -325,7 +325,7 @@ rules below.
  * `request-only` -- The module is interested in the full client
 request: header/parameters and the entity body attached to the
 request. The headers returned including the response code affects
-further processing but the response body is ingored.
+further processing but the response body is ignored.
 Note that type `request-only` Okapi will buffer an incoming request
 body (POST presumably) into memory. This does not scale for large
 import(s) or the like. Use `request-log` instead if the response
