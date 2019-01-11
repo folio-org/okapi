@@ -377,7 +377,7 @@ public class ModuleManager {
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {       
+      } else {
         List<ModuleDescriptor> mdl = new LinkedList<>();
         for (ModuleDescriptor md : kres.result().values()) {
           String id = md.getId();
