@@ -2441,7 +2441,7 @@ to modules when enabled or upgraded for a tenant if the `_tenant` interface
 provided by the module is version 1.2 and later. The `tenantParameters` is a
 string consisting of key-value pairs separated by comma with key and value
 separated by equal sign (`=`). It is a single argument as far as URI is
-concerned so be sure to encode comma as `%2C` and equal as `%2D`.
+concerned so be sure to encode comma as `%2C` and equal as `%3D`.
 See [Tenant Interface](#tenant-interface) for more information.
 
 ### Upgrading modules per tenant
@@ -2965,9 +2965,3 @@ response. This is perfectly acceptable, but in no way necessary.
 
 When Okapi passes the response to the client, it will pass all `X-Okapi` headers
 mentioned above. It may remove some of the headers it uses internally.
-
-
-
-
-
-
