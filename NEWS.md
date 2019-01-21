@@ -1,9 +1,19 @@
+## 2.23.0 2019-01-21
+
+ * OKAPI-693 Introduce filter request-log to avoid buffering HTTP
+   content in memory
+ * OKAPI-686 Docker create container fails with null error
+ * OKAPI-687 Report module dependences as a graph or similar
+ * OKAPI-692 Unit tests refactor
+ * Include active indicator set to true during create superuser (#745)
+   Needed for "log in" step to work.
+
 ## 2.22.0 2018-12-06
 
-  * OKAPI-688 tenant ref problem: own module not available at
+ * OKAPI-688 tenant ref problem: own module not available at
     tenant init phase
-  * OKAPI-689 Docker test hangs
-  * OKAPI-690 Include version in Docker Engine API
+ * OKAPI-689 Docker test hangs
+ * OKAPI-690 Include version in Docker Engine API
 
 ## 2.21.0 2018-11-27
 
@@ -31,15 +41,18 @@
  * OKAPI-673 Update to Vert.x 3.5.4
  * OKAPI-671 Fix POST request-response filter making bad requests
  * OKAPI-666 install: does not report about missing deps
- * OKAPI-651 Upgrade Hazelcast and include Hazelcast Discovery Plugin for Kubernetes
+ * OKAPI-651 Upgrade Hazelcast and include Hazelcast Discovery Plugin for
+   Kubernetes
  * OKAPI-241 Use description field in JSON schemas
 
 ## 2.18.0 2018-10-11
 
- * OKAPI-646 Behavior change for dependency resolution for modules with "multiple" interfaces
+ * OKAPI-646 Behavior change for dependency resolution for modules with
+   "multiple" interfaces
  * OKAPI-636 Deployment leaves a process behind if can not connect to port
  * OKAPI-633 Upgrade to Vert 3.5.3
- * OKAPI-635 Return Auth filter error to caller without relying on pre/post filter
+ * OKAPI-635 Return Auth filter error to caller without relying on pre/post
+   filter
  * OKAPI-639 Pass request IP, timestamp, and method to pre/post filter
  * OKAPI-640 Fix extremely long startup time for Okapi on folio-snapshot-stable
  * OKAPI-641 Fix install: Modules order affects dependency resolution
@@ -47,7 +60,8 @@
  * OKAPI-645 Wrong error code used in proxy service
  * OKAPI-647 Fix tight loop in module dependency resolution
  * OKAPI-648 Okapi dependency resolution omitting required interfaces
- * OKAPI-653 Document that X-Okapi-Url may end with a path like https://folio.example.com/okapi
+ * OKAPI-653 Document that X-Okapi-Url may end with a path like
+   https://folio.example.com/okapi
  * OKAPI-654 Fix Set chunked based on server not client response
  * OKAPI-656 Add support for additional token header
  * OKAPI-657 Pass matching pathPattern to handler
@@ -68,7 +82,8 @@
 
 ## 2.16.1 2018-07-05
 
- * OKAPI-617 Request-only pre/post filter should not change previous HTTP status code
+ * OKAPI-617 Request-only pre/post filter should not change previous HTTP
+   status code
  * OKAPI-616 okapi-test-auth-module accepted requests without auth token
  * Updates in docs
 
@@ -150,7 +165,8 @@
 
 ## 2.10.0 2018-03-15
 
- * OKAPI-442 Mechanism to disable dependency checks during module descriptor registration
+ * OKAPI-442 Mechanism to disable dependency checks during module descriptor
+   registration
  * OKAPI-551 Fix documentation about chunked
  * OKAPI-552 POST _/deployment/modules returns 500 error with invalid
    descriptor
@@ -327,8 +343,7 @@
  * TenantStore simplifications OKAPI-448
  * Test header module OKAPI-449
  * Remove unused code from LogHelp OKAPI-450
- * RestAssured : use log ifValidationFails OKAPI-452
- * Strange logformat OKAPI-453
+ * RestAssured : use log ifValidationFails OKAPI-452 * Strange logformat OKAPI-453
  * Test docker - even if not present OKAPI-454
 
 ## 2.0.2 2017-10-23
