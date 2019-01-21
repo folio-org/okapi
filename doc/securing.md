@@ -333,6 +333,7 @@ Create our superuser in mod-users
 cat > /tmp/superuser.json <<END
 { "id":"99999999-9999-9999-9999-999999999999",
   "username":"superuser",
+  "active":"true",
   "personal": {
      "lastName": "Superuser",
      "firstName": "Super"
