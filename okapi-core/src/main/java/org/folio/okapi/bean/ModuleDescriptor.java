@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.ModuleId;
@@ -16,6 +17,7 @@ import org.folio.okapi.common.ModuleId;
  */
 @JsonInclude(Include.NON_NULL)
 public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
+
   private ModuleId id;
   private String name;
 
@@ -26,6 +28,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private Permission[] permissionSets;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
+  private List<ModuleId> replaces;
 
   public ModuleDescriptor() {
     this.id = null;
@@ -37,6 +40,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.permissionSets = null;
     this.uiDescriptor = null;
     this.launchDescriptor = null;
+    this.replaces = null;
   }
 
   /**
@@ -56,6 +60,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       this.permissionSets = other.permissionSets;
       this.uiDescriptor = other.uiDescriptor;
       this.launchDescriptor = other.launchDescriptor;
+      this.replaces = other.replaces;
     }
   }
 
@@ -205,6 +210,33 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setFilters(RoutingEntry[] filters) {
     this.filters = filters;
+  }
+
+  public String[] getReplaces() {
+    if (replaces == null || replaces.size() == 0) {
+      return null;
+    }
+    String[] a = new String[replaces.size()];
+    int i = 0;
+    for (ModuleId p : replaces) {
+      a[i++] = p.getProduct();
+    }
+    return a;
+  }
+
+  public void setReplaces(String[] replaces) {
+    if (replaces == null || replaces.length == 0) {
+      this.replaces = null;
+    } else {
+      this.replaces = new LinkedList<>();
+      for (String p : replaces) {
+        ModuleId id = new ModuleId(p);
+        if (id.hasSemVer()) {
+          throw new IllegalArgumentException("No semantic version for: " + p);
+        }
+        this.replaces.add(id);
+      }
+    }
   }
 
   /**

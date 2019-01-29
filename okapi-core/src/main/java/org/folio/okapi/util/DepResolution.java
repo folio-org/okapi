@@ -4,6 +4,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -301,12 +302,18 @@ public class DepResolution {
   private static ModuleDescriptor checkInterfaceDepAvailable(Map<String, ModuleDescriptor> modsAvailable,
     InterfaceDescriptor req) {
 
+    Set<String> replaceProducts = new HashSet<>();
     Map<String, ModuleDescriptor> productMd = new HashMap<>();
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       String product = md.getProduct();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (pi.isRegularHandler() && pi.isCompatible(req)) {
+          if (md.getReplaces() != null) {
+            for (String replaceProduct : md.getReplaces()) {
+              replaceProducts.add(replaceProduct);
+            }
+          }
           if (productMd.containsKey(product)) {
             ModuleDescriptor fMd = productMd.get(product);
             if (md.compareTo(fMd) > 0) {
@@ -317,6 +324,9 @@ public class DepResolution {
           }
         }
       }
+    }
+    for (String replaceProduct : replaceProducts) {
+      productMd.remove(replaceProduct);
     }
     if (productMd.isEmpty()) {
       return null;
