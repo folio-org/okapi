@@ -1,3 +1,9 @@
+## 2.24.0 2019-01-30
+
+ * OKAPI-661 ModuleDescriptor replaces facility (renaming a module)
+ * OKAPI-697 Fix POST ModuleDescriptor check=true too strict
+ * OKAPI-696 npmSnapshot flag for /_/proxy/modules POST
+
 ## 2.23.0 2019-01-21
 
  * OKAPI-693 Introduce filter request-log to avoid buffering HTTP
