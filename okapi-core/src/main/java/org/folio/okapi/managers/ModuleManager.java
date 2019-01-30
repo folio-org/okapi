@@ -143,10 +143,11 @@ public class ModuleManager {
    * @param md
    * @param fut
    */
-  public void create(ModuleDescriptor md, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void create(ModuleDescriptor md, boolean check, boolean preRelease,
+          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
-    createList(l, check, preRelease, fut);
+    createList(l, check, preRelease, npmSnapshot, fut);
   }
 
   /**
@@ -155,13 +156,14 @@ public class ModuleManager {
    * @param list
    * @param fut
    */
-  public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, true, ares -> {
+  public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
+          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+    getModulesWithFilter(preRelease, npmSnapshot, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
       }
-      Map<String,ModuleDescriptor> tempList = new HashMap<>();
+      Map<String, ModuleDescriptor> tempList = new HashMap<>();
       for (ModuleDescriptor md : ares.result()) {
         tempList.put(md.getId(), md);
       }

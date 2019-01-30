@@ -349,6 +349,11 @@ types:
         description: whether to allow pre-release modules in dependency check
         type: boolean
         required: false
+      npmSnapshot:
+        description: whether to allow NPM module snapshots in dependency check
+           (default:true).
+        type: boolean
+        required: false
     body:
       application/json:
         type: ModuleDescriptor

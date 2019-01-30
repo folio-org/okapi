@@ -2360,4 +2360,84 @@ public class ModuleTenantsTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true&preRelease=false")
       .then().statusCode(400).log().ifValidationFails().extract().response();
   }
+
+  @Test
+  public void testNpmRelease() {
+    final String okapiTenant = "roskilde";
+    RestAssured.port = port;
+    RestAssuredClient c;
+    Response r;
+
+    final String docNpmSnapshot = "{" + LS
+            + "  \"id\" : \"users-1.0.12345\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"bint\"," + LS
+            + "    \"version\" : \"1.0\"," + LS
+            + "    \"handlers\" : [ {" + LS
+            + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+            + "      \"pathPattern\" : \"/foo\"" + LS
+            + "    } ]" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ ]," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+            .header("Content-Type", "application/json")
+            .body(docNpmSnapshot)
+            // even though this is an npmSnapshot, the module itself may be posted.
+            .post("/_/proxy/modules?npmSnapshot=false")
+            .then().statusCode(201)
+            .log().ifValidationFails()
+            .extract().response();
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    final String docSampleModule_1_2_0 = "{" + LS
+            + "  \"id\" : \"sample-module-1.2.0\"," + LS
+            + "  \"name\" : \"this module\"," + LS
+            + "  \"provides\" : [ {" + LS
+            + "    \"id\" : \"_tenant\"," + LS
+            + "    \"version\" : \"1.0\"," + LS
+            + "    \"interfaceType\" : \"system\"," + LS
+            + "    \"handlers\" : [ {" + LS
+            + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+            + "      \"pathPattern\" : \"/_/tenant\"" + LS
+            + "    } ]" + LS
+            + "  } ]," + LS
+            + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
+            + "  \"launchDescriptor\" : {" + LS
+            + "    \"exec\" : "
+            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+            + "  }" + LS
+            + "}";
+
+    // first post will fail because we do not include npmSnapshot in dep check
+    c = api.createRestAssured3();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docSampleModule_1_2_0)
+            .post("/_/proxy/modules?npmSnapshot=false&check=true")
+            .then().statusCode(400).log().ifValidationFails();
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+    // second post should succeed because we allow NPM snapshots
+    c = api.createRestAssured3();
+    c.given()
+            .header("Content-Type", "application/json")
+            .body(docSampleModule_1_2_0)
+            .post("/_/proxy/modules?npmSnapshot=true&check=true")
+            .then().statusCode(201).log().ifValidationFails();
+    Assert.assertTrue(
+            "raml: " + c.getLastReport().toString(),
+            c.getLastReport().isEmpty());
+
+  }
+
 }
