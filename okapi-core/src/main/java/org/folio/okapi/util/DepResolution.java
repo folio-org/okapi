@@ -82,7 +82,7 @@ public class DepResolution {
    * This could be done like we do conflicts, by building a map and checking
    * against that...
    */
-  private static List<String> checkDependencies(ModuleDescriptor md,
+  public static List<String> checkDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
