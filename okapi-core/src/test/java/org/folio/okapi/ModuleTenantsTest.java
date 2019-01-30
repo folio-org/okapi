@@ -158,7 +158,8 @@ public class ModuleTenantsTest {
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
+      + "  }," + LS
+      + "  \"replaces\" : [ \"old-module\" ]" + LS
       + "}";
     c = api.createRestAssured3();
     r = c.given()
