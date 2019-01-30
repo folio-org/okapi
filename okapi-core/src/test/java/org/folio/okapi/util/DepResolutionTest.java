@@ -292,14 +292,12 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void testMultipleInterfacesMatch(TestContext context) {
+  public void testMultipleInterfacesMatch1(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdA110.getId(), mdA110);
     modsAvailable.put(mdE.getId(), mdE);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
@@ -316,4 +314,76 @@ public class DepResolutionTest {
     });
   }
 
+  @Test
+  public void testMultipleInterfacesMatch2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdE.getId(), mdE);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testMultipleInterfacesMatchReplaces1(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdE.getId(), mdE);
+    mdB.setReplaces(new String[]{mdA100.getProduct()});
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testMultipleInterfacesMatchReplaces2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdE.getId(), mdE);
+    mdB.setReplaces(new String[]{mdA100.getProduct()});
+    mdC.setReplaces(new String[]{mdB.getProduct()});
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      async.complete();
+    });
+  }
 }

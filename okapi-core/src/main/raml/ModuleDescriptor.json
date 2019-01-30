@@ -13,6 +13,14 @@
       "description": "Short name for module (should not include version)",
       "type": "string"
     },
+    "replaces": {
+      "description": "List of modules that this raplaces",
+      "type": "array",
+      "items": {
+        "description": "Module name - without semantic version",
+        "type": "string"
+      }
+    },
     "tags" : {
       "description": "Module tags",
       "type" : ["array", "null"],
