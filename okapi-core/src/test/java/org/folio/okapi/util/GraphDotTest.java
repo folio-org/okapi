@@ -41,7 +41,7 @@ public class GraphDotTest {
 
   @Test
   public void testEmpty() {
-    Map<String, ModuleDescriptor> modlist = new LinkedHashMap();
+    Map<String, ModuleDescriptor> modlist = new LinkedHashMap<>();
 
     String s = GraphDot.report(modlist);
     System.out.println(s);
@@ -50,7 +50,7 @@ public class GraphDotTest {
 
   @Test
   public void testTwoResolvable() {
-    Map<String, ModuleDescriptor> modlist = new LinkedHashMap();
+    Map<String, ModuleDescriptor> modlist = new LinkedHashMap<>();
 
     {
       ModuleDescriptor md = new ModuleDescriptor();
@@ -78,7 +78,7 @@ public class GraphDotTest {
 
   @Test
   public void testTwoUnResolvable() {
-    Map<String, ModuleDescriptor> modlist = new LinkedHashMap();
+    Map<String, ModuleDescriptor> modlist = new LinkedHashMap<>();
 
     {
       ModuleDescriptor md = new ModuleDescriptor();
@@ -107,7 +107,7 @@ public class GraphDotTest {
 
   @Test
   public void testOneUnResolvable() {
-    Map<String, ModuleDescriptor> modlist = new LinkedHashMap();
+    Map<String, ModuleDescriptor> modlist = new LinkedHashMap<>();
 
     {
       ModuleDescriptor md = new ModuleDescriptor();
