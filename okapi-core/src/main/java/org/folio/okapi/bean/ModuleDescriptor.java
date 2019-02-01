@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.ModuleId;
@@ -28,7 +27,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private Permission[] permissionSets;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
-  private List<ModuleId> replaces;
+  private ModuleId[] replaces;
 
   public ModuleDescriptor() {
     this.id = null;
@@ -213,13 +212,12 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public String[] getReplaces() {
-    if (replaces == null || replaces.size() == 0) {
+    if (replaces == null || replaces.length == 0) {
       return null;
     }
-    String[] a = new String[replaces.size()];
-    int i = 0;
-    for (ModuleId p : replaces) {
-      a[i++] = p.getProduct();
+    String[] a = new String[replaces.length];
+    for (int i = 0; i < replaces.length; i++) {
+      a[i] = replaces[i].getProduct();
     }
     return a;
   }
@@ -228,13 +226,14 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     if (replaces == null || replaces.length == 0) {
       this.replaces = null;
     } else {
-      this.replaces = new LinkedList<>();
-      for (String p : replaces) {
-        ModuleId id = new ModuleId(p);
-        if (id.hasSemVer()) {
-          throw new IllegalArgumentException("No semantic version for: " + p);
+      this.replaces = new ModuleId[replaces.length];
+      for (int i = 0; i < replaces.length; i++)
+      {
+        final ModuleId pId =new ModuleId(replaces[i]);
+        if (pId.hasSemVer()) {
+          throw new IllegalArgumentException("No semantic version for: " + replaces[i]);
         }
-        this.replaces.add(id);
+        this.replaces[i] = pId;
       }
     }
   }
