@@ -282,6 +282,20 @@ public class ModuleTest {
     return Utils.urlDecode(loc, false);
   }
 
+  private void updateCreateTenant() {
+    final String docTenant = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"" + okapiTenant + " bibliotek\"" + LS
+      + "}";
+    given().header("Content-Type", "application/json")
+      .body(docTenant)
+      .put("/_/proxy/tenants/" + okapiTenant)
+      .then()
+      .statusCode(200)
+      .log().ifValidationFails();
+  }
+
   private void updateTenant(String location) {
     final String docTenant = given()
       .get(location)
@@ -657,7 +671,6 @@ public class ModuleTest {
     given().delete(locTenant).then().log().ifValidationFails().statusCode(204);
     logger.debug("testFilters clean up complete");
     checkDbIsEmpty("testFilters finished", context);
-    //async.complete();
   }
 
   private void testPrePostFilterError(String phase, List<String> modTraces) {
@@ -2211,7 +2224,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     final String locationSampleModule2 = r.getHeader("Location");
 
-    final String locTenant = createTenant();
+    updateCreateTenant();
     final String locEnable1 = enableModule("sample-module-1");
 
     // Same interface defined twice.
