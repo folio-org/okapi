@@ -276,10 +276,24 @@ public class ModuleTest {
       .post("/_/proxy/tenants")
       .then()
       .statusCode(201)
-      .header("Location",containsString("/_/proxy/tenants"))
+      .header("Location", containsString("/_/proxy/tenants"))
       .log().ifValidationFails()
       .extract().header("Location");
     return Utils.urlDecode(loc, false);
+  }
+
+  private void updateTenant(String location) {
+    final String docTenant = given()
+      .get(location)
+      .then()
+      .statusCode(200)
+      .log().ifValidationFails().extract().body().asString();
+    given().header("Content-Type", "application/json")
+      .body(docTenant)
+      .put(location)
+      .then()
+      .statusCode(200)
+      .log().ifValidationFails();
   }
 
   /**
@@ -360,7 +374,8 @@ public class ModuleTest {
 
     checkDbIsEmpty("testFilters starting", context);
     // Set up a test tenant
-    String locTenant = createTenant();
+    final String locTenant = createTenant();
+    updateTenant(locTenant);
 
     // Set up our usual sample module
     final String testModJar = "../okapi-test-module/target/okapi-test-module-fat.jar";
