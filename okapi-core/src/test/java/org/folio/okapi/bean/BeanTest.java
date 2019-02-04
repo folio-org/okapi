@@ -141,7 +141,8 @@ public class BeanTest {
       + "      \"level\" : \"10\"," + LS
       + "      \"type\" : \"system\"" + LS
       + "    } ]" + LS
-      + "  } ]" + LS
+      + "  } ]," + LS
+      + "  \"replaces\" : [ \"old-module\", \"other-module\" ]" + LS
       + "}";
 
     try {
