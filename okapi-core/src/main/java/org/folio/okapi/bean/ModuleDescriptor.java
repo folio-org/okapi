@@ -14,6 +14,8 @@ import org.folio.okapi.common.ModuleId;
  * "/_/proxy/modules" etc.
  *
  */
+// S1168: Empty arrays and collections should be returned instead of null
+@java.lang.SuppressWarnings({"squid:S1168"})
 @JsonInclude(Include.NON_NULL)
 public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
@@ -212,7 +214,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public String[] getReplaces() {
-    if (replaces == null || replaces.length == 0) {
+    if (replaces == null) {
       return null;
     }
     String[] a = new String[replaces.length];
