@@ -115,7 +115,7 @@ public class TenantStoreMongo implements TenantStore {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
           logger.debug("disableModule: not found: " + id);
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("1100", id)));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
         } else {
           JsonObject d = l.get(0);
           final Tenant t = decodeTenant(d);

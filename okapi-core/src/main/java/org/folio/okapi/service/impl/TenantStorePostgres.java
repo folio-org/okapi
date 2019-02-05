@@ -111,7 +111,7 @@ public class TenantStorePostgres implements TenantStore {
       } else {
         ResultSet rs = res.result();
         if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("1100", id)));
+          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
           q.close();
         } else {
           logger.debug("update: replace");
