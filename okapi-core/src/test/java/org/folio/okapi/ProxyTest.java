@@ -7,6 +7,7 @@ import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -24,6 +25,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import org.folio.okapi.common.HttpResponse;
+import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;
@@ -42,6 +44,7 @@ public class ProxyTest {
   private final int port = 9230;
   private Buffer preBuffer;
   private Buffer postBuffer;
+  private MultiMap postHandlerHeaders;
   private static RamlDefinition api;
 
   @BeforeClass
@@ -66,6 +69,7 @@ public class ProxyTest {
 
   private void myPostHandle(RoutingContext ctx) {
     logger.info("myPostHandle!");
+    postHandlerHeaders = ctx.request().headers();
     postBuffer = Buffer.buffer();
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
@@ -1768,7 +1772,7 @@ public class ProxyTest {
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"30\"," + LS
+      + "    \"phase\" : \"pre\"," + LS
       + "    \"type\" : \"request-log\"" + LS
       + "  } ]" + LS
       + "}";
@@ -1786,7 +1790,7 @@ public class ProxyTest {
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"80\"," + LS
+      + "    \"phase\" : \"post\"," + LS
       + "    \"type\" : \"request-log\"" + LS
       + "  } ]" + LS
       + "}";
@@ -1957,6 +1961,8 @@ public class ProxyTest {
     Async async = context.async();
     vertx.runOnContext(res -> {
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
+      context.assertNotNull(postHandlerHeaders);
+      context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
       async.complete();
     });
   }
