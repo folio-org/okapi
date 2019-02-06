@@ -1,3 +1,7 @@
+## 2.24.2 2019-02-06
+
+ * OKAPI-702 Fix hang for type headers when request-log is in use
+
 ## 2.24.1 2019-02-06
 
  * OKAPI-701 Fix hang for filter of type headers in some cases
