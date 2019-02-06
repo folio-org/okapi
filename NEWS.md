@@ -1,3 +1,7 @@
+## 2.24.1 2019-02-06
+
+ * OKAPI-701 Fix hang for filter of type headers in some cases
+
 ## 2.24.0 2019-01-30
 
  * OKAPI-661 ModuleDescriptor replaces facility (renaming a module)
