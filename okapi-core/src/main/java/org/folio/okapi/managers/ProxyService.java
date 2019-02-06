@@ -569,12 +569,9 @@ public class ProxyService {
     } else {
       res.handler(data -> {
         for (HttpClientRequest r : cReqs) {
-          logger.info("proxyResponseImmediate data=" + data.toString());
           r.write(data);
         }
         ctx.response().write(data);
-        pc.trace("ProxyRequestImmediate response chunk '"
-          + data.toString() + "'");
       });
       res.endHandler(v -> {
         pc.closeTimer();
@@ -582,7 +579,6 @@ public class ProxyService {
           r.end();
         }
         ctx.response().end();
-        pc.trace("ProxyRequestImmediate response end");
       });
       res.exceptionHandler(e
         -> pc.warn("proxyRequestImmediate res exception ", e));
@@ -788,7 +784,10 @@ public class ProxyService {
         if (!newIt.hasNext()) {
           relayToResponse(ctx.response(), res, pc);
           makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, new LinkedList<>());
+          proxyResponseImmediate(pc, res, null, cReqs);
+          if (bcontent == null) {
+            stream.resume();
+          }
           return;
         }
       } else {
@@ -803,7 +802,7 @@ public class ProxyService {
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
-        proxyResponseImmediate(pc, stream, bcontent, new LinkedList<>());
+        proxyResponseImmediate(pc, stream, bcontent, cReqs);
       }
     });
     cReq.exceptionHandler(e -> {
