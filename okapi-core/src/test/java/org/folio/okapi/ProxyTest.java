@@ -1959,7 +1959,7 @@ public class ProxyTest {
     Assert.assertEquals("Okapi", preBuffer.toString());
 
     Async async = context.async();
-    vertx.runOnContext(res -> {
+    vertx.setTimer(300, res ->{
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
       context.assertNotNull(postHandlerHeaders);
       context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
