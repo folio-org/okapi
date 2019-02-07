@@ -874,10 +874,10 @@ public class ProxyService {
       }
       Buffer respBuf = Buffer.buffer(resp);
       pc.setHandlerRes(statusCode);
+      makeTraceHeader(mi, statusCode, pc);
       if (it.hasNext()) { // carry on with the pipeline
         proxyR(it, pc, null, respBuf, new LinkedList<>());
       } else { // produce a result
-        makeTraceHeader(mi, statusCode, pc);
         pc.closeTimer();
         ctx.response().end(respBuf);
       }
