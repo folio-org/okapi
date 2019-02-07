@@ -856,6 +856,10 @@ public class ProxyService {
     String req = bcontent.toString();
     pc.debug("proxyInternalBuffer " + req);
     RoutingContext ctx = pc.getCtx();
+
+    for (HttpClientRequest r : cReqs) {
+      r.end(bcontent);
+    }
     internalModule.internalService(req, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
@@ -871,7 +875,7 @@ public class ProxyService {
       Buffer respBuf = Buffer.buffer(resp);
       pc.setHandlerRes(statusCode);
       if (it.hasNext()) { // carry on with the pipeline
-        proxyR(it, pc, null, respBuf, cReqs);
+        proxyR(it, pc, null, respBuf, new LinkedList<>());
       } else { // produce a result
         makeTraceHeader(mi, statusCode, pc);
         pc.closeTimer();
