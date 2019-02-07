@@ -1,3 +1,8 @@
+## 2.24.3 2019-02-07
+
+ * OKAPI-704 Request-log filter not getting buffer for Okapi module
+ * OKAPI-700 Wrong response code returned for Okapi module
+
 ## 2.24.2 2019-02-06
 
  * OKAPI-702 Fix hang for type headers when request-log is in use
