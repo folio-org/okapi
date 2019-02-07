@@ -1824,6 +1824,39 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-f-module-1\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"headers\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     final String docSample = "{" + LS
       + "  \"id\" : \"sample-module-1.0.0\"," + LS
       + "  \"name\" : \"sample-module\"," + LS
@@ -1834,7 +1867,7 @@ public class ProxyTest {
       + "    \"id\" : \"myfirst\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\"]," + LS
+      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
       + "      \"path\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
@@ -1915,11 +1948,15 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .body("[ {\"id\" : \"request-pre-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"auth-f-module-1\", \"action\" : \"enable\"},"
         + " {\"id\" : \"request-only-1.0.0\", \"action\" : \"disable\"} ]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("[ {" + LS
         + "  \"id\" : \"request-pre-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"auth-f-module-1\"," + LS
         + "  \"action\" : \"enable\"" + LS
         + "}, {" + LS
         + "  \"id\" : \"request-only-1.0.0\"," + LS
@@ -1929,7 +1966,24 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // login and get token
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + okapiTenant + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    final String okapiToken = given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+
     given().header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").post("/testb")
+      .then().statusCode(401).log().ifValidationFails();
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").post("/testb")
@@ -1937,6 +1991,13 @@ public class ProxyTest {
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
     Assert.assertEquals("Okapi", preBuffer.toString());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .delete("/testb")
+      .then().statusCode(204).log().ifValidationFails();
 
     c = api.createRestAssured3();
     c.given()
@@ -1950,6 +2011,14 @@ public class ProxyTest {
         + "} ]"));
 
     given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .delete("/testb")
+      .then().statusCode(204).log().ifValidationFails();
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").post("/testb")
