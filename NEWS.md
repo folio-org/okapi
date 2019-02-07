@@ -1,3 +1,8 @@
+## 2.24.4 2019-02-07
+
+ * OKAPI-699 Fix Missing x-okapi-trace headers for handler and
+   pre/post filters
+
 ## 2.24.3 2019-02-07
 
  * OKAPI-704 Request-log filter not getting buffer for Okapi module
