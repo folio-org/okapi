@@ -208,6 +208,7 @@ public class OkapiClientTest {
     cli.get("/test2?p=%2Ftest1", res -> {
       assertTrue(res.succeeded());
       assertEquals("\"hello test-lib\"", res.result());
+      assertEquals(200, cli.getStatusCode());
       test5(cli, async);
     });
   }

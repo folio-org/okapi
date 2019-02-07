@@ -33,6 +33,7 @@ public class OkapiClient {
   private String okapiUrl;
   private HttpClient httpClient;
   private Map<String, String> headers;
+  private int statusCode;
   private MultiMap respHeaders;
   private String reqId;
   private boolean logInfo; // t: log requests on INFO. f: on DEBUG
@@ -189,9 +190,10 @@ public class OkapiClient {
 
     long t1 = System.nanoTime();
     HttpClientRequest req = httpClient.requestAbs(method, url, reqres -> {
+      statusCode = reqres.statusCode();
       long ns = System.nanoTime() - t1;
       String logResMsg = reqId
-        + " RES " + reqres.statusCode() + " " + ns / 1000 + "us "
+        + " RES " + statusCode + " " + ns / 1000 + "us "
         + "okapiClient " + url;
       if (logInfo) {
         logger.info(logResMsg);
@@ -206,14 +208,14 @@ public class OkapiClient {
       });
       reqres.endHandler(e -> {
         responsebody = buf.toString();
-        if (reqres.statusCode() >= 200 && reqres.statusCode() <= 299) {
+        if (statusCode >= 200 && statusCode <= 299) {
           fut.handle(new Success<>(responsebody));
         } else {
-          if (reqres.statusCode() == 404) {
+          if (statusCode== 404) {
             fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
-          } else if (reqres.statusCode() == 403) {
+          } else if (statusCode == 403) {
             fut.handle(new Failure<>(FORBIDDEN, "403 " + responsebody + ": " + url));
-          } else if (reqres.statusCode() == 400) {
+          } else if (statusCode == 400) {
             fut.handle(new Failure<>(USER, responsebody));
           } else {
             fut.handle(new Failure<>(INTERNAL, responsebody));
@@ -282,6 +284,16 @@ public class OkapiClient {
    */
   public String getResponsebody() {
     return responsebody;
+  }
+
+
+  /**
+   * Get the HTTP status code of last request
+   *
+   * @return
+   */
+  public int getStatusCode() {
+    return statusCode;
   }
 
   /**
