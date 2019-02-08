@@ -652,12 +652,8 @@ public class ProxyService {
       handle.handle(bcontent);
     } else {
       final Buffer incoming = Buffer.buffer();
-      stream.handler(data -> {
-        incoming.appendBuffer(data);
-      });
-      stream.endHandler(v -> {
-        handle.handle(incoming);
-      });
+      stream.handler(incoming::appendBuffer);
+      stream.endHandler(v -> handle.handle(incoming));
       stream.resume();
     }
   }
