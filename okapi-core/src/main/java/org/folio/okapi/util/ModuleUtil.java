@@ -3,7 +3,6 @@ package org.folio.okapi.util;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
