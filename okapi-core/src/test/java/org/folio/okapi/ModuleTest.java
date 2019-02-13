@@ -963,11 +963,11 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
 
     // List the one module, and the built-in.
-    final String expOneModList = "[ {" + LS
+    final String expOneModList = "[ "
+      + internalModuleDoc + ", {" + LS
       + "  \"id\" : \"sample-module-1+1\"," + LS
       + "  \"name\" : \"sample module\"" + LS
-      + "}, " + internalModuleDoc
-      + " ]";
+      + "} ]";
     c = api.createRestAssured3();
     c.given()
       .get("/_/proxy/modules")

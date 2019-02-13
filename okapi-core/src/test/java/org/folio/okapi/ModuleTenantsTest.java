@@ -11,12 +11,14 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
@@ -115,6 +117,33 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationBasic_1_0_0 = r.getHeader("Location");
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?preRelease=true")
+      .then().statusCode(200)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    ModuleDescriptor[] mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(2, mdl.length);
+    Assert.assertEquals("basic-module-1.0.0-alpha", mdl[0].getId());
+    Assert.assertEquals("okapi-0.0.0", mdl[1].getId());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?preRelease=false")
+      .then().statusCode(200)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(1, mdl.length);
+    Assert.assertEquals("okapi-0.0.0", mdl[0].getId());
 
     // deploy basic 1.0.0
     final String docBasicDeployment_1_0_0 = "{" + LS
@@ -225,7 +254,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules?preRelease=false")
       .then().statusCode(200)
       .body(equalTo("[ " + docEnableSample + " ]"));
     Assert.assertTrue(
@@ -235,7 +264,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .get("/_/proxy/tenants/" + okapiTenant + "/modules?full=true")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules?full=true&order=desc&orderBy=id")
       .then().statusCode(200)
       .body(equalTo("[ " + docSample_1_0_0 + " ]"));
     Assert.assertTrue(
@@ -983,7 +1012,8 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/foo\"" + LS
-      + "    } ]" + LS
+      + "    } ]," + LS
+      + "    \"scope\" : [ \"scopeA\", \"scopeB\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1010,7 +1040,8 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/foo\"" + LS
-      + "    } ]" + LS
+      + "    } ]," + LS
+      + "    \"scope\" : [ \"scopeB\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1026,6 +1057,40 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeA").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    ModuleDescriptor[] mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(1, mdl.length);
+    Assert.assertEquals("basic-mul1-1.0.0", mdl[0].getId());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeX").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(0, mdl.length);
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeB").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(2, mdl.length);
 
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -2370,74 +2435,74 @@ public class ModuleTenantsTest {
     Response r;
 
     final String docNpmSnapshot = "{" + LS
-            + "  \"id\" : \"users-1.0.12345\"," + LS
-            + "  \"provides\" : [ {" + LS
-            + "    \"id\" : \"bint\"," + LS
-            + "    \"version\" : \"1.0\"," + LS
-            + "    \"handlers\" : [ {" + LS
-            + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-            + "      \"pathPattern\" : \"/foo\"" + LS
-            + "    } ]" + LS
-            + "  } ]," + LS
-            + "  \"requires\" : [ ]," + LS
-            + "  \"launchDescriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"id\" : \"users-1.0.12345\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"bint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
     c = api.createRestAssured3();
     r = c.given()
-            .header("Content-Type", "application/json")
-            .body(docNpmSnapshot)
-            // even though this is an npmSnapshot, the module itself may be posted.
-            .post("/_/proxy/modules?npmSnapshot=false")
-            .then().statusCode(201)
-            .log().ifValidationFails()
-            .extract().response();
+      .header("Content-Type", "application/json")
+      .body(docNpmSnapshot)
+      // even though this is an npmSnapshot, the module itself may be posted.
+      .post("/_/proxy/modules?npmSnapshot=false")
+      .then().statusCode(201)
+      .log().ifValidationFails()
+      .extract().response();
     Assert.assertTrue(
-            "raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     final String docSampleModule_1_2_0 = "{" + LS
-            + "  \"id\" : \"sample-module-1.2.0\"," + LS
-            + "  \"name\" : \"this module\"," + LS
-            + "  \"provides\" : [ {" + LS
-            + "    \"id\" : \"_tenant\"," + LS
-            + "    \"version\" : \"1.0\"," + LS
-            + "    \"interfaceType\" : \"system\"," + LS
-            + "    \"handlers\" : [ {" + LS
-            + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-            + "      \"pathPattern\" : \"/_/tenant\"" + LS
-            + "    } ]" + LS
-            + "  } ]," + LS
-            + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
-            + "  \"launchDescriptor\" : {" + LS
-            + "    \"exec\" : "
-            + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-            + "  }" + LS
-            + "}";
+      + "  \"id\" : \"sample-module-1.2.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
 
     // first post will fail because we do not include npmSnapshot in dep check
     c = api.createRestAssured3();
     c.given()
-            .header("Content-Type", "application/json")
-            .body(docSampleModule_1_2_0)
-            .post("/_/proxy/modules?npmSnapshot=false&check=true")
-            .then().statusCode(400).log().ifValidationFails();
+      .header("Content-Type", "application/json")
+      .body(docSampleModule_1_2_0)
+      .post("/_/proxy/modules?npmSnapshot=false&check=true")
+      .then().statusCode(400).log().ifValidationFails();
     Assert.assertTrue(
-            "raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // second post should succeed because we allow NPM snapshots
     c = api.createRestAssured3();
     c.given()
-            .header("Content-Type", "application/json")
-            .body(docSampleModule_1_2_0)
-            .post("/_/proxy/modules?npmSnapshot=true&check=true")
-            .then().statusCode(201).log().ifValidationFails();
+      .header("Content-Type", "application/json")
+      .body(docSampleModule_1_2_0)
+      .post("/_/proxy/modules?npmSnapshot=true&check=true")
+      .then().statusCode(201).log().ifValidationFails();
     Assert.assertTrue(
-            "raml: " + c.getLastReport().toString(),
-            c.getLastReport().isEmpty());
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
   }
 

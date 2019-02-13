@@ -1001,7 +1001,7 @@ public class TenantManager {
     }
   }
 
-  public void listModules(String id, boolean full,
+  public void listModules(String id,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     tenants.get(id, gres -> {
@@ -1015,13 +1015,7 @@ public class TenantManager {
           Future<ModuleDescriptor> f = Future.future();
           moduleManager.get(mId, res -> {
             if (res.succeeded()) {
-              if (full) {
-                tl.add(res.result());
-              } else {
-                ModuleDescriptor md = new ModuleDescriptor(res.result(), false);
-                md.setName(null); // name not part of tenantModuleDescriptor
-                tl.add(md);
-              }
+              tl.add(res.result());
             }
             f.handle(res);
           });

@@ -395,21 +395,21 @@ types:
         description: limit to latest N releases (most likely 1 if given)
         type: integer
         required: false
-      orderBy:
-        description: Order by field
-        type: string
+      npmSnapshot:
+        description: whether to include NPM module snapshots
+          (default:true).
+        type: boolean
         required: false
       order:
         description: Order
         enum: [desc, asc]
         required: false
+      orderBy:
+        description: Order by field
+        type: string
+        required: false
       preRelease:
         description: whether to include modules with pre-release info
-          (default:true).
-        type: boolean
-        required: false
-      npmSnapshot:
-        description: whether to include NPM module snapshots
           (default:true).
         type: boolean
         required: false
@@ -419,6 +419,10 @@ types:
         required: false
       require:
         description: limit to required interface
+        type: string
+        required: false
+      scope:
+        description: limit to interface scope (only useful with provide and require)
         type: string
         required: false
     responses:
@@ -597,9 +601,51 @@ types:
       get:
         description: Get enabled modules for tenant
         queryParameters:
+          dot:
+            description: If true, return Graphviz DOT content as plain text
+            type: boolean
+            required: false
+          filter:
+            description: Filter by module ID
+            type: string
+            required: false
           full:
             description: whether full or compact MD should be returned
             type: boolean
+            required: false
+          latest:
+            description: limit to latest N releases (most likely 1 if given)
+            type: integer
+            required: false
+          npmSnapshot:
+            description: whether to include NPM module snapshots
+              (default:true).
+            type: boolean
+            required: false
+          order:
+            description: Order
+            enum: [desc, asc]
+            required: false
+          orderBy:
+            description: Order by field
+            type: string
+            required: false
+          preRelease:
+            description: whether to include modules with pre-release info
+              (default:true).
+            type: boolean
+            required: false
+          provide:
+            description: limit to provided interface
+            type: string
+            required: false
+          require:
+            description: limit to required interface
+            type: string
+            required: false
+          scope:
+            description: limit to interface scope (only useful with provide and require)
+            type: string
             required: false
         responses:
           200:
@@ -826,6 +872,7 @@ types:
       /{interface_id}:
         get:
           description: Get all modules that provide the specified interface ID
+            DEPRECATED. Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id} instead
           queryParameters:
             type:
               description: limit by interfaceType
