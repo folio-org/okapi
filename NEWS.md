@@ -1,3 +1,13 @@
+## 2.25.0 2019-02-13
+
+ * OKAPI-704 Request-log filter not getting buffer for Okapi module
+ * OKAPI-703 OkapiClient getStatusCode method
+ * OKAPI-702 Hang for type headers when request-log is in use
+ * OKAPI-701 hang for filter of type headers in some cases
+ * OKAPI-700 Wrong response code returned for Okapi module
+ * OKAPI-699 Missing x-okapi-trace headers for handler and pre/post filters
+ * OKAPI-668 Module Descriptors should define a scope at the handler level.
+
 ## 2.24.0 2019-01-30
 
  * OKAPI-661 ModuleDescriptor replaces facility (renaming a module)
