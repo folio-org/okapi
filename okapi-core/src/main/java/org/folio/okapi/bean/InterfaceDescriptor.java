@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import org.folio.okapi.common.OkapiLogger;
@@ -27,6 +28,7 @@ public class InterfaceDescriptor {
   private String version;
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
+  private String[] scope;
   private final Logger logger = OkapiLogger.get();
 
   public InterfaceDescriptor() {
@@ -34,6 +36,7 @@ public class InterfaceDescriptor {
     this.version = null;
     this.interfaceType = null;
     this.handlers = null;
+    this.scope = null;
   }
 
   public InterfaceDescriptor(String id, String version) {
@@ -268,6 +271,23 @@ public class InterfaceDescriptor {
       return "No handlers allowed in 'requires' section for module " + mod;
     }
     return "";
+  }
+
+  @JsonIgnore
+  public List<String> getScopeArray() {
+    if (scope == null) {
+      return new ArrayList<>();
+    } else {
+      return Arrays.asList(scope);
+    }
+  }
+
+  public String[] getScope() {
+    return scope;
+  }
+
+  public void setScope(String[] scope) {
+    this.scope = scope;
   }
 
 }

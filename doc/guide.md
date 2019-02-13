@@ -1838,9 +1838,9 @@ provide a given interface. By using `interfaceType` `multiple` in the
 same interface. The consequence, however, is that the user of the interface
 must choose which module to call by specifying HTTP header
 `X-Okapi-Module-Id`.
-Okapi offers a facility which returns list of modules that implement
-a given interface for a tenant
-( `_/proxy/tenants/{tenant}/interfaces/{interface}` ). Normally the
+Okapi offers a facility which returns list of modules that provide a given
+interface for a tenant
+( `_/proxy/tenants/{tenant}/modules?provide={interface}` ). Normally the
 tenant will be the same as the "current" tenant (header `X-Okapi-Tenant`).
 
 Let's go through this by an example. We'll define two modules that
@@ -1989,13 +1989,8 @@ with:
 
 
 ```
-curl -w '\n' -D - \
-  http://localhost:9130/_/proxy/tenants/testlib/interfaces/test-multi
-
-HTTP/1.1 200 OK
-Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/interfaces/test-multi : 200 2271us
-Content-Length: 64
+curl -w '\n' \
+  http://localhost:9130/_/proxy/tenants/testlib/modules?provide=test-multi
 
 [ {
   "id" : "test-bar-1.0.0"

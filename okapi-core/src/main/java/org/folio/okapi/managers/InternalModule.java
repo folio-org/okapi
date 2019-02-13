@@ -719,15 +719,22 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
-
-      tenantManager.listModules(id, full, res -> {
+      tenantManager.listModules(id, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
         }
-        String s = Json.encodePrettily(res.result());
-        fut.handle(new Success<>(s));
+        List<ModuleDescriptor> mdl = res.result();
+        final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
+        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, false);
+        if (dot) {
+          String s = GraphDot.report(mdl);
+          pc.getCtx().response().putHeader("Content-Type", "text/plain");
+          fut.handle(new Success<>(s));
+        } else {
+          String s = Json.encodePrettily(mdl);
+          fut.handle(new Success<>(s));
+        }
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -838,7 +845,7 @@ public class InternalModule {
       try {
         List<ModuleDescriptor> mdl = res.result();
         final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
-        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot);
+        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, true);
         if (dot) {
           String s = GraphDot.report(mdl);
           pc.getCtx().response().putHeader("Content-Type", "text/plain");

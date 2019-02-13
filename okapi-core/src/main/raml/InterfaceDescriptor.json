@@ -30,6 +30,13 @@
       "items": {
         "$ref": "Permission.json"
       }
+    },
+    "scope" : {
+      "description" : "interface scope",
+      "type" : "array",
+      "items": {
+	"type": "string"
+      }
     }
   },
   "required": ["id", "version"]

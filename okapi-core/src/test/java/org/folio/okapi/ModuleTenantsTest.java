@@ -11,12 +11,14 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
@@ -235,7 +237,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .get("/_/proxy/tenants/" + okapiTenant + "/modules?full=true")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules?full=true&order=desc&orderBy=id")
       .then().statusCode(200)
       .body(equalTo("[ " + docSample_1_0_0 + " ]"));
     Assert.assertTrue(
@@ -983,7 +985,8 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/foo\"" + LS
-      + "    } ]" + LS
+      + "    } ]," + LS
+      + "    \"scope\" : [ \"scopeA\", \"scopeB\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1010,7 +1013,8 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/foo\"" + LS
-      + "    } ]" + LS
+      + "    } ]," + LS
+      + "    \"scope\" : [ \"scopeB\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1026,6 +1030,40 @@ public class ModuleTenantsTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeA").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    ModuleDescriptor[] mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(1, mdl.length);
+    Assert.assertEquals("basic-mul1-1.0.0", mdl[0].getId());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeX").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(0, mdl.length);
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules?provide=myint&scope=scopeB").then().statusCode(200)
+      .log().ifValidationFails().extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+    mdl = Json.decodeValue(r.asString(), ModuleDescriptor[].class);
+    Assert.assertEquals(2, mdl.length);
 
     // add tenant
     final String docTenantRoskilde = "{" + LS

@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -42,15 +43,18 @@ public class ModuleUtil {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
-  private static boolean interfaceCheck(InterfaceDescriptor[] interfaces, String interfaceStr) {
+  private static boolean interfaceCheck(InterfaceDescriptor[] interfaces,
+    String interfaceStr, String scope) {
     if (interfaceStr == null) {
       return true;
     } else {
       if (interfaces != null) {
         for (InterfaceDescriptor pi : interfaces) {
           String[] kv = interfaceStr.split("=");
+          List<String> gotScope = pi.getScopeArray();
           if (pi.getId().equals(kv[0])
-            && (kv.length != 2 || pi.getVersion().equals(kv[1]))) {
+            && (kv.length != 2 || pi.getVersion().equals(kv[1]))
+            && (scope == null || gotScope.contains(scope))) {
             return true;
           }
         }
@@ -60,7 +64,7 @@ public class ModuleUtil {
   }
 
   public static List<ModuleDescriptor> filter(HttpServerRequest req, List<ModuleDescriptor> list,
-    boolean full) {
+    boolean full, boolean includeName) {
     ModuleId filter = null;
     String filterStr = req.getParam("filter");
     if (filterStr != null) {
@@ -73,6 +77,7 @@ public class ModuleUtil {
     final String orderStr = req.getParam("order");
     final boolean preRelease = getParamBoolean(req, "preRelease", true);
     final boolean npmSnapshot = getParamBoolean(req, "npmSnapshot", true);
+    final String scope = req.getParam("scope");
     if (!full) {
         full = getParamBoolean(req, "full", false);
     }
@@ -84,8 +89,8 @@ public class ModuleUtil {
       if ((filter != null && !idThis.hasPrefix(filter))
         || (!npmSnapshot && idThis.hasNpmSnapshot())
         || (!preRelease && idThis.hasPreRelease())
-        || !interfaceCheck(md.getRequires(), requireStr)
-        || !interfaceCheck(md.getProvides(), provideStr)) {
+        || !interfaceCheck(md.getRequires(), requireStr, scope)
+        || !interfaceCheck(md.getProvides(), provideStr, scope)) {
         iterator.remove();
       }
     }
@@ -109,14 +114,14 @@ public class ModuleUtil {
         throw new DecodeException(messages.getMessage("11605", orderStr));
       }
     } else {
-      Collections.sort(list, Collections.reverseOrder());
+      Collections.sort(list);
     }
     if (full) {
       return list;
     }
     List<ModuleDescriptor> ml = new ArrayList<>(list.size());
     for (ModuleDescriptor md : list) {
-      ml.add(new ModuleDescriptor(md, false));
+      ml.add(new ModuleDescriptor(md, false, includeName));
     }
     return ml;
   }

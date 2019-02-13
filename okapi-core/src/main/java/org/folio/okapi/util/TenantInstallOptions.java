@@ -57,5 +57,4 @@ public class TenantInstallOptions {
     return npmSnapshot;
   }
 
-
 }
