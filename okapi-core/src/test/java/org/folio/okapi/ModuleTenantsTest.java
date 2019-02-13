@@ -271,6 +271,15 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules?dot=true")
+      .then().statusCode(200).header("Content-Type", "text/plain");
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // run module
     c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
