@@ -916,6 +916,18 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // put it (update)
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .put(locSampleModule)
+      .then()
+      .statusCode(200)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     given()
       .header("Content-Type", "application/json")
       .body("{}")
