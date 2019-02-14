@@ -55,8 +55,7 @@ public class AuthModuleTest {
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
     cli.get("/notokentenant", res -> {
       cli.close();
-      context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
@@ -72,7 +71,7 @@ public class AuthModuleTest {
     cli.setOkapiToken("a.b.c");
     cli.get("/notenant", res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.USER, res.getType());
       async.complete();
     });
   }
@@ -96,7 +95,7 @@ public class AuthModuleTest {
       } else {
         logger.warn("testAAANoLoginToken: res.failed. " + Json.encode(res));
       }
-      context.assertTrue(res.failed());
+      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
