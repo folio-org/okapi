@@ -46,7 +46,7 @@ public class MultiTenantTest {
     + "    \"methods\" : [ \"*\" ]," + LS
     + "    \"path\" : \"/\"," + LS
     + "    \"phase\" : \"auth\"," + LS
-    + "    \"type\" : \"request-response\"," + LS
+    + "    \"type\" : \"headers\"," + LS
     + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]," + LS
