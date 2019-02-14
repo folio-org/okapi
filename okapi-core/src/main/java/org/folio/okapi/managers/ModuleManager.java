@@ -188,9 +188,7 @@ public class ModuleManager {
         List<String> allRes = new LinkedList<>();
         for (ModuleDescriptor md : list) {
           List<String> res = DepResolution.checkDependencies(md, tempList);
-          if (res != null) {
-            allRes.addAll(res);
-          }
+          allRes.addAll(res);
         }
         if (!allRes.isEmpty()) {
           fut.handle(new Failure<>(USER, String.join(". ", allRes)));
