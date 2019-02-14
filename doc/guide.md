@@ -912,12 +912,12 @@ curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/modules : 200 8081us
+X-Okapi-Trace: GET okapi-2.15.1-SNAPSHOT /_/proxy/modules : 200 8081us
 Content-Length: 74
 
 [ {
   "id" : "okapi-2.15.1-SNAPSHOT",
-  "name" : "okapi-2.15.1-SNAPSHOT"
+  "name" : "Okapi"
 } ]
 ```
 
