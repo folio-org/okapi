@@ -11,6 +11,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
@@ -41,6 +42,7 @@ public class ProxyTest {
   private static final String LS = System.lineSeparator();
   private final int portPre = 9236;
   private final int portPost = 9237;
+  private final int portEdge = 9238;
   private final int port = 9230;
   private Buffer preBuffer;
   private Buffer postBuffer;
@@ -83,6 +85,62 @@ public class ProxyTest {
     }
   }
 
+  private void myEdgeCallTest(RoutingContext ctx, String token) {
+    HttpClientRequest get = httpClient.get(port, "localhost", "/testb/1", res1 -> {
+      Buffer resBuf = Buffer.buffer();
+      res1.handler(resBuf::appendBuffer);
+      res1.endHandler(res2 -> {
+        ctx.response().setStatusCode(res1.statusCode());
+        ctx.response().end(resBuf);
+      });
+    });
+    get.putHeader("X-Okapi-Token", token);
+    get.end();
+  }
+
+  private void myEdgeHandle(RoutingContext ctx) {
+    logger.info("myEdgeHandle");
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else if (HttpMethod.GET.equals(ctx.request().method())) {
+      Buffer buf = Buffer.buffer();
+      ctx.request().handler(buf::appendBuffer);
+      ctx.request().endHandler(res -> {
+        String p = ctx.request().path();
+        if (!p.startsWith("/edge/")) {
+          ctx.response().setStatusCode(404);
+          ctx.response().end("Edge module reports not found");
+          return;
+        }
+        String tenant = p.substring(6);
+        final String docLogin = "{" + LS
+          + "  \"tenant\" : \"" + tenant + "\"," + LS
+          + "  \"username\" : \"peter\"," + LS
+          + "  \"password\" : \"peter-password\"" + LS
+          + "}";
+        HttpClientRequest post = httpClient.post(port, "localhost", "/authn/login", res1 -> {
+          Buffer loginBuf = Buffer.buffer();
+          res1.handler(loginBuf::appendBuffer);
+          res1.endHandler(res2 -> {
+            if (res1.statusCode() != 200) {
+              ctx.response().setStatusCode(res1.statusCode());
+              ctx.response().end(loginBuf);
+            } else {
+              myEdgeCallTest(ctx, res1.getHeader("X-Okapi-Token"));
+            }
+          });
+        });
+        post.putHeader("Content-Type", "application/json");
+        post.putHeader("Accept", "application/json");
+        post.putHeader("X-Okapi-Tenant", tenant);
+        post.end(docLogin);
+      });
+    } else {
+      ctx.response().setStatusCode(404);
+      ctx.response().end("Unsupported method");
+    }
+  }
+
   private void setupPreServer(TestContext context, Async async) {
     Router router = Router.router(vertx);
 
@@ -107,6 +165,20 @@ public class ProxyTest {
       .requestHandler(router::accept)
       .listen(
         portPost,
+        result -> setupEdgeServer(context, async)
+      );
+  }
+
+  private void setupEdgeServer(TestContext context, Async async) {
+    Router router = Router.router(vertx);
+
+    router.routeWithRegex("/.*").handler(this::myEdgeHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
+      .requestHandler(router::accept)
+      .listen(
+        portEdge,
         result -> {
           if (result.failed()) {
             context.fail(result.cause());
@@ -147,6 +219,7 @@ public class ProxyTest {
     httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
+        httpClient.close();
         td(context, async);
       });
     }).end();
@@ -395,13 +468,16 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant).post("/authn/login")
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
+    // tenant but no token
     c = api.createRestAssured3();
-    c.given()
+    r = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-all-headers", "B")
       .get("/testb/hugo")
-      .then().statusCode(401).log().ifValidationFails();
+      .then().statusCode(200).log().ifValidationFails()
+      .extract().response();
+    Assert.assertEquals("It works", r.getBody().asString());
 
+    // token with implied tenant
     c = api.createRestAssured3();
     r = c.given()
       .header("X-Okapi-Token", okapiToken)
@@ -928,13 +1004,13 @@ public class ProxyTest {
     // In theory, this is acceptable, we should get back a token that certifies
     // that we have no logged-in username. We can use this for modulePermissions
     // still. A real auth module would be likely to refuse the request because
-    // we do not have the necessary ModulePermissions. The auth module refuses it too.
+    // we do not have the necessary ModulePermissions.
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
       .then().log().ifValidationFails()
-      .statusCode(401);
+      .statusCode(200);
 
     // Failed login
     final String docWrongLogin = "{" + LS
@@ -1977,12 +2053,6 @@ public class ProxyTest {
       .then().statusCode(200).extract().header("X-Okapi-Token");
 
     given().header("X-Okapi-Tenant", okapiTenant)
-      .header("Content-Type", "text/plain")
-      .header("Accept", "text/xml")
-      .body("Okapi").post("/testb")
-      .then().statusCode(401).log().ifValidationFails();
-
-    given().header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
@@ -2028,11 +2098,182 @@ public class ProxyTest {
     Assert.assertEquals("Okapi", preBuffer.toString());
 
     Async async = context.async();
-    vertx.setTimer(300, res ->{
+    vertx.setTimer(300, res -> {
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
       context.assertNotNull(postHandlerHeaders);
       context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
       async.complete();
     });
+  }
+
+  @Test
+  public void testEdgeCase(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String superTenant = "supertenant";
+
+    final String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    final String docAuthModule = "{" + LS
+      + "  \"id\" : \"auth-module-1.0.0\"," + LS
+      + "  \"name\" : \"auth\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"auth\"," + LS
+      + "    \"version\" : \"1.2\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"path\" : \"/authn/login\"," + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"type\" : \"request-response\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"filters\" : [ {" + LS
+      + "    \"methods\" : [ \"*\" ]," + LS
+      + "    \"path\" : \"/\"," + LS
+      + "    \"phase\" : \"auth\"," + LS
+      + "    \"type\" : \"headers\"" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : \"java -Dport=%p -jar " + testAuthJar + "\"" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docAuthModule).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docBasic_1_0_0 = "{" + LS
+      + "  \"id\" : \"basic-module-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBasic_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docEdge_1_0_0 = "{" + LS
+      + "  \"id\" : \"edge-module-1.0.0\"," + LS
+      + "  \"name\" : \"edge module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"edge\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEdge_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDiscoverEdge = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
+      + "  \"srvcId\" : \"edge-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portEdge) + "\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDiscoverEdge).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"auth-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + superTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String okapiTenant = "roskilde";
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde));
+
+    given()
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").get("/edge/roskilde")
+      .then().statusCode(404).log().ifValidationFails();
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"auth-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+
+    given()
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").get("/edge/roskilde")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("It works"));
+
+    given()
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/xml")
+      .body("Okapi").get("/edge/unknown")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(equalTo("No such Tenant unknown"));
   }
 }

@@ -65,6 +65,7 @@ public class ModuleTenantsTest {
     httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
+        httpClient.close();
         vertx.close(y -> {
           async.complete();
         });

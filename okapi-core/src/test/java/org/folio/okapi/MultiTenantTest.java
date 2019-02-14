@@ -4,6 +4,7 @@ import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
@@ -126,12 +127,24 @@ public class MultiTenantTest {
     });
   }
 
-  @After
-  public void tearDown(TestContext context) {
-    Async async = context.async();
+  private void td(TestContext context, Async async) {
     vertx.close(x -> {
       async.complete();
     });
+  }
+
+  @After
+  public void tearDown(TestContext context) {
+    Async async = context.async();
+    HttpClient httpClient = vertx.createHttpClient();
+
+    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+      context.assertEquals(204, response.statusCode());
+      response.endHandler(x -> {
+        httpClient.close();
+        td(context, async);
+      });
+    }).end();
   }
 
   @Test
@@ -174,14 +187,6 @@ public class MultiTenantTest {
       + "  \"name\" : \"" + tenant1 + "\"," + LS
       + "  \"description\" : \"" + tenant1 + " bibliotek\"" + LS
       + "}";
-
-    // create tenant should fail.. Must login first
-    given()
-      .header("Content-Type", "application/json")
-      .body(docTenant1)
-      .post("/_/proxy/tenants")
-      .then().statusCode(401)
-      .log().ifValidationFails();
 
     // supertenant login and get token
     final String docLoginSupertenant = "{" + LS

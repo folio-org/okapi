@@ -162,26 +162,16 @@ class Auth {
   public void check(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenant == null || tenant.isEmpty()) {
-      responseText(ctx, 401)
-        .end("test-auth: check called without " + XOkapiHeaders.TENANT);
-      return;
+      tenant = "supertenant";
     }
     String userId = "?";
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
     if (tok == null || tok.isEmpty()) {
-      if (!ctx.request().path().startsWith("/_/")) {
-        logger.warn("test-auth: check called without " + XOkapiHeaders.TOKEN
-          + " for " + ctx.request().path());
-        responseText(ctx, 401)
-          .end("test-auth: check called without " + XOkapiHeaders.TOKEN);
-        return;
-      } else {
-        tok = token(tenant, "-"); // create a dummy token without username
-        // We call /_/tenant and /_/tenantPermissions in our tests without a token.
-        // In real life, this is more complex, mod-authtoken creates a non-
-        // login token, possibly with modulePermissions, and then checks that
-        // against the permissions required for the tenant interface...
-      }
+      tok = token(tenant, "-"); // create a dummy token without username
+      // We call /_/tenant and /_/tenantPermissions in our tests without a token.
+      // In real life, this is more complex, mod-authtoken creates a non-
+      // login token, possibly with modulePermissions, and then checks that
+      // against the permissions required for the tenant interface...
     } else {
       logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
 
