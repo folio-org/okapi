@@ -50,21 +50,12 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    * @param other
    * @param full
    */
-  public ModuleDescriptor(ModuleDescriptor other, boolean full, boolean includeName) {
+  public ModuleDescriptor(ModuleDescriptor other, boolean includeName) {
     this.id = other.id;
     if (includeName) {
       this.name = other.name;
     }
     this.tags = other.tags;
-    if (full) {
-      this.filters = other.filters;
-      this.requires = other.requires;
-      this.provides = other.provides;
-      this.permissionSets = other.permissionSets;
-      this.uiDescriptor = other.uiDescriptor;
-      this.launchDescriptor = other.launchDescriptor;
-      this.replaces = other.replaces;
-    }
   }
 
   public String getId() {

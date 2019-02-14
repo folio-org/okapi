@@ -120,7 +120,7 @@ public class ModuleUtil {
     }
     List<ModuleDescriptor> ml = new ArrayList<>(list.size());
     for (ModuleDescriptor md : list) {
-      ml.add(new ModuleDescriptor(md, false, includeName));
+      ml.add(new ModuleDescriptor(md, includeName));
     }
     return ml;
   }
