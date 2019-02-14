@@ -916,6 +916,18 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // put it (update)
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule)
+      .put(locSampleModule)
+      .then()
+      .statusCode(200)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     given()
       .header("Content-Type", "application/json")
       .body("{}")
@@ -1349,7 +1361,7 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"request-response\"," + LS // Headers-only ?
+      + "    \"type\" : \"headers\"," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -2061,6 +2073,11 @@ public class ModuleTest {
       .body(docEnableSample).post("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(201)
       .body(equalTo(docEnableSample));
+
+    given()
+      .delete("/_/proxy/modules/sample-module-5.0")
+      .then().statusCode(400)
+      .body(equalTo("delete: module sample-module-5.0 is used by tenant " + okapiTenant));
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1.0\"" + LS
