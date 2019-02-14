@@ -2075,9 +2075,15 @@ public class ModuleTest {
       .body(equalTo(docEnableSample));
 
     given()
-      .delete("/_/proxy/modules/sample-module-5.0")
+      .delete(locationSampleModule)
       .then().statusCode(400)
       .body(equalTo("delete: module sample-module-5.0 is used by tenant " + okapiTenant));
+
+    given()
+      .header("Content-Type", "application/json")
+      .body(docSampleModule).put(locationSampleModule)
+      .then().statusCode(400)
+      .body(equalTo("update: module sample-module-5.0 is used by tenant " + okapiTenant));
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1.0\"" + LS
