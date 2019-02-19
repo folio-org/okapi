@@ -460,7 +460,7 @@ public class InternalModule {
       + "   \"description\" : \"Manage ModuleDescriptors known to the system\", "
       + "   \"subPermissions\" : [ "
       + "     \"okapi.proxy.modules.post\", \"okapi.proxy.modules.put\", "
-      + "     \"okapi.proxy.modules.delete\""
+      + "     \"okapi.proxy.modules.delete\", \"okapi.proxy.pull.modules.post\""
       + "   ]"
       + " }, "
       + " { "
