@@ -16,9 +16,12 @@ import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.common.Messages;
@@ -29,7 +32,7 @@ public class MainDeploy {
 
   private VertxOptions vopt = new VertxOptions();
   private Config hConfig = null;
-  private final JsonObject conf;
+  private JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
   private Messages messages = Messages.getInstance();
@@ -72,6 +75,7 @@ public class MainDeploy {
 
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
     int i = 0;
+    String mode = null;
     while (i < args.length) {
       if (!args[i].startsWith("-")) {
         if ("help".equals(args[i])) {
@@ -83,9 +87,10 @@ public class MainDeploy {
             + "  deployment   Deployment only. Clustered mode\n"
             + "  proxy        Proxy + discovery. Clustered mode\n"
             + "Options:\n"
-            + "  -hazelcast-config-cp file     Read config from class path\n"
-            + "  -hazelcast-config-file file   Read config from local file\n"
-            + "  -hazelcast-config-url url     Read config from URL\n"
+            + "  -conf file                    Read Okapi configuration from local file\n"
+            + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
+            + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
+            + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
             + "  -cluster-host ip              Vertx cluster host\n"
             + "  -cluster-port port            Vertx cluster port\n"
             + "  -enable-metrics\n"
@@ -93,7 +98,7 @@ public class MainDeploy {
           fut.handle(Future.succeededFuture(null));
           return true;
         }
-        conf.put("mode", args[i]);
+        mode = args[i];
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
         i++;
         String resource = args[i];
@@ -135,11 +140,23 @@ public class MainDeploy {
         final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
+      } else if ("-conf".equals(args[i]) && i < args.length - 1) {
+        i++;
+        try {
+          byte[] encoded = Files.readAllBytes(Paths.get(args[i]));
+          this.conf = new JsonObject(new String(encoded, "UTF-8"));
+        } catch (IOException ex) {
+          fut.handle(Future.failedFuture("Cannot load " + args[i]));
+          return true;
+        }
       } else {
         fut.handle(Future.failedFuture(messages.getMessage("10602", args[i])));
         return true;
       }
       i++;
+    }
+    if (mode != null) {
+      conf.put("mode", mode);
     }
     return false;
   }

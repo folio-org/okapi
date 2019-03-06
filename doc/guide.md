@@ -2482,11 +2482,14 @@ java-option `-D` which may set properties for the program: see below
 for relevant properties. Okapi itself parses *command* and any
 *options* that follow.
 
-#### Java -D options
+#### Okapi Configuration
 
-The `-D` option can be used to specify various run-time parameters in
-Okapi. These must be at the beginning of the command line, before the
-`-jar`.
+This configuration - a set of properties - be set as Java properties
+via option `-D` or as option `-conf` with filename pointing to JSON
+properties.
+
+When the `-D` option is used, it should be in the
+beginning of the command-line, before the `-jar`.
 
 * `port`: The port on which Okapi listens. Defaults to 9130
 * `port_start` and `port_end`: The range of ports for modules. Default to
@@ -2531,9 +2534,10 @@ Okapi requires exactly one command to be given. These are:
 
 These options are at the end of the command line:
 
-* `-hazelcast-config-cp` _file_ -- Read config from class path
-* `-hazelcast-config-file` _file_ -- Read config from local file
-* `-hazelcast-config-url` _url_ -- Read config from URL
+* `-conf` _file_ -- Read Okapi configuration from file (JSON Object)
+* `-hazelcast-config-cp` _file_ -- Read Hazelcast config from class path
+* `-hazelcast-config-file` _file_ -- Read Hazelcast config from local file
+* `-hazelcast-config-url` _url_ -- Read Hazelcast config from URL
 * `-enable-metrics` -- Enables the sending of various metrics to a Carbon back
 end.
 * `-cluster-host` _ip_ -- Vertx cluster host
