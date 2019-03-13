@@ -27,6 +27,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.common.Messages;
 
+@java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
 
   private static final String CANNOT_LOAD_STR = "Cannot load ";
