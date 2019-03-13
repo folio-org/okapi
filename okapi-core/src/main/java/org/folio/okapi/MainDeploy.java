@@ -112,8 +112,7 @@ public class MainDeploy {
         }
         mode = args[i];
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
-        i++;
-        String resource = args[i];
+        String resource = args[++i];
         try {
           hConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
@@ -121,8 +120,7 @@ public class MainDeploy {
           return true;
         }
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
-        i++;
-        String resource = args[i];
+        String resource = args[++i];
         try {
           hConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
@@ -130,8 +128,7 @@ public class MainDeploy {
           return true;
         }
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
-        i++;
-        String resource = args[i];
+        String resource = args[++i];
         try {
           hConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
@@ -139,11 +136,9 @@ public class MainDeploy {
           return true;
         }
       } else if ("-cluster-host".equals(args[i]) && i < args.length - 1) {
-        i++;
-        clusterHost = args[i];
+        clusterHost = args[++i];
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
-        i++;
-        clusterPort = Integer.parseInt(args[i]);
+        clusterPort = Integer.parseInt(args[++i]);
       } else if ("-enable-metrics".equals(args[i])) {
         final String graphiteHost = getProperty("graphiteHost", "localhost");
         final Integer graphitePort = parseInt(
@@ -153,8 +148,7 @@ public class MainDeploy {
         final String hostName = getProperty("host", "localhost");
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
-        i++;
-        if (readConf(args[i], fut)) {
+        if (readConf(args[++i], fut)) {
           return true;
         }
       } else {
