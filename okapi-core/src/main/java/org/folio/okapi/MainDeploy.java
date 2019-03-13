@@ -85,6 +85,16 @@ public class MainDeploy {
     return false;
   }
 
+  private void enableMetrics() {
+    final String graphiteHost = getProperty("graphiteHost", "localhost");
+    final Integer graphitePort = parseInt(
+      getProperty("graphitePort", "2003"));
+    final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
+    final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
+    final String hostName = getProperty("host", "localhost");
+    DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
+  }
+
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
     int i = 0;
     String mode = null;
@@ -140,13 +150,7 @@ public class MainDeploy {
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
         clusterPort = Integer.parseInt(args[++i]);
       } else if ("-enable-metrics".equals(args[i])) {
-        final String graphiteHost = getProperty("graphiteHost", "localhost");
-        final Integer graphitePort = parseInt(
-          getProperty("graphitePort", "2003"));
-        final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
-        final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-        final String hostName = getProperty("host", "localhost");
-        DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
+        enableMetrics();
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
         if (readConf(args[++i], fut)) {
           return true;
