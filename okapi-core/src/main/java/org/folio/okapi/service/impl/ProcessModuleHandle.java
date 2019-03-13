@@ -17,6 +17,7 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProcessModuleHandle implements ModuleHandle {
@@ -33,8 +34,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process p;
   private final int port;
   private final Ports ports;
-  private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
-  private static final int MILLISECONDS = 200;
+  TcpPortWaiting tcpPortWaiting;
 
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
     Ports ports, int port) {
@@ -47,10 +47,11 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.port = port;
     this.ports = ports;
     this.p = null;
+    this.tcpPortWaiting = new TcpPortWaiting(vertx, port);
   }
 
-  public void setConnectIterMax(int iterations) {
-    this.maxIterations = iterations;
+  public void setConnectIterMax(int maxIterations) {
+    tcpPortWaiting.setMaxIterations(maxIterations);
   }
 
   private ProcessBuilder createProcessBuilder(String[] l) {
@@ -62,36 +63,6 @@ public class ProcessModuleHandle implements ModuleHandle {
       }
     }
     return pb;
-  }
-
-  private void tryConnect(Handler<AsyncResult<Void>> startFuture, int count) {
-    NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
-    NetClient c = vertx.createNetClient(options);
-    logger.debug("ProcessModuleHandle.tryConnect() port " + port + " count " + count);
-    c.connect(port, "localhost", res -> {
-      if (res.succeeded()) {
-        logger.info("Connected to service at port " + port + " count " + count);
-        NetSocket socket = res.result();
-        socket.close();
-        try {
-          p.getErrorStream().close();
-        } catch (Exception e) {
-          logger.error("Closing streams failed: " + e);
-        }
-        startFuture.handle(Future.succeededFuture());
-      } else if (!p.isAlive() && p.exitValue() != 0) {
-        logger.warn("Service returned with exit code " + p.exitValue());
-        startFuture.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
-      } else if (count < maxIterations) {
-        vertx.setTimer((long) (count + 1) * MILLISECONDS,
-          id -> tryConnect(startFuture, count + 1));
-      } else {
-        this.stopProcess(res2 ->
-          startFuture.handle(Future.failedFuture(messages.getMessage("11501",
-           Integer.toString(port), res.cause().getMessage())))
-        );
-      }
-    });
   }
 
   @Override
@@ -161,7 +132,13 @@ public class ProcessModuleHandle implements ModuleHandle {
         logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else if (port > 0) {
-        tryConnect(startFuture, 0);
+        tcpPortWaiting.waitReady(p, x -> {
+          if (x.failed()) {
+            this.stopProcess(y -> {startFuture.handle(Future.failedFuture(x.cause())); });
+          } else {
+            startFuture.handle(Future.succeededFuture());
+          }
+        });
       } else {
         startFuture.handle(Future.succeededFuture());
       }

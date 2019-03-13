@@ -23,6 +23,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
@@ -42,7 +43,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private int logSkip;
   private final String id;
   private Messages messages = Messages.getInstance();
-
+  private TcpPortWaiting tcpPortWaiting;
   private String containerId;
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
@@ -67,6 +68,7 @@ public class DockerModuleHandle implements ModuleHandle {
       u += "/v1.25";
     }
     this.dockerUrl = u;
+    tcpPortWaiting = new TcpPortWaiting(vertx, port);
   }
 
   private void handle204(HttpClientResponse res, String msg,
@@ -145,7 +147,7 @@ public class DockerModuleHandle implements ModuleHandle {
         // stream OK. Continue other work but keep fetching!
         // remove 8 bytes of binary data and final newline
         res.handler(this::logHandler);
-        future.handle(Future.succeededFuture());
+        tcpPortWaiting.waitReady(null, future);
       } else {
         String m = "getContainerLog HTTP error "
           + Integer.toString(res.statusCode());
