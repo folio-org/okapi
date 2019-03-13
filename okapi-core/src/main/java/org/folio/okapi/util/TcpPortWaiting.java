@@ -61,7 +61,10 @@ public class TcpPortWaiting {
   }
 
   public void waitReady(Process process, Handler<AsyncResult<Void>> startFuture) {
-    tryConnect(process, 0, startFuture);
+    if (port == 0) {
+      startFuture.handle(Future.succeededFuture());
+    } else {
+      tryConnect(process, 0, startFuture);
+    }
   }
-
 }
