@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 import static java.lang.System.*;
 import static java.lang.Integer.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.folio.okapi.common.OkapiLogger;
@@ -71,6 +72,17 @@ public class MainDeploy {
       default:
         fut.handle(Future.failedFuture(messages.getMessage("10601",mode)));
     }
+  }
+
+  private boolean readConf(String fname, Handler<AsyncResult<Vertx>> fut) {
+    try {
+      byte[] encoded = Files.readAllBytes(Paths.get(fname));
+      this.conf = new JsonObject(new String(encoded, StandardCharsets.UTF_8));
+    } catch (IOException ex) {
+      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fname));
+      return true;
+    }
+    return false;
   }
 
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
@@ -142,11 +154,7 @@ public class MainDeploy {
         DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
         i++;
-        try {
-          byte[] encoded = Files.readAllBytes(Paths.get(args[i]));
-          this.conf = new JsonObject(new String(encoded, "UTF-8"));
-        } catch (IOException ex) {
-          fut.handle(Future.failedFuture("Cannot load " + args[i]));
+        if (readConf(args[i], fut)) {
           return true;
         }
       } else {
