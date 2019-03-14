@@ -176,6 +176,43 @@ public class MainDeployTest {
   }
 
   @Test
+  public void testConfFileOk(TestContext context) {
+    async = context.async();
+
+    String[] args = {"-conf", "src/test/resources/okapi1.json"};
+
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
+
+      RestAssuredClient c;
+      Response r;
+
+      c = api.createRestAssured3();
+      r = c.given().get("/_/proxy/modules")
+        .then().statusCode(200).log().ifValidationFails().extract().response();
+
+      Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testConfFileNotFound(TestContext context) {
+    async = context.async();
+
+    String[] args = {"-conf", "src/test/resources/okapiNotFound.json"};
+
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
+      Assert.assertTrue(res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testClusterMode(TestContext context) {
     async = context.async();
 
