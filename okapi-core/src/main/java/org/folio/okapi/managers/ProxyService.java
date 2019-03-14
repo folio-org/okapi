@@ -632,7 +632,7 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res -> logger.info("proxyRequestLog 2"));
+      makeUrl(mi, ctx), res -> logger.debug("proxyRequestLog 2"));
     cReqs.add(cReq);
     cReq.setChunked(true);
     if (!it.hasNext()) {
