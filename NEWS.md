@@ -1,3 +1,15 @@
+## 2.26.0 2019-03-14
+
+ * OKAPI-710 Okapi should wait for module to be available before
+     calling tenant interface. Okapi did wait for process deployed
+     modules, but now also for Docker deployed modules.
+ * OKAPI-709 Command line argument -conf <fname> reads Okapi settings from
+   JSON file; thus may prevent sensitive information (passwords) to be
+   given on the command-line
+ * OKAPI-706 okapi.all permissionSet missing
+   okapi.proxy.pull.modules.post permission
+ * OKAPI-705 confirm public module support
+
 ## 2.25.0 2019-02-13
 
  * OKAPI-704 Request-log filter not getting buffer for Okapi module
