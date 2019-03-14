@@ -132,13 +132,17 @@ public class ProcessModuleHandle implements ModuleHandle {
         logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
-        tcpPortWaiting.waitReady(p, x -> {
-          if (x.failed()) {
-            this.stopProcess(y -> startFuture.handle(Future.failedFuture(x.cause())));
-          } else {
-            startFuture.handle(Future.succeededFuture());
-          }
-        });
+        start3(startFuture);
+      }
+    });
+  }
+
+  private void start3(Handler<AsyncResult<Void>> startFuture) {
+    tcpPortWaiting.waitReady(p, x -> {
+      if (x.failed()) {
+        this.stopProcess(y -> startFuture.handle(Future.failedFuture(x.cause())));
+      } else {
+        startFuture.handle(Future.succeededFuture());
       }
     });
   }
