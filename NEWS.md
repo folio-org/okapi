@@ -1,3 +1,7 @@
+## 2.26.1 2019-03-18
+
+ * OKAPI-717 Wait longer for Okapi system calls (HTTP request attempts)
+
 ## 2.26.0 2019-03-14
 
  * OKAPI-710 Okapi should wait for module to be available before
