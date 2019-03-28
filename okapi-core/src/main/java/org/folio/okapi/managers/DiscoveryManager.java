@@ -345,6 +345,11 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  private boolean isAlive(DeploymentDescriptor md) {
+    return clusterManager == null || md.getNodeId() == null
+      || clusterManager.getNodes().contains(md.getNodeId());
+  }
+
   public void get(String srvcId, String instId,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
@@ -353,10 +358,8 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         DeploymentDescriptor md = resGet.result();
-        String url = md.getUrl();
         // check that the node is alive, but only on non-url instances
-        if (clusterManager != null && url == null
-          && !clusterManager.getNodes().contains(md.getNodeId())) {
+        if (!isAlive(md)) {
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
           return;
         }
@@ -472,11 +475,7 @@ public class DiscoveryManager implements NodeListener {
         Iterator<DeploymentDescriptor> it = result.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          String url = md.getUrl();
-          // remove instances that are on nodes that are not up
-          // but not those that have an explicit URL
-          if (clusterManager != null && url == null
-            && !clusterManager.getNodes().contains(md.getNodeId())) {
+          if (!isAlive(md)) {
             it.remove();
           }
         }
