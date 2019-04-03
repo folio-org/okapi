@@ -7,9 +7,9 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.Utils;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -31,6 +31,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.GraphDot;
@@ -1255,7 +1256,7 @@ public class InternalModule {
     int n = segments.length;
     String[] decodedSegs = new String[n];
     for (int i = 0; i < n; i++) {
-      decodedSegs[i] = Utils.urlDecode(segments[i], false);
+      decodedSegs[i] = URLDecoder.decode(segments[i]);
     }
     HttpMethod m = ctx.request().method();
     pc.debug("internalService '" + ctx.request().method() + "'"

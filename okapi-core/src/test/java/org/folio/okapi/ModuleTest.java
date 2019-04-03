@@ -23,7 +23,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
-import io.vertx.ext.web.impl.Utils;
 
 import java.util.*;
 
@@ -46,7 +45,9 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import java.nio.charset.StandardCharsets;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -279,7 +280,7 @@ public class ModuleTest {
       .header("Location", containsString("/_/proxy/tenants"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return URLDecoder.decode(loc);
   }
 
   private void updateCreateTenant() {
@@ -326,7 +327,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return URLDecoder.decode(loc);
   }
 
   /**
@@ -352,7 +353,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return URLDecoder.decode(loc);
   }
 
   /**
@@ -373,7 +374,7 @@ public class ModuleTest {
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
-    return Utils.urlDecode(location, false);
+    return URLDecoder.decode(location);
   }
 
   /**
@@ -886,7 +887,8 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    locSampleModule = Utils.urlDecode(locSampleModule, false);
+    locSampleModule = URLDecoder.decode(locSampleModule);
+
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -900,7 +902,8 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertEquals(Utils.urlDecode(r.getHeader("Location"), false), locSampleModule);
+    String loc = r.getHeader("Location");
+    Assert.assertEquals(URLDecoder.decode(loc), locSampleModule);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1003,7 +1006,7 @@ public class ModuleTest {
       .statusCode(201).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
+    locationSampleDeployment = URLDecoder.decode(r.header("Location"));
 
     r = c.given()
       .header("Content-Type", "application/json")
