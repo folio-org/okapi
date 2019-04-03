@@ -1255,8 +1255,10 @@ public class InternalModule {
     String[] segments = p.split("/");
     int n = segments.length;
     String[] decodedSegs = new String[n];
+    logger.info("segment path=" + p);
     for (int i = 0; i < n; i++) {
       decodedSegs[i] = URLDecoder.decode(segments[i]);
+      logger.info("segment " + i + " " + segments[i] + "->" + decodedSegs[i]);
     }
     HttpMethod m = ctx.request().method();
     pc.debug("internalService '" + ctx.request().method() + "'"
