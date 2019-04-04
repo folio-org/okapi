@@ -1,3 +1,10 @@
+## 2.27.0 2019-04-04
+
+ * Chinese manual in directory doc-zh
+ * OKAPI-719 Fix Discovery reports service on node that is terminated
+ * OKAPI-717 Wait longer for Okapi system calls (HTTP request attempts)
+ * OKAPI-694 Upgrade to Vert.x 3.7 series
+
 ## 2.26.0 2019-03-14
 
  * OKAPI-710 Okapi should wait for module to be available before
