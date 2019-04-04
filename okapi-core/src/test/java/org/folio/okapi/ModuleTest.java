@@ -23,7 +23,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
-import io.vertx.ext.web.impl.Utils;
 
 import java.util.*;
 
@@ -47,6 +46,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -159,6 +159,7 @@ public class ModuleTest {
 
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
+    RestAssured.urlEncodingEnabled = false;
 
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
@@ -174,7 +175,9 @@ public class ModuleTest {
   }
 
   private void td(TestContext context) {
+    logger.info("td ...");
     if (locationAuthDeployment != null) {
+      logger.info("td 1");
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -185,16 +188,19 @@ public class ModuleTest {
       return;
     }
     if (locationSampleDeployment != null) {
+      logger.info("td 2");
       httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
-        response.endHandler(x -> {
-          locationSampleDeployment = null;
-          td(context);
-        });
+        locationSampleDeployment = null;
+        td(context);
+      }).exceptionHandler(x -> {
+        locationSampleDeployment = null;
+        td(context);
       }).end();
       return;
     }
     if (locationHeaderDeployment != null) {
+      logger.info("td 3");
       httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -205,6 +211,7 @@ public class ModuleTest {
       return;
     }
     if (locationPreDeployment != null) {
+      logger.info("td 4");
       httpClient.delete(port, "localhost", locationPreDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -215,6 +222,7 @@ public class ModuleTest {
       return;
     }
     if (locationPostDeployment != null) {
+      logger.info("td 5");
       httpClient.delete(port, "localhost", locationPostDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -224,6 +232,7 @@ public class ModuleTest {
       }).end();
       return;
     }
+    logger.info("td 6");
     vertx.close(x -> {
       async.complete();
     });
@@ -279,7 +288,7 @@ public class ModuleTest {
       .header("Location", containsString("/_/proxy/tenants"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return loc;
   }
 
   private void updateCreateTenant() {
@@ -326,7 +335,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return loc;
   }
 
   /**
@@ -352,7 +361,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return Utils.urlDecode(loc, false);
+    return loc;
   }
 
   /**
@@ -373,7 +382,7 @@ public class ModuleTest {
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
-    return Utils.urlDecode(location, false);
+    return location;
   }
 
   /**
@@ -886,7 +895,8 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    locSampleModule = Utils.urlDecode(locSampleModule, false);
+    Assert.assertTrue(URLDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
+
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -900,7 +910,7 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertEquals(Utils.urlDecode(r.getHeader("Location"), false), locSampleModule);
+    Assert.assertEquals(r.getHeader("Location"), locSampleModule);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -916,6 +926,7 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    logger.fatal("locSampleModule=" + locSampleModule);
     // put it (update)
     c = api.createRestAssured3();
     r = c.given()
@@ -1003,7 +1014,7 @@ public class ModuleTest {
       .statusCode(201).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment = Utils.urlDecode(r.header("Location"), false);
+    locationSampleDeployment = r.header("Location");
 
     r = c.given()
       .header("Content-Type", "application/json")
@@ -1085,13 +1096,6 @@ public class ModuleTest {
       .body("Testing testb")
       .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
-
-    // double slash does not match invoke
-    given()
-      .header("Content-Type", "application/json")
-      .body("Testing testb")
-      .post("//_/invoke/tenant/" + okapiTenant + "/testb")
-      .then().statusCode(403);
 
     // Check that the tenant API got called (exactly once)
     given()
@@ -1522,8 +1526,9 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    logger.info("node test!!!!!!!!!!!!");
     c = api.createRestAssured3();
-    c.given().get("/_/discovery/nodes/http://localhost:9230")
+    c.given().get("/_/discovery/nodes/http%3A%2F%2Flocalhost%3A9230")
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))

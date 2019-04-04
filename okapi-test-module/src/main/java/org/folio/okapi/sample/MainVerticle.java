@@ -122,7 +122,6 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void response(String msg, boolean xmlConversion, RoutingContext ctx) {
-    ctx.request().resume();
     if (ctx.request().method().equals(HttpMethod.GET)) {
       ctx.request().endHandler(x -> ctx.response().end("It works" + msg));
     } else {
@@ -139,6 +138,7 @@ public class MainVerticle extends AbstractVerticle {
       });
       ctx.request().endHandler(x -> ctx.response().end());
     }
+    ctx.request().resume();
   }
 
   private void myTenantHandle(RoutingContext ctx) {

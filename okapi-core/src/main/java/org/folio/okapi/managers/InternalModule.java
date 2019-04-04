@@ -7,9 +7,9 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.impl.Utils;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -31,6 +31,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.GraphDot;
@@ -514,27 +515,40 @@ public class InternalModule {
    * to it, and puts it in the Location header in pc.response. Also sets the
    * return code to 201-Created. You can overwrite it after, if needed.
    */
-  private void location(ProxyContext pc, String id, String baseUri,
+  private void location(ProxyContext pc, String[] ids, String baseUri,
     String s, Handler<ExtendedAsyncResult<String>> fut) {
 
     String uri;
-    try {
-      if (baseUri == null) {
-        uri = pc.getCtx().request().uri();
-      } else {
-        uri = baseUri;
-      }
-      int idx = uri.indexOf('?');
-      if (idx != -1) {
-        uri = uri.substring(0, idx);
-      }
-      uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
-      pc.getCtx().response().putHeader("Location", uri);
-      pc.getCtx().response().setStatusCode(201);
-      fut.handle(new Success<>(s));
-    } catch (UnsupportedEncodingException ex) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
+    if (baseUri == null) {
+      uri = pc.getCtx().request().uri();
+    } else {
+      uri = baseUri;
     }
+    int idx = uri.indexOf('?');
+    if (idx != -1) {
+      uri = uri.substring(0, idx);
+    }
+    for (int i = 0; i < ids.length; i++) {
+      String id = ids[i];
+      try {
+        uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
+        if (id.contains("+")) {
+          logger.info("location: id = " + id + " location=" + uri);
+        }
+      } catch (UnsupportedEncodingException ex) {
+        fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
+      }
+    }
+    pc.getCtx().response().putHeader("Location", uri);
+    pc.getCtx().response().setStatusCode(201);
+    fut.handle(new Success<>(s));
+  }
+
+  private void location(ProxyContext pc, String id, String baseUri,
+    String s, Handler<ExtendedAsyncResult<String>> fut) {
+    String [] ids = new String[1];
+    ids[0] = id;
+    location(pc, ids, baseUri, s, fut);
   }
 
   private void createTenant(ProxyContext pc, String body,
@@ -1040,9 +1054,11 @@ public class InternalModule {
         }
         DeploymentDescriptor md = res.result();
         final String s = Json.encodePrettily(md);
-        final String baseuri = pc.getCtx().request().uri()
-          + "/" + md.getSrvcId();
-        location(pc, md.getInstId(), baseuri, s, fut);
+        final String baseuri = pc.getCtx().request().uri();
+        String[] ids = new String [2];
+        ids[0] = md.getSrvcId();
+        ids[1] = md.getInstId();
+        location(pc, ids, baseuri, s, fut);
       });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(USER, ex));
@@ -1254,8 +1270,10 @@ public class InternalModule {
     String[] segments = p.split("/");
     int n = segments.length;
     String[] decodedSegs = new String[n];
+    logger.debug("segment path=" + p);
     for (int i = 0; i < n; i++) {
-      decodedSegs[i] = Utils.urlDecode(segments[i], false);
+      decodedSegs[i] = URLDecoder.decode(segments[i], false);
+      logger.debug("segment " + i + " " + segments[i] + "->" + decodedSegs[i]);
     }
     HttpMethod m = ctx.request().method();
     pc.debug("internalService '" + ctx.request().method() + "'"
