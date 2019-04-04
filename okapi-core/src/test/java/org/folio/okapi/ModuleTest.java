@@ -175,9 +175,7 @@ public class ModuleTest {
   }
 
   private void td(TestContext context) {
-    logger.info("td ...");
     if (locationAuthDeployment != null) {
-      logger.info("td 1");
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -188,7 +186,6 @@ public class ModuleTest {
       return;
     }
     if (locationSampleDeployment != null) {
-      logger.info("td 2");
       httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         locationSampleDeployment = null;
@@ -200,7 +197,6 @@ public class ModuleTest {
       return;
     }
     if (locationHeaderDeployment != null) {
-      logger.info("td 3");
       httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -211,7 +207,6 @@ public class ModuleTest {
       return;
     }
     if (locationPreDeployment != null) {
-      logger.info("td 4");
       httpClient.delete(port, "localhost", locationPreDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -222,7 +217,6 @@ public class ModuleTest {
       return;
     }
     if (locationPostDeployment != null) {
-      logger.info("td 5");
       httpClient.delete(port, "localhost", locationPostDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -232,7 +226,6 @@ public class ModuleTest {
       }).end();
       return;
     }
-    logger.info("td 6");
     vertx.close(x -> {
       async.complete();
     });
