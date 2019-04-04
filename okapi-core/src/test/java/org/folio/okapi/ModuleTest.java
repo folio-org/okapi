@@ -45,7 +45,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
-import java.nio.charset.StandardCharsets;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -160,6 +159,7 @@ public class ModuleTest {
 
     httpClient = vertx.createHttpClient();
     RestAssured.port = port;
+    RestAssured.urlEncodingEnabled = false;
 
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
@@ -288,7 +288,7 @@ public class ModuleTest {
       .header("Location", containsString("/_/proxy/tenants"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return URLDecoder.decode(loc);
+    return loc;
   }
 
   private void updateCreateTenant() {
@@ -335,7 +335,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return URLDecoder.decode(loc);
+    return loc;
   }
 
   /**
@@ -361,7 +361,7 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
-    return URLDecoder.decode(loc);
+    return loc;
   }
 
   /**
@@ -382,7 +382,7 @@ public class ModuleTest {
       .statusCode(201)
       .header("Location",containsString("/_/proxy/tenants"))
       .extract().header("Location");
-    return URLDecoder.decode(location);
+    return location;
   }
 
   /**
@@ -895,8 +895,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    locSampleModule = URLDecoder.decode(locSampleModule);
-    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1+1"));
+    Assert.assertTrue(URLDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
 
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -911,7 +910,7 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .extract().response();
-    Assert.assertEquals(URLDecoder.decode(r.getHeader("Location")), locSampleModule);
+    Assert.assertEquals(r.getHeader("Location"), locSampleModule);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -1015,7 +1014,7 @@ public class ModuleTest {
       .statusCode(201).extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
-    locationSampleDeployment = URLDecoder.decode(r.header("Location"));
+    locationSampleDeployment = r.header("Location");
 
     r = c.given()
       .header("Content-Type", "application/json")
@@ -1097,13 +1096,6 @@ public class ModuleTest {
       .body("Testing testb")
       .post("/_/invoke/tenant/" + okapiTenant + "/testb?query=foo")
       .then().statusCode(200);
-
-    // double slash does not match invoke
-    given()
-      .header("Content-Type", "application/json")
-      .body("Testing testb")
-      .post("//_/invoke/tenant/" + okapiTenant + "/testb")
-      .then().statusCode(403);
 
     // Check that the tenant API got called (exactly once)
     given()
@@ -1536,7 +1528,7 @@ public class ModuleTest {
 
     logger.info("node test!!!!!!!!!!!!");
     c = api.createRestAssured3();
-    c.given().get("/_/discovery/nodes/http://localhost:9230")
+    c.given().get("/_/discovery/nodes/http%3A%2F%2Flocalhost%3A9230")
       .then() // Note that get() encodes the url.
       .statusCode(200) // when testing with curl, you need use http%3A%2F%2Flocal...
       .body(equalTo(nodeDoc))
