@@ -12,7 +12,7 @@ public class URLDecoder {
   }
 
   public static String decode(String url, boolean plus) {
-    if (plus) {
+    if (!plus) {
       return decode(url.replaceAll("\\+", "%2B"));
     } else {
       return decode(url);
