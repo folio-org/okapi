@@ -67,7 +67,6 @@ public class OkapiClientTest {
     }
     OkapiClient cli = new OkapiClient(ctx);
     cli.get(p, res -> {
-      ctx.request().resume();
       if (res.failed()) {
         HttpResponse.responseError(ctx, res.getType(), res.cause());
       } else {
@@ -77,6 +76,7 @@ public class OkapiClientTest {
           ctx.response().end();
         });
       }
+      ctx.request().resume();
     });
   }
 

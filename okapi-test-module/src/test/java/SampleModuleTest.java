@@ -197,17 +197,13 @@ public class SampleModuleTest {
     cli.enableInfoLog();
     cli.get("/testb?q=a", res -> {
       context.assertTrue(res.succeeded());
-      context.assertEquals(
-        "It worksmy X-delay:2\n"
-        + " X-Okapi-Url:http://localhost:9230\n"
-        + " X-all-headers:HBL\n"
-        + " X-Okapi-Match-Path-Pattern:/testb\n"
-        + " X-my-header:my\n"
-        + " X-Okapi-Tenant:my-lib\n"
-        + " Content-Length:0\n"
-        + " Host:localhost:9230\n"
-        + " X-Url-Params:q=a\n",
-        cli.getResponsebody());
+      String body = cli.getResponsebody();
+      context.assertTrue(body.contains("It worksmy "));
+      context.assertTrue(body.contains(" X-delay:2"));
+      context.assertTrue(body.contains(" X-Url-Params:q=a"));
+      context.assertTrue(body.contains(" X-my-header:my"));
+      context.assertTrue(body.contains(" X-all-headers:HBL"));
+
       async.complete();
     });
   }
