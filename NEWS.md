@@ -1,3 +1,7 @@
+## 2.27.1 2019-04-23
+
+ * OKAPI-722 Fix Okapi not logging after initialization
+
 ## 2.27.0 2019-04-04
 
  * Chinese manual in directory doc-zh
