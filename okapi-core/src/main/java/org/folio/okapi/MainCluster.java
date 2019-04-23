@@ -10,10 +10,10 @@ class MainCluster {
   }
 
   public static void main(String[] args) {
+    Logger logger = OkapiLogger.get();
     MainDeploy d = new MainDeploy();
     d.init(args, res -> {
       if (res.failed()) {
-        Logger logger = OkapiLogger.get();
         logger.error(res.cause());
         exit(1);
       }
