@@ -274,7 +274,7 @@ public class DepResolution {
       return false;
     }
     fut.handle(new Failure<>(USER, "disable " + id + " failed: " + String.join(". ", ret)));
-    return false;
+    return true;
   }
 
   private static List<String> checkInterfaceDependency(ModuleDescriptor md, InterfaceDescriptor req,
@@ -463,35 +463,33 @@ public class DepResolution {
   private static List<String> removeModuleDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
-    int sum = 0;
     logger.info("removeModuleDependencies " + md.getId());
 
     List<String> ret = new LinkedList<>();
-    if (!modsEnabled.containsKey(md.getId())) {
-      return ret;
-    }
-    InterfaceDescriptor[] provides = md.getProvidesList();
-    for (InterfaceDescriptor prov : provides) {
-      if (prov.isRegularHandler()) {
-        Iterator<String> it = modsEnabled.keySet().iterator();
-        while (it.hasNext()) {
-          String runningmodule = it.next();
-          ModuleDescriptor rm = modsEnabled.get(runningmodule);
-          InterfaceDescriptor[] requires = rm.getRequiresList();
-          for (InterfaceDescriptor ri : requires) {
-            if (prov.getId().equals(ri.getId())) {
-              ret.addAll(removeModuleDependencies(rm, modsEnabled, tml));
-              it = modsEnabled.keySet().iterator();
+    if (modsEnabled.containsKey(md.getId())) {
+      InterfaceDescriptor[] provides = md.getProvidesList();
+      for (InterfaceDescriptor prov : provides) {
+        if (prov.isRegularHandler()) {
+          Iterator<String> it = modsEnabled.keySet().iterator();
+          while (it.hasNext()) {
+            String runningmodule = it.next();
+            ModuleDescriptor rm = modsEnabled.get(runningmodule);
+            InterfaceDescriptor[] requires = rm.getRequiresList();
+            for (InterfaceDescriptor ri : requires) {
+              if (prov.getId().equals(ri.getId())) {
+                ret.addAll(removeModuleDependencies(rm, modsEnabled, tml));
+                it = modsEnabled.keySet().iterator();
+              }
             }
           }
         }
       }
+      if (!ret.isEmpty()) {
+        return ret;
+      }
+      modsEnabled.remove(md.getId());
+      addOrReplace(tml, md, TenantModuleDescriptor.Action.disable, null);
     }
-    if (!ret.isEmpty()) {
-      return ret;
-    }
-    modsEnabled.remove(md.getId());
-    addOrReplace(tml, md, TenantModuleDescriptor.Action.disable, null);
     return ret;
   }
 
