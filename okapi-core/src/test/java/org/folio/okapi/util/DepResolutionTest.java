@@ -310,6 +310,9 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.failed());
+      context.assertEquals(
+        "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB"
+        , res.cause().getMessage());
       async.complete();
     });
   }
@@ -333,6 +336,9 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.failed());
+      context.assertEquals(
+        "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC"
+        , res.cause().getMessage());
       async.complete();
     });
   }
