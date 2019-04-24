@@ -161,10 +161,6 @@ public class DepResolution {
         logger.info("getNextTM: return tm for action=disable");
         return tm;
       }
-      if (action == TenantModuleDescriptor.Action.conflict) {
-        logger.info("getNextTM: return null on conflict");
-        return null;
-      }
     }
     logger.info("getNextTM done null");
     return null;
