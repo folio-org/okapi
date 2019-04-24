@@ -392,4 +392,67 @@ public class DepResolutionTest {
       async.complete();
     });
   }
+
+  @Test
+  public void testRemoveNonEnabled(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.disable);
+    tm.setId(mdA100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testRemoveNonExisting(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdB.getId(), mdB);
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.disable);
+    tm.setId(mdA100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.failed());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testConflict(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdB.getId(), mdB);
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.conflict);
+    tm.setId(mdA100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      async.complete();
+    });
+  }
+
+
+
 }
