@@ -228,15 +228,8 @@ public class ProxyService {
       }
     }
     if (!found) {
-      if ("-".equals(pc.getTenant()) // If we defaulted to supertenant,
-        && !req.path().startsWith("/_/")) {  // and not wrong okapi request
-        // The /_/ test is to make sure we report same errors as before internalModule stuff
-        pc.responseError(403, messages.getMessage("10102"));
-        return null;
-      } else {
-        pc.responseError(404, messages.getMessage("10103", req.path()));
-        return null;
-      }
+      pc.responseError(404, messages.getMessage("10103", req.path(), pc.getTenant()));
+      return null;
     }
     return mods;
   }
