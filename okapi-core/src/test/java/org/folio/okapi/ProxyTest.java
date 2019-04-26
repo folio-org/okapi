@@ -226,6 +226,31 @@ public class ProxyTest {
   }
 
   @Test
+  public void testBadToken(TestContext context) {
+
+    given()
+      .header("X-Okapi-Token", "a")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(equalTo("Invalid Token: 1"));
+
+    given()
+      .header("X-Okapi-Token", "a.b.c")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
+
+        given()
+      .header("X-Okapi-Token", "a.ewo=.d")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(containsString("Failed to decode: Unexpected end-of-input"));
+  }
+
+  @Test
   public void test1(TestContext context) {
     RestAssuredClient c;
     Response r;
