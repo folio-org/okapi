@@ -990,7 +990,7 @@ public class ProxyTest {
     // Request without any X-Okapi headers
     given()
       .get("/testb")
-      .then().statusCode(403);
+      .then().statusCode(404).body(equalTo("No suitable module found for path /testb"));
 
     // Request with a header, to unknown path
     // (note, should fail without invoking the auth module)
