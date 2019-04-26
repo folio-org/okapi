@@ -990,7 +990,7 @@ public class ProxyTest {
     // Request without any X-Okapi headers
     given()
       .get("/testb")
-      .then().statusCode(403);
+      .then().statusCode(404).body(equalTo("No suitable module found for path /testb for tenant supertenant"));
 
     // Request with a header, to unknown path
     // (note, should fail without invoking the auth module)
@@ -998,7 +998,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/something.we.do.not.have")
       .then().statusCode(404)
-      .body(equalTo("No suitable module found for path /something.we.do.not.have"));
+      .body(equalTo("No suitable module found for path /something.we.do.not.have for tenant roskilde"));
 
     // Request without an auth token
     // In theory, this is acceptable, we should get back a token that certifies
