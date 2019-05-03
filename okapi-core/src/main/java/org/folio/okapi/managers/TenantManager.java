@@ -2,16 +2,19 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
+import io.vertx.core.shareddata.Lock;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +39,7 @@ import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.service.TenantStore;
+import org.folio.okapi.util.AsyncLock;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.ProxyContext;
 
@@ -52,6 +56,8 @@ public class TenantManager {
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
   private Messages messages = Messages.getInstance();
+  private AsyncLock asyncLock;
+  private Vertx vertx;
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
@@ -75,6 +81,9 @@ public class TenantManager {
    * @param fut
    */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+    this.vertx = vertx;
+    asyncLock = new AsyncLock(vertx);
+
     tenants.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
@@ -388,6 +397,7 @@ public class TenantManager {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
+            pc.passOkapiTraceHeaders(cres.result());
             // We can ignore the result, the call went well.
             ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
           }
@@ -535,9 +545,98 @@ public class TenantManager {
       if (ures.failed()) {
         pc.responseError(ures.getType(), ures.cause());
       } else {
+        if (moduleTo != null) {
+          startTimer(tenant.getId(), moduleTo);
+        }
         pc.debug("ead5commit done");
         fut.handle(new Success<>());
       }
+    });
+  }
+
+  public void startTimers(Future<Void> fut) {
+    tenants.getAll(res -> {
+      if (res.succeeded()) {
+        for (String tenantId : res.result().keySet()) {
+          startTimer(tenantId, null);
+        }
+      }
+      fut.complete();
+    });
+  }
+
+  private void startTimer(String tenantId, String moduleId) {
+    handleTimer(tenantId, moduleId, 0, null);
+  }
+
+  private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
+    logger.info("handleTimer tenant=" + tenantId + " module=" + moduleId + " seq1=" + seq1);
+    tenants.get(tenantId, tRes -> {
+      if (tRes.failed()) {
+        logger.warn("handleTimer get tenant failed: " + tRes.cause());
+        if (lockP != null) {
+          lockP.release();
+        }
+        return;
+      }
+      Tenant ten = tRes.result();
+      moduleManager.getEnabledModules(ten, mRes -> {
+        if (mRes.failed()) {
+          logger.warn("handleTimer getEnabledModules failed: " + mRes.cause());
+          if (lockP != null) {
+            lockP.release();
+          }
+          return;
+        }
+        try {
+          List<ModuleDescriptor> mdList = mRes.result();
+          for (ModuleDescriptor md : mdList) {
+            if (moduleId == null || moduleId.equals(md.getId())) {
+              InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+              if (timerInt != null) {
+                List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+                int i = 0;
+                for (RoutingEntry re : routingEntries) {
+                  final int seq = ++i;
+                  if (seq1 == 0 || seq == seq1) {
+                    final long delay = re.getDelayMilliSeconds();
+                    String path = re.getPathPattern();
+                    if (path == null) {
+                      path = re.getPath();
+                    }
+                    if (delay > 0 && path != null) {
+                      final String key = tenantId + "_" + moduleId + "_" + seq;
+                      if (lockP != null) {
+                        ModuleInstance inst = new ModuleInstance(md, re, path, HttpMethod.POST, true);
+                        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+                        logger.info("timer call start to module=" + moduleId + " for tenant " + tenantId);
+                        proxyService.callSystemInterface("supertenant", headers, ten, inst, path, cRes -> {
+                          lockP.release();
+                          if (cRes.succeeded()) {
+                            logger.info("timer call succeeded to module=" + moduleId + " for tenant " + tenantId);
+                          } else {
+                            logger.info("timer call failed to module=" + moduleId + " for tenant " + tenantId + ": " + cRes.cause().getMessage());
+                          }
+                        });
+                      }
+                      asyncLock.getLock(key, lockRes -> {
+                        if (lockRes.succeeded()) {
+                          Lock lock = lockRes.result();
+                          vertx.setTimer(delay, res4
+                            -> vertx.runOnContext(res5
+                              -> handleTimer(tenantId, moduleId, seq, lock)));
+                        }
+                      });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        } catch (Exception ex) {
+          logger.warn("handleTimer exception: " + ex.getMessage());
+        }
+      });
     });
   }
 
@@ -582,6 +681,7 @@ public class TenantManager {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
         } else {
+          pc.passOkapiTraceHeaders(cres.result());
           pc.debug("tenantPerms request to " + permsModule.getName()
             + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
           fut.handle(new Success<>());
@@ -699,12 +799,13 @@ public class TenantManager {
   /**
    * Find (the first) module that provides a given system interface. Module must
    * be enabled for the tenant.
-   *  @param tenant tenant to check for
+   *
+   * @param tenant tenant to check for
    * @param fut callback with a @return ModuleDescriptor for the module
    *
    */
   private void findSystemInterface(Tenant tenant,
-                                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
 
     Iterator<String> it = tenant.getEnabled().keySet().iterator();
     findSystemInterfaceR(tenant, "_tenantPermissions", it, fut);
@@ -726,7 +827,7 @@ public class TenantManager {
       ModuleDescriptor md = gres.result();
       logger.debug("findSystemInterface: looking at " + mid + ": "
         + " si: " + md.getSystemInterface(interfaceName));
-      if (md.getSystemInterface(interfaceName) != null ) {
+      if (md.getSystemInterface(interfaceName) != null) {
         logger.debug("findSystemInterface: found " + mid);
         fut.handle(new Success<>(md));
         return;
@@ -736,7 +837,7 @@ public class TenantManager {
   }
 
   public void listInterfaces(String tenantId, boolean full, String interfaceType,
-          Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
+    Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
 
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
@@ -779,8 +880,8 @@ public class TenantManager {
   }
 
   public void listModulesFromInterface(String tenantId,
-      String interfaceName, String interfaceType,
-      Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+    String interfaceName, String interfaceType,
+    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
@@ -798,7 +899,7 @@ public class TenantManager {
         for (ModuleDescriptor md : modlist) {
           for (InterfaceDescriptor provide : md.getProvidesList()) {
             if (interfaceName.equals(provide.getId())
-                    && (interfaceType == null || provide.isType(interfaceType))) {
+              && (interfaceType == null || provide.isType(interfaceType))) {
               mdList.add(md);
               break;
             }
