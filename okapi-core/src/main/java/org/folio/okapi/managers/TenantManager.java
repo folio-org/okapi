@@ -14,7 +14,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -555,13 +554,20 @@ public class TenantManager {
   }
 
   public void startTimers(Future<Void> fut) {
-    tenants.getAll(res -> {
+    if (tenantStore == null) {
+      fut.complete();
+      return;
+    }
+    tenants.getKeys(res -> {
       if (res.succeeded()) {
-        for (String tenantId : res.result().keySet()) {
+        for (String tenantId : res.result()) {
+          logger.info("starting " + tenantId);
           startTimer(tenantId, null);
         }
+        fut.complete();
+      } else {
+        fut.fail(res.cause());
       }
-      fut.complete();
     });
   }
 

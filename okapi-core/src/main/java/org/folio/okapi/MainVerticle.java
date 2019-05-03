@@ -452,8 +452,7 @@ public class MainVerticle extends AbstractVerticle {
       } else {
         logger.info("Deploy failed: " + res.cause());
       }
-      fut.complete();
-      // tenantManager.startTimers(fut);
+      tenantManager.startTimers(fut);
     });
   }
 }
