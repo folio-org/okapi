@@ -15,6 +15,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
+import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -170,7 +171,7 @@ public class MainDeploy {
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
     if (hConfig == null) {
-      hConfig = new Config();
+      hConfig = ConfigUtil.loadConfig();
       if (clusterHost != null) {
         NetworkConfig network = hConfig.getNetworkConfig();
         InterfacesConfig iFace = network.getInterfaces();
