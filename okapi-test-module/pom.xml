@@ -83,7 +83,7 @@
               <resources>
                 <resource>
                   <directory>${basedir}/descriptors</directory>
-                  <include>*Descriptor-template.json</include>
+                  <include>*Descriptor*-template.json</include>
                   <filtering>true</filtering>
                 </resource>
               </resources>
@@ -107,6 +107,10 @@
                 <fileSet>
                   <sourceFile>${project.build.directory}/ModuleDescriptor-template.json</sourceFile>
                   <destinationFile>${project.build.directory}/ModuleDescriptor.json</destinationFile>
+                </fileSet>
+                <fileSet>
+                  <sourceFile>${project.build.directory}/ModuleDescriptorTimer-template.json</sourceFile>
+                  <destinationFile>${project.build.directory}/ModuleDescriptorTimer.json</destinationFile>
                 </fileSet>
               </fileSets>
             </configuration>
