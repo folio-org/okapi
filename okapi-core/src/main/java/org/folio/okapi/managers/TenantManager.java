@@ -554,10 +554,6 @@ public class TenantManager {
   }
 
   public void startTimers(Future<Void> fut) {
-    if (tenantStore == null) {
-      fut.complete();
-      return;
-    }
     tenants.getKeys(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
@@ -594,6 +590,7 @@ public class TenantManager {
           }
           return;
         }
+        int noTimers = 0;
         try {
           List<ModuleDescriptor> mdList = mRes.result();
           for (ModuleDescriptor md : mdList) {
@@ -611,6 +608,7 @@ public class TenantManager {
                       path = re.getPath();
                     }
                     if (delay > 0 && path != null) {
+                      noTimers++;
                       final String key = tenantId + "_" + moduleId + "_" + seq;
                       if (lockP != null) {
                         ModuleInstance inst = new ModuleInstance(md, re, path, HttpMethod.POST, true);
@@ -625,12 +623,16 @@ public class TenantManager {
                           }
                         });
                       }
+                      logger.info("wait for lock " + key);
                       asyncLock.getLock(key, lockRes -> {
                         if (lockRes.succeeded()) {
+                          logger.info("wait for lock " + key + " returned");
                           Lock lock = lockRes.result();
                           vertx.setTimer(delay, res4
                             -> vertx.runOnContext(res5
                               -> handleTimer(tenantId, moduleId, seq, lock)));
+                        } else {
+                          logger.info("wait for lock " + key + " returned failure " + lockRes.cause());
                         }
                       });
                     }
@@ -642,6 +644,7 @@ public class TenantManager {
         } catch (Exception ex) {
           logger.warn("handleTimer exception: " + ex.getMessage());
         }
+        logger.info("handleTimer done no=" + noTimers);
       });
     });
   }

@@ -60,6 +60,7 @@ public class MainVerticle extends AbstractVerticle {
   private int port;
   private String okapiVersion = null;
   private Messages messages = Messages.getInstance();
+  boolean enableProxy = false;
 
   public void setClusterManager(ClusterManager mgr) {
     clusterManager = mgr;
@@ -67,11 +68,21 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
+    super.init(vertx, context);
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
     okapiVersion = m.getVersion();
     m.logStart();
 
-    boolean enableProxy = false;
+    logger.info("obtain lock . Cluster=" + vertx.isClustered());
+    vertx.sharedData().getLock("test", res1 -> {
+      if (res1.succeeded()) {
+        logger.info("getLock ok");
+        res1.result().release();
+      } else {
+        logger.info("getLock returned failure " + res1.cause());
+      }
+    });
+
     boolean enableDeployment = false;
 
     super.init(vertx, context);
@@ -452,7 +463,11 @@ public class MainVerticle extends AbstractVerticle {
       } else {
         logger.info("Deploy failed: " + res.cause());
       }
-      tenantManager.startTimers(fut);
+      if (enableProxy) {
+        tenantManager.startTimers(fut);
+      } else {
+        fut.complete();
+      }
     });
   }
 }
