@@ -210,9 +210,9 @@ public class InterfaceDescriptor {
         + "Interfaces should be 2-part");
     }
 
-    if ("_tenant".equals(this.id) && !"1.0".equals(version)) {
+    if ("_tenant".equals(this.id) && !"1.0 1.1 1.2".contains(version)) {
       pc.warn(prefix + " is '" + version + "'."
-        + " should be '1.0'");
+        + " should be '1.0/1.1/1.2'");
     }
     if ("_tenantPermissions".equals(this.id) && !"1.0".equals(version)) {
       pc.warn(prefix + " is '" + version + "'. should be '1.0'");
