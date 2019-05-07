@@ -178,7 +178,7 @@
           </execution>
           <execution>
             <phase>package</phase>
-            <id>std</id>
+            <id>verticle</id>
             <goals>
               <goal>shade</goal>
             </goals>
@@ -195,7 +195,7 @@
                 </transformer>
               </transformers>
               <artifactSet />
-              <outputFile>${project.build.directory}/${project.artifactId}-std.jar</outputFile>
+              <outputFile>${project.build.directory}/${project.artifactId}-verticle.jar</outputFile>
             </configuration>
           </execution>
         </executions>
