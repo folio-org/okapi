@@ -177,6 +177,16 @@ public class RoutingEntry {
     this.methods = methods;
   }
 
+
+  @JsonIgnore
+  public String getStaticPath() {
+    if (path == null || path.isEmpty()) {
+      return pathPattern;
+    } else {
+      return path;
+    }
+  }
+
   public String getPath() {
     return path;
   }

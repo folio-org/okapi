@@ -628,13 +628,11 @@ public class TenantManager {
               final int seq = ++i;
               if (seq1 == 0 || seq == seq1) {
                 final long delay = re.getDelayMilliSeconds();
-                String path = re.getPathPattern();
-                if (path == null) {
-                  path = re.getPath();
-                }
+                String path = re.getStaticPath();
                 HttpMethod httpMethod = HttpMethod.POST;
-                if (re.getMethods().length >= 1) {
-                  httpMethod = HttpMethod.valueOf(re.getMethods()[0]);
+                String [] methods = re.getMethods();
+                if (methods != null && re.getMethods().length >= 1) {
+                  httpMethod = HttpMethod.valueOf(methods[0]);
                 }
                 final String key = tenantId + "_" + md.getId() + "_" + seq;
                 if (delay > 0 && path != null) {
@@ -720,10 +718,7 @@ public class TenantManager {
     if (!routingEntries.isEmpty()) {
       for (RoutingEntry re : routingEntries) {
         if (re.match(null, "POST")) {
-          permPath = re.getPath();
-          if (permPath == null || permPath.isEmpty()) {
-            permPath = re.getPathPattern();
-          }
+          permPath = re.getStaticPath();
           permInst = new ModuleInstance(permsModule, re, permPath, HttpMethod.POST, true);
         }
       }
@@ -833,10 +828,7 @@ public class TenantManager {
       List<RoutingEntry> res = pi.getAllRoutingEntries();
       for (RoutingEntry re : res) {
         if (re.match(null, method)) {
-          String pattern = re.getPathPattern();
-          if (pattern == null) {
-            pattern = re.getPath();
-          }
+          String pattern = re.getStaticPath();
           if (method.equals("DELETE")) {
             fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE, true)));
             return true;
