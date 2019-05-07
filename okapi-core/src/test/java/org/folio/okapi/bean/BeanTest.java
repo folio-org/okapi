@@ -211,4 +211,30 @@ public class BeanTest {
     assertEquals(0, fail);
   }
 
+  @Test
+  public void testModuleDescriptorBadMethod() {
+    int fail = 0;
+
+    final String docModuleDescriptor = "{" + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"sample\"," + LS
+      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"NOST\" ]," + LS
+      + "      \"pathPattern\" : \"/users/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+
+    try {
+      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+        ModuleDescriptor.class);
+      String pretty = Json.encodePrettily(md);
+    } catch (DecodeException ex) {
+      fail = 400;
+    }
+    assertEquals(400, fail);
+  }
+
 }
