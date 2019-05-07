@@ -142,8 +142,8 @@ public class RoutingEntry {
   @JsonIgnore
   public long getDelayMilliSeconds() {
     if (this.delay != null && unit != null) {
-      long delay = Integer.parseInt(this.delay);
-      return delay * factor;
+      long delayMilliSeconds = Integer.parseInt(this.delay);
+      return delayMilliSeconds * factor;
     } else {
       return 0;
     }
