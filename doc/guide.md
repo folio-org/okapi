@@ -2749,6 +2749,10 @@ The snippet below is an example of a module that gets `POST /testb` every 5 minu
     }
 ```
 
+Note that the call made by Okapi will call auth-token to get a token
+for the tenant this module is enabled for. No user is involved in this.
+Use `modulePermissions` to grant permissions for the token.
+
 ### Instrumentation
 
 Okapi pushes instrumentation data to a Carbon/Graphite backend, from which
