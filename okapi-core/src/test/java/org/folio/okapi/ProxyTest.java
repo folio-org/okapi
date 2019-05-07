@@ -291,7 +291,7 @@ public class ProxyTest {
       .then().statusCode(400)
       .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
 
-        given()
+    given()
       .header("X-Okapi-Token", "a.ewo=.d")
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules")
@@ -2449,6 +2449,30 @@ public class ProxyTest {
     context.assertTrue(timerDelaySum >= 104 && timerDelaySum <= 110, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
 
+    // disable and enable (quickly)
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // disable for some time...
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
@@ -2472,6 +2496,7 @@ public class ProxyTest {
     } catch (InterruptedException ex) {
     }
 
+    // enable again
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
@@ -2490,6 +2515,7 @@ public class ProxyTest {
       .body("Okapi").post("/100")
       .then().statusCode(200).log().ifValidationFails();
 
+    // disable and remove tenant as well
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
