@@ -25,6 +25,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.folio.okapi.common.HttpResponse;
 import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
@@ -147,6 +148,9 @@ public class ProxyTest {
   private void myTimerHandle(RoutingContext ctx) {
     final String p = ctx.request().path();
     logger.info("myTimerHandle p=" + p);
+    for (Entry<String,String> ent : ctx.request().headers().entries()) {
+      logger.info(ent.getKey() + ":" + ent.getValue());
+    }
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else if (HttpMethod.POST.equals(ctx.request().method())) {
@@ -2379,6 +2383,11 @@ public class ProxyTest {
       + "      \"pathPattern\" : \"/1\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
       + "      \"delay\" : \"10\"" + LS
+      + "   }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"path\" : \"/3\"," + LS
+      + "      \"unit\" : \"millisecond\"," + LS
+      + "      \"delay\" : \"30\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -2527,7 +2536,6 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    c = api.createRestAssured3();
     given()
       .header("Content-Type", "application/json")
       .delete("/_/proxy/tenants/roskilde")
