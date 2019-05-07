@@ -607,11 +607,15 @@ public class TenantManager {
                     if (path == null) {
                       path = re.getPath();
                     }
+                    HttpMethod httpMethod = HttpMethod.POST;
+                    if (re.getMethods().length >= 1) {
+                      httpMethod = HttpMethod.valueOf(re.getMethods()[0]);
+                    }
                     if (delay > 0 && path != null) {
                       noTimers++;
                       final String key = tenantId + "_" + moduleId + "_" + seq;
                       if (lockP != null) {
-                        ModuleInstance inst = new ModuleInstance(md, re, path, HttpMethod.POST, true);
+                        ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
                         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
                         logger.info("timer call start to module=" + moduleId + " for tenant " + tenantId);
                         proxyService.callSystemInterface("supertenant", headers, ten, inst, path, cRes -> {
