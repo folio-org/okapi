@@ -584,10 +584,10 @@ public class TenantManager {
     handleTimer(tenantId, null, 0, null);
   }
 
-  private void stopTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
+  private void stopTimer(String tenantId, String moduleId, int seq ,Lock lockP) {
     if (lockP != null) {
       logger.info("remove timer for module=" + moduleId + " for tenant " + tenantId);
-      final String key = tenantId + "_" + moduleId + "_" + seq1;
+      final String key = tenantId + "_" + moduleId + "_" + seq;
       timers.remove(key);
       lockP.release();
     }
@@ -601,91 +601,102 @@ public class TenantManager {
         stopTimer(tenantId, moduleId, seq1, lockP);
         return;
       }
-      Tenant ten = tRes.result();
-      moduleManager.getEnabledModules(ten, mRes -> {
+      Tenant tenant = tRes.result();
+      moduleManager.getEnabledModules(tenant, mRes -> {
         if (mRes.failed()) {
           logger.warn("handleTimer getEnabledModules failed: " + mRes.cause());
-          if (lockP != null) {
-            final String key = tenantId + "_" + moduleId + "_" + seq1;
-            timers.remove(key);
-            lockP.release();
-          }
+          stopTimer(tenantId, moduleId, seq1, lockP);
           return;
         }
-        int noTimers = 0;
-        try {
-          List<ModuleDescriptor> mdList = mRes.result();
-          for (ModuleDescriptor md : mdList) {
-            if (moduleId == null || moduleId.equals(md.getId())) {
-              InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
-              if (timerInt != null) {
-                List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-                int i = 0;
-                for (RoutingEntry re : routingEntries) {
-                  final int seq = ++i;
-                  if (seq1 == 0 || seq == seq1) {
-                    final long delay = re.getDelayMilliSeconds();
-                    String path = re.getPathPattern();
-                    if (path == null) {
-                      path = re.getPath();
-                    }
-                    HttpMethod httpMethod = HttpMethod.POST;
-                    if (re.getMethods().length >= 1) {
-                      httpMethod = HttpMethod.valueOf(re.getMethods()[0]);
-                    }
-                    final String key = tenantId + "_" + md.getId() + "_" + seq;
-                    if (delay > 0 && path != null) {
-                      noTimers++;
-                      if (lockP != null) {
-                        ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
-                        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-                        logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
-                        proxyService.callSystemInterface("supertenant", headers, ten, inst, path, cRes -> {
-                          timers.remove(key);
-                          lockP.release();
-                          if (cRes.succeeded()) {
-                            logger.info("timer call succeeded to module=" + md.getId()
-                              + " for tenant " + tenantId);
-                          } else {
-                            logger.info("timer call failed to module=" + md.getId()
-                              + " for tenant " +  tenantId + ": " + cRes.cause().getMessage());
-                          }
-                        });
-                      }
-                      logger.info("wait for lock " + key);
-                      asyncLock.getLock(key, lockRes -> {
-                        if (lockRes.succeeded()) {
-                          logger.info("wait for lock " + key + " returned");
-                          Lock lock = lockRes.result();
-                          if (timers.contains(key)) {
-                            lock.release();
-                            return;
-                          }
-                          timers.add(key);
-                          vertx.setTimer(delay, res4
-                            -> vertx.runOnContext(res5
-                              -> handleTimer(tenantId, md.getId(), seq, lock)));
-                        } else {
-                          logger.info("wait for lock " + key + " returned failure "
-                            + lockRes.cause());
-                        }
-                      });
-                    }
-                  }
+        List<ModuleDescriptor> mdList = mRes.result();
+        enabledModulesTimers(mdList, moduleId, seq1, lockP, tenant);
+      });
+    });
+  }
+
+  private void enabledModulesTimers(List<ModuleDescriptor> mdList, String moduleId, int seq1, Lock lockP, Tenant tenant) {
+    int noTimers = 0;
+    try {
+      final String tenantId = tenant.getId();
+      for (ModuleDescriptor md : mdList) {
+        if (moduleId == null || moduleId.equals(md.getId())) {
+          InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
+          if (timerInt != null) {
+            List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
+            int i = 0;
+            for (RoutingEntry re : routingEntries) {
+              final int seq = ++i;
+              if (seq1 == 0 || seq == seq1) {
+                final long delay = re.getDelayMilliSeconds();
+                String path = re.getPathPattern();
+                if (path == null) {
+                  path = re.getPath();
+                }
+                HttpMethod httpMethod = HttpMethod.POST;
+                if (re.getMethods().length >= 1) {
+                  httpMethod = HttpMethod.valueOf(re.getMethods()[0]);
+                }
+                final String key = tenantId + "_" + md.getId() + "_" + seq;
+                if (delay > 0 && path != null) {
+                  noTimers++;
+                  fireTimer(lockP, md, re, path, httpMethod, tenant, key);
+                  lockTimer(key, delay, tenantId, md, seq);
                 }
               }
             }
           }
-          if (noTimers == 0) {
-            // module no longer enabled for tenant
-            stopTimer(tenantId, moduleId, seq1, lockP);
-          }
-        } catch (Exception ex) {
-          logger.warn("handleTimer exception: " + ex.getMessage());
         }
-        logger.info("handleTimer done no=" + noTimers);
-      });
+      }
+      if (noTimers == 0) {
+        // module no longer enabled for tenant
+        stopTimer(tenantId, moduleId, seq1, lockP);
+      }
+    } catch (Exception ex) {
+      logger.warn("handleTimer exception: " + ex.getMessage());
+    }
+    logger.info("handleTimer done no=" + noTimers);
+  }
+
+  private void lockTimer(final String key, final long delay, String tenantId, ModuleDescriptor md, final int seq) {
+    logger.info("wait for lock " + key);
+    asyncLock.getLock(key, lockRes -> {
+      if (lockRes.succeeded()) {
+        logger.info("wait for lock " + key + " returned");
+        Lock lock = lockRes.result();
+        if (timers.contains(key)) {
+          logger.info("timers key " + key + " already exist");
+          lock.release();
+          return;
+        }
+        timers.add(key);
+        vertx.setTimer(delay, res4
+          -> vertx.runOnContext(res5
+            -> handleTimer(tenantId, md.getId(), seq, lock)));
+      } else {
+        logger.info("wait for lock " + key + " returned failure "
+          + lockRes.cause());
+      }
     });
+  }
+
+  private void fireTimer(Lock lockP, ModuleDescriptor md, RoutingEntry re, String path, HttpMethod httpMethod, Tenant ten, final String key) {
+    if (lockP != null) {
+      String tenantId = ten.getId();
+      ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
+      MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+      logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
+      proxyService.callSystemInterface("supertenant", headers, ten, inst, "", cRes -> {
+        timers.remove(key);
+        lockP.release();
+        if (cRes.succeeded()) {
+          logger.info("timer call succeeded to module=" + md.getId()
+            + " for tenant " + tenantId);
+        } else {
+          logger.info("timer call failed to module=" + md.getId()
+            + " for tenant " +  tenantId + ": " + cRes.cause().getMessage());
+        }
+      });
+    }
   }
 
   /**
