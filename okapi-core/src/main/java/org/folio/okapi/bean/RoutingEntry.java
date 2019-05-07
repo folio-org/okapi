@@ -2,6 +2,7 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import org.folio.okapi.util.ProxyContext;
@@ -23,6 +24,9 @@ public class RoutingEntry {
   private String level;
   private String type;
   private String redirectPath; // only for type='redirect'
+  private String unit;
+  private String delay;
+  private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
@@ -109,6 +113,42 @@ public class RoutingEntry {
     this.redirectPath = redirectPath;
   }
 
+  public String getUnit() {
+    return unit;
+  }
+
+  public void setUnit(String unit) {
+    this.unit = unit;
+    if (unit != null) {
+      switch (unit) {
+        case "millisecond": factor = 1; break;
+        case "second": factor = 1000; break;
+        case "minute": factor = 60000; break;
+        case "hour": factor = 3600000; break;
+        case "day": factor = 86400000; break;
+        default: throw new IllegalArgumentException(unit);
+      }
+    }
+  }
+
+  public String getDelay() {
+    return delay;
+  }
+
+  public void setDelay(String delay) {
+    this.delay = delay;
+  }
+
+  @JsonIgnore
+  public long getDelayMilliSeconds() {
+    if (this.delay != null && unit != null) {
+      long delay = Integer.parseInt(this.delay);
+      return delay * factor;
+    } else {
+      return 0;
+    }
+  }
+
   public String getLevel() {
     return level;
   }
@@ -128,6 +168,12 @@ public class RoutingEntry {
   }
 
   public void setMethods(String[] methods) {
+    for (int i = 0; i < methods.length; i++) {
+      String s = methods[i];
+      if (!s.equals("*")) {
+        HttpMethod.valueOf(s);
+      }
+    }
     this.methods = methods;
   }
 

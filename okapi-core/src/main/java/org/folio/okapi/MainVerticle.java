@@ -60,6 +60,7 @@ public class MainVerticle extends AbstractVerticle {
   private int port;
   private String okapiVersion = null;
   private Messages messages = Messages.getInstance();
+  boolean enableProxy = false;
 
   public void setClusterManager(ClusterManager mgr) {
     clusterManager = mgr;
@@ -67,11 +68,12 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void init(Vertx vertx, Context context) {
+    super.init(vertx, context);
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-core");
     okapiVersion = m.getVersion();
     m.logStart();
 
-    boolean enableProxy = false;
+
     boolean enableDeployment = false;
 
     super.init(vertx, context);
@@ -194,7 +196,19 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
-    logger.debug("starting");
+    logger.info("Checking for working distributed lock. Cluster=" + vertx.isClustered());
+    vertx.sharedData().getLockWithTimeout("test", 10000, res1 -> {
+      if (res1.succeeded()) {
+        logger.info("Distributed lock ok");
+        res1.result().release();
+        startDatabases(fut);
+      } else {
+        fut.fail("sharedData.getLock failed. Probably related to the Hazelcast configuration");
+      }
+    });
+  }
+
+  private void startDatabases(Future<Void> fut) {
     if (storage != null) {
       storage.prepareDatabases(initMode, res -> {
         if (res.failed()) {
@@ -452,7 +466,11 @@ public class MainVerticle extends AbstractVerticle {
       } else {
         logger.info("Deploy failed: " + res.cause());
       }
-      fut.complete();
+      if (enableProxy) {
+        tenantManager.startTimers(fut);
+      } else {
+        fut.complete();
+      }
     });
   }
 }

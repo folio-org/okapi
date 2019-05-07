@@ -1,0 +1,34 @@
+{
+  "id": "test-basic-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb"
+        }
+      ]
+    },
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb",
+          "unit": "second",
+          "delay": "5"
+        }
+      ]
+    }
+  ],
+  "requires": [],
+  "launchDescriptor": {
+    "exec": "java -Dport=%p -jar ${basedir}/target/okapi-test-module-fat.jar"
+  }
+}
+

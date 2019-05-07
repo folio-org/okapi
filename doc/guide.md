@@ -2097,7 +2097,9 @@ prints some stuff. Those two are connecting, and talking to each other.
 
 Now you can ask Okapi to list the known nodes. On a third console window try this:
 
-```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
+```
+curl -w '\n' -D - http://localhost:9130/_/discovery/nodes
+```
 
 ```
 HTTP/1.1 200 OK
@@ -2154,7 +2156,9 @@ use the proper IP address on the command line. If all goes well, the machines
 should see each other. You can see it in the log on both machines. Now you can
 ask Okapi (any Okapi in the cluster) to list all nodes:
 
-```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
+```
+curl -w '\n' -D - http://localhost:9130/_/discovery/nodes
+```
 
 ```
 HTTP/1.1 200 OK
@@ -2185,7 +2189,9 @@ java -Dhost=tapas -jar okapi-core/target/okapi-core-fat.jar cluster -cluster-hos
 Instead of "tapas", use the name of the machine you are starting on, or even the
 IP address. Again, list the nodes:
 
-```curl -w '\n' -D - http://localhost:9130/_/discovery/nodes```
+```
+curl -w '\n' -D - http://localhost:9130/_/discovery/nodes
+```
 
 ```
 HTTP/1.1 200 OK
@@ -2203,7 +2209,9 @@ Content-Length: 178
 
 You can verify that the URLs work:
 
-```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes```
+```
+curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes
+```
 
 ```
 HTTP/1.1 200 OK
@@ -2218,6 +2226,7 @@ Content-Length: 178
   "url" : "http://tapas:9130"
 } ]
 ```
+
 #### Naming nodes
 
 As mentioned, the Hazelcast system allocates UUIDs for the nodeIds. That is all
@@ -2230,7 +2239,9 @@ java -Dhost=tapas -Dnodename=MyFirstNode \
 ```
 
 If you now list your nodes, you should see something like this:
-```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes```
+```
+curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes
+```
 
 ```
 HTTP/1.1 200 OK
@@ -2246,8 +2257,9 @@ Content-Length: 120
 ```
 
 You can use the name instead of the nodeId in many places, for example
-```curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes/myFirstNode```
-
+```
+curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes/myFirstNode
+```
 
 
 #### So, you have a cluster
@@ -2415,6 +2427,7 @@ curl -w '\n' -X POST -d@/tmp/tmdl.json \
   "id" : "mod-users-bl-2.0.1",
   "action" : "enable"
 } ]
+
 ```
 
 A set of 4 modules was required. This list, of course, may change depending
@@ -2701,6 +2714,40 @@ Descriptor that defines this interface.
 
 The tenantPermissions interface was introduced in Okapi version 1.1
 
+#### Timer Interface
+
+A module may be called periodically by Okapi. The module must provide a system
+interface called `_timer` - version 1.0. The `path` or `pathPattern` can be any
+fixed string (no pattern). Okapi will use that in the call to the module. The request
+body is empty. The first method in the `methods` array is used in the call along with the path.
+So it only makes sense to specify one method in the method list.
+
+The routing entry must also include
+two properties, `unit` and `delay`, where
+`unit` is one of `millisecond`, `second`, `minute`, `hour`, `day`.
+
+The snippet below is an example of a module that gets `POST /testb` every 5 minute.
+
+```
+{
+  "id": "test-basic-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+...
+    {
+      "id": "_timer",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb",
+          "unit": "minute",
+          "delay": "5"
+        }
+      ]
+    }
+```
 
 ### Instrumentation
 

@@ -14,7 +14,7 @@
       "type": "string"
     },
     "replaces": {
-      "description": "List of modules that this raplaces",
+      "description": "List of modules that this replaces",
       "type": "array",
       "items": {
         "description": "Module name - without semantic version",
