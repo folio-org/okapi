@@ -1001,6 +1001,9 @@ public class ProxyService {
     String request,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
+    if (!headersIn.contains(XOkapiHeaders.URL)) {
+      headersIn.set(XOkapiHeaders.URL, okapiUrl);
+    }
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String authToken = headersIn.get(XOkapiHeaders.TOKEN);
     logger.debug("callSystemInterface on " + Json.encode(inst)
