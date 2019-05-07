@@ -584,16 +584,21 @@ public class TenantManager {
     handleTimer(tenantId, null, 0, null);
   }
 
+  private void stopTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
+    if (lockP != null) {
+      logger.info("remove timer for module=" + moduleId + " for tenant " + tenantId);
+      final String key = tenantId + "_" + moduleId + "_" + seq1;
+      timers.remove(key);
+      lockP.release();
+    }
+  }
+
   private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
     logger.info("handleTimer tenant=" + tenantId + " module=" + moduleId + " seq1=" + seq1);
     tenants.get(tenantId, tRes -> {
       if (tRes.failed()) {
-        logger.warn("handleTimer get tenant failed: " + tRes.cause());
-        if (lockP != null) {
-          final String key = tenantId + "_" + moduleId + "_" + seq1;
-          timers.remove(key);
-          lockP.release();
-        }
+        // tenant no longer exist
+        stopTimer(tenantId, moduleId, seq1, lockP);
         return;
       }
       Tenant ten = tRes.result();
@@ -671,11 +676,9 @@ public class TenantManager {
               }
             }
           }
-          if (noTimers == 0 && lockP != null) {
+          if (noTimers == 0) {
             // module no longer enabled for tenant
-            final String key = tenantId + "_" + moduleId + "_" + seq1;
-            timers.remove(key);
-            lockP.release();
+            stopTimer(tenantId, moduleId, seq1, lockP);
           }
         } catch (Exception ex) {
           logger.warn("handleTimer exception: " + ex.getMessage());

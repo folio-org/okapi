@@ -121,7 +121,7 @@ public class BeanTest {
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/users/{id}\"," + LS
@@ -133,7 +133,7 @@ public class BeanTest {
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -166,7 +166,7 @@ public class BeanTest {
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/users/{id}\"," + LS
@@ -178,7 +178,7 @@ public class BeanTest {
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
@@ -219,7 +219,7 @@ public class BeanTest {
       + "  \"id\" : \"sample-module-1\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"NOST\" ]," + LS
       + "      \"pathPattern\" : \"/users/{id}\"" + LS
@@ -232,6 +232,83 @@ public class BeanTest {
         ModuleDescriptor.class);
       String pretty = Json.encodePrettily(md);
     } catch (DecodeException ex) {
+      fail = 400;
+    }
+    assertEquals(400, fail);
+  }
+
+  @Test
+  public void testModuleDescriptorTimers() {
+    int fail = 0;
+
+    final String docModuleDescriptor = "{" + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_timer\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"second\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"minute\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"hour\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"day\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+
+    try {
+      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+        ModuleDescriptor.class);
+      String pretty = Json.encodePrettily(md);
+    } catch (DecodeException ex) {
+      ex.printStackTrace();
+      fail = 400;
+    }
+    assertEquals(0, fail);
+  }
+
+  @Test
+  public void testModuleDescriptorTimers2() {
+    int fail = 0;
+
+    final String docModuleDescriptor = "{" + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_timer\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"second1\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+
+    try {
+      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+        ModuleDescriptor.class);
+      String pretty = Json.encodePrettily(md);
+    } catch (DecodeException ex) {
+      ex.printStackTrace();
       fail = 400;
     }
     assertEquals(400, fail);

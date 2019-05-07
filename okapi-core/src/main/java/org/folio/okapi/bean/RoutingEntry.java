@@ -26,6 +26,7 @@ public class RoutingEntry {
   private String redirectPath; // only for type='redirect'
   private String unit;
   private String delay;
+  private long factor;
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
@@ -118,6 +119,16 @@ public class RoutingEntry {
 
   public void setUnit(String unit) {
     this.unit = unit;
+    if (unit != null) {
+      switch (unit) {
+        case "millisecond": factor = 1; break;
+        case "second": factor = 1000; break;
+        case "minute": factor = 60000; break;
+        case "hour": factor = 3600000; break;
+        case "day": factor = 86400000; break;
+        default: throw new IllegalArgumentException(unit);
+      }
+    }
   }
 
   public String getDelay() {
@@ -130,22 +141,12 @@ public class RoutingEntry {
 
   @JsonIgnore
   public long getDelayMilliSeconds() {
-    if (delay == null) {
+    if (this.delay != null && unit != null) {
+      long delay = Integer.parseInt(this.delay);
+      return delay * factor;
+    } else {
       return 0;
     }
-    long delay = Integer.parseInt(this.delay);
-    long factor = 1;
-    if (unit != null) {
-      switch (unit) {
-        case "millisecond": factor = 1; break;
-        case "second": factor = 1000; break;
-        case "minute": factor = 60000; break;
-        case "hour": factor = 3600000; break;
-        case "day": factor = 86400000; break;
-        default: throw new IllegalArgumentException(unit);
-      }
-    }
-    return delay * factor;
   }
 
   public String getLevel() {
