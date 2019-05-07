@@ -73,15 +73,6 @@ public class MainVerticle extends AbstractVerticle {
     okapiVersion = m.getVersion();
     m.logStart();
 
-    logger.info("obtain lock . Cluster=" + vertx.isClustered());
-    vertx.sharedData().getLock("test", res1 -> {
-      if (res1.succeeded()) {
-        logger.info("getLock ok");
-        res1.result().release();
-      } else {
-        logger.info("getLock returned failure " + res1.cause());
-      }
-    });
 
     boolean enableDeployment = false;
 
@@ -205,7 +196,19 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Future<Void> fut) {
-    logger.debug("starting");
+    logger.info("Checking for working distributed lock. Cluster=" + vertx.isClustered());
+    vertx.sharedData().getLockWithTimeout("test", 10000, res1 -> {
+      if (res1.succeeded()) {
+        logger.info("Distributed lock ok");
+        res1.result().release();
+        startDatabases(fut);
+      } else {
+        fut.fail("sharedData.getLock failed. Probably related to the Hazelcast configuration");
+      }
+    });
+  }
+
+  private void startDatabases(Future<Void> fut) {
     if (storage != null) {
       storage.prepareDatabases(initMode, res -> {
         if (res.failed()) {
