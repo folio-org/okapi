@@ -8,8 +8,8 @@ import io.vertx.core.shareddata.SharedData;
 
 public class AsyncLock {
 
-  private static boolean isCluster;
-  private static SharedData shared;
+  private final boolean isCluster;
+  private final SharedData shared;
 
   public AsyncLock(Vertx vertx) {
     shared = vertx.sharedData();
