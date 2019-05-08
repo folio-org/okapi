@@ -1,7 +1,6 @@
 package org.folio.okapi.auth;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
@@ -18,7 +17,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Map.Entry;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -220,13 +218,11 @@ class Auth {
     }
 
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
-    if ("/_/tenant".equals(ctx.request().path())) {
-      if (req != null && !req.isEmpty()) {
-        logger.warn("test-auth: Rejecting request to /_/tenant because of "
-          + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + req);
-        responseError(ctx, 403, "/_/tenant can not require permissions");
-        return;
-      }
+    if ("/_/tenant".equals(ctx.request().path()) && req != null && !req.isEmpty()) {
+      logger.warn("test-auth: Rejecting request to /_/tenant because of "
+        + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + req);
+      responseError(ctx, 403, "/_/tenant can not require permissions");
+      return;
     }
     // Fake some desired permissions
     String des = headers.get(XOkapiHeaders.PERMISSIONS_DESIRED);
