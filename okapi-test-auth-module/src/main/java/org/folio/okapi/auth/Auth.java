@@ -1,5 +1,7 @@
 package org.folio.okapi.auth;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import static org.folio.okapi.common.HttpResponse.responseError;
 import static org.folio.okapi.common.HttpResponse.responseJson;
@@ -16,6 +18,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map.Entry;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -160,13 +163,20 @@ class Auth {
   }
 
   public void check(RoutingContext ctx) {
-    String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    MultiMap headers = ctx.request().headers();
+    final String req = headers.get(XOkapiHeaders.PERMISSIONS_REQUIRED);
+    String tenant = headers.get(XOkapiHeaders.TENANT);
     if (tenant == null || tenant.isEmpty()) {
       tenant = "supertenant";
     }
     String userId = "?";
-    String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
+    String tok = headers.get(XOkapiHeaders.TOKEN);
     if (tok == null || tok.isEmpty()) {
+      // Only make a token if no permissions are required
+      if (req != null && !req.isEmpty()) {
+        responseError(ctx, 401, "Permissions required: " + req);
+        return;
+      }
       tok = token(tenant, "-"); // create a dummy token without username
       // We call /_/tenant and /_/tenantPermissions in our tests without a token.
       // In real life, this is more complex, mod-authtoken creates a non-
@@ -201,7 +211,7 @@ class Auth {
         responseError(ctx, 400, "Bad Json payload " + payload);
         return;
       }
-      final String ovTok = ctx.request().getHeader(XOkapiHeaders.ADDITIONAL_TOKEN);
+      final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
       logger.info("ovTok=" + ovTok);
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
         responseError(ctx, 400, "Bad additonal token: " + ovTok);
@@ -211,20 +221,17 @@ class Auth {
 
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path())) {
-      String preq = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_REQUIRED);
-      if (preq != null && !preq.isEmpty()) {
+      if (req != null && !req.isEmpty()) {
         logger.warn("test-auth: Rejecting request to /_/tenant because of "
-          + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + preq);
+          + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + req);
         responseError(ctx, 403, "/_/tenant can not require permissions");
         return;
       }
     }
     // Fake some desired permissions
-    String des = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_DESIRED);
-    String req = ctx.request().getHeader(XOkapiHeaders.PERMISSIONS_REQUIRED);
+    String des = headers.get(XOkapiHeaders.PERMISSIONS_DESIRED);
     if (des != null && !des.isEmpty()) {
-    ctx.response().headers()
-      .add(XOkapiHeaders.PERMISSIONS, des);
+      ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
     }
     if (req != null)
       ctx.response().headers().add("X-Auth-Permissions-Required", req);

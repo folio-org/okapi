@@ -942,11 +942,11 @@ curl -w '\n' -D -  http://localhost:9130/_/proxy/modules
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.15.1-SNAPSHOT /_/proxy/modules : 200 8081us
-Content-Length: 74
+X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/proxy/modules : 200 8081us
+Content-Length: 60
 
 [ {
-  "id" : "okapi-2.15.1-SNAPSHOT",
+  "id" : "okapi-2.29.1-SNAPSHOT",
   "name" : "Okapi"
 } ]
 ```
@@ -963,8 +963,8 @@ curl -w '\n' -D - http://localhost:9130/_/proxy/tenants
 
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
-Content-Length: 117
+X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/proxy/tenants : 200 450us
+Content-Length: 105
 
 [ {
   "id" : "okapi.supertenant",
@@ -998,7 +998,8 @@ cat > /tmp/okapi-proxy-test-basic.1.json <<END
       "handlers": [
         {
           "methods": [ "GET", "POST" ],
-          "pathPattern": "/testb"
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.get.list" ]
         }
       ]
     }
@@ -1040,7 +1041,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-basic-1.0.0
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/modules : 201 9786us
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/proxy/modules : 201 9786us
 Content-Length: 370
 
 {
@@ -1052,7 +1053,8 @@ Content-Length: 370
     "version" : "2.2",
     "handlers" : [ {
       "methods" : [ "GET", "POST" ],
-      "pathPattern" : "/testb"
+      "pathPattern" : "/testb",
+      "permissionsRequired": [ "test-basic.get.list" ]
     } ]
   } ],
   "launchDescriptor" : {
@@ -1138,11 +1140,11 @@ Okapi responds with
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-basic-1.0.0/localhost-9131
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/discovery/modules : 201
-Content-Length: 237
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/discovery/modules : 201 1025424us
+Content-Length: 259
 
 {
-  "instId" : "localhost-9131",
+  "instId" : "edb1a2e2-752f-4317-bcf5-4818c48397a3",
   "srvcId" : "test-basic-1.0.0",
   "nodeId" : "localhost",
   "url" : "http://localhost:9131",
@@ -1157,10 +1159,10 @@ the service Id "test-basic-1.0.0", and it went ahead and looked up the
 LaunchDescriptor from the ModuleDescriptor we posted earlier, with
 this id.
 
-Okapi has also allocated a port for this module, 9131, and given it an
-instance ID, "localhost-9131". This is necessary, since we can have
-multiple instances of the same module running on different nodes, or
-even the same one.
+Okapi has also allocated a port for this module, 9131, and given it a
+unique instance ID, It must be unique, since we can have multiple
+instances of the same module running on different nodes, or even the
+same one.
 
 Finally Okapi also returns the URL that the module is listening on.
 In a real life cluster there would be a firewall preventing any direct
@@ -1184,16 +1186,21 @@ directly to the modules. But if we try Okapi's own base URL we get:
 ```
 curl -D - -w '\n' http://localhost:9130/testb
 
-HTTP/1.1 403 Forbidden
+HTTP/1.1 404 Not Found
 Content-Type: text/plain
-Content-Length: 14
+Content-Length: 63
 
-Missing Tenant
+No suitable module found for path /testb for tenant supertenant
 ```
+
+Notice the failure. Okapi defaults to tenant `supertenant`, but since
+our module is not enabled for that tenant, it returns 'not found'.
 
 Okapi is a multi-tenant system, so each request must be done on behalf
 of some tenant. We could use the supertenant, but that would be bad
-practice. Let's create a test tenant for this example. It is not very
+practice.
+
+Let's create a test tenant for this example. It is not very
 difficult:
 
 ```
@@ -1213,7 +1220,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 201 1065us
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/proxy/tenants : 201 1065us
 Content-Length: 91
 
 {
@@ -1224,7 +1231,9 @@ Content-Length: 91
 ```
 
 #### Enabling the module for our tenant
-Next we need to enable the module for our tenant. This is even simpler operation:
+
+Next we need to enable the module for our tenant. This is even simpler
+operation:
 
 ```
 cat > /tmp/okapi-enable-basic-1.json <<END
@@ -1241,7 +1250,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.0.0
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 11566us
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/proxy/tenants/testlib/modules : 201 11566us
 Content-Length: 31
 
 {
@@ -1315,6 +1324,17 @@ cat > /tmp/okapi-module-auth.json <<END
           "pathPattern": "/authn/login"
         }
       ]
+    },
+    {
+      "id": "_tenantPermissions",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": [ "POST" ],
+          "pathPattern": "/_/tenantPermissions"
+        }
+      ]
     }
   ],
   "requires": [],
@@ -1366,7 +1386,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/modules/test-auth-3.4.1
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/modules : 201 1614us
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/proxy/modules : 201 1614us
 Content-Length: 377
 
 {
@@ -1413,11 +1433,11 @@ curl -w '\n' -D - -s \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/discovery/modules/test-auth-3.4.1/localhost-9132
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/discovery/modules : 201
-Content-Length: 246
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/discovery/modules : 201
+Content-Length: 268
 
 {
-  "instId" : "localhost-9132",
+  "instId" : "85a7edcd-9360-413f-a577-284a5edf5e28",
   "srvcId" : "test-auth-3.4.1",
   "nodeId" : "localhost",
   "url" : "http://localhost:9132",
@@ -1466,15 +1486,15 @@ Content-Type: text/plain
 X-Okapi-Trace: GET test-auth-3.4.1 http://localhost:9132/testb : 401 64187us
 Transfer-Encoding: chunked
 
-test-auth: check called without X-Okapi-Token
+Permissions required: test-basic.get.list
 ```
 
 Indeed, we are no longer allowed to call the test module. So, how do
 we get the permission? The error message says that we need a
-`X-Okapi-Token`. Those we can get from the login service. The dummy
-auth module is not very clever in verifying passwords, it assumes that
-for username "peter" we have a password "peter-password". Not overly
-secure, but enough for this example.
+`test-basic.get.list` permission. Those we can get from the login
+service. The dummy auth module is not very clever in verifying
+passwords, it assumes that for username "peter" we have a password
+"peter-password". Not overly secure, but enough for this example.
 
 ```
 cat > /tmp/okapi-login.json <<END
@@ -1566,7 +1586,8 @@ cat > /tmp/okapi-proxy-test-basic.2.json <<END
       "handlers": [
         {
           "methods": [ "GET", "POST" ],
-          "pathPattern": "/testb"
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.get.list" ]
         }
       ]
     },
@@ -1672,7 +1693,7 @@ curl -w '\n' -X POST -D - \
 HTTP/1.1 201 Created
 Content-Type: application/json
 Location: /_/proxy/tenants/testlib/modules/test-basic-1.2.0
-X-Okapi-Trace: POST okapi-2.0.1-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
+X-Okapi-Trace: POST okapi-2.29.0-SNAPSHOT /_/proxy/tenants/testlib/modules/test-basic-1.0.0 : 201
 Content-Length: 31
 
 {
@@ -2176,7 +2197,7 @@ curl -w '\n' -D - http://localhost:9130/_/discovery/nodes
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
+X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 186
 
 [ {
@@ -2237,7 +2258,7 @@ curl -w '\n' -D - http://localhost:9130/_/discovery/nodes
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
+X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 186
 
 [ {
@@ -2318,13 +2339,13 @@ java -Dhost=tapas -Dnodename=MyFirstNode \
 
 If you now list your nodes, you should see something like this:
 ```
-curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes
+curl -w '\n' -D - http://tapas:9130/_/discovery/nodes
 ```
 
 ```
 HTTP/1.1 200 OK
 Content-Type: application/json
-X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/discovery/nodes : 200
+X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/discovery/nodes : 200
 Content-Length: 120
 
 [ {
@@ -2336,7 +2357,7 @@ Content-Length: 120
 
 You can use the name instead of the nodeId in many places, for example
 ```
-curl -w '\n' -D -    http://tapas:9130/_/discovery/nodes/myFirstNode
+curl -w '\n' -D - http://tapas:9130/_/discovery/nodes/myFirstNode
 ```
 
 
