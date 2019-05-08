@@ -216,7 +216,6 @@ class Auth {
         return;
       }
     }
-
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null && !req.isEmpty()) {
       logger.warn("test-auth: Rejecting request to /_/tenant because of "
