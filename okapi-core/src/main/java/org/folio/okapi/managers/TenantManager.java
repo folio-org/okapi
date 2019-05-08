@@ -632,16 +632,11 @@ public class TenantManager {
             if (seq1 == 0 || seq == seq1) {
               final long delay = re.getDelayMilliSeconds();
               String path = re.getStaticPath();
-              HttpMethod httpMethod = HttpMethod.POST;
-              String[] methods = re.getMethods();
-              if (methods != null && re.getMethods().length >= 1) {
-                httpMethod = HttpMethod.valueOf(methods[0]);
-              }
               final String key = tenantId + "_" + md.getId() + "_" + seq;
               if (delay > 0 && path != null) {
                 noTimers++;
-                fireTimer(lockP, md, re, path, httpMethod, tenant, key);
-                lockTimer(key, delay, tenantId, md, seq);
+                fireTimer(tenant, md, re, path, key, lockP);
+                lockTimer(tenantId, md, key, delay, seq);
               }
             }
           }
@@ -655,7 +650,7 @@ public class TenantManager {
     logger.info("handleTimer done no=" + noTimers);
   }
 
-  private void lockTimer(final String key, final long delay, String tenantId, ModuleDescriptor md, final int seq) {
+  private void lockTimer(String tenantId, ModuleDescriptor md, String key, long delay, int seq) {
     logger.info("wait for lock " + key);
     asyncLock.getLock(key, lockRes -> {
       if (lockRes.succeeded()) {
@@ -677,15 +672,20 @@ public class TenantManager {
     });
   }
 
-  private void fireTimer(Lock lockP, ModuleDescriptor md, RoutingEntry re, String path, HttpMethod httpMethod, Tenant ten, final String key) {
-    if (lockP != null) {
+  private void fireTimer(Tenant ten, ModuleDescriptor md, RoutingEntry re, String path, String key, Lock lock) {
+    if (lock != null) {
       String tenantId = ten.getId();
+      HttpMethod httpMethod = HttpMethod.POST;
+      String[] methods = re.getMethods();
+      if (methods != null && re.getMethods().length >= 1) {
+        httpMethod = HttpMethod.valueOf(methods[0]);
+      }
       ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
       MultiMap headers = MultiMap.caseInsensitiveMultiMap();
       logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
       proxyService.callSystemInterface("supertenant", headers, ten, inst, "", cRes -> {
         timers.remove(key);
-        lockP.release();
+        lock.release();
         if (cRes.succeeded()) {
           logger.info("timer call succeeded to module=" + md.getId()
             + " for tenant " + tenantId);
