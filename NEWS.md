@@ -1,3 +1,9 @@
+## 2.28.1 2019-05-09
+
+ * OKAPI-731 Fixes for timer calls (scheduling). 1:request body was not
+   empty as specified in manual. 2: X-Okapi-Url not set in timer call
+ * OKAPI-726 Update guide for case when tenant header is omitted
+
 ## 2.28.0 2019-05-07
 
  * OKAPi-730 System call timers (period calls made by Okapi)
