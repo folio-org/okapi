@@ -1,9 +1,9 @@
 ## 2.28.0 2019-05-07
 
- * OKAPi-730 System call timers (period calls made by Okapi)
+ * OKAPI-730 System call timers (period calls made by Okapi)
  * OKAPI-725 Fix Okapi does not pass tenant header for supertenant
  * OKAPI-723 Improve diagnostics for install
- * OKAPI-722 Fix Okapi not logging efter initialzation
+ * OKAPI-722 Fix Okapi not logging after initialization
 
 ## 2.27.0 2019-04-04
 

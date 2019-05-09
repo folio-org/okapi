@@ -10,7 +10,7 @@
       "type": "string"
     },
     "name": {
-      "description": "Short name for module (should not include version)",
+      "description": "Short name for module (does not include version)",
       "type": "string"
     },
     "replaces": {
