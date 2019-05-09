@@ -164,7 +164,7 @@ class Auth {
     MultiMap headers = ctx.request().headers();
     final String req = headers.get(XOkapiHeaders.PERMISSIONS_REQUIRED);
     String tenant = headers.get(XOkapiHeaders.TENANT);
-    if (tenant == null || tenant.isEmpty()) {
+    if (tenant == null) {
       tenant = "supertenant";
     }
     String userId = "?";
@@ -217,7 +217,7 @@ class Auth {
       }
     }
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
-    if ("/_/tenant".equals(ctx.request().path()) && req != null && !req.isEmpty()) {
+    if ("/_/tenant".equals(ctx.request().path()) && req != null) {
       logger.warn("test-auth: Rejecting request to /_/tenant because of "
         + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + req);
       responseError(ctx, 403, "/_/tenant can not require permissions");
@@ -225,7 +225,7 @@ class Auth {
     }
     // Fake some desired permissions
     String des = headers.get(XOkapiHeaders.PERMISSIONS_DESIRED);
-    if (des != null && !des.isEmpty()) {
+    if (des != null) {
       ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
     }
     if (req != null)
