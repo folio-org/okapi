@@ -148,7 +148,7 @@ public class ProxyTest {
   private void myTimerHandle(RoutingContext ctx) {
     final String p = ctx.request().path();
     logger.info("myTimerHandle p=" + p);
-    for (Entry<String,String> ent : ctx.request().headers().entries()) {
+    for (Entry<String, String> ent : ctx.request().headers().entries()) {
       logger.info(ent.getKey() + ":" + ent.getValue());
     }
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
@@ -270,7 +270,7 @@ public class ProxyTest {
     Async async = context.async();
 
     httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
-      context.assertEquals(204, response.statusCode());
+      context.assertTrue(response.statusCode() == 404 || response.statusCode() == 204);
       response.endHandler(x -> {
         httpClient.close();
         td(context, async);
@@ -1088,7 +1088,7 @@ public class ProxyTest {
       .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
       .then().log().ifValidationFails()
-      .statusCode(200);
+      .statusCode(401);
 
     // Failed login
     final String docWrongLogin = "{" + LS
@@ -1134,7 +1134,6 @@ public class ProxyTest {
       .header("X-Auth-Permissions-Desired", containsString("sample.extra"))
       .header("X-Auth-Permissions-Required", "sample.needed")
       .body(containsString("It works"));
-
     // Check the CORS headers.
     // The presence of the Origin header should provoke the two extra headers.
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -2310,6 +2309,21 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + "supertenant" + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    final String okapiToken = c.given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", "supertenant").post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/tenants")
+      .then().statusCode(200);
+
     final String okapiTenant = "roskilde";
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -2319,6 +2333,7 @@ public class ProxyTest {
       + "}";
     c = api.createRestAssured3();
     given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
@@ -2332,6 +2347,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"},"
@@ -2353,6 +2369,11 @@ public class ProxyTest {
       .body("Okapi").get("/edge/unknown")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("No such Tenant unknown"));
+
+    given()
+      .header("X-Okapi-Token", okapiToken)
+      .delete("/_/discovery/modules")
+      .then().statusCode(204).log().ifValidationFails();
   }
 
   @Test
