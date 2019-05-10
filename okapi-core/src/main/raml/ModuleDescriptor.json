@@ -57,6 +57,14 @@
         "$ref": "Permission.json"
       }
     },
+    "env" : {
+      "description": "Supported environment variables",
+      "$ref" : "EnvEntryList.json"
+    },
+    "metadata" : {
+      "description": "Module Metadata (any object)",
+      "type" : "object"
+    },
     "uiDescriptor": {
       "description": "UI module descriptor",
       "$ref": "UiModuleDescriptor.json"

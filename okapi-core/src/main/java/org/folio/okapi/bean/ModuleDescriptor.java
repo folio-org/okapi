@@ -27,6 +27,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private InterfaceDescriptor[] provides;
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
+  private EnvEntry[] env;
+  private AnyDescriptor metadata;
   private UiModuleDescriptor uiDescriptor;
   private LaunchDescriptor launchDescriptor;
   private ModuleId[] replaces;
@@ -196,6 +198,22 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setPermissionSets(Permission[] permissionSets) {
     this.permissionSets = permissionSets;
+  }
+
+  public EnvEntry[] getEnv() {
+    return env;
+  }
+
+  public void setEnv(EnvEntry[] env) {
+    this.env = env;
+  }
+
+  public AnyDescriptor getMetadata() {
+    return metadata;
+  }
+
+  public void setMetadata(AnyDescriptor metadata) {
+    this.metadata = metadata;
   }
 
   public RoutingEntry[] getFilters() {

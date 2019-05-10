@@ -117,7 +117,7 @@ public class MultiTenantTest {
     conf.put("port", Integer.toString(port));
 
     MainDeploy d = new MainDeploy(conf);
-    String[] args = {"cluster"};
+    String[] args = {"dev"};
     d.init(args, res -> {
       if (res.succeeded()) {
         vertx = res.result();
