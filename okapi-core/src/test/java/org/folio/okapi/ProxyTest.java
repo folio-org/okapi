@@ -2172,10 +2172,10 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails()
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
-    Assert.assertEquals("Okapi", preBuffer.toString());
 
     Async async = context.async();
     vertx.setTimer(300, res -> {
+      Assert.assertEquals("Okapi", preBuffer.toString());
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
       context.assertNotNull(postHandlerHeaders);
       context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
