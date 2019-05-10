@@ -795,7 +795,10 @@ public class ModuleTest {
       + "  } ]," + LS
       + "  \"metadata\" : {" + LS
       + "    \"scm\" : \"https://github.com/folio-org/mod-something\"," + LS
-      + "    \"language\" : \"java\"" + LS
+      + "    \"language\" : {" + LS
+      + "      \"name\" : \"java\"," + LS
+      + "      \"versions\" : [ 8.0, 11.0 ]" + LS
+      + "    }" + LS
       + "  }," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
