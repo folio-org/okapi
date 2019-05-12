@@ -53,6 +53,7 @@ public class MainDeploy {
     Messages.setLanguage(getProperty("lang", "en"));
 
     if (args.length < 1) {
+      printUsage();
       fut.handle(Future.failedFuture(messages.getMessage("10600")));
       return;
     }
@@ -72,7 +73,7 @@ public class MainDeploy {
         deployClustered(logger, fut);
         break;
       default:
-        fut.handle(Future.failedFuture(messages.getMessage("10601",mode)));
+        fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
     }
   }
 
@@ -103,22 +104,7 @@ public class MainDeploy {
     while (i < args.length) {
       if (!args[i].startsWith("-")) {
         if ("help".equals(args[i])) {
-          out.println("Usage: command [options]\n"
-            + "Commands:\n"
-            + "  help         Display help\n"
-            + "  cluster      Run in clustered mode\n"
-            + "  dev          Development mode\n"
-            + "  deployment   Deployment only. Clustered mode\n"
-            + "  proxy        Proxy + discovery. Clustered mode\n"
-            + "Options:\n"
-            + "  -conf file                    Read Okapi configuration from local file\n"
-            + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
-            + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
-            + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
-            + "  -cluster-host ip              Vertx cluster host\n"
-            + "  -cluster-port port            Vertx cluster port\n"
-            + "  -enable-metrics\n"
-          );
+          printUsage();
           fut.handle(Future.succeededFuture(null));
           return true;
         }
@@ -167,6 +153,25 @@ public class MainDeploy {
       conf.put("mode", mode);
     }
     return false;
+  }
+
+  private void printUsage() {
+    out.println("Usage: command [options]\n"
+      + "Commands:\n"
+      + "  help         Display help\n"
+      + "  cluster      Run in clustered mode\n"
+      + "  dev          Development mode\n"
+      + "  deployment   Deployment only. Clustered mode\n"
+      + "  proxy        Proxy + discovery. Clustered mode\n"
+      + "Options:\n"
+      + "  -conf file                    Read Okapi configuration from local file\n"
+      + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
+      + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
+      + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
+      + "  -cluster-host ip              Vertx cluster host\n"
+      + "  -cluster-port port            Vertx cluster port\n"
+      + "  -enable-metrics\n"
+    );
   }
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
