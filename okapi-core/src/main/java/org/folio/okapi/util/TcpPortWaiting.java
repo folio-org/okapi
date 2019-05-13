@@ -12,11 +12,11 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 
 public class TcpPortWaiting {
-  
+
   private final Logger logger = OkapiLogger.get();
   private static final int MILLISECONDS = 200;
   private Messages messages = Messages.getInstance();
-  
+
   private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
   private int port;
   private Vertx vertx;
@@ -55,7 +55,7 @@ public class TcpPortWaiting {
       }
     });
   }
-  
+
   public void setMaxIterations(int maxIterations) {
     this.maxIterations = maxIterations;
   }

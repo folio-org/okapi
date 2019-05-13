@@ -2847,8 +2847,7 @@ The routing entry must also include two properties, `unit` and
 `delay`, where `unit` is one of `millisecond`, `second`, `minute`,
 `hour`, `day`.
 
-The snippet below is an example of a module that gets `POST /testb`
-every 5 minute.
+The snippet below is an example of a module that gets `POST /testb` every 5 minutes.
 
 ```
 {
