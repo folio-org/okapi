@@ -203,7 +203,8 @@ public class MainVerticle extends AbstractVerticle {
         res1.result().release();
         startDatabases(fut);
       } else {
-        fut.fail("sharedData.getLock failed. Probably related to the Hazelcast configuration");
+        fut.fail("getLock failed. Fix your Hazelcast configuration:\n"
+          + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
       }
     });
   }

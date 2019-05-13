@@ -784,6 +784,22 @@ public class ModuleTest {
       + "    \"description\" : \"All permissions combined\"," + LS
       + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]" + LS
       + "  } ]," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"DB_HOST\"," + LS
+      + "    \"value\" : \"localhost\"," + LS
+      + "    \"description\" : \"PostgreSQL host\"" + LS
+      + "  }, {" + LS
+      + "    \"name\" : \"DB_PORT\"," + LS
+      + "    \"value\" : \"5432\"," + LS
+      + "    \"description\" : \"PostgreSQL port\"" + LS
+      + "  } ]," + LS
+      + "  \"metadata\" : {" + LS
+      + "    \"scm\" : \"https://github.com/folio-org/mod-something\"," + LS
+      + "    \"language\" : {" + LS
+      + "      \"name\" : \"java\"," + LS
+      + "      \"versions\" : [ 8.0, 11.0 ]" + LS
+      + "    }" + LS
+      + "  }," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS

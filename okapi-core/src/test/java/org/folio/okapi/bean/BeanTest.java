@@ -142,6 +142,14 @@ public class BeanTest {
       + "      \"type\" : \"system\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"DB_HOST\"," + LS
+      + "    \"value\" : \"localhost\"" + LS
+      + "  } ]," + LS
+      + "  \"metadata\" : {" + LS
+      + "    \"scm\" : \"https://github.com/folio-org/mod-something\"," + LS
+      + "    \"language\" : \"java\"" + LS
+      + "  }," + LS
       + "  \"replaces\" : [ \"old-module\", \"other-module\" ]" + LS
       + "}";
 
@@ -308,7 +316,6 @@ public class BeanTest {
         ModuleDescriptor.class);
       String pretty = Json.encodePrettily(md);
     } catch (DecodeException ex) {
-      ex.printStackTrace();
       fail = 400;
     }
     assertEquals(400, fail);
