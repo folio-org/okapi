@@ -286,7 +286,7 @@ public class ProxyTest {
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules")
       .then().statusCode(400)
-      .body(equalTo("Invalid Token: 1"));
+      .body(containsString("Invalid Token: "));
 
     given()
       .header("X-Okapi-Token", "a.b.c")
