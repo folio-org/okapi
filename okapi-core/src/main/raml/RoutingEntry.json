@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "properties": {
     "methods": {
-      "description": "List of methods GET, POST,.. *(for all)",
+      "description": "List of methods GET, POST,.. * (for all)",
       "type": "array",
       "items": {
         "type": "string"
@@ -41,11 +41,11 @@
       "type": "string"
     },
     "unit": {
-      "description": "delay unit",
+      "description": "Delay unit",
       "type": "string"
     },
     "delay": {
-      "description": "delay between calls",
+      "description": "Delay between calls",
       "type": "string"
     },
     "permissionsRequired": {
