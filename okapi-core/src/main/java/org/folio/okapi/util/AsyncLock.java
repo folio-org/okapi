@@ -17,10 +17,11 @@ public class AsyncLock {
   }
 
   public void getLock(String name, Handler<AsyncResult<Lock>> resultHandler) {
+    long longTime = 2000000000;
     if (isCluster) {
-      shared.getLock(name, resultHandler);
+      shared.getLockWithTimeout(name, longTime, resultHandler);
     } else {
-      shared.getLocalLock(name, resultHandler);
+      shared.getLocalLockWithTimeout(name, longTime, resultHandler);
     }
   }
 }
