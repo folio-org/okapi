@@ -1,3 +1,6 @@
+## 2.29.1 2019-07-17
+ * OKAPI-734 Fix timer calls terminated for connection refused
+
 ## 2.29.0 2019-05-10
 
  * OKAPI-732 Extend ModuleDescriptor with metadata and env properties
