@@ -395,7 +395,7 @@ public class TenantManager {
       } else {
         ModuleInstance tenInst = ires.result();
         final String req = purge ? "" : jo.encodePrettily();
-        proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
+        proxyService.callSystemInterface(tenant, tenInst, req, pc, true, cres -> {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
@@ -731,7 +731,7 @@ public class TenantManager {
     }
     pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
     proxyService.callSystemInterface(tenant, permInst,
-      pljson, pc, cres -> {
+      pljson, pc, false, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
         } else {
@@ -777,7 +777,7 @@ public class TenantManager {
               logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
                 + "interface. Define InterfaceType=system, and add a RoutingEntry."
                 + " Falling back to calling /_/tenant.");
-              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST, true)));
+              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST, true).withRetry()));
               return;
             }
             break;
@@ -838,7 +838,7 @@ public class TenantManager {
               return true;
             }
           } else if (mdTo != null) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true)));
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true).withRetry()));
             return true;
           }
         }

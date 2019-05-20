@@ -988,7 +988,7 @@ public class ProxyService {
    * and/or errors
    */
   public void callSystemInterface(Tenant tenant, ModuleInstance inst,
-    String request, ProxyContext pc,
+    String request, ProxyContext pc, boolean clientRetry,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
     String curTenantId = pc.getTenant(); // is often the supertenant
@@ -998,8 +998,7 @@ public class ProxyService {
 
   public void callSystemInterface(String curTenantId, MultiMap headersIn,
     Tenant tenant, ModuleInstance inst,
-    String request,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1047,8 +1046,7 @@ public class ProxyService {
    *
    */
   private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
-    String tenantId, ModuleInstance inst,
-    String request, MultiMap headers,
+    String tenantId, ModuleInstance inst, String request, MultiMap headers,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
@@ -1113,30 +1111,17 @@ public class ProxyService {
       }
       String baseurl = instance.getUrl();
       logger.debug("doCallSystemInterface Url: " + baseurl + " and " + inst.getPath());
-      Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken);
+      Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
-      if (modPerms != null) { // We are making an auth call
-        RoutingEntry re = inst.getRoutingEntry();
-        if (re != null) {
-          headers.put(XOkapiHeaders.FILTER, re.getPhase());
-        }
-        if (!modPerms.isEmpty()) {
-          headers.put(XOkapiHeaders.MODULE_PERMISSIONS, modPerms);
-        }
-        // Clear the permissions-required header that we inherited from the
-        // original request (e.g. to tenant-enable), as we do not have those
-        // perms set in the target tenant
-        headers.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
-        headers.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
-        logger.debug("Auth call, some tricks with permissions");
-      }
       logger.debug("doCallSystemInterface: About to create OkapiClient with headers "
         + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
-      cli.setClosedRetry(40000);
+      if (inst.isWithRetry()) {
+        cli.setClosedRetry(40000);
+      }
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         cli.close();
         if (cres.failed()) {
@@ -1161,7 +1146,7 @@ public class ProxyService {
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
   private Map<String, String> sysReqHeaders(MultiMap headersIn,
-    String tenantId, String authToken) {
+    String tenantId, String authToken, ModuleInstance inst, String modPerms) {
 
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
@@ -1178,6 +1163,21 @@ public class ProxyService {
     }
     headersOut.put("Accept", "*/*");
     headersOut.put("Content-Type", "application/json; charset=UTF-8");
+    if (modPerms != null) { // We are making an auth call
+      RoutingEntry re = inst.getRoutingEntry();
+      if (re != null) {
+        headersOut.put(XOkapiHeaders.FILTER, re.getPhase());
+      }
+      if (!modPerms.isEmpty()) {
+        headersOut.put(XOkapiHeaders.MODULE_PERMISSIONS, modPerms);
+      }
+      // Clear the permissions-required header that we inherited from the
+      // original request (e.g. to tenant-enable), as we do not have those
+      // perms set in the target tenant
+      headersOut.remove(XOkapiHeaders.PERMISSIONS_REQUIRED);
+      headersOut.remove(XOkapiHeaders.PERMISSIONS_DESIRED);
+      logger.debug("Auth call, some tricks with permissions");
+    }
     return headersOut;
   }
 
