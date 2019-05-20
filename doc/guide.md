@@ -2542,9 +2542,12 @@ depending on the current set of modules in the remote repository.
 For Okapi version 1.11.0 and later the modules may be referred to
 without version. In the example above, we could have used
 `mod-users-bl`.  In this case, the latest available module will be
-picked for action=enable and the installed module will be picked for
-action=disable.  Okapi will always respond with the complete -
+picked for `action` = `enable` and the installed module will be picked
+for `action` = `disable`.  Okapi will always respond with the complete -
 resulting - module IDs.
+
+If a module is upgraded from an older version, the `from` property
+contains the old module ID.
 
 By default all modules are considered for install - whether
 pre-releases or not. For Okapi 1.11.0, it is possible to add filter
@@ -2569,6 +2572,9 @@ Like the install facility, there is a simulate optional parameter,
 which if true will simulate the upgrade. Also the `preRelease`
 parameter is recognized which controls whether module IDs with
 pre-release info should be considered.
+
+Upgrades will be seen as `action` with value `enable` with `from` and
+`id` properties holding old and new versions respectively.
 
 The upgrade facility is part of Okapi version 1.11.0 and later.
 
