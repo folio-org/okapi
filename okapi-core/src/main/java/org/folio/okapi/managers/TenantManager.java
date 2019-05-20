@@ -395,7 +395,7 @@ public class TenantManager {
       } else {
         ModuleInstance tenInst = ires.result();
         final String req = purge ? "" : jo.encodePrettily();
-        proxyService.callSystemInterface(tenant, tenInst, req, pc, true, cres -> {
+        proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
           if (cres.failed()) {
             fut.handle(new Failure<>(cres.getType(), cres.cause()));
           } else {
@@ -731,7 +731,7 @@ public class TenantManager {
     }
     pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
     proxyService.callSystemInterface(tenant, permInst,
-      pljson, pc, false, cres -> {
+      pljson, pc, cres -> {
         if (cres.failed()) {
           fut.handle(new Failure<>(cres.getType(), cres.cause()));
         } else {

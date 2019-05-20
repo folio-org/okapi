@@ -988,7 +988,7 @@ public class ProxyService {
    * and/or errors
    */
   public void callSystemInterface(Tenant tenant, ModuleInstance inst,
-    String request, ProxyContext pc, boolean clientRetry,
+    String request, ProxyContext pc,
     Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
     String curTenantId = pc.getTenant(); // is often the supertenant
