@@ -1,4 +1,8 @@
-## 2.29.1 2019-07-17
+## 2.29.2 2019-05-21
+ * OKAPI-737 Fix Cannot restart Okapi when mod-authtoken is enabled
+   on supertenant
+
+## 2.29.1 2019-05-17
  * OKAPI-734 Fix timer calls terminated for connection refused
 
 ## 2.29.0 2019-05-10
