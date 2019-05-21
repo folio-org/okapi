@@ -4,6 +4,8 @@ import com.codahale.metrics.Timer;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
 import java.util.Collection;
 import java.util.HashMap;
@@ -44,6 +46,7 @@ public class DeploymentManager {
   private final EnvManager em;
   private final int listenPort;
   private final String nodeName;
+  private final EventBus eventBus;
   private Messages messages = Messages.getInstance();
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
@@ -55,6 +58,7 @@ public class DeploymentManager {
     this.listenPort = listenPort;
     this.ports = ports;
     this.nodeName = nodeName;
+    this.eventBus = vertx.eventBus();
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
@@ -62,6 +66,27 @@ public class DeploymentManager {
     nd.setUrl("http://" + host + ":" + listenPort);
     nd.setNodeId(host);
     nd.setNodeName(nodeName);
+    eventBus.consumer(nd.getUrl() + "/deploy", message -> {
+      String b = (String) message.body();
+      DeploymentDescriptor dd = Json.decodeValue(b, DeploymentDescriptor.class);
+      deploy(dd, res -> {
+        if (res.failed()) {
+          message.fail(res.getType().ordinal(), res.cause().getMessage());
+        } else {
+          message.reply(Json.encodePrettily(res.result()));
+        }
+      });
+    });
+    eventBus.consumer(nd.getUrl() + "/undeploy", message -> {
+      String instId = (String) message.body();
+      undeploy(instId, res -> {
+        if (res.failed()) {
+          message.fail(res.getType().ordinal(), res.cause().getMessage());
+        } else {
+          message.reply(null);
+        }
+      });
+    });
     dm.addNode(nd, fut);
   }
 

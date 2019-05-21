@@ -10,11 +10,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -26,7 +24,6 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
@@ -208,24 +205,13 @@ public class DiscoveryManager implements NodeListener {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
       } else {
-        Map<String, String> headers = new HashMap<>();
-        if (pc != null) {
-          for (String s : pc.getCtx().request().headers().names()) {
-            if (s.startsWith("X-") || s.startsWith("x-")) {
-              final String v = pc.getCtx().request().headers().get(s);
-              headers.put(s, v);
-            }
-          }
-        }
-        OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, headers);
         String reqdata = Json.encode(dd);
-        ok.post("/_/deployment/modules", reqdata, okres -> {
-          ok.close();
-          if (okres.failed()) {
-            fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata, ar -> {
+          if (ar.failed()) {
+            fut.handle(new Failure(USER, ar.cause().getMessage()));
           } else {
-            DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
-              DeploymentDescriptor.class);
+            String b = (String) ar.result().body();
+            DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
             fut.handle(new Success<>(pmd));
           }
         });
@@ -309,21 +295,10 @@ public class DiscoveryManager implements NodeListener {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
         } else {
-          Map<String, String> headers = new HashMap<>();
-          if (pc != null) {
-            for (String s : pc.getCtx().request().headers().names()) {
-              if (s.startsWith("X-") || s.startsWith("x-")) {
-                final String v = pc.getCtx().request().headers().get(s);
-                headers.put(s, v);
-              }
-            }
-          }
-          OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, headers);
-          ok.delete("/_/deployment/modules/" + md.getInstId(), okres -> {
-            ok.close();
-            if (okres.failed()) {
-              logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage());
-              fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+          String reqdata = md.getInstId();
+          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata, ar -> {
+            if (ar.failed()) {
+              fut.handle(new Failure(USER, ar.cause().getMessage()));
             } else {
               fut.handle(new Success<>());
             }
