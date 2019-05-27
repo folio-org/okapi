@@ -3,6 +3,7 @@ package org.folio.okapi.managers;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
@@ -49,10 +50,12 @@ public class DiscoveryManager implements NodeListener {
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
   private Messages messages = Messages.getInstance();
+  private DeliveryOptions deliveryOptions;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
+    deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
     deployments.init(vertx, "discoveryList", res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -206,7 +209,8 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
       } else {
         String reqdata = Json.encode(dd);
-        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata, ar -> {
+        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata,
+          deliveryOptions, ar -> {
           if (ar.failed()) {
             fut.handle(new Failure(USER, ar.cause().getMessage()));
           } else {
@@ -296,7 +300,8 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
         } else {
           String reqdata = md.getInstId();
-          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata, ar -> {
+          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata,
+            deliveryOptions, ar -> {
             if (ar.failed()) {
               fut.handle(new Failure(USER, ar.cause().getMessage()));
             } else {
