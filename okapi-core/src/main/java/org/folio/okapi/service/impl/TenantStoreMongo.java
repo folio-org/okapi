@@ -68,13 +68,7 @@ public class TenantStoreMongo implements TenantStore {
         List<JsonObject> l = res.result();
         if (l.isEmpty()) {
           Tenant t = new Tenant(td);
-          insert(t, ires -> {
-            if (ires.succeeded()) {
-              fut.handle(new Success<>());
-            } else {
-              fut.handle(new Failure<>(ires.getType(), ires.cause()));
-            }
-          });
+          insert(t, fut);
         } else {
           JsonObject d = l.get(0);
           final Tenant t = decodeTenant(d);
