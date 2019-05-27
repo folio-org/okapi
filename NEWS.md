@@ -1,3 +1,9 @@
+## 2.29.3 2019-05-27
+
+ * OKAPI-738 Increase internal deploy/undeploy timeout
+   The 2.29.2 fix (OKAPI-737) unfortunately broke due to a too
+   timeout (30 seconds)
+
 ## 2.29.2 2019-05-21
  * OKAPI-737 Fix Cannot restart Okapi when mod-authtoken is enabled
    on supertenant
