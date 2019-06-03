@@ -99,10 +99,11 @@ public class ProxyService {
     ProxyContext pc) {
 
     RoutingContext ctx = pc.getCtx();
-    String url = makeUrl(mi, ctx).replaceFirst("[?#].*$", ".."); // rm params
+    String url = makeUrl(mi, ctx);
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getId() + " "
-      + url + " : " + statusCode + pc.timeDiff());
+      + url.replaceFirst("[?#].*$", "..") // remove params
+      + " : " + statusCode + pc.timeDiff());
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
