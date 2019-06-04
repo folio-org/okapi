@@ -1,14 +1,29 @@
 {
-  "id": "test-basic-1.0.0",
-  "name": "Okapi test module",
+  "id": "test-timer-1.0.0",
+  "name": "Okapi timer module",
   "provides": [
     {
-      "id": "test-basic",
+      "id": "test-timer",
       "version": "2.2",
       "handlers": [
         {
           "methods": [ "GET", "POST" ],
-          "pathPattern": "/testb"
+          "pathPattern": "/testb/timer"
+        }
+      ]
+    },
+    {
+      "id": "_tenant",
+      "version": "1.0",
+      "interfaceType": "system",
+      "handlers": [
+        {
+          "methods": ["POST"],
+          "pathPattern": "/_/tenant"
+        },
+        {
+          "methods": ["DELETE"],
+          "pathPattern": "/_/tenant"
         }
       ]
     },
@@ -19,7 +34,7 @@
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/testb",
+          "pathPattern": "/testb/timer",
           "unit": "second",
           "delay": "5"
         }
