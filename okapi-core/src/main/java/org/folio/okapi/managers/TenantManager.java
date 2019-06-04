@@ -635,8 +635,13 @@ public class TenantManager {
               final String key = tenantId + "_" + md.getId() + "_" + seq;
               if (delay > 0 && path != null) {
                 noTimers++;
-                fireTimer(tenant, md, re, path, key, lockP);
-                lockTimer(tenantId, md, key, delay, seq);
+                if (seq1 == 0 && timers.contains(key)) {
+                  logger.info("skipping key " + key);
+                } else {
+                  timers.add(key);
+                  fireTimer(tenant, md, re, path, key, lockP);
+                  lockTimer(tenantId, md, key, delay, seq);
+                }
               }
             }
           }
@@ -656,12 +661,7 @@ public class TenantManager {
       if (lockRes.succeeded()) {
         logger.info("wait for lock " + key + " returned");
         Lock lock = lockRes.result();
-        if (timers.contains(key)) {
-          logger.info("timers key " + key + " already exist");
-          lock.release();
-          return;
-        }
-        timers.add(key);
+        logger.info("setTimer delay=" + delay);
         vertx.setTimer(delay, res4
           -> vertx.runOnContext(res5
             -> handleTimer(tenantId, md.getId(), seq, lock)));
@@ -684,7 +684,6 @@ public class TenantManager {
       MultiMap headers = MultiMap.caseInsensitiveMultiMap();
       logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
       proxyService.callSystemInterface("supertenant", headers, ten, inst, "", cRes -> {
-        timers.remove(key);
         lock.release();
         if (cRes.succeeded()) {
           logger.info("timer call succeeded to module=" + md.getId()
