@@ -610,7 +610,7 @@ public class TenantManager {
         }
         List<ModuleDescriptor> mdList = mRes.result();
         try {
-          enabledModulesTimers(tenant, mdList, moduleId, seq1, lockP);
+          handleTimer(tenant, mdList, moduleId, seq1, lockP);
         } catch (Exception ex) {
           logger.warn("handleTimer execption " + ex.getMessage());
         }
@@ -618,7 +618,7 @@ public class TenantManager {
     });
   }
 
-  private void enabledModulesTimers(Tenant tenant, List<ModuleDescriptor> mdList, String moduleId, int seq1, Lock lockP) {
+  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList, String moduleId, int seq1, Lock lockP) {
     int noTimers = 0;
     final String tenantId = tenant.getId();
     for (ModuleDescriptor md : mdList) {
@@ -626,25 +626,7 @@ public class TenantManager {
         InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
         if (timerInt != null) {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-          int i = 0;
-          for (RoutingEntry re : routingEntries) {
-            final int seq = ++i;
-            final String key = tenantId + "_" + md.getId() + "_" + seq;
-            final long delay = re.getDelayMilliSeconds();
-            final String path = re.getStaticPath();
-            if (delay > 0 && path != null) {
-              if (seq1 == 0) {
-                if (!timers.contains(key)) {
-                  timers.add(key);
-                  lockTimer(tenantId, md, key, delay, seq);
-                }
-              } else if (seq == seq1) {
-                noTimers++;
-                fireTimer(tenant, md, re, path, lockP);
-                lockTimer(tenantId, md, key, delay, seq);
-              }
-            }
-          }
+          noTimers += handleTimer(tenant, md, routingEntries, seq1, lockP);
         }
       }
     }
@@ -653,6 +635,30 @@ public class TenantManager {
       stopTimer(tenantId, moduleId, seq1, lockP);
     }
     logger.info("handleTimer done no=" + noTimers);
+  }
+
+  private int handleTimer(Tenant tenant, ModuleDescriptor md, List<RoutingEntry> routingEntries, int seq1, Lock lockP) {
+    int i = 0;
+    final String tenantId = tenant.getId();
+    for (RoutingEntry re : routingEntries) {
+      final int seq = ++i;
+      final String key = tenantId + "_" + md.getId() + "_" + seq;
+      final long delay = re.getDelayMilliSeconds();
+      final String path = re.getStaticPath();
+      if (delay > 0 && path != null) {
+        if (seq1 == 0) {
+          if (!timers.contains(key)) {
+            timers.add(key);
+            lockTimer(tenantId, md, key, delay, seq);
+          }
+        } else if (seq == seq1) {
+          fireTimer(tenant, md, re, path, lockP);
+          lockTimer(tenantId, md, key, delay, seq);
+          return 1;
+        }
+      }
+    }
+    return 0;
   }
 
   private void lockTimer(String tenantId, ModuleDescriptor md, String key, long delay, int seq) {
@@ -672,8 +678,8 @@ public class TenantManager {
     });
   }
 
-  private void fireTimer(Tenant ten, ModuleDescriptor md, RoutingEntry re, String path, Lock lock) {
-    String tenantId = ten.getId();
+  private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path, Lock lock) {
+    String tenantId = tenant.getId();
     HttpMethod httpMethod = HttpMethod.POST;
     String[] methods = re.getMethods();
     if (methods != null && re.getMethods().length >= 1) {
@@ -682,7 +688,7 @@ public class TenantManager {
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
-    proxyService.callSystemInterface("supertenant", headers, ten, inst, "", cRes -> {
+    proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cRes -> {
       lock.release();
       if (cRes.succeeded()) {
         logger.info("timer call succeeded to module=" + md.getId()
