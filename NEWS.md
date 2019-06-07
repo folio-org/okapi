@@ -1,3 +1,14 @@
+## 2.30.0 2019-06-07
+
+ * OKAPI-734 Fix timer calls terminated for connection refused
+ * OKAPI-735 Do not re-attempt HTTP connection on timers..
+ * OKAPI-737 Fix Cannot restart Okapi when mod-authtoken is enabled on
+   supertenant
+ * OKAPI-738 Fix deployment issue (Increase internal deploy/undeploy timeout)
+ * OKAPI-739 Adjust Okapi RES log to display request parameters
+ * OKAPI-740 Fix "Wait for lock" when enabling module (with new timer
+   feature) for supertenant
+
 ## 2.29.0 2019-05-10
 
  * OKAPI-732 Extend ModuleDescriptor with metadata and env properties
