@@ -1,3 +1,6 @@
+## 2.30.1 2019-06-13
+ * OKAPI-744 Log HTTP request headers
+
 ## 2.30.0 2019-06-07
 
  * OKAPI-734 Fix timer calls terminated for connection refused
