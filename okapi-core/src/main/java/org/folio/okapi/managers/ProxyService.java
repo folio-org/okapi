@@ -59,7 +59,7 @@ import org.folio.okapi.common.Messages;
 @java.lang.SuppressWarnings({"squid:S1168", "squid:S1192", "squid:S2245"})
 public class ProxyService {
 
-  private final Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
 
   private final ModuleManager moduleManager;
   private final TenantManager tenantManager;
@@ -608,8 +608,10 @@ public class ProxyService {
       }
     });
     cReq.exceptionHandler(e -> {
-      pc.warn("proxyRequestHttpClient failure: " + url, e);
-      pc.responseError(500, messages.getMessage("10107", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
+      pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": ", e);
+      String headersMsg = dumpHeaders(cReq.headers());
+      pc.responseError(500, messages.getMessage("10107", mi.getModuleDescriptor().getId(),
+        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     pc.trace("ProxyRequestHttpClient request buf '"
@@ -672,11 +674,20 @@ public class ProxyService {
   }
 
   private void copyHeaders(HttpClientRequest cReq, RoutingContext ctx, ModuleInstance mi) {
-    for (String n : ctx.request().headers().names()) {
-      List<String> l = ctx.request().headers().getAll(n);
-      if (l.size() > 1) {
-        logger.warn("dup HTTP header " + n + ": " + l);
+    int sz = 0;
+    int limit = 5; // all headers dumped
+    for (String name : ctx.request().headers().names()) {
+      List<String> values = ctx.request().headers().getAll(name);
+      if (values.size() > 1) {
+        logger.warn("dup HTTP header " + name + ": " + values);
       }
+      for (String value : values) {
+        sz += name.length() + 4 + value.length(); // 4 for colon blank cr lf
+      }
+    }
+    if (sz > limit) {
+      logger.info("Request headers size=" + sz);
+      dumpHeaders(ctx.request().headers());
     }
     cReq.headers().setAll(ctx.request().headers());
     cReq.headers().remove("Content-Length");
@@ -684,6 +695,23 @@ public class ProxyService {
     if (!XOkapiHeaders.FILTER_AUTH.equals(phase)) {
       cReq.headers().remove(XOkapiHeaders.ADDITIONAL_TOKEN);
     }
+  }
+
+  private static String dumpHeaders(MultiMap headers) {
+    StringBuilder h = new StringBuilder();
+    h.append("Headers:\n");
+    for (String name : headers.names()) {
+      List<String> values = headers.getAll(name);
+      for (String value : values) {
+        h.append(" ");
+        h.append(name);
+        h.append(": ");
+        h.append(value);
+        h.append("\n");
+        logger.info(name + ": " + value);
+      }
+    }
+    return h.toString();
   }
 
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
@@ -716,8 +744,10 @@ public class ProxyService {
       }
     });
     cReq.exceptionHandler(e -> {
-      pc.warn("proxyRequestResponse failure: ", e);
-      pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
+      pc.warn("proxyRequestResponse failure: " + mi.getUrl() + ": ", e);
+      String headersMsg = dumpHeaders(cReq.headers());
+      pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(),
+        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     if (bcontent != null) {
@@ -789,7 +819,9 @@ public class ProxyService {
     });
     cReq.exceptionHandler(e -> {
       pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      pc.responseError(500, messages.getMessage("10109", mi.getModuleDescriptor().getId(), mi.getUrl(), e, e.getMessage()));
+      String headersMsg = dumpHeaders(cReq.headers());
+      pc.responseError(500, messages.getMessage("10109", mi.getModuleDescriptor().getId(),
+        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     cReq.end();
