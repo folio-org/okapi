@@ -319,7 +319,8 @@ public class ModuleTest {
    * @return the URL to delete when done
    */
   private String createModule(String md) {
-    final String loc = given()
+    RestAssuredClient c = api.createRestAssured3();
+    final String loc = c.given()
       .header("Content-Type", "application/json")
       .body(md)
       .post("/_/proxy/modules")
@@ -328,6 +329,8 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     return loc;
   }
 
@@ -345,7 +348,8 @@ public class ModuleTest {
       + "  \"srvcId\" : \"" + modId + "\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
-    final String loc = given()
+    RestAssuredClient c = api.createRestAssured3();
+    final String loc = c.given()
       .header("Content-Type", "application/json")
       .body(docDeploy)
       .post("/_/discovery/modules")
@@ -354,6 +358,8 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     return loc;
   }
 

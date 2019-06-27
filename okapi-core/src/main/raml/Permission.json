@@ -22,6 +22,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "visible" : {
+      "description": "Whether to show the permission in UI",
+      "type" : "boolean"
     }
   }
 }
