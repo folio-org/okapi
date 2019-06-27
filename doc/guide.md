@@ -760,14 +760,18 @@ development use only. In real production, some DBA will have to set up
 a proper database and its parameters, which will need to be passed to
 Okapi on the command line.
 
-The second step is creating the necessary tables and indexes. Okapi can do this
-for you, when invoked like this:
-```
-java -Dport=8600 -Dstorage=postgres -jar target/okapi-core-fat.jar initdatabase
-```
-This command removes existing tables and data if available and creates
-the necessary stuff, and exits Okapi. If you want to remove existing tables
-only, you can use the command `purgedatabase`.
+The second step is creating the necessary tables and indexes. Okapi
+will do this for you on startup if you are starting from an empty
+database. In addition, Okapi offers special-purpose commands to manage
+database initialization and purging.
+
+  * `initdatabase`: removes existing tables and data if available and creates
+    the necessary stuff, and exits Okapi.
+  * `purgedatabase`: removes existing tables and data only, does not
+    reinitialize.
+
+For more information on Okapi commands, see the
+[Okapi program reference](#okapi-program).
 
 If you need to dig into Okapi's PostgreSQL database, you can do it with a
 command like this:
