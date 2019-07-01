@@ -477,7 +477,7 @@ public class DiscoveryManager implements NodeListener {
           return;
         }
         Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
-        Iterator<DeploymentDescriptor> it = res.result().iterator();
+        Iterator<DeploymentDescriptor> it = result.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
           if (!isAlive(md, nodesCollection)) {
