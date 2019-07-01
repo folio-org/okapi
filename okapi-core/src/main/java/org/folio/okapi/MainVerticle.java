@@ -453,7 +453,7 @@ public class MainVerticle extends AbstractVerticle {
                           + ". Listening on port " + port);
                         startRedeploy(fut);
                       } else {
-                        logger.fatal("createHttpServer failed", result.cause());
+                        logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
                         fut.fail(result.cause());
                       }
                     }
