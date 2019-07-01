@@ -967,6 +967,15 @@ public class TenantManager {
   public void installUpgradeModules(String tenantId, ProxyContext pc,
     TenantInstallOptions options, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+
+    if (tml != null) {
+      for (TenantModuleDescriptor tm : tml) {
+        if (tm.getAction() == null) {
+          fut.handle(new Failure<>(USER, messages.getMessage("10405", tm.getId())));
+          return;
+        }
+      }
+    }
     tenants.get(tenantId, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
