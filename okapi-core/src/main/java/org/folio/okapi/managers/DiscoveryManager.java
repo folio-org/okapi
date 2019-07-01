@@ -355,9 +355,9 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
           return;
         }
-        Collection<NodeDescriptor> nodes = nodeRes.result().values();
+        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
         // check that the node is alive, but only on non-url instances
-        if (!isAlive(md, nodes)) {
+        if (!isAlive(md, nodesCollection)) {
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
           return;
         }
@@ -476,11 +476,11 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
           return;
         }
-        Collection<NodeDescriptor> nodes = nodeRes.result().values();
+        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
         Iterator<DeploymentDescriptor> it = res.result().iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (!isAlive(md, nodes)) {
+          if (!isAlive(md, nodesCollection)) {
             it.remove();
           }
         }
