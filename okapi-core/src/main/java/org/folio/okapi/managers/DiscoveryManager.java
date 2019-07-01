@@ -325,9 +325,23 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  private boolean isAlive(DeploymentDescriptor md) {
-    return clusterManager == null || md.getNodeId() == null
-      || clusterManager.getNodes().contains(md.getNodeId());
+  private boolean isAlive(DeploymentDescriptor md, Collection<NodeDescriptor> nodes) {
+    final String id = md.getNodeId();
+    if (id == null) {
+      return true;
+    }
+    boolean found = false;
+    for (NodeDescriptor node : nodes) {
+      final String nodeName = node.getNodeName();
+      final String nodeId = node.getNodeId();
+      if (id.equals(nodeId) || id.equals(nodeName)) {
+        found = true;
+      }
+    }
+    if (!found) {
+      logger.warn("isAlive returns false for id: " + id);
+    }
+    return found;
   }
 
   public void get(String srvcId, String instId,
@@ -336,15 +350,22 @@ public class DiscoveryManager implements NodeListener {
     deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-      } else {
-        DeploymentDescriptor md = resGet.result();
+        return;
+      }
+      DeploymentDescriptor md = resGet.result();
+      nodes.getAll(nodeRes -> {
+        if (nodeRes.failed()) {
+          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+          return;
+        }
+        Collection<NodeDescriptor> nodes = nodeRes.result().values();
         // check that the node is alive, but only on non-url instances
-        if (!isAlive(md)) {
+        if (!isAlive(md, nodes)) {
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
           return;
         }
         fut.handle(new Success<>(md));
-      }
+      });
     });
   }
 
@@ -450,17 +471,24 @@ public class DiscoveryManager implements NodeListener {
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        List<DeploymentDescriptor> result = res.result();
-        Iterator<DeploymentDescriptor> it = result.iterator();
+        return;
+      }
+      List<DeploymentDescriptor> result = res.result();
+      nodes.getAll(nodeRes -> {
+        if (nodeRes.failed()) {
+          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+          return;
+        }
+        Collection<NodeDescriptor> nodes = nodeRes.result().values();
+        Iterator<DeploymentDescriptor> it = res.result().iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (!isAlive(md)) {
+          if (!isAlive(md, nodes)) {
             it.remove();
           }
         }
         fut.handle(new Success<>(result));
-      }
+      });
     });
   }
 
