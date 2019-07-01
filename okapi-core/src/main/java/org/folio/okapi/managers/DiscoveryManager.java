@@ -338,9 +338,6 @@ public class DiscoveryManager implements NodeListener {
         found = true;
       }
     }
-    if (!found) {
-      logger.warn("isAlive returns false for id: " + id);
-    }
     return found;
   }
 
