@@ -372,6 +372,18 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationBasic_1_0_0 = r.getHeader("Location");
 
+    /* missing action so this will fail */
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"basic-module-1.0.0\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(equalTo("Missing action for id basic-module-1.0.0"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
