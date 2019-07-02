@@ -20,29 +20,6 @@ perl -n -e 'print if /^```script/../^```$/;' okapi/doc/securing.md | sed '/```/d
 All the shell commands assume you are in your top-level directory, for example
 `~/folio`. All modules are assumed to reside under it, each in its own directory.
 
-## Okapi itself
-
-### Getting Okapi
-
-This script assumes you have a fresh Okapi instance running, with nothing
-installed in it. If you do not, you can get one up by running the following:
-
-```
-git clone https://github.com/folio-org/okapi
-cd okapi
-#git checkout "v2.3.1"  # Or "master" if you want the latest, or any other tag
-mvn clean install
-cd ..
-```
-
-The build takes a while. (It will go faster if you append `-DskipTests` to the
-mvn command line.)
-
-Check that near the end there is a line that says:
-
-```
-[INFO] BUILD SUCCESS
-```
 
 ### Initializing a fresh database
 
@@ -75,13 +52,40 @@ CREATE ROLE module_admin_user PASSWORD ‘somepassword’ SUPERUSER CREATEDB INH
 
 See the
 [Storage](https://github.com/folio-org/okapi/blob/master/doc/guide.md#storage)
-section of the Okapi guide for details of setting up your database. Then run:
+section of the Okapi guide for details of setting up your database. There's no need to initialize the database any longer; Okapi will do that automatically if its not yet existing.
+
+## Okapi itself
+This script assumes you have a fresh Okapi instance running, with nothing
+installed in it. If you do not, you have two options:
+
+### Getting Okapi
+On Ubuntu/Debian you can get the readily build package from the repositories:
+https://github.com/folio-org/folio-install/tree/master/runbooks/single-server#install-and-configure-okapi
+
+Of course you can also build it from sources:
 
 ```
-java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar initdatabase
+git clone https://github.com/folio-org/okapi
+cd okapi
+#git checkout "v2.3.1"  # Or "master" if you want the latest, or any other tag
+mvn clean install
+cd ..
+```
+
+The build takes a while. (It will go faster if you append `-DskipTests` to the
+mvn command line.)
+
+Check that near the end there is a line that says:
+
+```
+[INFO] BUILD SUCCESS
 ```
 
 ### Starting Okapi
+
+If you installed from the repository, you have a systemd service for that, although it wildly violates basic security principles of Linux by leaking login data to the command line.
+
+If you build from sources, you can start it as follows:
 
 ```
 java -Dstorage=postgres -jar okapi/okapi-core/target/okapi-core-fat.jar dev
@@ -111,6 +115,7 @@ Note on the curl command line options:
 * `-w '\n'` causes curl to output a newline after the operation
 * `-D -` causes curl to output the response headers to stdout
 
+If Okapi isn't starting, you might have no write permissions within the work directory. Okapi won't tell you that in its logs, nor what it regards as its work directory, especially with systemd running (unless you have a working WorkingDirectory directive within the service file). You may use pwdx to find out the work directory.
 
 ## Required modules
 
@@ -233,7 +238,7 @@ curl -w '\n' -D - -X POST  \
 
 Now we need to deploy the modules.
 Here we simply use the default deployment descriptors that are provided by each module
-for its development purposes, so there is some tweaking required.
+for its development purposes, so there is some tweaking required. If Okapi runs into errors, delete the path within the descriptor files and just drop the JAR into its work directory.
 
 #### mod-permissions
 
