@@ -66,11 +66,9 @@ public class DepResolution {
       moduses.append(seenVersion.getVersion());
       for (ModuleDescriptor mdi : modList) {
         for (InterfaceDescriptor reqi : mdi.getRequiresList()) {
-          if (req.getId().equals(reqi.getId())) {
-            if (seenVersion.isCompatible(reqi)) {
-              moduses.append("/");
-              moduses.append(mdi.getId());
-            }
+          if (req.getId().equals(reqi.getId()) && seenVersion.isCompatible(reqi)) {
+            moduses.append("/");
+            moduses.append(mdi.getId());
           }
         }
       }
