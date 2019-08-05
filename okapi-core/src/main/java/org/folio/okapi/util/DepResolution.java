@@ -2,6 +2,7 @@ package org.folio.okapi.util;
 
 import io.vertx.core.Handler;
 import io.vertx.core.logging.Logger;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,42 +36,33 @@ public class DepResolution {
    *
    * @param md module to check
    * @param req required dependency
-   * @param modlist the list to check against
+   * @param pInterfaces the list to provided interface as returned by getProvidedInterfaces
    * @return null if ok, or error message
    */
   private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, ModuleDescriptor> modlist) {
-    InterfaceDescriptor seenversion = null;
-    for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
-      ModuleDescriptor rm = entry.getValue();
-      for (InterfaceDescriptor pi : rm.getProvidesList()) {
+    Map<String, List<InterfaceDescriptor>> pInterfaces) {
+
+    List<String> seenVersions = new LinkedList<>();
+    List<InterfaceDescriptor> pInts = pInterfaces.get(req.getId());
+    if (pInts != null) {
+      for (InterfaceDescriptor pi : pInts) {
         logger.debug("Checking dependency of " + md.getId() + ": "
           + req.getId() + " " + req.getVersion()
           + " against " + pi.getId() + " " + pi.getVersion());
         if (req.getId().equals(pi.getId())) {
           if (pi.isCompatible(req)) {
             logger.debug("Dependency OK");
-            return null;  // ok
+            return null;
           }
-          seenversion = pi;
+          seenVersions.add(pi.getVersion());
         }
       }
     }
-    if (seenversion == null) {
+    if (seenVersions.isEmpty()) {
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
     } else {
-      StringBuilder modUses = new StringBuilder();
-      for (Map.Entry<String, ModuleDescriptor> entry : modlist.entrySet()) {
-        ModuleDescriptor rm = entry.getValue();
-        for (InterfaceDescriptor ri : rm.getRequiresList()) {
-          if (seenversion.getId().equals(ri.getId()) && seenversion.isCompatible(ri)) {
-            modUses.append("/");
-            modUses.append(rm.getId());
-          }
-        }
-      }
       return messages.getMessage("10201", md.getId(), req.getId(),
-        req.getVersion(), seenversion.getVersion() + modUses.toString());
+        req.getVersion(), String.join("/", seenVersions));
     }
   }
 
@@ -84,17 +76,49 @@ public class DepResolution {
    * against that...
    */
   public static List<String> checkDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modlist) {
+    Map<String, ModuleDescriptor> modList) {
+
+    return checkDependencies(md, modList, getProvidedInterfaces(modList.values()));
+  }
+
+  private static List<String> checkDependencies(ModuleDescriptor md,
+    Map<String, ModuleDescriptor> modlist, Map<String, List<InterfaceDescriptor>> pInts) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of " + md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, modlist);
+      String res = checkOneDependency(md, req, pInts);
       if (res != null) {
         list.add(res);
       }
     }
     return list;
+  }
+
+  private static Map<String, List<InterfaceDescriptor>> getProvidedInterfaces(Collection<ModuleDescriptor> modList) {
+    Map<String, List<InterfaceDescriptor>> p = new HashMap<>();
+    for (ModuleDescriptor md : modList) {
+      for (InterfaceDescriptor req : md.getProvidesList()) {
+        final String version = req.getVersion();
+        boolean found = false;
+        List<InterfaceDescriptor> iList = p.get(req.getId());
+        if (iList == null) {
+          iList = new LinkedList<>();
+        } else {
+          for (InterfaceDescriptor nInt : iList) {
+            String existingVersion = nInt.getVersion();
+            if (existingVersion.equals(version)) {
+              found = true;
+            }
+          }
+        }
+        if (!found) {
+          iList.add(req);
+          p.put(req.getId(), iList);
+        }
+      }
+    }
+    return p;
   }
 
   /**
@@ -105,9 +129,12 @@ public class DepResolution {
    * @return error message, or "" if all is ok
    */
   public static String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
+    Map<String, List<InterfaceDescriptor>> pInts = getProvidedInterfaces(modlist.values());
+
     List<String> list = new LinkedList<>();
     for (ModuleDescriptor md : modlist.values()) {
-      List<String> res = checkDependencies(md, modlist);
+      logger.info("checkAllDependencies mod="  + md.getId());
+      List<String> res = checkDependencies(md, modlist, pInts);
       list.addAll(res);
     }
     if (list.isEmpty()) {
