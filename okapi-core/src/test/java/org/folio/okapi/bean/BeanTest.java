@@ -321,4 +321,42 @@ public class BeanTest {
     assertEquals(400, fail);
   }
 
+  @Test
+  public void testMultipleProvides() {
+    int fail = 0;
+
+    final String docModuleDescriptor = "{" + LS
+      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_timer\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"second\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_timer\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"," + LS
+      + "      \"delay\" : \"1\"," + LS
+      + "      \"unit\" : \"second\"" + LS
+      + "    } ]" + LS
+      + "  } ]" + LS
+      + "}";
+
+    try {
+      final ModuleDescriptor md = Json.decodeValue(docModuleDescriptor,
+        ModuleDescriptor.class);
+      String pretty = Json.encodePrettily(md);
+    } catch (DecodeException ex) {
+      ex.printStackTrace();
+      fail = 400;
+    }
+    assertEquals(400, fail);
+  }
+
 }

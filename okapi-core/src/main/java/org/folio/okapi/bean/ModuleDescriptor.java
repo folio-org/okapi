@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.ModuleId;
 
@@ -118,6 +120,14 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public void setProvides(InterfaceDescriptor[] provides) {
+    Set<String> pList = new TreeSet<>();
+    for (int i = 0; i < provides.length; i++) {
+      InterfaceDescriptor pr = provides[i];
+      if (pList.contains(pr.getId())) {
+        throw new IllegalArgumentException("Interface " + pr.getId() + " provided multiple times");
+      }
+      pList.add(pr.getId());
+    }
     this.provides = provides;
   }
 
