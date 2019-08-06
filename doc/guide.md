@@ -3005,8 +3005,20 @@ object is passed: member `module_to` being the module ID that is
 enabled.
 
 Refer to
-https://github.com/folio-org/raml/blob/raml1.0/ramls/tenant.raml for
-the RAML definition.
+[tenant.raml](https://github.com/folio-org/raml/blob/raml1.0/ramls/tenant.raml)
+for the RAML definition.
+
+The curl command below does what Okapi performs when enabling a tenant `testlib`
+for module `mod-foo-1.0.0`, on localhost, port 8081. The parameters section
+specifies `loadReference` to specify that reference data are also to be created
+during the operation.
+
+    curl -HX-Okapi-url:http://localhost:8081 -HX-Okapi-Tenant:testlib \
+      -d'{"module_to":"mod-foo-1.0.0", "parameters":[{"key":"loadReference", "value":"true"}]}' \
+      -HContent-Type:application/json "-HAccept:*/*" \
+      http://localhost:8081/_/tenant
+
+Add 'loadSample=true` to parameters load sample data as well.
 
 #### Upgrading
 
@@ -3055,6 +3067,11 @@ supplying tenant parameters. These are properties (key-value pairs)
 that are passed to the module when enabled or upgraded. Passing those
 are only performed when tenantParameters is specified for install and
 when the tenant interface is version 1.2.
+
+In Folio two such parameters are widely recognized:
+
+ * `loadReference` with value `true` loads reference data.
+ * `loadSample` with value `true` loads sample data.
 
 ### Tenant Interface
 
