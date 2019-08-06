@@ -77,21 +77,6 @@ public class DepResolution {
       req.getVersion(), moduses.toString());
   }
 
-  /**
-   * Check that the dependencies are satisfied.
-   *
-   * @param md Module to be checked
-   * @return empty list if if no problems, or list of error messages
-   *
-   * This could be done like we do conflicts, by building a map and checking
-   * against that...
-   */
-  public static List<String> checkDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modList) {
-
-    return checkDependencies(md, modList, getProvidedInterfaces(modList.values()));
-  }
-
   private static List<String> checkDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist, Map<String, List<InterfaceDescriptor>> pInts) {
 
