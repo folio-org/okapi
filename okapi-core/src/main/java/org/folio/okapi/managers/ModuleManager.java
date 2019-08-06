@@ -185,13 +185,9 @@ public class ModuleManager {
         }
       }
       if (check) {
-        List<String> allRes = new LinkedList<>();
-        for (ModuleDescriptor md : list) {
-          List<String> res = DepResolution.checkDependencies(md, tempList);
-          allRes.addAll(res);
-        }
-        if (!allRes.isEmpty()) {
-          fut.handle(new Failure<>(USER, String.join(". ", allRes)));
+        String res = DepResolution.checkAllDependencies(tempList);
+        if (!res.isEmpty()) {
+          fut.handle(new Failure<>(USER, res));
           return;
         }
       }
