@@ -1,3 +1,14 @@
+## 2.31.0 2019-08-07
+
+ * OKAPI-751 If multiple _timer interfaces are declared in the
+   ModuleDescriptor only the first one works
+ * OKAPI-750 Deleting MD from Okapi causes Vert.x warnings
+ * OKAPI-748 Omitting action for install results in null pointer exception
+ * OKAPI-747 Update Okapi guide re: database initialization
+ * OKAPI-746 The modules upgrade failed in Okapi version 2.27.1 cluster
+ * OKAPI-745 Update Permission schema to include visible flag
+ * OKAPI-744 Dump HTTP Request headers in Okapi log
+
 ## 2.30.0 2019-06-07
 
  * OKAPI-734 Fix timer calls terminated for connection refused
