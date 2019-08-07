@@ -22,7 +22,8 @@ succeed.
 shut down microservices that it has spawned, and they may need to be
 terminated manually.*
 
-Quick start -----------
+Quick start
+-----------
 
 To build and run:
 
