@@ -377,13 +377,13 @@ public class ModuleManager {
   }
 
   public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-    Collection<ModuleDescriptor> skipModules,
+    List<String> skipModules,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
-      for (ModuleDescriptor md : skipModules) {
-        skipIds.add(md.getId());
+      for (String id : skipModules) {
+        skipIds.add(id);
       }
     }
     modules.getAll(kres -> {
