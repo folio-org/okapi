@@ -259,10 +259,10 @@ public class PullManager {
         final String remoteUrl = resUrl.result().get(0);
         final String remoteVersion = resUrl.result().get(1);
         SemVer semVer = new SemVer(remoteVersion);
-        SemVer minVer = new SemVer("2.31.999");
+        SemVer minVer = new SemVer("2.32.0");
         int diff = semVer.compareTo(minVer);
         logger.info("Remote registry at " + remoteUrl + " is version " + remoteVersion + " diff=" + diff);
-        if (diff >= 0) {
+        if (diff >= -1) {  // -1 to include snapshot
           logger.info("pull smart");
           pullSmart(remoteUrl, resLocal.result(), fut);
           return;
