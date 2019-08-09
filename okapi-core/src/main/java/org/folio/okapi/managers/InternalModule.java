@@ -849,8 +849,14 @@ public class InternalModule {
   }
 
   private void listModules(ProxyContext pc,
+    String body,
     Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.getModulesWithFilter(true, true, res -> {
+
+    List<ModuleDescriptor> skipModules = null;
+    if (!body.isEmpty()) {
+      skipModules = Json.decodeValue(body, skipModules.getClass());
+    }
+    moduleManager.getModulesWithFilter(true, true, skipModules, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1284,7 +1290,7 @@ public class InternalModule {
         && moduleManager != null) {
         // /_/proxy/modules
         if (n == 4 && m.equals(GET)) {
-          listModules(pc, fut);
+          listModules(pc, req, fut);
           return;
         }
         if (n == 4 && m.equals(POST)) {

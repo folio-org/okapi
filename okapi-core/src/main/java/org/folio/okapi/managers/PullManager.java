@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.logging.Logger;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -38,7 +39,7 @@ public class PullManager {
   }
 
   private void getRemoteUrl(Iterator<String> it,
-    Handler<ExtendedAsyncResult<String>> fut) {
+    Handler<ExtendedAsyncResult<List<String>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11000")));
     } else {
@@ -58,7 +59,10 @@ public class PullManager {
             fut.handle(new Failure<>(ErrorType.USER,
               "pull for " + baseUrl + " returned status " + res.statusCode() + "\n" + body.toString()));
           } else {
-            fut.handle(new Success<>(baseUrl));
+            List<String> result = new LinkedList<>();
+            result.add(baseUrl);
+            result.add(body.toString());
+            fut.handle(new Success<>(result));
           }
         });
         res.exceptionHandler(x
@@ -75,6 +79,7 @@ public class PullManager {
   }
 
   private void getList(String urlBase,
+    Collection<ModuleDescriptor> skipList,
     Handler<ExtendedAsyncResult<ModuleDescriptor[]>> fut) {
     String url = urlBase;
     if (!url.endsWith("/")) {
@@ -82,6 +87,7 @@ public class PullManager {
     }
     url += "_/proxy/modules";
     final Buffer body = Buffer.buffer();
+    // TODO Post body with skipList
     HttpClientRequest req = httpClient.getAbs(url, res -> {
       res.handler(body::appendBuffer);
       res.endHandler(x -> {
@@ -203,15 +209,18 @@ public class PullManager {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
       } else {
-        moduleManager.getModulesWithFilter(true, true, resLocal -> {
+        final String remoteUrl = resUrl.result().get(0);
+        final String remoteVersion = resUrl.result().get(1);
+        // TODO determine whehther to use new pull with skip or old
+        moduleManager.getModulesWithFilter(true, true, null, resLocal -> {
           if (resLocal.failed()) {
             fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
           } else {
-            getList(resUrl.result(), resRemote -> {
+            getList(remoteUrl, resLocal.result(), resRemote -> {
               if (resRemote.failed()) {
                 fut.handle(new Failure<>(resRemote.getType(), resRemote.cause()));
               } else {
-                merge(resUrl.result(), resLocal.result(), resRemote.result(), fut);
+                merge(remoteUrl, resLocal.result(), resRemote.result(), fut);
               }
             });
           }

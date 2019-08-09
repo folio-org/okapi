@@ -7,11 +7,14 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.logging.Logger;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import org.folio.okapi.bean.Tenant;
 import static org.folio.okapi.common.ErrorType.*;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -158,7 +161,7 @@ public class ModuleManager {
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
           boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, npmSnapshot, ares -> {
+    getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -374,7 +377,15 @@ public class ModuleManager {
   }
 
   public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+    Collection<ModuleDescriptor> skipModules,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
+    Set<String> skipIds = new TreeSet<>();
+    if (skipModules != null) {
+      for (ModuleDescriptor md : skipModules) {
+        skipIds.add(md.getId());
+      }
+    }
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
@@ -384,7 +395,8 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())) {
+            && (preRelease || !idThis.hasPreRelease())
+            && !skipIds.contains(id)) {
             mdl.add(md);
           }
         }
