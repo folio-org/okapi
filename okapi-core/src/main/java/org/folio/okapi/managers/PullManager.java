@@ -12,7 +12,9 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
@@ -120,105 +122,9 @@ public class PullManager {
     }
   }
 
-  private void getFull(String urlBase, Iterator<ModuleDescriptor> it,
-    List<ModuleDescriptor> ml,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-
-    while (!concurrentComplete && concurrentRuns < CONCURRENT_MAX && it.hasNext()) {
-      ++concurrentRuns;
-      String url = urlBase;
-      if (!url.endsWith("/")) {
-        url += "/";
-      }
-      url += "_/proxy/modules/" + it.next().getId();
-      getFullReq(url, fut, ml, urlBase, it);
-    }
-    if (!it.hasNext() && !concurrentComplete && concurrentRuns == 0) {
-      concurrentComplete = true;
-      fut.handle(new Success<>(ml));
-    }
-  }
-
-  private void getFullReq(String url, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut,
-    List<ModuleDescriptor> ml, String urlBase, Iterator<ModuleDescriptor> it) {
-
-    final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res -> {
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (concurrentRuns > 0) {
-          concurrentRuns--;
-        }
-        if (res.statusCode() != 200) {
-          if (!concurrentComplete) {
-            concurrentComplete = true;
-            fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-          }
-        } else {
-          ModuleDescriptor md = Json.decodeValue(body.toString(),
-            ModuleDescriptor.class);
-          ml.add(md);
-          getFull(urlBase, it, ml, fut);
-        }
-      });
-      res.exceptionHandler(x -> {
-        if (concurrentRuns > 0) {
-          concurrentRuns--;
-        }
-        if (!concurrentComplete) {
-          concurrentComplete = true;
-          fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
-        }
-      });
-    });
-    req.exceptionHandler(x -> {
-      if (concurrentRuns > 0) {
-        concurrentRuns--;
-      }
-      if (!concurrentComplete) {
-        concurrentComplete = true;
-        fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()));
-      }
-    });
-    req.end();
-  }
-
-  private void merge(String urlBase, List<ModuleDescriptor> mlLocal,
-    ModuleDescriptor[] mlRemote, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-
-    TreeMap<String, Boolean> enabled = new TreeMap<>();
-    for (ModuleDescriptor md : mlLocal) {
-      enabled.put(md.getId(), false);
-    }
-
-    List<ModuleDescriptor> mlAdd = new LinkedList<>();
-    for (ModuleDescriptor md : mlRemote) {
-      if (!"okapi".equals(md.getProduct()) && enabled.get(md.getId()) == null) {
-        mlAdd.add(md);
-      }
-    }
-    logger.info("pull: " + mlAdd.size() + " MDs to fetch");
-    List<ModuleDescriptor> mlList = new LinkedList<>();
-    concurrentRuns = 0;
-    concurrentComplete = false;
-    getFull(urlBase, mlAdd.iterator(), mlList, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        logger.info("pull: local insert");
-        moduleManager.createList(mlList, true, true, true, res1 -> {
-          if (res1.failed()) {
-            fut.handle(new Failure<>(res1.getType(), res1.cause()));
-          } else {
-            fut.handle(new Success<>(mlAdd));
-          }
-        });
-      }
-    });
-  }
-
   private void pullSmart(String remoteUrl, Collection<ModuleDescriptor> localList,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
     getList(remoteUrl, localList, resRemote -> {
       if (resRemote.failed()) {
         fut.handle(new Failure<>(resRemote.getType(), resRemote.cause()));
@@ -227,9 +133,13 @@ public class PullManager {
       ModuleDescriptor[] remoteList = resRemote.result();
       List<ModuleDescriptor> mustAddList = new LinkedList<>();
       List<ModuleDescriptor> briefList = new LinkedList<>();
+      Set<String> enabled = new TreeSet<>();
+      for (ModuleDescriptor md : localList) {
+        enabled.add(md.getId());
+      }
       for (int i = 0; i < remoteList.length; i++) {
         ModuleDescriptor md = remoteList[i];
-        if (!"okapi".equals(md.getProduct())) {
+        if (!"okapi".equals(md.getProduct()) && !enabled.contains(md.getId())) {
           mustAddList.add(md);
           briefList.add(new ModuleDescriptor(md, true));
         }
@@ -259,23 +169,9 @@ public class PullManager {
         final String remoteUrl = resUrl.result().get(0);
         final String remoteVersion = resUrl.result().get(1);
         SemVer semVer = new SemVer(remoteVersion);
-        SemVer minVer = new SemVer("2.32.0");
-        int diff = semVer.compareTo(minVer);
-        logger.info("Remote registry at " + remoteUrl + " is version " + remoteVersion + " diff=" + diff);
-        if (diff >= -1) {  // -1 to include snapshot
-          logger.info("pull smart");
-          pullSmart(remoteUrl, resLocal.result(), fut);
-          return;
-        }
-        logger.info("pull legacy");
-        getList(remoteUrl, null, resRemote -> {
-          if (resRemote.failed()) {
-            fut.handle(new Failure<>(resRemote.getType(), resRemote.cause()));
-            return;
-          }
-          merge(remoteUrl, resLocal.result(), resRemote.result(), fut);
-        });
-
+        logger.info("Remote registry at " + remoteUrl + " is version " + remoteVersion);
+        logger.info("pull smart");
+        pullSmart(remoteUrl, resLocal.result(), fut);
       });
     });
   }
