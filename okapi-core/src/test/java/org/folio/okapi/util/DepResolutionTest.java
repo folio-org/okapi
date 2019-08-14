@@ -458,6 +458,9 @@ public class DepResolutionTest {
 
   @Test
   public void testCheckDependenices() {
+    InterfaceDescriptor inu10 = new InterfaceDescriptor("inu", "1.0");
+    InterfaceDescriptor[] inu10a = {inu10};
+
     InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
     InterfaceDescriptor[] int10a = {int10};
 
@@ -468,6 +471,7 @@ public class DepResolutionTest {
     ModuleDescriptor mdB = new ModuleDescriptor();
     mdB.setId("moduleB-1.0.0");
     mdB.setRequires(int10a);
+    mdB.setProvides(inu10a);
 
     InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
     InterfaceDescriptor[] int20a = {int20};
@@ -479,6 +483,7 @@ public class DepResolutionTest {
     ModuleDescriptor mdD = new ModuleDescriptor();
     mdD.setId("moduleD-1.0.0");
     mdD.setRequires(int20a);
+    mdD.setProvides(inu10a);
 
     {
       Map<String, ModuleDescriptor> available = new HashMap<>();
