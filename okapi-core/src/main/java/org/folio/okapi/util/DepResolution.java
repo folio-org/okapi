@@ -62,11 +62,13 @@ public class DepResolution {
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
     }
     StringBuilder moduses = new StringBuilder();
+    String sep = "";
     for (InterfaceDescriptor seenVersion : seenVersions.values()) {
-      moduses.append(seenVersion.getVersion());
+      moduses.append(sep + seenVersion.getVersion());
+      sep = " ";
       for (ModuleDescriptor mdi : modList) {
-        for (InterfaceDescriptor reqi : mdi.getRequiresList()) {
-          if (req.getId().equals(reqi.getId()) && seenVersion.isCompatible(reqi)) {
+        for (InterfaceDescriptor provi : mdi.getProvidesList()) {
+          if (req.getId().equals(provi.getId()) && seenVersion.isCompatible(provi)) {
             moduses.append("/");
             moduses.append(mdi.getId());
           }
@@ -77,7 +79,7 @@ public class DepResolution {
       req.getVersion(), moduses.toString());
   }
 
-  private static List<String> checkDependencies(ModuleDescriptor md,
+  private static List<String> checkDependenciesInts(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modlist, Map<String, List<InterfaceDescriptor>> pInts) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
@@ -117,19 +119,12 @@ public class DepResolution {
     return pInts;
   }
 
-  /**
-   * Check that all dependencies are satisfied. Usually called with a copy of
-   * the modules list, after making some change.
-   *
-   * @param modlist list to check
-   * @return error message, or "" if all is ok
-   */
-  public static String checkAllDependencies(Map<String, ModuleDescriptor> modlist) {
-    Map<String, List<InterfaceDescriptor>> pInts = getProvidedInterfaces(modlist.values());
+  public static String checkDependencies(Map<String, ModuleDescriptor> available, Collection<ModuleDescriptor> testList) {
+    Map<String, List<InterfaceDescriptor>> pInts = getProvidedInterfaces(available.values());
 
     List<String> list = new LinkedList<>();
-    for (ModuleDescriptor md : modlist.values()) {
-      List<String> res = checkDependencies(md, modlist, pInts);
+    for (ModuleDescriptor md : testList) {
+      List<String> res = checkDependenciesInts(md, available, pInts);
       list.addAll(res);
     }
     if (list.isEmpty()) {
@@ -137,6 +132,11 @@ public class DepResolution {
     } else {
       return String.join(". ", list);
     }
+  }
+
+  public static String checkAllDependencies(Map<String, ModuleDescriptor> available) {
+    Collection<ModuleDescriptor> testList = available.values();
+    return checkDependencies(available, testList);
   }
 
   /**

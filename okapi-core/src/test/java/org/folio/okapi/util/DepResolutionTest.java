@@ -12,9 +12,12 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.junit.Test;
 
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.Collection;
+import java.util.TreeSet;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.OkapiLogger;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
@@ -453,6 +456,74 @@ public class DepResolutionTest {
     });
   }
 
+  @Test
+  public void testCheckDependenices() {
+    InterfaceDescriptor int10 = new InterfaceDescriptor("int", "1.0");
+    InterfaceDescriptor[] int10a = {int10};
 
+    ModuleDescriptor mdA = new ModuleDescriptor();
+    mdA.setId("moduleA-1.0.0");
+    mdA.setProvides(int10a);
+
+    ModuleDescriptor mdB = new ModuleDescriptor();
+    mdB.setId("moduleB-1.0.0");
+    mdB.setRequires(int10a);
+
+    InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
+    InterfaceDescriptor[] int20a = {int20};
+
+    ModuleDescriptor mdC = new ModuleDescriptor();
+    mdC.setId("moduleC-1.0.0");
+    mdC.setProvides(int20a);
+
+    ModuleDescriptor mdD = new ModuleDescriptor();
+    mdD.setId("moduleD-1.0.0");
+    mdD.setRequires(int20a);
+
+    {
+      Map<String, ModuleDescriptor> available = new HashMap<>();
+      available.put(mdA.getId(), mdA);
+      available.put(mdB.getId(), mdB);
+      available.put(mdC.getId(), mdC);
+      available.put(mdD.getId(), mdD);
+
+      Assert.assertEquals("", DepResolution.checkAllDependencies(available));
+    }
+
+    {
+      Map<String, ModuleDescriptor> available = new HashMap<>();
+      available.put(mdB.getId(), mdB);
+
+      Assert.assertEquals("Missing dependency: moduleB-1.0.0 requires int: 1.0",
+        DepResolution.checkAllDependencies(available));
+    }
+
+    {
+      Map<String, ModuleDescriptor> available = new HashMap<>();
+      available.put(mdB.getId(), mdB);
+      available.put(mdC.getId(), mdC);
+      available.put(mdD.getId(), mdD);
+
+      Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0",
+        DepResolution.checkAllDependencies(available));
+
+      Collection<ModuleDescriptor> testList = new TreeSet<>();
+      testList.add(mdD);
+      Assert.assertEquals("", DepResolution.checkDependencies(available, testList));
+
+      testList = new TreeSet<>();
+      testList.add(mdB);
+      Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0",
+        DepResolution.checkDependencies(available, testList));
+    }
+
+    {
+      Map<String, ModuleDescriptor> available = new HashMap<>();
+      available.put(mdC.getId(), mdC);
+      available.put(mdD.getId(), mdD);
+
+      Assert.assertEquals("", DepResolution.checkAllDependencies(available));
+    }
+  }
 
 }
