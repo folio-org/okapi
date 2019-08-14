@@ -1,3 +1,7 @@
+## 2.31.1 2019-08-14
+
+ * OKAPI-754 Fix Adding descriptor may result in dependency error
+
 ## 2.31.0 2019-08-07
 
  * OKAPI-751 If multiple _timer interfaces are declared in the
