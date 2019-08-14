@@ -971,8 +971,8 @@ X-Okapi-Trace: GET okapi-2.29.0-SNAPSHOT /_/proxy/tenants : 200 450us
 Content-Length: 105
 
 [ {
-  "id" : "okapi.supertenant",
-  "name" : "okapi.supertenant",
+  "id" : "supertenant",
+  "name" : "supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
 ```
@@ -2411,12 +2411,12 @@ deployed and enabled modules for us, without any kind of checking. In
 a production system this is not acceptable. Okapi is designed to be
 easy to secure. Actually, there are several little hacks in place to
 make it possible to use Okapi without the checks, for example the fact
-that Okapi defaults to the `okapi.supertenant` if none is specified,
+that Okapi defaults to the `supertenant` if none is specified,
 and that this tenant has the internal module enabled by default.
 
 In principle, securing Okapi itself is done the same way as securing
 access to any module: Install an auth check filter for the
-`okapi.supertenant`, and that one will not let people in without them
+`supertenant`, and that one will not let people in without them
 having authenticated themselves. The auth sample module is a bit
 simplistic for this -- in real life we would like a system that can
 handle different permissions for different users, etc.
