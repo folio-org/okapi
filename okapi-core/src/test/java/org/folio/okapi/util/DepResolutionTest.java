@@ -485,6 +485,13 @@ public class DepResolutionTest {
     mdD.setRequires(int20a);
     mdD.setProvides(inu10a);
 
+    InterfaceDescriptor int30 = new InterfaceDescriptor("int", "3.0");
+    InterfaceDescriptor[] int30a = {int30};
+
+    ModuleDescriptor mdE = new ModuleDescriptor();
+    mdE.setId("moduleE-1.0.0");
+    mdE.setProvides(int30a);
+
     {
       Map<String, ModuleDescriptor> available = new HashMap<>();
       available.put(mdA.getId(), mdA);
@@ -516,9 +523,11 @@ public class DepResolutionTest {
       testList.add(mdD);
       Assert.assertEquals("", DepResolution.checkDependencies(available, testList));
 
+      available.put(mdE.getId(), mdE);
+
       testList = new TreeSet<>();
       testList.add(mdB);
-      Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0",
+      Assert.assertEquals("Incompatible version for module moduleB-1.0.0 interface int. Need 1.0. Have 2.0/moduleC-1.0.0 3.0/moduleE-1.0.0",
         DepResolution.checkDependencies(available, testList));
     }
 
