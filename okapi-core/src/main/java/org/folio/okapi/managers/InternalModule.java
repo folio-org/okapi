@@ -10,6 +10,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -849,8 +850,14 @@ public class InternalModule {
   }
 
   private void listModules(ProxyContext pc,
+    String body,
     Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.getModulesWithFilter(true, true, res -> {
+
+    String [] skipModules = new String [0];
+    if (!body.isEmpty()) {
+      skipModules = Json.decodeValue(body, skipModules.getClass());
+    }
+    moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules), res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1284,7 +1291,7 @@ public class InternalModule {
         && moduleManager != null) {
         // /_/proxy/modules
         if (n == 4 && m.equals(GET)) {
-          listModules(pc, fut);
+          listModules(pc, req, fut);
           return;
         }
         if (n == 4 && m.equals(POST)) {
