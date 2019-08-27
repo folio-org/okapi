@@ -187,7 +187,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = DepResolution.checkAllDependencies(tempList);
+        String res = DepResolution.checkDependencies(tempList, nList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(USER, res));
           return;
