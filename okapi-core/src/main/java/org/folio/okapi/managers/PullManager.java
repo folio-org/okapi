@@ -4,6 +4,8 @@ import io.vertx.core.json.Json;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.logging.Logger;
 import java.util.Arrays;
 import java.util.Collection;
@@ -25,6 +27,8 @@ import org.folio.okapi.common.Success;
 public class PullManager {
 
   private final Logger logger = OkapiLogger.get();
+  private final HttpClient httpClient;
+  private final ModuleManager moduleManager;
   private Messages messages = Messages.getInstance();
 
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
