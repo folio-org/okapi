@@ -101,7 +101,31 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+    deployments.getKeys(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      CompList<Void> futures = new CompList<>(INTERNAL);
+      for (String mId : res.result()) {
+        Future<Void> future = Future.future();
+        futures.add(future);
+        deployments.get(mId, md.getInstId(), r -> {
+          if (r.succeeded()) {
+            future.handle(Future.failedFuture("dup InstId"));
+            return;
+          }
+          future.handle(Future.succeededFuture());
+        });
+      }
+      futures.all(res2 -> {
+        if (res2.failed()) {
+          fut.handle(new Failure<>(USER, messages.getMessage("10809", md.getInstId())));
+          return;
+        }
+        deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+      });
+    });
   }
 
   public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
