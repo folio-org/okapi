@@ -1265,7 +1265,6 @@ public class ProxyTest {
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
-      // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
@@ -1414,12 +1413,12 @@ public class ProxyTest {
 
     // 3rd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one), just like sample2 above.
-    c = api.createRestAssured3();
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSample3Deployment).post("/_/discovery/modules")
@@ -1429,6 +1428,18 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationSample3Inst = r.getHeader("Location");
     logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
+
+    // same instId but different module .. must result in error
+    final String docSample3DeploymentError = "{" + LS
+      + "  \"instId\" : \"sample3-instance\"," + LS
+      + "  \"srvcId\" : \"sample-module2-1\"," + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
+      + "}";
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample3DeploymentError).post("/_/discovery/modules")
+      .then()
+      .statusCode(400).body(equalTo("Duplicate instId sample3-instance"));
 
     final String docEnableSample3 = "{" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS
