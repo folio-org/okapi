@@ -1,3 +1,14 @@
+## 2.32.0 2019-09-09
+
+ * OKAPI-607 Fix non graceful (500 error) handling of duplicate
+   instId on first request only
+ * OKAPI-759 Prevent Vert.x thread blocked warning
+ * OKAPI-753 Yet another pull optimization. Works full if both
+   ends operate at version 2.32.0 or later.
+ * OKAPI-754 Fix adding descriptor may result in dependency error
+ * OKAPI-756 Update doc to new supertenant name
+ * OKAPI-758 Upgrade to Vert.x 3.8.1
+
 ## 2.31.0 2019-08-07
 
  * OKAPI-751 If multiple _timer interfaces are declared in the
