@@ -12,7 +12,7 @@ public class AsyncLock {
   final SharedData shared;
   // A good margin below thread lock warnings (60 seconds)
   static final long DEFAULT_POLL_TIME = 5000; // in ms
-  static long pollTime = DEFAULT_POLL_TIME;
+  long pollTime = DEFAULT_POLL_TIME;
 
   public AsyncLock(Vertx vertx) {
     shared = vertx.sharedData();

@@ -20,38 +20,31 @@ public class AsyncLockTest {
   }
 
   @Test
-  public void test1(TestContext context) {
+  public void testLocal(TestContext context) {
     Async async = context.async();
-    AsyncLock.pollTime = 1; // to getLockR called again (<< 10)
+
     AsyncLock lock1 = new AsyncLock(vertx);
     AsyncLock lock2 = new AsyncLock(vertx);
+    lock1.pollTime = lock2.pollTime = 1;  // to getLockR called again (<< 5 ms)
     lock1.getLock("l", res -> {
       context.assertTrue(res.succeeded());
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-      async.complete();
+      vertx.setTimer(5, x -> async.complete()); // hold lock for 5 ms
     });
-    lock2.getLock("l", res -> {
-      async.complete();
-    });
+    lock2.getLock("l", res -> { });
     async.awaitSuccess(100);
   }
 
   @Test
-  public void test2(TestContext context) {
+  public void testCluster(TestContext context) {
     Async async = context.async();
-    AsyncLock.pollTime = 1; // to getLockR called again (<< 10)
     AsyncLock lock = new AsyncLock(vertx);
     lock.isCluster = true;
     
-    lock.getLock("x y", res -> {
+    lock.getLock("l", res -> {
       context.assertTrue(res.succeeded());
       async.complete();
     });
-    async.awaitSuccess(100);
+    async.awaitSuccess(20);
   }
 
 }
