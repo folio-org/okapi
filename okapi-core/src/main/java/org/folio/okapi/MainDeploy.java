@@ -183,7 +183,7 @@ public class MainDeploy {
         iFace.setEnabled(true).addInterface(clusterHost);
       }
       else {
-        clusterHost = "0.0.0.0"
+        clusterHost = "0.0.0.0";
       }
     }
     hConfig.setProperty("hazelcast.logging.type", "slf4j");
