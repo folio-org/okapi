@@ -390,6 +390,7 @@ public class ProxyService {
         hres.headers().addAll(res.headers());
       }
     }
+    sanitizeAuthHeaders(hres.headers());
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
     if (hres.getStatusCode() != 204) {
@@ -714,6 +715,19 @@ public class ProxyService {
     return h.toString();
   }
 
+  private void fixupXOkapiToken(ModuleDescriptor md, MultiMap reqHeaders, MultiMap resHeaders) {
+    String reqToken = reqHeaders.get(XOkapiHeaders.TOKEN);
+    String resToken = resHeaders.get(XOkapiHeaders.TOKEN);
+    if (resToken != null) {
+      if (resToken.equals(reqToken)) {
+        logger.warn("Removing X-Okapi-Token returned by module " + md.getId() + " (RMB-478)");
+        resHeaders.remove(XOkapiHeaders.TOKEN);
+      } else {
+        logger.info("New X-Okapi-Token returned by module " + md.getId());
+      }
+    }
+  }
+
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
     List<HttpClientRequest> cReqs, ModuleInstance mi) {
@@ -721,6 +735,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res -> {
+      fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
