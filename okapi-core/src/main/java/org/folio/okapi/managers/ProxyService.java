@@ -720,10 +720,10 @@ public class ProxyService {
     String resToken = resHeaders.get(XOkapiHeaders.TOKEN);
     if (resToken != null) {
       if (resToken.equals(reqToken)) {
-        logger.warn("Removing token returned by module " + md.getId());
+        logger.warn("Removing X-Okapi-Token returned by module " + md.getId() + " (RMB-478)");
         resHeaders.remove(XOkapiHeaders.TOKEN);
       } else {
-        logger.info("New token returned by module " + md.getId());
+        logger.info("New X-Okapi-Token returned by module " + md.getId());
       }
     }
   }
