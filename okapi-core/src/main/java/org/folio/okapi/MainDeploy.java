@@ -176,7 +176,7 @@ public class MainDeploy {
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
     if (hConfig == null) {
-      hConfig = new Config();  
+      hConfig = ConfigUtil.loadConfig();  
       if (clusterHost != null) {
         NetworkConfig network = hConfig.getNetworkConfig();
         InterfacesConfig iFace = network.getInterfaces();
