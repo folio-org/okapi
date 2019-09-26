@@ -390,6 +390,7 @@ public class ProxyService {
         hres.headers().addAll(res.headers());
       }
     }
+    sanitizeAuthHeaders(hres.headers());
     hres.headers().remove("Content-Length");
     hres.headers().remove("Transfer-Encoding");
     if (hres.getStatusCode() != 204) {
