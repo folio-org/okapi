@@ -1,3 +1,10 @@
+## 2.33.0 2019-09-26
+ * OKAPI-763 Prevent X-Okapi-Token from being returned in some cases
+   where they are simply returned by mistake. This is a workaround
+   for modules that echo headers (RMB-478)
+ * OKAPI-764 Prevent internal auth headers from being returnd by Okapi
+   most notably X-Okapi-Module-Tokens
+
 ## 2.32.0 2019-09-09
 
  * OKAPI-607 Fix non graceful (500 error) handling of duplicate
