@@ -177,9 +177,14 @@ public class MainDeploy {
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
     if (hConfig == null) {
       hConfig = new Config();
-      if(clusterHost == null){
+      if (clusterHost == null){
         clusterHost = "0.0.0.0";
       }      
+      else (clusterHost != null) {
+        NetworkConfig network = hConfig.getNetworkConfig();
+        InterfacesConfig iFace = network.getInterfaces();
+        iFace.setEnabled(true).addInterface(clusterHost);
+      }
     }
     hConfig.setProperty("hazelcast.logging.type", "slf4j");
 
