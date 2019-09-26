@@ -1319,8 +1319,8 @@ X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
 Content-Length: 117
 
 [ {
-  "id" : "okapi.supertenant",
-  "name" : "okapi.supertenant",
+  "id" : "supertenant",
+  "name" : "supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
 ```
@@ -1337,8 +1337,8 @@ X-Okapi-Trace: GET okapi-2.0.1-SNAPSHOT /_/proxy/tenants : 200 450us
 Content-Length: 117
 
 [ {
-  "id" : "okapi.supertenant",
-  "name" : "okapi.supertenant",
+  "id" : "supertenant",
+  "name" : "supertenant",
   "description" : "Okapi built-in super tenant"
 } ]
 ```
@@ -3745,20 +3745,20 @@ keep a node fully occupied.
 
 ### Securing Okapi
 
-在上述例子中，我们只是向Okapi发送命令让Okapi为我们部署和启用模块，但并没有做任何检查。在生产系统中，这是不可接受的。Okapi被设计成抑郁保护的。实际上，有几个小技巧可以在不进行检查的情况下使用Okapi。例如，如果没有指定超级租户并启用了内部模块，Okapi默认为提供`okapi.supertenant`.
+在上述例子中，我们只是向Okapi发送命令让Okapi为我们部署和启用模块，但并没有做任何检查。在生产系统中，这是不可接受的。Okapi被设计成抑郁保护的。实际上，有几个小技巧可以在不进行检查的情况下使用Okapi。例如，如果没有指定超级租户并启用了内部模块，Okapi默认为提供`supertenant`.
 
 In the examples above, we just fired commands to Okapi, and it happily deployed
 and enabled modules for us, without any kind of checking. In a production system
 this is not acceptable. Okapi is designed to be easy to secure. Actually, there
 are several little hacks in place to make it possible to use Okapi without the
-checks, for example the fact that Okapi defaults to the `okapi.supertenant` if
+checks, for example the fact that Okapi defaults to the `supertenant` if
 none is specified, and that this tenant has the internal module enabled by
 default.
 
-原则上，保护Okapi自身安全的方法与对任何模块访问的方法相同：为`okapi.supertenant`安装一个auth校验过滤器，它会阻止非授权用户。auth示例模块在这方面过于简单——在实际情况下会希望系统为不同的用户处理不同的权限等。
+原则上，保护Okapi自身安全的方法与对任何模块访问的方法相同：为`supertenant`安装一个auth校验过滤器，它会阻止非授权用户。auth示例模块在这方面过于简单——在实际情况下会希望系统为不同的用户处理不同的权限等。
 
 In principle, securing Okapi itself is done the same way as securing access to
-any module: Install an auth check filter for the `okapi.supertenant`, and that
+any module: Install an auth check filter for the `supertenant`, and that
 one will not let people in without them having authenticated themselves. The
 auth sample module is a bit simplistic for this -- in real life we would like a
 system that can handle different permissions for different users, etc.

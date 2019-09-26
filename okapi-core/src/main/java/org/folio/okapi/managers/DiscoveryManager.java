@@ -3,6 +3,7 @@ package org.folio.okapi.managers;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
@@ -10,11 +11,9 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
@@ -26,7 +25,6 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
@@ -52,10 +50,12 @@ public class DiscoveryManager implements NodeListener {
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
   private Messages messages = Messages.getInstance();
+  private DeliveryOptions deliveryOptions;
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
+    deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
     deployments.init(vertx, "discoveryList", res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -101,7 +101,31 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+    deployments.getKeys(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      CompList<Void> futures = new CompList<>(INTERNAL);
+      for (String mId : res.result()) {
+        Future<Void> future = Future.future();
+        futures.add(future);
+        deployments.get(mId, md.getInstId(), r -> {
+          if (r.succeeded()) {
+            future.handle(Future.failedFuture("dup InstId"));
+            return;
+          }
+          future.handle(Future.succeededFuture());
+        });
+      }
+      futures.all(res2 -> {
+        if (res2.failed()) {
+          fut.handle(new Failure<>(USER, messages.getMessage("10809", md.getInstId())));
+          return;
+        }
+        deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+      });
+    });
   }
 
   public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
@@ -208,24 +232,14 @@ public class DiscoveryManager implements NodeListener {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
       } else {
-        Map<String, String> headers = new HashMap<>();
-        if (pc != null) {
-          for (String s : pc.getCtx().request().headers().names()) {
-            if (s.startsWith("X-") || s.startsWith("x-")) {
-              final String v = pc.getCtx().request().headers().get(s);
-              headers.put(s, v);
-            }
-          }
-        }
-        OkapiClient ok = new OkapiClient(noderes.result().getUrl(), vertx, headers);
         String reqdata = Json.encode(dd);
-        ok.post("/_/deployment/modules", reqdata, okres -> {
-          ok.close();
-          if (okres.failed()) {
-            fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata,
+          deliveryOptions, ar -> {
+          if (ar.failed()) {
+            fut.handle(new Failure(USER, ar.cause().getMessage()));
           } else {
-            DeploymentDescriptor pmd = Json.decodeValue(okres.result(),
-              DeploymentDescriptor.class);
+            String b = (String) ar.result().body();
+            DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
             fut.handle(new Success<>(pmd));
           }
         });
@@ -309,21 +323,11 @@ public class DiscoveryManager implements NodeListener {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
         } else {
-          Map<String, String> headers = new HashMap<>();
-          if (pc != null) {
-            for (String s : pc.getCtx().request().headers().names()) {
-              if (s.startsWith("X-") || s.startsWith("x-")) {
-                final String v = pc.getCtx().request().headers().get(s);
-                headers.put(s, v);
-              }
-            }
-          }
-          OkapiClient ok = new OkapiClient(res1.result().getUrl(), vertx, headers);
-          ok.delete("/_/deployment/modules/" + md.getInstId(), okres -> {
-            ok.close();
-            if (okres.failed()) {
-              logger.warn("Dm: Failure: " + okres.getType() + " " + okres.cause().getMessage());
-              fut.handle(new Failure<>(okres.getType(), okres.cause().getMessage()));
+          String reqdata = md.getInstId();
+          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata,
+            deliveryOptions, ar -> {
+            if (ar.failed()) {
+              fut.handle(new Failure(USER, ar.cause().getMessage()));
             } else {
               fut.handle(new Success<>());
             }
@@ -345,9 +349,20 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  private boolean isAlive(DeploymentDescriptor md) {
-    return clusterManager == null || md.getNodeId() == null
-      || clusterManager.getNodes().contains(md.getNodeId());
+  private boolean isAlive(DeploymentDescriptor md, Collection<NodeDescriptor> nodes) {
+    final String id = md.getNodeId();
+    if (id == null) {
+      return true;
+    }
+    boolean found = false;
+    for (NodeDescriptor node : nodes) {
+      final String nodeName = node.getNodeName();
+      final String nodeId = node.getNodeId();
+      if (id.equals(nodeId) || id.equals(nodeName)) {
+        found = true;
+      }
+    }
+    return found;
   }
 
   public void get(String srvcId, String instId,
@@ -356,15 +371,22 @@ public class DiscoveryManager implements NodeListener {
     deployments.get(srvcId, instId, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-      } else {
-        DeploymentDescriptor md = resGet.result();
+        return;
+      }
+      DeploymentDescriptor md = resGet.result();
+      nodes.getAll(nodeRes -> {
+        if (nodeRes.failed()) {
+          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+          return;
+        }
+        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
         // check that the node is alive, but only on non-url instances
-        if (!isAlive(md)) {
+        if (!isAlive(md, nodesCollection)) {
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
           return;
         }
         fut.handle(new Success<>(md));
-      }
+      });
     });
   }
 
@@ -470,17 +492,24 @@ public class DiscoveryManager implements NodeListener {
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        List<DeploymentDescriptor> result = res.result();
+        return;
+      }
+      List<DeploymentDescriptor> result = res.result();
+      nodes.getAll(nodeRes -> {
+        if (nodeRes.failed()) {
+          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+          return;
+        }
+        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
         Iterator<DeploymentDescriptor> it = result.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
-          if (!isAlive(md)) {
+          if (!isAlive(md, nodesCollection)) {
             it.remove();
           }
         }
         fut.handle(new Success<>(result));
-      }
+      });
     });
   }
 

@@ -25,6 +25,8 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import org.folio.okapi.common.HttpResponse;
 import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
@@ -40,6 +42,7 @@ public class ProxyTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private final int portTimer = 9235;
   private final int portPre = 9236;
   private final int portPost = 9237;
   private final int portEdge = 9238;
@@ -48,6 +51,7 @@ public class ProxyTest {
   private Buffer postBuffer;
   private MultiMap postHandlerHeaders;
   private static RamlDefinition api;
+  private int timerDelaySum = 0;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -141,6 +145,41 @@ public class ProxyTest {
     }
   }
 
+  private void myTimerHandle(RoutingContext ctx) {
+    final String p = ctx.request().path();
+    logger.info("myTimerHandle p=" + p);
+    for (Entry<String, String> ent : ctx.request().headers().entries()) {
+      logger.info(ent.getKey() + ":" + ent.getValue());
+    }
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else if (HttpMethod.POST.equals(ctx.request().method())) {
+      Buffer buf = Buffer.buffer();
+      ctx.request().handler(buf::appendBuffer);
+      ctx.request().endHandler(res -> {
+        try {
+          if (p.startsWith("/_/tenant")) {
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+            return;
+          }
+          long delay = Long.parseLong(p.substring(1)); // assume /[0-9]+
+          timerDelaySum += delay;
+          vertx.setTimer(delay, x -> {
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+          });
+        } catch (Exception ex) {
+          ctx.response().setStatusCode(400);
+          ctx.response().end(ex.getMessage());
+        }
+      });
+    } else {
+      ctx.response().setStatusCode(404);
+      ctx.response().end("Unsupported method");
+    }
+  }
+
   private void setupPreServer(TestContext context, Async async) {
     Router router = Router.router(vertx);
 
@@ -165,6 +204,20 @@ public class ProxyTest {
       .requestHandler(router::accept)
       .listen(
         portPost,
+        result -> setupTimerServer(context, async)
+      );
+  }
+
+  private void setupTimerServer(TestContext context, Async async) {
+    Router router = Router.router(vertx);
+
+    router.routeWithRegex("/.*").handler(this::myTimerHandle);
+
+    HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    vertx.createHttpServer(so)
+      .requestHandler(router::accept)
+      .listen(
+        portTimer,
         result -> setupEdgeServer(context, async)
       );
   }
@@ -217,12 +270,37 @@ public class ProxyTest {
     Async async = context.async();
 
     httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
-      context.assertEquals(204, response.statusCode());
+      context.assertTrue(response.statusCode() == 404 || response.statusCode() == 204);
       response.endHandler(x -> {
         httpClient.close();
         td(context, async);
       });
     }).end();
+  }
+
+  @Test
+  public void testBadToken(TestContext context) {
+
+    given()
+      .header("X-Okapi-Token", "a")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(containsString("Invalid Token: "));
+
+    given()
+      .header("X-Okapi-Token", "a.b.c")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
+
+    given()
+      .header("X-Okapi-Token", "a.ewo=.d")
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/modules")
+      .then().statusCode(400)
+      .body(containsString("Failed to decode: Unexpected end-of-input"));
   }
 
   @Test
@@ -293,6 +371,18 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     final String locationBasic_1_0_0 = r.getHeader("Location");
+
+    /* missing action so this will fail */
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"basic-module-1.0.0\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(equalTo("Missing action for id basic-module-1.0.0"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given()
@@ -990,7 +1080,7 @@ public class ProxyTest {
     // Request without any X-Okapi headers
     given()
       .get("/testb")
-      .then().statusCode(403);
+      .then().statusCode(404).body(equalTo("No suitable module found for path /testb for tenant supertenant"));
 
     // Request with a header, to unknown path
     // (note, should fail without invoking the auth module)
@@ -998,7 +1088,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .get("/something.we.do.not.have")
       .then().statusCode(404)
-      .body(equalTo("No suitable module found for path /something.we.do.not.have"));
+      .body(equalTo("No suitable module found for path /something.we.do.not.have for tenant roskilde"));
 
     // Request without an auth token
     // In theory, this is acceptable, we should get back a token that certifies
@@ -1010,7 +1100,7 @@ public class ProxyTest {
       .header("X-all-headers", "B") // ask sample to report all headers
       .get("/testb")
       .then().log().ifValidationFails()
-      .statusCode(200);
+      .statusCode(401);
 
     // Failed login
     final String docWrongLogin = "{" + LS
@@ -1056,7 +1146,6 @@ public class ProxyTest {
       .header("X-Auth-Permissions-Desired", containsString("sample.extra"))
       .header("X-Auth-Permissions-Required", "sample.needed")
       .body(containsString("It works"));
-
     // Check the CORS headers.
     // The presence of the Origin header should provoke the two extra headers.
     given().header("X-Okapi-Tenant", okapiTenant)
@@ -1176,7 +1265,6 @@ public class ProxyTest {
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
-      // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
@@ -1325,12 +1413,12 @@ public class ProxyTest {
 
     // 3rd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one), just like sample2 above.
-    c = api.createRestAssured3();
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSample3Deployment).post("/_/discovery/modules")
@@ -1340,6 +1428,18 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationSample3Inst = r.getHeader("Location");
     logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
+
+    // same instId but different module .. must result in error
+    final String docSample3DeploymentError = "{" + LS
+      + "  \"instId\" : \"sample3-instance\"," + LS
+      + "  \"srvcId\" : \"sample-module2-1\"," + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
+      + "}";
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample3DeploymentError).post("/_/discovery/modules")
+      .then()
+      .statusCode(400).body(equalTo("Duplicate instId sample3-instance"));
 
     final String docEnableSample3 = "{" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS
@@ -2095,10 +2195,10 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails()
       .header("Content-Type", "text/xml")
       .body(equalTo("<test>Hello Okapi</test>"));
-    Assert.assertEquals("Okapi", preBuffer.toString());
 
     Async async = context.async();
     vertx.setTimer(300, res -> {
+      context.assertEquals("Okapi", preBuffer.toString());
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
       context.assertNotNull(postHandlerHeaders);
       context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
@@ -2232,6 +2332,21 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    final String docLogin = "{" + LS
+      + "  \"tenant\" : \"" + "supertenant" + "\"," + LS
+      + "  \"username\" : \"peter\"," + LS
+      + "  \"password\" : \"peter-password\"" + LS
+      + "}";
+    final String okapiToken = c.given().header("Content-Type", "application/json").body(docLogin)
+      .header("X-Okapi-Tenant", "supertenant").post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .get("/_/proxy/tenants")
+      .then().statusCode(200);
+
     final String okapiTenant = "roskilde";
     // add tenant
     final String docTenantRoskilde = "{" + LS
@@ -2241,6 +2356,7 @@ public class ProxyTest {
       + "}";
     c = api.createRestAssured3();
     given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .body(docTenantRoskilde).post("/_/proxy/tenants")
       .then().statusCode(201)
@@ -2254,6 +2370,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     c.given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .body("["
         + " {\"id\" : \"basic-module-1.0.0\", \"action\" : \"enable\"},"
@@ -2275,5 +2392,203 @@ public class ProxyTest {
       .body("Okapi").get("/edge/unknown")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("No such Tenant unknown"));
+
+    given()
+      .header("X-Okapi-Token", okapiToken)
+      .delete("/_/discovery/modules")
+      .then().statusCode(204).log().ifValidationFails();
+  }
+
+  @Test
+  public void testTimer(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    final String docTimer_1_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_timer\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/1\"," + LS
+      + "      \"unit\" : \"millisecond\"," + LS
+      + "      \"delay\" : \"10\"" + LS
+      + "   }, {" + LS
+      + "      \"methods\" : [ \"GET\" ]," + LS
+      + "      \"path\" : \"/3\"," + LS
+      + "      \"unit\" : \"millisecond\"," + LS
+      + "      \"delay\" : \"30\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDoc1 = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc1).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String okapiTenant = "roskilde";
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde));
+
+    timerDelaySum = 0;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/100")
+      .then().statusCode(200).log().ifValidationFails();
+
+    // 10 msecond period and 100 total wait time.. 1 tick per call.. So 8-10 calls
+    context.assertTrue(timerDelaySum >= 104 && timerDelaySum <= 110, "Got " + timerDelaySum);
+    logger.info("timerDelaySum=" + timerDelaySum);
+
+    // disable and enable (quickly)
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // disable for some time...
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/100")
+      .then().statusCode(404).log().ifValidationFails();
+
+    try {
+      TimeUnit.MILLISECONDS.sleep(100);
+    } catch (InterruptedException ex) {
+    }
+
+    // enable again
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/100")
+      .then().statusCode(200).log().ifValidationFails();
+
+    // disable and remove tenant as well
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .header("Content-Type", "application/json")
+      .delete("/_/proxy/tenants/roskilde")
+      .then().statusCode(204);
+
+    try {
+      TimeUnit.MILLISECONDS.sleep(100);
+    } catch (InterruptedException ex) {
+    }
+
   }
 }

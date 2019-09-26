@@ -232,6 +232,19 @@ public class EnvTest {
       + "      \"pathPattern\" : \"/testb\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"DB_HOST\"," + LS
+      + "    \"description\" : \"PostgreSQL host\"," + LS
+      + "    \"value\" : \"localhost\"" + LS
+      + "  }, {" + LS
+      + "    \"name\" : \"DB_PORT\"," + LS
+      + "    \"description\" : \"PostgreSQL port\"," + LS
+      + "    \"value\" : \"5432\"" + LS
+      + "  } ]," + LS
+      + "  \"metadata\" : {" + LS
+      + "    \"scm\" : \"https://github.com/folio-org/mod-something\"," + LS
+      + "    \"language\" : \"java\"" + LS
+      + "  }," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
     c = api.createRestAssured3();

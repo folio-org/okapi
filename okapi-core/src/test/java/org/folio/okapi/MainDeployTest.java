@@ -291,4 +291,23 @@ public class MainDeployTest {
       async.complete();
     });
   }
+
+  @Test
+  public void testOkapiSamePort(TestContext context) {
+    async = context.async();
+
+    String[] args = {"dev"};
+
+    MainDeploy d1 = new MainDeploy();
+    d1.init(args, res1 -> {
+      vertx = res1.succeeded() ? res1.result() : null;
+      Assert.assertTrue("d1 " + res1.cause(), res1.succeeded());
+
+      MainDeploy d2 = new MainDeploy();
+      d2.init(args, res2 -> {
+        Assert.assertTrue("d2 " + res2.cause(), res2.failed());
+        async.complete();
+      });
+    });
+  }
 }

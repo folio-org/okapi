@@ -1,3 +1,58 @@
+## 2.32.0 2019-09-09
+
+ * OKAPI-607 Fix non graceful (500 error) handling of duplicate
+   instId on first request only
+ * OKAPI-759 Prevent Vert.x thread blocked warning
+ * OKAPI-753 Yet another pull optimization. Works full if both
+   ends operate at version 2.32.0 or later.
+ * OKAPI-754 Fix adding descriptor may result in dependency error
+ * OKAPI-756 Update doc to new supertenant name
+ * OKAPI-758 Upgrade to Vert.x 3.8.1
+
+## 2.31.0 2019-08-07
+
+ * OKAPI-751 If multiple _timer interfaces are declared in the
+   ModuleDescriptor only the first one works
+ * OKAPI-750 Deleting MD from Okapi causes Vert.x warnings
+ * OKAPI-748 Omitting action for install results in null pointer exception
+ * OKAPI-747 Update Okapi guide re: database initialization
+ * OKAPI-746 The modules upgrade failed in Okapi version 2.27.1 cluster
+ * OKAPI-745 Update Permission schema to include visible flag
+ * OKAPI-744 Dump HTTP Request headers in Okapi log
+
+## 2.30.0 2019-06-07
+
+ * OKAPI-734 Fix timer calls terminated for connection refused
+ * OKAPI-735 Do not re-attempt HTTP connection on timers..
+ * OKAPI-737 Fix Cannot restart Okapi when mod-authtoken is enabled on
+   supertenant
+ * OKAPI-738 Fix deployment issue (Increase internal deploy/undeploy timeout)
+ * OKAPI-739 Adjust Okapi RES log to display request parameters
+ * OKAPI-740 Fix "Wait for lock" when enabling module (with new timer
+   feature) for supertenant
+
+## 2.29.0 2019-05-10
+
+ * OKAPI-732 Extend ModuleDescriptor with metadata and env properties
+ * OKAPI-733 Document why getLock fails
+ * OKAPI-731 Fixes for timer calls (scheduling). 1:request body was not
+   empty as specified in manual. 2: X-Okapi-Url not set in timer call
+ * OKAPI-726 Update guide for case when tenant header is omitted
+
+## 2.28.0 2019-05-07
+
+ * OKAPI-730 System call timers (period calls made by Okapi)
+ * OKAPI-725 Fix Okapi does not pass tenant header for supertenant
+ * OKAPI-723 Improve diagnostics for install
+ * OKAPI-722 Fix Okapi not logging after initialization
+
+## 2.27.0 2019-04-04
+
+ * Chinese manual in directory doc-zh
+ * OKAPI-719 Fix Discovery reports service on node that is terminated
+ * OKAPI-717 Wait longer for Okapi system calls (HTTP request attempts)
+ * OKAPI-694 Upgrade to Vert.x 3.7 series
+
 ## 2.26.0 2019-03-14
 
  * OKAPI-710 Okapi should wait for module to be available before

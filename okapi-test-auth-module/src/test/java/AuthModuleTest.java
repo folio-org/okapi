@@ -61,6 +61,23 @@ public class AuthModuleTest {
   }
 
   @Test
+  public void testNoTokenNoTenantPermRequired(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "foo,bar");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+    cli.get("/notokentenant", res -> {
+      cli.close();
+      context.assertTrue(res.failed());
+      context.assertEquals("Permissions required: foo,bar", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
   public void testNoTenant(TestContext context) {
     Async async = context.async();
 
@@ -72,30 +89,6 @@ public class AuthModuleTest {
     cli.get("/notenant", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.USER, res.getType());
-      async.complete();
-    });
-  }
-
-  @Test
-  public void testAAANoLoginToken(TestContext context) {
-    // auth check should fail without a proper token.
-    // Except when we are trying to make a login request. That
-    // will be tested later.
-    Async async = context.async();
-
-    HashMap<String, String> headers = new HashMap<>();
-    headers.put(XOkapiHeaders.URL, URL);
-    headers.put(XOkapiHeaders.TENANT, "my-lib");
-
-    OkapiClient cli = new OkapiClient(URL, vertx, headers);
-
-    cli.get("/nologintoken", res -> {
-      if (res.succeeded()) {
-        logger.warn("testAAANoLoginToken: res.succeeded. " + res.result());
-      } else {
-        logger.warn("testAAANoLoginToken: res.failed. " + Json.encode(res));
-      }
-      context.assertTrue(res.succeeded());
       async.complete();
     });
   }
@@ -267,6 +260,61 @@ public class AuthModuleTest {
         context.assertTrue(res.succeeded());
         async.complete();
       }
+    });
+  }
+
+  @Test
+  public void testPostTenant1(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "application/json");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    JsonObject j = new JsonObject();
+    j.put("tenant", "my-lib");
+    j.put("username", "foo");
+    j.put("password", "foo-password");
+    String body = j.encodePrettily();
+
+    cli.post("/authn/login", body, res -> {
+      context.assertTrue(res.succeeded());
+      cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
+      cli.post("/_/tenant", "{}", res2 -> {
+        context.assertTrue(res2.succeeded());
+        async.complete();
+      });
+    });
+  }
+
+  @Test
+  public void testPostTenant2(TestContext context) {
+    Async async = context.async();
+
+    HashMap<String, String> headers = new HashMap<>();
+    headers.put(XOkapiHeaders.URL, URL);
+    headers.put(XOkapiHeaders.TENANT, "my-lib");
+    headers.put("Content-Type", "application/json");
+    headers.put(XOkapiHeaders.PERMISSIONS_REQUIRED, "a,b");
+
+    OkapiClient cli = new OkapiClient(URL, vertx, headers);
+
+    JsonObject j = new JsonObject();
+    j.put("tenant", "my-lib");
+    j.put("username", "foo");
+    j.put("password", "foo-password");
+    String body = j.encodePrettily();
+
+    cli.post("/authn/login", body, res -> {
+      context.assertTrue(res.succeeded());
+      cli.setOkapiToken(cli.getRespHeaders().get(XOkapiHeaders.TOKEN));
+      cli.post("/_/tenant", "{}", res2 -> {
+        context.assertTrue(res2.failed());
+        async.complete();
+      });
     });
   }
 

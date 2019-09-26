@@ -83,7 +83,7 @@ types:
           body:
             text/plain:
     delete:
-      description: shutdown instance
+      description: Shutdown instance
       responses:
         204:
           headers:
@@ -125,7 +125,7 @@ types:
     description: Return all instances
     responses:
       200:
-        description: Ok
+        description: OK
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -141,10 +141,10 @@ types:
         body:
           text/plain:
   delete:
-    description: delete all instances
+    description: Delete all instances
     responses:
       204:
-        description: Ok
+        description: OK
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
@@ -192,7 +192,7 @@ types:
             text/plain:
     /{instance_id}:
       get:
-        description: get registration of a specified instance
+        description: Get registration of a specified instance
         responses:
           200:
             body:
@@ -253,7 +253,7 @@ types:
             text/plain:
     /{instance_id}:
       get:
-        description: get health for a particular instance
+        description: Get health for a particular instance
         responses:
           200:
             body:
@@ -346,11 +346,11 @@ types:
         type: boolean
         required: false
       preRelease:
-        description: whether to allow pre-release modules in dependency check
+        description: Whether to allow pre-release modules in dependency check
         type: boolean
         required: false
       npmSnapshot:
-        description: whether to allow NPM module snapshots in dependency check
+        description: Whether to allow NPM module snapshots in dependency check
            (default:true).
         type: boolean
         required: false
@@ -388,15 +388,15 @@ types:
         type: string
         required: false
       full:
-        description: whether full or compact MD should be returned
+        description: Whether full or compact MD should be returned
         type: boolean
         required: false
       latest:
-        description: limit to latest N releases (most likely 1 if given)
+        description: Limit to latest N releases (most likely 1 if given)
         type: integer
         required: false
       npmSnapshot:
-        description: whether to include NPM module snapshots
+        description: Whether to include NPM module snapshots
           (default:true).
         type: boolean
         required: false
@@ -409,20 +409,20 @@ types:
         type: string
         required: false
       preRelease:
-        description: whether to include modules with pre-release info
+        description: Whether to include modules with pre-release info
           (default:true).
         type: boolean
         required: false
       provide:
-        description: limit to provided interface
+        description: Limit to provided interface
         type: string
         required: false
       require:
-        description: limit to required interface
+        description: Limit to required interface
         type: string
         required: false
       scope:
-        description: limit to interface scope (only useful with provide and require)
+        description: Limit to interface scope (only useful with provide and require)
         type: string
         required: false
     responses:
@@ -595,7 +595,7 @@ types:
             body:
               text/plain:
           500:
-            description: Server error
+            description: Server Error
             body:
               text/plain:
       get:
@@ -610,15 +610,15 @@ types:
             type: string
             required: false
           full:
-            description: whether full or compact MD should be returned
+            description: Whether full or compact MD should be returned
             type: boolean
             required: false
           latest:
-            description: limit to latest N releases (most likely 1 if given)
+            description: Limit to latest N releases (most likely 1 if given)
             type: integer
             required: false
           npmSnapshot:
-            description: whether to include NPM module snapshots
+            description: Whether to include NPM module snapshots
               (default:true).
             type: boolean
             required: false
@@ -631,20 +631,20 @@ types:
             type: string
             required: false
           preRelease:
-            description: whether to include modules with pre-release info
+            description: Whether to include modules with pre-release info
               (default:true).
             type: boolean
             required: false
           provide:
-            description: limit to provided interface
+            description: Limit to provided interface
             type: string
             required: false
           require:
-            description: limit to required interface
+            description: Limit to required interface
             type: string
             required: false
           scope:
-            description: limit to interface scope (only useful with provide and require)
+            description: Limit to interface scope (only useful with provide and require)
             type: string
             required: false
         responses:
@@ -661,7 +661,7 @@ types:
             body:
               text/plain:
           500:
-            description: Server error
+            description: Server Error
             body:
               text/plain:
       /{module_id}:
@@ -735,13 +735,13 @@ types:
           that must be fulfilled to satisfy dependencies.
           This service will eventually partially replace
           /_/proxy/tenants/{tenant}/modules . It also allows
-          enabling multiple modules in in one transaction.
+          enabling multiple modules in one transaction.
           For simulate=true, the response, can be viewed as a recipe for what
           must be deployed (optionally) and enabled/disabled by the existing
           tenants-modules CRUD service.
         queryParameters:
           deploy:
-            description: whether to deploy (or undeploy if disabling)
+            description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
           simulate:
@@ -754,7 +754,7 @@ types:
             type: boolean
             required: false
           npmSnapshot:
-            description: whether to include NPM module snapshots
+            description: Whether to include NPM module snapshots
               (default:true).
             type: boolean
             required: false
@@ -787,21 +787,21 @@ types:
             body:
               text/plain:
           500:
-            description: Server error
+            description: Server Error
             body:
               text/plain:
     /upgrade:
       post:
-        description: Check if newer modules of exist and upgrade for tenant.
+        description: Check if newer modules exist, and upgrade for tenant.
           The response is a list of modules that should be enabled, disabled
           or upgraded to perform the upgrade.
         queryParameters:
           deploy:
-            description: whether to deploy (or undeploy if disabling)
+            description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
           simulate:
-            description: whether the upgrade is simulated
+            description: Whether the upgrade is simulated
             type: boolean
             required: false
           preRelease:
@@ -835,7 +835,7 @@ types:
             body:
               text/plain:
           500:
-            description: Server error
+            description: Server Error
             body:
               text/plain:
     /interfaces:
@@ -843,11 +843,11 @@ types:
         description: Get all interfaces for tenant
         queryParameters:
           full:
-            description: whether brief or full interface list
+            description: Whether brief or full interface list
             type: boolean
             required: false
           type:
-            description: limit by interfaceType
+            description: Limit by interfaceType
             type: string
             required: false
         responses:
@@ -867,7 +867,7 @@ types:
             body:
               text/plain:
           500:
-            description: Server error
+            description: Server Error
             body:
               text/plain:
       /{interface_id}:
@@ -876,7 +876,7 @@ types:
             DEPRECATED. Use /_/proxy/tenants/{tenant_id}/modules?provide={interface_id} instead
           queryParameters:
             type:
-              description: limit by interfaceType
+              description: Limit by interfaceType
               type: string
               required: false
           responses:
@@ -896,7 +896,7 @@ types:
               body:
                 text/plain:
             500:
-              description: Server error
+              description: Server Error
               body:
                 text/plain:
 /_/proxy/health:
@@ -1031,7 +1031,7 @@ types:
 /_/version:
   description: Service for getting information about Okapi
   get:
-    description: get Okapi version
+    description: Get Okapi version
     responses:
       200:
         description: OK, with version in body

@@ -15,11 +15,12 @@ The Okapi software has the following compile-time dependencies:
 
 * Apache Maven 3.3.x or higher
 
-In addition, the test suite must be able to bind to ports 9230-9239 to succeed.
+In addition, the test suite must be able to bind to ports 9230-9239 to
+succeed.
 
-*Note: If tests fail, the API Gateway may be unable in some cases to shut down
-microservices that it has spawned, and they may need to be terminated
-manually.*
+*Note: If tests fail, the API Gateway may be unable in some cases to
+shut down microservices that it has spawned, and they may need to be
+terminated manually.*
 
 Quick start
 -----------
@@ -37,9 +38,12 @@ Documentation
 * [Okapi Guide and Reference](doc/guide.md)
 * [Documentation index](doc/index.md)
 * [Contributing guidelines](CONTRIBUTING.md)
-* [Securing](doc/securing.md) in the doc directory shows how to enable security-related modules.
-* [Folio Sample Modules](https://github.com/folio-org/folio-sample-modules). There
-is a decent README, and some minimal sample modules to get started with
-* Other FOLIO Developer documentation is at [dev.folio.org](https://dev.folio.org/)
-* See project [OKAPI](https://issues.folio.org/browse/OKAPI)
-at the [FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker)
+* [Securing](doc/securing.md) in the doc directory shows how to enable
+  security-related modules.
+* [Folio Sample
+Modules](https://github.com/folio-org/folio-sample-modules). There is
+a decent README, and some minimal sample modules to get started with
+* Other FOLIO Developer documentation is at
+  [dev.folio.org](https://dev.folio.org/)
+* See project [OKAPI](https://issues.folio.org/browse/OKAPI) at the
+[FOLIO issue tracker](https://dev.folio.org/guidelines/issue-tracker)

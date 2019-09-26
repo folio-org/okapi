@@ -10,11 +10,11 @@
       "type": "string"
     },
     "name": {
-      "description": "Short name for module (should not include version)",
+      "description": "Short name for module (does not include version)",
       "type": "string"
     },
     "replaces": {
-      "description": "List of modules that this raplaces",
+      "description": "List of modules that this replaces",
       "type": "array",
       "items": {
         "description": "Module name - without semantic version",
@@ -56,6 +56,14 @@
       "items": {
         "$ref": "Permission.json"
       }
+    },
+    "env" : {
+      "description": "Supported environment variables",
+      "$ref" : "EnvEntryList.json"
+    },
+    "metadata" : {
+      "description": "Module Metadata (any object)",
+      "type" : "object"
     },
     "uiDescriptor": {
       "description": "UI module descriptor",

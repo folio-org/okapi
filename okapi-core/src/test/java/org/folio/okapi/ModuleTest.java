@@ -175,9 +175,7 @@ public class ModuleTest {
   }
 
   private void td(TestContext context) {
-    logger.info("td ...");
     if (locationAuthDeployment != null) {
-      logger.info("td 1");
       httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -188,7 +186,6 @@ public class ModuleTest {
       return;
     }
     if (locationSampleDeployment != null) {
-      logger.info("td 2");
       httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         locationSampleDeployment = null;
@@ -200,7 +197,6 @@ public class ModuleTest {
       return;
     }
     if (locationHeaderDeployment != null) {
-      logger.info("td 3");
       httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -211,7 +207,6 @@ public class ModuleTest {
       return;
     }
     if (locationPreDeployment != null) {
-      logger.info("td 4");
       httpClient.delete(port, "localhost", locationPreDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -222,7 +217,6 @@ public class ModuleTest {
       return;
     }
     if (locationPostDeployment != null) {
-      logger.info("td 5");
       httpClient.delete(port, "localhost", locationPostDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
@@ -232,7 +226,6 @@ public class ModuleTest {
       }).end();
       return;
     }
-    logger.info("td 6");
     vertx.close(x -> {
       async.complete();
     });
@@ -326,7 +319,8 @@ public class ModuleTest {
    * @return the URL to delete when done
    */
   private String createModule(String md) {
-    final String loc = given()
+    RestAssuredClient c = api.createRestAssured3();
+    final String loc = c.given()
       .header("Content-Type", "application/json")
       .body(md)
       .post("/_/proxy/modules")
@@ -335,6 +329,8 @@ public class ModuleTest {
       .header("Location",containsString("/_/proxy/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     return loc;
   }
 
@@ -352,7 +348,8 @@ public class ModuleTest {
       + "  \"srvcId\" : \"" + modId + "\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
-    final String loc = given()
+    RestAssuredClient c = api.createRestAssured3();
+    final String loc = c.given()
       .header("Content-Type", "application/json")
       .body(docDeploy)
       .post("/_/discovery/modules")
@@ -361,6 +358,8 @@ public class ModuleTest {
       .header("Location",containsString("/_/discovery/modules"))
       .log().ifValidationFails()
       .extract().header("Location");
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
     return loc;
   }
 
@@ -791,6 +790,22 @@ public class ModuleTest {
       + "    \"description\" : \"All permissions combined\"," + LS
       + "    \"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ]" + LS
       + "  } ]," + LS
+      + "  \"env\" : [ {" + LS
+      + "    \"name\" : \"DB_HOST\"," + LS
+      + "    \"value\" : \"localhost\"," + LS
+      + "    \"description\" : \"PostgreSQL host\"" + LS
+      + "  }, {" + LS
+      + "    \"name\" : \"DB_PORT\"," + LS
+      + "    \"value\" : \"5432\"," + LS
+      + "    \"description\" : \"PostgreSQL port\"" + LS
+      + "  } ]," + LS
+      + "  \"metadata\" : {" + LS
+      + "    \"scm\" : \"https://github.com/folio-org/mod-something\"," + LS
+      + "    \"language\" : {" + LS
+      + "      \"name\" : \"java\"," + LS
+      + "      \"versions\" : [ 8.0, 11.0 ]" + LS
+      + "    }" + LS
+      + "  }," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar " + testModJar + "\"" + LS
       + "  }" + LS
