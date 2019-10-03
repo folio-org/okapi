@@ -29,7 +29,7 @@ public class OkapiTokenTest {
     byte[] buf = Base64.getDecoder().decode(s);
     String got = new String(buf);
     String exp = "{\"sub\":\"__undefined__\","
-      + "\"user_id\":\"99999999-9999-9999-9999-999999999999\",\"tenant\":\"testlib\"}";
+      + "\"user_id\":\"99999999-9999-4999-9999-999999999999\",\"tenant\":\"testlib\"}";
     assertEquals(exp, got);
   }
 
