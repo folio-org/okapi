@@ -25,7 +25,7 @@ public class OkapiTokenTest {
   @Test
   public void test2() {
     String s = "eyJzdWIiOiJfX3VuZGVmaW5lZF9fIiwidXNlcl9pZCI6Ijk5OTk5OTk5L"
-      + "Tk5OTktOTk5OS05OTk5LTk5OTk5OTk5OTk5OSIsInRlbmFudCI6InRlc3RsaWIifQ";
+      + "Tk5OTktNDk5OS05OTk5LTk5OTk5OTk5OTk5OSIsInRlbmFudCI6InRlc3RsaWIifQ";
     byte[] buf = Base64.getDecoder().decode(s);
     String got = new String(buf);
     String exp = "{\"sub\":\"__undefined__\","
