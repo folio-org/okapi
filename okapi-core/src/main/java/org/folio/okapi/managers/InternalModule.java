@@ -33,7 +33,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
@@ -42,7 +41,7 @@ import org.folio.okapi.util.ProxyContext;
  * Okapi's built-in module. Managing /_/ endpoints.
  *
  * /_/proxy/modules /_/proxy/tenants /_/proxy/health /_/proxy/pull
- * /_/deployment /_/discovery /_/env /_/version /_/test loglevel etc
+ * /_/deployment /_/discovery /_/env /_/version etc
  *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy must
  * read the request body before invoking this built-in module, and /_/invoke
@@ -61,7 +60,6 @@ public class InternalModule {
   private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
   private final PullManager pullManager;
-  private final LogHelper logHelper;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
   private Messages messages = Messages.getInstance();
@@ -75,7 +73,6 @@ public class InternalModule {
     this.discoveryManager = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
-    logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
     logger.warn("InternalModule starting okapiversion=" + okapiVersion);
   }
@@ -332,17 +329,9 @@ public class InternalModule {
       + "    \"type\" : \"internal\" "
       + "   },"
       // version service
-      + "{"
+      + "   {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/version\","
-      + "    \"permissionsRequired\" : [  ], "
-      + "    \"type\" : \"internal\" "
-      + "   }, "
-      // The /_/invoke service can not be handled here, it needs to be hardcoded.
-      // test service, only for developers
-      + "{"
-      + "    \"methods\" :  [ \"GET\", \"POST\" ],"
-      + "    \"pathPattern\" : \"/_/test*\","
       + "    \"permissionsRequired\" : [  ], "
       + "    \"type\" : \"internal\" "
       + "   } ]"
@@ -1232,24 +1221,6 @@ public class InternalModule {
     fut.handle(new Success<>(v));
   }
 
-  private void getRootLogLevel(Handler<ExtendedAsyncResult<String>> fut) {
-    String lev = logHelper.getRootLogLevel();
-    LogHelper.LogLevelInfo li = new LogHelper.LogLevelInfo(lev);
-    String rj = Json.encode(li);
-    fut.handle(new Success<>(rj));
-  }
-
-  private void setRootLogLevel(String body,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
-      LogHelper.LogLevelInfo.class);
-    logHelper.setRootLogLevel(inf.getLevel());
-    fut.handle(new Success<>(body));
-    // Should at least return the actual log level, not whatever we post
-    // We can post FOOBAR, and nothing changes...
-  }
-
   /**
    * Dispatcher for all the built-in services.
    *
@@ -1513,17 +1484,6 @@ public class InternalModule {
     if (p.equals("/_/version") && m.equals(GET)) {
       getVersion(pc, fut);
       return;
-    }
-
-    if (n >= 2 && p.startsWith("/_/test/")) {
-      if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
-        getRootLogLevel(fut);
-        return;
-      }
-      if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
-        setRootLogLevel(req, fut);
-        return;
-      }
     }
     fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
   }
