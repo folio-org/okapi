@@ -1224,24 +1224,6 @@ public class InternalModule {
     fut.handle(new Success<>(v));
   }
 
-  private void getRootLogLevel(Handler<ExtendedAsyncResult<String>> fut) {
-    String lev = logHelper.getRootLogLevel();
-    LogHelper.LogLevelInfo li = new LogHelper.LogLevelInfo(lev);
-    String rj = Json.encode(li);
-    fut.handle(new Success<>(rj));
-  }
-
-  private void setRootLogLevel(String body,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
-      LogHelper.LogLevelInfo.class);
-    logHelper.setRootLogLevel(inf.getLevel());
-    fut.handle(new Success<>(body));
-    // Should at least return the actual log level, not whatever we post
-    // We can post FOOBAR, and nothing changes...
-  }
-
   /**
    * Dispatcher for all the built-in services.
    *
