@@ -33,7 +33,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
