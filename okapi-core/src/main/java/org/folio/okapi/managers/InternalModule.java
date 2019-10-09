@@ -373,7 +373,7 @@ public class InternalModule {
       + " }, { "
       + "   \"permissionName\" : \"okapi.discovery.nodes.get\", "
       + "   \"displayName\" : \"Okapi - Get a node descriptor\", "
-      + "   \"description\" : \"Get a node descriptor, usually to give it a new name\" "
+      + "   \"description\" : \"Get a node descriptor\" "
       + " }, { "
       + "   \"permissionName\" : \"okapi.discovery.nodes.put\", "
       + "   \"displayName\" : \"Okapi - Update a node descriptor\", "
