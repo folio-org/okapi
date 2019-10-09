@@ -60,7 +60,6 @@ public class InternalModule {
   private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
   private final PullManager pullManager;
-  private final LogHelper logHelper;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
   private Messages messages = Messages.getInstance();
@@ -74,7 +73,6 @@ public class InternalModule {
     this.discoveryManager = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
-    logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
     logger.warn("InternalModule starting okapiversion=" + okapiVersion);
   }
