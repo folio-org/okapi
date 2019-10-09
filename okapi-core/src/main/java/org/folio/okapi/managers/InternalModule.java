@@ -42,7 +42,7 @@ import org.folio.okapi.util.ProxyContext;
  * Okapi's built-in module. Managing /_/ endpoints.
  *
  * /_/proxy/modules /_/proxy/tenants /_/proxy/health /_/proxy/pull
- * /_/deployment /_/discovery /_/env /_/version /_/test loglevel etc
+ * /_/deployment /_/discovery /_/env /_/version etc
  *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy must
  * read the request body before invoking this built-in module, and /_/invoke
@@ -332,17 +332,9 @@ public class InternalModule {
       + "    \"type\" : \"internal\" "
       + "   },"
       // version service
-      + "{"
+      + "   {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/version\","
-      + "    \"permissionsRequired\" : [  ], "
-      + "    \"type\" : \"internal\" "
-      + "   }, "
-      // The /_/invoke service can not be handled here, it needs to be hardcoded.
-      // test service, only for developers
-      + "{"
-      + "    \"methods\" :  [ \"GET\", \"POST\" ],"
-      + "    \"pathPattern\" : \"/_/test*\","
       + "    \"permissionsRequired\" : [  ], "
       + "    \"type\" : \"internal\" "
       + "   } ]"
@@ -1513,17 +1505,6 @@ public class InternalModule {
     if (p.equals("/_/version") && m.equals(GET)) {
       getVersion(pc, fut);
       return;
-    }
-
-    if (n >= 2 && p.startsWith("/_/test/")) {
-      if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
-        getRootLogLevel(fut);
-        return;
-      }
-      if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
-        setRootLogLevel(req, fut);
-        return;
-      }
     }
     fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
   }
