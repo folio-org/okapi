@@ -306,7 +306,7 @@ curl -w '\n' -D - -X POST  \
 
 ```script
 cat > /tmp/permuser.json <<END
-{ "userId":"99999999-9999-9999-9999-999999999999",
+{ "userId":"99999999-9999-4999-9999-999999999999",
   "permissions":[ "okapi.all" ] }
 END
 
@@ -331,7 +331,7 @@ Create our superuser in mod-users
 
 ```script
 cat > /tmp/superuser.json <<END
-{ "id":"99999999-9999-9999-9999-999999999999",
+{ "id":"99999999-9999-4999-9999-999999999999",
   "username":"superuser",
   "active":"true",
   "personal": {
