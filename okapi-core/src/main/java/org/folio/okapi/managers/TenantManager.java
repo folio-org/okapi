@@ -1,8 +1,8 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpMethod;
@@ -183,14 +183,14 @@ public class TenantManager {
         CompList<List<TenantDescriptor>> futures = new CompList<>(INTERNAL);
         List<TenantDescriptor> tdl = new LinkedList<>();
         for (String s : lres.result()) {
-          Future<Tenant> future = Future.future();
+          Promise<Tenant> promise = Promise.promise();
           tenants.get(s, res -> {
             if (res.succeeded()) {
               tdl.add(res.result().getDescriptor());
             }
-            future.handle(res);
+            promise.handle(res);
           });
-          futures.add(future);
+          futures.add(promise);
         }
         futures.all(tdl, fut);
       }
@@ -557,7 +557,7 @@ public class TenantManager {
     });
   }
 
-  public void startTimers(Future<Void> fut) {
+  public void startTimers(Promise<Void> promise) {
     tenants.getKeys(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
@@ -565,9 +565,9 @@ public class TenantManager {
           handleTimer(tenantId);
         }
         consumeTimers();
-        fut.complete();
+        promise.complete();
       } else {
-        fut.fail(res.cause());
+        promise.fail(res.cause());
       }
     });
   }
@@ -1176,14 +1176,14 @@ public class TenantManager {
         List<ModuleDescriptor> tl = new LinkedList<>();
         CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
         for (String mId : t.listModules()) {
-          Future<ModuleDescriptor> f = Future.future();
+          Promise<ModuleDescriptor> promise = Promise.promise();
           moduleManager.get(mId, res -> {
             if (res.succeeded()) {
               tl.add(res.result());
             }
-            f.handle(res);
+            promise.handle(res);
           });
-          futures.add(f);
+          futures.add(promise);
         }
         futures.all(tl, fut);
       }
@@ -1260,7 +1260,7 @@ public class TenantManager {
       } else {
         CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (Tenant t : lres.result()) {
-          Future<Void> f = Future.future();
+          Promise<Void> f = Promise.promise();
           tenants.add(t.getId(), t, f::handle);
           futures.add(f);
         }

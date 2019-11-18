@@ -1,8 +1,8 @@
 package org.folio.okapi.managers;
 
 import org.folio.okapi.util.DepResolution;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -91,9 +91,9 @@ public class ModuleManager {
             } else {
               CompList<Void> futures = new CompList<>(INTERNAL);
               for (ModuleDescriptor md : mres.result()) {
-                Future<Void> f = Future.future();
-                modules.add(md.getId(), md, f::handle);
-                futures.add(f);
+                Promise<Void> promise = Promise.promise();
+                modules.add(md.getId(), md, promise::handle);
+                futures.add(promise);
               }
               futures.all(fut);
             }
@@ -200,9 +200,9 @@ public class ModuleManager {
   private void createList2(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
     CompList<Void> futures = new CompList<>(INTERNAL);
     for (ModuleDescriptor md : list) {
-      Future<Void> f = Future.future();
-      createList3(md, f::handle);
-      futures.add(f);
+      Promise<Void> promise = Promise.promise();
+      createList3(md, promise::handle);
+      futures.add(promise);
     }
     futures.all(fut);
   }
@@ -416,14 +416,14 @@ public class ModuleManager {
     List<ModuleDescriptor> mdl = new LinkedList<>();
     CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
-      Future<ModuleDescriptor> f = Future.future();
+      Promise<ModuleDescriptor> promise = Promise.promise();
       modules.get(id, res -> {
         if (res.succeeded()) {
           mdl.add(res.result());
         }
-        f.handle(res);
+        promise.handle(res);
       });
-      futures.add(f);
+      futures.add(promise);
     }
     futures.all(mdl, fut);
   }

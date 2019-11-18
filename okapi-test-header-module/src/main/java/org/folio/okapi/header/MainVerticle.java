@@ -1,7 +1,7 @@
 package org.folio.okapi.header;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.streams.ReadStream;
@@ -55,7 +55,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Promise<Void> promise) throws IOException {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
@@ -74,9 +74,9 @@ public class MainVerticle extends AbstractVerticle {
                     port,
                     result -> {
                       if (result.succeeded()) {
-                        fut.complete();
+                        promise.complete();
                       } else {
-                        fut.fail(result.cause());
+                        promise.fail(result.cause());
                         logger.error("okapi-test-header-module failed: " + result.cause());
                       }
                     }
