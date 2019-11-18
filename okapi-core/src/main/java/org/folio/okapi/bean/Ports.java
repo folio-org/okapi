@@ -31,7 +31,7 @@ public class Ports {
    */
   public int get() {
     for (int i = 0; i < portsEnabled.length; i++) {
-      if (!portsEnabled[i]) {
+      if (Boolean.FALSE.equals(portsEnabled[i])) {
         portsEnabled[i] = true;
         final int p = i + portStart;
         logger.debug("allocate port " + p);
