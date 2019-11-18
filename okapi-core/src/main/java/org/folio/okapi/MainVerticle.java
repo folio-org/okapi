@@ -442,22 +442,22 @@ public class MainVerticle extends AbstractVerticle {
 
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
-            .setHandle100ContinueAutomatically(true);
+      .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-            .requestHandler(router::accept)
-            .listen(port,
-                    result -> {
-                      if (result.succeeded()) {
-                        logger.info("API Gateway started PID "
-                                + ManagementFactory.getRuntimeMXBean().getName()
-                          + ". Listening on port " + port);
-                        startRedeploy(promise);
-                      } else {
-                        logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
-                        promise.fail(result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router::accept)
+      .listen(port,
+        result -> {
+          if (result.succeeded()) {
+            logger.info("API Gateway started PID "
+              + ManagementFactory.getRuntimeMXBean().getName()
+              + ". Listening on port " + port);
+            startRedeploy(promise);
+          } else {
+            logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
+            promise.fail(result.cause());
+          }
+        }
+      );
   }
 
   private void startRedeploy(Promise<Void> promise) {
