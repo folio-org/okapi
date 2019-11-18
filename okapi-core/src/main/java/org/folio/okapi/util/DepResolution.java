@@ -338,9 +338,7 @@ public class DepResolution {
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (pi.isRegularHandler() && pi.isCompatible(req)) {
           if (md.getReplaces() != null) {
-            for (String replaceProduct : md.getReplaces()) {
-              replaceProducts.add(replaceProduct);
-            }
+            Collections.addAll(replaceProducts, md.getReplaces());
           }
           if (productMd.containsKey(product)) {
             ModuleDescriptor fMd = productMd.get(product);

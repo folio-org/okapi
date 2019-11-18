@@ -155,7 +155,7 @@ public class LockedStringMap {
     } else { // existing entry, put and retry if someone else messed with it
       list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
         if (resRepl.succeeded()) {
-          if (resRepl.result()) {
+          if (Boolean.TRUE.equals(resRepl.result())) {
             fut.handle(new Success<>());
           } else {
             vertx.setTimer(DELAY, res
@@ -204,7 +204,7 @@ public class LockedStringMap {
     if (smap.strings.isEmpty()) {
       list.removeIfPresent(k, val, resDel -> {
         if (resDel.succeeded()) {
-          if (resDel.result()) {
+          if (Boolean.TRUE.equals(resDel.result())) {
             fut.handle(new Success<>(true));
           } else {
             vertx.setTimer(DELAY, res -> remove(k, k2, fut));
@@ -217,7 +217,7 @@ public class LockedStringMap {
       String newVal = Json.encodePrettily(smap);
       list.replaceIfPresent(k, val, newVal, resPut -> {
         if (resPut.succeeded()) {
-          if (resPut.result()) {
+          if (Boolean.TRUE.equals(resPut.result())) {
             fut.handle(new Success<>(false));
           } else {
             vertx.setTimer(DELAY, res -> remove(k, k2, fut));

@@ -534,18 +534,15 @@ public class InternalModule {
     if (idx != -1) {
       uri = uri.substring(0, idx);
     }
-    for (int i = 0; i < ids.length; i++) {
-      String id = ids[i];
+    StringBuilder uriEncoded = new StringBuilder(uri);
+    for (String id : ids) {
       try {
-        uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
-        if (id.contains("+")) {
-          logger.info("location: id = " + id + " location=" + uri);
-        }
+        uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
       } catch (UnsupportedEncodingException ex) {
         fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
       }
     }
-    pc.getCtx().response().putHeader("Location", uri);
+    pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
     fut.handle(new Success<>(s));
   }
