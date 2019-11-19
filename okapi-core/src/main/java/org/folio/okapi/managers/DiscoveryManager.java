@@ -29,7 +29,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.Messages;
 
 /**
@@ -232,7 +231,7 @@ public class DiscoveryManager implements NodeListener {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
       } else {
         String reqdata = Json.encode(dd);
-        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata,
+        vertx.eventBus().request(noderes.result().getUrl() + "/deploy", reqdata,
           deliveryOptions, ar -> {
           if (ar.failed()) {
             fut.handle(new Failure(USER, ar.cause().getMessage()));
@@ -246,7 +245,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc, String srvcId, String instId,
+  public void removeAndUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
@@ -257,12 +256,12 @@ public class DiscoveryManager implements NodeListener {
       } else {
         List<DeploymentDescriptor> ddList = new LinkedList<>();
         ddList.add(res.result());
-        removeAndUndeploy(pc, ddList, fut);
+        removeAndUndeploy(ddList, fut);
       }
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc, String srvcId,
+  public void removeAndUndeploy(String srvcId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId " + srvcId);
@@ -271,32 +270,31 @@ public class DiscoveryManager implements NodeListener {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        removeAndUndeploy(pc, res.result(), fut);
+        removeAndUndeploy(res.result(), fut);
       }
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  public void removeAndUndeploy(Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy all");
     this.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        removeAndUndeploy(pc, res.result(), fut);
+        removeAndUndeploy(res.result(), fut);
       }
     });
   }
 
-  private void removeAndUndeploy(ProxyContext pc,
-    List<DeploymentDescriptor> ddList, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void removeAndUndeploy(List<DeploymentDescriptor> ddList,
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
     CompList<List<Void>> futures = new CompList<>(INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
       Promise<Void> promise = Promise.promise();
       logger.info("removeAndUndeploy " + dd.getSrvcId() + " " + dd.getInstId());
-      callUndeploy(dd, pc, res -> {
+      callUndeploy(dd, res -> {
         if (res.succeeded()) {
           deploymentStore.delete(dd.getInstId(), promise::handle);
         } else {
@@ -308,7 +306,7 @@ public class DiscoveryManager implements NodeListener {
     futures.all(fut);
   }
 
-  private void callUndeploy(DeploymentDescriptor md, ProxyContext pc,
+  private void callUndeploy(DeploymentDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
@@ -318,12 +316,12 @@ public class DiscoveryManager implements NodeListener {
       remove(md.getSrvcId(), md.getInstId(), fut);
     } else {
       logger.info("callUndeploy calling..");
-      getNode(nodeId, res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      getNode(nodeId, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           String reqdata = md.getInstId();
-          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata,
+          vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
             deliveryOptions, ar -> {
             if (ar.failed()) {
               fut.handle(new Failure(USER, ar.cause().getMessage()));
@@ -448,7 +446,7 @@ public class DiscoveryManager implements NodeListener {
     futures.all(fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoUndeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy " + md.getId());
@@ -463,7 +461,7 @@ public class DiscoveryManager implements NodeListener {
         for (DeploymentDescriptor dd : ddList) {
           if (dd.getNodeId() != null) {
             Promise<Void> promise = Promise.promise();
-            callUndeploy(dd, pc, promise::handle);
+            callUndeploy(dd, promise::handle);
             futures.add(promise);
           }
         }
