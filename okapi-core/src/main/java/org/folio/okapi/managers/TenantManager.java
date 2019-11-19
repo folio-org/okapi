@@ -1118,12 +1118,12 @@ public class TenantManager {
         });
       }
     } else {
-      installCommit3(tenant, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      installCommit3(tenant, options, modsAvailable, tml, tml.iterator(), fut);
     }
   }
 
   /* phase 3 undeploy if no longer needed */
-  private void installCommit3(Tenant tenant, ProxyContext pc,
+  private void installCommit3(Tenant tenant,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml,
@@ -1144,7 +1144,7 @@ public class TenantManager {
         getModuleUser(md.getId(), ures -> {
           if (ures.failed()) {
             // in use or other error, so skip
-            installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+            installCommit3(tenant, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
             logger.info("autoUndeploy mdF=" + mdF.getId());
@@ -1152,13 +1152,13 @@ public class TenantManager {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
               } else {
-                installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+                installCommit3(tenant, options, modsAvailable, tml, it, fut);
               }
             });
           }
         });
       } else {
-        installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+        installCommit3(tenant, options, modsAvailable, tml, it, fut);
       }
     } else {
       fut.handle(new Success<>());

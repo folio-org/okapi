@@ -29,7 +29,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.Messages;
 
 /**

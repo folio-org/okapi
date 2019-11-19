@@ -1074,7 +1074,7 @@ public class InternalModule {
     }
   }
 
-  private void discoveryUndeploy(ProxyContext pc, String srvcId, String instId,
+  private void discoveryUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
     discoveryManager.removeAndUndeploy(srvcId, instId, res -> {
@@ -1098,8 +1098,7 @@ public class InternalModule {
     });
   }
 
-  private void discoveryUndeploy(ProxyContext pc,
-    Handler<ExtendedAsyncResult<String>> fut) {
+  private void discoveryUndeploy(Handler<ExtendedAsyncResult<String>> fut) {
 
     discoveryManager.removeAndUndeploy(res -> {
       if (res.failed()) {
@@ -1443,7 +1442,7 @@ public class InternalModule {
         return;
       }
       if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(pc, decodedSegs[4], decodedSegs[5], fut);
+        discoveryUndeploy(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
       if (n == 5 && segments[3].equals("modules") && m.equals(DELETE)) {
@@ -1451,7 +1450,7 @@ public class InternalModule {
         return;
       }
       if (n == 4 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(pc, fut);
+        discoveryUndeploy(fut);
         return;
       }
       // /_/discovery/health
