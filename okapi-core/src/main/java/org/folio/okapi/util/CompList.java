@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.common.ErrorType;
@@ -19,8 +20,8 @@ public class CompList<T> {
     errorType = type;
   }
 
-  public void add(Future f) {
-    futures.add(f);
+  public void add(Promise p) {
+    futures.add(p.future());
   }
 
   public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {

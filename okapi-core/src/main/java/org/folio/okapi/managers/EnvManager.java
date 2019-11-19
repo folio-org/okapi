@@ -1,7 +1,7 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import java.util.Collection;
@@ -42,9 +42,9 @@ public class EnvManager {
           } else {
             CompList<List<Void>> futures = new CompList<>(INTERNAL);
             for (EnvEntry e : res2.result()) {
-              Future<Void> f = Future.future();
-              add1(e, f::handle);
-              futures.add(f);
+              Promise<Void> promise = Promise.promise();
+              add1(e, promise::handle);
+              futures.add(promise);
             }
             futures.all(fut);
           }

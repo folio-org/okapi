@@ -31,7 +31,7 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = OkapiLogger.get();
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Future<Void> future) throws IOException {
     Router router = Router.router(vertx);
     Auth auth = new Auth();
 
@@ -45,18 +45,8 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/*").handler(auth::filter);
 
     vertx.createHttpServer()
-            .requestHandler(router::accept)
-            .listen(
-                    port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        logger.fatal("okapi-test-auth-module failed: " + result.cause());
-                        fut.fail(result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router)
+      .listen(port, result -> future.handle(result.mapEmpty()));
   }
 
 }

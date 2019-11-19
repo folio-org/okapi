@@ -229,7 +229,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Future<Void> future) throws IOException {
     Router router = Router.router(vertx);
 
     helloGreeting = System.getenv("helloGreeting");
@@ -259,7 +259,7 @@ public class MainVerticle extends AbstractVerticle {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         port,
         result -> {
@@ -274,11 +274,8 @@ public class MainVerticle extends AbstractVerticle {
                 logger.error(ex);
               }
             }
-            fut.complete();
-          } else {
-            fut.fail(result.cause());
-            logger.error("okapi-test-module failed: " + result.cause());
           }
+          future.handle(result.mapEmpty());
         });
   }
 }

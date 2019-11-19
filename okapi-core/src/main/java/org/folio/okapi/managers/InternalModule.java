@@ -1056,7 +1056,7 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
         DeploymentDescriptor.class);
-      discoveryManager.addAndDeploy(pmd, pc, res -> {
+      discoveryManager.addAndDeploy(pmd, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
