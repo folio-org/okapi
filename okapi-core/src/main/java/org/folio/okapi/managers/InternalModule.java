@@ -1086,7 +1086,7 @@ public class InternalModule {
     });
   }
 
-  private void discoveryUndeploy(ProxyContext pc, String srvcId,
+  private void discoveryUndeploy(String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
     discoveryManager.removeAndUndeploy(srvcId, res -> {
@@ -1101,7 +1101,7 @@ public class InternalModule {
   private void discoveryUndeploy(ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(pc, res -> {
+    discoveryManager.removeAndUndeploy(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1447,7 +1447,7 @@ public class InternalModule {
         return;
       }
       if (n == 5 && segments[3].equals("modules") && m.equals(DELETE)) {
-        discoveryUndeploy(pc, decodedSegs[4], fut);
+        discoveryUndeploy(decodedSegs[4], fut);
         return;
       }
       if (n == 4 && segments[3].equals("modules") && m.equals(DELETE)) {

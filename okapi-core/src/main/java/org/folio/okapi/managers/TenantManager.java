@@ -1148,7 +1148,7 @@ public class TenantManager {
           } else {
             // success means : not in use, so we can undeploy it
             logger.info("autoUndeploy mdF=" + mdF.getId());
-            proxyService.autoUndeploy(mdF, pc, res -> {
+            proxyService.autoUndeploy(mdF, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
               } else {

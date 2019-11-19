@@ -276,8 +276,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  public void removeAndUndeploy(Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy all");
     this.get(res -> {
@@ -448,7 +447,7 @@ public class DiscoveryManager implements NodeListener {
     futures.all(fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoUndeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy " + md.getId());
