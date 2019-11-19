@@ -33,7 +33,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
@@ -42,7 +41,7 @@ import org.folio.okapi.util.ProxyContext;
  * Okapi's built-in module. Managing /_/ endpoints.
  *
  * /_/proxy/modules /_/proxy/tenants /_/proxy/health /_/proxy/pull
- * /_/deployment /_/discovery /_/env /_/version /_/test loglevel etc
+ * /_/deployment /_/discovery /_/env /_/version etc
  *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy must
  * read the request body before invoking this built-in module, and /_/invoke
@@ -61,7 +60,6 @@ public class InternalModule {
   private final DiscoveryManager discoveryManager;
   private final EnvManager envManager;
   private final PullManager pullManager;
-  private final LogHelper logHelper;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
   private Messages messages = Messages.getInstance();
@@ -75,7 +73,6 @@ public class InternalModule {
     this.discoveryManager = discoveryManager;
     this.envManager = envManager;
     this.pullManager = pullManager;
-    logHelper = new LogHelper();
     this.okapiVersion = okapiVersion;
     logger.warn("InternalModule starting okapiversion=" + okapiVersion);
   }
@@ -112,12 +109,12 @@ public class InternalModule {
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/deployment/modules\","
-      + "    \"permissionsRequired\" : [  ], "
+      + "    \"permissionsRequired\" : [ \"okapi.deployment.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/deployment/modules/{instanceId}\","
-      + "    \"permissionsRequired\" : [  ], "
+      + "    \"permissionsRequired\" : [ \"okapi.deployment.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"DELETE\" ],"
@@ -134,17 +131,17 @@ public class InternalModule {
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/modules\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/modules/{serviceId}\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/modules/{serviceId}/{instanceId}\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.get\"], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"PUT\" ],"
@@ -170,23 +167,23 @@ public class InternalModule {
       + "   {" // discovery, health
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/health\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.health.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/health/{serviceId}\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.health.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/health/{serviceId}/{instanceId}\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.health.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, "
       + "   {" // discovery, nodes
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/nodes\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.get\" ], "
       + "    \"type\" : \"internal\" "
       + "   }, {"
       + "    \"methods\" :  [ \"PUT\" ],"
@@ -196,7 +193,7 @@ public class InternalModule {
       + "   }, {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/discovery/nodes/{nodeId}\","
-      + "    \"permissionsRequired\" : [ ], "
+      + "    \"permissionsRequired\" : [ \"okapi.discovery.nodes.get\"  ], "
       + "    \"type\" : \"internal\" "
       + "   }, "
       // Proxy service
@@ -332,25 +329,20 @@ public class InternalModule {
       + "    \"type\" : \"internal\" "
       + "   },"
       // version service
-      + "{"
+      + "   {"
       + "    \"methods\" :  [ \"GET\" ],"
       + "    \"pathPattern\" : \"/_/version\","
-      + "    \"permissionsRequired\" : [  ], "
-      + "    \"type\" : \"internal\" "
-      + "   }, "
-      // The /_/invoke service can not be handled here, it needs to be hardcoded.
-      // test service, only for developers
-      + "{"
-      + "    \"methods\" :  [ \"GET\", \"POST\" ],"
-      + "    \"pathPattern\" : \"/_/test*\","
       + "    \"permissionsRequired\" : [  ], "
       + "    \"type\" : \"internal\" "
       + "   } ]"
       + " } ],"
       + "\"permissionSets\" : [ "
       // Permission bit names
-      // Note that these don't get loaded to mod-perms yet. OKAPI-388
       + " { "
+      + "   \"permissionName\" : \"okapi.deployment.get\", "
+      + "   \"displayName\" : \"Okapi - get deployment info\", "
+      + "   \"description\" : \"Get deployment info for module on 'this' node\" "
+      + " }, { "
       + "   \"permissionName\" : \"okapi.deployment.post\", "
       + "   \"displayName\" : \"Okapi - deploy locally\", "
       + "   \"description\" : \"Deploy a module on 'this' node\" "
@@ -358,6 +350,10 @@ public class InternalModule {
       + "   \"permissionName\" : \"okapi.deployment.delete\", "
       + "   \"displayName\" : \"Okapi - undeploy locally\", "
       + "   \"description\" : \"Undeploy a module on 'this' node\" "
+      + " }, { "
+      + "   \"permissionName\" : \"okapi.discovery.get\", "
+      + "   \"displayName\" : \"Okapi - get discovery info\", "
+      + "   \"description\" : \"Get discovery info for module\" "
       + " }, { "
       + "   \"permissionName\" : \"okapi.discovery.post\", "
       + "   \"displayName\" : \"Okapi - deploy a module on a given node\", "
@@ -370,6 +366,14 @@ public class InternalModule {
       + "   \"permissionName\" : \"okapi.discovery.delete\", "
       + "   \"displayName\" : \"Okapi - undeploy a module instance\", "
       + "   \"description\" : \"Undeploy a given instance of a module\" "
+      + " }, { "
+      + "   \"permissionName\" : \"okapi.discovery.health.get\", "
+      + "   \"displayName\" : \"Okapi - Get a health for module/node\", "
+      + "   \"description\" : \"Get health info\" "
+      + " }, { "
+      + "   \"permissionName\" : \"okapi.discovery.nodes.get\", "
+      + "   \"displayName\" : \"Okapi - Get a node descriptor\", "
+      + "   \"description\" : \"Get a node descriptor\" "
       + " }, { "
       + "   \"permissionName\" : \"okapi.discovery.nodes.put\", "
       + "   \"displayName\" : \"Okapi - Update a node descriptor\", "
@@ -444,15 +448,17 @@ public class InternalModule {
       + "   \"description\" : \"Delete one environment variable\" "
       + " }, "
       // Permission sets
-      // Note that these don't get loaded to mod-perms yet. OKAPI-388
       + " { "
       + "   \"permissionName\" : \"okapi.deploy\", "
       + "   \"displayName\" : \"Okapi - Manage deployments\", "
       + "   \"description\" : \"Deploy and undeploy modules\", "
       + "   \"subPermissions\" : [ "
-      + "     \"okapi.deployment.post\", \"okapi.deployment.delete\", "
-      + "     \"okapi.discovery.post\", \"okapi.discovery.put\", "
-      + "     \"okapi.discovery.delete\", \"okapi.discovery.nodes.put\" "
+      + "     \"okapi.deployment.post\", "
+      + "     \"okapi.deployment.get\", \"okapi.deployment.delete\", "
+      + "     \"okapi.discovery.post\", "
+      + "     \"okapi.discovery.get\", \"okapi.discovery.put\", "
+      + "     \"okapi.discovery.delete\", \"okapi.discovery.nodes.put\", "
+      + "     \"okapi.discovery.health.get\", \"okapi.discovery.nodes.get\" "
       + "   ]"
       + " }, "
       + " { "
@@ -528,18 +534,15 @@ public class InternalModule {
     if (idx != -1) {
       uri = uri.substring(0, idx);
     }
-    for (int i = 0; i < ids.length; i++) {
-      String id = ids[i];
+    StringBuilder uriEncoded = new StringBuilder(uri);
+    for (String id : ids) {
       try {
-        uri = uri + "/" + URLEncoder.encode(id, "UTF-8");
-        if (id.contains("+")) {
-          logger.info("location: id = " + id + " location=" + uri);
-        }
+        uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
       } catch (UnsupportedEncodingException ex) {
         fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
       }
     }
-    pc.getCtx().response().putHeader("Location", uri);
+    pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
     fut.handle(new Success<>(s));
   }
@@ -1232,24 +1235,6 @@ public class InternalModule {
     fut.handle(new Success<>(v));
   }
 
-  private void getRootLogLevel(Handler<ExtendedAsyncResult<String>> fut) {
-    String lev = logHelper.getRootLogLevel();
-    LogHelper.LogLevelInfo li = new LogHelper.LogLevelInfo(lev);
-    String rj = Json.encode(li);
-    fut.handle(new Success<>(rj));
-  }
-
-  private void setRootLogLevel(String body,
-    Handler<ExtendedAsyncResult<String>> fut) {
-
-    final LogHelper.LogLevelInfo inf = Json.decodeValue(body,
-      LogHelper.LogLevelInfo.class);
-    logHelper.setRootLogLevel(inf.getLevel());
-    fut.handle(new Success<>(body));
-    // Should at least return the actual log level, not whatever we post
-    // We can post FOOBAR, and nothing changes...
-  }
-
   /**
    * Dispatcher for all the built-in services.
    *
@@ -1513,17 +1498,6 @@ public class InternalModule {
     if (p.equals("/_/version") && m.equals(GET)) {
       getVersion(pc, fut);
       return;
-    }
-
-    if (n >= 2 && p.startsWith("/_/test/")) {
-      if (n == 4 && m.equals(GET) && segments[3].equals("loglevel")) {
-        getRootLogLevel(fut);
-        return;
-      }
-      if (n == 4 && m.equals(POST) && segments[3].equals("loglevel")) {
-        setRootLogLevel(req, fut);
-        return;
-      }
     }
     fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
   }

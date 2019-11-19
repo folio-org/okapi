@@ -13,6 +13,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
@@ -190,19 +191,20 @@ public class MainDeploy {
 
     HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
     vopt.setClusterManager(mgr);
+    EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {
       logger.info("clusterHost=" + clusterHost);
-      vopt.setClusterHost(clusterHost);
+      eventBusOptions.setHost(clusterHost);
     } else {
       logger.warn("clusterHost not set");
     }
     if (clusterPort != -1) {
       logger.info("clusterPort=" + clusterPort);
-      vopt.setClusterPort(clusterPort);
+      eventBusOptions.setPort(clusterPort);
     } else {
       logger.warn("clusterPort not set");
     }
-    vopt.setClustered(true);
+    eventBusOptions.setClustered(true);
 
     Vertx.clusteredVertx(vopt, res -> {
       if (res.succeeded()) {
