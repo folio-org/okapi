@@ -236,16 +236,11 @@ public class MainVerticle extends AbstractVerticle {
       promise.complete();
     } else {
       storage.prepareDatabases(initMode, res -> {
-        if (res.failed()) {
-          promise.fail(res.cause());
-          return;
-        }
         if (initMode != NORMAL) {
           logger.info("Database operation " + initMode.toString() + " done. Exiting");
           System.exit(0);
         }
-        logger.info("startDatabases ok");
-        promise.complete();
+        promise.handle(res);
       });
     }
     return promise.future();
@@ -263,7 +258,6 @@ public class MainVerticle extends AbstractVerticle {
     tenantManager.init(vertx, promise::handle);
     return promise.future();
   }
-
 
   private Future<Void> checkInternalModules() {
     logger.info("checkInternalModules");
@@ -304,7 +298,7 @@ public class MainVerticle extends AbstractVerticle {
   /**
    * Create the super tenant, if not already there.
    * @param okapiModule
-   * @param promise 
+   * @param promise
    */
   private void checkSuperTenant(String okapiModule, Promise<Void> promise) {
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {

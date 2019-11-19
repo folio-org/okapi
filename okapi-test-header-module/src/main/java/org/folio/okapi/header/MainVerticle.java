@@ -70,16 +70,6 @@ public class MainVerticle extends AbstractVerticle {
 
     vertx.createHttpServer()
       .requestHandler(router::accept)
-      .listen(
-        port,
-        result -> {
-          if (result.succeeded()) {
-            promise.complete();
-          } else {
-            promise.fail(result.cause());
-            logger.error("okapi-test-header-module failed: " + result.cause());
-          }
-        }
-      );
+      .listen(port, result -> promise.handle(result.mapEmpty()));
   }
 }

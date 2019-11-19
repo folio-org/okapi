@@ -274,11 +274,8 @@ public class MainVerticle extends AbstractVerticle {
                 logger.error(ex);
               }
             }
-            promise.complete();
-          } else {
-            promise.fail(result.cause());
-            logger.error("okapi-test-module failed: " + result.cause());
           }
+          promise.handle(result.mapEmpty());
         });
   }
 }
