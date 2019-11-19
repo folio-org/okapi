@@ -389,7 +389,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void autoDeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoDeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy " + md.getId());
@@ -405,9 +405,9 @@ public class DiscoveryManager implements NodeListener {
         Collection<String> allNodes = res1.result();
         deployments.get(md.getId(), res -> {
           if (res.succeeded()) {
-            autoDeploy2(md, pc, allNodes, res.result(), fut);
+            autoDeploy2(md, allNodes, res.result(), fut);
           } else if (res.getType() == NOT_FOUND) {
-            autoDeploy2(md, pc, allNodes, new LinkedList<>(), fut);
+            autoDeploy2(md, allNodes, new LinkedList<>(), fut);
           } else {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           }
@@ -416,7 +416,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  private void autoDeploy2(ModuleDescriptor md, ProxyContext pc,
+  private void autoDeploy2(ModuleDescriptor md,
     Collection<String> allNodes, List<DeploymentDescriptor> ddList,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
