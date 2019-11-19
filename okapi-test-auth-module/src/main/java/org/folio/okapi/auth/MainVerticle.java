@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -31,7 +31,7 @@ public class MainVerticle extends AbstractVerticle {
   private final Logger logger = OkapiLogger.get();
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public void start(Future<Void> future) throws IOException {
     Router router = Router.router(vertx);
     Auth auth = new Auth();
 
@@ -45,8 +45,8 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/*").handler(auth::filter);
 
     vertx.createHttpServer()
-      .requestHandler(router::accept)
-      .listen(port, result -> promise.handle(result.mapEmpty()));
+      .requestHandler(router)
+      .listen(port, result -> future.handle(result.mapEmpty()));
   }
 
 }

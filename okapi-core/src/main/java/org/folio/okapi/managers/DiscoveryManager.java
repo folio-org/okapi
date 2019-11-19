@@ -79,7 +79,7 @@ public class DiscoveryManager implements NodeListener {
         CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
           Promise<DeploymentDescriptor> promise = Promise.promise();
-          addAndDeploy0(dd, null, promise::handle);
+          addAndDeploy0(dd, promise::handle);
           futures.add(promise);
         }
         futures.all(fut);
@@ -128,9 +128,9 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
+  public void addAndDeploy(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    addAndDeploy0(dd, pc, res -> {
+    addAndDeploy0(dd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -153,7 +153,7 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  private void addAndDeploy0(DeploymentDescriptor dd, ProxyContext pc,
+  private void addAndDeploy0(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     logger.info("addAndDeploy: " + Json.encodePrettily(dd));
@@ -170,12 +170,12 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(gres.getType(), gres.cause()));
         }
       } else {
-        addAndDeploy1(dd, pc, gres.result(), fut);
+        addAndDeploy1(dd, gres.result(), fut);
       }
     });
   }
 
-  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc, ModuleDescriptor md,
+  private void addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     LaunchDescriptor launchDesc = dd.getDescriptor();
@@ -439,7 +439,7 @@ public class DiscoveryManager implements NodeListener {
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
         Promise<DeploymentDescriptor> promise = Promise.promise();
-        addAndDeploy(dd, pc, promise::handle);
+        addAndDeploy(dd, promise::handle);
         futures.add(promise);
       } else {
         logger.info("autoDeploy " + md.getId() + " already deployed on " + node);

@@ -196,8 +196,8 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) {
-    Future<Void> fut = Future.future(x -> checkDistributedLock(x));
+  public void start(Future<Void> future) {
+    Future<Void> fut = Future.future(this::checkDistributedLock);
     fut = fut.compose(x -> startDatabases());
     fut = fut.compose(x -> startModmanager());
     fut = fut.compose(x -> startTenants());
@@ -212,7 +212,7 @@ public class MainVerticle extends AbstractVerticle {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
       }
-      promise.handle(x);
+      future.handle(x);
     });
   }
 
@@ -443,7 +443,7 @@ public class MainVerticle extends AbstractVerticle {
     HttpServerOptions so = new HttpServerOptions()
       .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(port,
         result -> {
           if (result.succeeded()) {

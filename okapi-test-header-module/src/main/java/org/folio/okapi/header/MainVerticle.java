@@ -1,7 +1,7 @@
 package org.folio.okapi.header;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Promise;
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.streams.ReadStream;
@@ -55,7 +55,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Promise<Void> promise) throws IOException {
+  public void start(Future<Void> future) throws IOException {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
@@ -69,7 +69,7 @@ public class MainVerticle extends AbstractVerticle {
       .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
-      .requestHandler(router::accept)
-      .listen(port, result -> promise.handle(result.mapEmpty()));
+      .requestHandler(router)
+      .listen(port, result -> future.handle(result.mapEmpty()));
   }
 }
