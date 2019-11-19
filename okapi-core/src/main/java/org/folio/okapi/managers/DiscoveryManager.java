@@ -199,7 +199,7 @@ public class DiscoveryManager implements NodeListener {
     } else {
       if (launchDesc == null) {
         logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
-        addAndDeploy2(dd, md, pc, fut, nodeId);
+        addAndDeploy2(dd, md, fut, nodeId);
       } else { // Have a launchdesc already in dd
         logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
         callDeploy(nodeId, dd, fut);
@@ -208,7 +208,6 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-    ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
 
     String modId = dd.getSrvcId();
