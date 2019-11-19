@@ -452,8 +452,8 @@ public class MainVerticle extends AbstractVerticle {
               + ". Listening on port " + port);
           } else {
             logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
-            promise.fail(result.cause());
           }
+          promise.handle(result.mapEmpty());
         }
       );
     return promise.future();
