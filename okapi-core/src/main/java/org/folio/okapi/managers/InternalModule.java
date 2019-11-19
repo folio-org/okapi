@@ -1077,7 +1077,7 @@ public class InternalModule {
   private void discoveryUndeploy(ProxyContext pc, String srvcId, String instId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(pc, srvcId, instId, res -> {
+    discoveryManager.removeAndUndeploy(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -1089,7 +1089,7 @@ public class InternalModule {
   private void discoveryUndeploy(ProxyContext pc, String srvcId,
     Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(pc, srvcId, res -> {
+    discoveryManager.removeAndUndeploy(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
