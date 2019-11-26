@@ -55,7 +55,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Future<Void> future) throws IOException {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
@@ -69,17 +69,7 @@ public class MainVerticle extends AbstractVerticle {
       .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
-            .requestHandler(router::accept)
-            .listen(
-                    port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        fut.fail(result.cause());
-                        logger.error("okapi-test-header-module failed: " + result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router)
+      .listen(port, result -> future.handle(result.mapEmpty()));
   }
 }

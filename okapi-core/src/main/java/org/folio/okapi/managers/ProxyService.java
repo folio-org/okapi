@@ -1258,16 +1258,16 @@ public class ProxyService {
       + ctx.request().path() + " " + qry);
   }
 
-  public void autoDeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoDeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    discoveryManager.autoDeploy(md, pc, fut);
+    discoveryManager.autoDeploy(md, fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoUndeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    discoveryManager.autoUndeploy(md, pc, fut);
+    discoveryManager.autoUndeploy(md, fut);
   }
 
   // store Auth/Handler response, and pass header as needed

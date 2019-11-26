@@ -67,7 +67,10 @@ public class DeploymentManagerTest {
         // after undeploy so we have no stale process
         context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
-        async.complete();
+        dm.shutdown(res3 -> {
+          context.assertTrue(res3.succeeded());
+          async.complete();
+        });
       });
     });
   }

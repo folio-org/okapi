@@ -1,8 +1,8 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.http.HttpMethod;
@@ -183,14 +183,14 @@ public class TenantManager {
         CompList<List<TenantDescriptor>> futures = new CompList<>(INTERNAL);
         List<TenantDescriptor> tdl = new LinkedList<>();
         for (String s : lres.result()) {
-          Future<Tenant> future = Future.future();
+          Promise<Tenant> promise = Promise.promise();
           tenants.get(s, res -> {
             if (res.succeeded()) {
               tdl.add(res.result().getDescriptor());
             }
-            future.handle(res);
+            promise.handle(res);
           });
-          futures.add(future);
+          futures.add(promise);
         }
         futures.all(tdl, fut);
       }
@@ -557,7 +557,7 @@ public class TenantManager {
     });
   }
 
-  public void startTimers(Future<Void> fut) {
+  public void startTimers(Promise<Void> promise) {
     tenants.getKeys(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
@@ -565,9 +565,9 @@ public class TenantManager {
           handleTimer(tenantId);
         }
         consumeTimers();
-        fut.complete();
+        promise.complete();
       } else {
-        fut.fail(res.cause());
+        promise.fail(res.cause());
       }
     });
   }
@@ -1068,7 +1068,7 @@ public class TenantManager {
       TenantModuleDescriptor tm = it.next();
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        proxyService.autoDeploy(md, pc, res -> {
+        proxyService.autoDeploy(md, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           } else {
@@ -1118,12 +1118,12 @@ public class TenantManager {
         });
       }
     } else {
-      installCommit3(tenant, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      installCommit3(tenant, options, modsAvailable, tml, tml.iterator(), fut);
     }
   }
 
   /* phase 3 undeploy if no longer needed */
-  private void installCommit3(Tenant tenant, ProxyContext pc,
+  private void installCommit3(Tenant tenant,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml,
@@ -1144,21 +1144,21 @@ public class TenantManager {
         getModuleUser(md.getId(), ures -> {
           if (ures.failed()) {
             // in use or other error, so skip
-            installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+            installCommit3(tenant, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
             logger.info("autoUndeploy mdF=" + mdF.getId());
-            proxyService.autoUndeploy(mdF, pc, res -> {
+            proxyService.autoUndeploy(mdF, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
               } else {
-                installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+                installCommit3(tenant, options, modsAvailable, tml, it, fut);
               }
             });
           }
         });
       } else {
-        installCommit3(tenant, pc, options, modsAvailable, tml, it, fut);
+        installCommit3(tenant, options, modsAvailable, tml, it, fut);
       }
     } else {
       fut.handle(new Success<>());
@@ -1176,14 +1176,14 @@ public class TenantManager {
         List<ModuleDescriptor> tl = new LinkedList<>();
         CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
         for (String mId : t.listModules()) {
-          Future<ModuleDescriptor> f = Future.future();
+          Promise<ModuleDescriptor> promise = Promise.promise();
           moduleManager.get(mId, res -> {
             if (res.succeeded()) {
               tl.add(res.result());
             }
-            f.handle(res);
+            promise.handle(res);
           });
-          futures.add(f);
+          futures.add(promise);
         }
         futures.all(tl, fut);
       }
@@ -1260,7 +1260,7 @@ public class TenantManager {
       } else {
         CompList<List<Void>> futures = new CompList<>(INTERNAL);
         for (Tenant t : lres.result()) {
-          Future<Void> f = Future.future();
+          Promise<Void> f = Promise.promise();
           tenants.add(t.getId(), t, f::handle);
           futures.add(f);
         }

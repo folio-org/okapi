@@ -1,8 +1,8 @@
 package org.folio.okapi.managers;
 
 import com.codahale.metrics.Timer;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -96,9 +96,9 @@ public class DeploymentManager {
     Collection<DeploymentDescriptor > col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
-      Future<Void> f = Future.future();
-      mh.stop(f::handle);
-      futures.add(f);
+      Promise<Void> promise = Promise.promise();
+      mh.stop(promise::handle);
+      futures.add(promise);
     }
     futures.all(fut);
   }
