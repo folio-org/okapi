@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,7 +29,7 @@ import static org.folio.okapi.common.ErrorType.*;
 @java.lang.SuppressWarnings({"squid:S2245"})
 public class OkapiClient {
 
-  private final Logger logger = OkapiLogger.get();
+  private final Logger logger = LoggerFactory.getLogger("OkapiClient");
 
   private String okapiUrl;
   private HttpClient httpClient;
