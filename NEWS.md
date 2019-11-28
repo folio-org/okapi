@@ -1,6 +1,9 @@
-## 2.35.0 2019-11-28
+## 2.35.1 2019-11-28
 
  * OKAPI-779 Upgrade to Vert.x 3.8.4
+
+## 2.35.0 2019-11-28
+
  * OKAPI-778 Avoid bundling log implementation with okapi-common
 
 ## 2.34.0 2019-11-28
