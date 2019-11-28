@@ -24,6 +24,10 @@ public class ModuleId implements Comparable<ModuleId> {
     return id;
   }
 
+  public SemVer getSemVer() {
+    return semVer;
+  }
+
   public boolean hasSemVer() {
     return semVer != null;
   }
@@ -40,6 +44,12 @@ public class ModuleId implements Comparable<ModuleId> {
     return product;
   }
 
+  /**
+   * Compare one module with another
+   * @param other module (this compare to other)
+   * @return +-5 for product diff, +-4 for major diff, +-3 for minor,
+   * +-2 for rest, +-1 for patch, 0=equal
+   */
   @Override
   public int compareTo(ModuleId other) {
     int cmp = product.compareTo(other.product);
@@ -81,10 +91,9 @@ public class ModuleId implements Comparable<ModuleId> {
   @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
-    b.append("module: ");
     b.append(product);
     if (semVer != null) {
-      b.append(" ");
+      b.append("-");
       b.append(semVer.toString());
     }
     return b.toString();
