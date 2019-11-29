@@ -52,6 +52,13 @@ public class MainDeployTest {
   }
 
   @Test
+  public void testInitWithException(TestContext context) {
+    new MainDeploy().init(null, context.asyncAssertFailure(throwable -> {
+      context.assertTrue(throwable instanceof NullPointerException);
+    }));
+  }
+
+  @Test
   public void testHelp(TestContext context) {
     async = context.async();
 

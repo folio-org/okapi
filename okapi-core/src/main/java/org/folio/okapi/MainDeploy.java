@@ -49,20 +49,22 @@ public class MainDeploy {
     this.conf = conf;
   }
 
+  @SuppressWarnings({"squid:S1181"})  // suppress "Catch Exception instead of Throwable" to also log Throwable
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
-    final Logger logger = OkapiLogger.get();
-    Messages.setLanguage(getProperty("lang", "en"));
+    try {
+      final Logger logger = OkapiLogger.get();
+      Messages.setLanguage(getProperty("lang", "en"));
 
-    if (args.length < 1) {
-      printUsage();
-      fut.handle(Future.failedFuture(messages.getMessage("10600")));
-      return;
-    }
-    if (parseOptions(args, fut)) {
-      return;
-    }
-    final String mode = conf.getString("mode", "dev");
-    switch (mode) {
+      if (args.length < 1) {
+        printUsage();
+        fut.handle(Future.failedFuture(messages.getMessage("10600")));
+        return;
+      }
+      if (parseOptions(args, fut)) {
+        return;
+      }
+      final String mode = conf.getString("mode", "dev");
+      switch (mode) {
       case "dev":
       case "initdatabase":
       case "purgedatabase":
@@ -75,6 +77,9 @@ public class MainDeploy {
         break;
       default:
         fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
+      }
+    } catch (Throwable t) {
+      fut.handle(Future.failedFuture(t));
     }
   }
 
