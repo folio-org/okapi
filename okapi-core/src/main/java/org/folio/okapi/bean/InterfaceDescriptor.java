@@ -3,11 +3,11 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.ProxyContext;
 

@@ -1,7 +1,5 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.logging.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -20,6 +18,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Provide language specific messages, caching the language files in memory.

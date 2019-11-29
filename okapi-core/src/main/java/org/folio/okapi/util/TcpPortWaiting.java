@@ -4,10 +4,10 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 

@@ -8,10 +8,10 @@ import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**

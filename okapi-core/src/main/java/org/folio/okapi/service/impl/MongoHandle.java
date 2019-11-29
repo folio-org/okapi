@@ -2,8 +2,8 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.mongo.MongoClient;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.OkapiLogger;
 

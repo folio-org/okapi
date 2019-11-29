@@ -15,7 +15,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.io.IOException;
@@ -25,6 +24,7 @@ import static java.lang.Integer.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.common.Messages;
@@ -184,7 +184,7 @@ public class MainDeploy {
         iFace.setEnabled(true).addInterface(clusterHost);
       }
     }
-    hConfig.setProperty("hazelcast.logging.type", "slf4j");
+    hConfig.setProperty("hazelcast.logging.type", "log4j");
 
     HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
     vopt.setClusterManager(mgr);

@@ -1,8 +1,8 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.logging.Logger;
 import java.io.InputStream;
 import java.util.Properties;
+import org.apache.logging.log4j.Logger;
 
 public class ModuleVersionReporter {
 

@@ -1,7 +1,7 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class OkapiLogger {
 
@@ -14,15 +14,11 @@ public class OkapiLogger {
   }
 
   public static Logger get(Class<?> cl) {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-    return LoggerFactory.getLogger(cl);
+    return LogManager.getLogger(cl);
   }
 
   public static Logger get(String name) {
-    System.setProperty("vertx.logger-delegate-factory-class-name",
-      "io.vertx.core.logging.SLF4JLogDelegateFactory");
-    return LoggerFactory.getLogger(name);
+    return LogManager.getLogger(name);
   }
 
 }

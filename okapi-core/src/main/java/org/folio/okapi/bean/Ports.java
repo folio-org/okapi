@@ -1,6 +1,6 @@
 package org.folio.okapi.bean;
 
-import io.vertx.core.logging.Logger;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**

@@ -1,10 +1,10 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
@@ -13,10 +13,6 @@ import static org.junit.Assert.*;
 import org.junit.Before;
 import org.junit.runner.RunWith;
 
-/**
- *
- * @author heikki
- */
 @RunWith(VertxUnitRunner.class)
 public class LockedStringMapTest {
 

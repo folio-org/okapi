@@ -8,6 +8,7 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.logging.log4j.Logger;
 import static org.folio.okapi.common.ErrorType.INTERNAL;
 import static org.folio.okapi.common.ErrorType.NOT_FOUND;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -18,7 +19,7 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresTable<T> {
 
-  private final io.vertx.core.logging.Logger logger = OkapiLogger.get();
+  private final Logger logger = OkapiLogger.get();
 
   private final String table;
   private final String jsonColumn;

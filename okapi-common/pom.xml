@@ -8,32 +8,10 @@
   </parent>
   <artifactId>okapi-common</artifactId>
   <dependencies>
-    <!-- logging see http://www.slf4j.org/legacy.html -->
-    <!-- we use SLF4J for our logging interface -->
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <scope>test</scope>
+       <groupId>org.apache.logging.log4j</groupId>
+       <artifactId>log4j-api</artifactId>
     </dependency>
-    <!-- we use log4j as our logging implementation -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-log4j12</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- include slf4j bridges to proxy all logging from library deps to our logging impl -->
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>jcl-over-slf4j</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- we don't use JUL bridge because it requires bootstrapping in the code -->
-    <!-- logging config ends -->
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-core</artifactId>

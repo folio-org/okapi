@@ -5,9 +5,9 @@ import java.lang.management.ManagementFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**

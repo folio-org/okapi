@@ -15,8 +15,8 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**

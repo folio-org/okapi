@@ -3,12 +3,12 @@ package org.folio.okapi.header;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**

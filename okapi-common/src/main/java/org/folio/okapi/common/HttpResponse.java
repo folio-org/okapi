@@ -1,8 +1,8 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Helper to return HTTP responses. In most cases, the ProxyContext has the same
