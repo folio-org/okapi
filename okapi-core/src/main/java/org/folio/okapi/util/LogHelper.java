@@ -5,15 +5,15 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.config.Configurator;
 
-public class LogHelper {
-  private static final Logger l4jlogger = LogManager.getLogger(LogHelper.class);
 
-  private LogHelper() {
-    throw new IllegalAccessError(this.toString());
-  }
+// S1118: Utility class should have a private constructor
+// S4792: Configuing loggers is security-sensitive
+@java.lang.SuppressWarnings({"squid:S4792", "squid:S1118"})
+public class LogHelper {
+  private static final Logger LOGGER = LogManager.getLogger(LogHelper.class);
 
   public static String getRootLogLevel() {
-    return l4jlogger.getLevel().toString();
+    return LOGGER.getLevel().toString();
   }
 
   private static void setRootLogLevel(Level l) {
