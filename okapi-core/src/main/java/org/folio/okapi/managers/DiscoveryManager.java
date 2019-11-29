@@ -234,7 +234,7 @@ public class DiscoveryManager implements NodeListener {
         vertx.eventBus().request(noderes.result().getUrl() + "/deploy", reqdata,
           deliveryOptions, ar -> {
           if (ar.failed()) {
-            fut.handle(new Failure(USER, ar.cause().getMessage()));
+            fut.handle(new Failure<>(USER, ar.cause().getMessage()));
           } else {
             String b = (String) ar.result().body();
             DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
@@ -324,7 +324,7 @@ public class DiscoveryManager implements NodeListener {
           vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
             deliveryOptions, ar -> {
             if (ar.failed()) {
-              fut.handle(new Failure(USER, ar.cause().getMessage()));
+              fut.handle(new Failure<>(USER, ar.cause().getMessage()));
             } else {
               fut.handle(new Success<>());
             }
