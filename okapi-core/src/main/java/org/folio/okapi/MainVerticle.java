@@ -47,7 +47,6 @@ import org.folio.okapi.managers.InternalModule;
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
-  private final LogHelper logHelper = new LogHelper();
 
   private ModuleManager moduleManager;
   private TenantManager tenantManager;
@@ -101,11 +100,11 @@ public class MainVerticle extends AbstractVerticle {
     String storageType = Config.getSysConf("storage", "inmemory", config);
     String loglevel = Config.getSysConf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
-      logHelper.setRootLogLevel(loglevel);
+      LogHelper.setRootLogLevel(loglevel);
     } else {
       String lev = getenv("OKAPI_LOGLEVEL");
       if (lev != null && !lev.isEmpty()) {
-        logHelper.setRootLogLevel(loglevel);
+        LogHelper.setRootLogLevel(loglevel);
       }
     }
     final String logWaitMsStr = Config.getSysConf("logWaitMs", "", config);
