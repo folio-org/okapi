@@ -144,8 +144,10 @@ public class MainVerticle extends AbstractVerticle {
   private void myTenantHandle(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    logger.info("{} {} to okapi-est-module for tenant {}",
-      meth, ctx.request().uri(), tenant);
+    if (logger.isInfoEnabled()) {
+      logger.info("{} {} to okapi-est-module for tenant {}",
+        meth, ctx.request().uri(), tenant);
+    }
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
