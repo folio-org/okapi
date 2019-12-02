@@ -62,7 +62,7 @@ public class TenantStoreMongo implements TenantStore {
     cli.find(COLLECTION, jq, res
       -> {
       if (res.failed()) {
-        logger.warn("updateDescriptor: find failed: " + res.cause().getMessage());
+        logger.warn("updateDescriptor: find failed: {}", res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
@@ -103,12 +103,12 @@ public class TenantStoreMongo implements TenantStore {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(COLLECTION, jq, gres -> {
       if (gres.failed()) {
-        logger.debug("disableModule: find failed: " + gres.cause().getMessage());
+        logger.debug("updateModules: {} find failed: {}", id, gres.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, gres.cause()));
       } else {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
-          logger.debug("disableModule: not found: " + id);
+          logger.debug("updatesModules: {} not found", id);
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
         } else {
           JsonObject d = l.get(0);
@@ -117,7 +117,7 @@ public class TenantStoreMongo implements TenantStore {
           JsonObject document = encodeTenant(t, id);
           cli.save(COLLECTION, document, sres -> {
             if (sres.failed()) {
-              logger.debug("TenantStoreMongo: disable: saving failed: " + sres.cause().getMessage());
+              logger.debug("updateModules: {} saving failed: {}", id, sres.cause().getMessage());
               fut.handle(new Failure<>(INTERNAL, sres.cause()));
             } else {
               fut.handle(new Success<>());

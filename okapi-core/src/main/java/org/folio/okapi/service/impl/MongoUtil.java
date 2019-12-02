@@ -31,7 +31,7 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.removeDocument(collection, jq, rres -> {
       if (rres.failed()) {
-        logger.warn("MongoUtil.delete " + id + " failed : " + rres.cause());
+        logger.warn("MongoUtil.delete {} failed {}", id, rres.cause());
         fut.handle(new Failure<>(INTERNAL, rres.cause()));
       } else if (rres.result().getRemovedCount() == 0) {
         fut.handle(new Failure<>(NOT_FOUND, id));
@@ -65,8 +65,8 @@ class MongoUtil<T> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
-        logger.warn("MongoUtil.add " + id + " failed : " + res.cause());
-        logger.warn("Document: " + document.encodePrettily());
+        logger.warn("MongoUtil.add {} failed: {}", id, res.cause());
+        logger.warn("Document: {}", document.encodePrettily());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });
@@ -80,8 +80,8 @@ class MongoUtil<T> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
-        logger.warn("MongoUtil.insert " + id + " failed : " + res.cause());
-        logger.warn("Document: " + document.encodePrettily());
+        logger.warn("MongoUtil.insert {} failed: {}", id, res.cause());
+        logger.warn("Document: {}", document.encodePrettily());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       }
     });

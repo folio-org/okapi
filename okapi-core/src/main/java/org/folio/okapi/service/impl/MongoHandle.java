@@ -35,7 +35,7 @@ class MongoHandle {
     if (!dbName.isEmpty()) {
       opt.put("db_name", dbName);
     }
-    logger.info("Using mongo backend at " + h + " : " + p + " / " + dbName);
+    logger.info("Using mongo backend at {} : {} / {}", h, p, dbName);
     this.cli = MongoClient.createShared(vertx, opt);
   }
 

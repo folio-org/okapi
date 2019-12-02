@@ -83,7 +83,7 @@ public class DepResolution {
     Map<String, ModuleDescriptor> modlist, Map<String, List<InterfaceDescriptor>> pInts) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
-    logger.debug("Checking dependencies of " + md.getId());
+    logger.debug("Checking dependencies of {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
       String res = checkOneDependency(md, req, pInts, modlist.values());
       if (res != null) {
@@ -174,13 +174,13 @@ public class DepResolution {
       tm = it.next();
       TenantModuleDescriptor.Action action = tm.getAction();
       String id = tm.getId();
-      logger.info("getNextTM: loop id=" + id + " action=" + action.name());
+      logger.info("getNextTM: loop id {} action {}", id, action.name());
       if (action == TenantModuleDescriptor.Action.enable && !modsEnabled.containsKey(id)) {
-        logger.info("getNextMT: return tm for action=enable");
+        logger.info("getNextMT: return tm for action enable");
         return tm;
       }
       if (action == TenantModuleDescriptor.Action.disable && modsEnabled.containsKey(id)) {
-        logger.info("getNextTM: return tm for action=disable");
+        logger.info("getNextTM: return tm for action disable");
         return tm;
       }
     }
@@ -225,7 +225,7 @@ public class DepResolution {
     }
     final int lim = tml.size();
     for (int i = 0; i <= lim; i++) {
-      logger.info("outer loop i=" + i + " tml.size=" + tml.size());
+      logger.info("outer loop i {} tml.size {}", i, tml.size());
       TenantModuleDescriptor tm = getNextTM(modsEnabled, tml);
       if (tm == null) {
         break;
@@ -236,7 +236,7 @@ public class DepResolution {
     }
     String s = DepResolution.checkAllDependencies(modsEnabled);
     if (!s.isEmpty()) {
-      logger.warn("installModules.checkAllDependencies: " + s);
+      logger.warn("installModules.checkAllDependencies: {}", s);
       fut.handle(new Failure<>(USER, s));
       return;
     }
@@ -369,7 +369,7 @@ public class DepResolution {
         for (InterfaceDescriptor pi : md.getProvidesList()) {
           if (pi.isRegularHandler() && pi.isCompatible(req)) {
             it.remove();
-            logger.info("Dependency OK for existing enable id=" + md.getId());
+            logger.info("Dependency OK for existing enable id {}", md.getId());
             foundMd = md;
           }
         }
@@ -383,7 +383,7 @@ public class DepResolution {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.info("Dependency OK already enabled id=" + md.getId());
+          logger.info("Dependency OK already enabled id {}", md.getId());
           return true;
         }
       }
@@ -400,7 +400,7 @@ public class DepResolution {
       String runningmodule = it.next();
       ModuleDescriptor rm = modsEnabled.get(runningmodule);
       if (md.getProduct().equals(rm.getProduct())) {
-        logger.info("resolveModuleConflicts from " + runningmodule);
+        logger.info("resolveModuleConflicts from {}", runningmodule);
         it.remove();
         fromModule.add(rm);
         v++;
@@ -412,7 +412,7 @@ public class DepResolution {
               if (mi.getId().equals(confl)
                 && mi.isRegularHandler()
                 && modsEnabled.containsKey(runningmodule)) {
-                logger.info("resolveModuleConflicts remove " + runningmodule);
+                logger.info("resolveModuleConflicts remove {}", runningmodule);
                 TenantModuleDescriptor tm = new TenantModuleDescriptor();
                 tm.setAction(TenantModuleDescriptor.Action.disable);
                 tm.setId(runningmodule);
@@ -431,7 +431,7 @@ public class DepResolution {
   private static void addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md,
     TenantModuleDescriptor.Action action, ModuleDescriptor fm) {
 
-    logger.info("addOrReplace md.id=" + md.getId());
+    logger.info("addOrReplace id {}", md.getId());
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     boolean found = false;
     while (it.hasNext()) {
@@ -439,7 +439,7 @@ public class DepResolution {
       if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
         it.remove();
       } else if (fm != null && tm.getAction() == TenantModuleDescriptor.Action.enable && tm.getId().equals(fm.getId())) {
-        logger.info("resolveConflict .. patch id=" + md.getId());
+        logger.info("resolveConflict .. patch id {}", md.getId());
         tm.setId(md.getId());
         found = true;
       }
@@ -461,7 +461,7 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml) {
 
     List<String> ret = new LinkedList<>();
-    logger.info("addModuleDependencies " + md.getId());
+    logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
       ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
     }
@@ -479,7 +479,7 @@ public class DepResolution {
   private static List<String> removeModuleDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
-    logger.info("removeModuleDependencies " + md.getId());
+    logger.info("removeModuleDependencies {}", md.getId());
 
     List<String> ret = new LinkedList<>();
     if (modsEnabled.containsKey(md.getId())) {

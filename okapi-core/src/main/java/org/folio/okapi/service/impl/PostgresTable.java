@@ -44,14 +44,14 @@ class PostgresTable<T> {
       + " ( " + jsonColumn + " JSONB NOT NULL )";
     q.query(createSql, res1 -> {
       if (res1.failed()) {
-        logger.fatal(createSql + ": " + res1.cause().getMessage());
+        logger.fatal("{}: {}", createSql, res1.cause().getMessage());
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
         String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
           + table + " USING btree((" + idIndex + "))";
         q.query(createSql1, res2 -> {
           if (res1.failed()) {
-            logger.fatal(createSql1 + ": " + res2.cause().getMessage());
+            logger.fatal("{}: {}", createSql1, res2.cause().getMessage());
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
             fut.handle(new Success<>());
@@ -70,7 +70,7 @@ class PostgresTable<T> {
       String dropSql = "DROP TABLE IF EXISTS " + table;
       q.query(dropSql, (ExtendedAsyncResult<ResultSet> res) -> {
         if (res.failed()) {
-          logger.fatal(dropSql + ": " + res.cause().getMessage());
+          logger.fatal("{}: {}", dropSql, res.cause().getMessage());
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           create(reset, q, fut);

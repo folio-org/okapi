@@ -191,7 +191,6 @@ public class InterfaceDescriptor {
    * @return "" if ok, or a simple error message
    */
   public String validate(ProxyContext pc, String section, String mod) {
-    logger.debug("Validating ModuleInterface {}", Json.encode(this));
     if (id == null) {
       return "id is missing for module " + mod;
     }

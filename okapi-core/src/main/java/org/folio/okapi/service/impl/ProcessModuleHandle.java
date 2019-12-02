@@ -114,10 +114,10 @@ public class ProcessModuleHandle implements ModuleHandle {
           p = pb.start();
           p.waitFor(1, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
-          logger.warn("Caught InterruptedException " + ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           Thread.currentThread().interrupt();
         } catch (IOException ex) {
-          logger.warn("Caught IOException ", ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           future.fail(ex);
           return;
         }
@@ -196,11 +196,11 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
           }
         } catch (IOException ex) {
-          logger.debug("Caught IOException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           return;
         } catch (InterruptedException ex) {
-          logger.debug("Caught InterruptedException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           Thread.currentThread().interrupt();
           return;

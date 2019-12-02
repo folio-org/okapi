@@ -46,11 +46,11 @@ public class PostgresQuery {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
-        logger.debug("queryWithParams sql: " + sql);
+        logger.debug("queryWithParams sql {}", sql);
         conn.queryWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
-            logger.fatal("queryWithParams failed: "
-              + qres.cause() + " sql: " + sql);
+            logger.fatal("queryWithParams sql {} failed: {}",
+              sql, qres.cause());
             close();
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {
@@ -68,11 +68,11 @@ public class PostgresQuery {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
-        logger.debug("updateWithParams sql: " + sql);
+        logger.debug("updateWithParams sql {}", sql);
         conn.updateWithParams(sql, jsa, qres -> {
           if (qres.failed()) {
-            logger.fatal("updateWithParams failed: "
-              + qres.cause() + " sql: " + sql);
+            logger.fatal("updateWithParams sql {} failed: {}",
+              sql, qres.cause());
             close();
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {
@@ -90,11 +90,11 @@ public class PostgresQuery {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
-        logger.debug("query sql: " + sql);
+        logger.debug("query sql {}", sql);
         conn.query(sql, qres -> {
           if (qres.failed()) {
-            logger.fatal("query failed: "
-              + qres.cause() + " sql: " + sql);
+            logger.fatal("query sql {} failed: {}",
+              sql, qres.cause());
             close();
             fut.handle(new Failure<>(INTERNAL, qres.cause()));
           } else {

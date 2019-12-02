@@ -41,8 +41,7 @@ public class DropwizardHelper {
             .build(graphite);
     reporter.start(period, tu);
 
-    logger.info("Metrics remote:" + graphiteHost + ":"
-            + port + " this:" + prefix);
+    logger.info("Metrics remote {}:{} this {}", graphiteHost, port, prefix);
   }
 
   /**
@@ -63,7 +62,7 @@ public class DropwizardHelper {
       reg.removeMatching((String name, Metric metric) -> key.equals(name));
       reg.register(key, g);
     } catch (Exception e) {
-      logger.warn("registerGauge caught an exception: " + e);
+      logger.warn("registerGauge {}", e.getMessage(), e);
     }
   }
 

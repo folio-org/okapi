@@ -164,7 +164,7 @@ public class TenantManager {
       } else {
         tenantStore.updateDescriptor(td, upres -> {
           if (upres.failed()) {
-            logger.warn("TenantManager: Updating database for {} failed: ", id, upres);
+            logger.warn("TenantManager: Updating database for {} failed: {}", id, upres);
             fut.handle(new Failure<>(INTERNAL, ""));
           } else {
             tenants.add(id, t, fut); // handles success
@@ -220,7 +220,7 @@ public class TenantManager {
     } else {
       tenantStore.delete(id, dres -> {
         if (dres.failed() && dres.getType() != NOT_FOUND) {
-          logger.warn("TenantManager: Deleting {} failed: ", id, dres);
+          logger.warn("TenantManager: Deleting {} failed: {}", id, dres);
           fut.handle(new Failure<>(INTERNAL, dres.cause()));
         } else {
           tenants.remove(id, fut);
@@ -594,7 +594,7 @@ public class TenantManager {
   }
 
   private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
-    logger.info("handleTimer tenant {} module {} seq1 ", tenantId, moduleId, seq1);
+    logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
     tenants.get(tenantId, tRes -> {
       if (tRes.failed()) {
         // tenant no longer exist
@@ -686,15 +686,15 @@ public class TenantManager {
     }
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-    logger.info("timer call start module=" + md.getId() + " for tenant " + tenantId);
+    logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
     proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cRes -> {
       lock.release();
       if (cRes.succeeded()) {
-        logger.info("timer call succeeded to module=" + md.getId()
-          + " for tenant " + tenantId);
+        logger.info("timer call succeeded to module {} for tenant {}",
+          md.getId(), tenantId);
       } else {
-        logger.info("timer call failed to module=" + md.getId()
-          + " for tenant " + tenantId + ": " + cRes.cause().getMessage());
+        logger.info("timer call failed to module {} for tenant {} : {}",
+          md.getId(), tenantId, cRes.cause().getMessage());
       }
     });
   }
@@ -763,7 +763,9 @@ public class TenantManager {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
-    logger.debug("findTenantInterface: prov: {}", Json.encode(prov));
+    if (logger.isDebugEnabled()) {
+      logger.debug("findTenantInterface: prov: {}", Json.encode(prov));
+    }
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at {}", pi.getId());
       if ("_tenant".equals(pi.getId())) {

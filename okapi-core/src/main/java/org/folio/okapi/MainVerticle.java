@@ -236,7 +236,7 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       storage.prepareDatabases(initMode, res -> {
         if (initMode != NORMAL) {
-          logger.info("Database operation {} done. Exiting", initMode.toString());
+          logger.info("Database operation {} done. Exiting", initMode);
           System.exit(0);
         }
         promise.handle(res);

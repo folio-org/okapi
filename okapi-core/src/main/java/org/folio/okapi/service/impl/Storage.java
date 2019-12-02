@@ -54,7 +54,7 @@ public class Storage {
         envStore = new EnvStorePostgres(postgres);
         break;
       default:
-        logger.fatal("Unknown storage type '" + type + "'");
+        logger.fatal("Unknown storage type '{}'", type);
         System.exit(1);
     }
   }
@@ -72,7 +72,7 @@ public class Storage {
       initModeP = InitMode.INIT;
     }
     final InitMode initMode = initModeP;
-    logger.info("prepareDatabases: " + initMode);
+    logger.info("prepareDatabases: {}", initMode);
 
     boolean reset = initMode != InitMode.NORMAL;
     envStore.init(reset, res1

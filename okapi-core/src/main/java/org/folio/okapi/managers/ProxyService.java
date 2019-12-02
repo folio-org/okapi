@@ -103,7 +103,7 @@ public class ProxyService {
     pc.addTraceHeaderLine(ctx.request().method() + " "
       + mi.getModuleDescriptor().getId() + " "
       + url.replaceFirst("[?#].*$", "..") // remove params
-      + " : " + statusCode + pc.timeDiff());
+      + " : " + statusCode + " " + pc.timeDiff());
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
@@ -1052,10 +1052,14 @@ public class ProxyService {
     }
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String authToken = headersIn.get(XOkapiHeaders.TOKEN);
-    logger.debug("callSystemInterface on {} for {} as {} with authToken {}",
-      Json.encode(inst), tenantId, curTenantId, authToken);
+    if (logger.isDebugEnabled()) {
+      logger.debug("callSystemInterface on {} for {} as {} with authToken {}",
+        Json.encode(inst), tenantId, curTenantId, authToken);
+    }
     if (tenantId.equals(curTenantId)) {
-      logger.debug("callSystemInterface: Same tenant, no need for trickery");
+      if (logger.isDebugEnabled()) {
+        logger.debug("callSystemInterface: Same tenant, no need for trickery");
+      }
       doCallSystemInterface(headersIn, tenantId, authToken, inst, null, request, fut);
       return;
     }
@@ -1253,8 +1257,10 @@ public class ProxyService {
     ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
     pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
     ctx.reroute(newPath);
-    logger.debug("redirectProxy: After rerouting: {} {}",
-      ctx.request().path(), qry);
+    if (logger.isDebugEnabled()) {
+      logger.debug("redirectProxy: After rerouting: {} {}",
+        ctx.request().path(), qry);
+    }
   }
 
   public void autoDeploy(ModuleDescriptor md,

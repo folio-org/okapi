@@ -99,14 +99,16 @@ public class TenantStorePostgres implements TenantStore {
   public void updateModules(String id, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.debug("updateModules " + Json.encode(enabled.keySet()));
+    if (logger.isDebugEnabled()) {
+      logger.debug("updateModules {}", Json.encode(enabled.keySet()));
+    }
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
     q.queryWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        logger.fatal("updateModule failed: " + res.cause().getMessage());
+        logger.fatal("updateModule {} failed: {}", id, res.cause().getMessage());
         fut.handle(new Failure<>(INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
@@ -114,7 +116,6 @@ public class TenantStorePostgres implements TenantStore {
           fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
           q.close();
         } else {
-          logger.debug("update: replace");
           updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);
         }
       }
