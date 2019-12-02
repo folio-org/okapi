@@ -67,7 +67,7 @@ public class MainVerticle extends AbstractVerticle {
             xmlMsg.append(" ").append(hdr).append(":").append(hdrval).append("\n");
           }
           if (allh.contains("L")) {
-            logger.info(hdr + ":" + hdrval);
+            logger.info("{}:{}", hdr, hdrval);
           }
         }
       }
@@ -144,8 +144,8 @@ public class MainVerticle extends AbstractVerticle {
   private void myTenantHandle(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
-      + " for tenant " + tenant);
+    logger.info("{} {} to okapi-est-module for tenant {}",
+      meth, ctx.request().uri(), tenant);
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
@@ -154,7 +154,7 @@ public class MainVerticle extends AbstractVerticle {
       ctx.response().setChunked(true);
 
       final String cont = ctx.request().getHeader("Content-Type");
-      logger.debug("Tenant api content type: '" + cont + "'");
+      logger.debug("Tenant api content type: '{}'", cont);
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
       if (tok == null) {
         tok = "";
@@ -162,14 +162,15 @@ public class MainVerticle extends AbstractVerticle {
         tok = "-auth";
       }
       this.tenantRequests += meth + "-" + tenant + tok + " ";
-      logger.debug("Tenant requests so far: " + tenantRequests);
+      logger.debug("Tenant requests so far: {}", tenantRequests);
 
       Buffer b = Buffer.buffer();
       ctx.request().handler(b::appendBuffer);
       ctx.request().endHandler(x -> {
         try {
           JsonObject j = new JsonObject(b);
-          logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+          logger.info("module_from={} module_to={}",
+            j.getString("module_from"), j.getString("module_to"));
           tenantParameters = j.getJsonArray("parameters");
         } catch (DecodeException|ClassCastException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
@@ -241,8 +242,7 @@ public class MainVerticle extends AbstractVerticle {
 
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");
     m.logStart();
-    logger.info("Starting okapi-test-module "
-      + bName + " on port " + port);
+    logger.info("Starting okapi-test-module {} on port {}", bName, port);
 
     router.routeWithRegex("/testb").handler(this::myStreamHandle);
     router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
@@ -269,7 +269,7 @@ public class MainVerticle extends AbstractVerticle {
               final String pid = bName.split("@")[0];
               try (FileWriter fw = new FileWriter(pidFile)) {
                 fw.write(pid);
-                logger.info("Writing " + pid);
+                logger.info("Writing {}", pid);
               } catch (IOException ex) {
                 logger.error(ex);
               }

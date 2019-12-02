@@ -130,7 +130,7 @@ class Auth {
 
   public void filter(RoutingContext ctx) {
     String phase = ctx.request().headers().get(XOkapiHeaders.FILTER);
-    logger.debug("test-auth filter " + XOkapiHeaders.FILTER + ": '" + phase + "'");
+    logger.debug("test-auth filter {}: '{}'", XOkapiHeaders.FILTER, phase);
     if (phase == null || phase.startsWith("auth")) {
       check(ctx);
       return;
@@ -184,8 +184,10 @@ class Auth {
       logger.debug("test-auth: check starting with tok {} and tenant {}", tok, tenant);
 
       String[] splitTok = tok.split("\\.");
-      logger.debug("test-auth: check: split the jwt into {}: {}",
-        splitTok.length,  Json.encode(splitTok));
+      if (logger.isDebugEnabled()) {
+        logger.debug("test-auth: check: split the jwt into {}: {}",
+          splitTok.length,  Json.encode(splitTok));
+      }
       if (splitTok.length != 3) {
         logger.warn("test-auth: Bad JWT, can not split in three parts. '{}", tok);
         responseError(ctx, 400, "Auth.check: Bad JWT");
@@ -210,7 +212,7 @@ class Auth {
         return;
       }
       final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
-      logger.info("ovTok=" + ovTok);
+      logger.info("ovTok={}", ovTok);
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
         responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
@@ -265,7 +267,7 @@ class Auth {
     }
 
     ctx.request().handler(x -> {
-      logger.debug("test-auth: echoing " + x);
+      logger.debug("test-auth: echoing {}", x);
       ctx.response().write(x);
     });
     ctx.request().endHandler(x -> {

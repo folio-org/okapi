@@ -49,7 +49,7 @@ public class MainVerticle extends AbstractVerticle {
       if (body.length() > 80) {
         body = body.substring(0, 80) + "...";
       }
-      logger.info("tenantPermissions: " + body);
+      logger.info("tenantPermissions: {}", body);
       ctx.response().end();
     });
   }
@@ -59,9 +59,8 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting okapi-test-header-module "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + " on port " + port);
+    logger.info("Starting okapi-test-header-module {} on port {}",
+      ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.get("/testb").handler(this::myHeaderHandle);
     router.post("/testb").handler(this::myHeaderHandle);
