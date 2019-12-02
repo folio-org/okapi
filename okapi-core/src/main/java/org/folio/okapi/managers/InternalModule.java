@@ -74,7 +74,7 @@ public class InternalModule {
     this.envManager = envManager;
     this.pullManager = pullManager;
     this.okapiVersion = okapiVersion;
-    logger.warn("InternalModule starting okapiversion=" + okapiVersion);
+    logger.info("InternalModule starting okapiversion={}", okapiVersion);
   }
 
   public static ModuleDescriptor moduleDescriptor(String okapiVersion) {
@@ -686,7 +686,7 @@ public class InternalModule {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
-          logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
+          logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
           fut.handle(new Success<>(Json.encodePrettily(res.result())));
         }
       });
@@ -704,7 +704,7 @@ public class InternalModule {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        logger.info("installUpgradeModules returns:\n" + Json.encodePrettily(res.result()));
+        logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
         fut.handle(new Success<>(Json.encodePrettily(res.result())));
       }
     });
@@ -978,7 +978,7 @@ public class InternalModule {
 
   private void getDiscoveryNode(String id,
     Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Int: getDiscoveryNode: " + id);
+    logger.debug("Int: getDiscoveryNode: {}", id);
     discoveryManager.getNode(id, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -991,7 +991,7 @@ public class InternalModule {
 
   private void putDiscoveryNode(String id, String body,
     Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Int: putDiscoveryNode: " + id + " " + body);
+    logger.debug("Int: putDiscoveryNode: {} {}", id, body);
     final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
     discoveryManager.updateNode(id, nd, res -> {
       if (res.failed()) {
@@ -1260,14 +1260,12 @@ public class InternalModule {
     String[] segments = p.split("/");
     int n = segments.length;
     String[] decodedSegs = new String[n];
-    logger.debug("segment path=" + p);
+    logger.debug("segment path={}", p);
     for (int i = 0; i < n; i++) {
       decodedSegs[i] = URLDecoder.decode(segments[i], false);
-      logger.debug("segment " + i + " " + segments[i] + "->" + decodedSegs[i]);
+      logger.debug("segment {} {}->{}", i, segments[i], decodedSegs[i]);
     }
     HttpMethod m = ctx.request().method();
-    pc.debug("internalService '" + ctx.request().method() + "'"
-      + " '" + p + "'  nseg=" + n + " :" + Json.encode(decodedSegs));
     // default to json replies, error code overrides to text/plain
     pc.getCtx().response().putHeader("Content-Type", "application/json");
     if (n >= 4 && p.startsWith("/_/proxy/")) { // need at least /_/proxy/something

@@ -167,7 +167,7 @@ public class MainVerticle extends AbstractVerticle {
       tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
-      logger.info("Proxy using " + storageType + " storage");
+      logger.info("Proxy using {} storage", storageType);
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
               tenantManager, deploymentManager, discoveryManager,
@@ -216,7 +216,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void checkDistributedLock(Promise<Void> promise) {
-    logger.info("Checking for working distributed lock. Cluster=" + vertx.isClustered());
+    logger.info("Checking for working distributed lock. Cluster={}", vertx.isClustered());
     vertx.sharedData().getLockWithTimeout("test", 10000, res -> {
       if (res.succeeded()) {
         logger.info("Distributed lock ok");
@@ -236,7 +236,7 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       storage.prepareDatabases(initMode, res -> {
         if (initMode != NORMAL) {
-          logger.info("Database operation " + initMode.toString() + " done. Exiting");
+          logger.info("Database operation {} done. Exiting", initMode.toString());
           System.exit(0);
         }
         promise.handle(res);
@@ -446,11 +446,10 @@ public class MainVerticle extends AbstractVerticle {
       .listen(port,
         result -> {
           if (result.succeeded()) {
-            logger.info("API Gateway started PID "
-              + ManagementFactory.getRuntimeMXBean().getName()
-              + ". Listening on port " + port);
+            logger.info("API Gateway started PID {}. Listening on port {}",
+              ManagementFactory.getRuntimeMXBean().getName(), port);
           } else {
-            logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
+            logger.fatal("createHttpServer failed for port {}: {}", port, result.cause());
           }
           promise.handle(result.mapEmpty());
         }
@@ -464,7 +463,7 @@ public class MainVerticle extends AbstractVerticle {
       if (res.succeeded()) {
         logger.info("Deploy completed succesfully");
       } else {
-        logger.info("Deploy failed: " + res.cause());
+        logger.info("Deploy failed: {}", res.cause());
       }
       if (enableProxy) {
         tenantManager.startTimers(promise);

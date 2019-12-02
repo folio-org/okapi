@@ -133,7 +133,6 @@ public class DiscoveryManager implements NodeListener {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        logger.debug("documentStore.insert " + res.result().getInstId());
         deploymentStore.insert(res.result(), res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -155,7 +154,7 @@ public class DiscoveryManager implements NodeListener {
   private void addAndDeploy0(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    logger.info("addAndDeploy: " + Json.encodePrettily(dd));
+    logger.info("addAndDeploy: {}", Json.encodePrettily(dd));
     final String modId = dd.getSrvcId();
     if (modId == null) {
       fut.handle(new Failure<>(USER, messages.getMessage("10800")));
@@ -197,10 +196,10 @@ public class DiscoveryManager implements NodeListener {
       }
     } else {
       if (launchDesc == null) {
-        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
+        logger.debug("addAndDeploy: case 2 for {}", dd.getSrvcId());
         addAndDeploy2(dd, md, fut, nodeId);
       } else { // Have a launchdesc already in dd
-        logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
+        logger.debug("addAndDeploy: case 1: We have a ld: {}", Json.encode(dd));
         callDeploy(nodeId, dd, fut);
       }
     }
@@ -225,7 +224,7 @@ public class DiscoveryManager implements NodeListener {
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    logger.debug("callDeploy starting for " + Json.encode(dd));
+    logger.debug("callDeploy starting for {}", Json.encode(dd));
     getNode(nodeId, noderes -> {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
@@ -248,7 +247,7 @@ public class DiscoveryManager implements NodeListener {
   public void removeAndUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
+    logger.info("removeAndUndeploy: srvcId {} instId {}", srvcId, instId);
     deployments.get(srvcId, instId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
@@ -264,7 +263,7 @@ public class DiscoveryManager implements NodeListener {
   public void removeAndUndeploy(String srvcId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("removeAndUndeploy: srvcId " + srvcId);
+    logger.info("removeAndUndeploy: srvcId {}", srvcId);
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
@@ -293,7 +292,7 @@ public class DiscoveryManager implements NodeListener {
     CompList<List<Void>> futures = new CompList<>(INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
       Promise<Void> promise = Promise.promise();
-      logger.info("removeAndUndeploy " + dd.getSrvcId() + " " + dd.getInstId());
+      logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
       callUndeploy(dd, res -> {
         if (res.succeeded()) {
           deploymentStore.delete(dd.getInstId(), promise::handle);
@@ -309,7 +308,7 @@ public class DiscoveryManager implements NodeListener {
   private void callUndeploy(DeploymentDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
+    logger.info("callUndeploy srvcId={} instId={} node={}", md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
       logger.info("callUndeploy remove");
@@ -390,7 +389,7 @@ public class DiscoveryManager implements NodeListener {
   public void autoDeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("autoDeploy " + md.getId());
+    logger.info("autoDeploy {}", md.getId());
     // internal Okapi modules is not part of discovery so ignore it
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
@@ -423,7 +422,7 @@ public class DiscoveryManager implements NodeListener {
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
-      logger.info("autoDeploy " + md.getId() + " consider " + node);
+      logger.info("autoDeploy {} consider {}", md.getId(), node);
       DeploymentDescriptor foundDd = null;
       for (DeploymentDescriptor dd : ddList) {
         if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
@@ -431,7 +430,7 @@ public class DiscoveryManager implements NodeListener {
         }
       }
       if (foundDd == null) {
-        logger.info("autoDeploy " + md.getId() + " must deploy on node " + node);
+        logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
         DeploymentDescriptor dd = new DeploymentDescriptor();
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
@@ -440,7 +439,7 @@ public class DiscoveryManager implements NodeListener {
         addAndDeploy(dd, promise::handle);
         futures.add(promise);
       } else {
-        logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
+        logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
       }
     }
     futures.all(fut);
@@ -449,7 +448,7 @@ public class DiscoveryManager implements NodeListener {
   public void autoUndeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("autoUndeploy " + md.getId());
+    logger.info("autoUndeploy {}", md.getId());
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
       return;
@@ -516,7 +515,6 @@ public class DiscoveryManager implements NodeListener {
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.getKeys(resGet -> {
       if (resGet.failed()) {
-        logger.debug("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
@@ -622,7 +620,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
-    logger.debug("Discovery. addNode: " + Json.encode(nd));
+    logger.debug("Discovery. addNode: {}", Json.encode(nd));
     nodes.put(nd.getNodeId(), nd, fut);
   }
 
@@ -634,14 +632,12 @@ public class DiscoveryManager implements NodeListener {
    * @param fut
    */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Discovery: nodeUrl: " + nodeId);
     getNodes(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         List<NodeDescriptor> result = res.result();
         for (NodeDescriptor nd : result) {
-          logger.debug("Discovery: nodeUrl: " + nodeId + " nd=" + Json.encode(nd));
           if (nodeId.compareTo(nd.getUrl()) == 0) {
             fut.handle(new Success<>(nd.getNodeId()));
             return;
@@ -740,13 +736,13 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeAdded(String nodeID) {
-    logger.info("node.add " + nodeID);
+    logger.info("node.add {}", nodeID);
   }
 
   @Override
   public void nodeLeft(String nodeID) {
     nodes.remove(nodeID, res
-      -> logger.info("node.remove " + nodeID + " result=" + res.result())
+      -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
   }
 }

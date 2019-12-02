@@ -132,7 +132,7 @@ public class TenantManager {
         } else { // insert into db first
           tenantStore.insert(t, res -> {
             if (res.failed()) {
-              logger.warn("TenantManager: Adding " + id + " FAILED: ", res);
+              logger.warn("TenantManager: Adding {} failed: {}", id, res);
               fut.handle(new Failure<>(res.getType(), res.cause()));
             } else {
               insert2(t, id, fut);
@@ -150,7 +150,7 @@ public class TenantManager {
     final String id = td.getId();
     tenants.get(id, gres -> {
       if (gres.failed() && gres.getType() != NOT_FOUND) {
-        logger.warn("TenantManager: UpDesc: getting " + id + " FAILED: ", gres);
+        logger.warn("TenantManager: updateDescriptor: getting {} failed: {}", id, gres);
         fut.handle(new Failure<>(INTERNAL, ""));
       }
       Tenant t;
@@ -164,7 +164,7 @@ public class TenantManager {
       } else {
         tenantStore.updateDescriptor(td, upres -> {
           if (upres.failed()) {
-            logger.warn("TenantManager: Updating database for " + id + " FAILED: ", upres);
+            logger.warn("TenantManager: Updating database for {} failed: ", id, upres);
             fut.handle(new Failure<>(INTERNAL, ""));
           } else {
             tenants.add(id, t, fut); // handles success
@@ -177,7 +177,7 @@ public class TenantManager {
   public void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     tenants.getKeys(lres -> {
       if (lres.failed()) {
-        logger.warn("TenantManager list: Getting keys FAILED: ", lres);
+        logger.warn("TenantManager list: Getting keys failed: {}", lres);
         fut.handle(new Failure<>(INTERNAL, lres.cause()));
       } else {
         CompList<List<TenantDescriptor>> futures = new CompList<>(INTERNAL);
@@ -220,7 +220,7 @@ public class TenantManager {
     } else {
       tenantStore.delete(id, dres -> {
         if (dres.failed() && dres.getType() != NOT_FOUND) {
-          logger.warn("TenantManager: Deleting " + id + " FAILED: ", dres);
+          logger.warn("TenantManager: Deleting {} failed: ", id, dres);
           fut.handle(new Failure<>(INTERNAL, dres.cause()));
         } else {
           tenants.remove(id, fut);
@@ -561,7 +561,7 @@ public class TenantManager {
     tenants.getKeys(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
-          logger.info("starting " + tenantId);
+          logger.info("starting {}", tenantId);
           handleTimer(tenantId);
         }
         consumeTimers();
@@ -586,7 +586,7 @@ public class TenantManager {
 
   private void stopTimer(String tenantId, String moduleId, int seq ,Lock lockP) {
     if (lockP != null) {
-      logger.info("remove timer for module=" + moduleId + " for tenant " + tenantId);
+      logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
       final String key = tenantId + "_" + moduleId + "_" + seq;
       timers.remove(key);
       lockP.release();
@@ -594,7 +594,7 @@ public class TenantManager {
   }
 
   private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
-    logger.info("handleTimer tenant=" + tenantId + " module=" + moduleId + " seq1=" + seq1);
+    logger.info("handleTimer tenant {} module {} seq1 ", tenantId, moduleId, seq1);
     tenants.get(tenantId, tRes -> {
       if (tRes.failed()) {
         // tenant no longer exist
@@ -604,7 +604,7 @@ public class TenantManager {
       Tenant tenant = tRes.result();
       moduleManager.getEnabledModules(tenant, mRes -> {
         if (mRes.failed()) {
-          logger.warn("handleTimer getEnabledModules failed: " + mRes.cause());
+          logger.warn("handleTimer getEnabledModules failed: {}", mRes.cause());
           stopTimer(tenantId, moduleId, seq1, lockP);
           return;
         }
@@ -612,7 +612,7 @@ public class TenantManager {
         try {
           handleTimer(tenant, mdList, moduleId, seq1, lockP);
         } catch (Exception ex) {
-          logger.warn("handleTimer execption " + ex.getMessage());
+          logger.warn("handleTimer execption {}", ex.getMessage());
         }
       });
     });
@@ -634,7 +634,7 @@ public class TenantManager {
       // module no longer enabled for tenant
       stopTimer(tenantId, moduleId, seq1, lockP);
     }
-    logger.info("handleTimer done no=" + noTimers);
+    logger.info("handleTimer done no {}", noTimers);
   }
 
   private int handleTimer(Tenant tenant, ModuleDescriptor md, List<RoutingEntry> routingEntries, int seq1, Lock lockP) {
@@ -662,18 +662,17 @@ public class TenantManager {
   }
 
   private void lockTimer(String tenantId, ModuleDescriptor md, String key, long delay, int seq) {
-    logger.info("wait for lock " + key);
+    logger.info("wait for lock {}", key);
     asyncLock.getLock(key, lockRes -> {
       if (lockRes.succeeded()) {
-        logger.info("wait for lock " + key + " returned");
+        logger.info("wait for lock {} returned", key);
         Lock lock = lockRes.result();
-        logger.info("setTimer delay=" + delay);
+        logger.info("setTimer delay {}", delay);
         vertx.setTimer(delay, res4
           -> vertx.runOnContext(res5
             -> handleTimer(tenantId, md.getId(), seq, lock)));
       } else {
-        logger.info("wait for lock " + key + " returned failure "
-          + lockRes.cause());
+        logger.info("wait for lock {} returned failure ", key, lockRes.cause());
       }
     });
   }
@@ -764,9 +763,9 @@ public class TenantManager {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
-    logger.debug("findTenantInterface: prov: " + Json.encode(prov));
+    logger.debug("findTenantInterface: prov: {}", Json.encode(prov));
     for (InterfaceDescriptor pi : prov) {
-      logger.debug("findTenantInterface: Looking at " + pi.getId());
+      logger.debug("findTenantInterface: Looking at {}", pi.getId());
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
         final String method = purge ? "DELETE" : "POST";
@@ -777,9 +776,9 @@ public class TenantManager {
             } else if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
               return;
             } else if (!purge) {
-              logger.warn("Module '" + md.getId() + "' uses old-fashioned tenant "
+              logger.warn("Module '{}' uses old-fashioned tenant "
                 + "interface. Define InterfaceType=system, and add a RoutingEntry."
-                + " Falling back to calling /_/tenant.");
+                + " Falling back to calling /_/tenant.", md.getId());
               fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST, true).withRetry()));
               return;
             }
@@ -879,10 +878,10 @@ public class TenantManager {
         return;
       }
       ModuleDescriptor md = gres.result();
-      logger.debug("findSystemInterface: looking at " + mid + ": "
-        + " si: " + md.getSystemInterface(interfaceName));
+      logger.debug("findSystemInterface: looking at {} system interface {}",
+        mid, md.getSystemInterface(interfaceName));
       if (md.getSystemInterface(interfaceName) != null) {
-        logger.debug("findSystemInterface: found " + mid);
+        logger.debug("findSystemInterface: found {}", mid);
         fut.handle(new Success<>(md));
         return;
       }
@@ -993,9 +992,9 @@ public class TenantManager {
         HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
         for (ModuleDescriptor md : modResult) {
           modsAvailable.put(md.getId(), md);
-          logger.info("mod available: " + md.getId());
+          logger.info("mod available: {}", md.getId());
           if (t.isEnabled(md.getId())) {
-            logger.info("mod enabled: " + md.getId());
+            logger.info("mod enabled: {}", md.getId());
             modsEnabled.put(md.getId(), md);
           }
         }
@@ -1019,7 +1018,7 @@ public class TenantManager {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setAction(Action.enable);
           tmd.setId(uId);
-          logger.info("upgrade.. enable " + uId);
+          logger.info("upgrade.. enable {}", uId);
           tmd.setFrom(fId);
           tml2.add(tmd);
         }
@@ -1147,7 +1146,7 @@ public class TenantManager {
             installCommit3(tenant, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
-            logger.info("autoUndeploy mdF=" + mdF.getId());
+            logger.info("autoUndeploy mdF {}", mdF.getId());
             proxyService.autoUndeploy(mdF, res -> {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));

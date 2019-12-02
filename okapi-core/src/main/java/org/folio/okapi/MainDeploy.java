@@ -195,13 +195,13 @@ public class MainDeploy {
     vopt.setClusterManager(mgr);
     EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {
-      logger.info("clusterHost=" + clusterHost);
+      logger.info("clusterHost={}", clusterHost);
       eventBusOptions.setHost(clusterHost);
     } else {
       logger.warn("clusterHost not set");
     }
     if (clusterPort != -1) {
-      logger.info("clusterPort=" + clusterPort);
+      logger.info("clusterPort={}", clusterPort);
       eventBusOptions.setPort(clusterPort);
     } else {
       logger.warn("clusterPort not set");

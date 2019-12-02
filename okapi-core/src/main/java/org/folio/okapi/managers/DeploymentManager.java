@@ -128,7 +128,7 @@ public class DeploymentManager {
       id = UUID.randomUUID().toString();
       md1.setInstId(id);
     }
-    logger.info("deploy instId " + id);
+    logger.info("deploy instId {}", id);
     deploy2(fut, tim, usePort, md1, url);
   }
 
@@ -179,7 +179,7 @@ public class DeploymentManager {
           } else {
             tim.close();
             ports.free(usePort);
-            logger.warn("Deploying " + md1.getSrvcId() + " failed");
+            logger.warn("Deploying {} failed", md1.getSrvcId());
             fut.handle(new Failure<>(USER, future.cause()));
           }
         });
@@ -188,7 +188,7 @@ public class DeploymentManager {
   }
 
   public void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    logger.info("undeploy instId " + id);
+    logger.info("undeploy instId {}", id);
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10705", id)));
     } else {
