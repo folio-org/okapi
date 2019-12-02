@@ -202,7 +202,7 @@ public class OkapiClient {
       final Buffer buf = Buffer.buffer();
       respHeaders = reqres.headers();
       reqres.handler(b -> {
-        logger.debug("{} OkapiClient Buffering response {}", reqId, b.toString());
+        logger.debug("{} OkapiClient Buffering response {}", reqId, b);
         buf.appendBuffer(b);
       });
       reqres.endHandler(e -> {

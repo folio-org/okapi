@@ -33,7 +33,7 @@ public class ModuleVersionReporter {
         version = prop.getProperty("version");
         artifact = prop.getProperty("artifactId");
       } else {
-        logger.warn(fp + " not found");
+        logger.warn("{} not found", fp);
       }
       in = getClass().getClassLoader().getResourceAsStream(gitProperties);
       if (in != null) {
@@ -43,7 +43,7 @@ public class ModuleVersionReporter {
         gitCommitId = prop.getProperty("git.commit.id");
         gitRemoteOriginUrl = prop.getProperty("git.remote.origin.url");
       } else {
-        logger.warn(gitProperties + " not found");
+        logger.warn("{} not found", gitProperties);
       }
     } catch (Exception ex) {
       logger.warn(ex);
@@ -67,7 +67,7 @@ public class ModuleVersionReporter {
   }
 
   public void logStart() {
-    logger.info("Module " + getModule() + " " + getVersion() + " started");
-    logger.info("git: " + gitRemoteOriginUrl + " " + getCommitId());
+    logger.info("Module {} {} started", getModule(), getVersion());
+    logger.info("git: {} {}", gitRemoteOriginUrl, getCommitId());
   }
 }
