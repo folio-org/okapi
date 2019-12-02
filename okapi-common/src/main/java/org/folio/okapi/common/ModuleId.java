@@ -7,6 +7,14 @@ public class ModuleId implements Comparable<ModuleId> {
   private SemVer semVer;
   private final String id;
 
+  /**
+   * Construct Module ID from Module ID string or product only (moduleID without
+   * version).
+   * May throw IllegalArgumentException for invalid syntax for semantic version.
+   * @param s Module ID or product name. The module ID does not have restrictions
+   * on characters, but a digit following a dash marks the beginning of a semantic
+   * version .. See {@link org.folio.okapi.common.SemVer}.
+   */
   public ModuleId(String s) {
     id = s;
     for (int i = 0; i < s.length() - 1; i++) {
@@ -20,26 +28,50 @@ public class ModuleId implements Comparable<ModuleId> {
     semVer = null;
   }
 
+  /**
+   * Returns Module ID as string
+   * @return string representation
+   */
   public String getId() {
     return id;
   }
 
+  /**
+   * Returns SemVer class that is part of this ModuleID
+   * @return SemVer instance or null if no semantic version is present
+   */
   public SemVer getSemVer() {
     return semVer;
   }
 
+  /**
+   * Returns whether there's a version associated with this instance
+   * @return true if there's a version; false otherwise
+   */
   public boolean hasSemVer() {
     return semVer != null;
   }
 
+  /**
+   * Whether semantic version is an NPM snapshot
+   * @return true if there's an NPM snapshot version; false otherwise
+   */
   public boolean hasNpmSnapshot() {
     return semVer != null && semVer.hasNpmSnapshot();
   }
 
+  /**
+   * Whether there's pre release with version
+   * @return true if there's a version with pre-release; false otherwise
+   */
   public boolean hasPreRelease() {
     return semVer != null && semVer.hasPreRelease();
   }
 
+  /**
+   * Returns product part of module ID (Eg mod-foo-1.2.3 returns mod-foo).
+   * @return product string
+   */
   public String getProduct() {
     return product;
   }
@@ -68,6 +100,11 @@ public class ModuleId implements Comparable<ModuleId> {
     }
   }
 
+  /**
+   * Whether two products match
+   * @param that other module
+   * @return true if equal; false otherwise
+   */
   @Override
   public boolean equals(Object that) {
     if (this == that) {
@@ -79,6 +116,9 @@ public class ModuleId implements Comparable<ModuleId> {
     return compareTo((ModuleId) that) == 0;
   }
 
+  /**
+   * @return hash-code
+   */
   @Override
   public int hashCode() {
     int c = product.hashCode();
@@ -88,6 +128,10 @@ public class ModuleId implements Comparable<ModuleId> {
     return c;
   }
 
+  /**
+   * String representation of module ID
+   * @return string representation
+   */
   @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
@@ -99,12 +143,24 @@ public class ModuleId implements Comparable<ModuleId> {
     return b.toString();
   }
 
+  /**
+   * static comparsion
+   * @param i1 left
+   * @param i2 right
+   * @return See
+   * {@link org.folio.okapi.common.ModuleId#compareTo(org.folio.okapi.common.ModuleId)
+   */
   public static int compare(String i1, String i2) {
     ModuleId m1 = new ModuleId(i1);
     ModuleId m2 = new ModuleId(i2);
     return m1.compareTo(m2);
   }
 
+  /**
+   * Returns newest module out of a list of modules
+   * @param l list of module IDs
+   * @return newest module (null for empty list)
+   */
   public String getLatest(Collection<String> l) {
     ModuleId bModule = null;
     String bId = null;
@@ -119,6 +175,11 @@ public class ModuleId implements Comparable<ModuleId> {
     return bId != null ? bId : id;
   }
 
+  /**
+   * Whether this module has some prefix
+   * @param other module ID which serves as prefix
+   * @return true if this module has prefix of other; false otherwise
+   */
   public boolean hasPrefix(ModuleId other) {
     if (!this.product.equals(other.product) || this.semVer == null) {
       return false;

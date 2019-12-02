@@ -187,7 +187,15 @@ be precise), and reports all "provided" interfaces.
 * `ModuleDescriptor.json` has a list of all `routes` (HTTP paths and
 methods) that a given module handles, this gives Okapi necessary
 information to proxy traffic to the module (this is similar to a
-simplified RAML specification).
+simplified RAML specification). Modules are identified in the `id`
+property of the module descriptor. It consists of two components:
+product and semantic version and separated by a dash. Think of product
+as implementation. There should only be one implementation enabled for
+a tenant at a time. The version component specifies the version of
+the product and this combined serves as a unique identifier for a
+module. In some cases, Okapi allows only the product to be given,
+because it is obvious what module ID it corresponds to. But in most
+other cases, the module ID must be given in full.
 
 * It follows versioning rules defined in the chapter [_Versioning and
 Dependencies_](#versioning-and-dependencies).
