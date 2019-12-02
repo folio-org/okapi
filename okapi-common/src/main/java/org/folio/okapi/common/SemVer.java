@@ -15,7 +15,7 @@ public class SemVer implements Comparable<SemVer> {
 
   private final List<String> preRelease = new LinkedList<>();
   private final List<String> versions = new LinkedList<>();
-  private String metadata;
+  private final String metadata;
 
   /**
    * Construct semantic version from string
@@ -116,11 +116,11 @@ public class SemVer implements Comparable<SemVer> {
         return false;
       }
     }
-    if (!i1.hasNext() && i2.hasNext()) {
-      return false;
-    }
-    else if (i1.hasNext() && !i2.hasNext()) {
+    if (i1.hasNext()) { // i2.hasNext is null
       return true;
+    }
+    if (i2.hasNext()) { // i1.hasNext is null
+      return false;
     }
     i1 = this.preRelease.iterator();
     i2 = other.preRelease.iterator();
@@ -130,19 +130,21 @@ public class SemVer implements Comparable<SemVer> {
         return false;
       }
     }
-    if (!i1.hasNext() && i2.hasNext()) {
-      return false;
-    }
-    else if (i1.hasNext() && !i2.hasNext()) {
+    if (i1.hasNext()) {
       return true;
     }
-    if (this.metadata != null && other.metadata != null) {
-      int v = this.metadata.compareTo(other.metadata);
-      if (v != 0) {
+    if (i2.hasNext()) {
+      return false;
+    }
+    if (other.metadata != null) {
+      if (this.metadata != null) {
+        int v = this.metadata.compareTo(other.metadata);
+        if (v != 0) {
+          return false;
+        }
+      } else {
         return false;
       }
-    } else if (this.metadata == null && other.metadata != null) {
-      return false;
     }
     return true;
   }
@@ -183,7 +185,7 @@ public class SemVer implements Comparable<SemVer> {
     }
     if (i1.hasNext() && !i2.hasNext()) {
       return -1;
-      }
+    }
     while (i1.hasNext() && i2.hasNext()) {
       int v = compareComp(i1.next(), i2.next());
       if (v > 0) {
@@ -194,19 +196,22 @@ public class SemVer implements Comparable<SemVer> {
     }
     if (i1.hasNext()) {
       return 1;
-    } else if (i2.hasNext()) {
+    }
+    if (i2.hasNext()) {
       return -1;
     }
-    if (this.metadata != null && other.metadata != null) {
-      int v = this.metadata.compareTo(other.metadata);
-      if (v > 0) {
+    if (this.metadata != null) {
+      if (other.metadata != null) {
+        int v = this.metadata.compareTo(other.metadata);
+        if (v > 0) {
+          return 1;
+        } else if (v < 0) {
+          return -1;
+        }
+      } else {
         return 1;
-      } else if (v < 0) {
-        return -1;
       }
-    } else if (this.metadata != null && other.metadata == null) {
-      return 1;
-    } else if (this.metadata == null && other.metadata != null) {
+    } else if (other.metadata != null) {
       return -1;
     }
     return 0;
@@ -254,12 +259,10 @@ public class SemVer implements Comparable<SemVer> {
     StringBuilder b = new StringBuilder();
     String sep = "";
     Iterator<String> it = this.versions.iterator();
-    if (it.hasNext()) {
-      while (it.hasNext()) {
-        b.append(sep);
-        b.append(it.next());
-        sep = ".";
-      }
+    while (it.hasNext()) {
+      b.append(sep);
+      b.append(it.next());
+      sep = ".";
     }
     sep = "-";
     it = this.preRelease.iterator();
