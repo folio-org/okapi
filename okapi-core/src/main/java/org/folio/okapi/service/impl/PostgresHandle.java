@@ -56,7 +56,7 @@ class PostgresHandle {
         Integer x = Integer.parseInt(val);
         pgconf.put("port", x);
       } catch (NumberFormatException e) {
-        logger.warn("Bad postgres_port value: " + val + ": " + e.getMessage());
+        logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage(), e);
       }
     }
     val = Config.getSysConf("postgres_username", Config.getSysConf("postgres_user", "okapi", conf), conf);
@@ -71,7 +71,9 @@ class PostgresHandle {
     if (!val.isEmpty()) {
       pgconf.put("database", val);
     }
-    logger.debug("Connecting to postgres with " + pgconf.encode());
+    if (logger.isDebugEnabled()) {
+      logger.debug("Connecting to postgres with {}", pgconf.encode());
+    }
     cli = PostgreSQLClient.createNonShared(vertx, pgconf);
     logger.debug("created");
   }

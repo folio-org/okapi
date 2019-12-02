@@ -134,7 +134,9 @@ public class DockerModuleHandle implements ModuleHandle {
       logSkip = logSkip - b.length();
     }
     if (logBuffer.length() > 0 && logBuffer.charAt(logBuffer.length() - 1) == '\n') {
-      logger.info("{} {}", id, logBuffer.substring(0, logBuffer.length() - 1));
+      if (logger.isInfoEnabled()) {
+        logger.info("{} {}", id, logBuffer.substring(0, logBuffer.length() - 1));
+      }
       logBuffer.setLength(0);
     }
   }
@@ -182,7 +184,7 @@ public class DockerModuleHandle implements ModuleHandle {
       });
     });
     req.exceptionHandler(d -> {
-      logger.warn(url + ": " + d.getMessage());
+      logger.warn("{}: {}", url, d.getMessage());
       future.handle(Future.failedFuture(url + ": " + d.getMessage()));
     });
     req.end();

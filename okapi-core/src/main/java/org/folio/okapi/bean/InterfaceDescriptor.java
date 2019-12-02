@@ -2,7 +2,6 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.vertx.core.json.Json;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -29,7 +28,6 @@ public class InterfaceDescriptor {
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
   private String[] scope;
-  private final Logger logger = OkapiLogger.get();
 
   public InterfaceDescriptor() {
     this.id = null;

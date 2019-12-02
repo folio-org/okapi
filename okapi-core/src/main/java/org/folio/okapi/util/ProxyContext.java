@@ -198,14 +198,18 @@ public class ProxyContext {
         mods.append(" ").append(mi.getModuleDescriptor().getId());
       }
     }
-    logger.info("{} REQ {} {} {} {} {}", reqId,
-      ctx.request().remoteAddress(), tenant, ctx.request().method(),
-      ctx.request().path(), mods);
+    if (logger.isInfoEnabled()) {
+      logger.info("{} REQ {} {} {} {} {}", reqId,
+        ctx.request().remoteAddress(), tenant, ctx.request().method(),
+        ctx.request().path(), mods);
+    }
   }
 
   public void logResponse(String module, String url, int statusCode) {
-    logger.info("{} RES {} {} {} {}", reqId,
-      statusCode, timeDiff(), module, url);
+    if (logger.isInfoEnabled()) {
+      logger.info("{} RES {} {} {} {}", reqId,
+        statusCode, timeDiff(), module, url);
+    }
   }
 
   public void responseError(ErrorType t, Throwable cause) {
@@ -231,7 +235,7 @@ public class ProxyContext {
   }
 
   public void error(String msg) {
-    logger.error(getReqId() + " " + msg);
+    logger.error("{} {}", getReqId(), msg);
   }
 
   public void warn(String msg) {

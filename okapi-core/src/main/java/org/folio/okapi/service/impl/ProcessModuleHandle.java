@@ -129,7 +129,8 @@ public class ProcessModuleHandle implements ModuleHandle {
       future.complete();
     }, false, result -> {
       if (result.failed()) {
-        logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
+        logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
+          result.cause());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
         start3(startFuture);

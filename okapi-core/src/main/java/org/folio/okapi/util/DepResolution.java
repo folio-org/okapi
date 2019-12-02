@@ -174,7 +174,9 @@ public class DepResolution {
       tm = it.next();
       TenantModuleDescriptor.Action action = tm.getAction();
       String id = tm.getId();
-      logger.info("getNextTM: loop id {} action {}", id, action.name());
+      if (logger.isInfoEnabled()) {
+        logger.info("getNextTM: loop id {} action {}", id, action.name());
+      }
       if (action == TenantModuleDescriptor.Action.enable && !modsEnabled.containsKey(id)) {
         logger.info("getNextMT: return tm for action enable");
         return tm;

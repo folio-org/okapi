@@ -1143,8 +1143,10 @@ public class ProxyService {
     String tenantId, String authToken, ModuleInstance inst, String modPerms,
     String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
-    logger.debug("doCallSystemInterface on {} for {} with token {}",
-      Json.encode(inst), tenantId, authToken);
+    if (logger.isDebugEnabled()) {
+      logger.debug("doCallSystemInterface on {} for {} with token {}",
+        Json.encode(inst), tenantId, authToken);
+    }
 
     discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
       if (gres.failed()) {

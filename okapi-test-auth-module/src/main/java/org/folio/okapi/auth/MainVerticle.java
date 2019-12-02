@@ -37,7 +37,8 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "9020"));
 
-    logger.info("Starting auth " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
+    logger.info("Starting auth {} on port {}",
+      ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.post("/authn/login").handler(BodyHandler.create());
     router.post("/authn/login").handler(auth::login);
