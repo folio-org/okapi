@@ -184,10 +184,6 @@ class Auth {
       logger.debug("test-auth: check starting with tok {} and tenant {}", tok, tenant);
 
       String[] splitTok = tok.split("\\.");
-      if (logger.isDebugEnabled()) {
-        logger.debug("test-auth: check: split the jwt into {}: {}",
-          splitTok.length,  Json.encode(splitTok));
-      }
       if (splitTok.length != 3) {
         logger.warn("test-auth: Bad JWT, can not split in three parts. '{}", tok);
         responseError(ctx, 400, "Auth.check: Bad JWT");
@@ -241,11 +237,6 @@ class Auth {
       .add(XOkapiHeaders.MODULE_TOKENS, modTok)
       .add(XOkapiHeaders.USER_ID, userId);
     responseText(ctx, 202); // Abusing 202 to say filter OK
-    if (logger.isDebugEnabled()) {
-      logger.debug("test-auth: returning 202 and {}", Json.encode(ctx.response()));
-      logger.debug("test-auth: req: {}", Json.encode(ctx.request()));
-      logger.debug("test-auth: resp: {}", Json.encode(ctx.response()));
-    }
     if (ctx.request().method() == HttpMethod.HEAD) {
       ctx.response().headers().remove("Content-Length");
       ctx.response().setChunked(true);

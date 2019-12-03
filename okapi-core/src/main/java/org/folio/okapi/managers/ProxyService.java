@@ -1052,14 +1052,7 @@ public class ProxyService {
     }
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String authToken = headersIn.get(XOkapiHeaders.TOKEN);
-    if (logger.isDebugEnabled()) {
-      logger.debug("callSystemInterface on {} for {} as {} with authToken {}",
-        Json.encode(inst), tenantId, curTenantId, authToken);
-    }
     if (tenantId.equals(curTenantId)) {
-      if (logger.isDebugEnabled()) {
-        logger.debug("callSystemInterface: Same tenant, no need for trickery");
-      }
       doCallSystemInterface(headersIn, tenantId, authToken, inst, null, request, fut);
       return;
     }
@@ -1143,11 +1136,6 @@ public class ProxyService {
     String tenantId, String authToken, ModuleInstance inst, String modPerms,
     String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
 
-    if (logger.isDebugEnabled()) {
-      logger.debug("doCallSystemInterface on {} for {} with token {}",
-        Json.encode(inst), tenantId, authToken);
-    }
-
     discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
       if (gres.failed()) {
         logger.warn("doCallSystemInterface on " + inst.getModuleDescriptor().getId() + " "
@@ -1163,11 +1151,8 @@ public class ProxyService {
         return;
       }
       String baseurl = instance.getUrl();
-      logger.debug("doCallSystemInterface Url: {} and {}", baseurl, inst.getPath());
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
-      logger.debug("doCallSystemInterface: About to create OkapiClient with headers "
-        + Json.encode(headers));
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
@@ -1186,9 +1171,6 @@ public class ProxyService {
         }
         // Pass response headers - needed for unit test, if nothing else
         String body = cres.result();
-        logger.debug("doCallSystemInterface response: {}", body);
-        logger.debug("doCallSystemInterface headers: {}",
-          Json.encode(cli.getRespHeaders().entries()));
         fut.handle(new Success<>(cli));
       });
     });
@@ -1254,15 +1236,10 @@ public class ProxyService {
     if (qry != null && !qry.isEmpty()) {
       // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
       ctx.data().put(REDIRECTQUERY, qry);
-      logger.debug("Hiding parameters into ctx {}", qry);
     }
     ctx.request().headers().add(XOkapiHeaders.TENANT, tid);
     pc.debug("redirectProxy: '" + tid + "' '" + newPath + "'");
     ctx.reroute(newPath);
-    if (logger.isDebugEnabled()) {
-      logger.debug("redirectProxy: After rerouting: {} {}",
-        ctx.request().path(), qry);
-    }
   }
 
   public void autoDeploy(ModuleDescriptor md,
@@ -1282,11 +1259,9 @@ public class ProxyService {
     String phase = mi.getRoutingEntry().getPhase();
     // It was a real handler, remember the response code and headers
     if (mi.isHandler()) {
-      logger.debug("storeResponseInfo: Remembering handler result {}", res.statusCode());
       pc.setHandlerRes(res.statusCode());
       pc.getHandlerHeaders().setAll(res.headers());
     } else if (XOkapiHeaders.FILTER_AUTH.equalsIgnoreCase(phase)) {
-      logger.debug("storeResponseInfo: Remembering auth result {}", res.statusCode());
       pc.setAuthRes(res.statusCode());
       pc.getAuthHeaders().setAll(res.headers());
       pc.setAuthResBody(Buffer.buffer());
