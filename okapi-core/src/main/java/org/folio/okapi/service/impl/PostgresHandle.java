@@ -59,22 +59,10 @@ class PostgresHandle {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage(), e);
       }
     }
-    val = Config.getSysConf("postgres_username", Config.getSysConf("postgres_user", "okapi", conf), conf);
-    if (!val.isEmpty()) {
-      pgconf.put("username", val);
-    }
-    val = Config.getSysConf("postgres_password", "okapi25", conf);
-    if (!val.isEmpty()) {
-      pgconf.put("password", val);
-    }
-    val = Config.getSysConf("postgres_database", "okapi", conf);
-    if (!val.isEmpty()) {
-      pgconf.put("database", val);
-    }
-    if (logger.isDebugEnabled()) {
-      logger.debug("Connecting to postgres with {}", pgconf.encode());
-    }
-    cli = PostgreSQLClient.createNonShared(vertx, pgconf);
+    pgconf.put("username", Config.getSysConf("postgres_username", "okapi", conf));
+    pgconf.put("password", Config.getSysConf("postgres_password", "okapi25", conf));
+    pgconf.put("database", Config.getSysConf("postgres_database", "okapi", conf));
+    cli = createSQLClient(vertx, pgconf);
     logger.debug("created");
   }
 
@@ -87,6 +75,10 @@ class PostgresHandle {
         fut.handle(new Success<>(con));
       }
     });
+  }
+
+  protected AsyncSQLClient createSQLClient(Vertx vertx, JsonObject pgconf) {
+    return PostgreSQLClient.createNonShared(vertx, pgconf);
   }
 
   public PostgresQuery getQuery() {
