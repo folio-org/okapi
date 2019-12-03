@@ -9,8 +9,7 @@ import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
@@ -107,7 +106,7 @@ class PostgresTable<T> {
     jsa.add(doc.encode());
     q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         q.close();
         fut.handle(new Success<>());
@@ -122,13 +121,13 @@ class PostgresTable<T> {
     jsa.add(id);
     q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         UpdateResult result = res.result();
         if (result.getUpdated() > 0) {
           fut.handle(new Success<>());
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, id));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
         }
         q.close();
       }
@@ -140,7 +139,7 @@ class PostgresTable<T> {
     String sql = "SELECT " + jsonColumn + " FROM " + table;
     q.query(sql, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
         List<T> ml = new ArrayList<>();

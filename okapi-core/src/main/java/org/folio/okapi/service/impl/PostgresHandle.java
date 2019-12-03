@@ -7,7 +7,7 @@ import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -69,7 +69,7 @@ class PostgresHandle {
   public void getConnection(Handler<ExtendedAsyncResult<SQLConnection>> fut) {
     cli.getConnection(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         SQLConnection con = res.result();
         fut.handle(new Success<>(con));

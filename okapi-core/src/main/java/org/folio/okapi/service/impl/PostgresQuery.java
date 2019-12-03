@@ -6,7 +6,7 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.sql.UpdateResult;
 import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
@@ -52,7 +52,7 @@ public class PostgresQuery {
             logger.fatal("queryWithParams sql {} failed: {}",
               sql, qres.cause());
             close();
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+            fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }
@@ -74,7 +74,7 @@ public class PostgresQuery {
             logger.fatal("updateWithParams sql {} failed: {}",
               sql, qres.cause());
             close();
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+            fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }
@@ -96,7 +96,7 @@ public class PostgresQuery {
             logger.fatal("query sql {} failed: {}",
               sql, qres.cause());
             close();
-            fut.handle(new Failure<>(INTERNAL, qres.cause()));
+            fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
           } else {
             fut.handle(new Success<>(qres.result()));
           }

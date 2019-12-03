@@ -10,7 +10,7 @@ import java.util.SortedMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -63,7 +63,7 @@ public class TenantStoreMongo implements TenantStore {
       -> {
       if (res.failed()) {
         logger.warn("updateDescriptor: find failed: {}", res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         List<JsonObject> l = res.result();
         if (l.isEmpty()) {
@@ -80,7 +80,7 @@ public class TenantStoreMongo implements TenantStore {
             } else {
               logger.warn("Failed to update descriptor for " + id
                       + ": " + ures.cause().getMessage());
-              fut.handle(new Failure<>(INTERNAL, ures.cause()));
+              fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
             }
           });
         }
@@ -104,12 +104,12 @@ public class TenantStoreMongo implements TenantStore {
     cli.find(COLLECTION, jq, gres -> {
       if (gres.failed()) {
         logger.debug("updateModules: {} find failed: {}", id, gres.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, gres.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, gres.cause()));
       } else {
         List<JsonObject> l = gres.result();
         if (l.isEmpty()) {
           logger.debug("updatesModules: {} not found", id);
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
         } else {
           JsonObject d = l.get(0);
           final Tenant t = decodeTenant(d);
@@ -118,7 +118,7 @@ public class TenantStoreMongo implements TenantStore {
           cli.save(COLLECTION, document, sres -> {
             if (sres.failed()) {
               logger.debug("updateModules: {} saving failed: {}", id, sres.cause().getMessage());
-              fut.handle(new Failure<>(INTERNAL, sres.cause()));
+              fut.handle(new Failure<>(ErrorType.INTERNAL, sres.cause()));
             } else {
               fut.handle(new Success<>());
             }

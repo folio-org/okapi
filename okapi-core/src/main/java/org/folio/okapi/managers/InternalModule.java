@@ -25,7 +25,7 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.bean.TenantModuleDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -539,7 +539,8 @@ public class InternalModule {
       try {
         uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
       } catch (UnsupportedEncodingException ex) {
-        fut.handle(new Failure<>(INTERNAL, messages.getMessage("11600", id, ex.getMessage())));
+        fut.handle(new Failure<>(ErrorType.INTERNAL,
+          messages.getMessage("11600", id, ex.getMessage())));
       }
     }
     pc.getCtx().response().putHeader("Location", uriEncoded.toString());
@@ -563,7 +564,7 @@ public class InternalModule {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9_-]+$")) {
-        fut.handle(new Failure<>(USER, messages.getMessage("11601", id)));
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11601", id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -575,7 +576,7 @@ public class InternalModule {
         location(pc, id, null, Json.encodePrettily(t.getDescriptor()), fut);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -584,7 +585,7 @@ public class InternalModule {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(USER, messages.getMessage("11602", td.getId(), id)));
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11602", td.getId(), id)));
         return;
       }
       Tenant t = new Tenant(td);
@@ -597,7 +598,7 @@ public class InternalModule {
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -628,7 +629,7 @@ public class InternalModule {
 
   private void deleteTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(USER, messages.getMessage("11603", id)));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11603", id)));
       // Change of behavior, used to return 403
       return;
     }
@@ -656,7 +657,7 @@ public class InternalModule {
       });
 
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -691,7 +692,7 @@ public class InternalModule {
         }
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -728,7 +729,7 @@ public class InternalModule {
         location(pc, td.getId(), newuri, Json.encodePrettily(td), fut);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -754,7 +755,7 @@ public class InternalModule {
         }
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -769,7 +770,7 @@ public class InternalModule {
       Tenant t = res.result();
       Set<String> ml = t.listModules();  // Convert the list of module names
       if (!ml.contains(mod)) {
-        fut.handle(new Failure<>(NOT_FOUND, mod));
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, mod));
         return;
       }
       TenantModuleDescriptor tmd = new TenantModuleDescriptor();
@@ -825,7 +826,7 @@ public class InternalModule {
 
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
-        fut.handle(new Failure<>(USER, validerr));
+        fut.handle(new Failure<>(ErrorType.USER, validerr));
         return;
       }
       moduleManager.create(md, check, preRelease, npmSnapshot, cres -> {
@@ -837,7 +838,7 @@ public class InternalModule {
       });
     } catch (DecodeException ex) {
       pc.debug("Failed to decode md: " + pc.getCtx().getBodyAsString());
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -878,7 +879,7 @@ public class InternalModule {
           fut.handle(new Success<>(s));
         }
       } catch (DecodeException ex) {
-        fut.handle(new Failure<>(USER, ex));
+        fut.handle(new Failure<>(ErrorType.USER, ex));
       }
     });
   }
@@ -888,12 +889,12 @@ public class InternalModule {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       if (!id.equals(md.getId())) {
-        fut.handle(new Failure<>(USER, messages.getMessage("11606", md.getId(), id)));
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11606", md.getId(), id)));
         return;
       }
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
-        fut.handle(new Failure<>(USER, validerr));
+        fut.handle(new Failure<>(ErrorType.USER, validerr));
         return;
       }
       moduleManager.update(md, res -> {
@@ -905,7 +906,7 @@ public class InternalModule {
         fut.handle(new Success<>(s));
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -960,7 +961,7 @@ public class InternalModule {
         location(pc, res.result().getInstId(), null, s, fut);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -1070,7 +1071,7 @@ public class InternalModule {
         location(pc, ids, baseuri, s, fut);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -1185,7 +1186,7 @@ public class InternalModule {
         location(pc, pmd.getName(), null, js, fut);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -1213,7 +1214,7 @@ public class InternalModule {
         fut.handle(new Success<>(Json.encodePrettily(res.result())));
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(USER, ex));
+      fut.handle(new Failure<>(ErrorType.USER, ex));
     }
   }
 
@@ -1496,7 +1497,7 @@ public class InternalModule {
       getVersion(pc, fut);
       return;
     }
-    fut.handle(new Failure<>(INTERNAL, messages.getMessage("11607", p)));
+    fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("11607", p)));
   }
 
 }

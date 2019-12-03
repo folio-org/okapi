@@ -12,7 +12,7 @@ import java.util.SortedMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -84,7 +84,7 @@ public class TenantStorePostgres implements TenantStore {
       jsa.add(id);
       q.queryWithParams(sql, jsa, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           updateModuleR(q, id, enabled, it, fut);
         }
@@ -109,11 +109,11 @@ public class TenantStorePostgres implements TenantStore {
     q.queryWithParams(sql, jsa, res -> {
       if (res.failed()) {
         logger.fatal("updateModule {} failed: {}", id, res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
         if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
           q.close();
         } else {
           updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);

@@ -35,10 +35,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import org.folio.okapi.util.DropwizardHelper;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
-import static org.folio.okapi.common.ErrorType.USER;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiClient;
@@ -48,6 +45,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.util.DropwizardHelper;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -364,7 +362,7 @@ public class ProxyService {
         } else {
           DeploymentDescriptor instance = pickInstance(res.result());
           if (instance == null) {
-            fut.handle(new Failure<>(NOT_FOUND,
+            fut.handle(new Failure<>(ErrorType.NOT_FOUND,
               "No running module instance found for "
               + mi.getModuleDescriptor().getId()));
             return;
@@ -1146,7 +1144,7 @@ public class ProxyService {
       }
       DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(USER, messages.getMessage("11100",
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11100",
           inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
@@ -1166,11 +1164,10 @@ public class ProxyService {
           String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
-          fut.handle(new Failure<>(INTERNAL, msg));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, msg));
           return;
         }
         // Pass response headers - needed for unit test, if nothing else
-        String body = cres.result();
         fut.handle(new Success<>(cli));
       });
     });

@@ -333,20 +333,11 @@ public class PostgresQueryTest {
     FakeHandle h = new FakeHandle(vertx, obj);
 
     PostgresQuery q = new PostgresQuery(h);
+    q.close(); // try without an existing connection
     q.query("select", res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("fake query failed", res.cause().getMessage());
     });
   }
-
-  @Test
-  public void testClose(TestContext context) {
-    JsonObject obj = new JsonObject();
-    obj.put("postgres_port", "5432");
-    FakeHandle h = new FakeHandle(vertx, obj);
-    PostgresQuery q = new PostgresQuery(h);
-    q.close();
-  }
-
 }
