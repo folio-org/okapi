@@ -56,8 +56,17 @@ public class SemVer implements Comparable<SemVer> {
     }
   }
 
+  private boolean allDigits(String s) {
+    for (int i = 0; i < s.length(); i++) {
+      if (!Character.isDigit(s.charAt(i))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   private int compareComp(String c1, String c2) {
-    if (Character.isDigit(c1.charAt(0)) && Character.isDigit(c2.charAt(0))) {
+    if (allDigits(c1) && allDigits(c2)) {
       return Integer.parseInt(c1) - Integer.parseInt(c2);
     } else {
       return c1.compareTo(c2);
@@ -69,7 +78,7 @@ public class SemVer implements Comparable<SemVer> {
     if (!digits) {
       while (i < v.length()) {
         char ch = v.charAt(i);
-        if (ch == '-' || ch == '+' || ch == '.') {
+        if (ch == '+' || ch == '.') {
           break;
         }
         i++;

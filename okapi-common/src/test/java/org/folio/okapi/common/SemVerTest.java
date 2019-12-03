@@ -5,14 +5,30 @@ import static org.junit.Assert.*;
 
 public class SemVerTest {
 
+  private SemVer createVersion(String id, boolean isPrelease, boolean isNpmsnapshot) {
+    SemVer v = new SemVer(id);
+    assertEquals(id, v.toString());
+    assertEquals(isPrelease, v.hasPreRelease());
+    assertEquals(isNpmsnapshot, v.hasNpmSnapshot());
+    return v;
+  }
+
+  private void invalidVersion(String id, String exp) {
+    SemVer v = null;
+    try {
+      v = new SemVer(id);
+    } catch (IllegalArgumentException ex) {
+      if (exp != null) {
+        assertEquals(exp, ex.getMessage());
+      }
+    }
+    assertTrue(v == null);
+  }
+
   @Test
   public void test() {
-    SemVer v1 = new SemVer("1");
-
-    assertEquals("1", v1.toString());
-
-    SemVer v2 = new SemVer("2");
-    assertEquals("2", v2.toString());
+    SemVer v1 = createVersion("1", false, false);
+    SemVer v2 = createVersion("2", false, false);
 
     assertEquals(-4, v1.compareTo(v2));
     assertEquals(4, v2.compareTo(v1));
@@ -22,11 +38,8 @@ public class SemVerTest {
     assertFalse(v1.hasPrefix(v2));
     assertFalse(v2.hasPrefix(v1));
 
-    SemVer v1_0 = new SemVer("1.0");
-    assertEquals("1.0", v1_0.toString());
-
-    SemVer v1_2 = new SemVer("1.2");
-    assertEquals("1.2", v1_2.toString());
+    SemVer v1_0 = createVersion("1.0", false, false);
+    SemVer v1_2 = createVersion("1.2", false, false);
     assertTrue(v1_2.hasPrefix(v1));
     assertFalse(v1_2.hasPrefix(v2));
 
@@ -34,38 +47,27 @@ public class SemVerTest {
     assertEquals(-3, v1.compareTo(v1_2));
     assertEquals(4, v2.compareTo(v1_2));
 
-    SemVer v1_5 = new SemVer("1.5.0");
-    assertEquals("1.5.0", v1_5.toString());
-    assertFalse(v1_5.hasPreRelease());
-    assertFalse(v1_5.hasNpmSnapshot());
-    SemVer v1_10 = new SemVer("1.10.0");
-    assertEquals("1.10.0", v1_10.toString());
-    assertEquals(3, v1_10.compareTo(v1_5));
-    assertEquals(-3, v1_5.compareTo(v1_10));
-    assertFalse(v1_5.hasPrefix(v1_10));
-    assertFalse(v1_10.hasPrefix(v1_5));
+    SemVer v1_10_0 = createVersion("1.10.0", false, false);
+    SemVer v1_10_1 = createVersion("1.10.1", false, false);
+    assertEquals(2, v1_10_1.compareTo(v1_10_0));
+    assertEquals(-2, v1_10_0.compareTo(v1_10_1));
+    assertEquals(3, v1_10_1.compareTo(v1_0));
+    assertEquals(-3, v1_0.compareTo(v1_10_0));
 
-    SemVer p1 = new SemVer("1.0.0-alpha");
-    assertTrue(p1.hasPreRelease());
-    assertFalse(p1.hasNpmSnapshot());
-    assertEquals("1.0.0-alpha", p1.toString());
-    SemVer p2 = new SemVer("1.0.0-alpha.1");
-    assertEquals("1.0.0-alpha.1", p2.toString());
-    SemVer p3 = new SemVer("1.0.0-alpha.beta");
-    assertEquals("1.0.0-alpha.beta", p3.toString());
-    SemVer p4 = new SemVer("1.0.0-beta");
-    assertEquals("1.0.0-beta", p4.toString());
-    SemVer p5 = new SemVer("1.0.0-beta.2");
-    assertEquals("1.0.0-beta.2", p5.toString());
-    SemVer p6 = new SemVer("1.0.0-beta.11");
-    assertEquals("1.0.0-beta.11", p6.toString());
-    SemVer p7 = new SemVer("1.0.0-rc.1");
-    assertEquals("1.0.0-rc.1", p7.toString());
-    SemVer p8 = new SemVer("1.0.0");
-    assertEquals("1.0.0", p8.toString());
+    assertFalse(v1_10_0.hasPrefix(v1_10_1));
+    assertFalse(v1_10_1.hasPrefix(v1_10_0));
+
+    SemVer p1 = createVersion("1.0.0-alpha", true, false);
+    SemVer p2 = createVersion("1.0.0-alpha.1", true, false);
+    SemVer p3 = createVersion("1.0.0-alpha.beta", true, false);
+    SemVer p4 = createVersion("1.0.0-beta", true, false);
+    SemVer p5 = createVersion("1.0.0-beta.2", true, false);
+    SemVer p6 = createVersion("1.0.0-beta.11", true, false);
+    SemVer p7 = createVersion("1.0.0-rc.1", true, false);
+    SemVer p8 = createVersion("1.0.0", false, false);
     assertFalse(p1.equals(p2));
     assertTrue(p1.equals(p1));
-    SemVer p1Copy = new SemVer("1.0.0-alpha");
+    SemVer p1Copy = createVersion("1.0.0-alpha", true, false);
     assertTrue(p1.equals(p1Copy));
     assertFalse(p1.equals(this));
 
@@ -98,19 +100,14 @@ public class SemVerTest {
     assertEquals(1, p7.compareTo(p6));
     assertEquals(1, p8.compareTo(p7));
 
-    SemVer snap1 = new SemVer("1.0.0-rc.1+snapshot-2017.1");
-    assertEquals("1.0.0-rc.1+snapshot-2017.1", snap1.toString());
-
-    SemVer snap2 = new SemVer("1.0.0-rc.1+snapshot-2017.2");
-    assertEquals("1.0.0-rc.1+snapshot-2017.2", snap2.toString());
-
-    assertFalse(snap1.hasPrefix(snap2));
-
-    SemVer snap3 = new SemVer("1.0.0+snapshot-2017.2");
-    assertEquals("1.0.0+snapshot-2017.2", snap3.toString());
-
+    SemVer snap1 = createVersion("1.0.0-rc.1+snapshot-2017.1", true, false);
+    SemVer snap2 = createVersion("1.0.0-rc.1+snapshot-2017.2", true, false);
     assertTrue(snap1.hasPrefix(snap1));
-    SemVer snap4 = new SemVer("1.0.0-rc.1");
+    assertFalse(snap1.hasPrefix(snap2));
+    assertFalse(snap2.hasPrefix(snap1));
+
+    SemVer snap3 = createVersion("1.0.0+snapshot-2017.2", false, false);
+    SemVer snap4 = createVersion("1.0.0-rc.1", true, false);;
     assertTrue(snap1.hasPrefix(snap4));
     assertFalse(snap4.hasPrefix(snap1));
     assertEquals(1, snap1.compareTo(snap4));
@@ -120,102 +117,33 @@ public class SemVerTest {
     assertEquals(1, snap2.compareTo(snap1));
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
+    
+    SemVer npmSnapshot = createVersion("1.7.10001", false, true);
+  }
+  
+  @Test
+  public void testMixedPrerelease() {
+    SemVer v2a3a = createVersion("1.0.0-2a-3a", true, false);
+    SemVer v2a3 = createVersion("1.0.0-2a-3", true, false);
+    SemVer v1234 = createVersion("1.0.0-1234", true, false);
+    SemVer v911 = createVersion("1.0.0-911", true, false);
+    assertEquals(1, v2a3a.compareTo(v2a3));
+    assertEquals(1, v2a3.compareTo(v1234));
+    assertEquals(1, v1234.compareTo(v911));
+    assertEquals(1, v911.compareTo(v2a3a));
+  }
 
-    SemVer npmSnapshot = new SemVer("1.7.10001");
-    assertFalse(npmSnapshot.hasPreRelease());
-    assertTrue(npmSnapshot.hasNpmSnapshot());
-
-    boolean thrown;
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing major version: ", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("x");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing major version: x", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("x.y");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing major version: x.y", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1.y");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1.");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1-");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing pre-release version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1-2.");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing pre-release version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1-2.3.");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing pre-release version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1-123snapshot.");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("missing pre-release version component", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
-    thrown = false;
-    try {
-      SemVer tmp = new SemVer("1x+");
-    } catch (IllegalArgumentException ex) {
-      assertEquals("invalid semver: 1x+", ex.getMessage());
-      thrown = true;
-    }
-    assertTrue(thrown);
-
+  @Test
+  public void testInvalid() {
+    invalidVersion("", "missing major version: ");
+    invalidVersion("x", "missing major version: x");
+    invalidVersion("x.y", "missing major version: x.y");
+    invalidVersion("1.y", "missing version component");
+    invalidVersion("1.", "missing version component");
+    invalidVersion("1-", "missing pre-release version component");
+    invalidVersion("1-2.", "missing pre-release version component");
+    invalidVersion("1-2.3.", "missing pre-release version component");
+    invalidVersion("1-123snapshot.", "missing pre-release version component");
+    invalidVersion("1x+", "invalid semver: 1x+");
   }
 }
