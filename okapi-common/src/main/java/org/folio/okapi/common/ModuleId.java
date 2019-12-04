@@ -116,9 +116,6 @@ public class ModuleId implements Comparable<ModuleId> {
     return compareTo((ModuleId) that) == 0;
   }
 
-  /**
-   * @return hash-code
-   */
   @Override
   public int hashCode() {
     int c = product.hashCode();
@@ -128,10 +125,6 @@ public class ModuleId implements Comparable<ModuleId> {
     return c;
   }
 
-  /**
-   * String representation of module ID
-   * @return string representation
-   */
   @Override
   public String toString() {
     StringBuilder b = new StringBuilder();
@@ -157,9 +150,9 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns newest module out of a list of modules
+   * Returns newest module out of a list of modules including this
    * @param l list of module IDs
-   * @return newest module (null for empty list)
+   * @return newest module (possibly this module)
    */
   public String getLatest(Collection<String> l) {
     ModuleId bModule = null;

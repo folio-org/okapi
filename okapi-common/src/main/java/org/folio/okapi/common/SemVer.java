@@ -65,11 +65,31 @@ public class SemVer implements Comparable<SemVer> {
     return true;
   }
 
+  /**
+   * Compare two version components
+   * If both operands are numeric, compare numerically
+   * If both operands are non-numeric, compare lexicographically
+   * If mixed, non-numeric operand compares over numeric operand
+   * No comparison for mixed operands - in order offer transitive sorting
+   * In reality not a problem because systems most likely will use a common
+   * scheme for each component for some versioning system
+   * @param c1 left operand
+   * @param c2 right operand
+   * @return <0 if c1 < c2, 0 if c1 == c2, >0 if c1 > c2
+   */
   private int compareComp(String c1, String c2) {
-    if (allDigits(c1) && allDigits(c2)) {
-      return Integer.parseInt(c1) - Integer.parseInt(c2);
+    if (allDigits(c1)) {
+      if (allDigits(c2)) {
+        return Integer.parseInt(c1) - Integer.parseInt(c2);
+      } else {
+        return -1;
+      }
     } else {
-      return c1.compareTo(c2);
+      if (allDigits(c2)) {
+        return 1;
+      } else {
+        return c1.compareTo(c2);
+      }
     }
   }
 
@@ -242,9 +262,6 @@ public class SemVer implements Comparable<SemVer> {
     return compareTo((SemVer) that) == 0;
   }
 
-  /**
-   * @return has-code for this version
-   */
   @Override
   public int hashCode() {
     int c = 3;
@@ -259,10 +276,6 @@ public class SemVer implements Comparable<SemVer> {
     return c;
   }
 
-  /**
-   * Return string representation for version
-   * @return version string
-   */
   @Override
   public String toString() {
     StringBuilder b = new StringBuilder();

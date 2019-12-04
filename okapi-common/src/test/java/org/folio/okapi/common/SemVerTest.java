@@ -130,7 +130,7 @@ public class SemVerTest {
     assertEquals(1, v2a3a.compareTo(v2a3));
     assertEquals(1, v2a3.compareTo(v1234));
     assertEquals(1, v1234.compareTo(v911));
-    assertEquals(1, v911.compareTo(v2a3a));
+    assertEquals(-1, v911.compareTo(v2a3a));
   }
 
   @Test
