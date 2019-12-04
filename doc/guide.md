@@ -190,7 +190,7 @@ information to proxy traffic to the module (this is similar to a
 simplified RAML specification). Modules are identified in the `id`
 property of the module descriptor. It consists of two components:
 product and [semantic version](https://semver.org/) and separated by a
-dash. Think of product as implementation. There should only be one
+hyphen. Think of product as implementation. There should only be one
 implementation enabled for a tenant at a time. The version component
 specifies the version of the product and this combined serves as a
 unique identifier for a module. In some cases, Okapi allows only the

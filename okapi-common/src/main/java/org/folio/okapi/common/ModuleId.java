@@ -12,8 +12,8 @@ public class ModuleId implements Comparable<ModuleId> {
    * version).
    * May throw IllegalArgumentException for invalid syntax for semantic version.
    * @param s Module ID or product name. The module ID does not have restrictions
-   * on characters, but a digit following a dash marks the beginning of a semantic
-   * version .. See {@link org.folio.okapi.common.SemVer}.
+   * on characters, but a digit following a hypyen-minus marks the beginning of
+   * a semantic version .. See {@link org.folio.okapi.common.SemVer}.
    */
   public ModuleId(String s) {
     id = s;
