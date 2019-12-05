@@ -17,7 +17,7 @@ public class PostgresQuery {
 
   private SQLConnection conn;
   private static Logger logger = OkapiLogger.get();
-  private PostgresHandle pg;
+  private final PostgresHandle pg;
 
   public PostgresQuery(PostgresHandle pg) {
     this.pg = pg;
@@ -30,7 +30,8 @@ public class PostgresQuery {
     } else {
       pg.getConnection(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          logger.fatal("getCon failed {}", res.cause());
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           conn = res.result();
           fut.handle(new Success<>());

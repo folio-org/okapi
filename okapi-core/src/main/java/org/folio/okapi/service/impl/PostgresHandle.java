@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -7,12 +8,8 @@ import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
 import io.vertx.ext.sql.SQLConnection;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 /*
  * PostgreSQL interface for Okapi.
@@ -66,15 +63,8 @@ class PostgresHandle {
     logger.debug("created");
   }
 
-  public void getConnection(Handler<ExtendedAsyncResult<SQLConnection>> fut) {
-    cli.getConnection(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        SQLConnection con = res.result();
-        fut.handle(new Success<>(con));
-      }
-    });
+  public void getConnection(Handler<AsyncResult<SQLConnection>> fut) {
+    cli.getConnection(fut);
   }
 
   protected AsyncSQLClient createSQLClient(Vertx vertx, JsonObject pgconf) {

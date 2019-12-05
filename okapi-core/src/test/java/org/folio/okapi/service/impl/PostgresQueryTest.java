@@ -283,7 +283,6 @@ public class PostgresQueryTest {
     FakeHandle h = new FakeHandle(vertx, obj);
     h.getConnection(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("fake getConnection failed", res.cause().getMessage());
     });
   }
