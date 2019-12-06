@@ -763,9 +763,6 @@ public class TenantManager {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
-    if (logger.isDebugEnabled()) {
-      logger.debug("findTenantInterface: prov: {}", Json.encode(prov));
-    }
     for (InterfaceDescriptor pi : prov) {
       logger.debug("findTenantInterface: Looking at {}", pi.getId());
       if ("_tenant".equals(pi.getId())) {

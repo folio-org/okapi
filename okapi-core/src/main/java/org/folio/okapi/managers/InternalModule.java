@@ -826,6 +826,7 @@ public class InternalModule {
 
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
+        logger.info("createModule validate failed: {}", validerr);
         fut.handle(new Failure<>(ErrorType.USER, validerr));
         return;
       }

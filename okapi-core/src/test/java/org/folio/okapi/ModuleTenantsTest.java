@@ -414,6 +414,18 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationTenantModule = r.getHeader("Location");
 
+
+    final String docBadTenantVersion = docSampleModule_1_2_0.replaceAll("\\\"1\\.2\\\"", "\"1.3\"");
+    logger.info("docBadVersion : " + docBadTenantVersion);
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(401)
+      .body(contains(" is '1.3'. should be '1.0/1.1/1.2'"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
     // run new module (1st handler)
     c = api.createRestAssured3();
     c.given().header("X-Okapi-Tenant", okapiTenant)
