@@ -1644,7 +1644,18 @@ public class ModuleTest {
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
       .body(doc1a).post("/_/discovery/modules")
-      .then().statusCode(400);
+      .then().statusCode(400).body(containsString("missing nodeId"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // missing instId
+    final String docNoInstId = "{" + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(docNoInstId).post("/_/discovery/modules")
+      .then().statusCode(400).body(containsString("Needs instId"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 

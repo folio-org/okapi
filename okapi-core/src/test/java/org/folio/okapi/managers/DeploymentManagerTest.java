@@ -26,10 +26,19 @@ public class DeploymentManagerTest {
   private Vertx vertx;
   private DeploymentManager dm;
 
-  public void setUp(TestContext context, Ports ports, EnvStore envStore) {
-    Async async = context.async();
+  @Before
+  public void setUp(TestContext context) {
     vertx = Vertx.vertx();
-    EnvManager em = new EnvManager(new EnvStoreNull());
+  }
+
+  @After
+  public void tearDown(TestContext context) {
+    vertx.close(context.asyncAssertSuccess());
+  }
+
+  private void createDeploymentManager(TestContext context, Ports ports, EnvStore envStore) {
+    Async async = context.async();
+    EnvManager em = new EnvManager(envStore);
     DeploymentStore ds = new DeploymentStoreNull();
     em.init(vertx, res1 -> {
       DiscoveryManager dis = new DiscoveryManager(ds);
@@ -41,18 +50,13 @@ public class DeploymentManagerTest {
     async.await();
   }
 
-  public void setUp(TestContext context) {
-    setUp(context, new Ports(9231, 9239), new EnvStoreNull());
-  }
-
-  @After
-  public void tearDown(TestContext context) {
-    vertx.close(context.asyncAssertSuccess());
+  private void createDeploymentManager(TestContext context) {
+    DeploymentManagerTest.this.createDeploymentManager(context, new Ports(9231, 9239), new EnvStoreNull());
   }
 
   @Test
   public void testDeployProcess(TestContext context) {
-    setUp(context);
+    createDeploymentManager(context);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
@@ -76,7 +80,7 @@ public class DeploymentManagerTest {
 
   @Test
   public void testProcessNotFound(TestContext context) {
-    setUp(context);
+    createDeploymentManager(context);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
@@ -94,7 +98,7 @@ public class DeploymentManagerTest {
   @Test
   public void testNoPortsAvailable(TestContext context) {
     Ports ports = new Ports(9231, 9231); // no ports
-    setUp(context, ports, new EnvStoreNull());
+    DeploymentManagerTest.this.createDeploymentManager(context, ports, new EnvStoreNull());
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
@@ -111,7 +115,7 @@ public class DeploymentManagerTest {
 
   @Test
   public void testUndeployNotFound(TestContext context) {
-    setUp(context);
+    createDeploymentManager(context);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     dm.undeploy("1234", res -> {

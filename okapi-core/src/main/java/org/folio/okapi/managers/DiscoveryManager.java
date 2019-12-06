@@ -356,6 +356,7 @@ public class DiscoveryManager implements NodeListener {
         found = true;
       }
     }
+    logger.debug("isAlive nodeId={} {}", id, found);
     return found;
   }
 
