@@ -420,7 +420,7 @@ public class ModuleTenantsTest {
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(401)
+      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(400)
       .body(contains(" is '1.3'. should be '1.0/1.1/1.2'"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
