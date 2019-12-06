@@ -154,9 +154,8 @@ public class DiscoveryManager implements NodeListener {
   private void addAndDeploy0(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    if (logger.isInfoEnabled()) {
-      logger.info("addAndDeploy: {}", Json.encodePrettily(dd));
-    }
+    String tmp = Json.encodePrettily(dd);
+    logger.info("addAndDeploy: {}", tmp);
     final String modId = dd.getSrvcId();
     if (modId == null) {
       fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10800")));
@@ -198,14 +197,8 @@ public class DiscoveryManager implements NodeListener {
       }
     } else {
       if (launchDesc == null) {
-        if (logger.isDebugEnabled()) {
-          logger.debug("addAndDeploy: case 2 for {}", dd.getSrvcId());
-        }
         addAndDeploy2(dd, md, fut, nodeId);
       } else { // Have a launchdesc already in dd
-        if (logger.isDebugEnabled()) {
-          logger.debug("addAndDeploy: case 1: We have a ld: {}", Json.encode(dd));
-        }
         callDeploy(nodeId, dd, fut);
       }
     }
@@ -230,9 +223,6 @@ public class DiscoveryManager implements NodeListener {
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    if (logger.isInfoEnabled()) {
-      logger.debug("callDeploy starting for {}", Json.encode(dd));
-    }
     getNode(nodeId, noderes -> {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
@@ -627,9 +617,6 @@ public class DiscoveryManager implements NodeListener {
   public void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
-    }
-    if (logger.isDebugEnabled()) {
-      logger.debug("Discovery. addNode: {}", Json.encode(nd));
     }
     nodes.put(nd.getNodeId(), nd, fut);
   }

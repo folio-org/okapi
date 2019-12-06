@@ -419,6 +419,8 @@ public class ModuleManager {
       modules.get(id, res -> {
         if (res.succeeded()) {
           mdl.add(res.result());
+        } else {
+          logger.warn("getEnabledModules id={} failed {}", id, res.cause());
         }
         promise.handle(res);
       });

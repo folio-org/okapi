@@ -177,7 +177,6 @@ public class TenantManager {
   public void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     tenants.getKeys(lres -> {
       if (lres.failed()) {
-        logger.warn("TenantManager list: Getting keys failed: {}", lres);
         fut.handle(new Failure<>(ErrorType.INTERNAL, lres.cause()));
       } else {
         CompList<List<TenantDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
@@ -604,7 +603,6 @@ public class TenantManager {
       Tenant tenant = tRes.result();
       moduleManager.getEnabledModules(tenant, mRes -> {
         if (mRes.failed()) {
-          logger.warn("handleTimer getEnabledModules failed: {}", mRes.cause());
           stopTimer(tenantId, moduleId, seq1, lockP);
           return;
         }
@@ -612,7 +610,7 @@ public class TenantManager {
         try {
           handleTimer(tenant, mdList, moduleId, seq1, lockP);
         } catch (Exception ex) {
-          logger.warn("handleTimer execption {}", ex.getMessage());
+          logger.warn("handleTimer exception {}", ex.getMessage(), ex);
         }
       });
     });

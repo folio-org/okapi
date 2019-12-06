@@ -1060,7 +1060,6 @@ public class ProxyService {
 
     moduleManager.getEnabledModules(tenant, mres -> {
       if (mres.failed()) { // Should not happen
-        logger.warn("callSystemInterface: getEnabledModules failed: ", mres.cause());
         fut.handle(new Failure<>(mres.getType(), mres.cause()));
         return;
       }
