@@ -174,7 +174,6 @@ public class ModuleManager {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
           ModuleDescriptor exMd = tempList.get(id);
-
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
