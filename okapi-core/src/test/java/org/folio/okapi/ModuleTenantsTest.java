@@ -414,14 +414,44 @@ public class ModuleTenantsTest {
       c.getLastReport().isEmpty());
     locationTenantModule = r.getHeader("Location");
 
+    final String docBadTenantVersion = "{" + LS
+      + "  \"id\" : \"mod-bad-tenant-version-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.3.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
 
-    final String docBadTenantVersion = docSampleModule_1_2_0.replaceAll("\\\"1\\.2\\\"", "\"1.3\"");
     logger.info("docBadVersion : " + docBadTenantVersion);
     c = api.createRestAssured3();
     c.given()
       .header("Content-Type", "application/json")
-      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(400)
-      .body(contains(" is '1.3'. should be '1.0/1.1/1.2'"));
+      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(201);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docEnableBadTenantVersion = "{" + LS
+      + "  \"id\" : \"mod-bad-tenant-version-1.0.0\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableBadTenantVersion).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(400).body(containsString("Unsupported interface _tenant: 1.3.1"));
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
