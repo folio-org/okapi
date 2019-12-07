@@ -42,7 +42,7 @@ public class Storage {
         break;
       case "inmemory":
         moduleStore = null;
-        tenantStore = null;
+        tenantStore = new TenantStoreNull();
         deploymentStore = new DeploymentStoreNull();
         envStore = new EnvStoreNull();
         break;
@@ -77,13 +77,15 @@ public class Storage {
     boolean reset = initMode != InitMode.NORMAL;
     envStore.init(reset, res1
       -> deploymentStore.init(reset, res2 -> {
-        if (tenantStore == null) {
-          fut.handle(new Success<>());
-        } else {
-          tenantStore.init(reset, res3
-            -> moduleStore.init(reset, fut)
-          );
+        tenantStore.init(reset, res3
+          -> {
+          if (moduleStore == null) {
+            fut.handle(new Success<>());
+          } else {
+            moduleStore.init(reset, fut);
+          }
         }
+        );
       })
     );
   }

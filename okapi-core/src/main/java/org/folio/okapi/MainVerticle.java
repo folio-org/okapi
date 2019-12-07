@@ -42,6 +42,7 @@ import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.managers.InternalModule;
+import org.folio.okapi.service.impl.TenantStoreNull;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
@@ -179,7 +180,7 @@ public class MainVerticle extends AbstractVerticle {
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null);
       moduleManager.forceLocalMap(); // make sure it is not shared
-      tenantManager = new TenantManager(moduleManager, null);
+      tenantManager = new TenantManager(moduleManager, new TenantStoreNull());
       tenantManager.forceLocalMap();
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);

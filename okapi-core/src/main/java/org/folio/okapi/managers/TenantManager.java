@@ -52,7 +52,7 @@ public class TenantManager {
   private final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager = null;
   private ProxyService proxyService = null;
-  private TenantStore tenantStore = null;
+  private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
   private String eventName = "timer";
@@ -127,18 +127,14 @@ public class TenantManager {
       if (gres.succeeded()) {
         fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10400", id)));
       } else if (gres.getType() == ErrorType.NOT_FOUND) {
-        if (tenantStore == null) { // no db, just add it to shared mem
-          insert2(t, id, fut);
-        } else { // insert into db first
-          tenantStore.insert(t, res -> {
-            if (res.failed()) {
-              logger.warn("TenantManager: Adding {} failed: {}", id, res);
-              fut.handle(new Failure<>(res.getType(), res.cause()));
-            } else {
-              insert2(t, id, fut);
-            }
-          });
-        }
+        tenantStore.insert(t, res -> {
+          if (res.failed()) {
+            logger.warn("TenantManager: Adding {} failed: {}", id, res);
+            fut.handle(new Failure<>(res.getType(), res.cause()));
+          } else {
+            insert2(t, id, fut);
+          }
+        });
       } else {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       }
@@ -151,7 +147,7 @@ public class TenantManager {
     tenants.get(id, gres -> {
       if (gres.failed() && gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("TenantManager: updateDescriptor: getting {} failed: {}", id, gres);
-        fut.handle(new Failure<>(ErrorType.INTERNAL, ""));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, gres.cause()));
       }
       Tenant t;
       if (gres.succeeded()) {
@@ -159,18 +155,14 @@ public class TenantManager {
       } else {
         t = new Tenant(td);
       }
-      if (tenantStore == null) {
-        tenants.add(id, t, fut); // no database. handles success directly
-      } else {
-        tenantStore.updateDescriptor(td, upres -> {
-          if (upres.failed()) {
-            logger.warn("TenantManager: Updating database for {} failed: {}", id, upres);
-            fut.handle(new Failure<>(ErrorType.INTERNAL, ""));
-          } else {
-            tenants.add(id, t, fut); // handles success
-          }
-        });
-      }
+      tenantStore.updateDescriptor(td, upres -> {
+        if (upres.failed()) {
+          logger.warn("TenantManager: Updating database for {} failed: {}", id, upres);
+          fut.handle(new Failure<>(ErrorType.INTERNAL, upres.cause()));
+        } else {
+          tenants.add(id, t, fut); // handles success
+        }
+      });
     });
   }
 
@@ -214,18 +206,14 @@ public class TenantManager {
    * there.
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    if (tenantStore == null) { // no db, just do it
-      tenants.remove(id, fut);
-    } else {
-      tenantStore.delete(id, dres -> {
-        if (dres.failed() && dres.getType() != ErrorType.NOT_FOUND) {
-          logger.warn("TenantManager: Deleting {} failed: {}", id, dres);
-          fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
-        } else {
-          tenants.remove(id, fut);
-        }
-      });
-    }
+    tenantStore.delete(id, dres -> {
+      if (dres.failed() && dres.getType() != ErrorType.NOT_FOUND) {
+        logger.warn("TenantManager: Deleting {} failed: {}", id, dres);
+        fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
+      } else {
+        tenants.remove(id, fut);
+      }
+    });
   }
 
   /**
@@ -259,17 +247,13 @@ public class TenantManager {
     if (moduleTo != null) {
       t.enableModule(moduleTo);
     }
-    if (tenantStore == null) {
-      updateModuleCommit2(id, t, fut);
-    } else {
-      tenantStore.updateModules(id, t.getEnabled(), ures -> {
-        if (ures.failed()) {
-          fut.handle(new Failure<>(ures.getType(), ures.cause()));
-        } else {
-          updateModuleCommit2(id, t, fut);
-        }
-      });
-    }
+    tenantStore.updateModules(id, t.getEnabled(), ures -> {
+      if (ures.failed()) {
+        fut.handle(new Failure<>(ures.getType(), ures.cause()));
+      } else {
+        updateModuleCommit2(id, t, fut);
+      }
+    });
   }
 
   private void updateModuleCommit2(String id, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -1238,9 +1222,6 @@ public class TenantManager {
         Collection<String> keys = gres.result();
         if (!keys.isEmpty()) {
           logger.info("Not loading tenants, looks like someone already did");
-          fut.handle(new Success<>());
-        } else if (tenantStore == null) {
-          logger.info("No storage to load tenants from, so starting with empty");
           fut.handle(new Success<>());
         } else {
           loadTenants2(fut);
