@@ -25,9 +25,9 @@ public class CompList<T> {
   }
 
   public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(errorType, res2.cause()));
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
       } else {
         fut.handle(new Success<>(l));
       }
@@ -35,9 +35,25 @@ public class CompList<T> {
   }
 
   public void all(Handler<ExtendedAsyncResult<Void>> fut) {
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(errorType, res2.cause()));
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
+  public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
+    Future<Void> future = Future.succeededFuture();
+    for (Future f : futures) {
+      future = future.compose(x -> {
+        return f;
+      });
+    }
+    future.setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
       } else {
         fut.handle(new Success<>());
       }

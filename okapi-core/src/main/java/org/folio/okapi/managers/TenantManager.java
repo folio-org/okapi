@@ -66,6 +66,10 @@ public class TenantManager {
     this.tenantStore = tenantStore;
   }
 
+  void setTenantsMap(LockedTypedMap1<Tenant> tenants) {
+    this.tenants = tenants;
+  }
+
   /**
    * Force the map to be local. Even in cluster mode, will use a local memory
    * map. This way, the node will not share tenants with the cluster, and can
@@ -148,6 +152,7 @@ public class TenantManager {
       if (gres.failed() && gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("TenantManager: updateDescriptor: getting {} failed: {}", id, gres);
         fut.handle(new Failure<>(ErrorType.INTERNAL, gres.cause()));
+        return;
       }
       Tenant t;
       if (gres.succeeded()) {
@@ -251,17 +256,7 @@ public class TenantManager {
       if (ures.failed()) {
         fut.handle(new Failure<>(ures.getType(), ures.cause()));
       } else {
-        updateModuleCommit2(id, t, fut);
-      }
-    });
-  }
-
-  private void updateModuleCommit2(String id, Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.put(id, t, pres -> {
-      if (pres.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, pres.cause()));
-      } else {
-        fut.handle(new Success<>());
+        tenants.put(id, t, fut);
       }
     });
   }
@@ -567,7 +562,7 @@ public class TenantManager {
     handleTimer(tenantId, null, 0, null);
   }
 
-  private void stopTimer(String tenantId, String moduleId, int seq ,Lock lockP) {
+  private void stopTimer(String tenantId, String moduleId, int seq, Lock lockP) {
     if (lockP != null) {
       logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
       final String key = tenantId + "_" + moduleId + "_" + seq;
@@ -1220,10 +1215,7 @@ public class TenantManager {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
         Collection<String> keys = gres.result();
-        if (!keys.isEmpty()) {
-          logger.info("Not loading tenants, looks like someone already did");
-          fut.handle(new Success<>());
-        } else {
+        if (keys.isEmpty()) {
           loadTenants2(fut);
         }
       }
