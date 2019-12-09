@@ -56,7 +56,7 @@ public class Storage {
         break;
       default:
         logger.fatal("Unknown storage type '{}'", type);
-        System.exit(1);
+        throw new IllegalArgumentException("Unknown storage type: " + type);
     }
   }
 
