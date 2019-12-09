@@ -1,6 +1,7 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -245,6 +246,20 @@ public class PostgresQueryTest {
     }
   }
 
+  class PostgresHandleGetConnectionFail extends PostgresHandle {
+
+    JsonObject conf;
+
+    public PostgresHandleGetConnectionFail(Vertx vertx, JsonObject conf) {
+      super(vertx, conf);
+    }
+
+    @Override
+    public void getConnection(Handler<AsyncResult<SQLConnection>> fut) {
+      fut.handle(Future.failedFuture("getConnectionFailure"));
+    }
+  }
+
   @Before
   public void setup() {
     vertx = Vertx.vertx();
@@ -339,4 +354,46 @@ public class PostgresQueryTest {
       context.assertEquals("fake query failed", res.cause().getMessage());
     });
   }
+
+  @Test
+  public void testQueryWithParams2(TestContext context) {
+    JsonObject obj = new JsonObject();
+    obj.put("postgres_port", "5432");
+    PostgresHandle h = new PostgresHandleGetConnectionFail(vertx, obj);
+    PostgresQuery q = new PostgresQuery(h);
+    q.query("select", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals("getConnectionFailure", res.cause().getMessage());
+    });
+  }
+
+  @Test
+  public void testUpdateWithParams2(TestContext context) {
+    JsonObject obj = new JsonObject();
+    obj.put("postgres_port", "5432");
+    PostgresHandle h = new PostgresHandleGetConnectionFail(vertx, obj);
+
+    PostgresQuery q = new PostgresQuery(h);
+    q.updateWithParams("select", null, res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals("getConnectionFailure", res.cause().getMessage());
+    });
+  }
+
+  @Test
+  public void testQuery2(TestContext context) {
+    JsonObject obj = new JsonObject();
+    obj.put("postgres_port", "5432");
+    PostgresHandle h = new PostgresHandleGetConnectionFail(vertx, obj);
+
+    PostgresQuery q = new PostgresQuery(h);
+    q.query("select", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals("getConnectionFailure", res.cause().getMessage());
+    });
+  }
+
 }
