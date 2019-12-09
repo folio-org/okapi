@@ -47,9 +47,7 @@ public class CompList<T> {
   public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
     Future<Void> future = Future.succeededFuture();
     for (Future f : futures) {
-      future = future.compose(x -> {
-        return f;
-      });
+      future = future.compose(x -> f);
     }
     future.setHandler(res -> {
       if (res.failed()) {
