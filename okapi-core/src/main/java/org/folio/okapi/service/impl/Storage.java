@@ -76,17 +76,17 @@ public class Storage {
 
     boolean reset = initMode != InitMode.NORMAL;
     envStore.init(reset, res1
-      -> deploymentStore.init(reset, res2 -> {
-        tenantStore.init(reset, res3
-          -> {
-          if (moduleStore == null) {
-            fut.handle(new Success<>());
-          } else {
-            moduleStore.init(reset, fut);
-          }
+      -> deploymentStore.init(reset, res2
+        -> tenantStore.init(reset, res3
+        -> {
+        if (moduleStore == null) {
+          fut.handle(new Success<>());
+        } else {
+          moduleStore.init(reset, fut);
         }
-        );
-      })
+      }
+      )
+      )
     );
   }
 
