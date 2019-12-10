@@ -407,21 +407,23 @@ public class MainVerticle extends AbstractVerticle {
     logger.debug("Setting up routes");
     //handle CORS
     router.route().handler(CorsHandler.create("*")
-            .allowedMethod(HttpMethod.PUT)
-            .allowedMethod(HttpMethod.DELETE)
-            .allowedMethod(HttpMethod.GET)
-            .allowedMethod(HttpMethod.POST)
-            //allow request headers
-            .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-            .allowedHeader(XOkapiHeaders.TENANT)
-            .allowedHeader(XOkapiHeaders.TOKEN)
-            .allowedHeader(XOkapiHeaders.AUTHORIZATION)
-      .allowedHeader(XOkapiHeaders.REQUEST_ID)            //expose response headers
-            .exposedHeader(HttpHeaders.LOCATION.toString())
-            .exposedHeader(XOkapiHeaders.TRACE)
-            .exposedHeader(XOkapiHeaders.TOKEN)
-            .exposedHeader(XOkapiHeaders.AUTHORIZATION)
+      .allowedMethod(HttpMethod.PUT)
+      .allowedMethod(HttpMethod.DELETE)
+      .allowedMethod(HttpMethod.GET)
+      .allowedMethod(HttpMethod.POST)
+      //allow request headers
+      .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+      .allowedHeader(XOkapiHeaders.TENANT)
+      .allowedHeader(XOkapiHeaders.TOKEN)
+      .allowedHeader(XOkapiHeaders.AUTHORIZATION)
+      .allowedHeader(XOkapiHeaders.REQUEST_ID) //expose response headers
+      .allowedHeader(XOkapiHeaders.MODULE_ID)
+      .exposedHeader(HttpHeaders.LOCATION.toString())
+      .exposedHeader(XOkapiHeaders.TRACE)
+      .exposedHeader(XOkapiHeaders.TOKEN)
+      .exposedHeader(XOkapiHeaders.AUTHORIZATION)
       .exposedHeader(XOkapiHeaders.REQUEST_ID)
+      .exposedHeader(XOkapiHeaders.MODULE_ID)
     );
 
     if (proxyService != null) {
