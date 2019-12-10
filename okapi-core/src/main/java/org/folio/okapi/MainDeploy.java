@@ -19,8 +19,6 @@ import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import static java.lang.System.*;
-import static java.lang.Integer.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -53,7 +51,7 @@ public class MainDeploy {
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     try {
       final Logger logger = OkapiLogger.get();
-      Messages.setLanguage(getProperty("lang", "en"));
+      Messages.setLanguage(System.getProperty("lang", "en"));
 
       if (args.length < 1) {
         printUsage();
@@ -95,12 +93,12 @@ public class MainDeploy {
   }
 
   private void enableMetrics() {
-    final String graphiteHost = getProperty("graphiteHost", "localhost");
-    final Integer graphitePort = parseInt(
-      getProperty("graphitePort", "2003"));
-    final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
-    final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-    final String hostName = getProperty("host", "localhost");
+    final String graphiteHost = System.getProperty("graphiteHost", "localhost");
+    final Integer graphitePort = Integer.parseInt(
+      System.getProperty("graphitePort", "2003"));
+    final TimeUnit tu = TimeUnit.valueOf(System.getProperty("reporterTimeUnit", "SECONDS"));
+    final Integer reporterPeriod = Integer.parseInt(System.getProperty("reporterPeriod", "1"));
+    final String hostName = System.getProperty("host", "localhost");
     DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
   }
 
@@ -162,7 +160,7 @@ public class MainDeploy {
   }
 
   private void printUsage() {
-    out.println("Usage: command [options]\n"
+    System.out.println("Usage: command [options]\n"
       + "Commands:\n"
       + "  help         Display help\n"
       + "  cluster      Run in clustered mode\n"

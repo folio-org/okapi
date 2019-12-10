@@ -7,7 +7,7 @@ import io.vertx.core.shareddata.SharedData;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 
 /**
  * Factory to create either a vert.x ClusterWideMap or a AsyncLocalmap, if not
@@ -37,7 +37,7 @@ class AsyncMapFactory {
         if (res.succeeded()) {
           fut.handle(new Success<>(res.result()));
         } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         }
       });
     } else {

@@ -1,6 +1,5 @@
 package org.folio.okapi;
 
-import static java.lang.System.*;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
@@ -17,7 +16,7 @@ class MainCluster {
     d.init(args, res -> {
       if (res.failed()) {
         logger.error(res.cause().getMessage());
-        exit(1);
+        System.exit(1);
       }
     });
   }

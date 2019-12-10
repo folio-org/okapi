@@ -8,7 +8,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
+import org.folio.okapi.common.ErrorType;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
@@ -52,7 +52,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       }
       Collection<String> keys = kres.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      CompList<LinkedHashMap<String,T>> futures = new CompList<>(INTERNAL);
+      CompList<LinkedHashMap<String,T>> futures = new CompList<>(ErrorType.INTERNAL);
       for (String key : keys) {
         Promise<String> promise = Promise.promise();
         getString(key, null, res -> {

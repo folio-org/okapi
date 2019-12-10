@@ -8,10 +8,8 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
-import org.junit.runner.RunWith;
 
 public class CompListTest {
   Set<String> cset = new HashSet<>();

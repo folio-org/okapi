@@ -24,7 +24,7 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
@@ -272,7 +272,7 @@ public class MainVerticle extends AbstractVerticle {
         checkSuperTenant(okapiModule, promise);
         return;
       }
-      if (gres.getType() != NOT_FOUND) {
+      if (gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("checkInternalModules: Could not get "
           + okapiModule + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
@@ -346,7 +346,7 @@ public class MainVerticle extends AbstractVerticle {
         promise.complete();
         return;
       }
-      if (gres.getType() != NOT_FOUND) {
+      if (gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("checkSuperTenant: Could not get "
           + XOkapiHeaders.SUPERTENANT_ID + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
