@@ -377,7 +377,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startEnv() {
-    logger.info("starting Env");
+    logger.info("starting env");
     Promise<Void> promise = Promise.promise();
     envManager.init(vertx, promise::handle);
     return promise.future();

@@ -79,17 +79,14 @@ public class Storage {
 
     Future<Void> future = Future.succeededFuture();
     future.compose(res -> {
-      logger.info("envStore init");
       Promise promise = Promise.promise();
       envStore.init(reset, promise.future());
       return promise.future();
     }).compose(res -> {
-      logger.info("deploymentStore init");
       Promise promise = Promise.promise();
       deploymentStore.init(reset, promise.future());
       return promise.future();
     }).compose(res -> {
-      logger.info("tenantStore init");
       Promise promise = Promise.promise();
       tenantStore.init(reset, promise.future());
       return promise.future();
