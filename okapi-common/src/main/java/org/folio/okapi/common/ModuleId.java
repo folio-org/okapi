@@ -89,11 +89,14 @@ public class ModuleId implements Comparable<ModuleId> {
       return 5; // 4, 3, 2, 1 for major, minor, patch, rest
     } else if (cmp < 0) {
       return -5; // 4, 3, 2, 1 for major, minor, patch, rest
-    } else if (semVer != null && other.semVer != null) {
-      return semVer.compareTo(other.semVer);
-    } else if (semVer != null && other.semVer == null) {
-      return 4;
-    } else if (semVer == null && other.semVer != null) {
+    }
+    if (semVer != null) {
+      if (other.semVer != null) {
+        return semVer.compareTo(other.semVer);
+      } else {
+        return 4;
+      }
+    } else if (other.semVer != null) {
       return -4;
     } else {
       return 0;
@@ -155,17 +158,17 @@ public class ModuleId implements Comparable<ModuleId> {
    * @return newest module (possibly this module)
    */
   public String getLatest(Collection<String> l) {
-    ModuleId bModule = null;
-    String bId = null;
+    ModuleId bModule = this;
+    String bId = id;
     for (String cId : l) {
       ModuleId cModule = new ModuleId(cId);
       if (product.equals(cModule.getProduct())
-        && (bModule == null || cModule.compareTo(bModule) > 0)) {
+        && cModule.compareTo(bModule) > 0) {
         bId = cId;
         bModule = cModule;
       }
     }
-    return bId != null ? bId : id;
+    return bId;
   }
 
   /**

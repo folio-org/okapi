@@ -30,6 +30,7 @@ public class ModuleIdTest {
     versionsL.add("other-1.1");
     versionsL.add("other-0.9");
     assertEquals("module-1.0", module_1.getLatest(versionsL));
+    assertEquals("module-1", module_1.getLatest(new LinkedList<>()));
 
     assertFalse(module_1.equals(module_1plus2));
     assertFalse(module_1.equals(this));
@@ -84,5 +85,10 @@ public class ModuleIdTest {
     assertTrue(module_1_10000.hasSemVer());
     assertFalse(module_1_10000.hasPreRelease());
     assertTrue(module_1_10000.hasNpmSnapshot());
+
+    ModuleId module = new ModuleId("module");
+    assertFalse(module.hasSemVer());
+    assertFalse(module.hasPreRelease());
+    assertFalse(module.hasNpmSnapshot());
   }
 }
