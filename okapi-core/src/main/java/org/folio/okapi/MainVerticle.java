@@ -208,7 +208,6 @@ public class MainVerticle extends AbstractVerticle {
     fut = fut.compose(x -> startListening());
     fut = fut.compose(x -> startRedeploy());
     fut.setHandler(x -> {
-      logger.info("fut setHandler");
       if (x.failed()) {
         logger.error(x.cause().getMessage());
       }
