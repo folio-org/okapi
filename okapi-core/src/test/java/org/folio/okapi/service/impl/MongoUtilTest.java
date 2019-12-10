@@ -3,7 +3,6 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
@@ -23,16 +22,11 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class MongoUtilTest {
-  Vertx vertx;  
-  
   
   public class MongoClientDeleteResult0Hits extends MongoClientDeleteResult {
     @Override
@@ -305,16 +299,6 @@ public class MongoUtilTest {
     
   }
   
-  @Before
-  public void setup() {
-    vertx = Vertx.vertx();
-  }
-
-  @After
-  public void tearDown() {
-    vertx.close();
-  }
-
   @Test
   public void testDelete(TestContext context) {
     MongoClient cli = new FakeMongoClient();
