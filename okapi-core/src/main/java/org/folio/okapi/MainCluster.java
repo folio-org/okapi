@@ -16,7 +16,7 @@ class MainCluster {
     MainDeploy d = new MainDeploy();
     d.init(args, res -> {
       if (res.failed()) {
-        logger.error(res.cause().getMessage(), res.cause());
+        logger.error(res.cause().getMessage());
         exit(1);
       }
     });
