@@ -1,3 +1,7 @@
+## 2.35.2 2019-12-10
+
+ * OKAPI-784 CORS: Allox X-Okapi-Module-Id
+
 ## 2.35.1 2019-11-28
 
  * OKAPI-779 Upgrade to Vert.x 3.8.4
