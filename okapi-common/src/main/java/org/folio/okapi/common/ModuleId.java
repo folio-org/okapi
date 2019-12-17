@@ -3,8 +3,8 @@ import java.util.Collection;
 
 public class ModuleId implements Comparable<ModuleId> {
 
-  private String product;
-  private SemVer semVer;
+  private final String product;
+  private final SemVer semVer;
   private final String id;
 
   /**
@@ -158,17 +158,15 @@ public class ModuleId implements Comparable<ModuleId> {
    * @return newest module (possibly this module)
    */
   public String getLatest(Collection<String> l) {
-    ModuleId bModule = this;
-    String bId = id;
+    ModuleId latestModule = this;
     for (String cId : l) {
       ModuleId cModule = new ModuleId(cId);
       if (product.equals(cModule.getProduct())
-        && cModule.compareTo(bModule) > 0) {
-        bId = cId;
-        bModule = cModule;
+        && cModule.compareTo(latestModule) > 0) {
+        latestModule = cModule;
       }
     }
-    return bId;
+    return latestModule.getId();
   }
 
   /**
