@@ -74,8 +74,14 @@
     </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
-      <artifactId>vertx-mysql-postgresql-client</artifactId>
+      <artifactId>vertx-mysql-postgresql-client-jasync</artifactId>
       <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-transport-native-epoll</artifactId>
+      <version>4.1.15.Final</version>
+      <classifier>linux-x86_64</classifier>
     </dependency>
     <dependency>
       <groupId>io.rest-assured</groupId>

@@ -51,6 +51,7 @@ public class MainDeploy {
 
   @SuppressWarnings({"squid:S1181"})  // suppress "Catch Exception instead of Throwable" to also log Throwable
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
+    vopt.setPreferNativeTransport(true);
     try {
       final Logger logger = OkapiLogger.get();
       Messages.setLanguage(getProperty("lang", "en"));

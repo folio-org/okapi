@@ -48,6 +48,8 @@ public class DockerModuleHandle implements ModuleHandle {
   private TcpPortWaiting tcpPortWaiting;
   private String containerId;
   private final SocketAddress socketAddress;
+  static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
+  static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     String id, Ports ports, int port) {
@@ -61,18 +63,34 @@ public class DockerModuleHandle implements ModuleHandle {
     this.client = vertx.createHttpClient();
     this.logBuffer = new StringBuilder();
     this.logSkip = 0;
+    logger.info("Docker handler with native: " + vertx.isNativeTransportEnabled());
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
-    String u = System.getProperty("dockerUrl", "http://localhost:4243");
+    String u = System.getProperty("dockerUrl", DEFAULT_DOCKER_URL);
+    StringBuilder socketFile = new StringBuilder();
+    this.dockerUrl = setupDockerAddress(socketFile, u);
+    if (socketFile.length() > 0) {
+      socketAddress = SocketAddress.domainSocketAddress(socketFile.toString());
+    } else {
+      socketAddress = null;
+    }
+    tcpPortWaiting = new TcpPortWaiting(vertx, port);
+  }
+
+  static String setupDockerAddress(StringBuilder socketAddress, String u) {
+    if (u.startsWith("tcp://")) {
+      u = "http://" + u.substring(6);
+    } else if (u.startsWith("unix://")) {
+      socketAddress.append(u.substring(7));
+      u = "http://localhost";
+    }
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
     }
     if (!u.contains("/v")) {
-      u += "/v1.25";
+      u += "/" + DEFAULT_DOCKER_VERSION;
     }
-    this.dockerUrl = u;
-    tcpPortWaiting = new TcpPortWaiting(vertx, port);
-    socketAddress = SocketAddress.domainSocketAddress("/var/run/docker.sock");
+    return u;
   }
 
   private void handle204(HttpClientResponse res, String msg,
@@ -90,14 +108,22 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.failedFuture(m));
       }
     });
+  }
 
+  private HttpClientRequest request(HttpMethod method, String url,
+    Handler<HttpClientResponse> response) {
+    if (socketAddress != null) {
+      return client.requestAbs(method, socketAddress, url, response);
+    } else {
+      return client.requestAbs(method, url, response);
+    }
   }
 
   private void postUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = client.requestAbs(HttpMethod.POST, socketAddress,
-      url, res -> handle204(res, msg, future));
+    HttpClientRequest req = request(HttpMethod.POST, url,
+      res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
@@ -105,8 +131,8 @@ public class DockerModuleHandle implements ModuleHandle {
   private void deleteUrl(String url,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = client.requestAbs(HttpMethod.DELETE, socketAddress,
-      url, res -> handle204(res, "deleteContainer", future));
+    HttpClientRequest req = request(HttpMethod.DELETE, url,
+      res -> handle204(res, "deleteContainer", future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
@@ -148,47 +174,45 @@ public class DockerModuleHandle implements ModuleHandle {
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
     final String url = dockerUrl + "/containers/" + containerId
       + "/logs?stderr=1&stdout=1&follow=1";
-    HttpClientRequest req = client.requestAbs(HttpMethod.GET, socketAddress,
-      url, res -> {
-        if (res.statusCode() == 200) {
-          // stream OK. Continue other work but keep fetching!
-          // remove 8 bytes of binary data and final newline
-          res.handler(this::logHandler);
-          tcpPortWaiting.waitReady(null, future);
-        } else {
-          String m = "getContainerLog HTTP error "
+    HttpClientRequest req = request(HttpMethod.GET, url, res -> {
+      if (res.statusCode() == 200) {
+        // stream OK. Continue other work but keep fetching!
+        // remove 8 bytes of binary data and final newline
+        res.handler(this::logHandler);
+        tcpPortWaiting.waitReady(null, future);
+      } else {
+        String m = "getContainerLog HTTP error "
           + Integer.toString(res.statusCode());
-          logger.error(m);
-          future.handle(Future.failedFuture(m));
-        }
-      });
+        logger.error(m);
+        future.handle(Future.failedFuture(m));
+      }
+    });
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
   private void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
-    HttpClientRequest req = client.requestAbs(HttpMethod.GET, socketAddress,
-      url, res -> {
-        Buffer body = Buffer.buffer();
-        res.exceptionHandler(d -> {
-          logger.warn(url + ": " + d.getMessage());
-          future.handle(Future.failedFuture(url + ": " + d.getMessage()));
-        });
-        res.handler(body::appendBuffer);
-        res.endHandler(d -> {
-          if (res.statusCode() == 200) {
-            JsonObject b = body.toJsonObject();
-            logger.info(b.encodePrettily());
-            future.handle(Future.succeededFuture(b));
-          } else {
-            String m = url + " HTTP error "
-              + Integer.toString(res.statusCode()) + "\n"
-              + body.toString();
-            logger.error(m);
-            future.handle(Future.failedFuture(m));
-          }
-        });
+    HttpClientRequest req = request(HttpMethod.GET, url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> {
+        logger.warn(url + ": " + d.getMessage());
+        future.handle(Future.failedFuture(url + ": " + d.getMessage()));
       });
+      res.handler(body::appendBuffer);
+      res.endHandler(d -> {
+        if (res.statusCode() == 200) {
+          JsonObject b = body.toJsonObject();
+          logger.info(b.encodePrettily());
+          future.handle(Future.succeededFuture(b));
+        } else {
+          String m = url + " HTTP error "
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
+      });
+    });
     req.exceptionHandler(d -> {
       logger.warn(url + ": " + d.getMessage());
       future.handle(Future.failedFuture(url + ": " + d.getMessage()));
@@ -208,24 +232,23 @@ public class DockerModuleHandle implements ModuleHandle {
   private void postUrlBody(String url, String doc,
     Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = client.requestAbs(HttpMethod.POST, socketAddress,
-      url, res -> {
-        Buffer body = Buffer.buffer();
-        res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-        res.handler(body::appendBuffer);
-        res.endHandler(d -> {
-          if (res.statusCode() >= 200 && res.statusCode() <= 201) {
-            containerId = body.toJsonObject().getString("Id");
-            future.handle(Future.succeededFuture());
-          } else {
-            String m = "createContainer HTTP error "
-              + Integer.toString(res.statusCode()) + "\n"
-              + body.toString();
-            logger.error(m);
-            future.handle(Future.failedFuture(m));
-          }
-        });
+    HttpClientRequest req = request(HttpMethod.POST, url, res -> {
+      Buffer body = Buffer.buffer();
+      res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
+      res.handler(body::appendBuffer);
+      res.endHandler(d -> {
+        if (res.statusCode() >= 200 && res.statusCode() <= 201) {
+          containerId = body.toJsonObject().getString("Id");
+          future.handle(Future.succeededFuture());
+        } else {
+          String m = "createContainer HTTP error "
+            + Integer.toString(res.statusCode()) + "\n"
+            + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
       });
+    });
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.putHeader("Content-Type", "application/json");
     req.end(doc);

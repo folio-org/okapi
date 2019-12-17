@@ -52,6 +52,7 @@ public class DockerTest {
     VertxOptions options = new VertxOptions();
     options.setBlockedThreadCheckInterval(60000); // in ms
     options.setWarningExceptionTime(60000); // in ms
+    options.setPreferNativeTransport(true);
     vertx = Vertx.vertx(options);
     RestAssured.port = port;
     client = vertx.createHttpClient();
@@ -60,8 +61,9 @@ public class DockerTest {
       haveDocker = res.succeeded();
       if (res.succeeded()) {
         dockerImages = res.result();
+        logger.info("Docker found");
       } else {
-        logger.warn("No docker: " + res.cause());
+        logger.warn("No docker: " + res.cause().getMessage());
       }
       DeploymentOptions opt = new DeploymentOptions()
         .setConfig(new JsonObject().put("port", Integer.toString(port)));
@@ -94,10 +96,9 @@ public class DockerTest {
   private void checkDocker(Handler<AsyncResult<JsonArray>> future) {
     final SocketAddress socketAddress
       = SocketAddress.domainSocketAddress("/var/run/docker.sock");
-    final String dockerUrl = "http://localhost:4243";
-    final String url = dockerUrl + "/images/json?all=1";
-    HttpClientRequest req = client.requestAbs(HttpMethod.GET, socketAddress,
-      dockerUrl, res -> {
+    final String url = "http://localhost/images/json?all=1";
+    HttpClientRequest req = client.requestAbs(HttpMethod.GET, socketAddress, url,
+      res -> {
         Buffer body = Buffer.buffer();
         res.handler(d -> {
           body.appendBuffer(d);
