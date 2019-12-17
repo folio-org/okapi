@@ -166,11 +166,11 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docSampleDockerModule = "{" + LS
-      + "  \"id\" : \"sample-module-1\"," + LS
+      + "  \"id\" : \"sample-module-1.0.0\"," + LS
       + "  \"name\" : \"sample module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"sample\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"" + LS
@@ -199,7 +199,7 @@ public class DockerTest {
     locations.add(r.getHeader("Location"));
 
     final String doc1 = "{" + LS
-      + "  \"srvcId\" : \"sample-module-1\"," + LS
+      + "  \"srvcId\" : \"sample-module-1.0.0\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
