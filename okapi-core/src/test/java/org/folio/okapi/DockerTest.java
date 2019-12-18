@@ -307,13 +307,13 @@ public class DockerTest {
     int statusCode = r.getStatusCode();
     context.assertTrue(c.getLastReport().isEmpty(),
       "raml: " + c.getLastReport().toString());
-    /* Ideally 201, but unfortunately in Jenkins Pipeline, port forwarding
-       does not work FOLIO-2404 */
-    context.assertTrue(statusCode == 201 || statusCode == 400);
-    if (statusCode == 201) {
-      locations.add(r.getHeader("Location"));
-    } else {
+    // Deal with port forwarding not working in Jenkins pipeline FOLIO-2404
+    if (statusCode == 400) {
+      logger.info("BODY=" + r.getBody().asString());
       context.assertTrue(r.getBody().asString().contains("Could not connect to port 9231"));
+    } else {
+      context.assertEquals(201, statusCode);
+      locations.add(r.getHeader("Location"));
     }
   }
 }
