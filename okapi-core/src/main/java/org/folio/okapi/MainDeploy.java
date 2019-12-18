@@ -159,6 +159,8 @@ public class MainDeploy {
     return false;
   }
 
+  // Suppress "Standard outputs should not be used directly"
+  @java.lang.SuppressWarnings({"squid:S106"})
   private void printUsage() {
     System.out.println("Usage: command [options]\n"
       + "Commands:\n"

@@ -53,7 +53,7 @@ class PostgresHandle {
         Integer x = Integer.parseInt(val);
         pgconf.put("port", x);
       } catch (NumberFormatException e) {
-        logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage(), e);
+        logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
     pgconf.put("username", Config.getSysConf("postgres_username", "okapi", conf));

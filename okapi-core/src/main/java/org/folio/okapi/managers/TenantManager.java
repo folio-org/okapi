@@ -63,6 +63,9 @@ public class TenantManager {
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
+    if (tenantStore == null) {
+      throw new IllegalArgumentException("tenantStore can't be null");
+    }
     this.tenantStore = tenantStore;
   }
 
@@ -1213,20 +1216,18 @@ public class TenantManager {
     tenants.getKeys(gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        Collection<String> keys = gres.result();
-        if (keys.isEmpty()) {
-          loadTenants2(fut);
-        }
+        return;
       }
-    });
-  }
-
-  private void loadTenants2(Handler<ExtendedAsyncResult<Void>> fut) {
-    tenantStore.listTenants(lres -> {
-      if (lres.failed()) {
-        fut.handle(new Failure<>(lres.getType(), lres.cause()));
-      } else {
+      Collection<String> keys = gres.result();
+      if (!keys.isEmpty()) {
+        fut.handle(new Success<>());
+        return;
+      }
+      tenantStore.listTenants(lres -> {
+        if (lres.failed()) {
+          fut.handle(new Failure<>(lres.getType(), lres.cause()));
+          return;
+        }
         CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
         for (Tenant t : lres.result()) {
           Promise<Void> f = Promise.promise();
@@ -1234,7 +1235,7 @@ public class TenantManager {
           futures.add(f);
         }
         futures.all(fut);
-      }
+      });
     });
   }
 

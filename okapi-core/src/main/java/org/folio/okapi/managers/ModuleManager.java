@@ -95,7 +95,7 @@ public class ModuleManager {
                 modules.add(md.getId(), md, promise::handle);
                 futures.add(promise);
               }
-              futures.seq(fut);
+              futures.all(fut);
             }
           });
         }

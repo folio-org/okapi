@@ -80,7 +80,7 @@ class MongoUtil<T> {
         fut.handle(new Success<>());
       } else {
         logger.warn("MongoUtil.insert {} failed: {}", id, res.cause().getMessage());
-        logger.warn("Document: {}", document.encodePrettily());
+        logger.warn("Document: {}", () -> document.encodePrettily());
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       }
     });

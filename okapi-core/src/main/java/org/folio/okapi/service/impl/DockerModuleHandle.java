@@ -134,9 +134,7 @@ public class DockerModuleHandle implements ModuleHandle {
       logSkip = logSkip - b.length();
     }
     if (logBuffer.length() > 0 && logBuffer.charAt(logBuffer.length() - 1) == '\n') {
-      if (logger.isInfoEnabled()) {
-        logger.info("{} {}", id, logBuffer.substring(0, logBuffer.length() - 1));
-      }
+      logger.info("{} {}", () -> id, () -> logBuffer.substring(0, logBuffer.length() - 1));
       logBuffer.setLength(0);
     }
   }
