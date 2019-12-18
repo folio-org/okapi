@@ -6,6 +6,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class ModuleIdTest {
+
   @Test
   public void test() {
     ModuleId module_1 = new ModuleId("module-1");
@@ -22,14 +23,6 @@ public class ModuleIdTest {
     assertFalse(module_1plus2.hasNpmSnapshot());
     assertEquals("module", module_1plus2.getProduct());
     assertEquals("module-1-2+3", module_1plus2.toString());
-
-    List<String> versionsL = new LinkedList<>();
-    versionsL.add("module-1.0");
-    versionsL.add("module-1.0-2");
-    versionsL.add("module-0.9");
-    versionsL.add("other-1.1");
-    versionsL.add("other-0.9");
-    assertEquals("module-1.0", module_1.getLatest(versionsL));
 
     assertFalse(module_1.equals(module_1plus2));
     assertFalse(module_1.equals(this));
@@ -79,10 +72,31 @@ public class ModuleIdTest {
   }
 
   @Test
-  public void test2() {
+  public void testLatest() {
+    ModuleId module_1 = new ModuleId("module-1");
+    List<String> versionsL = new LinkedList<>();
+    versionsL.add("module-1.0");
+    versionsL.add("module-1.0-2");
+    versionsL.add("module-0.9");
+    versionsL.add("other-1.1");
+    versionsL.add("other-0.9");
+    assertEquals("module-1.0", module_1.getLatest(versionsL));
+    assertEquals("module-1", module_1.getLatest(new LinkedList<>()));
+  }
+
+  @Test
+  public void testNpmSnapshot() {
     ModuleId module_1_10000 = new ModuleId("module-1.2.10000");
     assertTrue(module_1_10000.hasSemVer());
     assertFalse(module_1_10000.hasPreRelease());
     assertTrue(module_1_10000.hasNpmSnapshot());
+  }
+
+  @Test
+  public void testWithoutSemVer() {
+    ModuleId module = new ModuleId("module");
+    assertFalse(module.hasSemVer());
+    assertFalse(module.hasPreRelease());
+    assertFalse(module.hasNpmSnapshot());
   }
 }
