@@ -66,7 +66,10 @@ public class DockerTest {
         logger.warn("No docker: " + res.cause().getMessage());
       }
       DeploymentOptions opt = new DeploymentOptions()
-        .setConfig(new JsonObject().put("port", Integer.toString(port)));
+        .setConfig(new JsonObject()
+          .put("port", Integer.toString(port))
+          .put("port_start", Integer.toString(port + 4))
+          .put("port_end", Integer.toString(port + 6)));
 
       vertx.deployVerticle(MainVerticle.class.getName(),
         opt, x -> async.complete());
@@ -310,7 +313,7 @@ public class DockerTest {
     // Deal with port forwarding not working in Jenkins pipeline FOLIO-2404
     if (statusCode == 400) {
       logger.info("BODY=" + r.getBody().asString());
-      context.assertTrue(r.getBody().asString().contains("Could not connect to port 9231"));
+      context.assertTrue(r.getBody().asString().contains("Could not connect to port 9234"));
     } else {
       context.assertEquals(201, statusCode);
       locations.add(r.getHeader("Location"));
