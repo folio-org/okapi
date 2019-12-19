@@ -53,6 +53,11 @@ public class DockerModuleHandle implements ModuleHandle {
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     String id, Ports ports, int port) {
+    this(vertx, desc, id, ports, port, System.getProperty("dockerUrl", DEFAULT_DOCKER_URL));
+  }
+
+  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+    String id, Ports ports, int port, String u) {
     this.hostPort = port;
     this.ports = ports;
     this.id = id;
@@ -66,7 +71,6 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("Docker handler with native: " + vertx.isNativeTransportEnabled());
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
-    String u = System.getProperty("dockerUrl", DEFAULT_DOCKER_URL);
     StringBuilder socketFile = new StringBuilder();
     this.dockerUrl = setupDockerAddress(socketFile, u);
     if (socketFile.length() > 0) {
