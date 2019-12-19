@@ -324,32 +324,38 @@ public class DockerModuleHandle implements ModuleHandle {
       if (res1.failed()) {
         logger.warn("getImage failed 1 : " + res1.cause().getMessage());
         startFuture.handle(Future.failedFuture(res1.cause()));
-      } else {
-        if (hostPort == 0) {
-          startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
-          return;
-        }
-        int exposedPort = 0;
-        try {
-          exposedPort = getExposedPort(res1.result());
-        } catch (Exception ex) {
-          startFuture.handle(Future.failedFuture(ex));
-          return;
-        }
-        createContainer(exposedPort, res2 -> {
-          if (res2.failed()) {
-            startFuture.handle(Future.failedFuture(res2.cause()));
-          } else {
-            startContainer(res3 -> {
-              if (res3.failed()) {
-                startFuture.handle(Future.failedFuture(res3.cause()));
-              } else {
-                getContainerLog(startFuture);
-              }
-            });
-          }
-        });
+        return;
       }
+      if (hostPort == 0) {
+        startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
+        return;
+      }
+      int exposedPort = 0;
+      try {
+        exposedPort = getExposedPort(res1.result());
+      } catch (Exception ex) {
+        startFuture.handle(Future.failedFuture(ex));
+        return;
+      }
+      createContainer(exposedPort, res2 -> {
+        if (res2.failed()) {
+          startFuture.handle(Future.failedFuture(res2.cause()));
+          return;
+        }
+        startContainer(res3 -> {
+          if (res3.failed()) {
+            deleteContainer(x -> Future.failedFuture(res3.cause()));
+            return;
+          }
+          getContainerLog(res4 -> {
+            if (res4.failed()) {
+              this.stop(x -> startFuture.handle(res4));
+              return;
+            }
+            startFuture.handle(res4);
+          });
+        });
+      });
     });
   }
 
