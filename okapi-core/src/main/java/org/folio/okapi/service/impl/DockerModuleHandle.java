@@ -6,6 +6,7 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -339,12 +340,12 @@ public class DockerModuleHandle implements ModuleHandle {
       }
       createContainer(exposedPort, res2 -> {
         if (res2.failed()) {
-          startFuture.handle(Future.failedFuture(res2.cause()));
+          startFuture.handle(res2);
           return;
         }
         startContainer(res3 -> {
           if (res3.failed()) {
-            deleteContainer(x -> Future.failedFuture(res3.cause()));
+            deleteContainer(x -> startFuture.handle(res3));
             return;
           }
           getContainerLog(res4 -> {
