@@ -261,6 +261,65 @@ public class DockerTest {
   }
 
   @Test
+  public void deployBadListeningPort(TestContext context) {
+    org.junit.Assume.assumeTrue(haveDocker);
+    if (!haveDocker) {
+      return;
+    }
+    RestAssuredClient c;
+    Response r;
+    RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
+      .assumingBaseUri("https://okapi.cloud");
+
+    // forward to 8090, which the module does not bind to..
+    final String docUserDockerModule = "{" + LS
+      + "  \"id\" : \"mod-users-5.0.0-bad-listening-port\"," + LS
+      + "  \"name\" : \"users\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"users\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/test\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"waitIterations\" : 5," + LS
+      + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
+      + "    \"dockerArgs\" : {" + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8090/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
+      + "    }" + LS
+      + "  }" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docUserDockerModule).post("/_/proxy/modules")
+      .then()
+      .statusCode(201)
+      .extract().response();
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
+    locations.add(r.getHeader("Location"));
+
+    final String doc2 = "{" + LS
+      + "  \"srvcId\" : \"mod-users-5.0.0-bad-listening-port\"," + LS
+      + "  \"nodeId\" : \"localhost\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given().header("Content-Type", "application/json")
+      .body(doc2).post("/_/discovery/modules")
+      .then().statusCode(400).extract().response();
+    int statusCode = r.getStatusCode();
+    context.assertTrue(c.getLastReport().isEmpty(),
+      "raml: " + c.getLastReport().toString());
+    context.assertTrue(r.getBody().asString().contains("Could not connect to port 9234"),
+      "body is " + r.getBody().asString());
+  }
+
+  @Test
   public void deployModUsers(TestContext context) {
     org.junit.Assume.assumeTrue(haveDocker);
     if (!haveDocker) {
@@ -283,6 +342,7 @@ public class DockerTest {
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
+      + "    \"waitIterations\" : 10," + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"" + LS
       + "  }" + LS
       + "}";
@@ -312,8 +372,8 @@ public class DockerTest {
       "raml: " + c.getLastReport().toString());
     // Deal with port forwarding not working in Jenkins pipeline FOLIO-2404
     if (statusCode == 400) {
-      logger.info("BODY=" + r.getBody().asString());
-      context.assertTrue(r.getBody().asString().contains("Could not connect to port 9234"));
+      context.assertTrue(r.getBody().asString().contains("Could not connect to port 9234"),
+        "body is " + r.getBody().asString());
     } else {
       context.assertEquals(201, statusCode);
       locations.add(r.getHeader("Location"));

@@ -35,6 +35,10 @@
       "type": "object",
       "additionalProperties": true
     },
+    "waitIterations": {
+      "description": "Number of iterations that Okapi waits for module to be fully ready",
+      "type": "integer"
+    },
     "env": {
       "description": "Default environment for deployment",
       "$ref": "EnvEntryList.json"

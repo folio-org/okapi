@@ -48,10 +48,9 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.ports = ports;
     this.p = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, port);
-  }
-
-  public void setConnectIterMax(int maxIterations) {
-    tcpPortWaiting.setMaxIterations(maxIterations);
+    if (desc.getWaitIterations() != null) {
+      tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+    }
   }
 
   private ProcessBuilder createProcessBuilder(String[] l) {

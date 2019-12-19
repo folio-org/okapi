@@ -76,6 +76,9 @@ public class DockerModuleHandle implements ModuleHandle {
       socketAddress = null;
     }
     tcpPortWaiting = new TcpPortWaiting(vertx, port);
+    if (desc.getWaitIterations() != null) {
+      tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+    }
   }
 
   static String setupDockerAddress(StringBuilder socketAddress, String u) {
