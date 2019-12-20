@@ -80,7 +80,7 @@ public class DockerModuleHandleTest {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
       "mod-users-5.0.0-SNAPSHOT", ports, 9232);
 
-    dh.getVersion(res -> {
+    dh.getUrl("/version", res -> {
       if (res.failed()) {
         logger.warn(res.cause().getMessage());
       }
