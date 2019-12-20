@@ -217,7 +217,7 @@ public class DockerTest {
   }
 
   @Test
-  public void deployUnkownModule(TestContext context) {
+  public void deployUnknownModule(TestContext context) {
     RestAssuredClient c;
     Response r;
     RamlDefinition api = RamlLoaders.fromFile("src/main/raml").load("okapi.raml")
@@ -331,11 +331,11 @@ public class DockerTest {
       .assumingBaseUri("https://okapi.cloud");
 
     final String docUserDockerModule = "{" + LS
-      + "  \"id\" : \"mod-users-1\"," + LS
+      + "  \"id\" : \"mod-users-5.0.0\"," + LS
       + "  \"name\" : \"users\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"users\"," + LS
-      + "    \"version\" : \"1.0.0\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/test\"" + LS
@@ -362,7 +362,7 @@ public class DockerTest {
     locations.add(r.getHeader("Location"));
 
     final String doc2 = "{" + LS
-      + "  \"srvcId\" : \"mod-users-1\"," + LS
+      + "  \"srvcId\" : \"mod-users-5.0.0\"," + LS
       + "  \"nodeId\" : \"localhost\"" + LS
       + "}";
 
