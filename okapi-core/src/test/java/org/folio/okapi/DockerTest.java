@@ -343,7 +343,10 @@ public class DockerTest {
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"waitIterations\" : 10," + LS
-      + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"" + LS
+      + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
+      + "    \"dockerArgs\" : {" + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8081/tcp\": [{ \"HostIp\":\"127.0.0.1\", \"HostPort\": \"%p\" }] } }" + LS
+      + "    }" + LS
       + "  }" + LS
       + "}";
 
