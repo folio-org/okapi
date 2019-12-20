@@ -94,10 +94,26 @@ public class DockerModuleHandle implements ModuleHandle {
     while (u.endsWith("/")) {
       u = u.substring(0, u.length() - 1);
     }
-    if (!u.contains("/v")) {
-      u += "/" + DEFAULT_DOCKER_VERSION;
-    }
-    return u;
+    return u + "/" + DEFAULT_DOCKER_VERSION;
+  }
+
+  private void handle200(HttpClientResponse res, String msg,
+    Handler<AsyncResult<String>> future) {
+    Buffer body = Buffer.buffer();
+    res.handler(body::appendBuffer);
+    res.exceptionHandler(d
+      -> future.handle(Future.failedFuture(d.getMessage())));
+    res.endHandler(d -> {
+      if (res.statusCode() == 200) {
+        future.handle(Future.succeededFuture(body.toString()));
+      } else {
+        String m = msg + " HTTP error "
+          + Integer.toString(res.statusCode()) + "\n"
+          + body.toString();
+        logger.error(m);
+        future.handle(Future.failedFuture(m));
+      }
+    });
   }
 
   private void handle204(HttpClientResponse res, String msg,
@@ -160,6 +176,10 @@ public class DockerModuleHandle implements ModuleHandle {
     logger.info("delete container " + containerId + " image " + image);
     deleteUrl(dockerUrl + "/containers/" + containerId,
       future);
+  }
+
+  void getVersion(Handler<AsyncResult<JsonObject>> future) {
+    getUrl(dockerUrl + "/version", future);
   }
 
   private void logHandler(Buffer b) {
