@@ -174,13 +174,11 @@ public class DeploymentManager {
           fut.handle(new Failure<>(ErrorType.USER, future.cause()));
           return;
         }
-        String moduleUrl = "http://" + host + ":" + usePort;
-        if (descriptor.getHost() != null) {
-          moduleUrl = "http://" + descriptor.getHost() + ":" + usePort;
-        }
+        String moduleHost = descriptor.getHost() != null ? descriptor.getHost() : host;
+        String moduleUrl = "http://" + moduleHost + ":" + usePort;
         DeploymentDescriptor md2
           = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
-            moduleUrl, md1.getDescriptor(), mh);
+            moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
         tim.close();
