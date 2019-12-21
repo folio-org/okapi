@@ -9,7 +9,7 @@
 if [ -f "${CONF_DIR}/okapi.conf" ] ; then
    . "${CONF_DIR}/okapi.conf"
 else
-   echo "Cannot locate okapi.conf"
+   echo "Cannot locate ${CONF_DIR}/okapi.conf"
    exit 2
 fi
 
@@ -74,8 +74,8 @@ parse_okapi_conf()  {
 
    # configure log file if specified
    if [ "$log4j_config" ]; then
-      OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=slf4j"
-      OKAPI_JAVA_OPTS+=" -Dlog4j.configuration=file://${log4j_config}"
+      OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=log4j"
+      OKAPI_JAVA_OPTS+=" -Dlog4j.configurationFile=${log4j_config}"
    fi
 
    # configure okapi host

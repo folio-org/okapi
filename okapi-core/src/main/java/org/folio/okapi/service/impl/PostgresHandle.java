@@ -1,18 +1,15 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.asyncsql.AsyncSQLClient;
 import io.vertx.ext.asyncsql.PostgreSQLClient;
 import io.vertx.ext.sql.SQLConnection;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 /*
  * PostgreSQL interface for Okapi.
@@ -56,35 +53,22 @@ class PostgresHandle {
         Integer x = Integer.parseInt(val);
         pgconf.put("port", x);
       } catch (NumberFormatException e) {
-        logger.warn("Bad postgres_port value: " + val + ": " + e.getMessage());
+        logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
-    val = Config.getSysConf("postgres_username", Config.getSysConf("postgres_user", "okapi", conf), conf);
-    if (!val.isEmpty()) {
-      pgconf.put("username", val);
-    }
-    val = Config.getSysConf("postgres_password", "okapi25", conf);
-    if (!val.isEmpty()) {
-      pgconf.put("password", val);
-    }
-    val = Config.getSysConf("postgres_database", "okapi", conf);
-    if (!val.isEmpty()) {
-      pgconf.put("database", val);
-    }
-    logger.debug("Connecting to postgres with " + pgconf.encode());
-    cli = PostgreSQLClient.createNonShared(vertx, pgconf);
+    pgconf.put("username", Config.getSysConf("postgres_username", "okapi", conf));
+    pgconf.put("password", Config.getSysConf("postgres_password", "okapi25", conf));
+    pgconf.put("database", Config.getSysConf("postgres_database", "okapi", conf));
+    cli = createSQLClient(vertx, pgconf);
     logger.debug("created");
   }
 
-  public void getConnection(Handler<ExtendedAsyncResult<SQLConnection>> fut) {
-    cli.getConnection(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        SQLConnection con = res.result();
-        fut.handle(new Success<>(con));
-      }
-    });
+  public void getConnection(Handler<AsyncResult<SQLConnection>> fut) {
+    cli.getConnection(fut);
+  }
+
+  protected AsyncSQLClient createSQLClient(Vertx vertx, JsonObject pgconf) {
+    return PostgreSQLClient.createNonShared(vertx, pgconf);
   }
 
   public PostgresQuery getQuery() {

@@ -1,8 +1,8 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Helper to return HTTP responses. In most cases, the ProxyContext has the same
@@ -27,7 +27,7 @@ public class HttpResponse {
   public static void responseError(RoutingContext ctx, int code, String msg) {
     String text = (msg == null) ? "(null)" : msg;
     if (code < 200 || code >= 300) {
-      logger.error("HTTP response code=" + code + " msg=" + text);
+      logger.error("HTTP response code={} msg={}", code, text);
     }
     HttpServerResponse res = responseText(ctx, code);
     if (!res.closed()) {

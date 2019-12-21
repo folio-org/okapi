@@ -3,13 +3,13 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.auth.MainVerticle;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.OkapiClient;

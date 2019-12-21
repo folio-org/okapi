@@ -6,7 +6,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.logging.Logger;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -14,6 +13,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
@@ -138,7 +138,7 @@ public class PullManager {
           briefList.add(new ModuleDescriptor(md, true));
         }
       }
-      logger.info("pull: " + mustAddList.size() + " MDs to insert");
+      logger.info("pull: {} MDs to insert", mustAddList.size());
       moduleManager.createList(mustAddList, true, true, true, res1 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -162,7 +162,7 @@ public class PullManager {
         }
         final String remoteUrl = resUrl.result().get(0);
         final String remoteVersion = resUrl.result().get(1);
-        logger.info("Remote registry at " + remoteUrl + " is version " + remoteVersion);
+        logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
         logger.info("pull smart");
         pullSmart(remoteUrl, resLocal.result(), fut);
       });

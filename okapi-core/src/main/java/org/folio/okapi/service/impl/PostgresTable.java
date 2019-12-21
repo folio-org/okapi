@@ -8,17 +8,13 @@ import io.vertx.ext.sql.ResultSet;
 import io.vertx.ext.sql.UpdateResult;
 import java.util.ArrayList;
 import java.util.List;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresTable<T> {
-
-  private final io.vertx.core.logging.Logger logger = OkapiLogger.get();
 
   private final String table;
   private final String jsonColumn;
@@ -43,14 +39,12 @@ class PostgresTable<T> {
       + " ( " + jsonColumn + " JSONB NOT NULL )";
     q.query(createSql, res1 -> {
       if (res1.failed()) {
-        logger.fatal(createSql + ": " + res1.cause().getMessage());
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
         String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
           + table + " USING btree((" + idIndex + "))";
         q.query(createSql1, res2 -> {
           if (res1.failed()) {
-            logger.fatal(createSql1 + ": " + res2.cause().getMessage());
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
             fut.handle(new Success<>());
@@ -69,7 +63,6 @@ class PostgresTable<T> {
       String dropSql = "DROP TABLE IF EXISTS " + table;
       q.query(dropSql, (ExtendedAsyncResult<ResultSet> res) -> {
         if (res.failed()) {
-          logger.fatal(dropSql + ": " + res.cause().getMessage());
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           create(reset, q, fut);
@@ -106,7 +99,7 @@ class PostgresTable<T> {
     jsa.add(doc.encode());
     q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         q.close();
         fut.handle(new Success<>());
@@ -121,13 +114,13 @@ class PostgresTable<T> {
     jsa.add(id);
     q.updateWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         UpdateResult result = res.result();
         if (result.getUpdated() > 0) {
           fut.handle(new Success<>());
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, id));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
         }
         q.close();
       }
@@ -139,7 +132,7 @@ class PostgresTable<T> {
     String sql = "SELECT " + jsonColumn + " FROM " + table;
     q.query(sql, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
         List<T> ml = new ArrayList<>();

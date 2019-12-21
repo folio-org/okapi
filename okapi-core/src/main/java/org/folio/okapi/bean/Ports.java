@@ -1,6 +1,6 @@
 package org.folio.okapi.bean;
 
-import io.vertx.core.logging.Logger;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -34,7 +34,7 @@ public class Ports {
       if (Boolean.FALSE.equals(portsEnabled[i])) {
         portsEnabled[i] = true;
         final int p = i + portStart;
-        logger.debug("allocate port " + p);
+        logger.debug("allocate port {}", p);
         return p;
       }
     }
@@ -47,7 +47,7 @@ public class Ports {
    */
   public void free(int p) {
     if (p > 0) {
-      logger.debug("free port " + p);
+      logger.debug("free port {}", p);
       if (p >= portStart && p < portEnd) {
         portsEnabled[p - portStart] = false;
       }

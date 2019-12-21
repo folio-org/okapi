@@ -5,13 +5,13 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -113,10 +113,10 @@ public class ProcessModuleHandle implements ModuleHandle {
           p = pb.start();
           p.waitFor(1, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
-          logger.warn("Caught InterruptedException " + ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           Thread.currentThread().interrupt();
         } catch (IOException ex) {
-          logger.warn("Caught IOException ", ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           future.fail(ex);
           return;
         }
@@ -128,7 +128,8 @@ public class ProcessModuleHandle implements ModuleHandle {
       future.complete();
     }, false, result -> {
       if (result.failed()) {
-        logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
+        logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
+          result.cause().getMessage());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
         start3(startFuture);
@@ -195,11 +196,11 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
           }
         } catch (IOException ex) {
-          logger.debug("Caught IOException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           return;
         } catch (InterruptedException ex) {
-          logger.debug("Caught InterruptedException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           Thread.currentThread().interrupt();
           return;

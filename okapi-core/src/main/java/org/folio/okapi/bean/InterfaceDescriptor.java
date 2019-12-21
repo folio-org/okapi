@@ -2,13 +2,10 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -29,7 +26,6 @@ public class InterfaceDescriptor {
   private String interfaceType; // enum: "proxy" (default), "system", "internal", multiple
   private RoutingEntry[] handlers;
   private String[] scope;
-  private final Logger logger = OkapiLogger.get();
 
   public InterfaceDescriptor() {
     this.id = null;
@@ -191,7 +187,6 @@ public class InterfaceDescriptor {
    * @return "" if ok, or a simple error message
    */
   public String validate(ProxyContext pc, String section, String mod) {
-    logger.debug("Validating ModuleInterface " + Json.encode(this));
     if (id == null) {
       return "id is missing for module " + mod;
     }

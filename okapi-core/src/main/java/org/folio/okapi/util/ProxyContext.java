@@ -3,11 +3,11 @@ package org.folio.okapi.util;
 import com.codahale.metrics.Timer;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
@@ -111,9 +111,9 @@ public class ProxyContext {
    */
   public String timeDiff() {
     if (timer != null) {
-      return " " + (timer.stop() / 1000) + "us";
+      return (timer.stop() / 1000) + "us";
     } else {
-      return " -";
+      return "-";
     }
   }
 
@@ -198,17 +198,18 @@ public class ProxyContext {
         mods.append(" ").append(mi.getModuleDescriptor().getId());
       }
     }
-    logger.info(reqId + " REQ "
-      + ctx.request().remoteAddress()
-      + " " + tenant + " " + ctx.request().method()
-      + " " + ctx.request().path()
-      + mods.toString());
+    if (logger.isInfoEnabled()) {
+      logger.info("{} REQ {} {} {} {} {}", reqId,
+        ctx.request().remoteAddress(), tenant, ctx.request().method(),
+        ctx.request().path(), mods);
+    }
   }
 
   public void logResponse(String module, String url, int statusCode) {
-    logger.info(reqId
-      + " RES " + statusCode + timeDiff() + " "
-      + module + " " + url);
+    if (logger.isInfoEnabled()) {
+      logger.info("{} RES {} {} {} {}", reqId,
+        statusCode, timeDiff(), module, url);
+    }
   }
 
   public void responseError(ErrorType t, Throwable cause) {
@@ -234,23 +235,23 @@ public class ProxyContext {
   }
 
   public void error(String msg) {
-    logger.error(getReqId() + " " + msg);
+    logger.error("{} {}", getReqId(), msg);
   }
 
   public void warn(String msg) {
-    logger.warn(getReqId() + " " + msg);
+    logger.warn("{} {}", getReqId(), msg);
   }
 
   public void warn(String msg, Throwable e) {
-    logger.warn(getReqId() + " " + msg, e);
+    logger.warn("{} {}", getReqId(), msg, e);
   }
 
   public void debug(String msg) {
-    logger.debug(getReqId() + " " + msg);
+    logger.debug("{} {}", getReqId(), msg);
   }
 
   public void trace(String msg) {
-    logger.trace(getReqId() + " " + msg);
+    logger.trace("{} {}", getReqId(), msg);
   }
 
 }

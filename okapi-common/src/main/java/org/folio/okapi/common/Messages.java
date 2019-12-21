@@ -1,7 +1,5 @@
 package org.folio.okapi.common;
 
-import io.vertx.core.logging.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -20,6 +18,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Provide language specific messages, caching the language files in memory.
@@ -127,7 +126,7 @@ public class Messages {
           lang = chunk1;
         }
         String resource = "/" + messagePath.getFileName().toString() + "/" + name;
-        log.info("Loading messages from " + resource + " ................................");
+        log.info("Loading messages from {}", resource);
         InputStream stream = getClass().getResourceAsStream(resource);
         Properties properties = new Properties();
         properties.load(stream);

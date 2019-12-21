@@ -7,22 +7,10 @@ import static org.junit.Assert.*;
 
 public class ModuleVersionReporterTest {
 
-  private ModuleVersionReporter m;
-
-  public ModuleVersionReporterTest() {
-  }
-
-  @Before
-  public void setUp() {
-    m = new ModuleVersionReporter("org.folio.okapi/okapi-common");
-  }
-
-  @After
-  public void tearDown() {
-  }
 
   @Test
   public void test1() {
+    ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi.okapi-common");
     assertNotNull(m);
     assertNull(m.getModule());
     assertNull(m.getVersion());
@@ -30,5 +18,14 @@ public class ModuleVersionReporterTest {
     assertEquals(40, m.getCommitId().length());
     assertNotNull(m.getRemoteOriginUrl());
     m.logStart();
+  }
+
+  @Test
+  public void test2() {
+    ModuleVersionReporter m = new ModuleVersionReporter("doesNotExist", "doesNotExist");
+    assertNull(m.getModule());
+    assertNull(m.getVersion());
+    assertNull(m.getCommitId());
+    assertNull(m.getRemoteOriginUrl());
   }
 }

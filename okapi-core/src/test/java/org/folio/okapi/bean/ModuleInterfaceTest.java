@@ -1,14 +1,10 @@
 package org.folio.okapi.bean;
 
-import io.vertx.core.logging.Logger;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-/**
- *
- * @author heikki
- */
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
 public class ModuleInterfaceTest {
 
