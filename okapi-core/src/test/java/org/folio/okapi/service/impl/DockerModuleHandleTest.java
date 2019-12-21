@@ -2,6 +2,7 @@ package org.folio.okapi.service.impl;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -78,7 +79,7 @@ public class DockerModuleHandleTest {
     Ports ports = new Ports(9232, 9233);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-      "mod-users-5.0.0-SNAPSHOT", ports, 9232);
+      "mod-users-5.0.0-SNAPSHOT", ports, 9232, new JsonObject());
 
     dh.getUrl("/version", res -> {
       if (res.failed()) {
