@@ -122,18 +122,16 @@ public class DeploymentManager {
       tim.close();
       return;
     }
-    String url = "http://" + host + ":" + usePort;
-
     if (id == null) {
       id = UUID.randomUUID().toString();
       md1.setInstId(id);
     }
     logger.info("deploy instId {}", id);
-    deploy2(fut, tim, usePort, md1, url);
+    deploy2(fut, tim, usePort, md1);
   }
 
   private void deploy2(Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
-    Timer.Context tim, int usePort, DeploymentDescriptor md1, String url) {
+    Timer.Context tim, int usePort, DeploymentDescriptor md1) {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
@@ -154,36 +152,40 @@ public class DeploymentManager {
         ports.free(usePort);
         fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10704", eres.cause().getMessage())));
         tim.close();
-      } else {
-        for (EnvEntry er : eres.result()) {
-          entries.put(er.getName(), er);
-        }
-        if (entries.size() > 0) {
-          EnvEntry[] nenv = new EnvEntry[entries.size()];
-          int i = 0;
-          for (Entry<String, EnvEntry> key : entries.entrySet()) {
-            nenv[i++] = key.getValue();
-          }
-          descriptor.setEnv(nenv);
-        }
-        ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, md1.getSrvcId(), ports, usePort);
-        mh.start(future -> {
-          if (future.succeeded()) {
-            DeploymentDescriptor md2
-              = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
-                url, md1.getDescriptor(), mh);
-            md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
-            list.put(md2.getInstId(), md2);
-            tim.close();
-            dm.add(md2, res -> fut.handle(new Success<>(md2)));
-          } else {
-            tim.close();
-            ports.free(usePort);
-            logger.warn("Deploying {} failed", md1.getSrvcId());
-            fut.handle(new Failure<>(ErrorType.USER, future.cause()));
-          }
-        });
+        return;
       }
+      for (EnvEntry er : eres.result()) {
+        entries.put(er.getName(), er);
+      }
+      if (entries.size() > 0) {
+        EnvEntry[] nenv = new EnvEntry[entries.size()];
+        int i = 0;
+        for (Entry<String, EnvEntry> key : entries.entrySet()) {
+          nenv[i++] = key.getValue();
+        }
+        descriptor.setEnv(nenv);
+      }
+      ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, md1.getSrvcId(), ports, usePort);
+      mh.start(future -> {
+        if (future.failed()) {
+          tim.close();
+          ports.free(usePort);
+          logger.warn("Deploying {} failed", md1.getSrvcId());
+          fut.handle(new Failure<>(ErrorType.USER, future.cause()));
+          return;
+        }
+        String moduleUrl = "http://" + host + ":" + usePort;
+        if (descriptor.getHost() != null) {
+          moduleUrl = "http://" + descriptor.getHost() + ":" + usePort;
+        }
+        DeploymentDescriptor md2
+          = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
+            moduleUrl, md1.getDescriptor(), mh);
+        md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
+        list.put(md2.getInstId(), md2);
+        tim.close();
+        dm.add(md2, res -> fut.handle(new Success<>(md2)));
+      });
     });
   }
 

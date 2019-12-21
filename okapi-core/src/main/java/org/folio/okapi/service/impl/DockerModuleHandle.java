@@ -68,7 +68,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.client = vertx.createHttpClient();
     this.logBuffer = new StringBuilder();
     this.logSkip = 0;
-    logger.info("Docker handler with native: " + vertx.isNativeTransportEnabled());
+    logger.info("Docker handler with native: {}", vertx.isNativeTransportEnabled());
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
     StringBuilder socketFile = new StringBuilder();
