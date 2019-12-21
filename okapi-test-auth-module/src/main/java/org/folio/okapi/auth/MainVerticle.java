@@ -5,9 +5,9 @@ import java.lang.management.ManagementFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -37,7 +37,8 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "9020"));
 
-    logger.info("Starting auth " + ManagementFactory.getRuntimeMXBean().getName() + " on port " + port);
+    logger.info("Starting auth {} on port {}",
+      ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.post("/authn/login").handler(BodyHandler.create());
     router.post("/authn/login").handler(auth::login);

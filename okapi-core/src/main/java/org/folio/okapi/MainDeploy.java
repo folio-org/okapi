@@ -15,16 +15,14 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
-import static java.lang.System.*;
-import static java.lang.Integer.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.common.Messages;
@@ -53,7 +51,7 @@ public class MainDeploy {
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     try {
       final Logger logger = OkapiLogger.get();
-      Messages.setLanguage(getProperty("lang", "en"));
+      Messages.setLanguage(System.getProperty("lang", "en"));
 
       if (args.length < 1) {
         printUsage();
@@ -95,12 +93,12 @@ public class MainDeploy {
   }
 
   private void enableMetrics() {
-    final String graphiteHost = getProperty("graphiteHost", "localhost");
-    final Integer graphitePort = parseInt(
-      getProperty("graphitePort", "2003"));
-    final TimeUnit tu = TimeUnit.valueOf(getProperty("reporterTimeUnit", "SECONDS"));
-    final Integer reporterPeriod = parseInt(getProperty("reporterPeriod", "1"));
-    final String hostName = getProperty("host", "localhost");
+    final String graphiteHost = System.getProperty("graphiteHost", "localhost");
+    final Integer graphitePort = Integer.parseInt(
+      System.getProperty("graphitePort", "2003"));
+    final TimeUnit tu = TimeUnit.valueOf(System.getProperty("reporterTimeUnit", "SECONDS"));
+    final Integer reporterPeriod = Integer.parseInt(System.getProperty("reporterPeriod", "1"));
+    final String hostName = System.getProperty("host", "localhost");
     DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
   }
 
@@ -161,8 +159,10 @@ public class MainDeploy {
     return false;
   }
 
+  // Suppress "Standard outputs should not be used directly"
+  @java.lang.SuppressWarnings({"squid:S106"})
   private void printUsage() {
-    out.println("Usage: command [options]\n"
+    System.out.println("Usage: command [options]\n"
       + "Commands:\n"
       + "  help         Display help\n"
       + "  cluster      Run in clustered mode\n"
@@ -189,19 +189,19 @@ public class MainDeploy {
         iFace.setEnabled(true).addInterface(clusterHost);
       }
     }
-    hConfig.setProperty("hazelcast.logging.type", "slf4j");
+    hConfig.setProperty("hazelcast.logging.type", "log4j");
 
     HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
     vopt.setClusterManager(mgr);
     EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {
-      logger.info("clusterHost=" + clusterHost);
+      logger.info("clusterHost={}", clusterHost);
       eventBusOptions.setHost(clusterHost);
     } else {
       logger.warn("clusterHost not set");
     }
     if (clusterPort != -1) {
-      logger.info("clusterPort=" + clusterPort);
+      logger.info("clusterPort={}", clusterPort);
       eventBusOptions.setPort(clusterPort);
     } else {
       logger.warn("clusterPort not set");

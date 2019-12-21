@@ -19,7 +19,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
@@ -45,6 +44,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -1644,7 +1644,18 @@ public class ModuleTest {
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
       .body(doc1a).post("/_/discovery/modules")
-      .then().statusCode(400);
+      .then().statusCode(400).body(containsString("missing nodeId"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // missing instId
+    final String docNoInstId = "{" + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(docNoInstId).post("/_/discovery/modules")
+      .then().statusCode(400).body(containsString("Needs instId"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 

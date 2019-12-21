@@ -7,12 +7,12 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
+import org.apache.logging.log4j.Logger;
 import static org.folio.okapi.common.ErrorType.*;
 
 /**
@@ -187,7 +187,6 @@ public class OkapiClient {
     } else {
       logger.debug(logReqMsg);
     }
-
     long t1 = System.nanoTime();
     HttpClientRequest req = httpClient.requestAbs(method, url, reqres -> {
       statusCode = reqres.statusCode();
@@ -203,7 +202,7 @@ public class OkapiClient {
       final Buffer buf = Buffer.buffer();
       respHeaders = reqres.headers();
       reqres.handler(b -> {
-        logger.debug(reqId + " OkapiClient Buffering response " + b.toString());
+        logger.debug("{} OkapiClient Buffering response {}", reqId, b);
         buf.appendBuffer(b);
       });
       reqres.endHandler(e -> {
@@ -223,21 +222,16 @@ public class OkapiClient {
         }
       });
       reqres.exceptionHandler(e -> {
-        logger.warn("OkapiClient exception 1 :", e);
-        fut.handle(new Failure<>(INTERNAL, e));
+        logger.warn("{} OkapiClient exception 1 :", reqId, e);
+        fut.handle(new Failure<>(INTERNAL, e.getMessage()));
       });
     });
-    req.exceptionHandler((Throwable x) -> {
-      String msg = x.getMessage();
-      logger.warn(reqId + " OkapiClient exception 2: " + msg);
-      // Connection gets closed. No idea why !!???
-      if (x.getCause() != null) {
-        logger.debug("   cause: " + x.getCause().getMessage());
-      }
-      fut.handle(new Failure<>(ANY, msg));
+    req.exceptionHandler(e -> {
+      logger.warn("{} OkapiClient exception 2:", reqId, e);
+      fut.handle(new Failure<>(ANY, e.getMessage()));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
-      logger.debug(reqId + " OkapiClient: adding header " + entry.getKey() + ": " + entry.getValue());
+      logger.debug("{} OkapiClient: adding header {}: {}", reqId, entry.getKey(), entry.getValue());
     }
     req.headers().addAll(headers);
     return req;

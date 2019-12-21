@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
@@ -20,11 +19,12 @@ import java.lang.management.ManagementFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
@@ -42,12 +42,12 @@ import org.folio.okapi.service.impl.Storage;
 import static org.folio.okapi.service.impl.Storage.InitMode.*;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.managers.InternalModule;
+import org.folio.okapi.service.impl.TenantStoreNull;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
-  private final LogHelper logHelper = new LogHelper();
 
   private ModuleManager moduleManager;
   private TenantManager tenantManager;
@@ -101,11 +101,11 @@ public class MainVerticle extends AbstractVerticle {
     String storageType = Config.getSysConf("storage", "inmemory", config);
     String loglevel = Config.getSysConf("loglevel", "", config);
     if (!loglevel.isEmpty()) {
-      logHelper.setRootLogLevel(loglevel);
+      LogHelper.setRootLogLevel(loglevel);
     } else {
       String lev = getenv("OKAPI_LOGLEVEL");
       if (lev != null && !lev.isEmpty()) {
-        logHelper.setRootLogLevel(loglevel);
+        LogHelper.setRootLogLevel(loglevel);
       }
     }
     final String logWaitMsStr = Config.getSysConf("logWaitMs", "", config);
@@ -168,7 +168,7 @@ public class MainVerticle extends AbstractVerticle {
       tenantManager = new TenantManager(moduleManager, tenantStore);
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
-      logger.info("Proxy using " + storageType + " storage");
+      logger.info("Proxy using {} storage", storageType);
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
               tenantManager, deploymentManager, discoveryManager,
@@ -180,7 +180,7 @@ public class MainVerticle extends AbstractVerticle {
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null);
       moduleManager.forceLocalMap(); // make sure it is not shared
-      tenantManager = new TenantManager(moduleManager, null);
+      tenantManager = new TenantManager(moduleManager, new TenantStoreNull());
       tenantManager.forceLocalMap();
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
@@ -208,7 +208,6 @@ public class MainVerticle extends AbstractVerticle {
     fut = fut.compose(x -> startListening());
     fut = fut.compose(x -> startRedeploy());
     fut.setHandler(x -> {
-      logger.info("fut setHandler");
       if (x.failed()) {
         logger.error(x.cause().getMessage());
       }
@@ -217,7 +216,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void checkDistributedLock(Promise<Void> promise) {
-    logger.info("Checking for working distributed lock. Cluster=" + vertx.isClustered());
+    logger.info("Checking for working distributed lock. Cluster={}", vertx.isClustered());
     vertx.sharedData().getLockWithTimeout("test", 10000, res -> {
       if (res.succeeded()) {
         logger.info("Distributed lock ok");
@@ -237,7 +236,7 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       storage.prepareDatabases(initMode, res -> {
         if (initMode != NORMAL) {
-          logger.info("Database operation " + initMode.toString() + " done. Exiting");
+          logger.info("Database operation {} done. Exiting", initMode);
           System.exit(0);
         }
         promise.handle(res);
@@ -273,7 +272,7 @@ public class MainVerticle extends AbstractVerticle {
         checkSuperTenant(okapiModule, promise);
         return;
       }
-      if (gres.getType() != NOT_FOUND) {
+      if (gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("checkInternalModules: Could not get "
           + okapiModule + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
@@ -347,7 +346,7 @@ public class MainVerticle extends AbstractVerticle {
         promise.complete();
         return;
       }
-      if (gres.getType() != NOT_FOUND) {
+      if (gres.getType() != ErrorType.NOT_FOUND) {
         logger.warn("checkSuperTenant: Could not get "
           + XOkapiHeaders.SUPERTENANT_ID + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
@@ -378,7 +377,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startEnv() {
-    logger.info("starting Env");
+    logger.info("starting env");
     Promise<Void> promise = Promise.promise();
     envManager.init(vertx, promise::handle);
     return promise.future();
@@ -449,11 +448,10 @@ public class MainVerticle extends AbstractVerticle {
       .listen(port,
         result -> {
           if (result.succeeded()) {
-            logger.info("API Gateway started PID "
-              + ManagementFactory.getRuntimeMXBean().getName()
-              + ". Listening on port " + port);
+            logger.info("API Gateway started PID {}. Listening on port {}",
+              ManagementFactory.getRuntimeMXBean().getName(), port);
           } else {
-            logger.fatal("createHttpServer failed for port " + port + " : " + result.cause());
+            logger.fatal("createHttpServer failed for port {}: {}", port, result.cause());
           }
           promise.handle(result.mapEmpty());
         }
@@ -467,7 +465,7 @@ public class MainVerticle extends AbstractVerticle {
       if (res.succeeded()) {
         logger.info("Deploy completed succesfully");
       } else {
-        logger.info("Deploy failed: " + res.cause());
+        logger.info("Deploy failed: {}", res.cause());
       }
       if (enableProxy) {
         tenantManager.startTimers(promise);

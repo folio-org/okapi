@@ -1,13 +1,14 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.ModuleStore;
@@ -42,7 +43,7 @@ public class Storage {
         break;
       case "inmemory":
         moduleStore = null;
-        tenantStore = null;
+        tenantStore = new TenantStoreNull();
         deploymentStore = new DeploymentStoreNull();
         envStore = new EnvStoreNull();
         break;
@@ -54,12 +55,12 @@ public class Storage {
         envStore = new EnvStorePostgres(postgres);
         break;
       default:
-        logger.fatal("Unknown storage type '" + type + "'");
-        System.exit(1);
+        logger.fatal("Unknown storage type '{}'", type);
+        throw new IllegalArgumentException("Unknown storage type: " + type);
     }
   }
 
-  public void prepareDatabases(InitMode initModeP, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void prepareDatabases(InitMode initModeP, Handler<AsyncResult<Void>> fut) {
     String dbInit = Config.getSysConf("mongo_db_init", "0", config);
     if (mongo != null && "1".equals(dbInit)) {
       initModeP = InitMode.INIT;
@@ -72,20 +73,31 @@ public class Storage {
       initModeP = InitMode.INIT;
     }
     final InitMode initMode = initModeP;
-    logger.info("prepareDatabases: " + initMode);
+    logger.info("prepareDatabases: {}", initMode);
 
     boolean reset = initMode != InitMode.NORMAL;
-    envStore.init(reset, res1
-      -> deploymentStore.init(reset, res2 -> {
-        if (tenantStore == null) {
-          fut.handle(new Success<>());
-        } else {
-          tenantStore.init(reset, res3
-            -> moduleStore.init(reset, fut)
-          );
-        }
-      })
-    );
+
+    Future<Void> future = Future.succeededFuture();
+    future.compose(res -> {
+      Promise promise = Promise.promise();
+      envStore.init(reset, promise.future());
+      return promise.future();
+    }).compose(res -> {
+      Promise promise = Promise.promise();
+      deploymentStore.init(reset, promise.future());
+      return promise.future();
+    }).compose(res -> {
+      Promise promise = Promise.promise();
+      tenantStore.init(reset, promise.future());
+      return promise.future();
+    }).compose(res -> {
+      if (moduleStore == null) {
+        return Future.succeededFuture();
+      }
+      Promise promise = Promise.promise();
+      moduleStore.init(reset, promise.future());
+      return promise.future();
+    }).setHandler(fut);
   }
 
   public ModuleStore getModuleStore() {

@@ -5,18 +5,16 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.sql.ResultSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -25,7 +23,6 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStorePostgres implements TenantStore {
 
-  private final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
   private static final String TABLE = "tenants";
   private static final String JSON_COLUMN = "tenantjson";
@@ -84,7 +81,7 @@ public class TenantStorePostgres implements TenantStore {
       jsa.add(id);
       q.queryWithParams(sql, jsa, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           updateModuleR(q, id, enabled, it, fut);
         }
@@ -99,22 +96,19 @@ public class TenantStorePostgres implements TenantStore {
   public void updateModules(String id, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.debug("updateModules " + Json.encode(enabled.keySet()));
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
     JsonArray jsa = new JsonArray();
     jsa.add(id);
     q.queryWithParams(sql, jsa, res -> {
       if (res.failed()) {
-        logger.fatal("updateModule failed: " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         ResultSet rs = res.result();
         if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
           q.close();
         } else {
-          logger.debug("update: replace");
           updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);
         }
       }
