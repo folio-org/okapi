@@ -1,12 +1,12 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.DeploymentStore;
@@ -36,14 +36,14 @@ public class DeploymentManagerTest {
     vertx.close(context.asyncAssertSuccess());
   }
 
-  private void createDeploymentManager(TestContext context, Ports ports, EnvStore envStore) {
+  private void createDeploymentManager(TestContext context, EnvStore envStore, JsonObject config) {
     Async async = context.async();
     EnvManager em = new EnvManager(envStore);
     DeploymentStore ds = new DeploymentStoreNull();
     em.init(vertx, res1 -> {
       DiscoveryManager dis = new DiscoveryManager(ds);
       dis.init(vertx, res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9230, "");
+        dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
         async.complete();
       });
     });
@@ -51,7 +51,7 @@ public class DeploymentManagerTest {
   }
 
   private void createDeploymentManager(TestContext context) {
-    DeploymentManagerTest.this.createDeploymentManager(context, new Ports(9231, 9239), new EnvStoreNull());
+    DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), new JsonObject());
   }
 
   @Test
@@ -97,8 +97,10 @@ public class DeploymentManagerTest {
 
   @Test
   public void testNoPortsAvailable(TestContext context) {
-    Ports ports = new Ports(9231, 9231); // no ports
-    DeploymentManagerTest.this.createDeploymentManager(context, ports, new EnvStoreNull());
+    JsonObject conf = new JsonObject();
+    conf.put("port_start", "9231");
+    conf.put("port_end", "9231");
+    DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), conf);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(

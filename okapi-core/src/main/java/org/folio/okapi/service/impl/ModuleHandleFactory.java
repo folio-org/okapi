@@ -1,6 +1,7 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.service.ModuleHandle;
@@ -12,13 +13,13 @@ public class ModuleHandleFactory {
   }
 
   public static ModuleHandle create(Vertx vertx, LaunchDescriptor desc, String id,
-    Ports ports, int port) {
+    Ports ports, int port, JsonObject config) {
 
     ModuleHandle mh = null;
     if (desc.getDockerImage() == null) {
       mh = new ProcessModuleHandle(vertx, desc, ports, port);
     } else if (desc.getDockerImage() != null) {
-      mh = new DockerModuleHandle(vertx, desc, id, ports, port);
+      mh = new DockerModuleHandle(vertx, desc, id, ports, port, config);
     }
     return mh;
   }

@@ -6,6 +6,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -21,6 +22,7 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.common.ErrorType;
@@ -47,18 +49,22 @@ public class DeploymentManager {
   private final int listenPort;
   private final String nodeName;
   private final EventBus eventBus;
+  private final JsonObject config;
   private Messages messages = Messages.getInstance();
 
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
-    String host, Ports ports, int listenPort, String nodeName) {
+    String host, int listenPort, String nodeName, JsonObject config) {
     this.dm = dm;
     this.em = em;
     this.vertx = vertx;
     this.host = host;
     this.listenPort = listenPort;
-    this.ports = ports;
     this.nodeName = nodeName;
     this.eventBus = vertx.eventBus();
+    this.config = config;
+    int portStart = Integer.parseInt(Config.getSysConf("port_start", Integer.toString(listenPort + 1), config));
+    int portEnd = Integer.parseInt(Config.getSysConf("port_end", Integer.toString(portStart + 10), config));
+    this.ports = new Ports(portStart, portEnd);
   }
 
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
@@ -150,7 +156,8 @@ public class DeploymentManager {
     em.get(eres -> {
       if (eres.failed()) {
         ports.free(usePort);
-        fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10704", eres.cause().getMessage())));
+        fut.handle(new Failure<>(ErrorType.INTERNAL,
+          messages.getMessage("10704", eres.cause().getMessage())));
         tim.close();
         return;
       }
@@ -165,7 +172,8 @@ public class DeploymentManager {
         }
         descriptor.setEnv(nenv);
       }
-      ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor, md1.getSrvcId(), ports, usePort);
+      ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
+        md1.getSrvcId(), ports, usePort, config);
       mh.start(future -> {
         if (future.failed()) {
           tim.close();

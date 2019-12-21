@@ -22,6 +22,7 @@ import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -52,8 +53,9 @@ public class DockerModuleHandle implements ModuleHandle {
   static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    String id, Ports ports, int port) {
-    this(vertx, desc, id, ports, port, System.getProperty("dockerUrl", DEFAULT_DOCKER_URL));
+    String id, Ports ports, int port, JsonObject config) {
+    this(vertx, desc, id, ports, port,
+      Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
   }
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
