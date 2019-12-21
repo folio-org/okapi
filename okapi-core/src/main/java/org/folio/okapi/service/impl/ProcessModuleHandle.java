@@ -47,7 +47,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.port = port;
     this.ports = ports;
     this.p = null;
-    this.tcpPortWaiting = new TcpPortWaiting(vertx, port);
+    this.tcpPortWaiting = new TcpPortWaiting(vertx, desc.getHost(), port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }

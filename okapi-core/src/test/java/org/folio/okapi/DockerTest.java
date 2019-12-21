@@ -287,7 +287,7 @@ public class DockerTest {
       + "    \"waitIterations\" : 5," + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"HostConfig\": { \"PortBindings\": { \"8090/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8090/tcp\": [{ \"HostIp\" : \"127.0.0.1\", \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";
@@ -342,10 +342,11 @@ public class DockerTest {
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
+      + "    \"host\" : \"ip6-localhost\"," + LS
       + "    \"waitIterations\" : 10," + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"HostConfig\": { \"PortBindings\": { \"8081/tcp\": [{ \"HostIp\":\"127.0.0.1\", \"HostPort\": \"%p\" }] } }" + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8081/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";

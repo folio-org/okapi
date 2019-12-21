@@ -18,21 +18,23 @@ public class TcpPortWaiting {
   private Messages messages = Messages.getInstance();
 
   private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
-  private int port;
-  private Vertx vertx;
+  private final Vertx vertx;
+  private final String host;
+  private final int port;
 
-  public TcpPortWaiting(Vertx vertx, int port) {
+  public TcpPortWaiting(Vertx vertx, String host, int port) {
     this.vertx = vertx;
+    this.host = host != null ? host : "localhost";
     this.port = port;
   }
 
   private void tryConnect(Process process, int count, Handler<AsyncResult<Void>> startFuture) {
     NetClientOptions options = new NetClientOptions().setConnectTimeout(MILLISECONDS);
     NetClient c = vertx.createNetClient(options);
-    logger.info("tryConnect() port {} count {}", port, count);
-    c.connect(port, "localhost", res -> {
+    logger.info("tryConnect() host {} port {} count {}", host, port, count);
+    c.connect(port, host, res -> {
       if (res.succeeded()) {
-        logger.info("Connected to service at port {} count {}", port, count);
+        logger.info("Connected to service at host {} port {} count {}", host, port, count);
         NetSocket socket = res.result();
         socket.close();
         if (process != null) {
