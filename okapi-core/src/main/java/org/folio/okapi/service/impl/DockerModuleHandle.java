@@ -38,6 +38,7 @@ public class DockerModuleHandle implements ModuleHandle {
   private final String image;
   private final String[] cmd;
   private final String dockerUrl;
+  private final String containerHost;
   private final EnvEntry[] env;
   private final AnyDescriptor dockerArgs;
   private final boolean dockerPull;
@@ -45,24 +46,19 @@ public class DockerModuleHandle implements ModuleHandle {
   private final StringBuilder logBuffer;
   private int logSkip;
   private final String id;
-  private Messages messages = Messages.getInstance();
-  private TcpPortWaiting tcpPortWaiting;
+  private final Messages messages = Messages.getInstance();
+  private final TcpPortWaiting tcpPortWaiting;
   private String containerId;
   private final SocketAddress socketAddress;
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
   static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
   public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    String id, Ports ports, int port, JsonObject config) {
-    this(vertx, desc, id, ports, port,
-      Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
-  }
-
-  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    String id, Ports ports, int port, String u) {
+    String id, Ports ports, String containerHost, int port, JsonObject config) {
     this.hostPort = port;
     this.ports = ports;
     this.id = id;
+    this.containerHost = containerHost;
     this.image = desc.getDockerImage();
     this.cmd = desc.getDockerCMD();
     this.env = desc.getEnv();
@@ -74,13 +70,14 @@ public class DockerModuleHandle implements ModuleHandle {
     Boolean b = desc.getDockerPull();
     this.dockerPull = b == null || b.booleanValue();
     StringBuilder socketFile = new StringBuilder();
-    this.dockerUrl = setupDockerAddress(socketFile, u);
+    this.dockerUrl = setupDockerAddress(socketFile,
+      Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
       socketAddress = SocketAddress.domainSocketAddress(socketFile.toString());
     } else {
       socketAddress = null;
     }
-    tcpPortWaiting = new TcpPortWaiting(vertx, desc.getHost(), port);
+    tcpPortWaiting = new TcpPortWaiting(vertx, containerHost, port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }
@@ -299,7 +296,7 @@ public class DockerModuleHandle implements ModuleHandle {
       }
     }
     String doc = j.encodePrettily();
-    doc = doc.replace("%p", Integer.toString(hostPort));
+    doc = doc.replace("%p", Integer.toString(hostPort)).replace("%c", containerHost);
     logger.info("createContainer {}", doc);
     postUrlBody("/containers/create", doc, future);
   }

@@ -20,7 +20,6 @@ public class LaunchDescriptor {
   private EnvEntry[] env;
   private AnyDescriptor dockerArgs;
   private Integer waitInterations;
-  private String host;
 
   public String getCmdlineStart() {
     return cmdlineStart;
@@ -92,14 +91,6 @@ public class LaunchDescriptor {
 
   public void setWaitIterations(Integer waitIterations) {
     this.waitInterations = waitIterations;
-  }
-
-  public String getHost() {
-    return host;
-  }
-
-  public void setHost(String host) {
-    this.host = host;
   }
 
 }

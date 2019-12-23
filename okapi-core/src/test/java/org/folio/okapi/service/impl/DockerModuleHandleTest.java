@@ -11,6 +11,7 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -58,9 +59,10 @@ public class DockerModuleHandleTest {
     ld.setDockerImage("folioci/mod-users:5.0.0-SNAPSHOT");
     ld.setWaitIterations(3);
     Ports ports = new Ports(9232, 9233);
+    JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:9231");
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-      "mod-users-5.0.0-SNAPSHOT", ports, 9232, "tcp://localhost:9231");
+      "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     dh.start(res -> {
       context.assertTrue(res.failed());
@@ -79,9 +81,10 @@ public class DockerModuleHandleTest {
     Ports ports = new Ports(9232, 9233);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-      "mod-users-5.0.0-SNAPSHOT", ports, 9232, new JsonObject());
+      "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
     dh.getUrl("/version", res -> {
+      Assume.assumeTrue(res.succeeded());
       if (res.failed()) {
         logger.warn(res.cause().getMessage());
       }

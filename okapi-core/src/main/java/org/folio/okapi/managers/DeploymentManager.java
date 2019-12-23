@@ -172,8 +172,13 @@ public class DeploymentManager {
         }
         descriptor.setEnv(nenv);
       }
+      String moduleHost = "localhost";
+      if (descriptor.getDockerImage() != null) {
+        moduleHost = Config.getSysConf("containerHost", "localhost", config);
+      }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
-        md1.getSrvcId(), ports, usePort, config);
+        md1.getSrvcId(), ports, moduleHost, usePort, config);
+      String moduleUrl = "http://" + moduleHost + ":" + usePort;
       mh.start(future -> {
         if (future.failed()) {
           tim.close();
@@ -182,8 +187,6 @@ public class DeploymentManager {
           fut.handle(new Failure<>(ErrorType.USER, future.cause()));
           return;
         }
-        String moduleHost = descriptor.getHost() != null ? descriptor.getHost() : host;
-        String moduleUrl = "http://" + moduleHost + ":" + usePort;
         DeploymentDescriptor md2
           = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
             moduleUrl, descriptor, mh);

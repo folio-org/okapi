@@ -67,6 +67,7 @@ public class DockerTest {
       }
       DeploymentOptions opt = new DeploymentOptions()
         .setConfig(new JsonObject()
+          .put("containerHost", "localhost")
           .put("port", Integer.toString(port))
           .put("port_start", Integer.toString(port + 4))
           .put("port_end", Integer.toString(port + 6)));
@@ -287,7 +288,7 @@ public class DockerTest {
       + "    \"waitIterations\" : 5," + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"HostConfig\": { \"PortBindings\": { \"8090/tcp\": [{ \"HostIp\" : \"127.0.0.1\", \"HostPort\": \"%p\" }] } }" + LS
+      + "      \"HostConfig\": { \"PortBindings\": { \"8090/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";
@@ -342,11 +343,11 @@ public class DockerTest {
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
-      + "    \"host\" : \"ip6-localhost\"," + LS
       + "    \"waitIterations\" : 10," + LS
       + "    \"dockerImage\" : \"folioci/mod-users:5.0.0-SNAPSHOT\"," + LS
       + "    \"dockerArgs\" : {" + LS
-      + "      \"HostConfig\": { \"PortBindings\": { \"8081/tcp\": [{ \"HostPort\": \"%p\" }] } }" + LS
+      + "      \"HostConfig\": {" + LS
+      + "         \"PortBindings\": { \"8081/tcp\": [{ \"HostIp\": \"%c\", \"HostPort\": \"%p\" }] } }" + LS
       + "    }" + LS
       + "  }" + LS
       + "}";

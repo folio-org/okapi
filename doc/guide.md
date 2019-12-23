@@ -2651,6 +2651,8 @@ there happens to be one, Okapi will remove it.  Note that it may end
 with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
 is. Defaults to `unix:///var/run/docker.sock`.
+* `containerHost`: Host where containers are running (as seen from Okapi).
+Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
 * `postgres_port` : PostgreSQL port. Defaults to 5432.
 * `postgres_username` : PostgreSQL username. Defaults to `okapi`.
@@ -2771,6 +2773,11 @@ should be listening on that port after successful deployment (serving
 HTTP requests).  The port is passed as `%p` in the value of properties
 `exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
 exposed port (`EXPOSE`) to the dynamically assigned port.
+
+When starting Docker modules can be accessed from Okapi at the host
+given by setting `containerHost` - defaults to `localhost`.
+The value of `containerHost` can be referred to as `%c` in in
+`dockerArgs` of the deployment.
 
 It is also possible to refer to an already-launched process (maybe
 running in your development IDE), by POSTing a DeploymentDescriptor to

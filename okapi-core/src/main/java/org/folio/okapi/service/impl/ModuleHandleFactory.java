@@ -13,13 +13,13 @@ public class ModuleHandleFactory {
   }
 
   public static ModuleHandle create(Vertx vertx, LaunchDescriptor desc, String id,
-    Ports ports, int port, JsonObject config) {
+    Ports ports, String moduleHost, int port, JsonObject config) {
 
     ModuleHandle mh = null;
     if (desc.getDockerImage() == null) {
       mh = new ProcessModuleHandle(vertx, desc, ports, port);
     } else if (desc.getDockerImage() != null) {
-      mh = new DockerModuleHandle(vertx, desc, id, ports, port, config);
+      mh = new DockerModuleHandle(vertx, desc, id, ports, moduleHost, port, config);
     }
     return mh;
   }

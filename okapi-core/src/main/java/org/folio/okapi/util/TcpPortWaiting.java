@@ -24,7 +24,7 @@ public class TcpPortWaiting {
 
   public TcpPortWaiting(Vertx vertx, String host, int port) {
     this.vertx = vertx;
-    this.host = host != null ? host : "localhost";
+    this.host = host;
     this.port = port;
   }
 

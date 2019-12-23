@@ -39,10 +39,6 @@
       "description": "Number of iterations that Okapi waits for module to be fully ready",
       "type": "integer"
     },
-    "host": {
-      "description": "Host at which Okapi can access the service (default: localhost)",
-      "type": "string"
-    },
     "env": {
       "description": "Default environment for deployment",
       "$ref": "EnvEntryList.json"
