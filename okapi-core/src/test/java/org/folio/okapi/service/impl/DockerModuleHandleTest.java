@@ -94,15 +94,21 @@ public class DockerModuleHandleTest {
         async.complete();
         return;
       }
-      dh.deleteUrl("/version", res2 -> { // provoke 404 not found
+      dh.deleteUrl("/version", "msg", res2 -> { // provoke 404 not found
         context.assertTrue(res2.failed());
         if (res2.failed()) {
-          context.assertTrue(res2.cause().getMessage().contains("HTTP error 404"),
+          context.assertTrue(res2.cause().getMessage().startsWith("msg HTTP error 404"),
             res2.cause().getMessage());
         }
-        async.complete();
+        dh.postUrlJson("/version", "msg", "{}", res3 -> { // provoke 404 not found
+          context.assertTrue(res2.failed());
+          if (res3.failed()) {
+            context.assertTrue(res3.cause().getMessage().startsWith("msg HTTP error 404"),
+              res3.cause().getMessage());
+          }
+          async.complete();
+        });
       });
-
     });
   }
 }

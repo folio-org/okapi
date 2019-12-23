@@ -131,31 +131,28 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
-  void deleteUrl(String url,
+  void deleteUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.DELETE, url,
-      res -> handle204(res, "deleteContainer", future));
+      res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
     logger.info("start container {} for image {}", containerId, image);
-    postUrl("/containers/" + containerId + "/start",
-      "startContainer", future);
+    postUrl("/containers/" + containerId + "/start", "startContainer", future);
   }
 
   private void stopContainer(Handler<AsyncResult<Void>> future) {
     logger.info("stop container {} image {}", containerId, image);
-    postUrl("/containers/" + containerId + "/stop",
-      "stopContainer", future);
+    postUrl("/containers/" + containerId + "/stop", "stopContainer", future);
   }
 
   private void deleteContainer(Handler<AsyncResult<Void>> future) {
     logger.info("delete container {} image {}", containerId, image);
-    deleteUrl("/containers/" + containerId,
-      future);
+    deleteUrl("/containers/" + containerId, "deleteContainer", future);
   }
 
   private void logHandler(Buffer b) {
@@ -229,10 +226,10 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private void pullImage(Handler<AsyncResult<Void>> future) {
     logger.info("pull image {}", image);
-    postUrlBody("/images/create?fromImage=" + image, "", future);
+    postUrlJson("/images/create?fromImage=" + image, "pullImage", "", future);
   }
 
-  private void postUrlBody(String url, String doc,
+  void postUrlJson(String url, String msg, String doc,
     Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.POST, url, res -> {
@@ -244,7 +241,7 @@ public class DockerModuleHandle implements ModuleHandle {
           containerId = body.toJsonObject().getString("Id");
           future.handle(Future.succeededFuture());
         } else {
-          String m = "createContainer HTTP error "
+          String m = msg + " HTTP error "
             + Integer.toString(res.statusCode()) + "\n"
             + body.toString();
           logger.error(m);
@@ -298,7 +295,7 @@ public class DockerModuleHandle implements ModuleHandle {
     String doc = j.encodePrettily();
     doc = doc.replace("%p", Integer.toString(hostPort)).replace("%c", containerHost);
     logger.info("createContainer {}", doc);
-    postUrlBody("/containers/create", doc, future);
+    postUrlJson("/containers/create", "createContainer", doc, future);
   }
 
   private int getExposedPort(JsonObject b) {
