@@ -172,7 +172,7 @@ public class DeploymentManager {
         }
         descriptor.setEnv(nenv);
       }
-      String moduleHost = "localhost";
+      String moduleHost = host;
       if (descriptor.getDockerImage() != null) {
         moduleHost = Config.getSysConf("containerHost", "localhost", config);
       }
