@@ -21,7 +21,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
@@ -39,7 +38,7 @@ import org.folio.okapi.managers.DiscoveryManager;
 import org.folio.okapi.managers.EnvManager;
 import org.folio.okapi.managers.PullManager;
 import org.folio.okapi.service.impl.Storage;
-import static org.folio.okapi.service.impl.Storage.InitMode.*;
+import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.managers.InternalModule;
 import org.folio.okapi.service.impl.TenantStoreNull;
@@ -57,7 +56,7 @@ public class MainVerticle extends AbstractVerticle {
   private DiscoveryManager discoveryManager;
   private ClusterManager clusterManager;
   private Storage storage;
-  private Storage.InitMode initMode = NORMAL;
+  private Storage.InitMode initMode = InitMode.NORMAL;
   private int port;
   private String okapiVersion = null;
   private Messages messages = Messages.getInstance();
@@ -81,9 +80,6 @@ public class MainVerticle extends AbstractVerticle {
 
     JsonObject config = context.config();
     port = Integer.parseInt(Config.getSysConf("port", "9130", config));
-    int portStart = Integer.parseInt(Config.getSysConf("port_start", Integer.toString(port + 1), config));
-    int portEnd = Integer.parseInt(Config.getSysConf("port_end", Integer.toString(portStart + 10), config));
-
     String okapiVersion2 = Config.getSysConf("okapiVersion", null, config);
     if (okapiVersion2 != null) {
       okapiVersion = okapiVersion2;
@@ -120,11 +116,11 @@ public class MainVerticle extends AbstractVerticle {
         enableProxy = true;
         break;
       case "purgedatabase":
-        initMode = PURGE;
+        initMode = InitMode.PURGE;
         enableProxy = true; // so we get to initialize the database. We exit soon after anyway
         break;
       case "initdatabase":
-        initMode = INIT;
+        initMode = InitMode.INIT;
         enableProxy = true;
         break;
       default: // cluster and dev
@@ -141,9 +137,8 @@ public class MainVerticle extends AbstractVerticle {
       discoveryManager.setClusterManager(clusterManager);
     }
     if (enableDeployment) {
-      Ports ports = new Ports(portStart, portEnd);
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
-        host, ports, port, nodeName);
+        host, port, nodeName, config);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -235,7 +230,7 @@ public class MainVerticle extends AbstractVerticle {
       promise.complete();
     } else {
       storage.prepareDatabases(initMode, res -> {
-        if (initMode != NORMAL) {
+        if (initMode != InitMode.NORMAL) {
           logger.info("Database operation {} done. Exiting", initMode);
           System.exit(0);
         }

@@ -2650,7 +2650,9 @@ what ever port specified. There should be no trailing slash, but if
 there happens to be one, Okapi will remove it.  Note that it may end
 with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
-is. Defaults to `http://localhost:4243`.
+is. Defaults to `unix:///var/run/docker.sock`.
+* `containerHost`: Host where containers are running (as seen from Okapi).
+Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
 * `postgres_port` : PostgreSQL port. Defaults to 5432.
 * `postgres_username` : PostgreSQL username. Defaults to `okapi`.
@@ -2772,6 +2774,11 @@ HTTP requests).  The port is passed as `%p` in the value of properties
 `exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
 exposed port (`EXPOSE`) to the dynamically assigned port.
 
+When starting Docker modules can be accessed from Okapi at the host
+given by setting `containerHost` - defaults to `localhost`.
+The value of `containerHost` can be referred to as `%c` in in
+`dockerArgs` of the deployment.
+
 It is also possible to refer to an already-launched process (maybe
 running in your development IDE), by POSTing a DeploymentDescriptor to
 `/_/discovery`, with no nodeId and no LaunchDescriptor, but with the
@@ -2779,12 +2786,19 @@ URL where the module is running.
 
 ### Docker
 
-Okapi uses the [Docker Engine
-API](https://docs.docker.com/engine/api/) for launching modules. The
-Docker daemon must be listening on a TCP port in order for that to
-work because Okapi does not deal with HTTP over Unix local
-socket. Enabling that for the Docker daemon depends on the host
-system.  For systemd based systems, the
+Okapi uses the [Docker Engine API](https://docs.docker.com/engine/api/)
+for managing modules. Okapi can be configured to use the local socket
+(unix://[/path to socket]) or the HTTP TCP listener (tcp://[host]:[port][path]).
+Note that unix domain socket option is only avaiable on Linux platforms
+and Okapi 2.36 and later.
+
+Note that when the unix domain socket option is used the user-ID of
+the Okapi process must be part of the `docker` group.
+
+For earlier versions of Okapi, Docker must be listening on a TCP port in
+order to be used. Here's how to enable it on port 4243, on a systemd
+based host:
+
 `/lib/systemd/system/docker.service` must be adjusted and the
 `ExecStart` line should include the `-H` option with a tcp listening
 host+port. For example `-H tcp://127.0.0.1:4243` .
