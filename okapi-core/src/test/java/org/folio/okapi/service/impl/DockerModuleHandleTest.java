@@ -66,6 +66,10 @@ public class DockerModuleHandleTest {
 
     dh.start(res -> {
       context.assertTrue(res.failed());
+      if (res.failed()) {
+        context.assertTrue(res.cause().getMessage().contains("Connection refused"),
+          res.cause().getMessage());
+      }
       async.complete();
     });
   }
@@ -87,8 +91,18 @@ public class DockerModuleHandleTest {
       Assume.assumeTrue(res.succeeded());
       if (res.failed()) {
         logger.warn(res.cause().getMessage());
+        async.complete();
+        return;
       }
-      async.complete();
+      dh.deleteUrl("/version", res2 -> { // provoke 404 not found
+        context.assertTrue(res2.failed());
+        if (res2.failed()) {
+          context.assertTrue(res2.cause().getMessage().contains("HTTP error 404"),
+            res2.cause().getMessage());
+        }
+        async.complete();
+      });
+
     });
   }
 }

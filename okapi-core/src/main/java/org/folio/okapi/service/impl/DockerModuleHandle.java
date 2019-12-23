@@ -122,7 +122,7 @@ public class DockerModuleHandle implements ModuleHandle {
     }
   }
 
-  private void postUrl(String url, String msg,
+  void postUrl(String url, String msg,
     Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.POST, url,
@@ -131,7 +131,7 @@ public class DockerModuleHandle implements ModuleHandle {
     req.end();
   }
 
-  private void deleteUrl(String url,
+  void deleteUrl(String url,
     Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.DELETE, url,
