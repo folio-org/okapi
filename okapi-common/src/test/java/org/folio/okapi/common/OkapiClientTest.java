@@ -95,7 +95,7 @@ public class OkapiClientTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     server = vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         PORT,
         result -> {

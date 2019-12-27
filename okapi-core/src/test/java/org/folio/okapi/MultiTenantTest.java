@@ -11,6 +11,7 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -138,7 +139,8 @@ public class MultiTenantTest {
     Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
 
-    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+    HttpClientLegacy.delete(httpClient, port, "localhost",
+      "/_/discovery/modules", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         httpClient.close();

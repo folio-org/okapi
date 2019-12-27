@@ -45,6 +45,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -176,7 +177,8 @@ public class ModuleTest {
 
   private void td(TestContext context) {
     if (locationAuthDeployment != null) {
-      httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationAuthDeployment = null;
@@ -186,7 +188,8 @@ public class ModuleTest {
       return;
     }
     if (locationSampleDeployment != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         locationSampleDeployment = null;
         td(context);
@@ -197,7 +200,8 @@ public class ModuleTest {
       return;
     }
     if (locationHeaderDeployment != null) {
-      httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationHeaderDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
@@ -207,7 +211,8 @@ public class ModuleTest {
       return;
     }
     if (locationPreDeployment != null) {
-      httpClient.delete(port, "localhost", locationPreDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationPreDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPreDeployment = null;
@@ -217,7 +222,8 @@ public class ModuleTest {
       return;
     }
     if (locationPostDeployment != null) {
-      httpClient.delete(port, "localhost", locationPostDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationPostDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPostDeployment = null;

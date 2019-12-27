@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
@@ -188,7 +189,12 @@ public class OkapiClient {
       logger.debug(logReqMsg);
     }
     long t1 = System.nanoTime();
-    HttpClientRequest req = httpClient.requestAbs(method, url, reqres -> {
+    HttpClientRequest req = httpClient.requestAbs(method, url, req1 -> {
+      if (req1.failed()) {
+        fut.handle(new Failure<>(ANY, req1.cause()));
+        return;
+      }
+      HttpClientResponse reqres = req1.result();
       statusCode = reqres.statusCode();
       long ns = System.nanoTime() - t1;
       String logResMsg = reqId
@@ -225,10 +231,6 @@ public class OkapiClient {
         logger.warn("{} OkapiClient exception 1 :", reqId, e);
         fut.handle(new Failure<>(INTERNAL, e.getMessage()));
       });
-    });
-    req.exceptionHandler(e -> {
-      logger.warn("{} OkapiClient exception 2:", reqId, e);
-      fut.handle(new Failure<>(ANY, e.getMessage()));
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
       logger.debug("{} OkapiClient: adding header {}: {}", reqId, entry.getKey(), entry.getValue());

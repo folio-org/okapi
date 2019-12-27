@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -55,7 +56,7 @@ public class PauseResumeTest {
     router.post("/test2").handler(this::myStreamHandle2);
 
     server = vertx.createHttpServer()
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(PORT, context.asyncAssertSuccess());
   }
 
@@ -69,7 +70,7 @@ public class PauseResumeTest {
     Async async = context.async();
 
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.post(PORT, "localhost", "/test1", res -> {
+    HttpClientRequest req = HttpClientLegacy.post(cli, PORT, "localhost", "/test1", res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(res2 -> {
@@ -86,7 +87,7 @@ public class PauseResumeTest {
     Async async = context.async();
 
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.post(PORT, "localhost", "/test2", res -> {
+    HttpClientRequest req = HttpClientLegacy.post(cli, PORT, "localhost", "/test2", res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(res2 -> {
@@ -103,7 +104,7 @@ public class PauseResumeTest {
     Async async = context.async();
 
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.post(PORT, "localhost", "/test2", res -> {
+    HttpClientRequest req = HttpClientLegacy.post(cli, PORT, "localhost", "/test2", res -> {
       Buffer b = Buffer.buffer();
       res.handler(b::appendBuffer);
       res.endHandler(res2 -> {
@@ -114,4 +115,21 @@ public class PauseResumeTest {
     });
     req.end();
   }
+
+  @Test
+  public void test4(TestContext context) {
+    Async async = context.async();
+    HttpClient cli = vertx.createHttpClient();
+    HttpClientRequest req = HttpClientLegacy.request(cli, HttpMethod.POST, PORT, "localhostxxx", "/test2",  res -> {
+      context.assertTrue(false);
+      async.complete();
+    });
+    req.exceptionHandler(res -> {
+      context.assertTrue(res.getMessage().contains("localhostxxx"), res.getMessage());
+      async.complete();
+    });
+    req.end();
+    async.await();
+  }
+
 }

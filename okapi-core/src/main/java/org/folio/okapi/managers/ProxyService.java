@@ -586,7 +586,15 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
-    HttpClientRequest cReq = httpClient.requestAbs(meth, url, res -> {
+    HttpClientRequest cReq = httpClient.requestAbs(meth, url, res1 -> {
+      if (res1.failed()) {
+        String e = res1.cause().getMessage();
+        pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
+        pc.responseError(500, messages.getMessage("10107",
+          mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+        return;
+      }
+      HttpClientResponse res = res1.result();
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
@@ -605,12 +613,6 @@ public class ProxyService {
         res.exceptionHandler(e
           -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
       }
-    });
-    cReq.exceptionHandler(e -> {
-      pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": ", e);
-      String headersMsg = dumpHeaders(cReq.headers());
-      pc.responseError(500, messages.getMessage("10107", mi.getModuleDescriptor().getId(),
-        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     pc.trace("ProxyRequestHttpClient request buf '"
@@ -732,7 +734,15 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res -> {
+      makeUrl(mi, ctx), res1 -> {
+      if (res1.failed()) {
+        String e = res1.cause().getMessage();
+        pc.warn("proxyRequestResponse failure: " + mi.getUrl() + ": " + e);
+        pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(),
+          mi.getUrl(), e));
+        return;
+      }
+      HttpClientResponse res = res1.result();
       fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
@@ -755,12 +765,6 @@ public class ProxyService {
         makeTraceHeader(mi, res.statusCode(), pc);
         proxyResponseImmediate(pc, res, null, new LinkedList<>());
       }
-    });
-    cReq.exceptionHandler(e -> {
-      pc.warn("proxyRequestResponse failure: " + mi.getUrl() + ": ", e);
-      String headersMsg = dumpHeaders(cReq.headers());
-      pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(),
-        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     if (bcontent != null) {
@@ -802,7 +806,15 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res -> {
+      makeUrl(mi, ctx), res1 -> {
+      if (res1.failed()) {
+        String e = res1.cause().getMessage();
+        pc.warn("proxyHeaders failure: " + mi.getUrl() + ": " + e);
+        pc.responseError(500, messages.getMessage("10109",
+          mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+        return;
+      }
+      HttpClientResponse res = res1.result();
       Iterator<ModuleInstance> newIt;
       if (res.statusCode() < 200 || res.statusCode() >= 300) {
         newIt = getNewIterator(it, mi);
@@ -829,12 +841,6 @@ public class ProxyService {
         makeTraceHeader(mi, res.statusCode(), pc);
         proxyResponseImmediate(pc, stream, bcontent, cReqs);
       }
-    });
-    cReq.exceptionHandler(e -> {
-      pc.warn("proxyHeaders failure: " + mi.getUrl() + ": ", e);
-      String headersMsg = dumpHeaders(cReq.headers());
-      pc.responseError(500, messages.getMessage("10109", mi.getModuleDescriptor().getId(),
-        mi.getUrl(), e, headersMsg));
     });
     copyHeaders(cReq, ctx, mi);
     cReq.end();

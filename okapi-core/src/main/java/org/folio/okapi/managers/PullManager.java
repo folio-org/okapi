@@ -6,6 +6,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -49,7 +50,14 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res -> {
+    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
+      if (res1.failed()) {
+        logger.info("pull for " + baseUrl + " failed with status "
+          + res1.cause().getMessage());
+        getRemoteUrl(it, fut);
+        return;
+      }
+      HttpClientResponse res = res1.result();
       res.handler(body::appendBuffer);
       res.endHandler(x -> {
         if (res.statusCode() != 200) {
@@ -68,11 +76,6 @@ public class PullManager {
         -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
       );
     });
-    req.exceptionHandler(res -> {
-      logger.info("pull for " + baseUrl + " failed with status "
-        + res.getMessage());
-      getRemoteUrl(it, fut);
-    });
     req.end();
   }
 
@@ -88,7 +91,12 @@ public class PullManager {
       url += "?full=true";
     }
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res -> {
+    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause().getMessage()));
+        return;
+      }
+      HttpClientResponse res = res1.result();
       res.handler(body::appendBuffer);
       res.endHandler(x -> {
         if (res.statusCode() != 200) {
@@ -102,8 +110,6 @@ public class PullManager {
       res.exceptionHandler(x
         -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     });
-    req.exceptionHandler(x
-      -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     if (skipList != null) {
       String[] idList = new String[skipList.size()];
       int i = 0;

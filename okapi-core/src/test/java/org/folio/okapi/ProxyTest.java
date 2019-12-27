@@ -27,6 +27,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
 import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
@@ -90,7 +91,7 @@ public class ProxyTest {
   }
 
   private void myEdgeCallTest(RoutingContext ctx, String token) {
-    HttpClientRequest get = httpClient.get(port, "localhost", "/testb/1", res1 -> {
+    HttpClientRequest get = HttpClientLegacy.get(httpClient, port, "localhost", "/testb/1", res1 -> {
       Buffer resBuf = Buffer.buffer();
       res1.handler(resBuf::appendBuffer);
       res1.endHandler(res2 -> {
@@ -122,7 +123,7 @@ public class ProxyTest {
           + "  \"username\" : \"peter\"," + LS
           + "  \"password\" : \"peter-password\"" + LS
           + "}";
-        HttpClientRequest post = httpClient.post(port, "localhost", "/authn/login", res1 -> {
+        HttpClientRequest post = HttpClientLegacy.post(httpClient, port, "localhost", "/authn/login", res1 -> {
           Buffer loginBuf = Buffer.buffer();
           res1.handler(loginBuf::appendBuffer);
           res1.endHandler(res2 -> {
@@ -187,7 +188,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portPre,
         result -> setupPostServer(context, async)
@@ -201,7 +202,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portPost,
         result -> setupTimerServer(context, async)
@@ -215,7 +216,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portTimer,
         result -> setupEdgeServer(context, async)
@@ -229,7 +230,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portEdge,
         result -> {
@@ -269,7 +270,7 @@ public class ProxyTest {
   public void tearDown(TestContext context) {
     Async async = context.async();
 
-    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+    HttpClientLegacy.delete(httpClient, port, "localhost", "/_/discovery/modules", response -> {
       context.assertTrue(response.statusCode() == 404 || response.statusCode() == 204);
       response.endHandler(x -> {
         httpClient.close();
