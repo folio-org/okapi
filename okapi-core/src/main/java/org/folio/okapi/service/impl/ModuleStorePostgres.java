@@ -10,7 +10,7 @@ public class ModuleStorePostgres implements ModuleStore {
 
   private static final String TABLE = "modules";
   private static final String JSON_COLUMN = "modulejson";
-  private static final String ID_SELECT = JSON_COLUMN + "->>'id' = ?";
+  private static final String ID_SELECT = JSON_COLUMN + "->>'id' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'id'";
   private final PostgresTable<ModuleDescriptor> pgTable;
 

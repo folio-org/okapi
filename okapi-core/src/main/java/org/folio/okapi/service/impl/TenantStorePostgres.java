@@ -3,18 +3,21 @@ package org.folio.okapi.service.impl;
 import org.folio.okapi.service.TenantStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.Tuple;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -26,10 +29,11 @@ public class TenantStorePostgres implements TenantStore {
   private final PostgresHandle pg;
   private static final String TABLE = "tenants";
   private static final String JSON_COLUMN = "tenantjson";
-  private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = ?";
+  private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
   private final PostgresTable<Tenant> pgTable;
   private Messages messages = Messages.getInstance();
+  private final Logger logger = OkapiLogger.get();
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
@@ -66,29 +70,30 @@ public class TenantStorePostgres implements TenantStore {
 
   private void updateModuleR(PostgresQuery q, String id,
     SortedMap<String, Boolean> enabled,
-    Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
+    Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext()) {
-      JsonObject r = it.next();
-      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = ? WHERE " + ID_SELECT;
-      String tj = r.getString(JSON_COLUMN);
-      Tenant t = Json.decodeValue(tj, Tenant.class);
+    try {
+      if (!it.hasNext()) {
+        fut.handle(new Success<>());
+        q.close();
+        return;
+      }
+      Row r = it.next();
+      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
+      JsonObject o = (JsonObject) r.getValue(0);
+      Tenant t = o.mapTo(Tenant.class);
       t.setEnabled(enabled);
-      String s = Json.encode(t);
-      JsonObject doc = new JsonObject(s);
-      JsonArray jsa = new JsonArray();
-      jsa.add(doc.encode());
-      jsa.add(id);
-      q.queryWithParams(sql, jsa, res -> {
+      JsonObject doc = JsonObject.mapFrom(t);
+      q.query(sql, Tuple.of(id, doc), res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           updateModuleR(q, id, enabled, it, fut);
         }
       });
-    } else {
-      fut.handle(new Success<>());
-      q.close();
+    } catch (Exception ex) {
+      logger.warn("ex", ex);
+      fut.handle(new Failure<>(ErrorType.INTERNAL, ex.getCause().getMessage()));
     }
   }
 
@@ -98,20 +103,18 @@ public class TenantStorePostgres implements TenantStore {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.queryWithParams(sql, jsa, res -> {
+    q.query(sql, Tuple.of(id), res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
-          q.close();
-        } else {
-          updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);
-        }
+        return;
       }
+      RowSet<Row> rs = res.result();
+      if (rs.size() == 0) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
+        q.close();
+        return;
+      }
+      updateModuleR(q, id, enabled, rs.iterator(), fut);
     });
   }
 }

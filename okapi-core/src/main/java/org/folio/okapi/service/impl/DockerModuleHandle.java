@@ -119,7 +119,7 @@ public class DockerModuleHandle implements ModuleHandle {
     if (socketAddress != null) {
       return HttpClientLegacy.requestAbs(client, method, socketAddress, dockerUrl + url, response);
     } else {
-      return HttpClientLegacy.requestAbs(client, method, url, response);
+      return HttpClientLegacy.requestAbs(client, method, dockerUrl + url, response);
     }
   }
 

@@ -241,6 +241,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startModmanager() {
+    logger.info("startModmanager");
     Promise<Void> promise = Promise.promise();
     moduleManager.init(vertx, promise::handle);
     return promise.future();

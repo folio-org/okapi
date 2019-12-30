@@ -9,7 +9,7 @@ import org.folio.okapi.service.DeploymentStore;
 public class DeploymentStorePostgres implements DeploymentStore {
 
   private static final String JSON_COLUMN = "json";
-  private static final String ID_SELECT = JSON_COLUMN + "->>'instId' = ?";
+  private static final String ID_SELECT = JSON_COLUMN + "->>'instId' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'instId'";
   private final PostgresTable<DeploymentDescriptor> table;
 
