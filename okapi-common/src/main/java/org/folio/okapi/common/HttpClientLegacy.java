@@ -7,7 +7,10 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.net.SocketAddress;
 
-public class HttpClientLegacy  {
+public class HttpClientLegacy {
+  private HttpClientLegacy() {
+    throw new IllegalStateException("HttpClientLegacy");
+  }
   public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
     SocketAddress socketAddress, String url,
     Handler<HttpClientResponse> response) {

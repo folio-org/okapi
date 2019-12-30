@@ -9,7 +9,6 @@ import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.ModuleStore;
@@ -79,7 +78,7 @@ public class Storage {
     boolean reset = initMode != InitMode.NORMAL;
 
     Future<Void> future = Future.succeededFuture();
-    future = future.compose(res -> {
+    future.compose(res -> {
       Promise<Void> promise = Promise.promise();
       envStore.init(reset, promise::handle);
       return promise.future();

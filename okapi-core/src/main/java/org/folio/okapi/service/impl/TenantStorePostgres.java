@@ -2,7 +2,6 @@ package org.folio.okapi.service.impl;
 
 import org.folio.okapi.service.TenantStore;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;

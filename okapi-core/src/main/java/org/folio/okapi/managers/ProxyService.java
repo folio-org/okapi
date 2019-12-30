@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -579,6 +580,19 @@ public class ProxyService {
     }
   }
 
+  private boolean proxyHttpFail(ProxyContext pc, ModuleInstance mi,
+    AsyncResult<HttpClientResponse> res) {
+
+    if (res.succeeded()) {
+      return false;
+    }
+    String e = res.cause().getMessage();
+    pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
+    pc.responseError(500, messages.getMessage("10107",
+      mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+    return true;
+  }
+
   private void proxyRequestHttpClient(Iterator<ModuleInstance> it,
     ProxyContext pc, Buffer bcontent, List<HttpClientRequest> cReqs,
     ModuleInstance mi) {
@@ -587,11 +601,7 @@ public class ProxyService {
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
     HttpClientRequest cReq = httpClient.requestAbs(meth, url, res1 -> {
-      if (res1.failed()) {
-        String e = res1.cause().getMessage();
-        pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
-        pc.responseError(500, messages.getMessage("10107",
-          mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+      if (proxyHttpFail(pc, mi, res1)) {
         return;
       }
       HttpClientResponse res = res1.result();
@@ -735,11 +745,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res1 -> {
-      if (res1.failed()) {
-        String e = res1.cause().getMessage();
-        pc.warn("proxyRequestResponse failure: " + mi.getUrl() + ": " + e);
-        pc.responseError(500, messages.getMessage("10108", mi.getModuleDescriptor().getId(),
-          mi.getUrl(), e));
+      if (proxyHttpFail(pc, mi, res1)) {
         return;
       }
       HttpClientResponse res = res1.result();
@@ -807,11 +813,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest cReq = httpClient.requestAbs(ctx.request().method(),
       makeUrl(mi, ctx), res1 -> {
-      if (res1.failed()) {
-        String e = res1.cause().getMessage();
-        pc.warn("proxyHeaders failure: " + mi.getUrl() + ": " + e);
-        pc.responseError(500, messages.getMessage("10109",
-          mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+      if (proxyHttpFail(pc, mi, res1)) {
         return;
       }
       HttpClientResponse res = res1.result();

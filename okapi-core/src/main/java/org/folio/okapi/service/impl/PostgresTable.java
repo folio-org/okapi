@@ -24,7 +24,6 @@ class PostgresTable<T> {
   private final String idSelect;
   private final String indexName;
   private final PostgresHandle pg;
-  private final Logger logger = OkapiLogger.get();
 
   public PostgresTable(PostgresHandle pg, String table, String jsonColumn,
     String idIndex, String idSelect, String indexName) {
