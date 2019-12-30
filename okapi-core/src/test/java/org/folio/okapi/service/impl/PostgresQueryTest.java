@@ -243,7 +243,7 @@ public class PostgresQueryTest {
   }
 
   @Test
-  public void testGetConnectionFailed(TestContext context) {
+  public void testGetConnectionFailed1(TestContext context) {
     Async async = context.async();
     JsonObject obj = new JsonObject();
     obj.put("postgres_port", "0");
@@ -251,6 +251,22 @@ public class PostgresQueryTest {
 
     PostgresQuery q = new PostgresQuery(h);
     q.query("select", res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals("getConnection failed", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testGetConnectionFailed2(TestContext context) {
+    Async async = context.async();
+    JsonObject obj = new JsonObject();
+    obj.put("postgres_port", "0");
+    FakeHandle h = new FakeHandle(vertx, obj);
+
+    PostgresQuery q = new PostgresQuery(h);
+    q.query("select", Tuple.of("id"), res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("getConnection failed", res.cause().getMessage());

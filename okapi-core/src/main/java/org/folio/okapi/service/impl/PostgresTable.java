@@ -8,11 +8,9 @@ import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 @java.lang.SuppressWarnings({"squid:S1192"})

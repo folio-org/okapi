@@ -71,29 +71,24 @@ public class TenantStorePostgres implements TenantStore {
     SortedMap<String, Boolean> enabled,
     Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    try {
-      if (!it.hasNext()) {
-        fut.handle(new Success<>());
-        q.close();
-        return;
-      }
-      Row r = it.next();
-      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
-      JsonObject o = (JsonObject) r.getValue(0);
-      Tenant t = o.mapTo(Tenant.class);
-      t.setEnabled(enabled);
-      JsonObject doc = JsonObject.mapFrom(t);
-      q.query(sql, Tuple.of(id, doc), res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        } else {
-          updateModuleR(q, id, enabled, it, fut);
-        }
-      });
-    } catch (Exception ex) {
-      logger.warn("ex", ex);
-      fut.handle(new Failure<>(ErrorType.INTERNAL, ex.getCause().getMessage()));
+    if (!it.hasNext()) {
+      fut.handle(new Success<>());
+      q.close();
+      return;
     }
+    Row r = it.next();
+    String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
+    JsonObject o = (JsonObject) r.getValue(0);
+    Tenant t = o.mapTo(Tenant.class);
+    t.setEnabled(enabled);
+    JsonObject doc = JsonObject.mapFrom(t);
+    q.query(sql, Tuple.of(id, doc), res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+      } else {
+        updateModuleR(q, id, enabled, it, fut);
+      }
+    });
   }
 
   @Override
@@ -108,11 +103,6 @@ public class TenantStorePostgres implements TenantStore {
         return;
       }
       RowSet<Row> rs = res.result();
-      if (rs.size() == 0) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11200", id)));
-        q.close();
-        return;
-      }
       updateModuleR(q, id, enabled, rs.iterator(), fut);
     });
   }
