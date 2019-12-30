@@ -1,3 +1,12 @@
+## 2.36.0 2019-12-30
+
+ * OKAPI-321 Unix domain socket for Docker communication
+ * OKAPI-743 Configurable host for deployed containers
+ * OKAPI-779 Upgrade to Vert.x 3.8.4
+ * OKAPI-780 Switch from Vert's own logger to log4j2
+ * OKAPI-781 SemVer, ModuleId: JavaDoc, unit tests, code review
+ * OKAPI-784 CORS: Allow X-Okapi-Module-Id
+
 ## 2.35.0 2019-11-28
 
  * OKAPI-778 Avoid bundling log implementation with okapi-common
