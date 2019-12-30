@@ -1,23 +1,26 @@
 package org.folio.okapi.service.impl;
 
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.TcpPortWaiting;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import org.folio.okapi.bean.Ports;
-import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProcessModuleHandle implements ModuleHandle {
@@ -48,6 +51,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.ports = ports;
     this.p = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, port);
+    
+    JsonObject config = vertx.getOrCreateContext().config();
+    int maxIterations = config.getInteger("deploy.max_conn_iteration", 30);
+    setConnectIterMax(maxIterations);
   }
 
   public void setConnectIterMax(int maxIterations) {
