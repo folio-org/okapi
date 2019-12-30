@@ -114,13 +114,14 @@ public class PauseResumeTest {
       });
     });
     req.end();
+    async.await();
   }
 
   @Test
   public void test4(TestContext context) {
     Async async = context.async();
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = HttpClientLegacy.request(cli, HttpMethod.POST, PORT, "localhostxxx", "/test2",  res -> {
+    HttpClientRequest req = HttpClientLegacy.post(cli, PORT, "localhostxxx", "/test2",  res -> {
       context.assertTrue(false);
       async.complete();
     });
