@@ -37,6 +37,12 @@ public class OkapiClientTest {
   private HttpServer server;
 
   private void myStreamHandle1(RoutingContext ctx) {
+    if (HttpMethod.DELETE.equals(ctx.request().method())) {
+      ctx.request().endHandler(x -> {
+        HttpResponse.responseError(ctx, 204, "");
+      });
+      return;
+    }
     ctx.response().setChunked(true);
     StringBuilder msg = new StringBuilder();
 
@@ -58,12 +64,6 @@ public class OkapiClientTest {
   }
 
   private void myStreamHandle2(RoutingContext ctx) {
-    if (HttpMethod.DELETE.equals(ctx.request().method())) {
-      ctx.request().endHandler(x -> {
-        HttpResponse.responseError(ctx, 204, "");
-      });
-      return;
-    }
     ctx.response().setChunked(true);
     ctx.request().pause();
     String p = ctx.request().params().get("p");
@@ -95,8 +95,8 @@ public class OkapiClientTest {
     router.get("/test1").handler(this::myStreamHandle1);
     router.head("/test1").handler(this::myStreamHandle1);
     router.post("/test1").handler(this::myStreamHandle1);
+    router.delete("/test1").handler(this::myStreamHandle1);
     router.get("/test2").handler(this::myStreamHandle2);
-    router.delete("/test2").handler(this::myStreamHandle2);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     server = vertx.createHttpServer(so)
@@ -226,7 +226,7 @@ public class OkapiClientTest {
   }
 
   private void test6(OkapiClient cli, Async async) {
-    cli.delete("/test2?p=%2Ftest1", res -> {
+    cli.delete("/test1", res -> {
       assertTrue(res.succeeded());
       test7(cli, async);
     });
@@ -465,7 +465,7 @@ public class OkapiClientTest {
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest requestAbs = HttpClientLegacy.delete(client,
-      PORT, LOCALHOST, URL + "/test2", res -> {
+      PORT, LOCALHOST, URL + "/test1", res -> {
         b.append("response");
         async.complete();
       });
