@@ -9,14 +9,12 @@ import io.vertx.sqlclient.Tuple;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
-import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -32,7 +30,6 @@ public class TenantStorePostgres implements TenantStore {
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
   private final PostgresTable<Tenant> pgTable;
   private Messages messages = Messages.getInstance();
-  private final Logger logger = OkapiLogger.get();
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
