@@ -4,9 +4,10 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.asyncsql.AsyncSQLClient;
-import io.vertx.ext.asyncsql.PostgreSQLClient;
-import io.vertx.ext.sql.SQLConnection;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.pgclient.PgPool;
+import io.vertx.sqlclient.PoolOptions;
+import io.vertx.sqlclient.SqlConnection;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.OkapiLogger;
@@ -36,39 +37,44 @@ import org.folio.okapi.common.OkapiLogger;
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresHandle {
 
-  private AsyncSQLClient cli;
+  private final PgConnectOptions connectOptions;
+  private final PoolOptions poolOptions;
+  private final Vertx vertx;
 
   protected PostgresHandle(Vertx vertx, JsonObject conf) {
-    JsonObject pgconf = new JsonObject();
+    this.vertx = vertx;
     String val;
 
+    connectOptions = new PgConnectOptions();
     val = Config.getSysConf("postgres_host", "", conf);
     if (!val.isEmpty()) {
-      pgconf.put("host", val);
+      connectOptions.setHost(val);
     }
     val = Config.getSysConf("postgres_port", "", conf);
     Logger logger = OkapiLogger.get();
     if (!val.isEmpty()) {
       try {
-        Integer x = Integer.parseInt(val);
-        pgconf.put("port", x);
+        connectOptions.setPort(Integer.parseInt(val));
       } catch (NumberFormatException e) {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
-    pgconf.put("username", Config.getSysConf("postgres_username", "okapi", conf));
-    pgconf.put("password", Config.getSysConf("postgres_password", "okapi25", conf));
-    pgconf.put("database", Config.getSysConf("postgres_database", "okapi", conf));
-    cli = createSQLClient(vertx, pgconf);
+    connectOptions.setUser(Config.getSysConf("postgres_username", "okapi", conf));
+    connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
+    connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
+
+    poolOptions = new PoolOptions();
+    poolOptions.setMaxSize(5);
+
     logger.debug("created");
   }
 
-  public void getConnection(Handler<AsyncResult<SQLConnection>> fut) {
-    cli.getConnection(fut);
+  PgConnectOptions getOptions() {
+    return connectOptions;
   }
 
-  protected AsyncSQLClient createSQLClient(Vertx vertx, JsonObject pgconf) {
-    return PostgreSQLClient.createNonShared(vertx, pgconf);
+  public void getConnection(Handler<AsyncResult<SqlConnection>> con) {
+    PgPool.pool(vertx, connectOptions, poolOptions).getConnection(con);
   }
 
   public PostgresQuery getQuery() {

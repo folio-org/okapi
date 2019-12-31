@@ -191,7 +191,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> future) {
+  public void start(Promise<Void> promise) {
     Future<Void> fut = Future.future(this::checkDistributedLock);
     fut = fut.compose(x -> startDatabases());
     fut = fut.compose(x -> startModmanager());
@@ -206,7 +206,7 @@ public class MainVerticle extends AbstractVerticle {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
       }
-      future.handle(x);
+      promise.handle(x);
     });
   }
 
@@ -241,6 +241,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startModmanager() {
+    logger.info("startModmanager");
     Promise<Void> promise = Promise.promise();
     moduleManager.init(vertx, promise::handle);
     return promise.future();

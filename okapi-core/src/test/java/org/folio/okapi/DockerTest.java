@@ -23,6 +23,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
@@ -101,8 +102,8 @@ public class DockerTest {
     final SocketAddress socketAddress
       = SocketAddress.domainSocketAddress("/var/run/docker.sock");
     final String url = "http://localhost/images/json?all=1";
-    HttpClientRequest req = client.requestAbs(HttpMethod.GET, socketAddress, url,
-      res -> {
+    HttpClientRequest req = HttpClientLegacy.requestAbs(client, HttpMethod.GET,
+      socketAddress, url, res -> {
         Buffer body = Buffer.buffer();
         res.handler(d -> {
           body.appendBuffer(d);

@@ -16,6 +16,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.net.InetSocketAddress;
 import java.util.concurrent.TimeUnit;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -84,7 +85,8 @@ public class MetricsTest {
   }
 
   public void checkHealth(TestContext context) {
-    httpClient.get(port, "localhost", "/_/proxy/health", response -> {
+    HttpClientLegacy.get(httpClient, port, "localhost", "/_/proxy/health",
+      response -> {
       response.handler(body -> {
         context.assertEquals(200, response.statusCode());
       });

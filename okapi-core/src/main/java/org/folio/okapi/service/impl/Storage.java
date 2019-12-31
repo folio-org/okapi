@@ -79,25 +79,25 @@ public class Storage {
 
     Future<Void> future = Future.succeededFuture();
     future.compose(res -> {
-      Promise promise = Promise.promise();
-      envStore.init(reset, promise.future());
+      Promise<Void> promise = Promise.promise();
+      envStore.init(reset, promise::handle);
       return promise.future();
     }).compose(res -> {
-      Promise promise = Promise.promise();
-      deploymentStore.init(reset, promise.future());
+      Promise<Void> promise = Promise.promise();
+      deploymentStore.init(reset, promise::handle);
       return promise.future();
     }).compose(res -> {
-      Promise promise = Promise.promise();
-      tenantStore.init(reset, promise.future());
+      Promise<Void> promise = Promise.promise();
+      tenantStore.init(reset, promise::handle);
       return promise.future();
     }).compose(res -> {
       if (moduleStore == null) {
         return Future.succeededFuture();
       }
-      Promise promise = Promise.promise();
-      moduleStore.init(reset, promise.future());
+      Promise<Void> promise = Promise.promise();
+      moduleStore.init(reset, promise::handle);
       return promise.future();
-    }).setHandler(fut);
+    }).setHandler(fut::handle);
   }
 
   public ModuleStore getModuleStore() {

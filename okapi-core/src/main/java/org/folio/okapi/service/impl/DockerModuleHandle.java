@@ -23,6 +23,7 @@ import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -116,9 +117,9 @@ public class DockerModuleHandle implements ModuleHandle {
   private HttpClientRequest request(HttpMethod method, String url,
     Handler<HttpClientResponse> response) {
     if (socketAddress != null) {
-      return client.requestAbs(method, socketAddress, dockerUrl + url, response);
+      return HttpClientLegacy.requestAbs(client, method, socketAddress, dockerUrl + url, response);
     } else {
-      return client.requestAbs(method, dockerUrl + url, response);
+      return HttpClientLegacy.requestAbs(client, method, dockerUrl + url, response);
     }
   }
 

@@ -54,7 +54,7 @@ public class CompListTest {
   public void testAllSucceeds() {
     CompList<Void> comp = buildSucceed();
     Promise promise = Promise.promise();
-    comp.all(promise.future());
+    comp.all(promise);
     Assert.assertTrue(promise.future().succeeded());
     Assert.assertTrue(cset.contains("a"));
     Assert.assertTrue(cset.contains("b"));
@@ -76,7 +76,7 @@ public class CompListTest {
     }
     {
       Promise promise = Promise.promise();
-      comp.all(Boolean.TRUE, promise.future());
+      comp.all(Boolean.TRUE, promise);
       Assert.assertTrue(promise.future().failed());
     }
   }
@@ -85,7 +85,7 @@ public class CompListTest {
   public void testAllFails() {
     CompList<Void> comp = buildFail();
     Promise promise = Promise.promise();
-    comp.all(promise.future());
+    comp.all(promise);
     Assert.assertTrue(promise.future().failed());
   }
 
@@ -93,7 +93,7 @@ public class CompListTest {
   public void testSeqSucceeds() {
     CompList<Void> comp = buildSucceed();
     Promise promise = Promise.promise();
-    comp.seq(promise.future());
+    comp.seq(promise);
     Assert.assertTrue(promise.future().succeeded());
     Assert.assertTrue(cset.contains("a"));
     Assert.assertTrue(cset.contains("b"));
@@ -103,7 +103,7 @@ public class CompListTest {
   public void testSeqFails() {
     CompList<Void> comp = buildFail();
     Promise promise = Promise.promise();
-    comp.seq(promise.future());
+    comp.seq(promise);
     Assert.assertTrue(promise.future().failed());
   }
 
