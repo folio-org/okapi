@@ -18,11 +18,11 @@ public class HttpClientCached {
 
   private final List<HttpClientCacheEntry> cache = new LinkedList<>();
 
-  HttpClientCached(HttpClient httpClient) {
+  public HttpClientCached(HttpClient httpClient) {
     this.httpClient = httpClient;
   }
 
-  HttpClientRequest requestAbs(HttpMethod method, String url, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+  public HttpClientRequest requestAbs(HttpMethod method, String url, Handler<AsyncResult<HttpClientResponse>> hndlr) {
     if (method.equals(HttpMethod.GET) || method.equals(HttpMethod.HEAD)) {
       return new HttpClientRequestCached(this, httpClient, method, url, hndlr);
     } else {
@@ -48,7 +48,7 @@ public class HttpClientCached {
     cache.add(l);
   }
 
-  void close() {
+  public void close() {
     httpClient.close();
   }
 }

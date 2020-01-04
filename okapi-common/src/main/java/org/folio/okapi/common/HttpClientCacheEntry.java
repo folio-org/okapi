@@ -6,7 +6,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import java.util.List;
 
-public class HttpClientCacheEntry {
+class HttpClientCacheEntry {
 
   final HttpMethod method;
   final String host;

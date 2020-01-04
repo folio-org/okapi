@@ -14,7 +14,7 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.StreamPriority;
 import org.apache.logging.log4j.Logger;
 
-public class HttpClientRequestCached implements HttpClientRequest {
+class HttpClientRequestCached implements HttpClientRequest {
 
   private final Logger logger = OkapiLogger.get();
 

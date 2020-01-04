@@ -12,7 +12,7 @@ import io.vertx.core.http.StreamPriority;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 
-public class HttpClientResponseSave implements HttpClientResponse {
+class HttpClientResponseSave implements HttpClientResponse {
   private final Logger logger = OkapiLogger.get();
 
   final HttpClientResponse response;
