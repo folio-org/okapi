@@ -108,8 +108,7 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
-    hndlr.handle(cacheEntry.responseBody);
-    return this;
+    return handler(hndlr);
   }
 
   @Override
