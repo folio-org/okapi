@@ -92,8 +92,14 @@ public class HttpClientCachedTest {
         context.assertTrue(res1.failed());
         async.complete();
       });
+      context.assertFalse(req.isComplete());
       req.end();
       async.await(1000);
+      context.assertTrue(req.isComplete());
+      context.assertFalse(req.succeeded());
+      context.assertTrue(req.failed());
+      context.assertNotNull(req.cause());
+      context.assertNull(req.result());
     }
   }
 
@@ -113,8 +119,15 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      context.assertFalse(req.isComplete());
+      context.assertFalse(req.writeQueueFull());
       req.end();
       async.await(1000);
+      context.assertTrue(req.isComplete());
+      context.assertTrue(req.succeeded());
+      context.assertFalse(req.failed());
+      context.assertNull(req.cause());
+      context.assertNotNull(req.result());
     }
 
     {

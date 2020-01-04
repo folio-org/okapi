@@ -40,7 +40,11 @@ class HttpClientRequestCached implements HttpClientRequest {
   String vHost;
   int port;
   boolean cached;
+  boolean succeeded;
+  Throwable cause;
 
+// S00107: Constructors has 8 parameters, which is greather than 7 authorized
+@java.lang.SuppressWarnings({"squid:S00107"})
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
     String vHost, String host, int port, String requestUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
@@ -54,6 +58,7 @@ class HttpClientRequestCached implements HttpClientRequest {
     this.hndlr = hndlr;
     this.headers = MultiMap.caseInsensitiveMultiMap();
     this.cached = false;
+    this.succeeded = true;
   }
 
   private HttpClientRequest cli() {
@@ -81,7 +86,9 @@ class HttpClientRequestCached implements HttpClientRequest {
       }
     }
     httpClientRequest = httpClient.request(method, port, host, uri, res -> {
+      succeeded = res.succeeded();
       if (res.failed()) {
+        cause = res.cause();
         hndlr.handle(res);
         return;
       }
@@ -329,7 +336,12 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public void end(Handler<AsyncResult<Void>> hndlr) {
-    cli().end(hndlr);
+    HttpClientRequest client = cli(true);
+    if (client == null) {
+      hndlr.handle(Future.succeededFuture());
+      return;
+    }
+    client.end(hndlr);
   }
 
   @Override
@@ -377,12 +389,15 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public boolean writeQueueFull() {
+    if (httpClientRequest == null) {
+      return false;
+    }
     return cli().writeQueueFull();
   }
 
   @Override
   public boolean isComplete() {
-    return cli().isComplete();
+    return httpClientRequest != null;
   }
 
   @Override
@@ -402,17 +417,17 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public Throwable cause() {
-    return cli().cause();
+    return cause;
   }
 
   @Override
   public boolean succeeded() {
-    return cli().succeeded();
+    return succeeded;
   }
 
   @Override
   public boolean failed() {
-    return cli().failed();
+    return !succeeded;
   }
 
 }
