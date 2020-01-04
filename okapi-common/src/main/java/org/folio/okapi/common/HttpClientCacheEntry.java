@@ -19,9 +19,9 @@ class HttpClientCacheEntry {
   List<String> cookies;
   HttpVersion httpVersion;
 
-  HttpClientCacheEntry(HttpMethod method, String host, String url, MultiMap requestHeaders) {
+  HttpClientCacheEntry(HttpMethod method, String vHost, String url, MultiMap requestHeaders) {
     this.method = method;
-    this.host = host;
+    this.host = vHost;
     this.url = url;
     this.requestHeaders = requestHeaders;
     this.responseBody = Buffer.buffer();

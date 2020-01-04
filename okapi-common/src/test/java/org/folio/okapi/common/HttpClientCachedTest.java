@@ -20,11 +20,11 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpClientCachedTest {
+
   private Vertx vertx;
   private static final int PORT = 9230;
-  private static final String LOCALHOST = "localhost";
-  private static final String URL = "http://" + LOCALHOST + ":" + Integer.toString(PORT);
-  private static final String BAD_URL = "http://" + LOCALHOST + ":" + Integer.toString(PORT + 1);
+  private static final String HOST = "localhost";
+  private static final String VHOST = "vhost";
 
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
@@ -56,7 +56,6 @@ public class HttpClientCachedTest {
     });
   }
 
-
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
@@ -72,24 +71,40 @@ public class HttpClientCachedTest {
       .requestHandler(router)
       .listen(
         PORT,
-        context.asyncAssertSuccess()        
+        context.asyncAssertSuccess()
       );
   }
-  
+
   @After
   public void tearDown(TestContext context) {
     server.close();
     vertx.close();
   }
-  
+
   @Test
-  public void testGet(TestContext context) {
+  public void testFailures(TestContext context) {
     logger.info("testGet");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT + 1, "/test1", res1 -> {
+        context.assertTrue(res1.failed());
+        async.complete();
+      });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testHead(TestContext context) {
+    logger.info("testHead");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.HEAD, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -104,7 +119,75 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.HEAD, VHOST, HOST, PORT, "/test1", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    client.close();
+  }
+
+  @Test
+  public void testGet(TestContext context) {
+    logger.info("testGet");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.GET, "otherhost", HOST, PORT, "/test1", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1?q=foo", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -119,7 +202,37 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1?q=foo", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.HEAD, VHOST, HOST, PORT, "/test1", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -134,7 +247,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -149,7 +262,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -164,7 +277,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.GET, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -187,7 +300,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.POST, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.POST, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -202,7 +315,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.POST, URL + "/test1", res1 -> {
+      HttpClientRequest req = client.request(HttpMethod.POST, VHOST, HOST, PORT, "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -216,5 +329,4 @@ public class HttpClientCachedTest {
     }
   }
 
-  
 }

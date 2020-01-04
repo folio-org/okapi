@@ -22,11 +22,11 @@ public class HttpClientCached {
     this.httpClient = httpClient;
   }
 
-  public HttpClientRequest requestAbs(HttpMethod method, String url, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+  public HttpClientRequest request(HttpMethod method, String vHost, String host, int port, String requestUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
     if (method.equals(HttpMethod.GET) || method.equals(HttpMethod.HEAD)) {
-      return new HttpClientRequestCached(this, httpClient, method, url, hndlr);
+      return new HttpClientRequestCached(this, httpClient, method, vHost, host, port, requestUri, hndlr);
     } else {
-      return httpClient.requestAbs(method, url, hndlr);
+      return httpClient.request(method, port, host, requestUri, hndlr);
     }
   }
 

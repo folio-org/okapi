@@ -37,15 +37,20 @@ class HttpClientRequestCached implements HttpClientRequest {
   Boolean chunked;
   String rawMethod;
   String host;
+  String vHost;
+  int port;
   boolean cached;
 
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
-    String uri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+    String vHost, String host, int port, String requestUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
     this.httpClientCached = cached;
     this.httpClient = httpClient;
     this.method = method;
-    this.uri = uri;
+    this.uri = requestUri;
+    this.host = host;
+    this.vHost = vHost;
+    this.port = port;
     this.hndlr = hndlr;
     this.headers = MultiMap.caseInsensitiveMultiMap();
     this.cached = false;
@@ -65,7 +70,7 @@ class HttpClientRequestCached implements HttpClientRequest {
     if (httpClientRequest != null || cached) {
       return;
     }
-    HttpClientCacheEntry ce = new HttpClientCacheEntry(method, "localhost", uri, headers);
+    HttpClientCacheEntry ce = new HttpClientCacheEntry(method, vHost, uri, headers);
     if (save) {
       HttpClientCacheEntry l = httpClientCached.lookup(ce);
       if (l != null) {
@@ -75,7 +80,7 @@ class HttpClientRequestCached implements HttpClientRequest {
         return;
       }
     }
-    httpClientRequest = httpClient.requestAbs(method, uri, res -> {
+    httpClientRequest = httpClient.request(method, port, host, uri, res -> {
       if (res.failed()) {
         hndlr.handle(res);
         return;
