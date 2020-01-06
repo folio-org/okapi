@@ -1,4 +1,4 @@
-FROM folioci/openjdk8-jre-alpine:latest
+FROM folioci/alpine-jre-openjdk8:latest
 
 ENV VERTICLE_FILE okapi-core-fat.jar
 
