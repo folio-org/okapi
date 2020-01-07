@@ -29,7 +29,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
-import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Network;
@@ -137,7 +136,8 @@ public class ModuleTest {
       conf.put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
-        postgres = new EmbeddedPostgres(V9_6);
+        // take version string from https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+        postgres = new EmbeddedPostgres(() -> "10.11-3");
         postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
     } else if ("mongo".equals(value)) {
