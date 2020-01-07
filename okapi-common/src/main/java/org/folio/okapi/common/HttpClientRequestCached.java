@@ -14,7 +14,6 @@ import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.StreamPriority;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.logging.Level;
 import org.apache.logging.log4j.Logger;
 
 class HttpClientRequestCached implements HttpClientRequest {
