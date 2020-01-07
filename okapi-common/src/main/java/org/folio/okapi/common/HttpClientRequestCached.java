@@ -34,7 +34,7 @@ class HttpClientRequestCached implements HttpClientRequest {
   Handler<Void> drainHandler;
   Handler<Void> continueHandler;
   Handler<HttpClientRequest> pushHandler;
-  Boolean chunked;
+  boolean chunked;
   String rawMethod;
   String cacheUri;
   String host;
@@ -120,9 +120,7 @@ class HttpClientRequestCached implements HttpClientRequest {
     if (host != null) {
       httpClientRequest.setHost(host);
     }
-    if (chunked != null) {
-      httpClientRequest.setChunked(chunked);
-    }
+    httpClientRequest.setChunked(chunked);
     if (rawMethod != null) {
       httpClientRequest.setRawMethod(rawMethod);
     }
@@ -179,9 +177,6 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public boolean isChunked() {
-    if (chunked == null) {
-      return false;
-    }
     return chunked;
   }
 

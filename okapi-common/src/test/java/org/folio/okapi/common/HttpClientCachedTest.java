@@ -256,6 +256,7 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      req.sendHead();
       req.end("x");
       async.await(1000);
     }
@@ -286,6 +287,7 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      req.sendHead(x -> {});
       req.end(Buffer.buffer().appendString("x"));
       async.await(1000);
     }
@@ -302,6 +304,7 @@ public class HttpClientCachedTest {
         }
       });
       req.setChunked(true);
+      req.sendHead();
       req.write("x", res -> req.end());
       async.await(1000);
     }
@@ -353,12 +356,14 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       context.assertEquals(HttpMethod.GET, req.method());
       context.assertEquals(ABS_URI + "/test1", req.absoluteURI());
@@ -390,36 +395,38 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1?q=a", res1 -> {
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.end("", x -> {
       });
-
       async.await(1000);
     }
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1?q=b", res1 -> {
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1", res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.end(x -> {
       });
       async.await(1000);
     }
-
     {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1", res1 -> {
@@ -447,6 +454,7 @@ public class HttpClientCachedTest {
       context.assertTrue(req.isChunked());
       req.onComplete(x -> {
       }); // flushes header
+      context.assertNotNull(req.getStreamPriority());
       context.assertTrue(req.isChunked());
       req.getHandler();
       context.assertFalse(req.writeQueueFull());
@@ -457,6 +465,9 @@ public class HttpClientCachedTest {
       req.continueHandler(x -> {
       });
       req.write(Buffer.buffer("x"));
+      req.write(Buffer.buffer("x"), x -> {});
+      context.assertNotNull(req.connection());
+      context.assertNull(req.getStreamPriority());
       req.end("");
 
       async.await(1000);
