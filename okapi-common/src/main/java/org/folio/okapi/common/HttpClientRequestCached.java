@@ -25,7 +25,7 @@ class HttpClientRequestCached implements HttpClientRequest {
   final Handler<AsyncResult<HttpClientResponse>> hndlr;
 
   final HttpClientCached httpClientCached;
-  final String uri;
+  final String absoluteUri;
   final HttpMethod method;
   final HttpClient httpClient;
   final MultiMap headers;
@@ -36,25 +36,22 @@ class HttpClientRequestCached implements HttpClientRequest {
   Handler<HttpClientRequest> pushHandler;
   Boolean chunked;
   String rawMethod;
+  String cacheUri;
   String host;
-  String vHost;
   int port;
   boolean cached;
   boolean succeeded;
   Throwable cause;
+  Long timeout;
 
-// S00107: Constructors has 8 parameters, which is greather than 7 authorized
-@java.lang.SuppressWarnings({"squid:S00107"})
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
-    String vHost, String host, int port, String requestUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
     this.httpClientCached = cached;
     this.httpClient = httpClient;
     this.method = method;
-    this.uri = requestUri;
-    this.host = host;
-    this.vHost = vHost;
-    this.port = port;
+    this.absoluteUri = absoluteUri;
+    this.cacheUri = cacheUri;
     this.hndlr = hndlr;
     this.headers = MultiMap.caseInsensitiveMultiMap();
     this.cached = false;
@@ -72,10 +69,10 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   private void createClientRequest(boolean save) {
     logger.debug("createClientRequest save={}", save);
-    if (httpClientRequest != null || cached) {
+    if (httpClientRequest != null) {
       return;
     }
-    HttpClientCacheEntry ce = new HttpClientCacheEntry(method, vHost, uri, headers);
+    HttpClientCacheEntry ce = new HttpClientCacheEntry(method, cacheUri, headers);
     if (save) {
       HttpClientCacheEntry l = httpClientCached.lookup(ce);
       if (l != null) {
@@ -85,7 +82,7 @@ class HttpClientRequestCached implements HttpClientRequest {
         return;
       }
     }
-    httpClientRequest = httpClient.request(method, port, host, uri, res -> {
+    httpClientRequest = httpClient.requestAbs(method, absoluteUri, res -> {
       succeeded = res.succeeded();
       if (res.failed()) {
         cause = res.cause();
@@ -104,6 +101,9 @@ class HttpClientRequestCached implements HttpClientRequest {
       response = new HttpClientResponseSave(httpClientCached, res1, this, save ? ce : null);
       hndlr.handle(Future.succeededFuture(response));
     });
+    if (timeout != null) {
+      httpClientRequest.setTimeout(timeout);
+    }
     if (host != null) {
       httpClientRequest.setHost(host);
     }
@@ -302,13 +302,13 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   @Override
-  public Future<Void> end(String string, String string1) {
-    return cli().end(string, string1);
+  public Future<Void> end(String string, String enc) {
+    return cli().end(string, enc);
   }
 
   @Override
-  public void end(String string, String string1, Handler<AsyncResult<Void>> hndlr) {
-    cli().end(string, string1, hndlr);
+  public void end(String string, String enc, Handler<AsyncResult<Void>> hndlr) {
+    cli().end(string, enc, hndlr);
   }
 
   @Override
@@ -346,7 +346,7 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public HttpClientRequest setTimeout(long l) {
-    cli().setTimeout(l);
+    timeout = l;
     return this;
   }
 

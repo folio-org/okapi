@@ -9,8 +9,7 @@ import java.util.List;
 class HttpClientCacheEntry {
 
   final HttpMethod method;
-  final String host;
-  final String url;
+  final String cacheUri;
   final MultiMap requestHeaders;
   int statusCode;
   MultiMap responseHeaders;
@@ -19,10 +18,9 @@ class HttpClientCacheEntry {
   List<String> cookies;
   HttpVersion httpVersion;
 
-  HttpClientCacheEntry(HttpMethod method, String vHost, String url, MultiMap requestHeaders) {
+  HttpClientCacheEntry(HttpMethod method, String cacheUri, MultiMap requestHeaders) {
     this.method = method;
-    this.host = vHost;
-    this.url = url;
+    this.cacheUri = cacheUri;
     this.requestHeaders = requestHeaders;
     this.responseBody = Buffer.buffer();
   }

@@ -22,19 +22,26 @@ public class HttpClientCached {
     this.httpClient = httpClient;
   }
 
-  public HttpClientRequest request(HttpMethod method, String vHost, String host, int port, String requestUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+  public HttpClientRequest requestAbs(HttpMethod method, String absoluteUri,
+    Handler<AsyncResult<HttpClientResponse>> hndlr) {
+
+    return requestAbs(method, absoluteUri, absoluteUri, hndlr);
+  }
+
+  public HttpClientRequest requestAbs(HttpMethod method, String absoluteUri,
+    String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+
     if (method.equals(HttpMethod.GET) || method.equals(HttpMethod.HEAD)) {
-      return new HttpClientRequestCached(this, httpClient, method, vHost, host, port, requestUri, hndlr);
+      return new HttpClientRequestCached(this, httpClient, method,
+        absoluteUri, cacheUri, hndlr);
     } else {
-      return httpClient.request(method, port, host, requestUri, hndlr);
+      return httpClient.requestAbs(method, absoluteUri, hndlr);
     }
   }
 
   HttpClientCacheEntry lookup(HttpClientCacheEntry l) {
     for (HttpClientCacheEntry e : cache) {
-      if (l.method.equals(e.method)
-        && l.host.equals(e.host)
-        && l.url.equals(e.url)) {
+      if (l.method.equals(e.method) && l.cacheUri.equals(e.cacheUri)) {
         logger.debug("lookup found entry");
         return e;
       }
