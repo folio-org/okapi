@@ -43,6 +43,9 @@ class HttpClientRequestCached implements HttpClientRequest {
   boolean succeeded;
   Throwable cause;
   Long timeout;
+  Integer writeQueueMaxSize;
+  Integer maxRedirects;
+  Boolean followRedirects;
 
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
     String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
@@ -56,6 +59,7 @@ class HttpClientRequestCached implements HttpClientRequest {
     this.headers = MultiMap.caseInsensitiveMultiMap();
     this.cached = false;
     this.succeeded = true;
+    this.chunked = false;
   }
 
   private HttpClientRequest cli() {
@@ -104,6 +108,15 @@ class HttpClientRequestCached implements HttpClientRequest {
     if (timeout != null) {
       httpClientRequest.setTimeout(timeout);
     }
+    if (maxRedirects != null) {
+      httpClientRequest.setMaxRedirects(maxRedirects);
+    }
+    if (followRedirects != null) {
+      httpClientRequest.setFollowRedirects(followRedirects);
+    }
+    if (writeQueueMaxSize != null) {
+      httpClientRequest.setWriteQueueMaxSize(writeQueueMaxSize);
+    }
     if (host != null) {
       httpClientRequest.setHost(host);
     }
@@ -136,7 +149,7 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public HttpClientRequest setWriteQueueMaxSize(int i) {
-    cli().setWriteQueueMaxSize(i);
+    writeQueueMaxSize = i;
     return this;
   }
 
@@ -148,13 +161,13 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public HttpClientRequest setFollowRedirects(boolean bln) {
-    cli().setFollowRedirects(bln);
+    followRedirects = bln;
     return this;
   }
 
   @Override
   public HttpClientRequest setMaxRedirects(int i) {
-    cli().setMaxRedirects(i);
+    maxRedirects = i;
     return this;
   }
 
@@ -166,7 +179,10 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public boolean isChunked() {
-    return cli().isChunked();
+    if (chunked == null) {
+      return false;
+    }
+    return chunked;
   }
 
   @Override
@@ -187,7 +203,7 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public String absoluteURI() {
-    return cli().absoluteURI();
+    return absoluteUri;
   }
 
   @Override
@@ -256,13 +272,13 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   @Override
-  public Future<Void> write(String string, String string1) {
-    return cli().write(string, string1);
+  public Future<Void> write(String string, String enc) {
+    return cli().write(string, enc);
   }
 
   @Override
-  public void write(String string, String string1, Handler<AsyncResult<Void>> hndlr) {
-    cli().write(string, string1, hndlr);
+  public void write(String string, String enc, Handler<AsyncResult<Void>> hndlr) {
+    cli().write(string, enc, hndlr);
   }
 
   @Override

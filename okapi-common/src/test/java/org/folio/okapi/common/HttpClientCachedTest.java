@@ -360,6 +360,17 @@ public class HttpClientCachedTest {
         }
         async.complete();
       });
+      context.assertEquals(HttpMethod.GET, req.method());
+      context.assertEquals(ABS_URI + "/test1", req.absoluteURI());
+      context.assertTrue(req.headers().isEmpty());
+      req.putHeader("Accept", "*/*");
+      context.assertTrue(req.headers().contains("Accept"));
+      req.continueHandler(x -> {
+      });
+      req.setWriteQueueMaxSize(100);
+      req.setMaxRedirects(3);
+      req.setFollowRedirects(true);
+      context.assertFalse(req.isChunked());
       context.assertFalse(req.isComplete());
       req.setHost("localhost");
       context.assertEquals("localhost", req.getHost());
@@ -393,6 +404,21 @@ public class HttpClientCachedTest {
 
       async.await(1000);
     }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1?q=b", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+        }
+        async.complete();
+      });
+      req.end(x -> {
+      });
+      async.await(1000);
+    }
 
     {
       Async async = context.async();
@@ -418,11 +444,17 @@ public class HttpClientCachedTest {
       req.pushHandler(x -> {
       });
       req.setChunked(true); // must be called before header is flushed
+      context.assertTrue(req.isChunked());
       req.onComplete(x -> {
       }); // flushes header
+      context.assertTrue(req.isChunked());
       req.getHandler();
       context.assertFalse(req.writeQueueFull());
-      req.write(Buffer.buffer("x"), x -> {
+      req.write("x");
+      req.write("x", "UTF-8");
+      req.write("x", "UTF-8", x -> {
+      });
+      req.continueHandler(x -> {
       });
       req.write(Buffer.buffer("x"));
       req.end("");
@@ -446,6 +478,24 @@ public class HttpClientCachedTest {
       req.end("", x -> {
       });
 
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "/test1", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+        }
+        async.complete();
+      });
+      req.setChunked(true);
+      req.write(Buffer.buffer("x"));
+      req.end(x -> {
+      });
       async.await(1000);
     }
 
