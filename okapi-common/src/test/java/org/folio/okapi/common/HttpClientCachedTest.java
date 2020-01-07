@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -48,14 +49,12 @@ public class HttpClientCachedTest {
     final int status = e == null ? 200 : Integer.parseInt(e);
 
     HttpResponse.responseText(ctx, status);
-    OkapiToken token = new OkapiToken(ctx);
-
     ctx.request().handler(x -> msg.append(x));
     ctx.request().endHandler(x -> {
       if (msg.length() > 0) {
         ctx.response().write(msg.toString());
       } else {
-        ctx.response().write("hello " + token.getTenant());
+        ctx.response().write("hello " + ctx.request().headers().get(XOkapiHeaders.TENANT));
       }
       ctx.response().end();
     });
@@ -472,7 +471,15 @@ public class HttpClientCachedTest {
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
         context.assertEquals("MISS", res.getHeader("X-Cache"));
-        res.endHandler(x -> async.complete());
+        context.assertEquals("text/plain", res.headers().get("Content-type"));
+        context.assertEquals("OK", res.statusMessage());
+        context.assertEquals(HttpVersion.HTTP_1_1, res.version());
+        Buffer b = Buffer.buffer();
+        res.handler(b::appendBuffer);
+        res.endHandler(x -> {
+          context.assertEquals("hello testlib", b.toString());
+          async.complete();
+        });
       });
       context.assertEquals(HttpMethod.GET, req.method());
       context.assertEquals(ABS_URI, req.absoluteURI());
@@ -486,6 +493,8 @@ public class HttpClientCachedTest {
       ctypes.add("text/plain");
       req.putHeader("Accept", ctypes);
       context.assertTrue(req.headers().contains("accept"));
+
+      req.putHeader("X-Okapi-Tenant", "testlib");
 
       req.continueHandler(x -> {
       });
@@ -521,7 +530,18 @@ public class HttpClientCachedTest {
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
         context.assertEquals("HIT", res.getHeader("X-Cache"));
-        res.endHandler(x -> async.complete());
+        context.assertEquals("text/plain", res.headers().get("Content-type"));
+        context.assertEquals("OK", res.statusMessage());
+        context.assertEquals(HttpVersion.HTTP_1_1, res.version());
+        Buffer b = Buffer.buffer();
+        res.handler(b::appendBuffer);
+        res.bodyHandler(x -> {
+          context.assertEquals("hello testlib", x.toString());
+        });
+        res.endHandler(x -> {
+          context.assertEquals("hello testlib", b.toString());
+          async.complete();
+        });
       });
 
       CharSequence h = new StringBuilder("Content-Type");
@@ -533,6 +553,8 @@ public class HttpClientCachedTest {
       ctypes.add("text/plain");
       req.putHeader("Accept", ctypes);
       context.assertTrue(req.headers().contains("accept"));
+
+      req.putHeader("X-Okapi-Tenant", "testlib");
 
       req.end("", x -> {
       });
@@ -715,5 +737,4 @@ public class HttpClientCachedTest {
       async.await(1000);
     }
   }
-
 }

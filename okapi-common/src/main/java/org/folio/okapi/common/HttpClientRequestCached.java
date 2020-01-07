@@ -109,12 +109,14 @@ class HttpClientRequestCached implements HttpClientRequest {
       logger.debug("saving ce={} statusCode={}", ce, ce.statusCode);
       ce.cookies = res1.cookies();
       ce.httpVersion = res1.version();
+      ce.statusMessage = res1.statusMessage();
       if (save) {
         ce.responseHeaders.set("X-Cache", "MISS"); // indicate cache miss
       }
       response = new HttpClientResponseSave(httpClientCached, res1, this, save ? ce : null);
       hndlr.handle(Future.succeededFuture(response));
     });
+    httpClientRequest.headers().addAll(headers);
     if (timeout != null) {
       httpClientRequest.setTimeout(timeout);
     }
@@ -146,7 +148,6 @@ class HttpClientRequestCached implements HttpClientRequest {
     if (pushHandler != null) {
       httpClientRequest.pushHandler(pushHandler);
     }
-    httpClientRequest.headers().addAll(headers);
   }
 
   @Override

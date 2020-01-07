@@ -11,6 +11,7 @@ class HttpClientCacheEntry {
   final HttpMethod method;
   final String cacheUri;
   final MultiMap requestHeaders;
+  String statusMessage;
   int statusCode;
   MultiMap responseHeaders;
   MultiMap trailers;
@@ -18,7 +19,9 @@ class HttpClientCacheEntry {
   List<String> cookies;
   HttpVersion httpVersion;
 
-  HttpClientCacheEntry(HttpMethod method, String cacheUri, MultiMap requestHeaders) {
+  HttpClientCacheEntry(HttpMethod method, String cacheUri,
+    MultiMap requestHeaders) {
+
     this.method = method;
     this.cacheUri = cacheUri;
     this.requestHeaders = requestHeaders;

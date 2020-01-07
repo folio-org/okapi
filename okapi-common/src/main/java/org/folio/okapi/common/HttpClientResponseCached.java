@@ -73,7 +73,7 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public String statusMessage() {
-    return "";
+    return cacheEntry.statusMessage;
   }
 
   @Override
