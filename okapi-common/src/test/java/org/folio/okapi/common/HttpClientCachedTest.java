@@ -474,9 +474,12 @@ public class HttpClientCachedTest {
         context.assertEquals("text/plain", res.headers().get("Content-type"));
         context.assertEquals("OK", res.statusMessage());
         context.assertEquals(HttpVersion.HTTP_1_1, res.version());
+        context.assertTrue(res.cookies().isEmpty());
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
         res.endHandler(x -> {
+          context.assertNull(res.getTrailer("foo"));
+          context.assertNull(res.trailers().get("foo"));
           context.assertEquals("hello testlib", b.toString());
           async.complete();
         });
@@ -533,12 +536,13 @@ public class HttpClientCachedTest {
         context.assertEquals("text/plain", res.headers().get("Content-type"));
         context.assertEquals("OK", res.statusMessage());
         context.assertEquals(HttpVersion.HTTP_1_1, res.version());
+        res.trailers();
+        context.assertTrue(res.cookies().isEmpty());
         Buffer b = Buffer.buffer();
         res.handler(b::appendBuffer);
-        res.bodyHandler(x -> {
-          context.assertEquals("hello testlib", x.toString());
-        });
         res.endHandler(x -> {
+          context.assertNull(res.getTrailer("foo"));
+          context.assertNull(res.trailers().get("foo"));
           context.assertEquals("hello testlib", b.toString());
           async.complete();
         });

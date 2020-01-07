@@ -43,6 +43,7 @@ class HttpClientResponseSave implements HttpClientResponse {
     response.endHandler(res -> {
       if (cacheEntry != null) {
         logger.debug("saving entry statusCode={}", ce.statusCode);
+        cacheEntry.trailers = response.trailers();
         httpClientCached.add(cacheEntry);
       }
       if (endHandler != null) {
@@ -119,7 +120,7 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   @Override
   public String getTrailer(String string) {
-    return response.getHeader(string);
+    return response.getTrailer(string);
   }
 
   @Override
