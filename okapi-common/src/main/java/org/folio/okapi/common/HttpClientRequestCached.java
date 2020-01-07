@@ -4,6 +4,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -51,13 +52,18 @@ class HttpClientRequestCached implements HttpClientRequest {
   final URL url;
 
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
-    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) throws MalformedURLException {
+    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr)  {
 
     this.httpClientCached = cached;
     this.httpClient = httpClient;
     this.method = method;
     this.absoluteUri = absoluteUri;
-    this.url = new URL(absoluteUri);
+
+    try {
+      this.url = new URL(absoluteUri);
+    } catch (MalformedURLException ex) {
+      throw new VertxException("bad URL " + absoluteUri + ": "+ ex.getMessage());
+    }
     this.cacheUri = cacheUri;
     this.hndlr = hndlr;
     this.headers = MultiMap.caseInsensitiveMultiMap();

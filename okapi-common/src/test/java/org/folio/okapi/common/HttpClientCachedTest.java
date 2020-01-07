@@ -1,6 +1,7 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -106,6 +107,23 @@ public class HttpClientCachedTest {
       context.assertTrue(req.failed());
       context.assertNotNull(req.cause());
       context.assertNull(req.result());
+    }
+
+    {
+      boolean thrown = false;
+      Async async = context.async();
+      try {
+        HttpClientRequest req = client.requestAbs(HttpMethod.GET, "syz://localhost/test1", res1 -> {
+          async.complete();
+        });
+        context.assertFalse(req.isComplete());
+        req.end();
+      } catch (VertxException ex) {
+        thrown = true;
+        async.complete();
+      }
+      async.await(1000);
+      context.assertTrue(thrown);
     }
   }
 
@@ -298,7 +316,8 @@ public class HttpClientCachedTest {
         }
       });
       context.assertNull(req.connection());
-      req.sendHead(x -> {});
+      req.sendHead(x -> {
+      });
       req.end(Buffer.buffer());
       async.await(1000);
     }
@@ -336,7 +355,8 @@ public class HttpClientCachedTest {
       });
       req.setChunked(true);
       req.sendHead();
-      req.write("x", x -> {});
+      req.write("x", x -> {
+      });
       req.end();
       async.await(1000);
     }
