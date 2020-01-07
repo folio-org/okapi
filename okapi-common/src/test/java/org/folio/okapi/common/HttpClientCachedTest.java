@@ -125,6 +125,43 @@ public class HttpClientCachedTest {
       async.await(1000);
       context.assertTrue(thrown);
     }
+
+    {
+      Async async = context.async();
+      boolean thrown = false;
+      try {
+        HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+          async.complete();
+        });
+        context.assertFalse(req.isComplete());
+        req.reset(0);
+        req.end();
+      } catch (VertxException ex) {
+        context.assertEquals("HttpClientCached: reset not implemented", ex.getMessage());
+        thrown = true;
+        async.complete();
+      }
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      boolean thrown = false;
+      try {
+        HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+          async.complete();
+        });
+        context.assertFalse(req.isComplete());
+        req.writeCustomFrame(0, 1, Buffer.buffer());
+        req.end();
+      } catch (VertxException ex) {
+        context.assertEquals("HttpClientCached: writeCustomFrame not implemented", ex.getMessage());
+        thrown = true;
+        async.complete();
+      }
+      async.await(1000);
+    }
+
   }
 
   @Test
@@ -333,7 +370,6 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
-      context.assertNull(req.connection());
       req.end(Buffer.buffer("x"));
       async.await(1000);
     }
@@ -441,13 +477,16 @@ public class HttpClientCachedTest {
       context.assertEquals(HttpMethod.GET, req.method());
       context.assertEquals(ABS_URI, req.absoluteURI());
       context.assertTrue(req.headers().isEmpty());
+
       req.putHeader("Content-Type", "application/json");
       context.assertTrue(req.headers().contains("content-type"));
+
       List<String> ctypes = new LinkedList<>();
       ctypes.add("application/json");
       ctypes.add("text/plain");
       req.putHeader("Accept", ctypes);
       context.assertTrue(req.headers().contains("accept"));
+
       req.continueHandler(x -> {
       });
       req.setWriteQueueMaxSize(100);
@@ -484,6 +523,17 @@ public class HttpClientCachedTest {
         context.assertEquals("HIT", res.getHeader("X-Cache"));
         res.endHandler(x -> async.complete());
       });
+
+      CharSequence h = new StringBuilder("Content-Type");
+      CharSequence v = new StringBuilder("application/json");
+      req.putHeader(h, v);
+
+      List<CharSequence> ctypes = new LinkedList<>();
+      ctypes.add("application/json");
+      ctypes.add("text/plain");
+      req.putHeader("Accept", ctypes);
+      context.assertTrue(req.headers().contains("accept"));
+
       req.end("", x -> {
       });
       async.await(1000);
@@ -584,6 +634,7 @@ public class HttpClientCachedTest {
       });
       req.setChunked(true);
       req.write(Buffer.buffer("x"));
+      req.connection();
       req.end("", x -> {
       });
       async.await(1000);

@@ -383,18 +383,20 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public boolean reset(long l) {
-    return cli().reset(l);
+    throw new VertxException("HttpClientCached: reset not implemented");
   }
 
   @Override
   public HttpConnection connection() {
-    return cli().connection();
+    if (httpClientRequest == null) {
+      return null;
+    }
+    return httpClientRequest.connection();
   }
 
   @Override
   public HttpClientRequest writeCustomFrame(int i, int i1, Buffer buffer) {
-    cli().writeCustomFrame(i, i1, buffer);
-    return this;
+    throw new VertxException("HttpClientCached: writeCustomFrame not implemented");
   }
 
   @Override
