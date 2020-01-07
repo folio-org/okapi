@@ -81,8 +81,9 @@ public class HttpClientCachedTest {
 
   @After
   public void tearDown(TestContext context) {
-    server.close();
-    vertx.close();
+    server.close(x -> {
+      vertx.close(context.asyncAssertSuccess());
+    });
   }
 
   @Test
@@ -94,6 +95,7 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI_BAD_PORT, res1 -> {
         context.assertTrue(res1.failed());
+        context.assertTrue(res1.cause().getMessage().contains("Connection refused"));
         async.complete();
       });
       context.assertFalse(req.isComplete());
@@ -168,6 +170,9 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      context.assertEquals("/test1", req.path());
+      context.assertEquals("/test1", req.uri());
+      context.assertNull(req.query());
       req.end();
       async.await(1000);
     }
@@ -189,7 +194,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "?q=foo", res1 -> {
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "?q=a", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -198,6 +203,9 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      context.assertEquals("/test1", req.path());
+      context.assertEquals("/test1?q=a", req.uri());
+      context.assertEquals("q=a", req.query());
       req.end();
       async.await(1000);
     }
@@ -219,7 +227,7 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "?q=foo", res1 -> {
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "?q=a", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
@@ -289,8 +297,9 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      context.assertNull(req.connection());
       req.sendHead(x -> {});
-      req.end(Buffer.buffer().appendString("x"));
+      req.end(Buffer.buffer());
       async.await(1000);
     }
 
@@ -305,9 +314,30 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      context.assertNull(req.connection());
+      req.end(Buffer.buffer("x"));
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        res.endHandler(x -> {
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+          async.complete();
+        });
+      });
       req.setChunked(true);
       req.sendHead();
-      req.write("x", res -> req.end());
+      req.write("x", x -> {});
+      req.end();
       async.await(1000);
     }
 
@@ -329,6 +359,9 @@ public class HttpClientCachedTest {
         }
         async.complete();
       });
+      context.assertEquals("/test1", req.path());
+      context.assertEquals("/test1", req.uri());
+      context.assertNull(req.query());
       req.end();
       async.await(1000);
     }
@@ -344,6 +377,24 @@ public class HttpClientCachedTest {
         }
         async.complete();
       });
+      req.end("b");
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.POST, ABS_URI + "?q=a", res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+        }
+        async.complete();
+      });
+      context.assertEquals("/test1", req.path());
+      context.assertEquals("/test1?q=a", req.uri());
+      context.assertEquals("q=a", req.query());
       req.end("b");
       async.await(1000);
     }
@@ -455,19 +506,21 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       context.assertFalse(req.isComplete());
       req.setHost("localhost");
       context.assertEquals("localhost", req.getHost());
       req.setRawMethod("GET");
       context.assertEquals("GET", req.getRawMethod());
-      req.setTimeout(500);
+      req.setTimeout(1000);
       req.exceptionHandler(x -> {
       });
       req.drainHandler(x -> {
@@ -478,7 +531,6 @@ public class HttpClientCachedTest {
       context.assertTrue(req.isChunked());
       req.onComplete(x -> {
       }); // flushes header
-      context.assertNotNull(req.getStreamPriority());
       context.assertTrue(req.isChunked());
       req.getHandler();
       context.assertFalse(req.writeQueueFull());
@@ -489,8 +541,9 @@ public class HttpClientCachedTest {
       req.continueHandler(x -> {
       });
       req.write(Buffer.buffer("x"));
-      req.write(Buffer.buffer("x"), x -> {});
-      context.assertNull(req.getStreamPriority());
+      req.write(Buffer.buffer("x"), x -> {
+      });
+      req.getStreamPriority();
       req.end("");
 
       async.await(1000);
@@ -500,18 +553,19 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.setChunked(true);
       req.write(Buffer.buffer("x"));
       req.end("", x -> {
       });
-
       async.await(1000);
     }
 
@@ -519,12 +573,34 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
+      });
+      req.setChunked(true);
+      req.write(Buffer.buffer("x"));
+      req.end(Buffer.buffer(), x -> {
+      });
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.setChunked(true);
       req.write(Buffer.buffer("x"));
@@ -537,12 +613,14 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.end("x", "UTF-8");
       async.await(1000);
@@ -552,18 +630,19 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+        if (res1.failed()) {
+          async.complete();
+          return;
         }
-        async.complete();
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals(null, res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
       });
       req.end("x", "UTF-8", x -> {
       });
       async.await(1000);
     }
-
   }
 
 }

@@ -12,6 +12,9 @@ import io.vertx.core.http.HttpConnection;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.http.StreamPriority;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.logging.Level;
 import org.apache.logging.log4j.Logger;
 
 class HttpClientRequestCached implements HttpClientRequest {
@@ -46,14 +49,16 @@ class HttpClientRequestCached implements HttpClientRequest {
   Integer writeQueueMaxSize;
   Integer maxRedirects;
   Boolean followRedirects;
+  final URL url;
 
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
-    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
+    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) throws MalformedURLException {
 
     this.httpClientCached = cached;
     this.httpClient = httpClient;
     this.method = method;
     this.absoluteUri = absoluteUri;
+    this.url = new URL(absoluteUri);
     this.cacheUri = cacheUri;
     this.hndlr = hndlr;
     this.headers = MultiMap.caseInsensitiveMultiMap();
@@ -203,17 +208,21 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   @Override
   public String uri() {
-    return cli().uri();
+    String uri = url.getPath();
+    if (url.getQuery() != null) {
+      return uri + "?" + url.getQuery();
+    }
+    return uri;
   }
 
   @Override
   public String path() {
-    return cli().path();
+    return url.getPath();
   }
 
   @Override
   public String query() {
-    return cli().query();
+    return url.getQuery();
   }
 
   @Override
