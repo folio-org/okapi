@@ -20,7 +20,7 @@ public class MessagesTest {
     Assert.assertEquals("During verticle deployment, init failed, exiting....... {0}", my.getMessage("10000"));
     Assert.assertEquals("Unable to process request", my.getMessage("10003"));
     Assert.assertEquals("Unable to process request", my.getMessage("10003", "foo"));
-    Assert.assertEquals("Error message not found: en 10005", my.getMessage("10005", null));
+    Assert.assertEquals("Error message not found: en 10005", my.getMessage("10005", "foo"));
     Assert.assertEquals("Error message not found: en 10005", my.getMessage("10005"));
     Assert.assertEquals("Only English", my.getMessage("10006"));
     my.setLanguage("dk");

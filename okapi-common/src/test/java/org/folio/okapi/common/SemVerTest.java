@@ -107,7 +107,7 @@ public class SemVerTest {
     assertFalse(snap2.hasPrefix(snap1));
 
     SemVer snap3 = createVersion("1.0.0+snapshot-2017.2", false, false);
-    SemVer snap4 = createVersion("1.0.0-rc.1", true, false);;
+    SemVer snap4 = createVersion("1.0.0-rc.1", true, false);
     assertTrue(snap1.hasPrefix(snap4));
     assertFalse(snap4.hasPrefix(snap1));
     assertEquals(1, snap1.compareTo(snap4));
@@ -117,10 +117,10 @@ public class SemVerTest {
     assertEquals(1, snap2.compareTo(snap1));
     assertEquals(1, snap3.compareTo(snap1));
     assertEquals(-1, snap1.compareTo(snap3));
-    
+
     SemVer npmSnapshot = createVersion("1.7.10001", false, true);
   }
-  
+
   @Test
   public void testMixedPrerelease() {
     SemVer v2a3a = createVersion("1.0.0-2a-3a", true, false);

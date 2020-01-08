@@ -17,25 +17,25 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class HttpClientCachedTest {
 
-  private Vertx vertx;
+  private static Vertx vertx;
   private static final int PORT = 9230;
   private static final String HOST = "localhost";
-  private static final String ABS_URI = "http://" + HOST + ":" + Integer.toString(PORT) + "/test1";
+  private static final String ABS_URI = "http://" + HOST + ":" + PORT + "/test1";
   private static final String ABS_URI_BAD_PORT = "http://" + HOST + ":" + Integer.toString(PORT + 1) + "/test1";
   private static final String CACHE_URI = "http://host";
 
   private final Logger logger = OkapiLogger.get();
-  private HttpServer server;
+  private static HttpServer server;
 
-  private void myStreamHandle1(RoutingContext ctx) {
+  private static void myStreamHandle1(RoutingContext ctx) {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> {
         HttpResponse.responseError(ctx, 204, "");
@@ -60,15 +60,15 @@ public class HttpClientCachedTest {
     });
   }
 
-  @Before
-  public void setUp(TestContext context) {
+  @BeforeClass
+  public static void setUp(TestContext context) {
     vertx = Vertx.vertx();
 
     Router router = Router.router(vertx);
-    router.get("/test1").handler(this::myStreamHandle1);
-    router.head("/test1").handler(this::myStreamHandle1);
-    router.post("/test1").handler(this::myStreamHandle1);
-    router.delete("/test1").handler(this::myStreamHandle1);
+    router.get("/test1").handler(HttpClientCachedTest::myStreamHandle1);
+    router.head("/test1").handler(HttpClientCachedTest::myStreamHandle1);
+    router.post("/test1").handler(HttpClientCachedTest::myStreamHandle1);
+    router.delete("/test1").handler(HttpClientCachedTest::myStreamHandle1);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     server = vertx.createHttpServer(so)
@@ -79,8 +79,8 @@ public class HttpClientCachedTest {
       );
   }
 
-  @After
-  public void tearDown(TestContext context) {
+  @AfterClass
+  public static void tearDown(TestContext context) {
     server.close(x -> {
       vertx.close(context.asyncAssertSuccess());
     });
@@ -206,6 +206,28 @@ public class HttpClientCachedTest {
     }
 
     client.close();
+  }
+
+  @Test
+  public void testBufferSize(TestContext context) {
+    logger.info("testBufferSize");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    client.setMaxBodySize(15);
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.putHeader("X-Okapi-Tenant", "1234567890"); // hello_this >= 16 bytes
+      req.end();
+      async.await(1000);
+    }
   }
 
   @Test
@@ -423,21 +445,6 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.POST, ABS_URI, res1 -> {
-        context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
-        }
-        async.complete();
-      });
-      req.end("b");
-      async.await(1000);
-    }
-
-    {
-      Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.POST, ABS_URI + "?q=a", res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
@@ -451,6 +458,48 @@ public class HttpClientCachedTest {
       context.assertEquals("/test1?q=a", req.uri());
       context.assertEquals("q=a", req.query());
       req.end("b");
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testIgnoreDate(TestContext context) {
+    logger.info("testIgnoreDate");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
+      });
+      req.putHeader("Date", "1"); // date header ignored for cache-lookup
+      req.end(x -> {
+      });
+      async.await(1000);
+    }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
+      });
+      req.putHeader("Date", "2");
+      req.end("");
       async.await(1000);
     }
   }
@@ -551,6 +600,7 @@ public class HttpClientCachedTest {
       CharSequence h = new StringBuilder("Content-Type");
       CharSequence v = new StringBuilder("application/json");
       req.putHeader(h, v);
+      context.assertTrue(req.headers().contains("Content-Type"));
 
       List<CharSequence> ctypes = new LinkedList<>();
       ctypes.add("application/json");
@@ -564,40 +614,6 @@ public class HttpClientCachedTest {
       });
       async.await(1000);
     }
-    {
-      Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
-        context.assertTrue(res1.succeeded());
-        if (res1.failed()) {
-          async.complete();
-          return;
-        }
-        HttpClientResponse res = res1.result();
-        context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.getHeader("X-Cache"));
-        res.endHandler(x -> async.complete());
-      });
-      req.end(x -> {
-      });
-      async.await(1000);
-    }
-    {
-      Async async = context.async();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
-        context.assertTrue(res1.succeeded());
-        if (res1.failed()) {
-          async.complete();
-          return;
-        }
-        HttpClientResponse res = res1.result();
-        context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.getHeader("X-Cache"));
-        res.endHandler(x -> async.complete());
-      });
-      req.end("");
-      async.await(1000);
-    }
-
     {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
@@ -740,5 +756,7 @@ public class HttpClientCachedTest {
       });
       async.await(1000);
     }
+
   }
+
 }

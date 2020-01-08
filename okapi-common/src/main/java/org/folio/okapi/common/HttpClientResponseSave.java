@@ -17,8 +17,7 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   final HttpClientResponse response;
   final HttpClientRequest request;
-  static final int MAX_BODY_CACHE = 10000;
-  
+
   HttpClientCacheEntry cacheEntry;
   Handler<Buffer> handler;
   Handler<Void> endHandler;
@@ -32,7 +31,7 @@ class HttpClientResponseSave implements HttpClientResponse {
     response.handler(res -> {
       if (cacheEntry != null) {
         cacheEntry.responseBody.appendBuffer(res);
-        if (cacheEntry.responseBody.length() > MAX_BODY_CACHE) {
+        if (cacheEntry.responseBody.length() > httpClientCached.getMaxBodySize()) {
           cacheEntry = null;
         }
       }
@@ -160,5 +159,5 @@ class HttpClientResponseSave implements HttpClientResponse {
     response.streamPriorityHandler(hndlr);
     return this;
   }
-  
+
 }

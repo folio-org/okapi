@@ -248,32 +248,32 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   @Override
-  public HttpClientRequest putHeader(String string, String string1) {
-    headers.add(string, string1);
+  public HttpClientRequest putHeader(String name, String value) {
+    headers.add(name, value);
     return this;
   }
 
   @Override
-  public HttpClientRequest putHeader(CharSequence cs, CharSequence cs1) {
-    headers.add(cs1, cs1);
+  public HttpClientRequest putHeader(CharSequence name, CharSequence value) {
+    headers.add(name, value);
     return this;
   }
 
   @Override
-  public HttpClientRequest putHeader(String string, Iterable<String> itrbl) {
-    headers.add(string, itrbl);
+  public HttpClientRequest putHeader(String name, Iterable<String> values) {
+    headers.add(name, values);
     return this;
   }
 
   @Override
-  public HttpClientRequest putHeader(CharSequence cs, Iterable<CharSequence> itrbl) {
-    headers.add(cs, itrbl);
+  public HttpClientRequest putHeader(CharSequence name, Iterable<CharSequence> values) {
+    headers.add(name, values);
     return this;
   }
 
   @Override
-  public Future<Void> write(String string) {
-    return cli().write(string);
+  public Future<Void> write(String chunk) {
+    return cli().write(chunk);
   }
 
   @Override
@@ -282,13 +282,13 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   @Override
-  public Future<Void> write(String string, String enc) {
-    return cli().write(string, enc);
+  public Future<Void> write(String chunk, String enc) {
+    return cli().write(chunk, enc);
   }
 
   @Override
-  public void write(String string, String enc, Handler<AsyncResult<Void>> hndlr) {
-    cli().write(string, enc, hndlr);
+  public void write(String chunk, String enc, Handler<AsyncResult<Void>> hndlr) {
+    cli().write(chunk, enc, hndlr);
   }
 
   @Override
@@ -309,32 +309,32 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   @Override
-  public Future<Void> end(String string) {
-    HttpClientRequest client = cli(string.isEmpty());
+  public Future<Void> end(String chunk) {
+    HttpClientRequest client = cli(chunk.isEmpty());
     if (client == null) {
       return Future.succeededFuture();
     }
-    return client.end(string);
+    return client.end(chunk);
   }
 
   @Override
-  public void end(String string, Handler<AsyncResult<Void>> hndlr) {
-    HttpClientRequest client = cli(string.isEmpty());
+  public void end(String chunk, Handler<AsyncResult<Void>> hndlr) {
+    HttpClientRequest client = cli(chunk.isEmpty());
     if (client == null) {
       hndlr.handle(Future.succeededFuture());
       return;
     }
-    client.end(string, hndlr);
+    client.end(chunk, hndlr);
   }
 
   @Override
-  public Future<Void> end(String string, String enc) {
-    return cli().end(string, enc);
+  public Future<Void> end(String chunk, String enc) {
+    return cli().end(chunk, enc);
   }
 
   @Override
-  public void end(String string, String enc, Handler<AsyncResult<Void>> hndlr) {
-    cli().end(string, enc, hndlr);
+  public void end(String chunk, String enc, Handler<AsyncResult<Void>> hndlr) {
+    cli().end(chunk, enc, hndlr);
   }
 
   @Override

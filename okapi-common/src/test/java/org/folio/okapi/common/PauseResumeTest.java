@@ -4,7 +4,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -20,7 +19,6 @@ import org.junit.runner.RunWith;
 public class PauseResumeTest {
 
   private Vertx vertx;
-  private HttpServer server;
   private static final int PORT = 9230;
 
   private void myStreamHandle1(RoutingContext ctx) {
@@ -55,7 +53,7 @@ public class PauseResumeTest {
     router.post("/test1").handler(this::myStreamHandle1);
     router.post("/test2").handler(this::myStreamHandle2);
 
-    server = vertx.createHttpServer()
+    HttpServer server = vertx.createHttpServer()
       .requestHandler(router)
       .listen(PORT, context.asyncAssertSuccess());
   }
