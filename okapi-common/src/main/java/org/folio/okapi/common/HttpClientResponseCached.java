@@ -19,6 +19,9 @@ class HttpClientResponseCached implements HttpClientResponse {
   final HttpClientCacheEntry cacheEntry;
   final HttpClientRequest request;
   final MultiMap responseHeaders;
+  boolean paused;
+  Handler<Buffer> handler;
+  Handler<Void> endHandler;
 
   HttpClientResponseCached(HttpClientCacheEntry ce, HttpClientRequest httpClientRequest) {
     logger.debug("ce={} ce.statusCode={}", ce, ce.statusCode);
@@ -26,6 +29,7 @@ class HttpClientResponseCached implements HttpClientResponse {
     responseHeaders = MultiMap.caseInsensitiveMultiMap();
     responseHeaders.addAll(ce.responseHeaders);
     responseHeaders.set("X-Cache", "HIT");
+    paused = false;
     this.request = httpClientRequest;
   }
 
@@ -36,6 +40,15 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse resume() {
+    paused = false;
+    if (handler != null) {
+      handler.handle(cacheEntry.responseBody);
+      handler = null;
+    }
+    if (endHandler != null) {
+      endHandler.handle(null);
+      endHandler = null;
+    }
     return this;
   }
 
@@ -46,18 +59,27 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse handler(Handler<Buffer> hndlr) {
-    hndlr.handle(cacheEntry.responseBody);
+    if (paused) {
+      handler = hndlr;
+    } else {
+      hndlr.handle(cacheEntry.responseBody);
+    }
     return this;
   }
 
   @Override
   public HttpClientResponse pause() {
+    paused = true;
     return this;
   }
 
   @Override
   public HttpClientResponse endHandler(Handler<Void> hndlr) {
-    hndlr.handle(null);
+    if (paused) {
+      endHandler = hndlr;
+    } else {
+      hndlr.handle(null);
+    }
     return this;
   }
 

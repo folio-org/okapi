@@ -34,12 +34,13 @@ public class HttpClientCached {
     this.httpClient = httpClient;
   }
 
-  HttpClientCached ignoreHeader(String h) {
-    if (h.startsWith("-")) {
-      this.cacheIgnoreHeaders.remove(h.substring(1).toLowerCase());
-    } else {
-      this.cacheIgnoreHeaders.add(h.toLowerCase());
-    }
+  HttpClientCached addIgnoreHeader(String h) {
+    this.cacheIgnoreHeaders.add(h.toLowerCase());
+    return this;
+  }
+
+  HttpClientCached removeIgnoreHeader(String h) {
+    this.cacheIgnoreHeaders.remove(h.toLowerCase());
     return this;
   }
 

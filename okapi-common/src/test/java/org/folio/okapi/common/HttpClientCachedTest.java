@@ -198,11 +198,76 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("HIT", res.getHeader("X-Cache"));
-          res.endHandler(x -> async.complete());
+        }
+        async.complete();
+      });
+      req.end();
+      async.await(1000);
+    }
+    client.close();
+  }
+
+  @Test
+  public void testPauseResume(TestContext context) {
+    logger.info("testPauseResume");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+
+    {
+      Async async = context.async();
+      StringBuilder b = new StringBuilder();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.pause();
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          res.endHandler(x -> {
+            b.append("[endHandler]");
+            async.complete();
+          });
+          vertx.runOnContext(x -> {
+            b.append("[runOnContext]");
+            res.resume();
+          });
+        }
+      });
+      context.assertFalse(req.isComplete());
+      context.assertFalse(req.writeQueueFull());
+      req.end();
+      async.await(1000);
+      context.assertEquals("[runOnContext][handler][endHandler]", b.toString());
+    }
+
+    {
+      Async async = context.async();
+      StringBuilder b = new StringBuilder();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.pause();
+          res.endHandler(x -> {
+            b.append("[endHandler]");
+            async.complete();
+          });
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          vertx.runOnContext(x -> {
+            b.append("[runOnContext]");
+            res.resume();
+          });
         }
       });
       req.end();
       async.await(1000);
+      context.assertEquals("[runOnContext][handler][endHandler]", b.toString());
     }
 
     client.close();
@@ -463,8 +528,8 @@ public class HttpClientCachedTest {
   }
 
   @Test
-  public void testIgnoreDate(TestContext context) {
-    logger.info("testIgnoreDate");
+  public void testIgnoreCacheHeader(TestContext context) {
+    logger.info("testIgnoreCacheHeader");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
     {
@@ -485,6 +550,7 @@ public class HttpClientCachedTest {
       });
       async.await(1000);
     }
+    client.addIgnoreHeader(XOkapiHeaders.REQUEST_ID);
     {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
@@ -499,6 +565,26 @@ public class HttpClientCachedTest {
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "2");
+      req.putHeader(XOkapiHeaders.REQUEST_ID, "2");
+      req.end("");
+      async.await(1000);
+    }
+    client.removeIgnoreHeader(XOkapiHeaders.REQUEST_ID);
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
+      });
+      req.putHeader("Date", "2");
+      req.putHeader(XOkapiHeaders.REQUEST_ID, "2");
       req.end("");
       async.await(1000);
     }
