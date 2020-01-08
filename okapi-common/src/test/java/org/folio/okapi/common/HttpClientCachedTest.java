@@ -252,6 +252,8 @@ public class HttpClientCachedTest {
           context.assertEquals(200, res.statusCode());
           context.assertEquals("HIT", res.getHeader("X-Cache"));
           res.pause();
+          res.resume();
+          res.pause();
           res.endHandler(x -> {
             b.append("[endHandler]");
             async.complete();
@@ -262,6 +264,7 @@ public class HttpClientCachedTest {
           vertx.runOnContext(x -> {
             b.append("[runOnContext]");
             res.resume();
+            res.request();
           });
         }
       });
