@@ -538,6 +538,28 @@ public class HttpClientCachedTest {
   }
 
   @Test
+  public void testHEadEndHandlerOnly(TestContext context) {
+    logger.info("testHeadEndHandlerOnly");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    {
+      Async async = context.async();
+      Buffer b = Buffer.buffer();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+      context.assertEquals("", b.toString());
+    }
+  }
+
+  @Test
   public void testGet(TestContext context) {
     logger.info("testGet");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
