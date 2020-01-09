@@ -65,6 +65,8 @@ public class HttpClientCachedTest {
       ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("GMT"));
       response.putHeader("Expires",
         zdt.format(DateTimeFormatter.RFC_1123_DATE_TIME));
+    } else if ("invalid".equals(expires)) {
+      response.putHeader("Expires", "1 2 3 4");
     }
 
     ctx.request().handler(x -> msg.append(x));
@@ -761,6 +763,26 @@ public class HttpClientCachedTest {
       req.end("");
       async.await(1000);
     }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.failed()) {
+          async.complete();
+          return;
+        }
+        HttpClientResponse res = res1.result();
+        context.assertEquals(200, res.statusCode());
+        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        res.endHandler(x -> async.complete());
+      });
+      req.putHeader("Date", "3");
+      req.putHeader(XOkapiHeaders.REQUEST_ID, "3");
+      req.end(x -> {
+      });
+      async.await(1000);
+    }
+
     client.removeIgnoreHeader(XOkapiHeaders.REQUEST_ID);
     {
       Async async = context.async();
@@ -1085,6 +1107,24 @@ public class HttpClientCachedTest {
       req.end();
       async.await(1000);
     }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?cc=max-age%3Dinvalid", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+
   }
 
   @Test
@@ -1108,6 +1148,24 @@ public class HttpClientCachedTest {
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.putHeader("Cache-Control", "max-age=0");
+      req.end();
+      async.await(1000);
+    }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI, res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.putHeader("Cache-Control", "max-age=invalid");
       req.end();
       async.await(1000);
     }
@@ -1162,6 +1220,23 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET,
         ABS_URI + "?expires=now", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?expires=invalid", res1 -> {
           context.assertTrue(res1.succeeded());
           if (res1.failed()) {
             async.complete();

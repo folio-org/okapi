@@ -52,7 +52,7 @@ class HttpClientRequestCached implements HttpClientRequest {
   final URL url;
 
   HttpClientRequestCached(HttpClientCached cached, HttpClient httpClient, HttpMethod method,
-    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr)  {
+    String absoluteUri, String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
     this.httpClientCached = cached;
     this.httpClient = httpClient;
@@ -62,7 +62,7 @@ class HttpClientRequestCached implements HttpClientRequest {
     try {
       this.url = new URL(absoluteUri);
     } catch (MalformedURLException ex) {
-      throw new VertxException("bad URL " + absoluteUri + ": "+ ex.getMessage());
+      throw new VertxException("bad URL " + absoluteUri + ": " + ex.getMessage());
     }
     this.cacheUri = cacheUri;
     this.hndlr = hndlr;
