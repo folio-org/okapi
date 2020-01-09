@@ -177,6 +177,69 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          res.endHandler(x -> {
+            context.assertNull(x);
+            b.append("[endHandler]");
+            async.complete();
+          });
+        }
+      });
+      context.assertFalse(req.isComplete());
+      context.assertFalse(req.writeQueueFull());
+      req.end();
+      async.await(1000);
+      context.assertEquals("[endHandler]", b.toString());
+      context.assertTrue(req.isComplete());
+      context.assertTrue(req.succeeded());
+      context.assertFalse(req.failed());
+      context.assertNull(req.cause());
+      context.assertNotNull(req.result());
+    }
+
+    {
+      Async async = context.async();
+      StringBuilder b = new StringBuilder();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          res.endHandler(x -> {
+            context.assertNull(x);
+            b.append("[endHandler]");
+            async.complete();
+          });
+        }
+      });
+      req.end();
+      async.await(1000);
+      context.assertEquals("[endHandler]", b.toString());
+    }
+    client.close();
+  }
+
+
+  @Test
+  public void testHeadPauseResume(TestContext context) {
+    logger.info("testHeadPauseResume");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+
+    {
+      Async async = context.async();
+      StringBuilder b = new StringBuilder();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
           res.pause();
           res.handler(x -> {
             b.append("[handler]");
@@ -697,7 +760,7 @@ public class HttpClientCachedTest {
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
         context.assertEquals("MISS", res.getHeader("X-Cache"));
-        context.assertEquals("text/plain", res.headers().get("Content-type"));
+        context.assertEquals("text/plain", res.getHeader("Content-type"));
         context.assertEquals("OK", res.statusMessage());
         context.assertEquals(HttpVersion.HTTP_1_1, res.version());
         context.assertTrue(res.cookies().isEmpty());
@@ -759,7 +822,8 @@ public class HttpClientCachedTest {
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
         context.assertEquals("HIT", res.getHeader("X-Cache"));
-        context.assertEquals("text/plain", res.headers().get("Content-type"));
+        CharSequence h = new StringBuilder("Content-Type");
+        context.assertEquals("text/plain", res.getHeader(h));
         context.assertEquals("OK", res.statusMessage());
         context.assertEquals(HttpVersion.HTTP_1_1, res.version());
         res.trailers();
