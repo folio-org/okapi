@@ -18,6 +18,12 @@ import java.util.Set;
 import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 
+/**
+ * HTTP client with cache .. Can be used in most case as a replacement of Vert.x
+ * HttpClient.
+ *
+ * @author adam
+ */
 public class HttpClientCached {
 
   private final Logger logger = OkapiLogger.get();
@@ -34,37 +40,114 @@ public class HttpClientCached {
   private long globalMaxAge = 600;
   private long defaultMaxAge = 60;
 
+  /**
+   * Create a client with caching. This serves as a factory of requests Each
+   * client has its own cache (NOT static)
+   *
+   * @param httpClient Vert.x httpClient
+   */
   public HttpClientCached(HttpClient httpClient) {
     cacheIgnoreHeaders.add("date");
     this.httpClient = httpClient;
   }
 
+  /**
+   * Sets a an upper limit on how long the client will cache results
+   *
+   * @param seconds age in seconds
+   * @return client (fluent)
+   */
   HttpClientCached globalMaxAge(long seconds) {
     globalMaxAge = seconds;
     return this;
   }
 
+  /**
+   * Sets default age for responses .. Used if neither the client , nor the
+   * server specifies max-age
+   *
+   * @param seconds age in seconds
+   * @return client (fluent)
+   */
   HttpClientCached defaultMaxAge(long seconds) {
     defaultMaxAge = seconds;
     return this;
   }
 
+  /**
+   * Specifies a request header that will be ignored in the cache match. By
+   * default only "Date" is ignored, but more may be added.
+   *
+   * @param h the header name
+   * @return client (fluent)
+   */
   HttpClientCached addIgnoreHeader(String h) {
     this.cacheIgnoreHeaders.add(h.toLowerCase());
     return this;
   }
 
+  /**
+   * Specifies a request header that will not be ignored in the cache match. By
+   * default only "Date" is ignored, but more may be added.
+   *
+   * @param h the header name
+   * @return client (fluent)
+   */
   HttpClientCached removeIgnoreHeader(String h) {
     this.cacheIgnoreHeaders.remove(h.toLowerCase());
     return this;
   }
 
+  /**
+   * Return maximum number of response body bytes save for a cache entry
+   * @return bytes
+   */
+  public int getMaxBodySize() {
+    return maxBodySize;
+  }
+
+  /**
+   * Sets maximum number of response body bytes save for a cache entry
+   * @return client (fluent)
+   */
+  public HttpClientCached setMaxBodySize(int maxBodySize) {
+    this.maxBodySize = maxBodySize;
+    return this;
+  }
+
+  /**
+   * Calls Just like {@link io.vertx.core.http.HttpClient#close}
+   */
+  public void close() {
+    httpClient.close();
+  }
+
+  /**
+   * Just like {@link io.vertx.core.http.HttpClient#requestAbs}
+   *
+   * @param method method for request
+   * @param absoluteUri full URI
+   * @param hndlr handler to be called with response
+   * @return HttpClientRequest
+   */
   public HttpClientRequest requestAbs(HttpMethod method, String absoluteUri,
     Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
     return requestAbs(method, absoluteUri, absoluteUri, hndlr);
   }
 
+  /**
+   * Just like {@link io.vertx.core.http.HttpClient#requestAbs} but with a
+   * cache key for the absolute URI .. This is useful if request is known to
+   * produce same result on different URIs.. This is case for Okapi where
+   * module instances may be located on different hosts.
+   *
+   * @param method method for request
+   * @param absoluteUri full URI
+   * @param cacheUri the cache URI
+   * @param hndlr handler to be called with response
+   * @return HttpClientRequest
+   */
   public HttpClientRequest requestAbs(HttpMethod method, String absoluteUri,
     String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
@@ -145,7 +228,7 @@ public class HttpClientCached {
       try {
         age = Long.parseLong(ageStr);
       } catch (NumberFormatException ex) {
-        logger.warn("ignoring bad max-age: " + ageStr);
+        logger.warn("ignoring bad max-age: {}", ageStr);
       }
 
     }
@@ -154,7 +237,7 @@ public class HttpClientCached {
       try {
         age = Long.parseLong(ageStr);
       } catch (NumberFormatException ex) {
-        logger.warn("ignoring bad max-age: " + ageStr);
+        logger.warn("ignoring bad max-age: {}", ageStr);
       }
 
     }
@@ -177,15 +260,4 @@ public class HttpClientCached {
     }
   }
 
-  public int getMaxBodySize() {
-    return maxBodySize;
-  }
-
-  public void setMaxBodySize(int maxBodySize) {
-    this.maxBodySize = maxBodySize;
-  }
-
-  public void close() {
-    httpClient.close();
-  }
 }
