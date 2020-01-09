@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -48,7 +49,12 @@ public class HttpClientCachedTest {
     String e = ctx.request().params().get("e");
     final int status = e == null ? 200 : Integer.parseInt(e);
 
-    HttpResponse.responseText(ctx, status);
+    HttpServerResponse response = HttpResponse.responseText(ctx, status);
+    String cc = ctx.request().params().get("cc");
+    if (cc != null) {
+      response.putHeader("Cache-Control", cc);
+    }
+
     ctx.request().handler(x -> msg.append(x));
     ctx.request().endHandler(x -> {
       if (msg.length() > 0) {
@@ -224,7 +230,6 @@ public class HttpClientCachedTest {
     }
     client.close();
   }
-
 
   @Test
   public void testHeadPauseResume(TestContext context) {
@@ -414,7 +419,6 @@ public class HttpClientCachedTest {
     }
   }
 
-
   @Test
   public void testBodyHandler(TestContext context) {
     logger.info("testBodyHandler");
@@ -586,7 +590,7 @@ public class HttpClientCachedTest {
         }
       });
       req.sendHead();
-      req.end("x");
+      req.end();
       async.await(1000);
     }
 
@@ -617,9 +621,7 @@ public class HttpClientCachedTest {
         }
       });
       context.assertNull(req.connection());
-      req.sendHead(x -> {
-        req.end(Buffer.buffer());
-      });
+      req.sendHead(x -> req.end());
       async.await(1000);
     }
 
@@ -1025,6 +1027,137 @@ public class HttpClientCachedTest {
       async.await(1000);
     }
 
+  }
+
+  @Test
+  public void testDefaultMaxAge(TestContext context) {
+    logger.info("testDefaultMaxAge");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    client.defaultMaxAge(0);
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testCacheControlMaxAge(TestContext context) {
+    logger.info("testCacheControlMaxAge");
+
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    client.defaultMaxAge(60);
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?cc=max-age%3D0", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testGlobalMaxAge(TestContext context) {
+    logger.info("testGlobalMaxAge");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    client.globalMaxAge(0);
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?cc=max-age%3D2", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testCacheControlNoStore(TestContext context) {
+    logger.info("testCacheControlNoStore");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    for (int i = 0; i < 1; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI, res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        });
+      req.putHeader("Cache-Control", "no-store");
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testCacheControlNoCache(TestContext context) {
+    logger.info("testCacheControlNoCache");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    for (int i = 0; i < 1; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI, res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        });
+      req.putHeader("Cache-Control", "no-cache");
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testLookupCacheControl(TestContext context) {
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    context.assertEquals("123", client.lookupCacheControl("x, max-age = 123", "max-age"));
+    context.assertEquals("", client.lookupCacheControl("x, max-age", "max-age"));
+    context.assertEquals("", client.lookupCacheControl("x, max-age ", "max-age"));
+    context.assertEquals("", client.lookupCacheControl(" maX-age=", "max-age"));
+    context.assertNull(client.lookupCacheControl(" maX age=", "mAx-age"));
+
+    // should be fixed, but not really a problem because we're only looking for a few values
+    context.assertEquals("", client.lookupCacheControl(" max-agee", "max-age"));
   }
 
 }

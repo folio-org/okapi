@@ -39,6 +39,7 @@ import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.HttpClientCached;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
@@ -66,7 +67,7 @@ public class ProxyService {
   private final InternalModule internalModule;
   private final String okapiUrl;
   private final Vertx vertx;
-  private final HttpClient httpClient;
+  private final HttpClientCached httpClient;
   // for load balancing, so security is not an issue
   private static Random random = new Random();
   private final int waitMs;
@@ -84,7 +85,7 @@ public class ProxyService {
     this.waitMs = waitMs;
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
-    httpClient = vertx.createHttpClient(opt);
+    httpClient = new HttpClientCached(vertx.createHttpClient(opt));
   }
 
   /**
@@ -463,19 +464,23 @@ public class ProxyService {
     }
   }
 
-  private String makeUrl(ModuleInstance mi, RoutingContext ctx) {
-    String url = mi.getUrl();
+  private String getPath(ModuleInstance mi, RoutingContext ctx) {
+    String path;
     if (mi.getRewritePath() != null) {
-      url += mi.getRewritePath() + mi.getPath();
+      path = mi.getRewritePath() + mi.getPath();
     } else {
-      url += mi.getPath();
+      path = mi.getPath();
     }
     String rdq = (String) ctx.data().get(REDIRECTQUERY);
     if (rdq != null) { // Parameters smuggled in from redirectProxy
-      url += "?" + rdq;
-      logger.debug("Recovering hidden parameters from ctx {}", url);
+      path += "?" + rdq;
+      logger.debug("Recovering hidden parameters from ctx {}", path);
     }
-    return url;
+    return path;
+  }
+
+  private String makeUrl(ModuleInstance mi, RoutingContext ctx) {
+    return mi.getUrl() + getPath(mi, ctx);
   }
 
   public void proxy(RoutingContext ctx) {

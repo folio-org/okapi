@@ -77,6 +77,15 @@ class HttpClientRequestCached implements HttpClientRequest {
   }
 
   private HttpClientRequest cli(boolean save) {
+    // no revalidation so it means no save/lookup
+    String noCache = httpClientCached.lookupCacheControl(headers, "no-cache");
+    if (noCache != null) {
+      save = false;
+    }
+    String noStore = httpClientCached.lookupCacheControl(headers, "no-store");
+    if (noStore != null) {
+      save = false;
+    }
     createClientRequest(save);
     return httpClientRequest;
   }

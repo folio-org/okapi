@@ -2500,7 +2500,7 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails();
 
     // 10 msecond period and 100 total wait time.. 1 tick per call.. So 8-10 calls
-    context.assertTrue(timerDelaySum >= 104 && timerDelaySum <= 110, "Got " + timerDelaySum);
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 110, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
 
     // disable and enable (quickly)

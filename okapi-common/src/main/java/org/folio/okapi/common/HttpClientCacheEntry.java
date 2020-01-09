@@ -4,6 +4,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpVersion;
+import java.time.Instant;
 import java.util.List;
 
 class HttpClientCacheEntry {
@@ -18,6 +19,8 @@ class HttpClientCacheEntry {
   Buffer responseBody;
   List<String> cookies;
   HttpVersion httpVersion;
+  Instant expiry;
+  int hitCount;
 
   HttpClientCacheEntry(HttpMethod method, String cacheUri,
     MultiMap requestHeaders) {
@@ -26,6 +29,7 @@ class HttpClientCacheEntry {
     this.cacheUri = cacheUri;
     this.requestHeaders = requestHeaders;
     this.responseBody = null;
+    this.hitCount = 0;
   }
 
 }
