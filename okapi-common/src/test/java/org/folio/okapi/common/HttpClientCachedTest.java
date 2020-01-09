@@ -170,19 +170,33 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
+      StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("MISS", res.getHeader("X-Cache"));
-          res.endHandler(x -> async.complete());
+          res.pause();
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          res.endHandler(x -> {
+            context.assertNull(x);
+            b.append("[endHandler]");
+            async.complete();
+          });
+          vertx.runOnContext(x -> {
+            b.append("[runOnContext]");
+            res.resume();
+          });
         }
       });
       context.assertFalse(req.isComplete());
       context.assertFalse(req.writeQueueFull());
       req.end();
       async.await(1000);
+      context.assertEquals("[runOnContext][endHandler]", b.toString());
       context.assertTrue(req.isComplete());
       context.assertTrue(req.succeeded());
       context.assertFalse(req.failed());
@@ -192,17 +206,31 @@ public class HttpClientCachedTest {
 
     {
       Async async = context.async();
+      StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.pause();
+          res.handler(x -> {
+            b.append("[handler]");
+          });
+          res.endHandler(x -> {
+            context.assertNull(x);
+            b.append("[endHandler]");
+            async.complete();
+          });
+          vertx.runOnContext(x -> {
+            b.append("[runOnContext]");
+            res.resume();
+          });
         }
-        async.complete();
       });
       req.end();
       async.await(1000);
+      context.assertEquals("[runOnContext][endHandler]", b.toString());
     }
     client.close();
   }
@@ -223,6 +251,7 @@ public class HttpClientCachedTest {
           context.assertEquals("MISS", res.getHeader("X-Cache"));
           res.pause();
           res.handler(x -> {
+            context.assertNotNull(x);
             b.append("[handler]");
           });
           res.endHandler(x -> {
@@ -259,6 +288,7 @@ public class HttpClientCachedTest {
             async.complete();
           });
           res.handler(x -> {
+            context.assertNotNull(x);
             b.append("[handler]");
           });
           vertx.runOnContext(x -> {
@@ -294,6 +324,64 @@ public class HttpClientCachedTest {
       });
       req.putHeader("X-Okapi-Tenant", "1234567890"); // hello_this >= 16 bytes
       req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testBodyHandler(TestContext context) {
+    logger.info("testBodyHandler");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.bodyHandler(x -> {
+            context.assertEquals("hello null", x.toString());
+            async.complete();
+          });
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          res.bodyHandler(x -> {
+            context.assertEquals("hello null", x.toString());
+            async.complete();
+          });
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+          res.bodyHandler(x -> {
+            context.assertEquals("x", x.toString());
+            async.complete();
+          });
+        }
+      });
+      req.end("x");
       async.await(1000);
     }
   }

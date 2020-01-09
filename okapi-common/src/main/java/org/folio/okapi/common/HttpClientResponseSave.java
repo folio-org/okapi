@@ -18,9 +18,11 @@ class HttpClientResponseSave implements HttpClientResponse {
   final HttpClientResponse response;
   final HttpClientRequest request;
 
-  HttpClientCacheEntry cacheEntry;
+  HttpClientCacheEntry cacheEntry; // null if not saving
   Handler<Buffer> handler;
   Handler<Void> endHandler;
+  Handler<Buffer> bodyHandler;
+  Buffer responseBody;
 
   HttpClientResponseSave(HttpClientCached httpClientCached,
     HttpClientResponse httpClientResponse, HttpClientRequest httpClientRequest,
@@ -29,19 +31,31 @@ class HttpClientResponseSave implements HttpClientResponse {
     request = httpClientRequest;
     cacheEntry = ce;
     response.handler(res -> {
-      if (cacheEntry != null) {
-        cacheEntry.responseBody.appendBuffer(res);
-        if (cacheEntry.responseBody.length() > httpClientCached.getMaxBodySize()) {
-          cacheEntry = null;
-        }
+      if (responseBody == null) {
+        responseBody = Buffer.buffer();
       }
+      if (bodyHandler != null) {
+        // if bodyHandler save all in cache
+        responseBody.appendBuffer(res);
+        // otherwise only save up to maxBodySize
+      } else if (responseBody.length() + res.length() < httpClientCached.getMaxBodySize()) {
+        responseBody.appendBuffer(res);
+      } else {
+        // too large buffer.. disable cache saving
+        cacheEntry = null;
+      }
+
       if (handler != null) {
         handler.handle(res);
       }
     });
     response.endHandler(res -> {
+      if (bodyHandler != null && responseBody != null) {
+        bodyHandler.handle(responseBody);
+      }
       if (cacheEntry != null) {
-        logger.debug("saving entry statusCode={}", ce.statusCode);
+        logger.debug("saving entry statusCode={} responseBody={}", ce.statusCode, responseBody);
+        cacheEntry.responseBody = responseBody;
         cacheEntry.trailers = response.trailers();
         httpClientCached.add(cacheEntry);
       }
@@ -134,13 +148,13 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
-    response.bodyHandler(hndlr);
+    bodyHandler = hndlr;
     return this;
   }
 
   @Override
   public Future<Buffer> body() {
-    return response.body();
+    return Future.succeededFuture(responseBody);
   }
 
   @Override

@@ -15,7 +15,7 @@ class HttpClientCacheEntry {
   int statusCode;
   MultiMap responseHeaders;
   MultiMap trailers;
-  final Buffer responseBody;
+  Buffer responseBody;
   List<String> cookies;
   HttpVersion httpVersion;
 
@@ -25,7 +25,7 @@ class HttpClientCacheEntry {
     this.method = method;
     this.cacheUri = cacheUri;
     this.requestHeaders = requestHeaders;
-    this.responseBody = Buffer.buffer();
+    this.responseBody = null;
   }
 
 }

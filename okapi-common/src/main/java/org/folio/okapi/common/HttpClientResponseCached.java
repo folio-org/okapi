@@ -42,7 +42,9 @@ class HttpClientResponseCached implements HttpClientResponse {
   public HttpClientResponse resume() {
     paused = false;
     if (handler != null) {
-      handler.handle(cacheEntry.responseBody);
+      if (cacheEntry.responseBody != null) {
+        handler.handle(cacheEntry.responseBody);
+      }
       handler = null;
     }
     if (endHandler != null) {
@@ -62,7 +64,9 @@ class HttpClientResponseCached implements HttpClientResponse {
     if (paused) {
       handler = hndlr;
     } else {
-      hndlr.handle(cacheEntry.responseBody);
+      if (cacheEntry.responseBody != null) {
+        hndlr.handle(cacheEntry.responseBody);
+      }
     }
     return this;
   }
@@ -130,7 +134,7 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
-    return handler(hndlr);
+    return handler(hndlr); // bodyHandler and handler identical
   }
 
   @Override
