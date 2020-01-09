@@ -15,6 +15,9 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -53,6 +56,15 @@ public class HttpClientCachedTest {
     String cc = ctx.request().params().get("cc");
     if (cc != null) {
       response.putHeader("Cache-Control", cc);
+    }
+
+    String expires = ctx.request().params().get("expires");
+    if ("old".equals(expires)) {
+      response.putHeader("Expires", "Thu, 25 Aug 2016 08:59:00 GMT");
+    } else if ("now".equals(expires)) {
+      ZonedDateTime zdt = ZonedDateTime.now(ZoneId.of("GMT"));
+      response.putHeader("Expires",
+        zdt.format(DateTimeFormatter.RFC_1123_DATE_TIME));
     }
 
     ctx.request().handler(x -> msg.append(x));
@@ -1110,6 +1122,46 @@ public class HttpClientCachedTest {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET,
         ABS_URI + "?cc=max-age%3D2", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testExpires(TestContext context) {
+    logger.info("testExpires");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?expires=old", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
+        });
+      req.end();
+      async.await(1000);
+    }
+    for (int i = 0; i < 2; i++) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?expires=now", res1 -> {
           context.assertTrue(res1.succeeded());
           if (res1.failed()) {
             async.complete();

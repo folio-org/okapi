@@ -8,6 +8,9 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -223,23 +226,41 @@ public class HttpClientCached {
 
   void add(HttpClientCacheEntry l) {
     long age = defaultMaxAge;
-    String ageStr = lookupCacheControl(l.requestHeaders, "max-age");
-    if (ageStr != null) {
-      try {
-        age = Long.parseLong(ageStr);
-      } catch (NumberFormatException ex) {
-        logger.warn("ignoring bad max-age: {}", ageStr);
-      }
 
-    }
-    ageStr = lookupCacheControl(l.responseHeaders, "max-age");
-    if (ageStr != null) {
+    // consider response max-age first
+    String tmp = lookupCacheControl(l.responseHeaders, "max-age");
+    if (tmp != null) {
       try {
-        age = Long.parseLong(ageStr);
+        age = Long.parseLong(tmp);
       } catch (NumberFormatException ex) {
-        logger.warn("ignoring bad max-age: {}", ageStr);
+        logger.warn("ignoring bad max-age: {}", tmp);
       }
-
+    } else {
+      // then consider request max-age
+      tmp = lookupCacheControl(l.requestHeaders, "max-age");
+      if (tmp != null) {
+        try {
+          age = Long.parseLong(tmp);
+        } catch (NumberFormatException ex) {
+          logger.warn("ignoring bad max-age: {}", tmp);
+        }
+      } else {
+        // if no max-age, consider Expires
+        tmp = l.responseHeaders.get("Expires");
+        if (tmp != null) {
+          try {
+            ZonedDateTime zdt = ZonedDateTime.parse(tmp, DateTimeFormatter.RFC_1123_DATE_TIME);
+            Instant expire = zdt.toInstant();
+            Instant now = Instant.now();
+            age = expire.getEpochSecond() - now.getEpochSecond();
+            if (age < 0) {
+              age = 0;
+            }
+          } catch (DateTimeParseException ex) {
+            logger.warn("ignoring bad Expires: {}", tmp);
+          }
+        }
+      }
     }
     if (age > globalMaxAge) {
       age = globalMaxAge;
