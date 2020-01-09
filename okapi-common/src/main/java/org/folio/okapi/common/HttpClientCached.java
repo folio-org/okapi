@@ -140,7 +140,16 @@ public class HttpClientCached {
 
   void add(HttpClientCacheEntry l) {
     long age = defaultMaxAge;
-    String ageStr = lookupCacheControl(l.responseHeaders, "max-age");
+    String ageStr = lookupCacheControl(l.requestHeaders, "max-age");
+    if (ageStr != null) {
+      try {
+        age = Long.parseLong(ageStr);
+      } catch (NumberFormatException ex) {
+        logger.warn("ignoring bad max-age: " + ageStr);
+      }
+
+    }
+    ageStr = lookupCacheControl(l.responseHeaders, "max-age");
     if (ageStr != null) {
       try {
         age = Long.parseLong(ageStr);

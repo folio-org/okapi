@@ -78,12 +78,8 @@ class HttpClientRequestCached implements HttpClientRequest {
 
   private HttpClientRequest cli(boolean save) {
     // no revalidation so it means no save/lookup
-    String noCache = httpClientCached.lookupCacheControl(headers, "no-cache");
-    if (noCache != null) {
-      save = false;
-    }
-    String noStore = httpClientCached.lookupCacheControl(headers, "no-store");
-    if (noStore != null) {
+    if (httpClientCached.lookupCacheControl(headers, "no-cache") != null
+      || httpClientCached.lookupCacheControl(headers, "no-store") != null) {
       save = false;
     }
     createClientRequest(save);
@@ -106,6 +102,7 @@ class HttpClientRequestCached implements HttpClientRequest {
       }
     }
     httpClientRequest = httpClient.requestAbs(method, absoluteUri, res -> {
+      boolean store = save;
       succeeded = res.succeeded();
       if (res.failed()) {
         cause = res.cause();
@@ -119,10 +116,14 @@ class HttpClientRequestCached implements HttpClientRequest {
       ce.cookies = res1.cookies();
       ce.httpVersion = res1.version();
       ce.statusMessage = res1.statusMessage();
-      if (save) {
-        ce.responseHeaders.set("X-Cache", "MISS"); // indicate cache miss
+      if (store && (httpClientCached.lookupCacheControl(res1.headers(), "no-cache") != null
+        || httpClientCached.lookupCacheControl(res1.headers(), "no-store") != null)) {
+        store = false;
       }
-      response = new HttpClientResponseSave(httpClientCached, res1, this, save ? ce : null);
+      if (store) {
+        ce.responseHeaders.set("X-Cache", "MISS"); // indicate cache in use and MISS
+      }
+      response = new HttpClientResponseSave(httpClientCached, res1, this, store ? ce : null);
       hndlr.handle(Future.succeededFuture(response));
     });
     httpClientRequest.headers().addAll(headers);
