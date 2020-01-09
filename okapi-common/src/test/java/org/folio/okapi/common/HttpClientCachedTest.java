@@ -299,8 +299,8 @@ public class HttpClientCachedTest {
   }
 
   @Test
-  public void testPauseResume(TestContext context) {
-    logger.info("testPauseResume");
+  public void testGetPauseResume(TestContext context) {
+    logger.info("testGetPauseResume");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
     {
@@ -390,6 +390,30 @@ public class HttpClientCachedTest {
       async.await(1000);
     }
   }
+
+  @Test
+  public void testBufferSizeBodyHandler(TestContext context) {
+    logger.info("testBufferSizeBodyHandler");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    client.setMaxBodySize(15);
+    for (int i = 0; i < 2; i++) {
+      final String expect = i == 0 ? "MISS" : "HIT";
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(expect, res.getHeader("X-Cache"));
+          res.bodyHandler(x -> async.complete());
+        }
+      });
+      req.putHeader("X-Okapi-Tenant", "1234567890"); // hello_this >= 16 bytes
+      req.end();
+      async.await(1000);
+    }
+  }
+
 
   @Test
   public void testBodyHandler(TestContext context) {
