@@ -50,14 +50,14 @@ class HttpClientResponseSave implements HttpClientResponse {
       }
     });
     response.endHandler(res -> {
-      if (bodyHandler != null && responseBody != null) {
-        bodyHandler.handle(responseBody);
-      }
       if (cacheEntry != null) {
         logger.debug("saving entry statusCode={} responseBody={}", ce.statusCode, responseBody);
         cacheEntry.responseBody = responseBody;
         cacheEntry.trailers = response.trailers();
         httpClientCached.add(cacheEntry);
+      }
+      if (bodyHandler != null && responseBody != null) {
+        bodyHandler.handle(responseBody);
       }
       if (endHandler != null) {
         endHandler.handle(res);
