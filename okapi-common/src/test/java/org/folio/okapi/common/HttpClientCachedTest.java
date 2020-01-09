@@ -1208,6 +1208,29 @@ public class HttpClientCachedTest {
   }
 
   @Test
+  public void testStatusCode(TestContext context) {
+    logger.info("testStatusCode");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET,
+        ABS_URI + "?e=400", res1 -> {
+          context.assertTrue(res1.succeeded());
+          if (res1.failed()) {
+            async.complete();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          context.assertEquals(400, res.statusCode());
+          context.assertEquals(null, res.getHeader("X-Cache"));
+          res.endHandler(x -> async.complete());
+        });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
   public void testLookupCacheControl(TestContext context) {
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
     context.assertEquals("123", client.lookupCacheControl("x, max-age = 123", "max-age"));
