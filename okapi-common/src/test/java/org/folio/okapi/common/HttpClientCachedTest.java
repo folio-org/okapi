@@ -1363,6 +1363,7 @@ public class HttpClientCachedTest {
   public void testLookupCacheControl(TestContext context) {
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
     context.assertEquals("123", client.lookupCacheControl("x, max-age = 123", "max-age"));
+    context.assertEquals("123", client.lookupCacheControl("x, max-age = 123,", "max-age"));
     context.assertEquals("", client.lookupCacheControl("x, max-age", "max-age"));
     context.assertEquals("", client.lookupCacheControl("x, max-age ", "max-age"));
     context.assertEquals("", client.lookupCacheControl(" maX-age=", "max-age"));
