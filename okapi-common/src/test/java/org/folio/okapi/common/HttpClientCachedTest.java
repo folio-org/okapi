@@ -331,7 +331,11 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertNotNull(res.request());
           res.pause();
+          res.exceptionHandler(x -> {
+            b.append("[exceptionhandler]");
+          });
           res.handler(x -> {
             context.assertNotNull(x);
             b.append("[handler]");
@@ -362,7 +366,11 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+          context.assertNotNull(res.request());
           res.pause();
+          res.exceptionHandler(x -> {
+            b.append("[exceptionhandler]");
+          });
           res.resume();
           res.pause();
           res.endHandler(x -> {
@@ -434,60 +442,98 @@ public class HttpClientCachedTest {
   }
 
   @Test
-  public void testBodyHandler(TestContext context) {
-    logger.info("testBodyHandler");
+  public void testBodyHandlerGet(TestContext context) {
+    logger.info("testBodyHandlerGet");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
     {
       Async async = context.async();
+      Buffer b = Buffer.buffer();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("MISS", res.getHeader("X-Cache"));
-          res.bodyHandler(x -> {
-            context.assertEquals("hello null", x.toString());
-            async.complete();
-          });
+          res.bodyHandler(b::appendBuffer);
+          res.endHandler(x -> async.complete());
         }
       });
       req.end();
       async.await(1000);
+      context.assertEquals("hello null", b.toString());
     }
     {
       Async async = context.async();
+      Buffer b = Buffer.buffer();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
-          res.bodyHandler(x -> {
-            context.assertEquals("hello null", x.toString());
-            async.complete();
-          });
+          res.bodyHandler(b::appendBuffer);
+          res.endHandler(x -> async.complete());
         }
       });
       req.end();
       async.await(1000);
+      context.assertEquals("hello null", b.toString());
     }
-
     {
       Async async = context.async();
+      Buffer b = Buffer.buffer();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals(null, res.getHeader("X-Cache"));
-          res.bodyHandler(x -> {
-            context.assertEquals("x", x.toString());
-            async.complete();
-          });
+          res.bodyHandler(b::appendBuffer);
+          res.endHandler(x -> async.complete());
         }
       });
       req.end("x");
       async.await(1000);
+      context.assertEquals("x", b.toString());
+    }
+  }
+
+  public void testBodyHandlerHead(TestContext context) {
+    logger.info("testBodyHandlerHead");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    {
+      Async async = context.async();
+      Buffer b = Buffer.buffer();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.bodyHandler(x -> b.appendString("[bodyHandler]"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+      context.assertEquals("", b.toString());
+    }
+    {
+      Async async = context.async();
+      Buffer b = Buffer.buffer();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+          res.bodyHandler(x -> b.appendString("[bodyHandler]"));
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+      context.assertEquals("", b.toString());
     }
   }
 
