@@ -618,8 +618,8 @@ public class HttpClientCachedTest {
       });
       context.assertNull(req.connection());
       req.sendHead(x -> {
+        req.end(Buffer.buffer());
       });
-      req.end(Buffer.buffer());
       async.await(1000);
     }
 
@@ -783,8 +783,10 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        context.assertEquals("MISS", res.headers().get("X-Cache"));
         context.assertEquals("text/plain", res.getHeader("Content-type"));
+        CharSequence h = new StringBuilder("Content-Type");
+        context.assertEquals("text/plain", res.getHeader(h));
         context.assertEquals("OK", res.statusMessage());
         context.assertEquals(HttpVersion.HTTP_1_1, res.version());
         context.assertTrue(res.cookies().isEmpty());
@@ -845,7 +847,8 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        context.assertEquals("HIT", res.headers().get("X-Cache"));
+        context.assertEquals("text/plain", res.getHeader("Content-type"));
         CharSequence h = new StringBuilder("Content-Type");
         context.assertEquals("text/plain", res.getHeader(h));
         context.assertEquals("OK", res.statusMessage());
