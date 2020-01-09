@@ -193,11 +193,13 @@ public class HttpClientCached {
   }
 
   String lookupCacheControl(MultiMap headers, String component) {
-    String v = headers.get("Cache-Control");
-    if (v == null) {
-      return null;
+    for (String v : headers.getAll("Cache-Control")) {
+      String l = lookupCacheControl(v, component);
+      if (l != null) {
+        return l;
+      }
     }
-    return lookupCacheControl(v, component);
+    return null;
   }
 
   String lookupCacheControl(String v, String component) {

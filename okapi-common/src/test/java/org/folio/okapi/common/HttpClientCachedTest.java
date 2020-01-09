@@ -227,7 +227,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.handler(x -> {
             b.append("[handler]");
           });
@@ -294,7 +294,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.pause();
           res.handler(x -> {
             b.append("[handler]");
@@ -361,7 +361,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.pause();
           res.resume();
           res.pause();
@@ -416,7 +416,7 @@ public class HttpClientCachedTest {
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
     client.setMaxBodySize(15);
     for (int i = 0; i < 2; i++) {
-      final String expect = i == 0 ? "MISS" : "HIT";
+      final String expect = i == 0 ? "MISS" : "HIT: 1";
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -461,7 +461,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.bodyHandler(x -> {
             context.assertEquals("hello null", x.toString());
             async.complete();
@@ -554,7 +554,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         }
       });
@@ -569,7 +569,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         }
       });
@@ -615,7 +615,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 2", res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         }
       });
@@ -755,7 +755,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "2");
@@ -773,7 +773,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.getHeader("X-Cache"));
+        context.assertEquals("HIT: 2", res.getHeader("X-Cache"));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "3");
@@ -883,7 +883,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT", res.headers().get("X-Cache"));
+        context.assertEquals("HIT: 1", res.headers().get("X-Cache"));
         context.assertEquals("text/plain", res.getHeader("Content-type"));
         CharSequence h = new StringBuilder("Content-Type");
         context.assertEquals("text/plain", res.getHeader(h));
@@ -1270,6 +1270,8 @@ public class HttpClientCachedTest {
           context.assertEquals(null, res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         });
+      // two headers to see that 2nd one is inspected
+      req.putHeader("Cache-Control", "must-revalidate");
       req.putHeader("Cache-Control", "no-store");
       req.end();
       async.await(1000);
