@@ -5,6 +5,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
@@ -50,6 +51,11 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.tcpPortWaiting = new TcpPortWaiting(vertx, "localhost", port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+    }
+    JsonObject config = vertx.getOrCreateContext().config();
+    Integer maxIterations = config.getInteger("deploy.waitIterations");
+    if (maxIterations != null) {
+      tcpPortWaiting.setMaxIterations(maxIterations);
     }
   }
 
