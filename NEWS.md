@@ -1,3 +1,7 @@
+## 2.36.1 2020-01-13
+
+ * OKAPI-794 Fix No logger for SLF4J
+
 ## 2.36.0 2019-12-30
 
  * OKAPI-321 Unix domain socket for Docker communication
