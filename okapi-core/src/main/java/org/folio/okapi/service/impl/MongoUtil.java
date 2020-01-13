@@ -3,13 +3,12 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.mongo.MongoClient;
 import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
 import java.util.List;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
-import static org.folio.okapi.common.ErrorType.NOT_FOUND;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
@@ -31,10 +30,10 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.removeDocument(collection, jq, rres -> {
       if (rres.failed()) {
-        logger.warn("MongoUtil.delete " + id + " failed : " + rres.cause());
-        fut.handle(new Failure<>(INTERNAL, rres.cause()));
+        logger.warn("MongoUtil.delete {} failed {}", id, rres.cause().getMessage());
+        fut.handle(new Failure<>(ErrorType.INTERNAL, rres.cause()));
       } else if (rres.result().getRemovedCount() == 0) {
-        fut.handle(new Failure<>(NOT_FOUND, id));
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
       } else {
         fut.handle(new Success<>());
       }
@@ -47,7 +46,7 @@ class MongoUtil<T> {
     } else {
       cli.dropCollection(collection, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           fut.handle(new Success<>());
         }
@@ -65,9 +64,9 @@ class MongoUtil<T> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
-        logger.warn("MongoUtil.add " + id + " failed : " + res.cause());
-        logger.warn("Document: " + document.encodePrettily());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
+        logger.warn("Document: {}", document.encodePrettily());
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       }
     });
   }
@@ -80,9 +79,9 @@ class MongoUtil<T> {
       if (res.succeeded()) {
         fut.handle(new Success<>());
       } else {
-        logger.warn("MongoUtil.insert " + id + " failed : " + res.cause());
-        logger.warn("Document: " + document.encodePrettily());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        logger.warn("MongoUtil.insert {} failed: {}", id, res.cause().getMessage());
+        logger.warn("Document: {}", document::encodePrettily);
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       }
     });
   }
@@ -92,7 +91,7 @@ class MongoUtil<T> {
     JsonObject jq = new JsonObject(q);
     cli.find(collection, jq, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         List<JsonObject> resl = res.result();
         List<T> ml = new LinkedList<>();

@@ -1,3 +1,40 @@
+## 2.36.0 2019-12-30
+
+ * OKAPI-321 Unix domain socket for Docker communication
+ * OKAPI-743 Configurable host for deployed containers
+ * OKAPI-779 Upgrade to Vert.x 3.8.4
+ * OKAPI-780 Switch from Vert's own logger to log4j2
+ * OKAPI-781 SemVer, ModuleId: JavaDoc, unit tests, code review
+ * OKAPI-784 CORS: Allow X-Okapi-Module-Id
+
+## 2.35.0 2019-11-28
+
+ * OKAPI-778 Avoid bundling log implementation with okapi-common
+
+## 2.34.0 2019-11-28
+
+ * OKAPI-777 ModuleId and SemVer toString updates, offer ModuleId.getSemVer
+ * OKAPI-774 Switch from Future to Promise and others  (Vert.x 3.7 series)	
+ * Upgrade to Vert.x 3.8.3 from Vert.x 3.8.1
+  
+## 2.33.0 2019-09-26
+ * OKAPI-763 Prevent X-Okapi-Token from being returned in some cases
+   where they are simply returned by mistake. This is a workaround
+   for modules that echo headers (RMB-478)
+ * OKAPI-764 Prevent internal auth headers from being returnd by Okapi
+   most notably X-Okapi-Module-Tokens
+
+## 2.32.0 2019-09-09
+
+ * OKAPI-607 Fix non graceful (500 error) handling of duplicate
+   instId on first request only
+ * OKAPI-759 Prevent Vert.x thread blocked warning
+ * OKAPI-753 Yet another pull optimization. Works full if both
+   ends operate at version 2.32.0 or later.
+ * OKAPI-754 Fix adding descriptor may result in dependency error
+ * OKAPI-756 Update doc to new supertenant name
+ * OKAPI-758 Upgrade to Vert.x 3.8.1
+
 ## 2.31.0 2019-08-07
 
  * OKAPI-751 If multiple _timer interfaces are declared in the

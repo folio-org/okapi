@@ -2,21 +2,19 @@ package org.folio.okapi.service.impl;
 
 import org.folio.okapi.service.TenantStore;
 import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.Tuple;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 
 /**
@@ -25,11 +23,10 @@ import org.folio.okapi.common.Success;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class TenantStorePostgres implements TenantStore {
 
-  private final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
   private static final String TABLE = "tenants";
   private static final String JSON_COLUMN = "tenantjson";
-  private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = ?";
+  private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
   private final PostgresTable<Tenant> pgTable;
   private Messages messages = Messages.getInstance();
@@ -69,55 +66,41 @@ public class TenantStorePostgres implements TenantStore {
 
   private void updateModuleR(PostgresQuery q, String id,
     SortedMap<String, Boolean> enabled,
-    Iterator<JsonObject> it, Handler<ExtendedAsyncResult<Void>> fut) {
+    Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext()) {
-      JsonObject r = it.next();
-      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = ? WHERE " + ID_SELECT;
-      String tj = r.getString(JSON_COLUMN);
-      Tenant t = Json.decodeValue(tj, Tenant.class);
-      t.setEnabled(enabled);
-      String s = Json.encode(t);
-      JsonObject doc = new JsonObject(s);
-      JsonArray jsa = new JsonArray();
-      jsa.add(doc.encode());
-      jsa.add(id);
-      q.queryWithParams(sql, jsa, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
-        } else {
-          updateModuleR(q, id, enabled, it, fut);
-        }
-      });
-    } else {
+    if (!it.hasNext()) {
       fut.handle(new Success<>());
       q.close();
+      return;
     }
+    Row r = it.next();
+    String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
+    JsonObject o = (JsonObject) r.getValue(0);
+    Tenant t = o.mapTo(Tenant.class);
+    t.setEnabled(enabled);
+    JsonObject doc = JsonObject.mapFrom(t);
+    q.query(sql, Tuple.of(id, doc), res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+      } else {
+        updateModuleR(q, id, enabled, it, fut);
+      }
+    });
   }
 
   @Override
   public void updateModules(String id, SortedMap<String, Boolean> enabled,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.debug("updateModules " + Json.encode(enabled.keySet()));
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    JsonArray jsa = new JsonArray();
-    jsa.add(id);
-    q.queryWithParams(sql, jsa, res -> {
+    q.query(sql, Tuple.of(id), res -> {
       if (res.failed()) {
-        logger.fatal("updateModule failed: " + res.cause().getMessage());
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
-      } else {
-        ResultSet rs = res.result();
-        if (rs.getNumRows() == 0) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("11200", id)));
-          q.close();
-        } else {
-          logger.debug("update: replace");
-          updateModuleR(q, id, enabled, rs.getRows().iterator(), fut);
-        }
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
       }
+      RowSet<Row> rs = res.result();
+      updateModuleR(q, id, enabled, rs.iterator(), fut);
     });
   }
 }

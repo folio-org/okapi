@@ -5,8 +5,6 @@ package org.folio.okapi.common;
  * are only used between Okapi itself and the authorization/authentication
  * modules. Also contains the ids for the built-in supertenant and Okapi's
  * internal module(s)
- *
- * @author heikki
  */
 public class XOkapiHeaders {
 

@@ -1,25 +1,26 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.util.LockedTypedMap1;
@@ -29,7 +30,6 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.Messages;
 
 /**
@@ -76,11 +76,11 @@ public class DiscoveryManager implements NodeListener {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
       } else {
-        CompList<List<Void>> futures = new CompList<>(INTERNAL);
+        CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
         for (DeploymentDescriptor dd : res1.result()) {
-          Future<DeploymentDescriptor> f = Future.future();
-          addAndDeploy0(dd, null, f::handle);
-          futures.add(f);
+          Promise<DeploymentDescriptor> promise = Promise.promise();
+          addAndDeploy0(dd, promise::handle);
+          futures.add(promise);
         }
         futures.all(fut);
       }
@@ -101,16 +101,39 @@ public class DiscoveryManager implements NodeListener {
   }
 
   public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+    deployments.getKeys(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
+      for (String mId : res.result()) {
+        Promise<Void> promise = Promise.promise();
+        futures.add(promise);
+        deployments.get(mId, md.getInstId(), r -> {
+          if (r.succeeded()) {
+            promise.fail("dup InstId");
+            return;
+          }
+          promise.complete();
+        });
+      }
+      futures.all(res2 -> {
+        if (res2.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10809", md.getInstId())));
+          return;
+        }
+        deployments.add(md.getSrvcId(), md.getInstId(), md, fut);
+      });
+    });
   }
 
-  public void addAndDeploy(DeploymentDescriptor dd, ProxyContext pc,
+  public void addAndDeploy(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    addAndDeploy0(dd, pc, res -> {
+    addAndDeploy0(dd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        logger.debug("documentStore.insert " + res.result().getInstId());
         deploymentStore.insert(res.result(), res1 -> {
           if (res1.failed()) {
             fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -129,29 +152,30 @@ public class DiscoveryManager implements NodeListener {
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    */
-  private void addAndDeploy0(DeploymentDescriptor dd, ProxyContext pc,
+  private void addAndDeploy0(DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    logger.info("addAndDeploy: " + Json.encodePrettily(dd));
+    String tmp = Json.encodePrettily(dd);
+    logger.info("addAndDeploy: {}", tmp);
     final String modId = dd.getSrvcId();
     if (modId == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("10800")));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10800")));
       return;
     }
     moduleManager.get(modId, gres -> {
       if (gres.failed()) {
-        if (gres.getType() == NOT_FOUND) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10801", modId)));
+        if (gres.getType() == ErrorType.NOT_FOUND) {
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10801", modId)));
         } else {
           fut.handle(new Failure<>(gres.getType(), gres.cause()));
         }
       } else {
-        addAndDeploy1(dd, pc, gres.result(), fut);
+        addAndDeploy1(dd, gres.result(), fut);
       }
     });
   }
 
-  private void addAndDeploy1(DeploymentDescriptor dd, ProxyContext pc, ModuleDescriptor md,
+  private void addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     LaunchDescriptor launchDesc = dd.getDescriptor();
@@ -159,7 +183,7 @@ public class DiscoveryManager implements NodeListener {
     if (nodeId == null) {
       if (launchDesc == null) { // 3: externally deployed
         if (dd.getInstId() == null) {
-          fut.handle(new Failure<>(USER, messages.getMessage("10802")));
+          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10802")));
         } else {
           add(dd, res -> { // just add it
             if (res.failed()) {
@@ -170,49 +194,45 @@ public class DiscoveryManager implements NodeListener {
           });
         }
       } else {
-        fut.handle(new Failure<>(USER, messages.getMessage("10803")));
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10803")));
       }
     } else {
       if (launchDesc == null) {
-        logger.debug("addAndDeploy: case 2 for " + dd.getSrvcId());
-        addAndDeploy2(dd, md, pc, fut, nodeId);
+        addAndDeploy2(dd, md, fut, nodeId);
       } else { // Have a launchdesc already in dd
-        logger.debug("addAndDeploy: case 1: We have a ld: " + Json.encode(dd));
-        callDeploy(nodeId, pc, dd, fut);
+        callDeploy(nodeId, dd, fut);
       }
     }
   }
 
   private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-    ProxyContext pc,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
 
     String modId = dd.getSrvcId();
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("10804", modId)));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10804", modId)));
     } else {
       dd.setDescriptor(modLaunchDesc);
-      callDeploy(nodeId, pc, dd, fut);
+      callDeploy(nodeId, dd, fut);
     }
   }
 
   /**
    * Helper to actually launch (deploy) a module on a node.
    */
-  private void callDeploy(String nodeId, ProxyContext pc, DeploymentDescriptor dd,
+  private void callDeploy(String nodeId, DeploymentDescriptor dd,
     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    logger.debug("callDeploy starting for " + Json.encode(dd));
     getNode(nodeId, noderes -> {
       if (noderes.failed()) {
         fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
       } else {
         String reqdata = Json.encode(dd);
-        vertx.eventBus().send(noderes.result().getUrl() + "/deploy", reqdata,
+        vertx.eventBus().request(noderes.result().getUrl() + "/deploy", reqdata,
           deliveryOptions, ar -> {
           if (ar.failed()) {
-            fut.handle(new Failure(USER, ar.cause().getMessage()));
+            fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
           } else {
             String b = (String) ar.result().body();
             DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
@@ -223,10 +243,10 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc, String srvcId, String instId,
+  public void removeAndUndeploy(String srvcId, String instId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("removeAndUndeploy: srvcId " + srvcId + " instId " + instId);
+    logger.info("removeAndUndeploy: srvcId {} instId {}", srvcId, instId);
     deployments.get(srvcId, instId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
@@ -234,76 +254,75 @@ public class DiscoveryManager implements NodeListener {
       } else {
         List<DeploymentDescriptor> ddList = new LinkedList<>();
         ddList.add(res.result());
-        removeAndUndeploy(pc, ddList, fut);
+        removeAndUndeploy(ddList, fut);
       }
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc, String srvcId,
+  public void removeAndUndeploy(String srvcId,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("removeAndUndeploy: srvcId " + srvcId);
+    logger.info("removeAndUndeploy: srvcId {}", srvcId);
     deployments.get(srvcId, res -> {
       if (res.failed()) {
         logger.warn("deployment.get failed");
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        removeAndUndeploy(pc, res.result(), fut);
+        removeAndUndeploy(res.result(), fut);
       }
     });
   }
 
-  public void removeAndUndeploy(ProxyContext pc,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  public void removeAndUndeploy(Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy all");
     this.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
-        removeAndUndeploy(pc, res.result(), fut);
+        removeAndUndeploy(res.result(), fut);
       }
     });
   }
 
-  private void removeAndUndeploy(ProxyContext pc,
-    List<DeploymentDescriptor> ddList, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void removeAndUndeploy(List<DeploymentDescriptor> ddList,
+    Handler<ExtendedAsyncResult<Void>> fut) {
 
-    CompList<List<Void>> futures = new CompList<>(INTERNAL);
+    CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
-      Future<Void> f = Future.future();
-      logger.info("removeAndUndeploy " + dd.getSrvcId() + " " + dd.getInstId());
-      callUndeploy(dd, pc, res -> {
+      Promise<Void> promise = Promise.promise();
+      logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
+      callUndeploy(dd, res -> {
         if (res.succeeded()) {
-          deploymentStore.delete(dd.getInstId(), f::handle);
+          deploymentStore.delete(dd.getInstId(), promise::handle);
         } else {
-          f.handle(res);
+          promise.handle(res);
         }
       });
-      futures.add(f);
+      futures.add(promise);
     }
     futures.all(fut);
   }
 
-  private void callUndeploy(DeploymentDescriptor md, ProxyContext pc,
+  private void callUndeploy(DeploymentDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("callUndeploy srvcId=" + md.getSrvcId() + " instId=" + md.getInstId() + " node=" + md.getNodeId());
+    logger.info("callUndeploy srvcId={} instId={} node={}", md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
       logger.info("callUndeploy remove");
       remove(md.getSrvcId(), md.getInstId(), fut);
     } else {
       logger.info("callUndeploy calling..");
-      getNode(nodeId, res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      getNode(nodeId, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           String reqdata = md.getInstId();
-          vertx.eventBus().send(res1.result().getUrl() + "/undeploy", reqdata,
+          vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
             deliveryOptions, ar -> {
             if (ar.failed()) {
-              fut.handle(new Failure(USER, ar.cause().getMessage()));
+              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
             } else {
               fut.handle(new Success<>());
             }
@@ -338,6 +357,7 @@ public class DiscoveryManager implements NodeListener {
         found = true;
       }
     }
+    logger.debug("isAlive nodeId={} {}", id, found);
     return found;
   }
 
@@ -358,7 +378,7 @@ public class DiscoveryManager implements NodeListener {
         Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
         // check that the node is alive, but only on non-url instances
         if (!isAlive(md, nodesCollection)) {
-          fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10805")));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10805")));
           return;
         }
         fut.handle(new Success<>(md));
@@ -366,10 +386,10 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void autoDeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoDeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("autoDeploy " + md.getId());
+    logger.info("autoDeploy {}", md.getId());
     // internal Okapi modules is not part of discovery so ignore it
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
@@ -382,9 +402,9 @@ public class DiscoveryManager implements NodeListener {
         Collection<String> allNodes = res1.result();
         deployments.get(md.getId(), res -> {
           if (res.succeeded()) {
-            autoDeploy2(md, pc, allNodes, res.result(), fut);
-          } else if (res.getType() == NOT_FOUND) {
-            autoDeploy2(md, pc, allNodes, new LinkedList<>(), fut);
+            autoDeploy2(md, allNodes, res.result(), fut);
+          } else if (res.getType() == ErrorType.NOT_FOUND) {
+            autoDeploy2(md, allNodes, new LinkedList<>(), fut);
           } else {
             fut.handle(new Failure<>(res.getType(), res.cause()));
           }
@@ -393,16 +413,16 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  private void autoDeploy2(ModuleDescriptor md, ProxyContext pc,
+  private void autoDeploy2(ModuleDescriptor md,
     Collection<String> allNodes, List<DeploymentDescriptor> ddList,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
-    CompList<List<Void>> futures = new CompList<>(USER);
+    CompList<List<Void>> futures = new CompList<>(ErrorType.USER);
     // deploy on all nodes for now
     for (String node : allNodes) {
       // check if we have deploy on node
-      logger.info("autoDeploy " + md.getId() + " consider " + node);
+      logger.info("autoDeploy {} consider {}", md.getId(), node);
       DeploymentDescriptor foundDd = null;
       for (DeploymentDescriptor dd : ddList) {
         if (dd.getNodeId() == null || node.equals(dd.getNodeId())) {
@@ -410,25 +430,25 @@ public class DiscoveryManager implements NodeListener {
         }
       }
       if (foundDd == null) {
-        logger.info("autoDeploy " + md.getId() + " must deploy on node " + node);
+        logger.info("autoDeploy {} must deploy on node {}", md.getId(), node);
         DeploymentDescriptor dd = new DeploymentDescriptor();
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
-        Future<DeploymentDescriptor> f = Future.future();
-        addAndDeploy(dd, pc, f::handle);
-        futures.add(f);
+        Promise<DeploymentDescriptor> promise = Promise.promise();
+        addAndDeploy(dd, promise::handle);
+        futures.add(promise);
       } else {
-        logger.info("autoDeploy " + md.getId() + " already deployed on " + node);
+        logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
       }
     }
     futures.all(fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md, ProxyContext pc,
+  public void autoUndeploy(ModuleDescriptor md,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("autoUndeploy " + md.getId());
+    logger.info("autoUndeploy {}", md.getId());
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
       fut.handle(new Success<>());
       return;
@@ -436,12 +456,12 @@ public class DiscoveryManager implements NodeListener {
     deployments.get(md.getId(), res -> {
       if (res.succeeded()) {
         List<DeploymentDescriptor> ddList = res.result();
-        CompList<List<Void>> futures = new CompList<>(USER);
+        CompList<List<Void>> futures = new CompList<>(ErrorType.USER);
         for (DeploymentDescriptor dd : ddList) {
           if (dd.getNodeId() != null) {
-            Future<Void> f = Future.future();
-            callUndeploy(dd, pc, f::handle);
-            futures.add(f);
+            Promise<Void> promise = Promise.promise();
+            callUndeploy(dd, promise::handle);
+            futures.add(promise);
           }
         }
         futures.all(fut);
@@ -454,7 +474,7 @@ public class DiscoveryManager implements NodeListener {
   public void get(String srvcId,
     Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     getNonEmpty(srvcId, res -> {
-      if (res.failed() && res.getType() == NOT_FOUND) {
+      if (res.failed() && res.getType() == ErrorType.NOT_FOUND) {
         fut.handle(new Success<>(new LinkedList<>()));
       } else {
         fut.handle(res);
@@ -495,21 +515,20 @@ public class DiscoveryManager implements NodeListener {
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     deployments.getKeys(resGet -> {
       if (resGet.failed()) {
-        logger.debug("DiscoveryManager:get all: " + resGet.getType().name());
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
         List<DeploymentDescriptor> all = new LinkedList<>();
-        CompList<List<DeploymentDescriptor>> futures = new CompList<>(INTERNAL);
+        CompList<List<DeploymentDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
         for (String s : keys) {
-          Future<List<DeploymentDescriptor>> f = Future.future();
+          Promise<List<DeploymentDescriptor>> promise = Promise.promise();
           this.get(s, res -> {
             if (res.succeeded()) {
               all.addAll(res.result());
             }
-            f.handle(res);
+            promise.handle(res);
           });
-          futures.add(f);
+          futures.add(promise);
         }
         futures.all(all, fut);
       }
@@ -528,22 +547,24 @@ public class DiscoveryManager implements NodeListener {
       hd.setHealthStatus(false);
       fut.handle(new Success<>(hd));
     } else {
-      HttpClientRequest req = httpClient.getAbs(url, res -> {
-        res.endHandler(res1 -> {
+      HttpClientRequest req = httpClient.getAbs(url, res1 -> {
+        if (res1.failed()) {
+          hd.setHealthMessage("Fail: " + res1.cause().getMessage());
+          hd.setHealthStatus(false);
+          fut.handle(new Success<>(hd));
+          return;
+        }
+        HttpClientResponse res2 = res1.result();
+        res2.endHandler(res -> {
           hd.setHealthMessage("OK");
           hd.setHealthStatus(true);
           fut.handle(new Success<>(hd));
         });
-        res.exceptionHandler(res1 -> {
-          hd.setHealthMessage("Fail: " + res1.getMessage());
+        res2.exceptionHandler(res -> {
+          hd.setHealthMessage("Fail: " + res.getMessage());
           hd.setHealthStatus(false);
           fut.handle(new Success<>(hd));
         });
-      });
-      req.exceptionHandler(res -> {
-        hd.setHealthMessage("Fail: " + res.getMessage());
-        hd.setHealthStatus(false);
-        fut.handle(new Success<>(hd));
       });
       req.end();
     }
@@ -553,16 +574,16 @@ public class DiscoveryManager implements NodeListener {
     Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
 
     List<HealthDescriptor> all = new LinkedList<>();
-    CompList<List<HealthDescriptor>> futures = new CompList<>(INTERNAL);
+    CompList<List<HealthDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (DeploymentDescriptor md : list) {
-      Future<HealthDescriptor> f = Future.future();
+      Promise<HealthDescriptor> promise = Promise.promise();
       health(md, res -> {
         if (res.succeeded()) {
           all.add(res.result());
         }
-        f.handle(res);
+        promise.handle(res);
       });
-      futures.add(f);
+      futures.add(promise);
     }
     futures.all(all, fut);
   }
@@ -601,7 +622,6 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
-    logger.debug("Discovery. addNode: " + Json.encode(nd));
     nodes.put(nd.getNodeId(), nd, fut);
   }
 
@@ -613,14 +633,12 @@ public class DiscoveryManager implements NodeListener {
    * @param fut
    */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Discovery: nodeUrl: " + nodeId);
     getNodes(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
         List<NodeDescriptor> result = res.result();
         for (NodeDescriptor nd : result) {
-          logger.debug("Discovery: nodeUrl: " + nodeId + " nd=" + Json.encode(nd));
           if (nodeId.compareTo(nd.getUrl()) == 0) {
             fut.handle(new Success<>(nd.getNodeId()));
             return;
@@ -650,7 +668,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10806", nodeId)));
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10806", nodeId)));
         return;
       }
     }
@@ -662,7 +680,7 @@ public class DiscoveryManager implements NodeListener {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10806", nodeId)));
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10806", nodeId)));
         return;
       }
     }
@@ -672,11 +690,11 @@ public class DiscoveryManager implements NodeListener {
       } else {
         NodeDescriptor old = gres.result();
         if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
-          fut.handle(new Failure<>(USER, messages.getMessage("10807", nodeId)));
+          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10807", nodeId)));
           return;
         }
         if (!old.getUrl().equals(nd.getUrl())) {
-          fut.handle(new Failure<>(USER, messages.getMessage("10808", nodeId)));
+          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10808", nodeId)));
           return;
         }
         nodes.put(nodeId, nd, pres -> {
@@ -701,16 +719,16 @@ public class DiscoveryManager implements NodeListener {
           keys.retainAll(n);
         }
         List<NodeDescriptor> all = new LinkedList<>();
-        CompList<List<NodeDescriptor>> futures = new CompList<>(INTERNAL);
+        CompList<List<NodeDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
         for (String nodeId : keys) {
-          Future<NodeDescriptor> f = Future.future();
+          Promise<NodeDescriptor> promise = Promise.promise();
           getNode1(nodeId, res -> {
             if (res.succeeded()) {
               all.add(res.result());
             }
-            f.handle(res);
+            promise.handle(res);
           });
-          futures.add(f);
+          futures.add(promise);
         }
         futures.all(all, fut);
       }
@@ -719,13 +737,13 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeAdded(String nodeID) {
-    logger.info("node.add " + nodeID);
+    logger.info("node.add {}", nodeID);
   }
 
   @Override
   public void nodeLeft(String nodeID) {
     nodes.remove(nodeID, res
-      -> logger.info("node.remove " + nodeID + " result=" + res.result())
+      -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
   }
 }

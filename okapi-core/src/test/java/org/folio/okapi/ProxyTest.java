@@ -16,7 +16,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import io.vertx.core.logging.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
@@ -27,6 +26,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
 import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
@@ -90,7 +91,7 @@ public class ProxyTest {
   }
 
   private void myEdgeCallTest(RoutingContext ctx, String token) {
-    HttpClientRequest get = httpClient.get(port, "localhost", "/testb/1", res1 -> {
+    HttpClientRequest get = HttpClientLegacy.get(httpClient, port, "localhost", "/testb/1", res1 -> {
       Buffer resBuf = Buffer.buffer();
       res1.handler(resBuf::appendBuffer);
       res1.endHandler(res2 -> {
@@ -122,7 +123,7 @@ public class ProxyTest {
           + "  \"username\" : \"peter\"," + LS
           + "  \"password\" : \"peter-password\"" + LS
           + "}";
-        HttpClientRequest post = httpClient.post(port, "localhost", "/authn/login", res1 -> {
+        HttpClientRequest post = HttpClientLegacy.post(httpClient, port, "localhost", "/authn/login", res1 -> {
           Buffer loginBuf = Buffer.buffer();
           res1.handler(loginBuf::appendBuffer);
           res1.endHandler(res2 -> {
@@ -187,7 +188,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portPre,
         result -> setupPostServer(context, async)
@@ -201,7 +202,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portPost,
         result -> setupTimerServer(context, async)
@@ -215,7 +216,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portTimer,
         result -> setupEdgeServer(context, async)
@@ -229,7 +230,7 @@ public class ProxyTest {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         portEdge,
         result -> {
@@ -269,7 +270,7 @@ public class ProxyTest {
   public void tearDown(TestContext context) {
     Async async = context.async();
 
-    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+    HttpClientLegacy.delete(httpClient, port, "localhost", "/_/discovery/modules", response -> {
       context.assertTrue(response.statusCode() == 404 || response.statusCode() == 204);
       response.endHandler(x -> {
         httpClient.close();
@@ -300,7 +301,7 @@ public class ProxyTest {
       .header("Content-Type", "application/json")
       .get("/_/proxy/modules")
       .then().statusCode(400)
-      .body(containsString("Failed to decode: Unexpected end-of-input"));
+      .body(containsString("Unexpected end-of-input"));
   }
 
   @Test
@@ -1265,7 +1266,6 @@ public class ProxyTest {
     final String docSample2Deployment = "{" + LS
       + "  \"instId\" : \"sample2-inst\"," + LS
       + "  \"srvcId\" : \"sample-module2-1\"," + LS
-      // + "  \"nodeId\" : null," + LS // no nodeId, we aren't deploying on any node
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
     r = c.given()
@@ -1414,12 +1414,12 @@ public class ProxyTest {
 
     // 3rd sample module. We only create it in discovery and give it same URL as
     // for sample-module (first one), just like sample2 above.
-    c = api.createRestAssured3();
     final String docSample3Deployment = "{" + LS
       + "  \"instId\" : \"sample3-instance\"," + LS
       + "  \"srvcId\" : \"sample-module3-1\"," + LS
       + "  \"url\" : \"http://localhost:9232\"" + LS
       + "}";
+    c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
       .body(docSample3Deployment).post("/_/discovery/modules")
@@ -1429,6 +1429,18 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationSample3Inst = r.getHeader("Location");
     logger.debug("Deployed: locationSample3Inst " + locationSample3Inst);
+
+    // same instId but different module .. must result in error
+    final String docSample3DeploymentError = "{" + LS
+      + "  \"instId\" : \"sample3-instance\"," + LS
+      + "  \"srvcId\" : \"sample-module2-1\"," + LS
+      + "  \"url\" : \"http://localhost:9232\"" + LS
+      + "}";
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docSample3DeploymentError).post("/_/discovery/modules")
+      .then()
+      .statusCode(400).body(equalTo("Duplicate instId sample3-instance"));
 
     final String docEnableSample3 = "{" + LS
       + "  \"id\" : \"sample-module3-1\"" + LS

@@ -3,6 +3,7 @@ package org.folio.okapi.util;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import java.util.LinkedList;
 import java.util.List;
 import org.folio.okapi.common.ErrorType;
@@ -19,14 +20,14 @@ public class CompList<T> {
     errorType = type;
   }
 
-  public void add(Future f) {
-    futures.add(f);
+  public void add(Promise p) {
+    futures.add(p.future());
   }
 
   public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(errorType, res2.cause()));
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
       } else {
         fut.handle(new Success<>(l));
       }
@@ -34,9 +35,23 @@ public class CompList<T> {
   }
 
   public void all(Handler<ExtendedAsyncResult<Void>> fut) {
-    CompositeFuture.all(futures).setHandler(res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(errorType, res2.cause()));
+    CompositeFuture.all(futures).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
+      } else {
+        fut.handle(new Success<>());
+      }
+    });
+  }
+
+  public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
+    Future<Void> future = Future.succeededFuture();
+    for (Future<Void> f : futures) {
+      future = future.compose(x -> f);
+    }
+    future.setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(errorType, res.cause()));
       } else {
         fut.handle(new Success<>());
       }

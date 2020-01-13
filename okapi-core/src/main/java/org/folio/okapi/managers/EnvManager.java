@@ -1,15 +1,15 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -40,11 +40,11 @@ public class EnvManager {
           if (res2.failed()) {
             fut.handle(new Failure<>(res2.getType(), res2.cause()));
           } else {
-            CompList<List<Void>> futures = new CompList<>(INTERNAL);
+            CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
             for (EnvEntry e : res2.result()) {
-              Future<Void> f = Future.future();
-              add1(e, f::handle);
-              futures.add(f);
+              Promise<Void> promise = Promise.promise();
+              add1(e, promise::handle);
+              futures.add(promise);
             }
             futures.all(fut);
           }
@@ -55,9 +55,9 @@ public class EnvManager {
 
   private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
     if (env.getName() == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("10900")));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10900")));
     } else if (env.getValue() == null) {
-      fut.handle(new Failure<>(USER, messages.getMessage("10901")));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10901")));
     } else {
       envMap.add(env.getName(), env, fut);
     }

@@ -1,14 +1,14 @@
 package org.folio.okapi.header;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.logging.Logger;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -49,19 +49,18 @@ public class MainVerticle extends AbstractVerticle {
       if (body.length() > 80) {
         body = body.substring(0, 80) + "...";
       }
-      logger.info("tenantPermissions: " + body);
+      logger.info("tenantPermissions: {}", body);
       ctx.response().end();
     });
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Promise<Void> promise) throws IOException {
     Router router = Router.router(vertx);
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    logger.info("Starting okapi-test-header-module "
-      + ManagementFactory.getRuntimeMXBean().getName()
-      + " on port " + port);
+    logger.info("Starting okapi-test-header-module {} on port {}",
+      ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.get("/testb").handler(this::myHeaderHandle);
     router.post("/testb").handler(this::myHeaderHandle);
@@ -69,17 +68,7 @@ public class MainVerticle extends AbstractVerticle {
       .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
-            .requestHandler(router::accept)
-            .listen(
-                    port,
-                    result -> {
-                      if (result.succeeded()) {
-                        fut.complete();
-                      } else {
-                        fut.fail(result.cause());
-                        logger.error("okapi-test-header-module failed: " + result.cause());
-                      }
-                    }
-            );
+      .requestHandler(router)
+      .listen(port, result -> promise.handle(result.mapEmpty()));
   }
 }

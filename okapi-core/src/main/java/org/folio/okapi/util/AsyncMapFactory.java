@@ -7,7 +7,7 @@ import io.vertx.core.shareddata.SharedData;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 
 /**
  * Factory to create either a vert.x ClusterWideMap or a AsyncLocalmap, if not
@@ -31,13 +31,13 @@ class AsyncMapFactory {
   public static <K, V> void create(Vertx vertx, String mapName,
     Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
 
+    SharedData shared = vertx.sharedData();
     if (vertx.isClustered() && mapName != null) {
-      SharedData shared = vertx.sharedData();
       shared.<K, V>getClusterWideMap(mapName, res -> {
         if (res.succeeded()) {
           fut.handle(new Success<>(res.result()));
         } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         }
       });
     } else {
@@ -50,8 +50,13 @@ class AsyncMapFactory {
       if (mapName != null) {
         newid = mapName + newid;
       }
-      AsyncLocalmap<K, V> l = new AsyncLocalmap<>(vertx, newid);
-      fut.handle(new Success<>(l));
+      shared.<K, V>getLocalAsyncMap(newid, res -> {
+        if (res.succeeded()) {
+          fut.handle(new Success<>(res.result()));
+        } else {
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        }
+      });
     }
   }
 }

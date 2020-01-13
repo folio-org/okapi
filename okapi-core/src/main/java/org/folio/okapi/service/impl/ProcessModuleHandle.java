@@ -5,13 +5,14 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -29,7 +30,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final String cmdlineStart;
   private final String cmdlineStop;
   private final EnvEntry[] env;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   private Process p;
   private final int port;
@@ -47,11 +48,15 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.port = port;
     this.ports = ports;
     this.p = null;
-    this.tcpPortWaiting = new TcpPortWaiting(vertx, port);
-  }
-
-  public void setConnectIterMax(int maxIterations) {
-    tcpPortWaiting.setMaxIterations(maxIterations);
+    this.tcpPortWaiting = new TcpPortWaiting(vertx, "localhost", port);
+    if (desc.getWaitIterations() != null) {
+      tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
+    }
+    JsonObject config = vertx.getOrCreateContext().config();
+    Integer maxIterations = config.getInteger("deploy.waitIterations");
+    if (maxIterations != null) {
+      tcpPortWaiting.setMaxIterations(maxIterations);
+    }
   }
 
   private ProcessBuilder createProcessBuilder(String[] l) {
@@ -114,10 +119,10 @@ public class ProcessModuleHandle implements ModuleHandle {
           p = pb.start();
           p.waitFor(1, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
-          logger.warn("Caught InterruptedException " + ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           Thread.currentThread().interrupt();
         } catch (IOException ex) {
-          logger.warn("Caught IOException ", ex + " when starting " + c);
+          logger.warn("when starting {}", c, ex);
           future.fail(ex);
           return;
         }
@@ -129,7 +134,8 @@ public class ProcessModuleHandle implements ModuleHandle {
       future.complete();
     }, false, result -> {
       if (result.failed()) {
-        logger.debug("ProcessModuleHandle.start2() executeBlocking failed " + result.cause());
+        logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
+          result.cause().getMessage());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
         start3(startFuture);
@@ -196,11 +202,11 @@ public class ProcessModuleHandle implements ModuleHandle {
             return;
           }
         } catch (IOException ex) {
-          logger.debug("Caught IOException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           return;
         } catch (InterruptedException ex) {
-          logger.debug("Caught InterruptedException " + ex + " when invoking " + c);
+          logger.warn("when invoking {}", c, ex);
           future.fail(ex);
           Thread.currentThread().interrupt();
           return;

@@ -11,14 +11,16 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
@@ -62,7 +64,8 @@ public class ModuleTenantsTest {
   }
 
   private void td(TestContext context, Async async) {
-    httpClient.delete(port, "localhost", "/_/discovery/modules", response -> {
+    HttpClientLegacy.delete(httpClient, port,
+      "localhost", "/_/discovery/modules", response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         httpClient.close();
@@ -413,6 +416,48 @@ public class ModuleTenantsTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     locationTenantModule = r.getHeader("Location");
+
+    final String docBadTenantVersion = "{" + LS
+      + "  \"id\" : \"mod-bad-tenant-version-1.0.0\"," + LS
+      + "  \"name\" : \"this module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.3.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"launchDescriptor\" : {" + LS
+      + "    \"exec\" : "
+      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+      + "  }" + LS
+      + "}";
+
+    logger.info("docBadVersion : " + docBadTenantVersion);
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docBadTenantVersion).post("/_/proxy/modules").then().statusCode(201);
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docEnableBadTenantVersion = "{" + LS
+      + "  \"id\" : \"mod-bad-tenant-version-1.0.0\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(docEnableBadTenantVersion).post("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(400).body(containsString("Unsupported interface _tenant: 1.3.1"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     // run new module (1st handler)
     c = api.createRestAssured3();

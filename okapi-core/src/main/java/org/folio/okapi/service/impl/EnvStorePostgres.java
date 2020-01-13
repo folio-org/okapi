@@ -9,7 +9,7 @@ import org.folio.okapi.service.EnvStore;
 public class EnvStorePostgres implements EnvStore {
 
   private static final String JSON_COLUMN = "json";
-  private static final String ID_SELECT = JSON_COLUMN + "->>'name' = ?";
+  private static final String ID_SELECT = JSON_COLUMN + "->>'name' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'name'";
   private final PostgresTable<EnvEntry> table;
 

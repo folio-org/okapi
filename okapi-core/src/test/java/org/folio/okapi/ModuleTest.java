@@ -19,7 +19,6 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunnerWithParametersFactory;
@@ -30,7 +29,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runners.Parameterized;
 import ru.yandex.qatools.embed.postgresql.EmbeddedPostgres;
-import static ru.yandex.qatools.embed.postgresql.distribution.Version.Main.V9_6;
 import de.flapdoodle.embed.mongo.config.MongodConfigBuilder;
 import de.flapdoodle.embed.mongo.config.Net;
 import de.flapdoodle.embed.process.runtime.Network;
@@ -45,6 +43,8 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.URLDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -127,6 +127,7 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
+      .put("deploy.waitIterations", 30)
       .put("port", "9230")
       .put("port_start", "9231")
       .put("port_end", "9237")
@@ -136,7 +137,8 @@ public class ModuleTest {
       conf.put("postgres_host", "localhost")
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
-        postgres = new EmbeddedPostgres(V9_6);
+        // take version string from https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
+        postgres = new EmbeddedPostgres(() -> "10.11-3");
         postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
     } else if ("mongo".equals(value)) {
@@ -176,7 +178,8 @@ public class ModuleTest {
 
   private void td(TestContext context) {
     if (locationAuthDeployment != null) {
-      httpClient.delete(port, "localhost", locationAuthDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationAuthDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationAuthDeployment = null;
@@ -186,7 +189,8 @@ public class ModuleTest {
       return;
     }
     if (locationSampleDeployment != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationSampleDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         locationSampleDeployment = null;
         td(context);
@@ -197,7 +201,8 @@ public class ModuleTest {
       return;
     }
     if (locationHeaderDeployment != null) {
-      httpClient.delete(port, "localhost", locationHeaderDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationHeaderDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
@@ -207,7 +212,8 @@ public class ModuleTest {
       return;
     }
     if (locationPreDeployment != null) {
-      httpClient.delete(port, "localhost", locationPreDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationPreDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPreDeployment = null;
@@ -217,7 +223,8 @@ public class ModuleTest {
       return;
     }
     if (locationPostDeployment != null) {
-      httpClient.delete(port, "localhost", locationPostDeployment, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationPostDeployment, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPostDeployment = null;
@@ -1644,7 +1651,18 @@ public class ModuleTest {
     c = api.createRestAssured3();
     c.given().header("Content-Type", "application/json")
       .body(doc1a).post("/_/discovery/modules")
-      .then().statusCode(400);
+      .then().statusCode(400).body(containsString("missing nodeId"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // missing instId
+    final String docNoInstId = "{" + LS
+      + "  \"srvcId\" : \"sample-module-5.0\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(docNoInstId).post("/_/discovery/modules")
+      .then().statusCode(400).body(containsString("Needs instId"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 

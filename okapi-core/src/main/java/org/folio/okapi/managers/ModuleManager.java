@@ -1,19 +1,21 @@
 package org.folio.okapi.managers;
 
 import org.folio.okapi.util.DepResolution;
-import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
@@ -78,7 +80,7 @@ public class ModuleManager {
     } else {
       modules.size(kres -> {
         if (kres.failed()) {
-          fut.handle(new Failure<>(INTERNAL, kres.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, kres.cause()));
         } else if (kres.result() > 0) {
           logger.debug("Not loading modules, looks like someone already did");
           fut.handle(new Success<>());
@@ -87,11 +89,11 @@ public class ModuleManager {
             if (mres.failed()) {
               fut.handle(new Failure<>(mres.getType(), mres.cause()));
             } else {
-              CompList<Void> futures = new CompList<>(INTERNAL);
+              CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
               for (ModuleDescriptor md : mres.result()) {
-                Future<Void> f = Future.future();
-                modules.add(md.getId(), md, f::handle);
-                futures.add(f);
+                Promise<Void> promise = Promise.promise();
+                modules.add(md.getId(), md, promise::handle);
+                futures.add(promise);
               }
               futures.all(fut);
             }
@@ -121,7 +123,7 @@ public class ModuleManager {
       if (modTo != null) {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
-          fut.handle(new Failure<>(USER,
+          fut.handle(new Failure<>(ErrorType.USER,
             "Module " + modTo.getId() + " already provided"));
           return;
         }
@@ -132,7 +134,7 @@ public class ModuleManager {
       if (conflicts.isEmpty() && deps.isEmpty()) {
         fut.handle(new Success<>());
       } else {
-        fut.handle(new Failure<>(USER, conflicts + " " + deps));
+        fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
       }
     });
   }
@@ -158,7 +160,7 @@ public class ModuleManager {
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
           boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, npmSnapshot, ares -> {
+    getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
         return;
@@ -172,11 +174,10 @@ public class ModuleManager {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
           ModuleDescriptor exMd = tempList.get(id);
-
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("10203", id)));
+            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10203", id)));
             return;
           }
         } else {
@@ -187,7 +188,7 @@ public class ModuleManager {
       if (check) {
         String res = DepResolution.checkDependencies(tempList, nList);
         if (!res.isEmpty()) {
-          fut.handle(new Failure<>(USER, res));
+          fut.handle(new Failure<>(ErrorType.USER, res));
           return;
         }
       }
@@ -196,11 +197,11 @@ public class ModuleManager {
   }
 
   private void createList2(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
-    CompList<Void> futures = new CompList<>(INTERNAL);
+    CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
     for (ModuleDescriptor md : list) {
-      Future<Void> f = Future.future();
-      createList3(md, f::handle);
-      futures.add(f);
+      Promise<Void> promise = Promise.promise();
+      createList3(md, promise::handle);
+      futures.add(promise);
     }
     futures.all(fut);
   }
@@ -249,14 +250,14 @@ public class ModuleManager {
       tempList.put(id, md);
       String res = DepResolution.checkAllDependencies(tempList);
       if (!res.isEmpty()) {
-        fut.handle(new Failure<>(USER, messages.getMessage("10204", id, res)));
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10204", id, res)));
         return;
       }
       tenantManager.getModuleUser(id, gres -> {
         if (gres.failed()) {
-          if (gres.getType() == ANY) {
+          if (gres.getType() == ErrorType.ANY) {
             String ten = gres.cause().getMessage();
-            fut.handle(new Failure<>(USER, messages.getMessage("10205", id, ten)));
+            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10205", id, ten)));
           } else { // any other error
             fut.handle(new Failure<>(gres.getType(), gres.cause()));
           }
@@ -295,9 +296,9 @@ public class ModuleManager {
       }
       tenantManager.getModuleUser(id, ures -> {
         if (ures.failed()) {
-          if (ures.getType() == ANY) {
+          if (ures.getType() == ErrorType.ANY) {
             String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(USER, messages.getMessage("10206", id, ten)));
+            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10206", id, ten)));
           } else {
             fut.handle(new Failure<>(ures.getType(), ures.cause()));
           }
@@ -320,13 +321,13 @@ public class ModuleManager {
     LinkedHashMap<String, ModuleDescriptor> mods) {
 
     if (!mods.containsKey(id)) {
-      fut.handle(new Failure<>(NOT_FOUND, messages.getMessage("10207")));
+      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10207")));
       return true;
     }
     mods.remove(id);
     String res = DepResolution.checkAllDependencies(mods);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(USER, messages.getMessage("10208", id, res)));
+      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10208", id, res)));
       return true;
     } else {
       return false;
@@ -374,7 +375,15 @@ public class ModuleManager {
   }
 
   public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+    List<String> skipModules,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+
+    Set<String> skipIds = new TreeSet<>();
+    if (skipModules != null) {
+      for (String id : skipModules) {
+        skipIds.add(id);
+      }
+    }
     modules.getAll(kres -> {
       if (kres.failed()) {
         fut.handle(new Failure<>(kres.getType(), kres.cause()));
@@ -384,7 +393,8 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())) {
+            && (preRelease || !idThis.hasPreRelease())
+            && !skipIds.contains(id)) {
             mdl.add(md);
           }
         }
@@ -403,16 +413,18 @@ public class ModuleManager {
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    CompList<List<ModuleDescriptor>> futures = new CompList<>(INTERNAL);
+    CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
-      Future<ModuleDescriptor> f = Future.future();
+      Promise<ModuleDescriptor> promise = Promise.promise();
       modules.get(id, res -> {
         if (res.succeeded()) {
           mdl.add(res.result());
+        } else {
+          logger.warn("getEnabledModules id={} failed {}", id, res.cause());
         }
-        f.handle(res);
+        promise.handle(res);
       });
-      futures.add(f);
+      futures.add(promise);
     }
     futures.all(mdl, fut);
   }

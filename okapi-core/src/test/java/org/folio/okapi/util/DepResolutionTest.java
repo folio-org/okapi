@@ -1,7 +1,6 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.json.Json;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import java.util.HashMap;
@@ -14,6 +13,7 @@ import org.junit.Test;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.Collection;
 import java.util.TreeSet;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.OkapiLogger;

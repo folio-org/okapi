@@ -1,14 +1,16 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.DeploymentStore;
+import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.impl.EnvStoreNull;
 import org.folio.okapi.service.impl.DeploymentStoreNull;
 import org.junit.After;
@@ -22,40 +24,40 @@ public class DeploymentManagerTest {
   private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
-  private Async async;
-  private Ports ports;
-  private DiscoveryManager dis;
   private DeploymentManager dm;
-  private DeploymentStoreNull ds;
-  private EnvManager em;
 
   @Before
   public void setUp(TestContext context) {
-    async = context.async();
     vertx = Vertx.vertx();
-    ports = new Ports(9231, 9239);
-    em = new EnvManager(new EnvStoreNull());
-    ds = new DeploymentStoreNull();
-    em.init(vertx, res1 -> {
-      dis = new DiscoveryManager(ds);
-      dis.init(vertx, res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", ports, 9230, "");
-        async.complete();
-      });
-    });
   }
 
   @After
   public void tearDown(TestContext context) {
-    async = context.async();
-    vertx.close(x -> {
-      async.complete();
+    vertx.close(context.asyncAssertSuccess());
+  }
+
+  private void createDeploymentManager(TestContext context, EnvStore envStore, JsonObject config) {
+    Async async = context.async();
+    EnvManager em = new EnvManager(envStore);
+    DeploymentStore ds = new DeploymentStoreNull();
+    em.init(vertx, res1 -> {
+      DiscoveryManager dis = new DiscoveryManager(ds);
+      dis.init(vertx, res2 -> {
+        dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
+        async.complete();
+      });
     });
+    async.await();
+  }
+
+  private void createDeploymentManager(TestContext context) {
+    DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), new JsonObject());
   }
 
   @Test
-  public void test1(TestContext context) {
-    async = context.async();
+  public void testDeployProcess(TestContext context) {
+    createDeploymentManager(context);
+    Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
       "java -Dport=%p -jar "
@@ -67,14 +69,19 @@ public class DeploymentManagerTest {
         // after undeploy so we have no stale process
         context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
-        async.complete();
+        dm.shutdown(res3 -> {
+          context.assertTrue(res3.succeeded());
+          async.complete();
+        });
       });
     });
+    async.await();
   }
 
   @Test
-  public void test2(TestContext context) {
-    async = context.async();
+  public void testProcessNotFound(TestContext context) {
+    createDeploymentManager(context);
+    Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
     descriptor.setExec(
             "java -Dport=%p -jar "
@@ -82,7 +89,44 @@ public class DeploymentManagerTest {
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
     dm.deploy(dd, res -> {
       context.assertFalse(res.succeeded());
+      context.assertEquals("Service returned with exit code 1", res.cause().getMessage());
       async.complete();
     });
+    async.await();
   }
+
+  @Test
+  public void testNoPortsAvailable(TestContext context) {
+    JsonObject conf = new JsonObject();
+    conf.put("port_start", "9231");
+    conf.put("port_end", "9231");
+    DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), conf);
+    Async async = context.async();
+    LaunchDescriptor descriptor = new LaunchDescriptor();
+    descriptor.setExec(
+            "java -Dport=%p -jar "
+            + "../okapi-test-module/target/unknown.jar");
+    DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
+    dm.deploy(dd, res -> {
+      context.assertFalse(res.succeeded());
+      context.assertEquals("all ports in use", res.cause().getMessage());
+      async.complete();
+    });
+    async.await();
+  }
+
+  @Test
+  public void testUndeployNotFound(TestContext context) {
+    createDeploymentManager(context);
+    Async async = context.async();
+    LaunchDescriptor descriptor = new LaunchDescriptor();
+    dm.undeploy("1234", res -> {
+      context.assertFalse(res.succeeded());
+      context.assertEquals("not found: 1234", res.cause().getMessage());
+      async.complete();
+    });
+    async.await();
+  }
+
+
 }

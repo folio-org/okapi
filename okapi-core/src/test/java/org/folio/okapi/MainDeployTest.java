@@ -6,10 +6,10 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Assert;
@@ -49,6 +49,13 @@ public class MainDeployTest {
         async.complete();
       });
     }
+  }
+
+  @Test
+  public void testInitWithException(TestContext context) {
+    new MainDeploy().init(null, context.asyncAssertFailure(throwable -> {
+      context.assertTrue(throwable instanceof NullPointerException);
+    }));
   }
 
   @Test

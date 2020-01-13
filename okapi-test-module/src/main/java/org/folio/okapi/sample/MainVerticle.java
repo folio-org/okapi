@@ -4,21 +4,21 @@ package org.folio.okapi.sample;
  * Test module, to be used in Okapi's own unit tests
  */
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Map;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
 
@@ -67,7 +67,7 @@ public class MainVerticle extends AbstractVerticle {
             xmlMsg.append(" ").append(hdr).append(":").append(hdrval).append("\n");
           }
           if (allh.contains("L")) {
-            logger.info(hdr + ":" + hdrval);
+            logger.info("{}:{}", hdr, hdrval);
           }
         }
       }
@@ -144,8 +144,10 @@ public class MainVerticle extends AbstractVerticle {
   private void myTenantHandle(RoutingContext ctx) {
     String tenant = ctx.request().getHeader(XOkapiHeaders.TENANT);
     String meth = ctx.request().method().name();
-    logger.info(meth + " " + ctx.request().uri() + " to okapi-test-module"
-      + " for tenant " + tenant);
+    if (logger.isInfoEnabled()) {
+      logger.info("{} {} to okapi-est-module for tenant {}",
+        meth, ctx.request().uri(), tenant);
+    }
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
       ctx.response().setStatusCode(204);
@@ -154,7 +156,7 @@ public class MainVerticle extends AbstractVerticle {
       ctx.response().setChunked(true);
 
       final String cont = ctx.request().getHeader("Content-Type");
-      logger.debug("Tenant api content type: '" + cont + "'");
+      logger.debug("Tenant api content type: '{}'", cont);
       String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
       if (tok == null) {
         tok = "";
@@ -162,14 +164,15 @@ public class MainVerticle extends AbstractVerticle {
         tok = "-auth";
       }
       this.tenantRequests += meth + "-" + tenant + tok + " ";
-      logger.debug("Tenant requests so far: " + tenantRequests);
+      logger.debug("Tenant requests so far: {}", tenantRequests);
 
       Buffer b = Buffer.buffer();
       ctx.request().handler(b::appendBuffer);
       ctx.request().endHandler(x -> {
         try {
           JsonObject j = new JsonObject(b);
-          logger.info("module_from=" + j.getString("module_from") + " module_to=" + j.getString("module_to"));
+          logger.info("module_from={} module_to={}",
+            j.getString("module_from"), j.getString("module_to"));
           tenantParameters = j.getJsonArray("parameters");
         } catch (DecodeException|ClassCastException ex) {
           responseError(ctx, 400, ex.getLocalizedMessage());
@@ -229,7 +232,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   @Override
-  public void start(Future<Void> fut) throws IOException {
+  public void start(Promise<Void> promise) throws IOException {
     Router router = Router.router(vertx);
 
     helloGreeting = System.getenv("helloGreeting");
@@ -241,8 +244,7 @@ public class MainVerticle extends AbstractVerticle {
 
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");
     m.logStart();
-    logger.info("Starting okapi-test-module "
-      + bName + " on port " + port);
+    logger.info("Starting okapi-test-module {} on port {}", bName, port);
 
     router.routeWithRegex("/testb").handler(this::myStreamHandle);
     router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
@@ -259,7 +261,7 @@ public class MainVerticle extends AbstractVerticle {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router::accept)
+      .requestHandler(router)
       .listen(
         port,
         result -> {
@@ -269,16 +271,13 @@ public class MainVerticle extends AbstractVerticle {
               final String pid = bName.split("@")[0];
               try (FileWriter fw = new FileWriter(pidFile)) {
                 fw.write(pid);
-                logger.info("Writing " + pid);
+                logger.info("Writing {}", pid);
               } catch (IOException ex) {
                 logger.error(ex);
               }
             }
-            fut.complete();
-          } else {
-            fut.fail(result.cause());
-            logger.error("okapi-test-module failed: " + result.cause());
           }
+          promise.handle(result.mapEmpty());
         });
   }
 }

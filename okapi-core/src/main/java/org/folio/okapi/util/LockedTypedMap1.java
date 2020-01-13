@@ -1,14 +1,14 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.Future;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-import static org.folio.okapi.common.ErrorType.INTERNAL;
+import org.folio.okapi.common.ErrorType;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
@@ -52,17 +52,17 @@ public class LockedTypedMap1<T> extends LockedStringMap {
       }
       Collection<String> keys = kres.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      CompList<LinkedHashMap<String,T>> futures = new CompList<>(INTERNAL);
+      CompList<LinkedHashMap<String,T>> futures = new CompList<>(ErrorType.INTERNAL);
       for (String key : keys) {
-        Future<String> f = Future.future();
+        Promise<String> promise = Promise.promise();
         getString(key, null, res -> {
           if (res.succeeded()) {
             T t = Json.decodeValue(res.result(), clazz);
             results.put(key, t);
           }
-          f.handle(res);
+          promise.handle(res);
         });
-        futures.add(f);
+        futures.add(promise);
       }
       futures.all(results, fut);
     });

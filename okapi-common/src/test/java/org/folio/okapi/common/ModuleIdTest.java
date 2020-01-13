@@ -6,6 +6,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class ModuleIdTest {
+
   @Test
   public void test() {
     ModuleId module_1 = new ModuleId("module-1");
@@ -13,7 +14,7 @@ public class ModuleIdTest {
     assertTrue(module_1.hasSemVer());
     assertFalse(module_1.hasPreRelease());
     assertEquals("module", module_1.getProduct());
-    assertEquals("module: module version: 1", module_1.toString());
+    assertEquals("module-1", module_1.toString());
 
     ModuleId module_1plus2 = new ModuleId("module-1-2+3");
     assertEquals("module-1-2+3", module_1plus2.getId());
@@ -21,15 +22,7 @@ public class ModuleIdTest {
     assertTrue(module_1plus2.hasPreRelease());
     assertFalse(module_1plus2.hasNpmSnapshot());
     assertEquals("module", module_1plus2.getProduct());
-    assertEquals("module: module version: 1 pre: 2 metadata: 3", module_1plus2.toString());
-
-    List<String> versionsL = new LinkedList<>();
-    versionsL.add("module-1.0");
-    versionsL.add("module-1.0-2");
-    versionsL.add("module-0.9");
-    versionsL.add("other-1.1");
-    versionsL.add("other-0.9");
-    assertEquals("module-1.0", module_1.getLatest(versionsL));
+    assertEquals("module-1-2+3", module_1plus2.toString());
 
     assertFalse(module_1.equals(module_1plus2));
     assertFalse(module_1.equals(this));
@@ -40,13 +33,13 @@ public class ModuleIdTest {
     assertEquals(module_1plus2.hashCode(), module_1plus2copy.hashCode());
 
     ModuleId foobar_1_2 = new ModuleId("foo-bar1-1.2");
-    assertEquals("module: foo-bar1 version: 1 2", foobar_1_2.toString());
+    assertEquals("foo-bar1-1.2", foobar_1_2.toString());
 
     ModuleId module_1_9 = new ModuleId("module-1.9");
-    assertEquals("module: module version: 1 9", module_1_9.toString());
+    assertEquals("module-1.9", module_1_9.toString());
 
     ModuleId module = new ModuleId("module");
-    assertEquals("module: module", module.toString());
+    assertEquals("module", module.toString());
 
     assertTrue(module_1.hasPrefix(module));
     assertFalse(module.hasPrefix(module_1));
@@ -73,13 +66,37 @@ public class ModuleIdTest {
 
     assertTrue(module_1.equals(module_1));
     assertFalse(module_1.equals(foobar_1_2));
+
+    assertTrue(module_1.hasSemVer());
+    assertEquals("1", module_1.getSemVer().toString());
   }
 
   @Test
-  public void test2() {
+  public void testLatest() {
+    ModuleId module_1 = new ModuleId("module-1");
+    List<String> versionsL = new LinkedList<>();
+    versionsL.add("module-1.0");
+    versionsL.add("module-1.0-2");
+    versionsL.add("module-0.9");
+    versionsL.add("other-1.1");
+    versionsL.add("other-0.9");
+    assertEquals("module-1.0", module_1.getLatest(versionsL));
+    assertEquals("module-1", module_1.getLatest(new LinkedList<>()));
+  }
+
+  @Test
+  public void testNpmSnapshot() {
     ModuleId module_1_10000 = new ModuleId("module-1.2.10000");
     assertTrue(module_1_10000.hasSemVer());
     assertFalse(module_1_10000.hasPreRelease());
     assertTrue(module_1_10000.hasNpmSnapshot());
+  }
+
+  @Test
+  public void testWithoutSemVer() {
+    ModuleId module = new ModuleId("module");
+    assertFalse(module.hasSemVer());
+    assertFalse(module.hasPreRelease());
+    assertFalse(module.hasNpmSnapshot());
   }
 }

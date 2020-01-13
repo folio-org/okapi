@@ -11,11 +11,13 @@ import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import static org.hamcrest.Matchers.*;
 import org.junit.Assert;
@@ -58,7 +60,8 @@ public class EnvTest {
 
   private void td(TestContext context, Async async) {
     if (locationSampleDeployment1 != null) {
-      httpClient.delete(port, "localhost", locationSampleDeployment1, response -> {
+      HttpClientLegacy.delete(httpClient, port, "localhost",
+        locationSampleDeployment1, response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationSampleDeployment1 = null;

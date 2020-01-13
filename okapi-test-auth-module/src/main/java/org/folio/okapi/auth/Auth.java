@@ -15,8 +15,8 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
 /**
@@ -26,11 +26,6 @@ import org.folio.okapi.common.OkapiLogger;
  * Does generate tokens for module permissions, but otherwise does not filter
  * permissions for anything, but does return X-Okapi-Permissions-Desired in
  * X-Okapi-Permissions, as if all desired permissions were granted.
- *
- * @author heikki
- *
- *
- *
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 class Auth {
@@ -55,12 +50,12 @@ class Auth {
                 .put("sub", user)
                 .put("tenant", tenant);
     String encodedpl = payload.encode();
-    logger.debug("test-auth: payload: " + encodedpl );
+    logger.debug("test-auth: payload: {}", encodedpl);
     byte[] bytes = encodedpl.getBytes();
     byte[] pl64bytes = Base64.getEncoder().encode(bytes);
     String pl64 = new String(pl64bytes);
     String token = "dummyJwt." + pl64 + ".sig";
-    logger.debug("test-auth: token: " + token);
+    logger.debug("test-auth: token: {}", token);
     return token;
   }
 
@@ -83,14 +78,14 @@ class Auth {
     String u = p.getUsername();
     String correctpw = u + "-password";
     if (!p.getPassword().equals(correctpw)) {
-      logger.warn("test-auth: Bad passwd for '" + u + "'. "
-              + "Got '" + p.getPassword() + "' expected '" + correctpw + "'");
+      logger.warn("test-auth: Bad passwd for '{}'. Got '{}' expected '{}",
+      u, p.getPassword(), correctpw);
       responseText(ctx, 401).end("Wrong username or password");
       return;
     }
     String tok;
     tok = token(p.getTenant(), p.getUsername());
-    logger.info("test-auth: Ok login for " + u + ": " + tok);
+    logger.info("test-auth: Ok login for {}: {}", u, tok);
     responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
 
@@ -103,7 +98,7 @@ class Auth {
    */
   private String moduleTokens(RoutingContext ctx) {
     String modPermJson = ctx.request().getHeader(XOkapiHeaders.MODULE_PERMISSIONS);
-    logger.debug("test-auth: moduleTokens: trying to decode '" + modPermJson + "'");
+    logger.debug("test-auth: moduleTokens: trying to decode '{}'", modPermJson);
     HashMap<String, String> tokens = new HashMap<>();
     if (modPermJson != null && !modPermJson.isEmpty()) {
       JsonObject jo = new JsonObject(modPermJson);
@@ -124,13 +119,13 @@ class Auth {
       tokens.put("_", ctx.request().getHeader(XOkapiHeaders.TOKEN));
     }
     String alltokens = Json.encode(tokens);
-    logger.debug("test-auth: module tokens for " + modPermJson + "  :  " + alltokens);
+    logger.debug("test-auth: module tokens for {}: {}", modPermJson, alltokens);
     return alltokens;
   }
 
   public void filter(RoutingContext ctx) {
     String phase = ctx.request().headers().get(XOkapiHeaders.FILTER);
-    logger.debug("test-auth filter " + XOkapiHeaders.FILTER + ": '" + phase + "'");
+    logger.debug("test-auth filter {}: '{}'", XOkapiHeaders.FILTER, phase);
     if (phase == null || phase.startsWith("auth")) {
       check(ctx);
       return;
@@ -139,7 +134,7 @@ class Auth {
     // Hack to test return codes on various filter phases
     phase = phase.split(" ")[0];
     String pHeader = ctx.request().headers().get("X-Filter-" + phase);
-    logger.debug("filter: 'X-Filter-" + phase + "': " + pHeader);
+    logger.debug("filter: 'X-Filter-{}': {}", phase, pHeader);
     if (pHeader != null) {
       ctx.response().setStatusCode(Integer.parseInt(pHeader));
     }
@@ -181,19 +176,17 @@ class Auth {
       // login token, possibly with modulePermissions, and then checks that
       // against the permissions required for the tenant interface...
     } else {
-      logger.debug("test-auth: check starting with tok " + tok + " and tenant " + tenant);
+      logger.debug("test-auth: check starting with tok {} and tenant {}", tok, tenant);
 
       String[] splitTok = tok.split("\\.");
-      logger.debug("test-auth: check: split the jwt into " + splitTok.length
-        + ": " + Json.encode(splitTok));
       if (splitTok.length != 3) {
-        logger.warn("test-auth: Bad JWT, can not split in three parts. '" + tok + "'");
+        logger.warn("test-auth: Bad JWT, can not split in three parts. '{}", tok);
         responseError(ctx, 400, "Auth.check: Bad JWT");
         return;
       }
 
       if (!"dummyJwt".equals(splitTok[0])) {
-        logger.warn("test-auth: Bad dummy JWT, starts with '" + splitTok[0] + "', not 'dummyJwt'");
+        logger.warn("test-auth: Bad dummy JWT, starts with '{}', not 'dummyJwt'", splitTok[0]);
         responseError(ctx, 400, "Auth.check needs a dummyJwt");
         return;
       }
@@ -201,7 +194,7 @@ class Auth {
 
       try {
         String decodedJson = new String(Base64.getDecoder().decode(payload));
-        logger.debug("test-auth: check payload: " + decodedJson);
+        logger.debug("test-auth: check payload: {}", decodedJson);
         JsonObject jtok = new JsonObject(decodedJson);
         userId = jtok.getString("sub", "");
 
@@ -210,7 +203,7 @@ class Auth {
         return;
       }
       final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
-      logger.info("ovTok=" + ovTok);
+      logger.info("ovTok={}", ovTok);
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
         responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
@@ -218,8 +211,8 @@ class Auth {
     }
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null) {
-      logger.warn("test-auth: Rejecting request to /_/tenant because of "
-        + XOkapiHeaders.PERMISSIONS_REQUIRED + ": " + req);
+      logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
+        XOkapiHeaders.PERMISSIONS_REQUIRED, req);
       responseError(ctx, 403, "/_/tenant can not require permissions");
       return;
     }
@@ -239,10 +232,6 @@ class Auth {
       .add(XOkapiHeaders.MODULE_TOKENS, modTok)
       .add(XOkapiHeaders.USER_ID, userId);
     responseText(ctx, 202); // Abusing 202 to say filter OK
-    logger.debug("test-auth: returning 202 and " + Json.encode(ctx.response()));
-    logger.debug("test-auth: req:  " + Json.encode(ctx.request()));
-    logger.debug("test-auth: resp:  " + Json.encode(ctx.response()));
-
     if (ctx.request().method() == HttpMethod.HEAD) {
       ctx.response().headers().remove("Content-Length");
       ctx.response().setChunked(true);
@@ -264,7 +253,7 @@ class Auth {
     }
 
     ctx.request().handler(x -> {
-      logger.debug("test-auth: echoing " + x);
+      logger.debug("test-auth: echoing {}", x);
       ctx.response().write(x);
     });
     ctx.request().endHandler(x -> {
