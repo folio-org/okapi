@@ -24,8 +24,6 @@ import org.apache.logging.log4j.Logger;
 /**
  * HTTP client with cache .. Can be used in most case as a replacement of
  * Vert.x {@link io.vertx.core.http.HttpClient}
- *
- * @author adam
  */
 public class HttpClientCached {
 
