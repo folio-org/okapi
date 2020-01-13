@@ -22,8 +22,6 @@ import static org.folio.okapi.common.ErrorType.*;
  * list of necessary headers (which it can get from the RoutingContext, or
  * separately), so it is bound to one request, or at least one tenant. Your
  * module should not just keep one client around for everything it does.
- *
- * @author heikki
  */
 // S2245: Using pseudorandom number generators (PRNGs) is security-sensitive
 @java.lang.SuppressWarnings({"squid:S2245"})

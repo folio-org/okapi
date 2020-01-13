@@ -26,11 +26,6 @@ import org.folio.okapi.common.OkapiLogger;
  * Does generate tokens for module permissions, but otherwise does not filter
  * permissions for anything, but does return X-Okapi-Permissions-Desired in
  * X-Okapi-Permissions, as if all desired permissions were granted.
- *
- * @author heikki
- *
- *
- *
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 class Auth {

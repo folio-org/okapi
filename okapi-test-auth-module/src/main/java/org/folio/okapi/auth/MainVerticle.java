@@ -20,10 +20,6 @@ import org.folio.okapi.common.OkapiLogger;
  *
  * This module can also be used for testing other filter phases, like 'pre' and
  * 'post'.
- *
- * @author heikki
- *
- * ...
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
