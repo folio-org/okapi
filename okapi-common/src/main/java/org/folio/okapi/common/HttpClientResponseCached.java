@@ -60,6 +60,7 @@ class HttpClientResponseCached implements HttpClientResponse {
       if (cacheEntry.responseBody != null) {
         bodyPromise.complete(cacheEntry.responseBody);
       }
+      bodyPromise = null;
     }
     if (endHandler != null) {
       endHandler.handle(null);
