@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
@@ -497,6 +498,24 @@ public class HttpClientCachedTest {
       req.end("x");
       async.await(1000);
       context.assertEquals("x", b.toString());
+    }
+    {
+      Async async = context.async();
+      Buffer b = Buffer.buffer();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          res.bodyHandler(b::appendBuffer);
+          res.endHandler(x -> async.complete());
+          res.body();
+        }
+      });
+      req.end();
+      async.await(1000);
+      context.assertEquals("", b.toString());
     }
   }
 
@@ -1471,6 +1490,48 @@ public class HttpClientCachedTest {
           f.setHandler(x -> {
             context.assertTrue(x.succeeded());
             context.assertEquals("hello null", x.result().toString());
+          });
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(s, res.getHeader("X-Cache"));
+          Future<Buffer> f = res.body();
+          f.setHandler(x -> {
+          });
+          res.endHandler(x -> async.complete());
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testMoreChunks(TestContext context) {
+    logger.info("testMoreChunks");
+    HttpClientOptions op = new HttpClientOptions();
+    op.setMaxChunkSize(6);
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient(op));
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(s, res.getHeader("X-Cache"));
+          res.endHandler(x -> {
             async.complete();
           });
         }
