@@ -95,8 +95,8 @@ public class MainVerticle extends AbstractVerticle {
     okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
     final String nodeName = Config.getSysConf("nodename", null, config);
     String storageType = Config.getSysConf("storage", "inmemory", config);
-    String loglevel = Config.getSysConf("loglevel", "", config);
-    if (!loglevel.isEmpty()) {
+    String loglevel = Config.getSysConf("loglevel", null, config);
+    if (loglevel != null) {
       LogHelper.setRootLogLevel(loglevel);
     } else {
       String lev = getenv("OKAPI_LOGLEVEL");

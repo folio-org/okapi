@@ -9,8 +9,8 @@ public class Config {
   }
 
   /**
-   * Inspect Check string property first in system; if not found, inspect JSON
-   * configuration
+   * Inspect Check string property first in system; if not found OR empty,
+   * inspect JSON configuration
    * @param key property key (JSON key)
    * @param def default value (may be null)
    * @param conf JSON object configuration
@@ -18,7 +18,7 @@ public class Config {
    */
   public static String getSysConf(String key, String def, JsonObject conf) {
     final String v = System.getProperty(key);
-    if (v == null || (v.isEmpty() && def != null && !def.isEmpty())) {
+    if (v == null || v.isEmpty()) {
       return conf.getString(key, def);
     } else {
       return v;
@@ -26,8 +26,8 @@ public class Config {
   }
 
   /**
-   * Inspect Check boolean property first in system; if not found, inspect JSON
-   * configuration
+   * Inspect Check boolean property first in system; if not found OR empty,
+   * inspect JSON configuration
    * @param key property key (JSON key)
    * @param def default value (may be null)
    * @param conf JSON object configuration
@@ -39,11 +39,6 @@ public class Config {
     if (v == null || v.isEmpty()) {
       return conf.getBoolean(key, def);
     }
-    if (v.equals("true")) {
-      return true;
-    } else if (v.equals("false")) {
-      return false;
-    }
-    throw new ClassCastException("java.lang.String cannot be cast to java.lang.Boolean");
+    return Boolean.parseBoolean(v);
   }
 }

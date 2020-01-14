@@ -46,13 +46,13 @@ class PostgresHandle {
     String val;
 
     connectOptions = new PgConnectOptions();
-    val = Config.getSysConf("postgres_host", "", conf);
-    if (!val.isEmpty()) {
+    val = Config.getSysConf("postgres_host", null, conf);
+    if (val != null) {
       connectOptions.setHost(val);
     }
-    val = Config.getSysConf("postgres_port", "", conf);
+    val = Config.getSysConf("postgres_port", null, conf);
     Logger logger = OkapiLogger.get();
-    if (!val.isEmpty()) {
+    if (val != null) {
       try {
         connectOptions.setPort(Integer.parseInt(val));
       } catch (NumberFormatException e) {

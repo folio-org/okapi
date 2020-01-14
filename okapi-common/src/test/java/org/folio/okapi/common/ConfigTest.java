@@ -20,9 +20,6 @@ public class ConfigTest {
 
     System.setProperty(varName, "");
     Assert.assertEquals("124", Config.getSysConf(varName, "123", conf));
-
-    System.setProperty(varName, "");
-    Assert.assertEquals("", Config.getSysConf(varName, "", conf));
   }
 
   @Test
@@ -45,26 +42,20 @@ public class ConfigTest {
     }
     Assert.assertTrue(thrown);
 
-    conf.remove(varName);
-    thrown = false;
-    try {
-      System.setProperty(varName, "xx");
-      Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
-    } catch (ClassCastException ex) {
-      thrown = true;
-    }
-    Assert.assertTrue(thrown);
-
-    conf.put(varName, false);
+    System.setProperty(varName, "xx"); // treated as false
+    Assert.assertEquals(false, Config.getSysConfBoolean(varName, null, conf));
 
     System.setProperty(varName, "true");
     Assert.assertEquals(true, Config.getSysConfBoolean(varName, false, conf));
 
+    System.setProperty(varName, "false");
+    Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
+
+    conf.put(varName, false);
     System.setProperty(varName, "");
     Assert.assertEquals(false, Config.getSysConfBoolean(varName, true, conf));
 
     conf.remove(varName);
-    System.setProperty(varName, "");
     Assert.assertEquals(true, Config.getSysConfBoolean(varName, true, conf));
     Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
 
