@@ -1,5 +1,6 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
@@ -1445,6 +1446,31 @@ public class HttpClientCachedTest {
           });
           res.endHandler(x -> {
             context.assertNull(x);
+            async.complete();
+          });
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testBodyFuture(TestContext context) {
+    logger.info("testBodyFuture");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(s, res.getHeader("X-Cache"));
+          Future<Buffer> f = res.body();
+          f.setHandler(x -> {
+            context.assertTrue(x.succeeded());
+            context.assertEquals("hello null", x.result().toString());
             async.complete();
           });
         }

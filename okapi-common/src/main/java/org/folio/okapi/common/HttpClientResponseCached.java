@@ -21,6 +21,7 @@ class HttpClientResponseCached implements HttpClientResponse {
   final MultiMap responseHeaders;
   boolean paused;
   Handler<Buffer> handler;
+  Handler<Buffer> bodyHandler;
   Handler<Void> endHandler;
 
   HttpClientResponseCached(HttpClientCacheEntry ce, HttpClientRequest httpClientRequest) {
@@ -46,6 +47,12 @@ class HttpClientResponseCached implements HttpClientResponse {
         handler.handle(cacheEntry.responseBody);
       }
       handler = null;
+    }
+    if (bodyHandler != null) {
+      if (cacheEntry.responseBody != null) {
+        bodyHandler.handle(cacheEntry.responseBody);
+      }
+      bodyHandler = null;
     }
     if (endHandler != null) {
       endHandler.handle(null);
@@ -134,7 +141,14 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
-    return handler(hndlr); // bodyHandler and handler identical
+    if (paused) {
+      bodyHandler = hndlr;
+    } else {
+      if (cacheEntry.responseBody != null) {
+        hndlr.handle(cacheEntry.responseBody);
+      }
+    }
+    return this;
   }
 
   @Override
