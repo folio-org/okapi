@@ -35,6 +35,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
+import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -74,17 +75,21 @@ public class ProxyService {
   private Messages messages = Messages.getInstance();
 
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
-    DiscoveryManager dm, InternalModule im, String okapiUrl, int waitMs) {
+    DiscoveryManager dm, InternalModule im, String okapiUrl, JsonObject config) {
     this.vertx = vertx;
     this.moduleManager = modules;
     this.tenantManager = tm;
     this.internalModule = im;
     this.discoveryManager = dm;
     this.okapiUrl = okapiUrl;
-    this.waitMs = waitMs;
+    this.waitMs = config.getInteger("logWaitMs", 0);
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = new HttpClientCached(vertx.createHttpClient(opt));
+    Boolean cache = Config.getSysConfBoolean("httpCache", false, config);
+    if (!cache) {
+      httpClient.cacheMethods().clear();
+    }
   }
 
   /**

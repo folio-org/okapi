@@ -50,7 +50,7 @@ public class ModuleTenantsTest {
     httpClient = vertx.createHttpClient();
     JsonObject conf = new JsonObject()
       .put("port", Integer.toString(port))
-      .put("logWaitMs", "200");
+      .put("logWaitMs", 200);
 
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(conf);

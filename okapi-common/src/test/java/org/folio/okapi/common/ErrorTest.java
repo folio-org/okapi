@@ -1,41 +1,40 @@
 package org.folio.okapi.common;
 import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
 import org.junit.Test;
-import static org.junit.Assert.*;
+import org.junit.Assert;
 
 public class ErrorTest {
   @Test
   public void testFailure() {
     Failure<Void> f = new Failure<>(ErrorType.NOT_FOUND, "Not found");
-    assertEquals(ErrorType.NOT_FOUND, f.getType());
-    assertTrue(f.failed());
-    assertFalse(f.succeeded());
-    assertEquals("Not found", f.cause().getMessage());
-    assertEquals(null, f.result());
-    assertEquals(404, ErrorType.httpCode(f.getType()));
-    assertEquals(400, ErrorType.httpCode(ErrorType.USER));
-    assertEquals(404, ErrorType.httpCode(ErrorType.NOT_FOUND));
-    assertEquals(403, ErrorType.httpCode(ErrorType.FORBIDDEN));
-    assertEquals(500, ErrorType.httpCode(ErrorType.INTERNAL));
+    Assert.assertEquals(ErrorType.NOT_FOUND, f.getType());
+    Assert.assertTrue(f.failed());
+    Assert.assertFalse(f.succeeded());
+    Assert.assertEquals("Not found", f.cause().getMessage());
+    Assert.assertEquals(null, f.result());
+    Assert.assertEquals(404, ErrorType.httpCode(f.getType()));
+    Assert.assertEquals(400, ErrorType.httpCode(ErrorType.USER));
+    Assert.assertEquals(404, ErrorType.httpCode(ErrorType.NOT_FOUND));
+    Assert.assertEquals(403, ErrorType.httpCode(ErrorType.FORBIDDEN));
+    Assert.assertEquals(500, ErrorType.httpCode(ErrorType.INTERNAL));
 
     String nullStr = null;
     Failure<Void> g = new Failure<>(ErrorType.NOT_FOUND, nullStr);
-    assertNull(g.cause().getMessage());
+    Assert.assertNull(g.cause().getMessage());
   }
 
   @Test
   public void testSuccess() {
     Success<Integer> s = new Success<>(42);
-    assertFalse(s.failed());
-    assertTrue(s.succeeded());
-    assertEquals(42, (int) s.result());
-    assertEquals(200, ErrorType.httpCode(s.getType()));
+    Assert.assertFalse(s.failed());
+    Assert.assertTrue(s.succeeded());
+    Assert.assertEquals(42, (int) s.result());
+    Assert.assertEquals(200, ErrorType.httpCode(s.getType()));
 
     Success<Void> t = new Success<>();
-    assertFalse(s.failed());
-    assertTrue(s.succeeded());
-    assertEquals(200, ErrorType.httpCode(s.getType()));
+    Assert.assertFalse(s.failed());
+    Assert.assertTrue(s.succeeded());
+    Assert.assertEquals(200, ErrorType.httpCode(s.getType()));
   }
 
   private void func(ErrorType x, Handler<ExtendedAsyncResult<String>> fut) {
@@ -50,40 +49,20 @@ public class ErrorTest {
   @Test
   public void testFuncOk() {
     func(ErrorType.OK, res -> {
-      assertTrue(res.succeeded());
-      assertFalse(res.failed());
-      assertEquals(null, res.cause());
-      assertEquals("123", res.result());
+      Assert.assertTrue(res.succeeded());
+      Assert.assertFalse(res.failed());
+      Assert.assertEquals(null, res.cause());
+      Assert.assertEquals("123", res.result());
     });
   }
 
   @Test
   public void testFuncInternal() {
     func(ErrorType.INTERNAL, res -> {
-      assertTrue(res.failed());
-      assertNotEquals(null, res.cause());
-      assertEquals("my exception", res.cause().getMessage());
+      Assert.assertTrue(res.failed());
+      Assert.assertNotEquals(null, res.cause());
+      Assert.assertEquals("my exception", res.cause().getMessage());
     });
   }
 
-  @Test
-  public void testConfig() {
-    JsonObject conf = new JsonObject();
-    final String varName = "foo-bar92304239";
-
-    assertEquals("123", Config.getSysConf(varName, "123", conf));
-    assertEquals(null, Config.getSysConf(varName, null, conf));
-
-    conf.put(varName, "124");
-    assertEquals("124", Config.getSysConf(varName, "123", conf));
-
-    System.setProperty(varName, "129");
-    assertEquals("129", Config.getSysConf(varName, "123", conf));
-
-    System.setProperty(varName, "");
-    assertEquals("124", Config.getSysConf(varName, "123", conf));
-
-    System.setProperty(varName, "");
-    assertEquals("", Config.getSysConf(varName, "", conf));
-  }
 }

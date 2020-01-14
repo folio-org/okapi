@@ -31,6 +31,8 @@ public class HttpClientCached {
 
   private final HttpClient httpClient;
 
+  private List<HttpMethod> cacheMethods = new LinkedList<>();
+
   private final Map<String, HttpClientCacheEntry> cache = new HashMap<>();
   private Set<String> cacheIgnoreHeaders = new TreeSet<>();
 
@@ -50,6 +52,12 @@ public class HttpClientCached {
   public HttpClientCached(HttpClient httpClient) {
     cacheIgnoreHeaders.add("date");
     this.httpClient = httpClient;
+    this.cacheMethods.add(HttpMethod.GET);
+    this.cacheMethods.add(HttpMethod.HEAD);
+  }
+
+  public List<HttpMethod> cacheMethods() {
+    return this.cacheMethods;
   }
 
   /**
@@ -152,7 +160,7 @@ public class HttpClientCached {
   public HttpClientRequest requestAbs(HttpMethod method, String absoluteUri,
     String cacheUri, Handler<AsyncResult<HttpClientResponse>> hndlr) {
 
-    if (method.equals(HttpMethod.GET) || method.equals(HttpMethod.HEAD)) {
+    if (cacheMethods.contains(method)) {
       expire();
       return new HttpClientRequestCached(this, httpClient, method,
         absoluteUri, cacheUri, hndlr);
