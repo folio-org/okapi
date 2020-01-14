@@ -22,8 +22,42 @@ import java.util.TreeSet;
 import org.apache.logging.log4j.Logger;
 
 /**
- * HTTP client with cache .. Can be used in most case as a replacement of
- * Vert.x {@link io.vertx.core.http.HttpClient}
+ * HTTP client with cache .. Can be used in most case as a replacement of Vert.x
+ * {@link io.vertx.core.http.HttpClient}
+ *
+ * The following conditions must be met for a request/response to be saved:
+ *
+ * <ul>
+ * <li>Method is one of <pre>GET</pre>, <pre>HEAD</pre> {@link #cacheMethods() }</li>
+ * <li>Request header cache-control does not hold <pre>no-store</pre> / <pre>no-cache</pre></li>
+ * <li>Request body is empty</li>
+ * <li>Response status is 200 (currently can not be configured)</li>
+ * <li>Response body is less than 8K {@link #setMaxBodySize(int)</li>
+ * <li>Response header cache-control does not hold no-store / no-cache</li>
+ * </ul>
+ *
+ * If a request is used for cache lookup , the response header
+ * X-Cache is returned as part of the response. It is either
+ * <pre>MISS</pre> or <pre>HIT: n</pre> where n denotes the number of hits.
+ *
+ * Cached results are mached against cacheUri (which defaults to absoluteUri)
+ * and all headers, except those that are ignored . By default only "Date" is
+ * ignored. A header to be ignored can be added with {@link #addIgnoreHeader(java.lang.String) and removed with
+ * {@link #removeIgnoreHeader(java.lang.String)}.
+ *
+ * Expiry.. The cache-control <pre>max-age</pre> primarily controls how long a cached
+ * entry should be cached.. If that is not present, the <pre>Expires</pre> header from the
+ * response is used. If none of those are present, the default max-age takes
+ * effect. In all cases, to avoid extremely long caching, the setting
+ * globalMaxAge serves as a max-age.. By default, this is 3600 seconds and
+ * can be adjusted with {@link #globalMaxAge(long) }.
+ *
+ * The client does not perform validation with ETags. So in cases where a client
+ * would otherwise perform validation, the HTTP request will be re-executed.
+ * For this reason no-store and no-cache are treated the same way.
+ *
+ * {@linktourl https://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html}
+ *
  */
 public class HttpClientCached {
 
@@ -40,7 +74,7 @@ public class HttpClientCached {
 
   private int maxBodySize = DEFAULT_MAX_BODY_SIZE;
 
-  private long globalMaxAge = 600;
+  private long globalMaxAge = 3600;
   private long defaultMaxAge = 60;
 
   /**
@@ -61,7 +95,8 @@ public class HttpClientCached {
   }
 
   /**
-   * Sets a an upper limit on how long the client will cache results
+   * Sets a an upper limit on how long the client will cache results.
+   * Default is 1 hour / 3600 seconds.
    *
    * @param seconds age in seconds
    * @return client (fluent)
@@ -73,7 +108,7 @@ public class HttpClientCached {
 
   /**
    * Sets default age for responses .. Used if neither the client , nor the
-   * server specifies max-age
+   * server specifies max-age. Default is 60 seconds.
    *
    * @param seconds age in seconds
    * @return client (fluent)
