@@ -18,6 +18,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -1422,6 +1423,32 @@ public class HttpClientCachedTest {
           context.assertEquals(null, res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         });
+      req.end();
+      async.await(1000);
+    }
+  }
+
+  @Test
+  public void testFetch(TestContext context) {
+    logger.info("testFetch");
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(res, res.fetch(5));
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(s, res.getHeader("X-Cache"));
+          res.handler(x -> {
+          });
+          res.endHandler(x -> {
+            context.assertNull(x);
+            async.complete();
+          });
+        }
+      });
       req.end();
       async.await(1000);
     }
