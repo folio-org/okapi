@@ -87,7 +87,7 @@ public class ProxyService {
     opt.setMaxPoolSize(1000);
     httpClient = new HttpClientCached(vertx.createHttpClient(opt));
     Boolean cache = Config.getSysConfBoolean("httpCache", false, config);
-    if (!cache) {
+    if (Boolean.FALSE.equals(cache)) {
       httpClient.cacheMethods().clear();
     }
   }
