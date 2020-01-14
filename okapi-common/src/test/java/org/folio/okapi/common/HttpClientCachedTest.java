@@ -253,7 +253,7 @@ public class HttpClientCachedTest {
     logger.info("testHeadPauseResume");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
@@ -285,6 +285,9 @@ public class HttpClientCachedTest {
       });
       context.assertFalse(req.isComplete());
       context.assertFalse(req.writeQueueFull());
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
       context.assertEquals("[runOnContext][endHandler]", b.toString());
@@ -294,7 +297,7 @@ public class HttpClientCachedTest {
       context.assertNull(req.cause());
       context.assertNotNull(req.result());
     }
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI + "?q=a", res1 -> {
@@ -317,6 +320,9 @@ public class HttpClientCachedTest {
       });
       context.assertFalse(req.isComplete());
       context.assertFalse(req.writeQueueFull());
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
       context.assertEquals("[runOnContext][endHandler]", b.toString());
@@ -335,7 +341,7 @@ public class HttpClientCachedTest {
     logger.info("testGetPauseResume");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
@@ -369,13 +375,16 @@ public class HttpClientCachedTest {
           });
         }
       });
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       context.assertFalse(req.isComplete());
       context.assertFalse(req.writeQueueFull());
       req.end();
       async.await(1000);
       context.assertEquals("[runOnContext][handler][bodyHandler][body][endHandler]", b.toString());
     }
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI + "?q=b", res1 -> {
@@ -398,6 +407,9 @@ public class HttpClientCachedTest {
       });
       context.assertFalse(req.isComplete());
       context.assertFalse(req.writeQueueFull());
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
       context.assertEquals("[runOnContext][bodyHandler]", b.toString());
@@ -1463,7 +1475,7 @@ public class HttpClientCachedTest {
   public void testFetch(TestContext context) {
     logger.info("testFetch");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -1480,6 +1492,9 @@ public class HttpClientCachedTest {
           });
         }
       });
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
     }
@@ -1489,7 +1504,7 @@ public class HttpClientCachedTest {
   public void testBodyFuture(TestContext context) {
     logger.info("testBodyFuture");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -1505,11 +1520,14 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
     }
 
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -1523,6 +1541,9 @@ public class HttpClientCachedTest {
           res.endHandler(x -> async.complete());
         }
       });
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
     }
@@ -1534,7 +1555,7 @@ public class HttpClientCachedTest {
     HttpClientOptions op = new HttpClientOptions();
     op.setMaxChunkSize(6);
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient(op));
-    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+    for (String s : Arrays.asList(null, "MISS", "HIT: 1")) {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -1547,6 +1568,9 @@ public class HttpClientCachedTest {
           });
         }
       });
+      if (s == null) {
+        req.putHeader("cache-control", "no-store");
+      }
       req.end();
       async.await(1000);
     }
