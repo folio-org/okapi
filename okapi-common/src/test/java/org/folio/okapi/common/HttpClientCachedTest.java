@@ -253,7 +253,7 @@ public class HttpClientCachedTest {
     logger.info("testHeadPauseResume");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
-    {
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
@@ -261,7 +261,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader("X-Cache"));
           res.pause();
           res.handler(x -> {
             b.append("[handler]");
@@ -275,6 +275,8 @@ public class HttpClientCachedTest {
             b.append("[runOnContext]");
             res.resume();
           });
+          Future<Buffer> body = res.body();
+          body.setHandler(x -> b.append("[body]"));
         }
       });
       context.assertFalse(req.isComplete());
@@ -282,40 +284,11 @@ public class HttpClientCachedTest {
       req.end();
       async.await(1000);
       context.assertEquals("[runOnContext][endHandler]", b.toString());
-      context.assertTrue(req.isComplete());
+      context.assertNotNull(req.isComplete());
       context.assertTrue(req.succeeded());
       context.assertFalse(req.failed());
       context.assertNull(req.cause());
       context.assertNotNull(req.result());
-    }
-
-    {
-      Async async = context.async();
-      StringBuilder b = new StringBuilder();
-      HttpClientRequest req = client.requestAbs(HttpMethod.HEAD, ABS_URI, res1 -> {
-        context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
-          res.pause();
-          res.handler(x -> {
-            b.append("[handler]");
-          });
-          res.endHandler(x -> {
-            context.assertNull(x);
-            b.append("[endHandler]");
-            async.complete();
-          });
-          vertx.runOnContext(x -> {
-            b.append("[runOnContext]");
-            res.resume();
-          });
-        }
-      });
-      req.end();
-      async.await(1000);
-      context.assertEquals("[runOnContext][endHandler]", b.toString());
     }
     client.close();
   }
@@ -325,7 +298,7 @@ public class HttpClientCachedTest {
     logger.info("testGetPauseResume");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
 
-    {
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
       Async async = context.async();
       StringBuilder b = new StringBuilder();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
@@ -333,7 +306,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader("X-Cache"));
           context.assertNotNull(res.request());
           res.pause();
           res.exceptionHandler(x -> {
@@ -347,6 +320,8 @@ public class HttpClientCachedTest {
             b.append("[endHandler]");
             async.complete();
           });
+          Future<Buffer> body = res.body();
+          body.setHandler(x -> b.append("[body]"));
           vertx.runOnContext(x -> {
             b.append("[runOnContext]");
             res.resume();
@@ -357,45 +332,8 @@ public class HttpClientCachedTest {
       context.assertFalse(req.writeQueueFull());
       req.end();
       async.await(1000);
-      context.assertEquals("[runOnContext][handler][endHandler]", b.toString());
+      context.assertEquals("[runOnContext][handler][body][endHandler]", b.toString());
     }
-
-    {
-      Async async = context.async();
-      StringBuilder b = new StringBuilder();
-      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
-        context.assertTrue(res1.succeeded());
-        if (res1.succeeded()) {
-          HttpClientResponse res = res1.result();
-          context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
-          context.assertNotNull(res.request());
-          res.pause();
-          res.exceptionHandler(x -> {
-            b.append("[exceptionhandler]");
-          });
-          res.resume();
-          res.pause();
-          res.endHandler(x -> {
-            b.append("[endHandler]");
-            async.complete();
-          });
-          res.handler(x -> {
-            context.assertNotNull(x);
-            b.append("[handler]");
-          });
-          vertx.runOnContext(x -> {
-            b.append("[runOnContext]");
-            res.resume();
-            res.request();
-          });
-        }
-      });
-      req.end();
-      async.await(1000);
-      context.assertEquals("[runOnContext][handler][endHandler]", b.toString());
-    }
-
     client.close();
   }
 

@@ -3,6 +3,7 @@ package org.folio.okapi.common;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -23,6 +24,7 @@ class HttpClientResponseCached implements HttpClientResponse {
   Handler<Buffer> handler;
   Handler<Buffer> bodyHandler;
   Handler<Void> endHandler;
+  Promise<Buffer> bodyPromise;
 
   HttpClientResponseCached(HttpClientCacheEntry ce, HttpClientRequest httpClientRequest) {
     logger.debug("ce={} ce.statusCode={}", ce, ce.statusCode);
@@ -53,6 +55,11 @@ class HttpClientResponseCached implements HttpClientResponse {
         bodyHandler.handle(cacheEntry.responseBody);
       }
       bodyHandler = null;
+    }
+    if (bodyPromise != null) {
+      if (cacheEntry.responseBody != null) {
+        bodyPromise.complete(cacheEntry.responseBody);
+      }
     }
     if (endHandler != null) {
       endHandler.handle(null);
@@ -153,7 +160,12 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public Future<Buffer> body() {
-    return Future.succeededFuture(cacheEntry.responseBody);
+    if (paused) {
+      bodyPromise = Promise.promise();
+      return bodyPromise.future();
+    } else {
+      return Future.succeededFuture(cacheEntry.responseBody);
+    }
   }
 
   @Override
