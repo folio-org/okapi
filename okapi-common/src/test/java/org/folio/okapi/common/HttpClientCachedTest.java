@@ -132,7 +132,7 @@ public class HttpClientCachedTest {
     }
 
     {
-      boolean thrown = false;
+      String msg = null;
       Async async = context.async();
       try {
         HttpClientRequest req = client.requestAbs(HttpMethod.GET, "syz://localhost/test1", res1 -> {
@@ -141,16 +141,16 @@ public class HttpClientCachedTest {
         context.assertFalse(req.isComplete());
         req.end();
       } catch (VertxException ex) {
-        thrown = true;
+        msg = ex.getMessage();
         async.complete();
       }
       async.await(1000);
-      context.assertTrue(thrown);
+      context.assertEquals("bad URL syz://localhost/test1: unknown protocol: syz", msg);
     }
 
     {
       Async async = context.async();
-      boolean thrown = false;
+      String msg = null;
       try {
         HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
           async.complete();
@@ -159,11 +159,11 @@ public class HttpClientCachedTest {
         req.reset(0);
         req.end();
       } catch (VertxException ex) {
-        context.assertEquals("HttpClientCached: reset not implemented", ex.getMessage());
-        thrown = true;
+        msg = ex.getMessage();
         async.complete();
       }
       async.await(1000);
+      context.assertEquals("HttpClientCached: reset not implemented", msg);
     }
 
     {
@@ -1548,6 +1548,47 @@ public class HttpClientCachedTest {
       async.await(1000);
     }
   }
+
+  @Test
+  public void testNotImplementedResponse(TestContext context) {
+    logger.info("testMoreChunks");
+    HttpClientOptions op = new HttpClientOptions();
+    op.setMaxChunkSize(6);
+    HttpClientCached client = new HttpClientCached(vertx.createHttpClient(op));
+    for (String s : Arrays.asList("MISS", "HIT: 1")) {
+      Async async = context.async();
+      HttpClientRequest req = client.requestAbs(HttpMethod.GET, ABS_URI, res1 -> {
+        context.assertTrue(res1.succeeded());
+        if (res1.succeeded()) {
+          HttpClientResponse res = res1.result();
+          context.assertEquals(200, res.statusCode());
+          context.assertEquals(s, res.getHeader("X-Cache"));
+          String msg = null;
+          try {
+            res.customFrameHandler(x -> {
+            });
+          } catch (VertxException ex) {
+            msg = ex.getMessage();
+          }
+          context.assertEquals("HttpClientCached: customFrameHandler not implemented", msg);
+          msg = null;
+          try {
+            res.streamPriorityHandler(x -> {
+            });
+          } catch (VertxException ex) {
+            msg = ex.getMessage();
+          }
+          context.assertEquals("HttpClientCached: steamPriorityHandler not implemented", msg);
+          res.endHandler(x -> {
+            async.complete();
+          });
+        }
+      });
+      req.end();
+      async.await(1000);
+    }
+  }
+
 
   @Test
   public void testLookupCacheControl(TestContext context) {

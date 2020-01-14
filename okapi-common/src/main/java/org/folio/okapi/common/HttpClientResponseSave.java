@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
+import io.vertx.core.VertxException;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
@@ -165,8 +166,7 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   @Override
   public HttpClientResponse customFrameHandler(Handler<HttpFrame> hndlr) {
-    response.customFrameHandler(hndlr);
-    return this;
+    throw new VertxException("HttpClientCached: customFrameHandler not implemented");
   }
 
   @Override
@@ -176,8 +176,7 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   @Override
   public HttpClientResponse streamPriorityHandler(Handler<StreamPriority> hndlr) {
-    response.streamPriorityHandler(hndlr);
-    return this;
+    throw new VertxException("HttpClientCached: steamPriorityHandler not implemented");
   }
 
 }
