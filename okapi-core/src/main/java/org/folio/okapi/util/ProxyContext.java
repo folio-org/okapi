@@ -205,10 +205,16 @@ public class ProxyContext {
     }
   }
 
-  public void logResponse(String module, String url, int statusCode) {
+  public void logResponse(String module, String url, int statusCode,
+    String cacheInfo) {
     if (logger.isInfoEnabled()) {
-      logger.info("{} RES {} {} {} {}", reqId,
-        statusCode, timeDiff(), module, url);
+      if (cacheInfo != null) {
+        logger.info("{} RES {} {} {} {} {}", reqId,
+          statusCode, timeDiff(), module, url, cacheInfo);
+      } else {
+        logger.info("{} RES {} {} {} {}", reqId,
+          statusCode, timeDiff(), module, url);
+      }
     }
   }
 
@@ -225,7 +231,7 @@ public class ProxyContext {
   }
 
   public void responseError(int code, String msg) {
-    logResponse("okapi", msg, code);
+    logResponse("okapi", msg, code, null);
     closeTimer();
     HttpResponse.responseError(ctx, code, msg);
   }

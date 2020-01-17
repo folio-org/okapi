@@ -112,7 +112,7 @@ class HttpClientRequestCached implements HttpClientRequest {
       HttpClientResponse res1 = res.result();
       ce.responseHeaders = res1.headers();
       ce.statusCode = res1.statusCode();
-      if (ce.statusCode != 200) {
+      if (ce.statusCode != 200 && ce.statusCode != 202) {
         store = false;
       }
       logger.debug("saving ce={} statusCode={}", ce, ce.statusCode);

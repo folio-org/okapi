@@ -406,10 +406,19 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/hugo")
-      .then().statusCode(200).log().ifValidationFails()
+      .then().statusCode(200).header("X-Cache", "MISS").log().ifValidationFails()
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
 
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B")
+      .get("/testb/hugo")
+      .then().statusCode(200).header("X-Cache", "HIT: 1").log().ifValidationFails()
+      .extract().response();
+    Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
+    
     c = api.createRestAssured3();
     r = c.given()
       .header("X-Okapi-Tenant", okapiTenant)

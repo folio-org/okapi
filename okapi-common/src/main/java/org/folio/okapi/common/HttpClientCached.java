@@ -31,7 +31,7 @@ import org.apache.logging.log4j.Logger;
  * <li>Method is one of <pre>GET</pre>, <pre>HEAD</pre> {@link #cacheMethods() }</li>
  * <li>Request header cache-control does not hold <pre>no-store</pre> / <pre>no-cache</pre></li>
  * <li>Request body is empty</li>
- * <li>Response status is 200 (currently can not be configured)</li>
+ * <li>Response status is 200 or 202 (currently can not be configured)</li>
  * <li>Response body is less than 8K {@link #setMaxBodySize(int)</li>
  * <li>Response header cache-control does not hold no-store / no-cache</li>
  * </ul>

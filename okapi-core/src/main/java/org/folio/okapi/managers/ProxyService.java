@@ -86,10 +86,19 @@ public class ProxyService {
     HttpClientOptions opt = new HttpClientOptions();
     opt.setMaxPoolSize(1000);
     httpClient = new HttpClientCached(vertx.createHttpClient(opt));
+    httpClient.addIgnoreHeader(XOkapiHeaders.REQUEST_TIMESTAMP)
+      .addIgnoreHeader(XOkapiHeaders.REQUEST_ID)
+      .addIgnoreHeader(XOkapiHeaders.REQUEST_IP);
     Boolean cache = Config.getSysConfBoolean("httpCache", false, config);
     if (Boolean.FALSE.equals(cache)) {
       httpClient.cacheMethods().clear();
     }
+  }
+
+  private void makeTraceHeader(ModuleInstance mi, HttpClientResponse response,
+    ProxyContext pc) {
+
+    makeTraceHeader(mi, response.statusCode(), response.getHeader("X-Cache"), pc);
   }
 
   /**
@@ -97,10 +106,11 @@ public class ProxyService {
    *
    * @param mi
    * @param statusCode
+   * @param cached whether this was a cached result
    * @param pc
    */
   private void makeTraceHeader(ModuleInstance mi, int statusCode,
-    ProxyContext pc) {
+    String cacheInfo, ProxyContext pc) {
 
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
@@ -108,7 +118,7 @@ public class ProxyService {
       + mi.getModuleDescriptor().getId() + " "
       + url.replaceFirst("[?#].*$", "..") // remove params
       + " : " + statusCode + " " + pc.timeDiff());
-    pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
+    pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode, cacheInfo);
   }
 
   private boolean match(RoutingEntry e, HttpServerRequest req) {
@@ -621,13 +631,13 @@ public class ProxyService {
         newIt = it;
       }
       if (newIt.hasNext()) {
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         pc.closeTimer();
         relayToRequest(res, pc, mi);
         proxyR(newIt, pc, null, bcontent, new LinkedList<>());
       } else {
         relayToResponse(ctx.response(), res, pc);
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, cReqs));
         res.exceptionHandler(e
           -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
@@ -766,7 +776,7 @@ public class ProxyService {
         newIt = it;
       }
       if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         relayToRequest(res, pc, mi);
         final String ct = res.getHeader("Content-Type");
         if (ct != null) {
@@ -777,7 +787,7 @@ public class ProxyService {
         proxyR(newIt, pc, res, null, new LinkedList<>());
       } else {
         relayToResponse(ctx.response(), res, pc);
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         proxyResponseImmediate(pc, res, null, new LinkedList<>());
       }
     });
@@ -831,7 +841,7 @@ public class ProxyService {
         newIt = getNewIterator(it, mi);
         if (!newIt.hasNext()) {
           relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
+          makeTraceHeader(mi, res, pc);
           proxyResponseImmediate(pc, res, null, cReqs);
           if (bcontent == null) {
             stream.resume();
@@ -844,12 +854,12 @@ public class ProxyService {
       if (newIt.hasNext()) {
         relayToRequest(res, pc, mi);
         storeResponseInfo(pc, mi, res);
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         res.endHandler(x
           -> proxyR(newIt, pc, stream, bcontent, cReqs));
       } else {
         relayToResponse(ctx.response(), res, pc);
-        makeTraceHeader(mi, res.statusCode(), pc);
+        makeTraceHeader(mi, res, pc);
         proxyResponseImmediate(pc, stream, bcontent, cReqs);
       }
     });
@@ -902,7 +912,7 @@ public class ProxyService {
       }
       Buffer respBuf = Buffer.buffer(resp);
       pc.setHandlerRes(statusCode);
-      makeTraceHeader(mi, statusCode, pc);
+      makeTraceHeader(mi, statusCode, null, pc);
       if (it.hasNext()) { // carry on with the pipeline
         proxyR(it, pc, null, respBuf, new LinkedList<>());
       } else { // produce a result
