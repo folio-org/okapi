@@ -25,6 +25,7 @@ class HttpClientResponseCached implements HttpClientResponse {
   Handler<Buffer> handler;
   Handler<Void> endHandler;
   Promise<Buffer> bodyPromise;
+  final Buffer fullBody;
 
   HttpClientResponseCached(HttpClientCacheEntry ce, HttpClientRequest httpClientRequest) {
     logger.debug("ce={} ce.statusCode={}", ce, ce.statusCode);
@@ -33,6 +34,7 @@ class HttpClientResponseCached implements HttpClientResponse {
     responseHeaders.addAll(ce.responseHeaders);
     responseHeaders.set("X-Cache", "HIT: " + ce.hitCount);
     paused = false;
+    this.fullBody = ce.responseBody != null ? ce.responseBody : Buffer.buffer();
     this.request = httpClientRequest;
   }
 
@@ -51,9 +53,7 @@ class HttpClientResponseCached implements HttpClientResponse {
       handler = null;
     }
     if (bodyPromise != null) {
-      if (cacheEntry.responseBody != null) {
-        bodyPromise.complete(cacheEntry.responseBody);
-      }
+      bodyPromise.complete(fullBody);
       bodyPromise = null;
     }
     if (endHandler != null) {
@@ -150,9 +150,7 @@ class HttpClientResponseCached implements HttpClientResponse {
       bodyPromise = Promise.promise();
       bodyPromise.future().onSuccess(hndlr);
     } else {
-      if (cacheEntry.responseBody != null) {
-        hndlr.handle(cacheEntry.responseBody);
-      }
+      hndlr.handle(fullBody);
     }
     return this;
   }
@@ -165,7 +163,7 @@ class HttpClientResponseCached implements HttpClientResponse {
       bodyPromise = Promise.promise();
       return bodyPromise.future();
     } else {
-      return Future.succeededFuture(cacheEntry.responseBody);
+      return Future.succeededFuture(fullBody);
     }
   }
 

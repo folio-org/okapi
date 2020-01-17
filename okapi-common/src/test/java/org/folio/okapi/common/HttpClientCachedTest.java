@@ -583,18 +583,21 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
           context.assertEquals(s, res.getHeader("X-Cache"));
-          res.bodyHandler(x -> b.appendString("[bodyHandler]"));
-          res.endHandler(x -> async.complete());
+          res.bodyHandler(x -> {
+            context.assertEquals("", x.toString());
+            b.appendString("[bodyHandler]");
+            async.complete();
+          });
         }
       });
       req.end();
       async.await(1000);
-      context.assertEquals("", b.toString());
+      context.assertEquals("[bodyHandler]", b.toString());
     }
   }
 
   @Test
-  public void testHEadEndHandlerOnly(TestContext context) {
+  public void testHeadEndHandlerOnly(TestContext context) {
     logger.info("testHeadEndHandlerOnly");
     HttpClientCached client = new HttpClientCached(vertx.createHttpClient());
     {

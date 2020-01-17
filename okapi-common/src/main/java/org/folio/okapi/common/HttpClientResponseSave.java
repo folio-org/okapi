@@ -46,7 +46,6 @@ class HttpClientResponseSave implements HttpClientResponse {
         // too large buffer.. disable cache saving
         cacheEntry = null;
       }
-
       if (handler != null) {
         handler.handle(res);
       }
@@ -58,8 +57,8 @@ class HttpClientResponseSave implements HttpClientResponse {
         cacheEntry.trailers = response.trailers();
         httpClientCached.add(cacheEntry);
       }
-      if (bodyPromise != null && responseBody != null) {
-        bodyPromise.complete(responseBody);
+      if (bodyPromise != null) {
+        bodyPromise.complete(responseBody != null ? responseBody : Buffer.buffer());
       }
       if (endHandler != null) {
         endHandler.handle(res);
