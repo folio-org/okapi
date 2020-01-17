@@ -101,7 +101,7 @@ public class HttpClientCached {
    * @param seconds age in seconds
    * @return client (fluent)
    */
-  HttpClientCached globalMaxAge(long seconds) {
+  public HttpClientCached globalMaxAge(long seconds) {
     globalMaxAge = seconds;
     return this;
   }
@@ -113,7 +113,7 @@ public class HttpClientCached {
    * @param seconds age in seconds
    * @return client (fluent)
    */
-  HttpClientCached defaultMaxAge(long seconds) {
+  public HttpClientCached defaultMaxAge(long seconds) {
     defaultMaxAge = seconds;
     return this;
   }
@@ -125,7 +125,7 @@ public class HttpClientCached {
    * @param h the header name
    * @return client (fluent)
    */
-  HttpClientCached addIgnoreHeader(String h) {
+  public HttpClientCached addIgnoreHeader(String h) {
     this.cacheIgnoreHeaders.add(h.toLowerCase());
     return this;
   }
@@ -137,7 +137,7 @@ public class HttpClientCached {
    * @param h the header name
    * @return client (fluent)
    */
-  HttpClientCached removeIgnoreHeader(String h) {
+  public HttpClientCached removeIgnoreHeader(String h) {
     this.cacheIgnoreHeaders.remove(h.toLowerCase());
     return this;
   }
