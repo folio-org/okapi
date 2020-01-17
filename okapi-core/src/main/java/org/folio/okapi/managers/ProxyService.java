@@ -479,12 +479,7 @@ public class ProxyService {
   }
 
   private String getPath(ModuleInstance mi, RoutingContext ctx) {
-    String path;
-    if (mi.getRewritePath() != null) {
-      path = mi.getRewritePath() + mi.getPath();
-    } else {
-      path = mi.getPath();
-    }
+    String path = mi.getPath();
     String rdq = (String) ctx.data().get(REDIRECTQUERY);
     if (rdq != null) { // Parameters smuggled in from redirectProxy
       path += "?" + rdq;
