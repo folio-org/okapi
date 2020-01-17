@@ -23,7 +23,6 @@ class HttpClientResponseCached implements HttpClientResponse {
   final MultiMap responseHeaders;
   boolean paused;
   Handler<Buffer> handler;
-  Handler<Buffer> bodyHandler;
   Handler<Void> endHandler;
   Promise<Buffer> bodyPromise;
 
@@ -50,12 +49,6 @@ class HttpClientResponseCached implements HttpClientResponse {
         handler.handle(cacheEntry.responseBody);
       }
       handler = null;
-    }
-    if (bodyHandler != null) {
-      if (cacheEntry.responseBody != null) {
-        bodyHandler.handle(cacheEntry.responseBody);
-      }
-      bodyHandler = null;
     }
     if (bodyPromise != null) {
       if (cacheEntry.responseBody != null) {
@@ -95,6 +88,7 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse endHandler(Handler<Void> hndlr) {
+    bodyPromise = null;
     if (paused) {
       endHandler = hndlr;
     } else {
@@ -150,8 +144,11 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
+    endHandler = null;
+    handler = null;
     if (paused) {
-      bodyHandler = hndlr;
+      bodyPromise = Promise.promise();
+      bodyPromise.future().onSuccess(hndlr);
     } else {
       if (cacheEntry.responseBody != null) {
         hndlr.handle(cacheEntry.responseBody);
@@ -162,6 +159,8 @@ class HttpClientResponseCached implements HttpClientResponse {
 
   @Override
   public Future<Buffer> body() {
+    endHandler = null;
+    handler = null;
     if (paused) {
       bodyPromise = Promise.promise();
       return bodyPromise.future();

@@ -23,7 +23,6 @@ class HttpClientResponseSave implements HttpClientResponse {
   HttpClientCacheEntry cacheEntry; // null if not saving
   Handler<Buffer> handler;
   Handler<Void> endHandler;
-  Handler<Buffer> bodyHandler;
   Promise<Buffer> bodyPromise;
   Buffer responseBody;
 
@@ -37,8 +36,8 @@ class HttpClientResponseSave implements HttpClientResponse {
       if (responseBody == null) {
         responseBody = Buffer.buffer();
       }
-      if (bodyHandler != null) {
-        // if bodyHandler save all in cache
+      if (bodyPromise != null) {
+        // if body / bodyHandler save all in cache
         responseBody.appendBuffer(res);
         // otherwise only save up to maxBodySize
       } else if (responseBody.length() + res.length() < httpClientCached.getMaxBodySize()) {
@@ -58,9 +57,6 @@ class HttpClientResponseSave implements HttpClientResponse {
         cacheEntry.responseBody = responseBody;
         cacheEntry.trailers = response.trailers();
         httpClientCached.add(cacheEntry);
-      }
-      if (bodyHandler != null && responseBody != null) {
-        bodyHandler.handle(responseBody);
       }
       if (bodyPromise != null && responseBody != null) {
         bodyPromise.complete(responseBody);
@@ -104,6 +100,7 @@ class HttpClientResponseSave implements HttpClientResponse {
   @Override
   public HttpClientResponse endHandler(Handler<Void> hndlr) {
     endHandler = hndlr;
+    bodyPromise = null;
     return this;
   }
 
@@ -154,13 +151,19 @@ class HttpClientResponseSave implements HttpClientResponse {
 
   @Override
   public HttpClientResponse bodyHandler(Handler<Buffer> hndlr) {
-    bodyHandler = hndlr;
+    bodyPromise = Promise.promise();
+    bodyPromise.future().onSuccess(hndlr);
+
+    endHandler = null;
+    handler = null;
     return this;
   }
 
   @Override
   public Future<Buffer> body() {
     bodyPromise = Promise.promise();
+    endHandler = null;
+    handler = null;
     return bodyPromise.future();
   }
 
