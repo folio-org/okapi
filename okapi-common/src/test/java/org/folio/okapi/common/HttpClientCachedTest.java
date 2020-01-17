@@ -1428,20 +1428,21 @@ public class HttpClientCachedTest {
     {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET,
-        ABS_URI + "?e=400", res1 -> {
+        ABS_URI + "?e=202", res1 -> {
           context.assertTrue(res1.succeeded());
           if (res1.failed()) {
             async.complete();
             return;
           }
           HttpClientResponse res = res1.result();
-          context.assertEquals(400, res.statusCode());
+          context.assertEquals(202, res.statusCode());
           context.assertEquals(null, res.getHeader("X-Cache"));
           res.endHandler(x -> async.complete());
         });
       req.end();
       async.await(1000);
     }
+    client.cacheStatuses().add(202);
     {
       Async async = context.async();
       HttpClientRequest req = client.requestAbs(HttpMethod.GET,

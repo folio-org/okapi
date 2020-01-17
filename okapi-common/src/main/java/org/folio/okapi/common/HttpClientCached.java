@@ -28,10 +28,10 @@ import org.apache.logging.log4j.Logger;
  * The following conditions must be met for a request/response to be saved:
  *
  * <ul>
- * <li>Method is one of <pre>GET</pre>, <pre>HEAD</pre> {@link #cacheMethods() }</li>
+ * <li>Method is one of <pre>GET</pre>, <pre>HEAD</pre>( {@link #cacheMethods()} to change)</li>
  * <li>Request header cache-control does not hold <pre>no-store</pre> / <pre>no-cache</pre></li>
  * <li>Request body is empty</li>
- * <li>Response status is 200 or 202 (currently can not be configured)</li>
+ * <li>Response status is 200 ({@link #cacheStatuses() to change)</li>
  * <li>Response body is less than 8K {@link #setMaxBodySize(int)</li>
  * <li>Response header cache-control does not hold no-store / no-cache</li>
  * </ul>
@@ -66,6 +66,8 @@ public class HttpClientCached {
   private final HttpClient httpClient;
 
   private List<HttpMethod> cacheMethods = new LinkedList<>();
+  
+  private Set<Integer> cacheStatuses = new TreeSet<>();
 
   private final Map<String, HttpClientCacheEntry> cache = new HashMap<>();
   private Set<String> cacheIgnoreHeaders = new TreeSet<>();
@@ -85,13 +87,26 @@ public class HttpClientCached {
    */
   public HttpClientCached(HttpClient httpClient) {
     cacheIgnoreHeaders.add("date");
+    cacheStatuses.add(200);
     this.httpClient = httpClient;
     this.cacheMethods.add(HttpMethod.GET);
     this.cacheMethods.add(HttpMethod.HEAD);
   }
 
+  /**
+   * Get HTTP methods that are are used for caching (default is GET only)
+   * @return methods
+   */
   public List<HttpMethod> cacheMethods() {
     return this.cacheMethods;
+  }
+
+  /**
+   * Get status codes used for caching (default is 200 only)
+   * @return status codes
+   */
+  public Set<Integer> cacheStatuses() {
+    return this.cacheStatuses;
   }
 
   /**
