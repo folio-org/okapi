@@ -251,6 +251,7 @@ public class ProxyTest {
     RestAssured.port = port;
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject()
+        .put("loglevel", "info")
         .put("port", Integer.toString(port))
         .put("httpCache", true));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
