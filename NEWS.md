@@ -1,3 +1,9 @@
+## 2.36.2 2020-01-18
+
+ * OKAPI-797 Fix Tenant init fails with Docker deployment
+ * OKAPI-798 postgres_user setting recognized again
+   (the documented and recommended setting is postgres_username)
+
 ## 2.36.1 2020-01-13
 
  * OKAPI-794 Fix No logger for SLF4J
