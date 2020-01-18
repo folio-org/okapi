@@ -57,7 +57,7 @@ class PostgresHandle {
       }
     }
     pgconf.put("username", Config.getSysConf("postgres_username",
-      Config.getSysConf("postgres_user", "okapi", conf), new JsonObject()));
+      Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
     pgconf.put("password", Config.getSysConf("postgres_password", "okapi25", conf));
     pgconf.put("database", Config.getSysConf("postgres_database", "okapi", conf));
     cli = createSQLClient(vertx, pgconf);
