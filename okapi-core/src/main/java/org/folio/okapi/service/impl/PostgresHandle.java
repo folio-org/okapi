@@ -60,7 +60,7 @@ class PostgresHandle {
       }
     }
     connectOptions.setUser(Config.getSysConf("postgres_username",
-      Config.getSysConf("postgres_user", "okapi", conf), new JsonObject()));
+      Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
 
