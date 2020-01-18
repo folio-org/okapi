@@ -59,7 +59,8 @@ class PostgresHandle {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
-    connectOptions.setUser(Config.getSysConf("postgres_username", "okapi", conf));
+    connectOptions.setUser(Config.getSysConf("postgres_username",
+      Config.getSysConf("postgres_user", "okapi", conf), new JsonObject()));
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
 
