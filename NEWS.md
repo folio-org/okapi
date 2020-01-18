@@ -1,3 +1,7 @@
+## 2.36.3 2020-01-18
+
+ * OKAPI-799 Fix Tenant init still failing (continue OKAPI-797)
+
 ## 2.36.2 2020-01-18
 
  * OKAPI-797 Fix Tenant init fails with Docker deployment
