@@ -56,7 +56,8 @@ class PostgresHandle {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
-    pgconf.put("username", Config.getSysConf("postgres_username", "okapi", conf));
+    pgconf.put("username", Config.getSysConf("postgres_username",
+      Config.getSysConf("postgres_user", "okapi", conf), new JsonObject()));
     pgconf.put("password", Config.getSysConf("postgres_password", "okapi25", conf));
     pgconf.put("database", Config.getSysConf("postgres_database", "okapi", conf));
     cli = createSQLClient(vertx, pgconf);
