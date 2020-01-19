@@ -317,6 +317,9 @@ public class HttpClientCachedTest {
           context.assertEquals(200, res.statusCode());
           context.assertEquals(s, res.getHeader("X-Cache"));
           res.pause();
+          res.handler(x -> {
+            b.append("[handler]");
+          });
           res.endHandler(x -> {
             context.assertNull(x);
             b.append("[endHandler]");
