@@ -38,7 +38,7 @@ import org.folio.okapi.common.OkapiLogger;
 class PostgresHandle {
 
   private final PgConnectOptions connectOptions;
-  private final PoolOptions poolOptions;
+  private final PgPool pool;
   private final Vertx vertx;
 
   protected PostgresHandle(Vertx vertx, JsonObject conf) {
@@ -64,9 +64,10 @@ class PostgresHandle {
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
 
-    poolOptions = new PoolOptions();
+    PoolOptions poolOptions = new PoolOptions();
     poolOptions.setMaxSize(5);
 
+    pool = PgPool.pool(vertx, connectOptions, poolOptions);
     logger.debug("created");
   }
 
@@ -75,7 +76,7 @@ class PostgresHandle {
   }
 
   public void getConnection(Handler<AsyncResult<SqlConnection>> con) {
-    PgPool.pool(vertx, connectOptions, poolOptions).getConnection(con);
+    pool.getConnection(con);
   }
 
   public PostgresQuery getQuery() {
