@@ -250,7 +250,10 @@ public class ProxyTest {
 
     RestAssured.port = port;
     DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject().put("port", Integer.toString(port)));
+      .setConfig(new JsonObject()
+        .put("loglevel", "info")
+        .put("port", Integer.toString(port))
+        .put("httpCache", true));
     vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
       if (res.failed()) {
         context.fail(res.cause());
@@ -404,10 +407,19 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/hugo")
-      .then().statusCode(200).log().ifValidationFails()
+      .then().statusCode(200).header("X-Cache", "MISS").log().ifValidationFails()
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
 
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("X-all-headers", "B")
+      .get("/testb/hugo")
+      .then().statusCode(200).header("X-Cache", "HIT: 1").log().ifValidationFails()
+      .extract().response();
+    Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
+    
     c = api.createRestAssured3();
     r = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
@@ -2500,7 +2512,7 @@ public class ProxyTest {
       .then().statusCode(200).log().ifValidationFails();
 
     // 10 msecond period and 100 total wait time.. 1 tick per call.. So 8-10 calls
-    context.assertTrue(timerDelaySum >= 104 && timerDelaySum <= 110, "Got " + timerDelaySum);
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 110, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
 
     // disable and enable (quickly)

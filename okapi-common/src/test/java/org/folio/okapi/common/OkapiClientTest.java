@@ -31,8 +31,8 @@ public class OkapiClientTest {
   private Vertx vertx;
   private static final int PORT = 9230;
   private static final String LOCALHOST = "localhost";
-  private static final String URL = "http://" + LOCALHOST + ":" + Integer.toString(PORT);
-  private static final String BAD_URL = "http://" + LOCALHOST + ":" + Integer.toString(PORT + 1);
+  private static final String URL = "http://" + LOCALHOST + ":" + PORT;
+  private static final String BAD_URL = "http://" + LOCALHOST + ":" + (PORT + 1);
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
 

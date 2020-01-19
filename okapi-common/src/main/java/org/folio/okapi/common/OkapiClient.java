@@ -45,7 +45,7 @@ public class OkapiClient {
   /**
    * Constructor from a vert.x ctx. That ctx contains all the headers we need.
    *
-   * @param ctx
+   * @param ctx routing context (using some headers from it)
    */
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx());

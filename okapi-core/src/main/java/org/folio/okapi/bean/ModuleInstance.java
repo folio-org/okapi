@@ -13,7 +13,6 @@ public class ModuleInstance {
   private final RoutingEntry re;
   private String authToken;
   private final String path; // The relative URI from the proxy request
-  private String rewritePath; // The base rewrite of relative URI in which to proxy request to
   private final HttpMethod method;
   private boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
@@ -23,8 +22,11 @@ public class ModuleInstance {
     this.url = null;
     this.re = re;
     this.authToken = null;
-    this.path = path;
-    this.rewritePath = re != null ? re.getRewritePath() : null;
+    String base = "";
+    if (re != null && re.getRewritePath() != null) {
+      base = re.getRewritePath();
+    }
+    this.path = base + path;
     this.method = method;
     this.handler = handler;
     this.withRetry = false;
@@ -56,10 +58,6 @@ public class ModuleInstance {
 
   public String getPath() {
     return path;
-  }
-
-  public String getRewritePath() {
-    return rewritePath;
   }
 
   public HttpMethod getMethod() {
