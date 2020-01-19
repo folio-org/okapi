@@ -270,7 +270,6 @@ public class DockerModuleHandle implements ModuleHandle {
       j.put("env", a);
     }
     j.put("Image", image);
-    j.put("NetworkDisabled", false);
     JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
     JsonArray ep = new JsonArray().add(hp);
     JsonObject pb = new JsonObject();
@@ -278,7 +277,6 @@ public class DockerModuleHandle implements ModuleHandle {
     JsonObject hc = new JsonObject();
     hc.put("PortBindings", pb);
     hc.put("PublishAllPorts", Boolean.FALSE);
-    hc.put("NetworkMode", "bridge");
     j.put("HostConfig", hc);
 
     if (this.cmd != null && this.cmd.length > 0) {
