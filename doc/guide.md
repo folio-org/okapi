@@ -2651,6 +2651,8 @@ there happens to be one, Okapi will remove it.  Note that it may end
 with a path like in `https://folio.example.com/okapi`.
 * `dockerUrl`: Tells the Okapi deployment where the Docker Daemon
 is. Defaults to `unix:///var/run/docker.sock`.
+* `httpCache`: Controls whether Okapi HTTP caching is enabled. This is
+a boolean in JSON config - but a string when a property (false, true).
 * `containerHost`: Host where containers are running (as seen from Okapi).
 Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
