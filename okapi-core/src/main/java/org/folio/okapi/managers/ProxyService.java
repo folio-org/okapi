@@ -1173,6 +1173,7 @@ public class ProxyService {
       String baseurl = instance.getUrl();
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
+      logger.info("syscall {}", baseurl + inst.getPath());
       OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
