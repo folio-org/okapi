@@ -88,7 +88,8 @@ public class ProxyService {
     httpClient = new HttpClientCached(vertx.createHttpClient(opt));
     httpClient.addIgnoreHeader(XOkapiHeaders.REQUEST_TIMESTAMP)
       .addIgnoreHeader(XOkapiHeaders.REQUEST_ID)
-      .addIgnoreHeader(XOkapiHeaders.REQUEST_IP);
+      .addIgnoreHeader(XOkapiHeaders.REQUEST_IP)
+      .addIgnoreHeader("X-Cache");
     httpClient.cacheStatuses().add(202);
     Boolean cache = Config.getSysConfBoolean("httpCache", false, config);
     if (Boolean.FALSE.equals(cache)) {
