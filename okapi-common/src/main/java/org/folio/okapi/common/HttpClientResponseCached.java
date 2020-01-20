@@ -32,7 +32,7 @@ class HttpClientResponseCached implements HttpClientResponse {
     cacheEntry = ce;
     responseHeaders = MultiMap.caseInsensitiveMultiMap();
     responseHeaders.addAll(ce.responseHeaders);
-    responseHeaders.set("X-Cache", "HIT: " + ce.hitCount);
+    responseHeaders.set(XOkapiHeaders.CACHE, "HIT: " + ce.hitCount);
     paused = false;
     this.fullBody = ce.responseBody != null ? ce.responseBody : Buffer.buffer();
     this.request = httpClientRequest;

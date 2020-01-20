@@ -124,7 +124,7 @@ class HttpClientRequestCached implements HttpClientRequest {
         store = false;
       }
       if (store) {
-        ce.responseHeaders.set("X-Cache", "MISS"); // indicate cache in use and MISS
+        ce.responseHeaders.set(XOkapiHeaders.CACHE, "MISS"); // indicate cache in use and MISS
       }
       response = new HttpClientResponseSave(httpClientCached, res1, this, store ? ce : null);
       hndlr.handle(Future.succeededFuture(response));

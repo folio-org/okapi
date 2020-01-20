@@ -89,7 +89,8 @@ public class ProxyService {
     httpClient.addIgnoreHeader(XOkapiHeaders.REQUEST_TIMESTAMP)
       .addIgnoreHeader(XOkapiHeaders.REQUEST_ID)
       .addIgnoreHeader(XOkapiHeaders.REQUEST_IP)
-      .addIgnoreHeader("X-Cache");
+      .addIgnoreHeader(XOkapiHeaders.CACHE)
+      .addIgnoreHeader("X-Cache"); // might be returned from other proxy
     httpClient.cacheStatuses().add(202);
     Boolean cache = Config.getSysConfBoolean("httpCache", false, config);
     if (Boolean.FALSE.equals(cache)) {
@@ -100,7 +101,7 @@ public class ProxyService {
   private void makeTraceHeader(ModuleInstance mi, HttpClientResponse response,
     ProxyContext pc) {
 
-    makeTraceHeader(mi, response.statusCode(), response.getHeader("X-Cache"), pc);
+    makeTraceHeader(mi, response.statusCode(), response.getHeader(XOkapiHeaders.CACHE), pc);
   }
 
   /**
@@ -465,6 +466,7 @@ public class ProxyService {
     // and response headers (to remove stuff the auth module may have added)
     sanitizeAuthHeaders(res.headers());
     sanitizeAuthHeaders(pc.getCtx().request().headers());
+    res.headers().remove(XOkapiHeaders.CACHE);
     for (String s : res.headers().names()) {
       if (s.startsWith("X-") || s.startsWith("x-")) {
         final String v = res.headers().get(s);

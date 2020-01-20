@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.XOkapiHeaders;
 import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -407,7 +408,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/hugo")
-      .then().statusCode(200).header("X-Cache", "MISS").log().ifValidationFails()
+      .then().statusCode(200).header(XOkapiHeaders.CACHE, "MISS").log().ifValidationFails()
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
 
@@ -416,7 +417,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-all-headers", "B")
       .get("/testb/hugo")
-      .then().statusCode(200).header("X-Cache", "HIT: 1").log().ifValidationFails()
+      .then().statusCode(200).header(XOkapiHeaders.CACHE, "HIT: 1").log().ifValidationFails()
       .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
     

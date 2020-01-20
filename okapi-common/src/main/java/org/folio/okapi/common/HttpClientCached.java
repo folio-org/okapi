@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -37,7 +38,7 @@ import org.apache.logging.log4j.Logger;
  * </ul>
  *
  * If a request is used for cache lookup , the response header
- * X-Cache is returned as part of the response. It is either
+ * X-Okapi-Cache is returned as part of the response. It is either
  * <pre>MISS</pre> or <pre>HIT: n</pre> where n denotes the number of hits.
  *
  * Cached results are mached against cacheUri (which defaults to absoluteUri)
@@ -331,10 +332,12 @@ public class HttpClientCached {
   private void expire() {
     Instant now = Instant.now();
 
-    for (Entry<String, HttpClientCacheEntry> entry : cache.entrySet()) {
+    Iterator<Entry<String, HttpClientCacheEntry>> iterator = cache.entrySet().iterator();
+    while (iterator.hasNext()) {
+      Entry<String, HttpClientCacheEntry> entry = iterator.next();
       logger.debug("test Expire now={} this={}", now, entry.getValue().expiry);
       if (now.isAfter(entry.getValue().expiry)) {
-        cache.remove(entry.getKey());
+        iterator.remove();
       }
     }
   }
