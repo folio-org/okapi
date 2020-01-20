@@ -199,7 +199,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.handler(x -> {
             b.append("[handler]");
           });
@@ -230,7 +230,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader(XOkapiHeaders.CACHE));
           res.handler(x -> {
             b.append("[handler]");
           });
@@ -275,7 +275,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.pause();
           res.handler(x -> {
             b.append("[handler]");
@@ -315,7 +315,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.pause();
           res.handler(x -> {
             b.append("[handler]");
@@ -360,7 +360,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           context.assertNotNull(res.request());
           res.pause();
           res.exceptionHandler(x -> {
@@ -395,7 +395,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.pause();
           res.handler(x -> {
             context.assertNotNull(x);
@@ -436,7 +436,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           context.assertNotNull(res.request());
           res.pause();
           res.exceptionHandler(x -> {
@@ -482,7 +482,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -505,7 +505,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(expect, res.getHeader("X-Cache"));
+          context.assertEquals(expect, res.getHeader(XOkapiHeaders.CACHE));
           res.bodyHandler(x -> async.complete());
         }
       });
@@ -528,7 +528,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.bodyHandler(x-> { b.appendBuffer(x); async.complete(); });
           // res.endHandler(x -> async.complete());
         }
@@ -545,7 +545,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.bodyHandler(x-> { b.appendBuffer(x); async.complete(); });
         }
       });
@@ -561,7 +561,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.bodyHandler(x-> { b.appendBuffer(x); async.complete(); });
           res.endHandler(x -> async.complete());
         }
@@ -585,7 +585,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.bodyHandler(x -> {
             context.assertEquals("", x.toString());
             b.appendString("[bodyHandler]");
@@ -611,7 +611,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -633,7 +633,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -651,7 +651,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -666,7 +666,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -684,7 +684,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -699,7 +699,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 1", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -714,7 +714,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -729,7 +729,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -745,7 +745,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("HIT: 2", res.getHeader("X-Cache"));
+          context.assertEquals("HIT: 2", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -760,7 +760,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -776,7 +776,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         }
       });
@@ -795,7 +795,7 @@ public class HttpClientCachedTest {
         HttpClientResponse res = res1.result();
         res.endHandler(x -> {
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           async.complete();
         });
       });
@@ -821,7 +821,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         }
         async.complete();
       });
@@ -839,7 +839,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         }
         async.complete();
       });
@@ -866,7 +866,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "1"); // date header ignored for cache-lookup
@@ -885,7 +885,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT: 1", res.getHeader("X-Cache"));
+        context.assertEquals("HIT: 1", res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "2");
@@ -903,7 +903,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT: 2", res.getHeader("X-Cache"));
+        context.assertEquals("HIT: 2", res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "3");
@@ -924,7 +924,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("MISS", res.getHeader("X-Cache"));
+        context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.putHeader("Date", "2");
@@ -949,7 +949,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("MISS", res.headers().get("X-Cache"));
+        context.assertEquals("MISS", res.headers().get(XOkapiHeaders.CACHE));
         context.assertEquals("text/plain", res.getHeader("Content-type"));
         CharSequence h = new StringBuilder("Content-Type");
         context.assertEquals("text/plain", res.getHeader(h));
@@ -1013,7 +1013,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals("HIT: 1", res.headers().get("X-Cache"));
+        context.assertEquals("HIT: 1", res.headers().get(XOkapiHeaders.CACHE));
         context.assertEquals("text/plain", res.getHeader("Content-type"));
         CharSequence h = new StringBuilder("Content-Type");
         context.assertEquals("text/plain", res.getHeader(h));
@@ -1058,7 +1058,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       context.assertFalse(req.isComplete());
@@ -1105,7 +1105,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.setChunked(true);
@@ -1126,7 +1126,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.setChunked(true);
@@ -1146,7 +1146,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.setChunked(true);
@@ -1166,7 +1166,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.end("x", "UTF-8");
@@ -1183,7 +1183,7 @@ public class HttpClientCachedTest {
         }
         HttpClientResponse res = res1.result();
         context.assertEquals(200, res.statusCode());
-        context.assertEquals(null, res.getHeader("X-Cache"));
+        context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
         res.endHandler(x -> async.complete());
       });
       req.end("x", "UTF-8", x -> {
@@ -1205,7 +1205,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         }
       });
@@ -1231,7 +1231,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1248,7 +1248,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1274,7 +1274,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.putHeader("Cache-Control", "max-age=0");
@@ -1292,7 +1292,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.putHeader("Cache-Control", "max-age=invalid");
@@ -1317,7 +1317,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1340,7 +1340,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1357,7 +1357,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1374,7 +1374,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> vertx.setTimer(100, y -> async.complete()));
         });
       req.end();
@@ -1397,7 +1397,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       // two headers to see that 2nd one is inspected
@@ -1417,7 +1417,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       req.end();
@@ -1440,7 +1440,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       req.putHeader("Cache-Control", "no-cache");
@@ -1458,7 +1458,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       req.end();
@@ -1481,7 +1481,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(202, res.statusCode());
-          context.assertEquals(null, res.getHeader("X-Cache"));
+          context.assertEquals(null, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       req.end();
@@ -1499,7 +1499,7 @@ public class HttpClientCachedTest {
           }
           HttpClientResponse res = res1.result();
           context.assertEquals(202, res.statusCode());
-          context.assertEquals("MISS", res.getHeader("X-Cache"));
+          context.assertEquals("MISS", res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> async.complete());
         });
       req.end();
@@ -1520,7 +1520,7 @@ public class HttpClientCachedTest {
           HttpClientResponse res = res1.result();
           context.assertEquals(res, res.fetch(5));
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.handler(x -> {
           });
           res.endHandler(x -> {
@@ -1546,7 +1546,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           Future<Buffer> f = res.body();
           f.setHandler(x -> {
             context.assertTrue(x.succeeded());
@@ -1567,7 +1567,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           Future<Buffer> f = res.body();
           f.setHandler(x -> {
           });
@@ -1593,7 +1593,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           res.endHandler(x -> {
             async.complete();
           });
@@ -1617,7 +1617,7 @@ public class HttpClientCachedTest {
         if (res1.succeeded()) {
           HttpClientResponse res = res1.result();
           context.assertEquals(200, res.statusCode());
-          context.assertEquals(s, res.getHeader("X-Cache"));
+          context.assertEquals(s, res.getHeader(XOkapiHeaders.CACHE));
           String msg = null;
           try {
             res.customFrameHandler(x -> {
