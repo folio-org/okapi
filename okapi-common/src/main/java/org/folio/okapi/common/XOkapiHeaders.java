@@ -188,12 +188,6 @@ public class XOkapiHeaders {
   public static final String HANDLER_HEADERS = "X-Okapi-Handler-Headers";
 
   /**
-   * X-Okapi-Cache. Response header that, if present, indicates that caching was
-   * in use.. Either "MISS" or "HIT: <n>" where n is number of hits.
-   */
-  public static final String CACHE = "X-Okapi-Cache";
-
-  /**
    * The id of the always-present super tenant.
    */
   public static final String SUPERTENANT_ID = "supertenant";
