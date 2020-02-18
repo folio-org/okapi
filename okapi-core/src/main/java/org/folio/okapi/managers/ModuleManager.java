@@ -38,6 +38,7 @@ public class ModuleManager {
   private String mapName = "modules";
   private LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
+  private Map<String,ModuleDescriptor> enabledModules = new HashMap<>();
   private ModuleStore moduleStore;
   private Messages messages = Messages.getInstance();
 
@@ -415,16 +416,21 @@ public class ModuleManager {
     List<ModuleDescriptor> mdl = new LinkedList<>();
     CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
-      Promise<ModuleDescriptor> promise = Promise.promise();
-      modules.get(id, res -> {
-        if (res.succeeded()) {
-          mdl.add(res.result());
-        } else {
-          logger.warn("getEnabledModules id={} failed {}", id, res.cause());
-        }
-        promise.handle(res);
-      });
-      futures.add(promise);
+      if (enabledModules.containsKey(id)) {
+        mdl.add(enabledModules.get(id));
+      } else {
+        Promise<ModuleDescriptor> promise = Promise.promise();
+        modules.get(id, res -> {
+          if (res.succeeded()) {
+            enabledModules.put(id, res.result());
+            mdl.add(res.result());
+          } else {
+            logger.warn("getEnabledModules id={} failed {}", id, res.cause());
+          }
+          promise.handle(res);
+        });
+        futures.add(promise);
+      }
     }
     futures.all(mdl, fut);
   }
