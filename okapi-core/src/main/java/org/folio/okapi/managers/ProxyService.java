@@ -704,7 +704,7 @@ public class ProxyService {
 
   private void copyHeaders(HttpClientRequest cReq, RoutingContext ctx, ModuleInstance mi) {
     int sz = 0;
-    int limit = 5; // all headers dumped
+    int limit = 2000; // all headers dumped
     for (String name : ctx.request().headers().names()) {
       List<String> values = ctx.request().headers().getAll(name);
       if (values.size() > 1) {
