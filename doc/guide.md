@@ -1928,7 +1928,15 @@ descriptor. For the fully up-to-date definition, you should always
 refer to the RAML and JSON schemas in the [Reference](#web-service)
 section.
 
+### Optional interfaces
 
+An optional interface is used to specify that a module may use
+a given interface. The interface specified does not have to be
+provided by another module. However, if the interface is provided
+by another module, it must be compatible (major, minor).
+
+The optional property has same structure as the requires property
+in the module descriptor.
 
 ### Multiple interfaces
 

@@ -31,15 +31,8 @@ public class DepResolution {
     throw new IllegalAccessError("DepResolution");
   }
 
-  /**
-   * Check one dependency.
-   *
-   * @param md module to check
-   * @param req required dependency
-   * @param pInts the list to provided interface as returned by getProvidedInterfaces
-   * @return null if ok, or error message
-   */
-  private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
+  private static Map<String, InterfaceDescriptor> checkPresenceDependency(
+    ModuleDescriptor md, InterfaceDescriptor req,
     Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList) {
 
     Map<String, InterfaceDescriptor> seenVersions = new HashMap<>();
@@ -58,9 +51,31 @@ public class DepResolution {
         }
       }
     }
-    if (seenVersions.isEmpty()) {
+    return seenVersions;
+  }
+
+  /**
+   * Check one dependency.
+   *
+   * @param md module to check
+   * @param req required dependency
+   * @param pInts the list to provided interface as returned by getProvidedInterfaces
+   * @return null if ok, or error message
+   */
+  private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
+    Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList,
+    boolean optional) {
+
+    Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, pInts, modList);
+    if (seenVersions == null) { // found and compatible?
+      return null;
+    }
+    if (seenVersions.isEmpty()) { // nothing found?
+      if (optional)
+        return null;
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
     }
+    // found but incompatible
     StringBuilder moduses = new StringBuilder();
     String sep = "";
     for (InterfaceDescriptor seenVersion : seenVersions.values()) {
@@ -85,7 +100,13 @@ public class DepResolution {
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, pInts, modlist.values());
+      String res = checkOneDependency(md, req, pInts, modlist.values(), false);
+      if (res != null) {
+        list.add(res);
+      }
+    }
+    for (InterfaceDescriptor req : md.getOptionalList()) {
+      String res = checkOneDependency(md, req, pInts, modlist.values(), true);
       if (res != null) {
         list.add(res);
       }

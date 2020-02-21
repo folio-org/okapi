@@ -43,6 +43,13 @@
         "$ref": "InterfaceDescriptor.json"
       }
     },
+    "optional": {
+      "description": "Optional interfaces",
+      "type": ["array", "null"],
+      "items": {
+        "$ref": "InterfaceReference.json"
+      }
+    },
     "filters": {
       "description": "Provided filters",
       "type": "array",

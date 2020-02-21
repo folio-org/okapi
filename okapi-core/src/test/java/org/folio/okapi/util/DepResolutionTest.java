@@ -27,12 +27,15 @@ public class DepResolutionTest {
   private static final String LS = System.lineSeparator();
 
   private final Logger logger = OkapiLogger.get();
-  private ModuleDescriptor mdA100 = new ModuleDescriptor();
-  private ModuleDescriptor mdB = new ModuleDescriptor();
-  private ModuleDescriptor mdC = new ModuleDescriptor();
-  private ModuleDescriptor mdA110 = new ModuleDescriptor();
-  private ModuleDescriptor mdA200 = new ModuleDescriptor();
-  private ModuleDescriptor mdE = new ModuleDescriptor();
+  private ModuleDescriptor mdA100;
+  private ModuleDescriptor mdB;
+  private ModuleDescriptor mdC;
+  private ModuleDescriptor mdA110;
+  private ModuleDescriptor mdA200;
+  private ModuleDescriptor mdD100;
+  private ModuleDescriptor mdD110;
+  private ModuleDescriptor mdE100;
+  private ModuleDescriptor mdE110;
 
   @Before
   public void setUp() {
@@ -40,8 +43,6 @@ public class DepResolutionTest {
     InterfaceDescriptor[] int10a = {int10};
     InterfaceDescriptor int11 = new InterfaceDescriptor("int", "1.1");
     InterfaceDescriptor[] int11a = {int11};
-    InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
-    InterfaceDescriptor[] int20a = {int20};
 
     mdA100 = new ModuleDescriptor();
     mdA100.setId("moduleA-1.0.0");
@@ -63,9 +64,21 @@ public class DepResolutionTest {
     mdA200.setId("moduleA-2.0.0");
     mdA200.setProvides(int11a);
 
-    mdE = new ModuleDescriptor();
-    mdE.setId("moduleE-1.0.0");
-    mdE.setRequires(int10a);
+    mdD100 = new ModuleDescriptor();
+    mdD100.setId("moduleD-1.0.0");
+    mdD100.setOptional(int10a);
+
+    mdD110 = new ModuleDescriptor();
+    mdD110.setId("moduleD-1.1.0");
+    mdD110.setOptional(int11a);
+
+    mdE100 = new ModuleDescriptor();
+    mdE100.setId("moduleE-1.0.0");
+    mdE100.setRequires(int10a);
+
+    mdE110 = new ModuleDescriptor();
+    mdE110.setId("moduleE-1.1.0");
+    mdE110.setRequires(int11a);
   }
 
   @Test
@@ -77,12 +90,12 @@ public class DepResolutionTest {
     mdl.add(mdB);
     mdl.add(mdC);
     mdl.add(mdA110);
-    mdl.add(mdE);
+    mdl.add(mdE100);
 
     DepResolution.getLatestProducts(2, mdl);
 
     context.assertEquals(5, mdl.size());
-    context.assertEquals(mdE, mdl.get(0));
+    context.assertEquals(mdE100, mdl.get(0));
     context.assertEquals(mdC, mdl.get(1));
     context.assertEquals(mdB, mdl.get(2));
     context.assertEquals(mdA200, mdl.get(3));
@@ -94,7 +107,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test1(TestContext context) {
+  public void testUpgradeUptodate(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -102,7 +115,7 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
     modsEnabled.put(mdA100.getId(), mdA100);
@@ -125,7 +138,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test2(TestContext context) {
+  public void testUpgradeDifferentProduct(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -133,7 +146,7 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
     modsEnabled.put(mdA100.getId(), mdA100);
@@ -159,7 +172,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test3(TestContext context) {
+  public void testUpgradeSameProduct(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -167,7 +180,8 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
     modsEnabled.put(mdA100.getId(), mdA100);
@@ -190,7 +204,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test4(TestContext context) {
+  public void testUpgradeWithRequires(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -198,7 +212,8 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
     modsEnabled.put(mdA100.getId(), mdA100);
@@ -206,7 +221,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
@@ -221,7 +236,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test5(TestContext context) {
+  public void testInstallOptional1(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -229,14 +244,107 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(1, tml.size());
+      context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
+      context.assertEquals(null, tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testInstallOptional2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
 
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdD100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(1, tml.size());
+      context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
+      context.assertEquals(null, tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testInstallOptionalFail2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD110.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  @Test
+  public void testInstallNew1(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE100.getId());
     tml.add(tm);
     TenantModuleDescriptor tm1 = new TenantModuleDescriptor();
     tm1.setAction(TenantModuleDescriptor.Action.enable);
@@ -258,7 +366,7 @@ public class DepResolutionTest {
   }
 
   @Test
-  public void test6(TestContext context) {
+  public void testInstallNew2(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -266,14 +374,14 @@ public class DepResolutionTest {
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
 
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
     TenantModuleDescriptor tm1 = new TenantModuleDescriptor();
     tm1.setAction(TenantModuleDescriptor.Action.enable);
@@ -301,14 +409,14 @@ public class DepResolutionTest {
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
 
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
@@ -327,14 +435,14 @@ public class DepResolutionTest {
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
 
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
@@ -353,14 +461,14 @@ public class DepResolutionTest {
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
 
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
@@ -378,7 +486,7 @@ public class DepResolutionTest {
     modsAvailable.put(mdA100.getId(), mdA100);
     modsAvailable.put(mdB.getId(), mdB);
     modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdE.getId(), mdE);
+    modsAvailable.put(mdE100.getId(), mdE100);
     mdB.setReplaces(new String[]{mdA100.getProduct()});
     mdC.setReplaces(new String[]{mdB.getProduct()});
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
@@ -386,7 +494,7 @@ public class DepResolutionTest {
     List<TenantModuleDescriptor> tml = new LinkedList<>();
     TenantModuleDescriptor tm = new TenantModuleDescriptor();
     tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdE.getId());
+    tm.setId(mdE100.getId());
     tml.add(tm);
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
