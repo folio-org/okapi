@@ -33,7 +33,7 @@ public class DepResolution {
 
   private static Map<String, InterfaceDescriptor> checkPresenceDependency(
     ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList) {
+    Map<String, List<InterfaceDescriptor>> pInts) {
 
     Map<String, InterfaceDescriptor> seenVersions = new HashMap<>();
     List<InterfaceDescriptor> pIntsList = pInts.get(req.getId());
@@ -66,7 +66,7 @@ public class DepResolution {
     Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList,
     boolean optional) {
 
-    Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, pInts, modList);
+    Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, pInts);
     if (seenVersions == null) { // found and compatible?
       return null;
     }
