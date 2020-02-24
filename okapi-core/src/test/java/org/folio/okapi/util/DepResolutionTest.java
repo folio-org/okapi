@@ -359,6 +359,39 @@ public class DepResolutionTest {
     });
   }
 
+  // install optional with existing interface that needs upgrading, but
+  // there are multiple modules providing same interface
+  @Test
+  public void testInstallOptionalExistingModuleFail(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdB.getId(), mdB);
+    modsAvailable.put(mdC.getId(), mdC);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD110.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.failed());
+      context.assertEquals(
+        "enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC"
+        , res.cause().getMessage());
+      async.complete();
+    });
+  }
+
   @Test
   public void testInstallNew1(TestContext context) {
     Async async = context.async();
