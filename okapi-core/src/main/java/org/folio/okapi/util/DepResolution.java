@@ -332,7 +332,7 @@ public class DepResolution {
     if (foundMd != null) {
       return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
     }
-    Map<String,ModuleDescriptor> productMd = checkInterfaceDepAvailable(modsAvailable, req);
+    Map<String, ModuleDescriptor> productMd = checkInterfaceDepAvailable(modsAvailable, req);
     if (productMd.isEmpty()) {
       String s = "interface " + req.getId() + " required by module " + md.getId() + " not found";
       ret.add(s);
@@ -400,6 +400,19 @@ public class DepResolution {
     }
     return foundMd;
   }
+
+  private static boolean checkInterfaceDepAlreadyExist(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
+    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
+      ModuleDescriptor md = entry.getValue();
+      for (InterfaceDescriptor pi : md.getProvidesList()) {
+        if (pi.isRegularHandler() && pi.getId().equals(req.getId())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
 
   private static boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
@@ -487,6 +500,12 @@ public class DepResolution {
     logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
       ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+    }
+    for (InterfaceDescriptor req : md.getOptionalList()) {
+      if (checkInterfaceDepAlreadyExist(modsEnabled, req)) {
+        // optional interface that have dependencies on existing enabled modules
+        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      }
     }
     if (!ret.isEmpty()) {
       return ret;

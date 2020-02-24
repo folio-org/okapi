@@ -235,17 +235,46 @@ public class DepResolutionTest {
     });
   }
 
+  // install optional with no provided ingerface enabled
   @Test
   public void testInstallOptional1(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
-    modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdC.getId(), mdC);
     modsAvailable.put(mdA110.getId(), mdA110);
     modsAvailable.put(mdD100.getId(), mdD100);
     modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD100.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(1, tml.size());
+      context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
+      context.assertEquals(null, tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      async.complete();
+    });
+  }
+
+  // install optional with a matched interface provided
+  @Test
+  public void testInstallOptional2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
     modsAvailable.put(mdE100.getId(), mdE100);
 
     Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
@@ -268,46 +297,13 @@ public class DepResolutionTest {
     });
   }
 
+  // install optional with existing interface that is too low (error)
   @Test
-  public void testInstallOptional2(TestContext context) {
+  public void testInstallOptionalFail(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
     modsAvailable.put(mdA100.getId(), mdA100);
-    modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdA110.getId(), mdA110);
-    modsAvailable.put(mdD100.getId(), mdD100);
-    modsAvailable.put(mdE100.getId(), mdE100);
-
-    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-
-    List<TenantModuleDescriptor> tml = new LinkedList<>();
-    TenantModuleDescriptor tm = new TenantModuleDescriptor();
-    tm.setAction(TenantModuleDescriptor.Action.enable);
-    tm.setId(mdD100.getId());
-    tml.add(tm);
-
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
-      context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
-      context.assertEquals(1, tml.size());
-      context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
-      context.assertEquals(null, tml.get(0).getFrom());
-      context.assertEquals("enable", tml.get(0).getAction().name());
-      async.complete();
-    });
-  }
-
-  @Test
-  public void testInstallOptionalFail2(TestContext context) {
-    Async async = context.async();
-
-    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
-    modsAvailable.put(mdA100.getId(), mdA100);
-    modsAvailable.put(mdB.getId(), mdB);
-    modsAvailable.put(mdC.getId(), mdC);
-    modsAvailable.put(mdA110.getId(), mdA110);
     modsAvailable.put(mdD100.getId(), mdD100);
     modsAvailable.put(mdD110.getId(), mdD110);
     modsAvailable.put(mdE100.getId(), mdE100);
@@ -323,7 +319,42 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.failed());
-      context.assertEquals("Incompatible version for module moduleD-1.1.0 interface int. Need 1.1. Have 1.0/moduleA-1.0.0", res.cause().getMessage());
+      context.assertEquals("enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 not found", res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  // install optional with existing interface that needs upgrading
+  @Test
+  public void testInstallOptionalExistingModule(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdE100.getId(), mdE100);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD110.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.info("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-1.1.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleD-1.1.0", tml.get(1).getId());
+      context.assertEquals(null, tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
       async.complete();
     });
   }
