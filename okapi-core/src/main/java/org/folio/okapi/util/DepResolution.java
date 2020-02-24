@@ -323,10 +323,6 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml) {
 
     List<String> ret = new LinkedList<>();
-    // check if already enabled
-    if (checkInterfaceDepAlreadyEnabled(modsEnabled, req)) {
-      return ret;
-    }
     // check if mentioned already in other install action
     ModuleDescriptor foundMd = checkInterfaceDepOtherInstall(tml, modsAvailable, req);
     if (foundMd != null) {
@@ -401,30 +397,28 @@ public class DepResolution {
     return foundMd;
   }
 
-  private static boolean checkInterfaceDepAlreadyExist(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
+  /**
+   * Check whether interface is provided for a set of enabled modules
+   * @param modsEnabled set of enabled modules
+   * @param req the interface to look for
+   * @return null: interface not found, false: incompatible, true: compatible
+   */
+  private static Boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled,
+    InterfaceDescriptor req) {
+    Boolean exist = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
         if (pi.isRegularHandler() && pi.getId().equals(req.getId())) {
-          return true;
+          if (pi.isCompatible(req)) {
+            logger.info("Dependency OK already enabled id {}", md.getId());
+            return true;
+          }
+          exist = false;
         }
       }
     }
-    return false;
-  }
-
-
-  private static boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
-    for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
-      ModuleDescriptor md = entry.getValue();
-      for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.info("Dependency OK already enabled id {}", md.getId());
-          return true;
-        }
-      }
-    }
-    return false;
+    return exist;
   }
 
   private static int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
@@ -499,11 +493,14 @@ public class DepResolution {
     List<String> ret = new LinkedList<>();
     logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
+      if (!Boolean.TRUE.equals(exist)) {
+        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      }
     }
     for (InterfaceDescriptor req : md.getOptionalList()) {
-      if (checkInterfaceDepAlreadyExist(modsEnabled, req)) {
-        // optional interface that have dependencies on existing enabled modules
+      Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
+      if (exist.FALSE.equals(exist)) {
         ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
       }
     }
