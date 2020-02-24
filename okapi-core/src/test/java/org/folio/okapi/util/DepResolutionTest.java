@@ -359,6 +359,73 @@ public class DepResolutionTest {
     });
   }
 
+  // install optional with existing interface that needs upgrading
+  @Test
+  public void testInstallOptionalExistingModule2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdD100.getId(), mdD100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA110.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(1, tml.size());
+      context.assertEquals("moduleA-1.1.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      async.complete();
+    });
+  }
+
+  // install optional with existing interface that needs upgrading
+  @Test
+  public void testInstallOptionalExistingModule3(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdD100.getId(), mdD100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD110.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-1.1.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleD-1.1.0", tml.get(1).getId());
+      context.assertEquals("moduleD-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
   // install optional with existing interface that needs upgrading, but
   // there are multiple modules providing same interface
   @Test
