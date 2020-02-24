@@ -128,7 +128,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
       context.assertEquals("moduleA-1.0.0", tml.get(0).getId());
       context.assertEquals("uptodate", tml.get(0).getAction().name());
@@ -159,7 +159,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       context.assertEquals("moduleA-1.0.0", tml.get(0).getId());
       context.assertEquals("disable", tml.get(0).getAction().name());
@@ -194,7 +194,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
       context.assertEquals("moduleA-1.1.0", tml.get(0).getId());
       context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
@@ -226,7 +226,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
       context.assertEquals("moduleE-1.0.0", tml.get(0).getId());
       context.assertEquals(null, tml.get(0).getFrom());
@@ -257,7 +257,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
       context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
       context.assertEquals(null, tml.get(0).getFrom());
@@ -288,7 +288,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
       context.assertEquals("moduleD-1.0.0", tml.get(0).getId());
       context.assertEquals(null, tml.get(0).getFrom());
@@ -347,7 +347,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       context.assertEquals("moduleA-1.1.0", tml.get(0).getId());
       context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
@@ -384,7 +384,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       context.assertEquals("moduleA-1.0.0", tml.get(0).getId());
       context.assertEquals(null, tml.get(0).getFrom());
@@ -421,7 +421,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
       context.assertEquals("moduleB-1.0.0", tml.get(0).getId());
       context.assertEquals(null, tml.get(0).getFrom());
@@ -504,7 +504,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       async.complete();
     });
   }
@@ -530,7 +530,7 @@ public class DepResolutionTest {
 
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       context.assertTrue(res.succeeded());
-      logger.info("tml result = " + Json.encodePrettily(tml));
+      logger.debug("tml result = " + Json.encodePrettily(tml));
       async.complete();
     });
   }
