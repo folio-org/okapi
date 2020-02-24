@@ -359,7 +359,7 @@ public class DepResolutionTest {
     });
   }
 
-  // install optional with existing interface that needs upgrading
+  // upgrade base dependency which is still compatible with optional interface
   @Test
   public void testInstallOptionalExistingModule2(TestContext context) {
     Async async = context.async();
@@ -391,7 +391,7 @@ public class DepResolutionTest {
     });
   }
 
-  // install optional with existing interface that needs upgrading
+  // upgrade optional dependency which require upgrading base dependency
   @Test
   public void testInstallOptionalExistingModule3(TestContext context) {
     Async async = context.async();
