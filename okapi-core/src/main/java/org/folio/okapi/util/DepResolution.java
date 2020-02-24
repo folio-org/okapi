@@ -500,7 +500,7 @@ public class DepResolution {
     }
     for (InterfaceDescriptor req : md.getOptionalList()) {
       Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
-      if (exist.FALSE.equals(exist)) {
+      if (Boolean.FALSE.equals(exist)) {
         ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
       }
     }
