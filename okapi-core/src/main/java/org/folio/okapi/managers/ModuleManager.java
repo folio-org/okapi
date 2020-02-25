@@ -5,6 +5,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -36,10 +37,12 @@ public class ModuleManager {
   private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
+  private String eventName = "moduleUpdate";
   private LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
-  private Map<String,ModuleDescriptor> enabledModules = new HashMap<>();
+  private Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
   private ModuleStore moduleStore;
+  private Vertx vertx;
   private Messages messages = Messages.getInstance();
 
   public ModuleManager(ModuleStore moduleStore) {
@@ -61,6 +64,8 @@ public class ModuleManager {
   }
 
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+    this.vertx = vertx;
+    consumeModulesUpdated();
     modules.init(vertx, mapName, ires -> {
       if (ires.failed()) {
         fut.handle(new Failure<>(ires.getType(), ires.cause()));
@@ -68,6 +73,18 @@ public class ModuleManager {
         loadModules(fut);
       }
     });
+  }
+
+  private void consumeModulesUpdated() {
+    EventBus eb = vertx.eventBus();
+    eb.consumer(eventName, res -> {
+      String moduleId = (String) res.body();
+      enabledModulesCache.remove(moduleId);
+    });
+  }
+
+  private void invalidateCacheEntry(String id) {
+    vertx.eventBus().publish(eventName, id);
   }
 
   /**
@@ -264,6 +281,7 @@ public class ModuleManager {
           }
           return;
         }
+        invalidateCacheEntry(id);
         // all ok, we can update it
         if (moduleStore == null) { // no db, just upd shared memory
           modules.put(id, md, fut);
@@ -336,6 +354,7 @@ public class ModuleManager {
   }
 
   private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+    invalidateCacheEntry(id);
     modules.remove(id, rres -> {
       if (rres.failed()) {
         fut.handle(new Failure<>(rres.getType(), rres.cause()));
@@ -416,13 +435,13 @@ public class ModuleManager {
     List<ModuleDescriptor> mdl = new LinkedList<>();
     CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
-      if (enabledModules.containsKey(id)) {
-        mdl.add(enabledModules.get(id));
+      if (enabledModulesCache.containsKey(id)) {
+        mdl.add(enabledModulesCache.get(id));
       } else {
         Promise<ModuleDescriptor> promise = Promise.promise();
         modules.get(id, res -> {
           if (res.succeeded()) {
-            enabledModules.put(id, res.result());
+            enabledModulesCache.put(id, res.result());
             mdl.add(res.result());
           } else {
             logger.warn("getEnabledModules id={} failed {}", id, res.cause());
