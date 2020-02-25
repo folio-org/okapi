@@ -499,18 +499,8 @@ public class DepResolution {
       ModuleDescriptor mTo = null;
       for (InterfaceDescriptor prov : md.getProvidesList()) {
         for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
-          if (!prov.getId().equals(req.getId()) || prov.isCompatible(req)) {
-            continue;
-          }
-          for (ModuleDescriptor ma : modsAvailable.values()) {
-            if (!me.getProduct().equals(ma.getProduct())) {
-              continue;
-            }
-            for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
-              if (prov.isCompatible(re1) && (mTo == null || ma.compareTo(mTo) > 0)) {
-                mTo = ma;
-              }
-            }
+          if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
+            mTo = lookupAvailableForProvided(modsAvailable, me, prov, mTo);
           }
         }
       }
@@ -519,6 +509,22 @@ public class DepResolution {
         it = modsEnabled.values().iterator();
       }
     }
+  }
+
+  private static ModuleDescriptor lookupAvailableForProvided(Map<String, ModuleDescriptor> modsAvailable,
+    ModuleDescriptor me, InterfaceDescriptor prov, ModuleDescriptor mTo) {
+
+    for (ModuleDescriptor ma : modsAvailable.values()) {
+      if (!me.getProduct().equals(ma.getProduct())) {
+        continue;
+      }
+      for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
+        if (prov.isCompatible(re1) && (mTo == null || ma.compareTo(mTo) > 0)) {
+          mTo = ma;
+        }
+      }
+    }
+    return mTo;
   }
 
   private static List<String> addModuleDependencies(ModuleDescriptor md,
