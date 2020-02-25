@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -243,7 +243,7 @@ public class DepResolution {
       }
     }
     if (!errors.isEmpty()) {
-      fut.handle(new Failure<>(USER, String.join(". ", errors)));
+      fut.handle(new Failure<>(ErrorType.USER, String.join(". ", errors)));
       return;
     }
     final int lim = tml.size();
@@ -260,7 +260,7 @@ public class DepResolution {
     String s = DepResolution.checkAllDependencies(modsEnabled);
     if (!s.isEmpty()) {
       logger.warn("installModules.checkAllDependencies: {}", s);
-      fut.handle(new Failure<>(USER, s));
+      fut.handle(new Failure<>(ErrorType.USER, s));
       return;
     }
 
@@ -276,7 +276,7 @@ public class DepResolution {
     String id = tm.getId();
     TenantModuleDescriptor.Action action = tm.getAction();
     if (null == action) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
+      fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10404", "null")));
       return true;
     } else {
       switch (action) {
@@ -287,7 +287,7 @@ public class DepResolution {
         case disable:
           return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
         default:
-          fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10404", action.name())));
           return true;
       }
     }
@@ -300,9 +300,10 @@ public class DepResolution {
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
       modsEnabled, tml);
     if (ret.isEmpty()) {
+      upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
       return false;
     }
-    fut.handle(new Failure<>(USER, "enable " + id + " failed: " + String.join(". ", ret)));
+    fut.handle(new Failure<>(ErrorType.USER, "enable " + id + " failed: " + String.join(". ", ret)));
     return true;
   }
 
@@ -314,7 +315,7 @@ public class DepResolution {
     if (ret.isEmpty()) {
       return false;
     }
-    fut.handle(new Failure<>(USER, "disable " + id + " failed: " + String.join(". ", ret)));
+    fut.handle(new Failure<>(ErrorType.USER, "disable " + id + " failed: " + String.join(". ", ret)));
     return true;
   }
 
@@ -435,10 +436,10 @@ public class DepResolution {
         fromModule.add(rm);
         v++;
       } else {
-        for (InterfaceDescriptor pi : rm.getProvidesList()) {
-          if (pi.isRegularHandler()) {
-            String confl = pi.getId();
-            for (InterfaceDescriptor mi : md.getProvidesList()) {
+        for (InterfaceDescriptor mi : md.getProvidesList()) {
+          for (InterfaceDescriptor pi : rm.getProvidesList()) {
+            if (pi.isRegularHandler()) {
+              String confl = pi.getId();
               if (mi.getId().equals(confl)
                 && mi.isRegularHandler()
                 && modsEnabled.containsKey(runningmodule)) {
@@ -484,6 +485,40 @@ public class DepResolution {
       t.setFrom(fm.getId());
     }
     tml.add(t);
+  }
+
+  private static void upgradeLeafs(ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+
+    Iterator<ModuleDescriptor> it = modsEnabled.values().iterator();
+    while (it.hasNext()) {
+      ModuleDescriptor me = it.next();
+      if (me.equals(md)) {
+        continue;
+      }
+      ModuleDescriptor mTo = null;
+      for (InterfaceDescriptor prov : md.getProvidesList()) {
+        for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
+          if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
+            for (ModuleDescriptor ma : modsAvailable.values()) {
+              if (me.getProduct().equals(ma.getProduct())) {
+                for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
+                  if (prov.isCompatible(re1)) {
+                    if (mTo == null || ma.compareTo(mTo) > 0) {
+                      mTo = ma;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      if (mTo != null) {
+        List<String> ret = addModuleDependencies(mTo, modsAvailable, modsEnabled, tml);
+        it = modsEnabled.values().iterator();
+      }
+    }
   }
 
   private static List<String> addModuleDependencies(ModuleDescriptor md,

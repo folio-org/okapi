@@ -81,6 +81,14 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   @JsonIgnore
+  public List<InterfaceDescriptor> getRequiresOptionalList() {
+    List<InterfaceDescriptor> l = new ArrayList();
+    Collections.addAll(l, getRequiresList());
+    Collections.addAll(l, getOptionalList());
+    return l;
+  }
+
+  @JsonIgnore
   public InterfaceDescriptor[] getRequiresList() {
     if (requires == null) {
       return new InterfaceDescriptor[0];

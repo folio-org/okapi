@@ -34,8 +34,11 @@ public class DepResolutionTest {
   private ModuleDescriptor mdA200;
   private ModuleDescriptor mdD100;
   private ModuleDescriptor mdD110;
+  private ModuleDescriptor mdD200;
+  private ModuleDescriptor mdDA200;
   private ModuleDescriptor mdE100;
   private ModuleDescriptor mdE110;
+  private ModuleDescriptor mdE200;
 
   @Before
   public void setUp() {
@@ -43,6 +46,8 @@ public class DepResolutionTest {
     InterfaceDescriptor[] int10a = {int10};
     InterfaceDescriptor int11 = new InterfaceDescriptor("int", "1.1");
     InterfaceDescriptor[] int11a = {int11};
+    InterfaceDescriptor int20 = new InterfaceDescriptor("int", "2.0");
+    InterfaceDescriptor[] int20a = {int20};
 
     mdA100 = new ModuleDescriptor();
     mdA100.setId("moduleA-1.0.0");
@@ -62,7 +67,7 @@ public class DepResolutionTest {
 
     mdA200 = new ModuleDescriptor();
     mdA200.setId("moduleA-2.0.0");
-    mdA200.setProvides(int11a);
+    mdA200.setProvides(int20a);
 
     mdD100 = new ModuleDescriptor();
     mdD100.setId("moduleD-1.0.0");
@@ -72,6 +77,14 @@ public class DepResolutionTest {
     mdD110.setId("moduleD-1.1.0");
     mdD110.setOptional(int11a);
 
+    mdD200 = new ModuleDescriptor();
+    mdD200.setId("moduleD-2.0.0");
+    mdD200.setOptional(int20a);
+
+    mdDA200 = new ModuleDescriptor();
+    mdDA200.setId("moduleDA-2.0.0");
+    mdDA200.setOptional(int20a);
+
     mdE100 = new ModuleDescriptor();
     mdE100.setId("moduleE-1.0.0");
     mdE100.setRequires(int10a);
@@ -79,6 +92,10 @@ public class DepResolutionTest {
     mdE110 = new ModuleDescriptor();
     mdE110.setId("moduleE-1.1.0");
     mdE110.setRequires(int11a);
+
+    mdE200 = new ModuleDescriptor();
+    mdE200.setId("moduleE-2.0.0");
+    mdE200.setRequires(int20a);
   }
 
   @Test
@@ -235,7 +252,7 @@ public class DepResolutionTest {
     });
   }
 
-  // install optional with no provided ingerface enabled
+  // install optional with no provided interface enabled
   @Test
   public void testInstallOptional1(TestContext context) {
     Async async = context.async();
@@ -326,7 +343,7 @@ public class DepResolutionTest {
 
   // install optional with existing interface that needs upgrading
   @Test
-  public void testInstallOptionalExistingModule(TestContext context) {
+  public void testInstallMinorLeafOptional(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -361,7 +378,7 @@ public class DepResolutionTest {
 
   // upgrade base dependency which is still compatible with optional interface
   @Test
-  public void testInstallOptionalExistingModule2(TestContext context) {
+  public void testInstallMinorBaseOptional(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -393,7 +410,7 @@ public class DepResolutionTest {
 
   // upgrade optional dependency which require upgrading base dependency
   @Test
-  public void testInstallOptionalExistingModule3(TestContext context) {
+  public void testInstallMinorLeafOptional2(TestContext context) {
     Async async = context.async();
 
     Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
@@ -420,6 +437,82 @@ public class DepResolutionTest {
       context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
       context.assertEquals("enable", tml.get(0).getAction().name());
       context.assertEquals("moduleD-1.1.0", tml.get(1).getId());
+      context.assertEquals("moduleD-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
+  // upgrade base dependency which is a major interface bump to optional interface
+  @Test
+  public void testInstallMajorBaseOptional(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdD200.getId(), mdD200);
+    modsAvailable.put(mdDA200.getId(), mdDA200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdD100.getId(), mdD100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleD-2.0.0", tml.get(1).getId());
+      context.assertEquals("moduleD-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
+  // upgrade optional dependency which require upgrading base dependency
+  @Test
+  public void testInstallMajorLeafOptional(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA110.getId(), mdA110);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdD100.getId(), mdD100);
+    modsAvailable.put(mdD110.getId(), mdD110);
+    modsAvailable.put(mdD200.getId(), mdD200);
+    modsAvailable.put(mdDA200.getId(), mdDA200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdD100.getId(), mdD100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdD200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleD-2.0.0", tml.get(1).getId());
       context.assertEquals("moduleD-1.0.0", tml.get(1).getFrom());
       context.assertEquals("enable", tml.get(1).getAction().name());
       async.complete();
@@ -455,6 +548,152 @@ public class DepResolutionTest {
       context.assertEquals(
         "enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC"
         , res.cause().getMessage());
+      async.complete();
+    });
+  }
+
+  // upgrade base dependency which is a major interface bump to required interface
+  @Test
+  public void testInstallMajorBaseRequired(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdE100.getId(), mdE100);
+    modsAvailable.put(mdE200.getId(), mdE200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdE100.getId(), mdE100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleE-2.0.0", tml.get(1).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
+  // upgrade both dependency which is a major interface bump to required interface
+  @Test
+  public void testInstallMajorBaseRequired2(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdE100.getId(), mdE100);
+    modsAvailable.put(mdE200.getId(), mdE200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdE100.getId(), mdE100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA200.getId());
+    tml.add(tm);
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleE-2.0.0", tml.get(1).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
+  // upgrade both dependency which is a major interface bump to required interface
+  @Test
+  public void testInstallMajorBaseRequired3(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdE100.getId(), mdE100);
+    modsAvailable.put(mdE200.getId(), mdE200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdE100.getId(), mdE100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE200.getId());
+    tml.add(tm);
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdA200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleE-2.0.0", tml.get(1).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
+      async.complete();
+    });
+  }
+
+  // upgrade module with major dependency upgrade
+  @Test
+  public void testInstallMajorLeafRequired(TestContext context) {
+    Async async = context.async();
+
+    Map<String, ModuleDescriptor> modsAvailable = new HashMap<>();
+    modsAvailable.put(mdA100.getId(), mdA100);
+    modsAvailable.put(mdA200.getId(), mdA200);
+    modsAvailable.put(mdE100.getId(), mdE100);
+    modsAvailable.put(mdE200.getId(), mdE200);
+
+    Map<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+    modsEnabled.put(mdA100.getId(), mdA100);
+    modsEnabled.put(mdE100.getId(), mdE100);
+
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.setAction(TenantModuleDescriptor.Action.enable);
+    tm.setId(mdE200.getId());
+    tml.add(tm);
+
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+      context.assertTrue(res.succeeded());
+      logger.debug("tml result = " + Json.encodePrettily(tml));
+      context.assertEquals(2, tml.size());
+      context.assertEquals("moduleA-2.0.0", tml.get(0).getId());
+      context.assertEquals("moduleA-1.0.0", tml.get(0).getFrom());
+      context.assertEquals("enable", tml.get(0).getAction().name());
+      context.assertEquals("moduleE-2.0.0", tml.get(1).getId());
+      context.assertEquals("moduleE-1.0.0", tml.get(1).getFrom());
+      context.assertEquals("enable", tml.get(1).getAction().name());
       async.complete();
     });
   }
