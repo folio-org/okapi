@@ -695,7 +695,7 @@ public class ProxyService {
         sz += name.length() + 4 + value.length(); // 4 for colon blank cr lf
       }
     }
-    if (sz > limit) {
+    if (sz > limit && logger.isInfoEnabled()) {
       logger.info("Request headers size={}", sz);
       dumpHeaders(ctx.request().headers());
     }
@@ -707,21 +707,13 @@ public class ProxyService {
     }
   }
 
-  private static String dumpHeaders(MultiMap headers) {
-    StringBuilder h = new StringBuilder();
-    h.append("Headers:\n");
+  private static void dumpHeaders(MultiMap headers) {
     for (String name : headers.names()) {
       List<String> values = headers.getAll(name);
       for (String value : values) {
-        h.append(" ");
-        h.append(name);
-        h.append(": ");
-        h.append(value);
-        h.append("\n");
         logger.info("{}: {}", name, value);
       }
     }
-    return h.toString();
   }
 
   private void fixupXOkapiToken(ModuleDescriptor md, MultiMap reqHeaders, MultiMap resHeaders) {
