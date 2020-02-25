@@ -499,23 +499,23 @@ public class DepResolution {
       ModuleDescriptor mTo = null;
       for (InterfaceDescriptor prov : md.getProvidesList()) {
         for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
-          if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
-            for (ModuleDescriptor ma : modsAvailable.values()) {
-              if (me.getProduct().equals(ma.getProduct())) {
-                for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
-                  if (prov.isCompatible(re1)) {
-                    if (mTo == null || ma.compareTo(mTo) > 0) {
-                      mTo = ma;
-                    }
-                  }
-                }
+          if (!prov.getId().equals(req.getId()) || prov.isCompatible(req)) {
+            continue;
+          }
+          for (ModuleDescriptor ma : modsAvailable.values()) {
+            if (!me.getProduct().equals(ma.getProduct())) {
+              continue;
+            }
+            for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
+              if (prov.isCompatible(re1) && (mTo == null || ma.compareTo(mTo) > 0)) {
+                mTo = ma;
               }
             }
           }
         }
       }
       if (mTo != null) {
-        List<String> ret = addModuleDependencies(mTo, modsAvailable, modsEnabled, tml);
+        addModuleDependencies(mTo, modsAvailable, modsEnabled, tml);
         it = modsEnabled.values().iterator();
       }
     }
