@@ -221,7 +221,7 @@
             <artifactId>maven-surefire-plugin</artifactId>
             <executions>
               <execution>
-                <phase>integration-test</phase>
+                <phase>test</phase>
                 <goals>
                   <goal>test</goal>
                 </goals>
