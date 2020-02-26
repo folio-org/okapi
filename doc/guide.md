@@ -26,6 +26,7 @@ managing and running microservices.
     * [Example 2: Adding the Auth module](#example-2-adding-the-auth-module)
     * [Example 3: Upgrading, versions, environment, and the `_tenant` interface](#example-3-upgrading-versions-environment-and-the-_tenant-interface)
     * [Example 4: Complete ModuleDescriptor](#example-4-complete-moduledescriptor)
+    * [Optional interfaces](#optional-interfaces)
     * [Multiple interfaces](#multiple-interfaces)
     * [Cleaning up](#cleaning-up)
     * [Running in cluster mode](#running-in-cluster-mode)

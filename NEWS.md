@@ -1,3 +1,13 @@
+## 2.37.0 2020-02-26
+
+ * OKAPI-797/OKAPI-799 Tenant init fails with Docker deployment
+ * OKAPI-795 Optimization: only log large HTTP headers that may
+   cause problems
+ * OKAPI-796 Optimization: cache ModuleDescriptors
+ * OKAPI-509 Optional dependencies. "optional" property
+ * OKAPI-788 Upgrade to Vert.x 4 milestone 4
+ * OKAPI-790 Upgrade PostgresQL from 9.6 to 10 in unit tests
+
 ## 2.36.0 2019-12-30
 
  * OKAPI-321 Unix domain socket for Docker communication
