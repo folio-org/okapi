@@ -30,7 +30,6 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
-import static org.folio.okapi.common.XOkapiHeaders.HANDLER_RESULT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;
@@ -362,6 +361,7 @@ public class ProxyTest {
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
+      + "  \"optional\" : [ { \"id\" : \"optional-foo\", \"version\": \"1.0\"} ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
       + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
@@ -2206,7 +2206,7 @@ public class ProxyTest {
       context.assertEquals("Okapi", preBuffer.toString());
       context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
       context.assertNotNull(postHandlerHeaders);
-      context.assertEquals("200", postHandlerHeaders.get(HANDLER_RESULT));
+      context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
       async.complete();
     });
   }

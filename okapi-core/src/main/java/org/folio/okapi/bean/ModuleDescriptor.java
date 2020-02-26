@@ -27,6 +27,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private String[] tags;
   private InterfaceDescriptor[] requires;
   private InterfaceDescriptor[] provides;
+  private InterfaceDescriptor[] optional;
   private RoutingEntry[] filters;
   private Permission[] permissionSets;
   private EnvEntry[] env;
@@ -36,16 +37,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   private ModuleId[] replaces;
 
   public ModuleDescriptor() {
-    this.id = null;
-    this.name = null;
-    this.tags = null;
-    this.filters = null;
-    this.requires = null;
-    this.provides = null;
-    this.permissionSets = null;
-    this.uiDescriptor = null;
-    this.launchDescriptor = null;
-    this.replaces = null;
   }
 
   /**
@@ -90,6 +81,14 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   @JsonIgnore
+  public List<InterfaceDescriptor> getRequiresOptionalList() {
+    List<InterfaceDescriptor> l = new ArrayList();
+    Collections.addAll(l, getRequiresList());
+    Collections.addAll(l, getOptionalList());
+    return l;
+  }
+
+  @JsonIgnore
   public InterfaceDescriptor[] getRequiresList() {
     if (requires == null) {
       return new InterfaceDescriptor[0];
@@ -129,6 +128,23 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       pList.add(pr.getId());
     }
     this.provides = provides;
+  }
+
+  public InterfaceDescriptor[] getOptional() {
+    return optional;
+  }
+
+  public void setOptional(InterfaceDescriptor[] optional) {
+    this.optional = optional;
+  }
+
+  @JsonIgnore
+  public InterfaceDescriptor[] getOptionalList() {
+    if (optional == null) {
+      return new InterfaceDescriptor[0];
+    } else {
+      return optional;
+    }
   }
 
   @JsonIgnore

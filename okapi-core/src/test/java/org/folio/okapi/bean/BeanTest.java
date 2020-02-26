@@ -142,6 +142,10 @@ public class BeanTest {
       + "      \"type\" : \"system\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
+      + "  \"optional\" : [ {" + LS
+      + "    \"id\" : \"foo\"," + LS
+      + "    \"version\" : \"1.0\"" + LS
+      + "  } ]," + LS
       + "  \"env\" : [ {" + LS
       + "    \"name\" : \"DB_HOST\"," + LS
       + "    \"value\" : \"localhost\"" + LS

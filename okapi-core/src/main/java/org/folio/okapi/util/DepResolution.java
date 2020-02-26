@@ -14,7 +14,7 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
@@ -31,16 +31,9 @@ public class DepResolution {
     throw new IllegalAccessError("DepResolution");
   }
 
-  /**
-   * Check one dependency.
-   *
-   * @param md module to check
-   * @param req required dependency
-   * @param pInts the list to provided interface as returned by getProvidedInterfaces
-   * @return null if ok, or error message
-   */
-  private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList) {
+  private static Map<String, InterfaceDescriptor> checkPresenceDependency(
+    ModuleDescriptor md, InterfaceDescriptor req,
+    Map<String, List<InterfaceDescriptor>> pInts) {
 
     Map<String, InterfaceDescriptor> seenVersions = new HashMap<>();
     List<InterfaceDescriptor> pIntsList = pInts.get(req.getId());
@@ -58,9 +51,31 @@ public class DepResolution {
         }
       }
     }
-    if (seenVersions.isEmpty()) {
+    return seenVersions;
+  }
+
+  /**
+   * Check one dependency.
+   *
+   * @param md module to check
+   * @param req required dependency
+   * @param pInts the list to provided interface as returned by getProvidedInterfaces
+   * @return null if ok, or error message
+   */
+  private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
+    Map<String, List<InterfaceDescriptor>> pInts, Collection<ModuleDescriptor> modList,
+    boolean optional) {
+
+    Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, pInts);
+    if (seenVersions == null) { // found and compatible?
+      return null;
+    }
+    if (seenVersions.isEmpty()) { // nothing found?
+      if (optional)
+        return null;
       return messages.getMessage("10200", md.getId(), req.getId(), req.getVersion());
     }
+    // found but incompatible
     StringBuilder moduses = new StringBuilder();
     String sep = "";
     for (InterfaceDescriptor seenVersion : seenVersions.values()) {
@@ -85,7 +100,13 @@ public class DepResolution {
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, pInts, modlist.values());
+      String res = checkOneDependency(md, req, pInts, modlist.values(), false);
+      if (res != null) {
+        list.add(res);
+      }
+    }
+    for (InterfaceDescriptor req : md.getOptionalList()) {
+      String res = checkOneDependency(md, req, pInts, modlist.values(), true);
       if (res != null) {
         list.add(res);
       }
@@ -222,7 +243,7 @@ public class DepResolution {
       }
     }
     if (!errors.isEmpty()) {
-      fut.handle(new Failure<>(USER, String.join(". ", errors)));
+      fut.handle(new Failure<>(ErrorType.USER, String.join(". ", errors)));
       return;
     }
     final int lim = tml.size();
@@ -239,7 +260,7 @@ public class DepResolution {
     String s = DepResolution.checkAllDependencies(modsEnabled);
     if (!s.isEmpty()) {
       logger.warn("installModules.checkAllDependencies: {}", s);
-      fut.handle(new Failure<>(USER, s));
+      fut.handle(new Failure<>(ErrorType.USER, s));
       return;
     }
 
@@ -255,7 +276,7 @@ public class DepResolution {
     String id = tm.getId();
     TenantModuleDescriptor.Action action = tm.getAction();
     if (null == action) {
-      fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", "null")));
+      fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10404", "null")));
       return true;
     } else {
       switch (action) {
@@ -266,7 +287,7 @@ public class DepResolution {
         case disable:
           return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
         default:
-          fut.handle(new Failure<>(INTERNAL, messages.getMessage("10404", action.name())));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("10404", action.name())));
           return true;
       }
     }
@@ -279,9 +300,10 @@ public class DepResolution {
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
       modsEnabled, tml);
     if (ret.isEmpty()) {
+      upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
       return false;
     }
-    fut.handle(new Failure<>(USER, "enable " + id + " failed: " + String.join(". ", ret)));
+    fut.handle(new Failure<>(ErrorType.USER, "enable " + id + " failed: " + String.join(". ", ret)));
     return true;
   }
 
@@ -293,7 +315,7 @@ public class DepResolution {
     if (ret.isEmpty()) {
       return false;
     }
-    fut.handle(new Failure<>(USER, "disable " + id + " failed: " + String.join(". ", ret)));
+    fut.handle(new Failure<>(ErrorType.USER, "disable " + id + " failed: " + String.join(". ", ret)));
     return true;
   }
 
@@ -302,16 +324,12 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml) {
 
     List<String> ret = new LinkedList<>();
-    // check if already enabled
-    if (checkInterfaceDepAlreadyEnabled(modsEnabled, req)) {
-      return ret;
-    }
     // check if mentioned already in other install action
     ModuleDescriptor foundMd = checkInterfaceDepOtherInstall(tml, modsAvailable, req);
     if (foundMd != null) {
       return addModuleDependencies(foundMd, modsAvailable, modsEnabled, tml);
     }
-    Map<String,ModuleDescriptor> productMd = checkInterfaceDepAvailable(modsAvailable, req);
+    Map<String, ModuleDescriptor> productMd = checkInterfaceDepAvailable(modsAvailable, req);
     if (productMd.isEmpty()) {
       String s = "interface " + req.getId() + " required by module " + md.getId() + " not found";
       ret.add(s);
@@ -380,17 +398,28 @@ public class DepResolution {
     return foundMd;
   }
 
-  private static boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
+  /**
+   * Check whether interface is provided for a set of enabled modules
+   * @param modsEnabled set of enabled modules
+   * @param req the interface to look for
+   * @return null: interface not found, false: incompatible, true: compatible
+   */
+  private static Boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled,
+    InterfaceDescriptor req) {
+    Boolean exist = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
       for (InterfaceDescriptor pi : md.getProvidesList()) {
-        if (pi.isRegularHandler() && pi.isCompatible(req)) {
-          logger.info("Dependency OK already enabled id {}", md.getId());
-          return true;
+        if (pi.isRegularHandler() && pi.getId().equals(req.getId())) {
+          if (pi.isCompatible(req)) {
+            logger.info("Dependency OK already enabled id {}", md.getId());
+            return true;
+          }
+          exist = false;
         }
       }
     }
-    return false;
+    return exist;
   }
 
   private static int resolveModuleConflicts(ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
@@ -407,10 +436,10 @@ public class DepResolution {
         fromModule.add(rm);
         v++;
       } else {
-        for (InterfaceDescriptor pi : rm.getProvidesList()) {
-          if (pi.isRegularHandler()) {
-            String confl = pi.getId();
-            for (InterfaceDescriptor mi : md.getProvidesList()) {
+        for (InterfaceDescriptor mi : md.getProvidesList()) {
+          for (InterfaceDescriptor pi : rm.getProvidesList()) {
+            if (pi.isRegularHandler()) {
+              String confl = pi.getId();
               if (mi.getId().equals(confl)
                 && mi.isRegularHandler()
                 && modsEnabled.containsKey(runningmodule)) {
@@ -458,6 +487,46 @@ public class DepResolution {
     tml.add(t);
   }
 
+  private static void upgradeLeafs(ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
+    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+
+    Iterator<ModuleDescriptor> it = modsEnabled.values().iterator();
+    while (it.hasNext()) {
+      ModuleDescriptor me = it.next();
+      if (me.equals(md)) {
+        continue;
+      }
+      ModuleDescriptor mTo = null;
+      for (InterfaceDescriptor prov : md.getProvidesList()) {
+        for (InterfaceDescriptor req : me.getRequiresOptionalList()) {
+          if (prov.getId().equals(req.getId()) && !prov.isCompatible(req)) {
+            mTo = lookupAvailableForProvided(modsAvailable, me, prov, mTo);
+          }
+        }
+      }
+      if (mTo != null) {
+        addModuleDependencies(mTo, modsAvailable, modsEnabled, tml);
+        it = modsEnabled.values().iterator();
+      }
+    }
+  }
+
+  private static ModuleDescriptor lookupAvailableForProvided(Map<String, ModuleDescriptor> modsAvailable,
+    ModuleDescriptor me, InterfaceDescriptor prov, ModuleDescriptor mTo) {
+
+    for (ModuleDescriptor ma : modsAvailable.values()) {
+      if (!me.getProduct().equals(ma.getProduct())) {
+        continue;
+      }
+      for (InterfaceDescriptor re1 : ma.getRequiresOptionalList()) {
+        if (prov.isCompatible(re1) && (mTo == null || ma.compareTo(mTo) > 0)) {
+          mTo = ma;
+        }
+      }
+    }
+    return mTo;
+  }
+
   private static List<String> addModuleDependencies(ModuleDescriptor md,
     Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml) {
@@ -465,7 +534,16 @@ public class DepResolution {
     List<String> ret = new LinkedList<>();
     logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
+      if (!Boolean.TRUE.equals(exist)) {
+        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      }
+    }
+    for (InterfaceDescriptor req : md.getOptionalList()) {
+      Boolean exist = checkInterfaceDepAlreadyEnabled(modsEnabled, req);
+      if (Boolean.FALSE.equals(exist)) {
+        ret.addAll(checkInterfaceDependency(md, req, modsAvailable, modsEnabled, tml));
+      }
     }
     if (!ret.isEmpty()) {
       return ret;
