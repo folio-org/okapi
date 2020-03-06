@@ -24,7 +24,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.common.Messages;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
@@ -93,16 +92,6 @@ public class MainDeploy {
     return false;
   }
 
-  private void enableMetrics() {
-    final String graphiteHost = System.getProperty("graphiteHost", "localhost");
-    final Integer graphitePort = Integer.parseInt(
-      System.getProperty("graphitePort", "2003"));
-    final TimeUnit tu = TimeUnit.valueOf(System.getProperty("reporterTimeUnit", "SECONDS"));
-    final Integer reporterPeriod = Integer.parseInt(System.getProperty("reporterPeriod", "1"));
-    final String hostName = System.getProperty("host", "localhost");
-    DropwizardHelper.config(graphiteHost, graphitePort, tu, reporterPeriod, vopt, hostName);
-  }
-
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
     int i = 0;
     String mode = null;
@@ -142,8 +131,6 @@ public class MainDeploy {
         clusterHost = args[++i];
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
         clusterPort = Integer.parseInt(args[++i]);
-      } else if ("-enable-metrics".equals(args[i])) {
-        enableMetrics();
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
         if (readConf(args[++i], fut)) {
           return true;
@@ -177,7 +164,6 @@ public class MainDeploy {
       + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
       + "  -cluster-host ip              Vertx cluster host\n"
       + "  -cluster-port port            Vertx cluster port\n"
-      + "  -enable-metrics\n"
     );
   }
 

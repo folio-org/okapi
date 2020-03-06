@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import com.codahale.metrics.Timer;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -23,7 +22,6 @@ import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -120,12 +118,9 @@ public class DeploymentManager {
       fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10701")));
       return;
     }
-    Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + srvc + ".deploy");
-
     int usePort = ports.get();
     if (usePort == -1) {
       fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10702")));
-      tim.close();
       return;
     }
     if (id == null) {
@@ -133,17 +128,16 @@ public class DeploymentManager {
       md1.setInstId(id);
     }
     logger.info("deploy instId {}", id);
-    deploy2(fut, tim, usePort, md1);
+    deploy2(fut, usePort, md1);
   }
 
   private void deploy2(Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
-    Timer.Context tim, int usePort, DeploymentDescriptor md1) {
+    int usePort, DeploymentDescriptor md1) {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
       ports.free(usePort);
       fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10703")));
-      tim.close();
       return;
     }
     HashMap<String, EnvEntry> entries = new HashMap<>();
@@ -158,7 +152,6 @@ public class DeploymentManager {
         ports.free(usePort);
         fut.handle(new Failure<>(ErrorType.INTERNAL,
           messages.getMessage("10704", eres.cause().getMessage())));
-        tim.close();
         return;
       }
       for (EnvEntry er : eres.result()) {
@@ -181,7 +174,6 @@ public class DeploymentManager {
         md1.getSrvcId(), ports, moduleHost, usePort, config);
       mh.start(future -> {
         if (future.failed()) {
-          tim.close();
           ports.free(usePort);
           logger.warn("Deploying {} failed", md1.getSrvcId());
           fut.handle(new Failure<>(ErrorType.USER, future.cause()));
@@ -192,7 +184,6 @@ public class DeploymentManager {
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
-        tim.close();
         dm.add(md2, res -> fut.handle(new Success<>(md2)));
       });
     });
@@ -203,21 +194,17 @@ public class DeploymentManager {
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10705", id)));
     } else {
-      Timer.Context tim = DropwizardHelper.getTimerContext("deploy." + id + ".undeploy");
       DeploymentDescriptor md = list.get(id);
       dm.remove(md.getSrvcId(), md.getInstId(), res -> {
         if (res.failed()) {
-          tim.close();
           fut.handle(new Failure<>(res.getType(), res.cause()));
         } else {
           ModuleHandle mh = md.getModuleHandle();
           mh.stop(future -> {
             if (future.failed()) {
-              tim.close();
               fut.handle(new Failure<>(ErrorType.INTERNAL, future.cause()));
             } else {
               fut.handle(new Success<>());
-              tim.close();
               list.remove(id);
             }
           });

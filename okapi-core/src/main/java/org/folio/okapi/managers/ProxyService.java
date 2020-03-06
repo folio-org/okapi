@@ -46,7 +46,6 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.Messages;
-import org.folio.okapi.util.DropwizardHelper;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -512,7 +511,6 @@ public class ProxyService {
 
         String metricKey = "proxy." + tenantId + "."
           + ctx.request().method() + "." + ctx.normalisedPath();
-        DropwizardHelper.markEvent(metricKey);
 
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {

@@ -65,13 +65,6 @@ parse_okapi_conf()  {
 
    fi
 
-   # Set performance metric options
-   if [ "$enable_metrics" == 1 ]; then
-      OKAPI_OPTIONS+=" -enable-metrics"
-      OKAPI_JAVA_OPTS+=" -DgraphiteHost=${carbon_host}"
-      OKAPI_JAVA_OPTS+=" -DgraphitePort=${carbon_port}"
-   fi
-
    # configure log file if specified
    if [ "$log4j_config" ]; then
       OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=log4j"
