@@ -996,7 +996,7 @@ public class ProxyService {
     }
   }
 
-  private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
+  private static DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
     int sz = instances.size();
     return sz > 0 ? instances.get(random.nextInt(sz)) : null;
   }
@@ -1159,7 +1159,7 @@ public class ProxyService {
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private Map<String, String> sysReqHeaders(MultiMap headersIn,
+  private static Map<String, String> sysReqHeaders(MultiMap headersIn,
     String tenantId, String authToken, ModuleInstance inst, String modPerms) {
 
     Map<String, String> headersOut = new HashMap<>();
@@ -1234,7 +1234,7 @@ public class ProxyService {
   }
 
   // store Auth/Handler response, and pass header as needed
-  private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
+  private static void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
     String phase = mi.getRoutingEntry().getPhase();
     // It was a real handler, remember the response code and headers
     if (mi.isHandler()) {
@@ -1249,7 +1249,7 @@ public class ProxyService {
   }
 
   // skip handler, but not if at pre/post filter phase
-  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi,
+  private static Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi,
     int statusCode) {
 
     if (statusCode >= 200 && statusCode <= 299) {
