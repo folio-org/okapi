@@ -52,8 +52,8 @@ public class PullManager {
     final Buffer body = Buffer.buffer();
     HttpClientRequest req = httpClient.getAbs(url, res1 -> {
       if (res1.failed()) {
-        logger.info("pull for " + baseUrl + " failed with status "
-          + res1.cause().getMessage());
+        logger.warn("pull for {} failed with status {}", baseUrl,
+          res1.cause().getMessage());
         getRemoteUrl(it, fut);
         return;
       }
@@ -61,8 +61,8 @@ public class PullManager {
       res.handler(body::appendBuffer);
       res.endHandler(x -> {
         if (res.statusCode() != 200) {
-          logger.info("pull for " + baseUrl + " failed with status "
-            + res.statusCode());
+          logger.warn("pull for {} failed with status {}",
+            baseUrl, res.statusCode());
           fut.handle(new Failure<>(ErrorType.USER,
             "pull for " + baseUrl + " returned status " + res.statusCode() + "\n" + body.toString()));
         } else {

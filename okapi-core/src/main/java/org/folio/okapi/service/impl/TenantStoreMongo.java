@@ -78,8 +78,8 @@ public class TenantStoreMongo implements TenantStore {
             if (ures.succeeded()) {
               fut.handle(new Success<>());
             } else {
-              logger.warn("Failed to update descriptor for " + id
-                      + ": " + ures.cause().getMessage());
+              logger.warn("Failed to update descriptor for {}: {}",
+                id, ures.cause().getMessage());
               fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
             }
           });

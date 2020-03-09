@@ -604,12 +604,7 @@ public class ProxyService {
         return;
       }
       HttpClientResponse res = res1.result();
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (newIt.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         pc.closeTimer();
@@ -741,12 +736,7 @@ public class ProxyService {
       }
       HttpClientResponse res = res1.result();
       fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         relayToRequest(res, pc, mi);
@@ -808,21 +798,7 @@ public class ProxyService {
         return;
       }
       HttpClientResponse res = res1.result();
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-        if (!newIt.hasNext()) {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, cReqs);
-          if (bcontent == null) {
-            stream.resume();
-          }
-          return;
-        }
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (newIt.hasNext()) {
         relayToRequest(res, pc, mi);
         storeResponseInfo(pc, mi, res);
@@ -832,7 +808,14 @@ public class ProxyService {
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
-        proxyResponseImmediate(pc, stream, bcontent, cReqs);
+        if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+          proxyResponseImmediate(pc, stream, bcontent, cReqs);
+        } else {
+          proxyResponseImmediate(pc, res, null, cReqs);
+          if (bcontent == null) {
+            stream.resume();
+          }
+        }
       }
     });
     copyHeaders(cReq, ctx, mi);
@@ -1075,8 +1058,8 @@ public class ProxyService {
           }
         }
       }
-      logger.debug("callSystemInterface: No auth for " + tenantId
-        + " calling with tenant header only");
+      logger.debug("callSystemInterface: No auth for {} calling with "
+        + "tenant header only", tenantId);
       doCallSystemInterface(headersIn, tenantId, null, inst, null, request, fut);
     });
   }
@@ -1114,8 +1097,8 @@ public class ProxyService {
       }
       OkapiClient cli = res.result();
       String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-      logger.debug("authForSystemInterface:"
-        + Json.encode(cli.getRespHeaders().entries()));
+      logger.debug("authForSystemInterface: {}",
+        Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
       String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);
@@ -1266,7 +1249,12 @@ public class ProxyService {
   }
 
   // skip handler, but not if at pre/post filter phase
-  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi) {
+  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi,
+    int statusCode) {
+
+    if (statusCode >= 200 && statusCode <= 299) {
+      return it;
+    }
     String phase = mi.getRoutingEntry().getPhase();
     if (XOkapiHeaders.FILTER_PRE.equals(phase) || XOkapiHeaders.FILTER_POST.equals(phase)) {
       return it;

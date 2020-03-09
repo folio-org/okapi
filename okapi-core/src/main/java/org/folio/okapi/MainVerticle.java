@@ -258,24 +258,22 @@ public class MainVerticle extends AbstractVerticle {
     final String interfaceVersion = md.getProvides()[0].getVersion();
     moduleManager.get(okapiModule, gres -> {
       if (gres.succeeded()) { // we already have one, go on
-        logger.debug("checkInternalModules: Already have " + okapiModule
-          + " with interface version " + interfaceVersion);
+        logger.debug("checkInternalModules: Already have {} "
+          + " with interface version {}", okapiModule, interfaceVersion);
         // See Okapi-359 about version checks across the cluster
         checkSuperTenant(okapiModule, promise);
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkInternalModules: Could not get "
-          + okapiModule + ": " + gres.cause());
+        logger.warn("checkInternalModules: Could not get {}: {}",
+          okapiModule, gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
-      logger.debug("Creating the internal Okapi module " + okapiModule
-        + " with interface version " + interfaceVersion);
+      logger.debug("Creating the internal Okapi module {} with interface version {}",
+        okapiModule, interfaceVersion);
       moduleManager.create(md, true, true, true, ires -> {
         if (ires.failed()) {
-          logger.warn("Failed to create the internal Okapi module"
-            + okapiModule + " " + ires.cause());
           promise.fail(ires.cause()); // something went badly wrong
           return;
         }
@@ -310,13 +308,13 @@ public class MainVerticle extends AbstractVerticle {
           }
         }
         final String ev = enver;
-        logger.debug("checkSuperTenant: Enabled version is '" + ev
-          + "', not '" + okapiModule + "'");
+        logger.debug("checkSuperTenant: Enabled version is '{}', not '{}'",
+          ev, okapiModule);
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) >= 4) {
-          logger.warn("checkSuperTenant: This Okapi is too old, "
-            + okapiVersion + " we already have " + ev + " in the database. "
-            + " Use that!");
+          logger.warn("checkSuperTenant: This Okapi is too old,"
+            + "{} we already have {} in the database. Use that!",
+            okapiVersion, ev);
         } else {
           logger.info("checkSuperTenant: Need to upgrade the stored version");
           // Use the commit, easier interface.
@@ -325,22 +323,21 @@ public class MainVerticle extends AbstractVerticle {
           tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
             ev, okapiModule, ures -> {
               if (ures.failed()) {
-                logger.debug("checkSuperTenant: "
-                  + "Updating enabled internalModule failed: " + ures.cause());
+                logger.warn("checkSuperTenant: "
+                  + "Updating enabled internalModule failed: {}", ures.cause());
                 promise.fail(ures.cause());
                 return;
               }
-            logger.info("Upgraded the InternalModule version"
-              + " from '" + ev + "' to '" + okapiModule + "'"
-              + " for " + XOkapiHeaders.SUPERTENANT_ID);
+            logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
+              ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
             });
         }
         promise.complete();
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkSuperTenant: Could not get "
-          + XOkapiHeaders.SUPERTENANT_ID + ": " + gres.cause());
+        logger.warn("checkSuperTenant: Could not get {}: {}",
+          XOkapiHeaders.SUPERTENANT_ID, gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
@@ -358,8 +355,8 @@ public class MainVerticle extends AbstractVerticle {
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
       tenantManager.insert(ten, ires -> {
         if (ires.failed()) {
-          logger.warn("Failed to create the superTenant "
-            + XOkapiHeaders.SUPERTENANT_ID + " " + ires.cause());
+          logger.warn("Failed to create the superTenant {}: {}",
+            XOkapiHeaders.SUPERTENANT_ID, ires.cause());
           promise.fail(ires.cause()); // something went badly wrong
           return;
         }

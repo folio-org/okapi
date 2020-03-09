@@ -366,9 +366,8 @@ public class TenantManager {
     getTenantInterface(mdFrom, mdTo, jo, tenantParameters, purge, ires -> {
       if (ires.failed()) {
         if (ires.getType() == ErrorType.NOT_FOUND) {
-          logger.debug("eadTenantInterface: "
-            + (mdTo != null ? mdTo.getId() : mdFrom.getId())
-            + " has no support for tenant init");
+          logger.debug("eadTenantInterface: {} has no support for tenant init",
+            (mdTo != null ? mdTo.getId() : mdFrom.getId()));
           ead2TenantInterface(tenant, mdFrom, mdTo, pc, fut);
         } else {
           fut.handle(new Failure<>(ires.getType(), ires.cause()));
