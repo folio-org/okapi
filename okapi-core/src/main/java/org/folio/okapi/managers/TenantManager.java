@@ -245,7 +245,7 @@ public class TenantManager {
     });
   }
 
-  private void updateModuleCommit(Tenant t,
+  public void updateModuleCommit(Tenant t,
     String moduleFrom, String moduleTo,
     Handler<ExtendedAsyncResult<Void>> fut) {
     String id = t.getId();
@@ -336,9 +336,15 @@ public class TenantManager {
         ead1TenantInterface(tenant, tenantParameters, mdFrom, mdTo, false, pc, res -> {
           if (res.failed()) {
             fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
+            return;
           }
+          ead5commit(tenant, mdFrom, mdTo, pc, res1 -> {
+            if (res1.failed()) {
+              fut.handle(new Failure<>(res.getType(), res.cause()));
+              return;
+            }
+            fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
+          });
         });
       }
     });
@@ -392,7 +398,7 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
     if (mdTo == null) {
-      ead5commit(tenant, mdFrom.getId(), null, pc, fut);
+      fut.handle(new Success<>());
     } else {
       ead2PermMod(tenant, mdFrom, mdTo, pc, fut);
     }
@@ -425,7 +431,7 @@ public class TenantManager {
           }
           pc.debug("enablePermissions: No tenantPermissions interface found. "
             + "Carrying on without it.");
-          ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
+          fut.handle(new Success<>());
         } else {
           pc.responseError(res.getType(), res.cause());
         }
@@ -505,7 +511,7 @@ public class TenantManager {
         return;
       }
       String moduleTo = mdTo.getId();
-      ead5commit(tenant, moduleFrom, moduleTo, pc, fut);
+      fut.handle(new Success<>());
     });
   }
 
@@ -519,21 +525,24 @@ public class TenantManager {
    * @param fut
    */
   private void ead5commit(Tenant tenant,
-    String moduleFrom, String moduleTo, ProxyContext pc,
+    ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
+
+    String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
+    String moduleTo = mdTo != null ? mdTo.getId() : null;
 
     pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
     updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
       if (ures.failed()) {
         pc.responseError(ures.getType(), ures.cause());
-      } else {
-        if (moduleTo != null) {
-          EventBus eb = vertx.eventBus();
-          eb.publish(eventName, tenant.getId());
-        }
-        pc.debug("ead5commit done");
-        fut.handle(new Success<>());
+        return;
       }
+      if (moduleTo != null) {
+        EventBus eb = vertx.eventBus();
+        eb.publish(eventName, tenant.getId());
+      }
+      pc.debug("ead5commit done");
+      fut.handle(new Success<>());
     });
   }
 
@@ -1021,7 +1030,7 @@ public class TenantManager {
       if (options.getSimulate()) {
         fut.handle(new Success<>(tml));
       } else {
-        installCommit1(t, pc, options, modsAvailable, tml, tml.iterator(),
+        installAutodeploy(t, pc, options, modsAvailable, tml, tml.iterator(),
           res1 -> {
             if (res1.failed()) {
               fut.handle(new Failure<>(res1.getType(), res1.cause()));
@@ -1034,73 +1043,103 @@ public class TenantManager {
   }
 
   /* phase 1 deploy modules if necessary */
-  private void installCommit1(Tenant t, ProxyContext pc,
+  private void installAutodeploy(Tenant t, ProxyContext pc,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml,
     Iterator<TenantModuleDescriptor> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext() && options.getDeploy()) {
-      TenantModuleDescriptor tm = it.next();
-      if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
-        ModuleDescriptor md = modsAvailable.get(tm.getId());
-        proxyService.autoDeploy(md, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            installCommit1(t, pc, options, modsAvailable, tml, it, fut);
-          }
-        });
-      } else {
-        installCommit1(t, pc, options, modsAvailable, tml, it, fut);
-      }
+    if (!it.hasNext() || !options.getDeploy()) {
+      installTenantPrepare(t, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      return;
+    }
+    TenantModuleDescriptor tm = it.next();
+    if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
+      ModuleDescriptor md = modsAvailable.get(tm.getId());
+      proxyService.autoDeploy(md, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          installAutodeploy(t, pc, options, modsAvailable, tml, it, fut);
+        }
+      });
     } else {
-      installCommit2(t, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      installAutodeploy(t, pc, options, modsAvailable, tml, it, fut);
     }
   }
 
   /* phase 2 enable modules for tenant */
-  private void installCommit2(Tenant tenant, ProxyContext pc,
+  private void installTenantPrepare(Tenant tenant, ProxyContext pc,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml,
     Iterator<TenantModuleDescriptor> it,
     Handler<ExtendedAsyncResult<Void>> fut) {
-    if (it.hasNext()) {
-      TenantModuleDescriptor tm = it.next();
-      ModuleDescriptor mdFrom = null;
-      ModuleDescriptor mdTo = null;
-      boolean purge = false;
-      if (tm.getAction() == Action.enable) {
-        if (tm.getFrom() != null) {
-          mdFrom = modsAvailable.get(tm.getFrom());
-        }
-        mdTo = modsAvailable.get(tm.getId());
-      } else if (tm.getAction() == Action.disable) {
-        mdFrom = modsAvailable.get(tm.getId());
-        if (options.getPurge()) {
-          purge = true;
-        }
+
+    if (!it.hasNext()) {
+      installTenantCommit(tenant, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      return;
+    }
+    TenantModuleDescriptor tm = it.next();
+    ModuleDescriptor mdFrom = null;
+    ModuleDescriptor mdTo = null;
+    boolean purge = false;
+    if (tm.getAction() == Action.enable) {
+      if (tm.getFrom() != null) {
+        mdFrom = modsAvailable.get(tm.getFrom());
       }
-      if (mdFrom == null && mdTo == null) {
-        installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
-      } else {
-        ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            installCommit2(tenant, pc, options, modsAvailable, tml, it, fut);
-          }
-        });
+      mdTo = modsAvailable.get(tm.getId());
+    } else if (tm.getAction() == Action.disable) {
+      mdFrom = modsAvailable.get(tm.getId());
+      if (options.getPurge()) {
+        purge = true;
       }
+    }
+    if (mdFrom == null && mdTo == null) {
+      installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
     } else {
-      installCommit3(tenant, options, modsAvailable, tml, tml.iterator(), fut);
+      ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
+        if (res.failed()) {
+          tm.setMessage(res.cause().getMessage());
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
+        }
+      });
     }
   }
 
-  /* phase 3 undeploy if no longer needed */
-  private void installCommit3(Tenant tenant,
+  /* phase 3 commit tenant upgrade modules */
+  private void installTenantCommit(Tenant tenant, ProxyContext pc,
+    TenantInstallOptions options,
+    Map<String, ModuleDescriptor> modsAvailable,
+    List<TenantModuleDescriptor> tml,
+    Iterator<TenantModuleDescriptor> it,
+    Handler<ExtendedAsyncResult<Void>> fut) {
+
+    if (!it.hasNext()) {
+      installUndeploy(tenant, options, modsAvailable, tml, tml.iterator(), fut);
+      return;
+    }
+    TenantModuleDescriptor tm = it.next();
+    ModuleDescriptor mdFrom = null;
+    ModuleDescriptor mdTo = null;
+    if (tm.getAction() == Action.enable) {
+      if (tm.getFrom() != null) {
+        mdFrom = modsAvailable.get(tm.getFrom());
+      }
+      mdTo = modsAvailable.get(tm.getId());
+    } else if (tm.getAction() == Action.disable) {
+      mdFrom = modsAvailable.get(tm.getId());
+    }
+    ead5commit(tenant, mdFrom, mdTo, pc, res -> {
+      installTenantCommit(tenant, pc, options, modsAvailable, tml, it, fut);
+    });
+  }
+
+  /* phase 4 undeploy if no longer needed */
+  private void installUndeploy(Tenant tenant,
     TenantInstallOptions options,
     Map<String, ModuleDescriptor> modsAvailable,
     List<TenantModuleDescriptor> tml,
@@ -1121,7 +1160,7 @@ public class TenantManager {
         getModuleUser(md.getId(), ures -> {
           if (ures.failed()) {
             // in use or other error, so skip
-            installCommit3(tenant, options, modsAvailable, tml, it, fut);
+            installUndeploy(tenant, options, modsAvailable, tml, it, fut);
           } else {
             // success means : not in use, so we can undeploy it
             logger.info("autoUndeploy mdF {}", mdF.getId());
@@ -1129,13 +1168,13 @@ public class TenantManager {
               if (res.failed()) {
                 fut.handle(new Failure<>(res.getType(), res.cause()));
               } else {
-                installCommit3(tenant, options, modsAvailable, tml, it, fut);
+                installUndeploy(tenant, options, modsAvailable, tml, it, fut);
               }
             });
           }
         });
       } else {
-        installCommit3(tenant, options, modsAvailable, tml, it, fut);
+        installUndeploy(tenant, options, modsAvailable, tml, it, fut);
       }
     } else {
       fut.handle(new Success<>());
