@@ -127,6 +127,7 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
+      .put("mode", "dev")
       .put("deploy.waitIterations", 30)
       .put("port", "9230")
       .put("port_start", "9231")
@@ -2681,12 +2682,27 @@ public class ModuleTest {
   }
 
   @Test
-  public void testInternalModule(TestContext context) {
-    logger.info("testInternalModule 1");
+  public void testInitdatabase(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "initdatabase");
     async = context.async();
     undeployFirst(x -> {
-      conf.remove("mongo_db_init");
-      conf.remove("postgres_db_init");
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+    });
+    async.await(1000);
+  }
+
+  @Test
+  public void testInternalModule(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    async = context.async();
+    undeployFirst(x -> {
 
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
@@ -2697,7 +2713,6 @@ public class ModuleTest {
     async.await(1000);
 
     async = context.async();
-    logger.info("testInternalModule 2");
     undeployFirst(x -> {
       conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
 

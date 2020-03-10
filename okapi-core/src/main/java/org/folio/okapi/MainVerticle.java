@@ -188,26 +188,32 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> promise) {
-    Future<Void> fut = Future.future(this::checkDistributedLock);
-    fut = fut.compose(x -> startDatabases());
-    fut = fut.compose(x -> startModmanager());
-    fut = fut.compose(x -> startTenants());
-    fut = fut.compose(x -> checkInternalModules());
-    fut = fut.compose(x -> startEnv());
-    fut = fut.compose(x -> startDiscovery());
-    fut = fut.compose(x -> startDeployment());
-    fut = fut.compose(x -> startListening());
-    fut = fut.compose(x -> startRedeploy());
+    Future<Void> fut = startDatabases();
+    if (initMode == InitMode.NORMAL) {
+      fut = fut.compose(x -> checkDistributedLock());
+      fut = fut.compose(x -> startModmanager());
+      fut = fut.compose(x -> startTenants());
+      fut = fut.compose(x -> checkInternalModules());
+      fut = fut.compose(x -> startEnv());
+      fut = fut.compose(x -> startDiscovery());
+      fut = fut.compose(x -> startDeployment());
+      fut = fut.compose(x -> startListening());
+      fut = fut.compose(x -> startRedeploy());
+    }
     fut.setHandler(x -> {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
+      }
+      if (initMode != InitMode.NORMAL) {
+        vertx.close();
       }
       promise.handle(x);
     });
   }
 
-  private void checkDistributedLock(Promise<Void> promise) {
+  private Future<Void> checkDistributedLock() {
     logger.info("Checking for working distributed lock. Cluster={}", vertx.isClustered());
+    Promise<Void> promise = Promise.promise();
     vertx.sharedData().getLockWithTimeout("test", 10000, res -> {
       if (res.succeeded()) {
         logger.info("Distributed lock ok");
@@ -218,22 +224,14 @@ public class MainVerticle extends AbstractVerticle {
           + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
       }
     });
+    return promise.future();
   }
 
   private Future<Void> startDatabases() {
-    Promise<Void> promise = Promise.promise();
     if (storage == null) {
-      promise.complete();
-    } else {
-      storage.prepareDatabases(initMode, res -> {
-        if (initMode != InitMode.NORMAL) {
-          logger.info("Database operation {} done. Exiting", initMode);
-          System.exit(0);
-        }
-        promise.handle(res);
-      });
+      return Future.succeededFuture();
     }
-    return promise.future();
+    return storage.prepareDatabases(initMode);
   }
 
   private Future<Void> startModmanager() {
@@ -324,8 +322,6 @@ public class MainVerticle extends AbstractVerticle {
           tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
             ev, okapiModule, ures -> {
               if (ures.failed()) {
-                logger.warn("checkSuperTenant: "
-                  + "Updating enabled internalModule failed: {}", ures.cause());
                 promise.fail(ures.cause());
                 return;
               }
@@ -337,8 +333,6 @@ public class MainVerticle extends AbstractVerticle {
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkSuperTenant: Could not get {}: {}",
-          XOkapiHeaders.SUPERTENANT_ID, gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
@@ -354,11 +348,9 @@ public class MainVerticle extends AbstractVerticle {
         + "}"
         + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
-      tenantManager.insert(ten, ires -> {
-        if (ires.failed()) {
-          logger.warn("Failed to create the superTenant {}: {}",
-            XOkapiHeaders.SUPERTENANT_ID, ires.cause());
-          promise.fail(ires.cause()); // something went badly wrong
+      tenantManager.insert(ten, res -> {
+        if (res.failed()) {
+          promise.fail(res.cause()); // something went badly wrong
           return;
         }
         promise.complete();
