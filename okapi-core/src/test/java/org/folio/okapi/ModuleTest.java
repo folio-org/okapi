@@ -2690,23 +2690,35 @@ public class ModuleTest {
 
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        logger.info("testInternalModule 2");
-        testInternalModule2();
-      });
-    });
-  }
-
-  private void testInternalModule2() {
-    logger.info("testInternalModule 3");
-    undeployFirst(x -> {
-      conf.put("okapiVersion", "3.0.0");
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        logger.info("testInternalModule 4");
-        conf.remove("okapiVersion");
+        context.assertTrue(res.succeeded());
         async.complete();
       });
     });
-  }
+    async.await(1000);
 
+    async = context.async();
+    logger.info("testInternalModule 2");
+    undeployFirst(x -> {
+      conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
+
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+    });
+    async.await(1000);
+
+    async = context.async();
+    undeployFirst(x -> {
+      conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+    });
+    async.await(1000);
+    conf.remove("okapiVersion");
+  }
 }

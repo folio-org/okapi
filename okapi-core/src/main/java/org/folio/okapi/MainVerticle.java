@@ -296,7 +296,7 @@ public class MainVerticle extends AbstractVerticle {
         Tenant st = gres.result();
         Set<String> enabledMods = st.getEnabled().keySet();
         if (enabledMods.contains(okapiModule)) {
-          logger.info("checkSuperTenant: enabled version is OK");
+          logger.info("checkSuperTenant: enabled version is {}", okapiModule);
           promise.complete();
           return;
         }
@@ -316,7 +316,8 @@ public class MainVerticle extends AbstractVerticle {
             + "{} we already have {} in the database. Use that!",
             okapiVersion, ev);
         } else {
-          logger.info("checkSuperTenant: Need to upgrade the stored version");
+          logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
+            ev, okapiModule);
           // Use the commit, easier interface.
           // the internal module can not have dependencies
           // See Okapi-359 about version checks across the cluster
