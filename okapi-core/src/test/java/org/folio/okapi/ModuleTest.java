@@ -2700,7 +2700,7 @@ public class ModuleTest {
 
   @Test
   public void testInitdatabaseBadCredentials(TestContext context) {
-    if (!postgres.equals(conf.getString("storage"))) {
+    if (!"postgres".equals(conf.getString("storage"))) {
       return;
     }
     conf.remove("mongo_db_init");
@@ -2713,7 +2713,8 @@ public class ModuleTest {
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
         context.assertTrue(res.failed());
         context.assertTrue(res.cause().getMessage().contains(
-          "failed password authentication for user \"okapi\""));
+          "password authentication failed for user \"okapi\""),
+          res.cause().getMessage());
         async.complete();
       });
     });
