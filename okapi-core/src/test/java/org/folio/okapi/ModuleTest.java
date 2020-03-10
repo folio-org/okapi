@@ -2722,6 +2722,22 @@ public class ModuleTest {
   }
 
   @Test
+  public void testPurgedatabase(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "purgedatabase");
+    async = context.async();
+    undeployFirst(x -> {
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+    });
+    async.await(1000);
+  }
+
+  @Test
   public void testInternalModule(TestContext context) {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
