@@ -127,7 +127,6 @@ public class ModuleTest {
     conf = new JsonObject();
 
     conf.put("storage", value)
-      .put("mode", "dev")
       .put("deploy.waitIterations", 30)
       .put("port", "9230")
       .put("port_start", "9231")
@@ -164,8 +163,10 @@ public class ModuleTest {
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
 
+    conf.put("postgres_password", "okapi25");
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
+    conf.put("mode", "dev");
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
@@ -2691,6 +2692,28 @@ public class ModuleTest {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
         context.assertTrue(res.succeeded());
+        async.complete();
+      });
+    });
+    async.await(1000);
+  }
+
+  @Test
+  public void testInitdatabaseBadCredentials(TestContext context) {
+    if (!postgres.equals(conf.getString("storage"))) {
+      return;
+    }
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "initdatabase");
+    conf.put("postgres_password", "badpass");
+    async = context.async();
+    undeployFirst(x -> {
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        context.assertTrue(res.failed());
+        context.assertTrue(res.cause().getMessage().contains(
+          "failed password authentication for user \"okapi\""));
         async.complete();
       });
     });

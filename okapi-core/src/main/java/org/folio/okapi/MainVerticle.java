@@ -228,9 +228,6 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startDatabases() {
-    if (storage == null) {
-      return Future.succeededFuture();
-    }
     return storage.prepareDatabases(initMode);
   }
 
@@ -263,8 +260,6 @@ public class MainVerticle extends AbstractVerticle {
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkInternalModules: Could not get {}: {}",
-          okapiModule, gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
