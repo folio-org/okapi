@@ -417,7 +417,6 @@ public class TenantManager {
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
-    String moduleTo = mdTo.getId();
     findSystemInterface(tenant, res -> {
       if (res.failed()) {
         if (res.getType() == ErrorType.NOT_FOUND) { // no perms interface.
@@ -435,14 +434,14 @@ public class TenantManager {
         } else {
           pc.responseError(res.getType(), res.cause());
         }
-      } else {
-        ModuleDescriptor permsMod = res.result();
-        if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-          pc.debug("Using the tenantPermissions of this module itself");
-          permsMod = mdTo;
-        }
-        ead4Permissions(tenant, moduleFrom, mdTo, permsMod, pc, fut);
+        return;
       }
+      ModuleDescriptor permsMod = res.result();
+      if (mdTo.getSystemInterface("_tenantPermissions") != null) {
+        pc.debug("Using the tenantPermissions of this module itself");
+        permsMod = mdTo;
+      }
+      ead4Permissions(tenant, mdTo, permsMod, pc, fut);
     });
   }
 
@@ -465,7 +464,7 @@ public class TenantManager {
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!modit.hasNext()) {
       pc.debug("ead3RealoadPerms: No more modules to reload");
-      ead4Permissions(tenant, moduleFrom, mdTo, permsModule, pc, fut);
+      ead4Permissions(tenant, mdTo, permsModule, pc, fut);
       return;
     }
     String mdid = modit.next();
@@ -498,7 +497,7 @@ public class TenantManager {
    * @param pc
    * @param fut
    */
-  private void ead4Permissions(Tenant tenant, String moduleFrom,
+  private void ead4Permissions(Tenant tenant,
     ModuleDescriptor mdTo, ModuleDescriptor permsModule,
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
@@ -510,7 +509,6 @@ public class TenantManager {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      String moduleTo = mdTo.getId();
       fut.handle(new Success<>());
     });
   }
@@ -1133,9 +1131,9 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    ead5commit(tenant, mdFrom, mdTo, pc, res -> {
-      installTenantCommit(tenant, pc, options, modsAvailable, tml, it, fut);
-    });
+    ead5commit(tenant, mdFrom, mdTo, pc, res ->
+      installTenantCommit(tenant, pc, options, modsAvailable, tml, it, fut)
+    );
   }
 
   /* phase 4 undeploy if no longer needed */
