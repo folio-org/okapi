@@ -426,7 +426,7 @@ public class MainVerticle extends AbstractVerticle {
             logger.info("API Gateway started PID {}. Listening on port {}",
               ManagementFactory.getRuntimeMXBean().getName(), port);
           } else {
-            logger.fatal("createHttpServer failed for port {}: {}", port, result.cause());
+            logger.fatal("createHttpServer failed for port {}", port, result.cause());
           }
           promise.handle(result.mapEmpty());
         }
@@ -440,7 +440,7 @@ public class MainVerticle extends AbstractVerticle {
       if (res.succeeded()) {
         logger.info("Deploy completed succesfully");
       } else {
-        logger.info("Deploy failed: {}", res.cause());
+        logger.info("Deploy failed", res.cause());
       }
       if (enableProxy) {
         tenantManager.startTimers(promise);
