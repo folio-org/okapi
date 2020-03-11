@@ -1,6 +1,7 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -1016,7 +1017,7 @@ public class ProxyService {
    */
   public void callSystemInterface(Tenant tenant, ModuleInstance inst,
     String request, ProxyContext pc,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    Handler<AsyncResult<OkapiClient>> fut) {
 
     String curTenantId = pc.getTenant(); // is often the supertenant
     MultiMap headersIn = pc.getCtx().request().headers();
@@ -1025,7 +1026,7 @@ public class ProxyService {
 
   public void callSystemInterface(String curTenantId, MultiMap headersIn,
     Tenant tenant, ModuleInstance inst,
-    String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    String request, Handler<AsyncResult<OkapiClient>> fut) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1070,7 +1071,7 @@ public class ProxyService {
    */
   private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
     String tenantId, ModuleInstance inst, String request, MultiMap headers,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    Handler<AsyncResult<OkapiClient>> fut) {
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
@@ -1092,7 +1093,7 @@ public class ProxyService {
     doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
       if (res.failed()) {
         logger.warn("Auth check for systemInterface failed!");
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(res);
         return;
       }
       OkapiClient cli = res.result();
@@ -1113,19 +1114,15 @@ public class ProxyService {
    */
   private void doCallSystemInterface(MultiMap headersIn,
     String tenantId, String authToken, ModuleInstance inst, String modPerms,
-    String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    String request, Handler<AsyncResult<OkapiClient>> fut) {
 
-    discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
-      if (gres.failed()) {
-        logger.warn("doCallSystemInterface on " + inst.getModuleDescriptor().getId() + " "
-          + inst.getPath()
-          + " failed. Could not find the module in discovery", gres.cause());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
+    discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId(), gres -> {
+      DeploymentDescriptor instance = null;
+      if (gres.succeeded()) {
+        instance = pickInstance(gres.result());
       }
-      DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11100",
+        fut.handle(Future.failedFuture(messages.getMessage("11100",
           inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
@@ -1146,11 +1143,11 @@ public class ProxyService {
           String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
-          fut.handle(new Failure<>(ErrorType.INTERNAL, msg));
+          fut.handle(Future.failedFuture(msg));
           return;
         }
         // Pass response headers - needed for unit test, if nothing else
-        fut.handle(new Success<>(cli));
+        fut.handle(Future.succeededFuture(cli));
       });
     });
   }

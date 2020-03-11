@@ -340,7 +340,7 @@ public class TenantManager {
           }
           ead5commit(tenant, mdFrom, mdTo, pc, res1 -> {
             if (res1.failed()) {
-              fut.handle(new Failure<>(res.getType(), res.cause()));
+              fut.handle(new Failure<>(ErrorType.USER, res.cause()));
               return;
             }
             fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
@@ -383,7 +383,7 @@ public class TenantManager {
         final String req = purge ? "" : jo.encodePrettily();
         proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
           if (cres.failed()) {
-            fut.handle(new Failure<>(cres.getType(), cres.cause()));
+            fut.handle(new Failure<>(ErrorType.USER, cres.cause()));
           } else {
             pc.passOkapiTraceHeaders(cres.result());
             // We can ignore the result, the call went well.
@@ -721,7 +721,7 @@ public class TenantManager {
     proxyService.callSystemInterface(tenant, permInst,
       pljson, pc, cres -> {
         if (cres.failed()) {
-          fut.handle(new Failure<>(cres.getType(), cres.cause()));
+          fut.handle(new Failure<>(ErrorType.USER, cres.cause()));
         } else {
           pc.passOkapiTraceHeaders(cres.result());
           pc.debug("tenantPerms request to " + permsModule.getName()
