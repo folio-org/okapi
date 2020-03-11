@@ -1092,7 +1092,6 @@ public class ProxyService {
     ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD, inst.isHandler());
     doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
       if (res.failed()) {
-        logger.warn("Auth check for systemInterface failed!");
         fut.handle(res);
         return;
       }
