@@ -342,11 +342,7 @@ public class MainVerticle extends AbstractVerticle {
         + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
       tenantManager.insert(ten, res -> {
-        if (res.failed()) {
-          promise.fail(res.cause()); // something went badly wrong
-          return;
-        }
-        promise.complete();
+        promise.handle(res.mapEmpty());
       });
     });
   }
