@@ -1,6 +1,9 @@
 package org.folio.okapi;
 
-import org.folio.okapi.managers.ModuleManager;
+import java.lang.management.ManagementFactory;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -14,11 +17,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import static java.lang.System.getenv;
-import java.lang.management.ManagementFactory;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
@@ -28,9 +26,10 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.managers.DeploymentManager;
-import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
 import org.folio.okapi.managers.TenantManager;
+import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -99,7 +98,7 @@ public class MainVerticle extends AbstractVerticle {
     if (loglevel != null) {
       LogHelper.setRootLogLevel(loglevel);
     } else {
-      String lev = getenv("OKAPI_LOGLEVEL");
+      String lev = System.getenv("OKAPI_LOGLEVEL");
       if (lev != null && !lev.isEmpty()) {
         LogHelper.setRootLogLevel(loglevel);
       }
