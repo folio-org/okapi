@@ -53,7 +53,7 @@ public class PullManager {
     HttpClientRequest req = httpClient.getAbs(url, res1 -> {
       if (res1.failed()) {
         logger.warn("pull for {} failed with status {}", baseUrl,
-          res1.cause().getMessage());
+          res1.cause().getMessage(), res1);
         getRemoteUrl(it, fut);
         return;
       }

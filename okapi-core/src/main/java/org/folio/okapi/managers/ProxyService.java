@@ -1098,7 +1098,7 @@ public class ProxyService {
       OkapiClient cli = res.result();
       String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
       logger.debug("authForSystemInterface: {}",
-        Json.encode(cli.getRespHeaders().entries()));
+        () -> Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
       String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);

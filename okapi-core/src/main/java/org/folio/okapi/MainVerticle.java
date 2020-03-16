@@ -434,6 +434,7 @@ public class MainVerticle extends AbstractVerticle {
       if (res.succeeded()) {
         logger.info("Deploy completed succesfully");
       } else {
+        // not reporting failure if re-deploy fails
         logger.info("Deploy failed", res.cause());
       }
       if (enableProxy) {
