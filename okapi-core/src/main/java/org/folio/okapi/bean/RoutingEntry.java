@@ -35,6 +35,8 @@ public class RoutingEntry {
   private String pathRegex;
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
+  @JsonIgnore
+  private boolean enableFastMatch = false;
 
   public enum ProxyType {
     REQUEST_RESPONSE,
@@ -193,6 +195,8 @@ public class RoutingEntry {
 
   public void setPath(String path) {
     this.path = path;
+    this.pathPattern = null;
+    this.pathRegex = null;
   }
 
   public String getPathPattern() {
@@ -226,6 +230,7 @@ public class RoutingEntry {
   public void setPathPattern(String pathPattern) {
     this.pathPattern = pathPattern;
     StringBuilder b = new StringBuilder();
+    enableFastMatch = true;
     b.append("^");
     int i = 0;
     while (i < pathPattern.length()) {
@@ -235,6 +240,7 @@ public class RoutingEntry {
         i = skipNamedPattern(pathPattern, i, c);
       } else if (c == '*') {
         b.append(".*");
+        enableFastMatch = false;
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
       } else {
@@ -246,36 +252,67 @@ public class RoutingEntry {
     this.pathRegex = b.toString();
   }
 
-  private boolean matchUri(String uri) {
-    if (uri != null) {
-      if (pathRegex != null) {
-        String p = uri;
-        int indx = p.indexOf('?');
-        if (indx > 0) {
-          p = p.substring(0, indx);
+  private boolean fastMatch(String uri) {
+    int uriI = 0;
+    int patternI = 0;
+    while (patternI < pathPattern.length()) {
+      char patternC = pathPattern.charAt(patternI);
+      if (patternC == '{') {
+        while (patternI < pathPattern.length()) {
+          if (pathPattern.charAt(patternI) == '}') {
+            patternI++;
+            break;
+          }
+          patternI++;
         }
-        indx = p.indexOf('#');
-        if (indx > 0) {
-          p = p.substring(0, indx);
-        }
-        if (!p.matches(pathRegex)) {
+        if (uriI == uri.length()) { // at least one character for {id} pattern
           return false;
         }
-      } else if (path != null && !uri.startsWith(path)) {
-        return false;
+        while (uriI < uri.length()) {
+          char uriC = uri.charAt(uriI);
+          if (uriC == '/' || uriC == '#' || uriC == '?') {
+            break;
+          }
+          uriI++;
+        }
+      } else {
+        if (uriI == uri.length() || patternC != uri.charAt(uriI)) {
+          return false;
+        }
+        uriI++;
+        patternI++;
       }
     }
-    return true;
+    return uriI == uri.length() || uri.charAt(uriI) == '?' || uri.charAt(uriI) == '#';
+  }
+
+  private boolean matchUri(String uri) {
+    if (uri == null) {
+      return true;
+    }
+    if (pathRegex != null) {
+      if (enableFastMatch) {
+        return fastMatch(uri);
+      }
+      String p = uri;
+      int indx = p.indexOf('?');
+      if (indx > 0) {
+        p = p.substring(0, indx);
+      }
+      indx = p.indexOf('#');
+      if (indx > 0) {
+        p = p.substring(0, indx);
+      }
+      return p.matches(pathRegex);
+    }
+    return path == null || uri.startsWith(path);
   }
 
   public boolean match(String uri, String method) {
-    if (!matchUri(uri)) {
-      return false;
-    }
     if (methods != null) {
       for (String m : methods) {
         if (method == null || m.equals("*") || m.equals(method)) {
-          return true;
+          return matchUri(uri);
         }
       }
     }
