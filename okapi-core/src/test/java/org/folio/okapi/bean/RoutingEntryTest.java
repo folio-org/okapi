@@ -185,31 +185,35 @@ public class RoutingEntryTest {
     t1 = testPerfmanceOne(t);
     t.enableFastMatch = false;
     t2 = testPerfmanceOne(t);
-    logger.info("tfast: {} ms tregular: {} ms", t1, t2);
+    logger.info("comp tfast: {} ms tregular: {} ms", t1, t2);
 
     t.setPathPattern("/inventory-*/instances/{id}");
     t.enableFastMatch = true;
     t1 = testPerfmanceOne(t);
     t.enableFastMatch = false;
     t2 = testPerfmanceOne(t);
-    logger.info("tfast: {} ms tregular: {} ms", t1, t2);
+    logger.info("star+comp tfast: {} ms tregular: {} ms", t1, t2);
   }
 
   private long testPerfmanceOne(RoutingEntry t) {
     final int it = 10000;
 
+    int count = -1;
+    if (t.match("/inventory-storage/instances/123", "GET")) {
+      count++;
+    }
     long l = System.nanoTime();
-    int count = 0;
     for (int i = 0; i < it; i++) {
       if (t.match("/inventory-storage/instances/123", "GET")) {
         count++;
       }
     }
+    long msec = (System.nanoTime() - l) / 1000000;
     assertEquals(it, count);
-
-    return (System.nanoTime() - l) / 1000000;
+    return msec;
   }
 
+  @Test
   public void testInvalidPatterns() {
     RoutingEntry t = new RoutingEntry();
     boolean caught = false;
