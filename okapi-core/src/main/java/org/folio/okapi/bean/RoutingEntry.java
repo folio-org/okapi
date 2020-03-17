@@ -36,7 +36,7 @@ public class RoutingEntry {
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
   @JsonIgnore
-  private boolean enableFastMatch = false;
+  boolean enableFastMatch = false;
 
   public enum ProxyType {
     REQUEST_RESPONSE,
@@ -222,7 +222,7 @@ public class RoutingEntry {
       }
     }
     if (c != '}') {
-      throw new DecodeException("Missing {-character for {}-construct in pathPattern");
+      throw new DecodeException("Missing }-character for {}-construct in pathPattern");
     }
     return i;
   }
@@ -230,7 +230,6 @@ public class RoutingEntry {
   public void setPathPattern(String pathPattern) {
     this.pathPattern = pathPattern;
     StringBuilder b = new StringBuilder();
-    enableFastMatch = true;
     b.append("^");
     int i = 0;
     while (i < pathPattern.length()) {
@@ -240,7 +239,6 @@ public class RoutingEntry {
         i = skipNamedPattern(pathPattern, i, c);
       } else if (c == '*') {
         b.append(".*");
-        enableFastMatch = false;
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
       } else {
@@ -252,11 +250,26 @@ public class RoutingEntry {
     this.pathRegex = b.toString();
   }
 
-  private boolean fastMatch(String uri) {
-    int uriI = 0;
-    int patternI = 0;
+  static int cutUri(String uri) {
+    int len = uri.indexOf('?');
+    if (len == -1) {
+      len = uri.length();
+    }
+    int idx = uri.indexOf('#');
+    if (idx != -1 && idx < len) {
+      len = idx;
+    }
+    return len;
+  }
+
+  static boolean fastMatch(String pathPattern, String uri) {
+    return fastMatch(pathPattern, 0, uri, 0, cutUri(uri));
+  }
+
+  static boolean fastMatch(String pathPattern, int patternI, String uri, int uriI, int uriLength) {
     while (patternI < pathPattern.length()) {
       char patternC = pathPattern.charAt(patternI);
+      patternI++;
       if (patternC == '{') {
         while (patternI < pathPattern.length()) {
           if (pathPattern.charAt(patternI) == '}') {
@@ -265,25 +278,30 @@ public class RoutingEntry {
           }
           patternI++;
         }
-        if (uriI == uri.length()) { // at least one character for {id} pattern
+        boolean empty = true;
+        while (uriI < uriLength && uri.charAt(uriI) != '/') {
+          uriI++;
+          empty = false;
+        }
+        if (empty) {
           return false;
         }
-        while (uriI < uri.length()) {
-          char uriC = uri.charAt(uriI);
-          if (uriC == '/' || uriC == '#' || uriC == '?') {
-            break;
-          }
-          uriI++;
-        }
-      } else {
-        if (uriI == uri.length() || patternC != uri.charAt(uriI)) {
+      } else if (patternC != '*') {
+        if (uriI == uriLength || patternC != uri.charAt(uriI)) {
           return false;
         }
         uriI++;
-        patternI++;
+      } else {
+        do {
+          if (fastMatch(pathPattern, patternI, uri, uriI, uriLength)) {
+            return true;
+          }
+          uriI++;
+        } while (uriI <= uriLength);
+        return false;
       }
     }
-    return uriI == uri.length() || uri.charAt(uriI) == '?' || uri.charAt(uriI) == '#';
+    return uriI == uriLength;
   }
 
   private boolean matchUri(String uri) {
@@ -292,17 +310,9 @@ public class RoutingEntry {
     }
     if (pathRegex != null) {
       if (enableFastMatch) {
-        return fastMatch(uri);
+        return fastMatch(pathPattern, uri);
       }
-      String p = uri;
-      int indx = p.indexOf('?');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
-      indx = p.indexOf('#');
-      if (indx > 0) {
-        p = p.substring(0, indx);
-      }
+      String p = uri.substring(0, cutUri(uri));
       return p.matches(pathRegex);
     }
     return path == null || uri.startsWith(path);
@@ -321,19 +331,10 @@ public class RoutingEntry {
 
   public String getRedirectUri(String uri) {
     if (pathRegex != null) {
-      int indx1 = uri.indexOf('?');
-      final int indx2 = uri.indexOf('#');
-      if (indx1 == -1) {
-        indx1 = indx2;
-      }
-      String p;
-      if (indx1 != -1) {
-        p = uri.substring(0, indx1);
-      } else {
-        p = uri;
-      }
+      final int indx1 = cutUri(uri);
+      String p = uri.substring(0, indx1);
       p = p.replaceAll(pathRegex, this.redirectPath);
-      if (indx1 != -1) {
+      if (indx1 < uri.length()) {
         p = p.concat(uri.substring(indx1));
       }
       return p;
