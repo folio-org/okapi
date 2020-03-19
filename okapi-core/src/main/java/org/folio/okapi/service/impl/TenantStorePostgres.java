@@ -14,7 +14,6 @@ import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.Success;
 
 /**
@@ -29,7 +28,6 @@ public class TenantStorePostgres implements TenantStore {
   private static final String ID_SELECT = JSON_COLUMN + "->'descriptor'->>'id' = $1";
   private static final String ID_INDEX = JSON_COLUMN + "->'descriptor'->'id'";
   private final PostgresTable<Tenant> pgTable;
-  private Messages messages = Messages.getInstance();
 
   public TenantStorePostgres(PostgresHandle pg) {
     this.pg = pg;
