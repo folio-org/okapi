@@ -15,25 +15,21 @@ import java.util.Base64;
 public class OkapiToken {
   private String token;
 
-  public OkapiToken() {
-    this.token = null;
-  }
-
-  public OkapiToken(RoutingContext ctx) {
-    this.token = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-  }
-
-  public void setToken(String token) {
+  public OkapiToken(String token) {
     this.token = token;
   }
 
   private JsonObject getPayload() {
-    String encodedJson;
-    try {
-      encodedJson = this.token.split("\\.")[1];
-    } catch (ArrayIndexOutOfBoundsException e) {
-      throw new IllegalArgumentException(e.getMessage());
+    int idx1 = token.indexOf('.');
+    if (idx1 == -1) {
+      throw new IllegalArgumentException("Missing . separator for token");
     }
+    idx1++;
+    int idx2 = token.indexOf('.', idx1);
+    if (idx2 == -1) {
+      throw new IllegalArgumentException("Missing . separator for token");
+    }
+    String encodedJson = token.substring(idx1, idx2);
     String decodedJson = new String(Base64.getDecoder().decode(encodedJson));
     JsonObject j;
     try {
