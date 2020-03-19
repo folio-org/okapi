@@ -1,3 +1,9 @@
+## 2.37.1 2020-03-19
+
+ * [OKAPI-773](https://issues.folio.org/browse/OKAPI-773) 
+   switch instance in "discovery" only if all modules installed/upgraded
+   succesfully
+
 ## 2.37.0 2020-02-26
 
  * OKAPI-797/OKAPI-799 Tenant init fails with Docker deployment
