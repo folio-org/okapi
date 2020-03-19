@@ -2682,19 +2682,23 @@ public class ModuleTest {
     }
   }
 
+  private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
+    async = context.async();
+    undeployFirst(context.asyncAssertSuccess(handler -> {
+      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
+      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+        fut.handle(res);
+        async.complete();
+      });
+    }));
+  }
+
   @Test
   public void testInitdatabase(TestContext context) {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
-    async = context.async();
-    undeployFirst(x -> {
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.succeeded());
-        async.complete();
-      });
-    });
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
   }
 
@@ -2707,17 +2711,10 @@ public class ModuleTest {
     conf.remove("postgres_db_init");
     conf.put("mode", "initdatabase");
     conf.put("postgres_password", "badpass");
-    async = context.async();
-    undeployFirst(x -> {
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.failed());
-        context.assertTrue(res.cause().getMessage().contains(
+    undeployFirstAndDeploy(context, context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains(
           "password authentication failed for user \"okapi\""),
-          res.cause().getMessage());
-        async.complete();
-      });
-    });
+          cause.getMessage())));
     async.await(1000);
   }
 
@@ -2726,14 +2723,7 @@ public class ModuleTest {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
     conf.put("mode", "purgedatabase");
-    async = context.async();
-    undeployFirst(x -> {
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.succeeded());
-        async.complete();
-      });
-    });
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
   }
 
@@ -2741,38 +2731,15 @@ public class ModuleTest {
   public void testInternalModule(TestContext context) {
     conf.remove("mongo_db_init");
     conf.remove("postgres_db_init");
-    async = context.async();
-    undeployFirst(x -> {
-
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.succeeded());
-        async.complete();
-      });
-    });
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
 
-    async = context.async();
-    undeployFirst(x -> {
-      conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
-
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.succeeded());
-        async.complete();
-      });
-    });
+    conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
 
-    async = context.async();
-    undeployFirst(x -> {
-      conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        context.assertTrue(res.succeeded());
-        async.complete();
-      });
-    });
+    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
     conf.remove("okapiVersion");
   }
