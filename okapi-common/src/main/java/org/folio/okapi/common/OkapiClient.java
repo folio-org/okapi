@@ -214,15 +214,17 @@ public class OkapiClient {
         if (statusCode >= 200 && statusCode <= 299) {
           fut.handle(new Success<>(responsebody));
         } else {
-          if (statusCode== 404) {
-            fut.handle(new Failure<>(NOT_FOUND, "404 " + responsebody + ": " + url));
+          ErrorType errorType;
+          if (statusCode == 404) {
+            errorType = ErrorType.NOT_FOUND;
           } else if (statusCode == 403) {
-            fut.handle(new Failure<>(FORBIDDEN, "403 " + responsebody + ": " + url));
-          } else if (statusCode == 400) {
-            fut.handle(new Failure<>(USER, responsebody));
+            errorType = ErrorType.FORBIDDEN;
+          } else if (statusCode >= 500) {
+            errorType = ErrorType.INTERNAL;
           } else {
-            fut.handle(new Failure<>(INTERNAL, responsebody));
+            errorType = ErrorType.USER;
           }
+          fut.handle(new Failure<>(errorType, Integer.toString(statusCode) + ": " + responsebody));
         }
       });
       reqres.exceptionHandler(e -> {

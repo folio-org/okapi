@@ -39,9 +39,9 @@ public class DepResolution {
     List<InterfaceDescriptor> pIntsList = pInts.get(req.getId());
     if (pIntsList != null) {
       for (InterfaceDescriptor pi : pIntsList) {
-        logger.debug("Checking dependency of " + md.getId() + ": "
-          + req.getId() + " " + req.getVersion()
-          + " against " + pi.getId() + " " + pi.getVersion());
+        logger.debug("Checking dependency of {}: {} {} against {} {}",
+          md.getId(), req.getId(), req.getVersion(),
+          pi.getId(), pi.getVersion());
         if (req.getId().equals(pi.getId())) {
           if (pi.isCompatible(req)) {
             logger.debug("Dependency OK");

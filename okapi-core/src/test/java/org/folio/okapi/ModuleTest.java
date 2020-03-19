@@ -163,8 +163,10 @@ public class ModuleTest {
     RestAssured.port = port;
     RestAssured.urlEncodingEnabled = false;
 
+    conf.put("postgres_password", "okapi25");
     conf.put("postgres_db_init", "1");
     conf.put("mongo_db_init", "1");
+    conf.put("mode", "dev");
     DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
     vertx.deployVerticle(MainVerticle.class.getName(), opt, context.asyncAssertSuccess());
   }
@@ -2680,33 +2682,65 @@ public class ModuleTest {
     }
   }
 
-  @Test
-  public void testInternalModule(TestContext context) {
-    logger.info("testInternalModule 1");
+  private void undeployFirstAndDeploy(TestContext context, Handler<AsyncResult<String>> fut) {
     async = context.async();
-    undeployFirst(x -> {
-      conf.remove("mongo_db_init");
-      conf.remove("postgres_db_init");
-
+    undeployFirst(context.asyncAssertSuccess(handler -> {
       DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
       vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        logger.info("testInternalModule 2");
-        testInternalModule2();
-      });
-    });
-  }
-
-  private void testInternalModule2() {
-    logger.info("testInternalModule 3");
-    undeployFirst(x -> {
-      conf.put("okapiVersion", "3.0.0");
-      DeploymentOptions opt = new DeploymentOptions().setConfig(conf);
-      vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-        logger.info("testInternalModule 4");
-        conf.remove("okapiVersion");
+        fut.handle(res);
         async.complete();
       });
-    });
+    }));
   }
 
+  @Test
+  public void testInitdatabase(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "initdatabase");
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await(1000);
+  }
+
+  @Test
+  public void testInitdatabaseBadCredentials(TestContext context) {
+    if (!"postgres".equals(conf.getString("storage"))) {
+      return;
+    }
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "initdatabase");
+    conf.put("postgres_password", "badpass");
+    undeployFirstAndDeploy(context, context.asyncAssertFailure(cause ->
+        context.assertTrue(cause.getMessage().contains(
+          "password authentication failed for user \"okapi\""),
+          cause.getMessage())));
+    async.await(1000);
+  }
+
+  @Test
+  public void testPurgedatabase(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    conf.put("mode", "purgedatabase");
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await(1000);
+  }
+
+  @Test
+  public void testInternalModule(TestContext context) {
+    conf.remove("mongo_db_init");
+    conf.remove("postgres_db_init");
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await(1000);
+
+    conf.put("okapiVersion", "3.0.0");  // upgrade from 0.0.0 to 3.0.0
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await(1000);
+
+    conf.put("okapiVersion", "2.0.0"); // downgrade from 3.0.0 to 2.0.0
+    undeployFirstAndDeploy(context, context.asyncAssertSuccess());
+    async.await(1000);
+    conf.remove("okapiVersion");
+  }
 }
