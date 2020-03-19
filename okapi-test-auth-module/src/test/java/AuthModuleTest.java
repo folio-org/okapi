@@ -72,7 +72,7 @@ public class AuthModuleTest {
     cli.get("/notokentenant", res -> {
       cli.close();
       context.assertTrue(res.failed());
-      context.assertEquals("Permissions required: foo,bar", res.cause().getMessage());
+      context.assertEquals("401: Permissions required: foo,bar", res.cause().getMessage());
       async.complete();
     });
   }
@@ -169,7 +169,7 @@ public class AuthModuleTest {
     cli.post("/authn/login", body, res -> {
       cli.close();
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
+      context.assertEquals(ErrorType.USER, res.getType());
       async.complete();
     });
   }

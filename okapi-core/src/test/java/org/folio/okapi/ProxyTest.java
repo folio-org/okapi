@@ -14,6 +14,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.JsonArray;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.common.OkapiLogger;
@@ -53,6 +54,7 @@ public class ProxyTest {
   private MultiMap postHandlerHeaders;
   private static RamlDefinition api;
   private int timerDelaySum = 0;
+  private int timerTenantInitStatus = 200;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -160,8 +162,8 @@ public class ProxyTest {
       ctx.request().endHandler(res -> {
         try {
           if (p.startsWith("/_/tenant")) {
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
+            ctx.response().setStatusCode(timerTenantInitStatus);
+            ctx.response().end("timer response");
             return;
           }
           long delay = Long.parseLong(p.substring(1)); // assume /[0-9]+
@@ -248,6 +250,7 @@ public class ProxyTest {
     httpClient = vertx.createHttpClient();
     Async async = context.async();
 
+    timerTenantInitStatus = 200;
     RestAssured.port = port;
     DeploymentOptions opt = new DeploymentOptions()
       .setConfig(new JsonObject()
@@ -2596,4 +2599,228 @@ public class ProxyTest {
     }
 
   }
+
+  @Test
+  public void testTenantInit(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    final String docTimer_1_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDoc1 = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc1).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String okapiTenant = "roskilde";
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde));
+
+    c = api.createRestAssured3();
+    String body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    JsonArray ar = new JsonArray(body);
+    Assert.assertEquals(0, ar.size());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    ar = new JsonArray(body);
+    Assert.assertEquals(1, ar.size());
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(0).getString("id"));
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/1")
+      .then().statusCode(200).log().ifValidationFails();
+
+    final String docTimer_1_0_1 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.1\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_1).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String docEdge_1_0_0 = "{" + LS
+      + "  \"id\" : \"edge-module-1.0.0\"," + LS
+      + "  \"name\" : \"edge module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"edge\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docEdge_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDiscoverEdge = "{" + LS
+      + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
+      + "  \"srvcId\" : \"edge-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portEdge) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDiscoverEdge).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // deploy, but with no running instance of timer-module-1.0.1
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /_/tenant"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDoc2 = "{" + LS
+      + "  \"instId\" : \"localhost1-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.1\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc2).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).body(containsString("timer-module-1.0.0"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    timerTenantInitStatus = 400;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("POST request for timer-module-1.0.1 /_/tenant failed with 400: timer response"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    ar = new JsonArray(body);
+    Assert.assertEquals(1, ar.size());
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+  }
+
 }

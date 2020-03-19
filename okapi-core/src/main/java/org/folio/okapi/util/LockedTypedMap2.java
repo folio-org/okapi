@@ -43,7 +43,7 @@ public class LockedTypedMap2<T> extends LockedStringMap {
       } else {
         LinkedList<T> t = new LinkedList<>();
         for (String s : res.result()) {
-          t.add((T) Json.decodeValue(s, clazz));
+          t.add(Json.decodeValue(s, clazz));
         }
         fut.handle(new Success<>(t));
       }

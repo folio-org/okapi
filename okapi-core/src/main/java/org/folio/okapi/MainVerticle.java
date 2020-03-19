@@ -1,6 +1,9 @@
 package org.folio.okapi;
 
-import org.folio.okapi.managers.ModuleManager;
+import java.lang.management.ManagementFactory;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -14,11 +17,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import static java.lang.System.getenv;
-import java.lang.management.ManagementFactory;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
@@ -28,9 +26,10 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.managers.DeploymentManager;
-import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.managers.ModuleManager;
 import org.folio.okapi.managers.ProxyService;
 import org.folio.okapi.managers.TenantManager;
+import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.LogHelper;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -99,7 +98,7 @@ public class MainVerticle extends AbstractVerticle {
     if (loglevel != null) {
       LogHelper.setRootLogLevel(loglevel);
     } else {
-      String lev = getenv("OKAPI_LOGLEVEL");
+      String lev = System.getenv("OKAPI_LOGLEVEL");
       if (lev != null && !lev.isEmpty()) {
         LogHelper.setRootLogLevel(loglevel);
       }
@@ -188,26 +187,32 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> promise) {
-    Future<Void> fut = Future.future(this::checkDistributedLock);
-    fut = fut.compose(x -> startDatabases());
-    fut = fut.compose(x -> startModmanager());
-    fut = fut.compose(x -> startTenants());
-    fut = fut.compose(x -> checkInternalModules());
-    fut = fut.compose(x -> startEnv());
-    fut = fut.compose(x -> startDiscovery());
-    fut = fut.compose(x -> startDeployment());
-    fut = fut.compose(x -> startListening());
-    fut = fut.compose(x -> startRedeploy());
+    Future<Void> fut = startDatabases();
+    if (initMode == InitMode.NORMAL) {
+      fut = fut.compose(x -> checkDistributedLock());
+      fut = fut.compose(x -> startModmanager());
+      fut = fut.compose(x -> startTenants());
+      fut = fut.compose(x -> checkInternalModules());
+      fut = fut.compose(x -> startEnv());
+      fut = fut.compose(x -> startDiscovery());
+      fut = fut.compose(x -> startDeployment());
+      fut = fut.compose(x -> startListening());
+      fut = fut.compose(x -> startRedeploy());
+    }
     fut.setHandler(x -> {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
+      }
+      if (initMode != InitMode.NORMAL) {
+        vertx.close();
       }
       promise.handle(x);
     });
   }
 
-  private void checkDistributedLock(Promise<Void> promise) {
+  private Future<Void> checkDistributedLock() {
     logger.info("Checking for working distributed lock. Cluster={}", vertx.isClustered());
+    Promise<Void> promise = Promise.promise();
     vertx.sharedData().getLockWithTimeout("test", 10000, res -> {
       if (res.succeeded()) {
         logger.info("Distributed lock ok");
@@ -218,22 +223,11 @@ public class MainVerticle extends AbstractVerticle {
           + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
       }
     });
+    return promise.future();
   }
 
   private Future<Void> startDatabases() {
-    Promise<Void> promise = Promise.promise();
-    if (storage == null) {
-      promise.complete();
-    } else {
-      storage.prepareDatabases(initMode, res -> {
-        if (initMode != InitMode.NORMAL) {
-          logger.info("Database operation {} done. Exiting", initMode);
-          System.exit(0);
-        }
-        promise.handle(res);
-      });
-    }
-    return promise.future();
+    return storage.prepareDatabases(initMode);
   }
 
   private Future<Void> startModmanager() {
@@ -258,24 +252,20 @@ public class MainVerticle extends AbstractVerticle {
     final String interfaceVersion = md.getProvides()[0].getVersion();
     moduleManager.get(okapiModule, gres -> {
       if (gres.succeeded()) { // we already have one, go on
-        logger.debug("checkInternalModules: Already have " + okapiModule
-          + " with interface version " + interfaceVersion);
+        logger.debug("checkInternalModules: Already have {} "
+          + " with interface version {}", okapiModule, interfaceVersion);
         // See Okapi-359 about version checks across the cluster
         checkSuperTenant(okapiModule, promise);
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkInternalModules: Could not get "
-          + okapiModule + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
-      logger.debug("Creating the internal Okapi module " + okapiModule
-        + " with interface version " + interfaceVersion);
+      logger.debug("Creating the internal Okapi module {} with interface version {}",
+        okapiModule, interfaceVersion);
       moduleManager.create(md, true, true, true, ires -> {
         if (ires.failed()) {
-          logger.warn("Failed to create the internal Okapi module"
-            + okapiModule + " " + ires.cause());
           promise.fail(ires.cause()); // something went badly wrong
           return;
         }
@@ -298,7 +288,7 @@ public class MainVerticle extends AbstractVerticle {
         Tenant st = gres.result();
         Set<String> enabledMods = st.getEnabled().keySet();
         if (enabledMods.contains(okapiModule)) {
-          logger.info("checkSuperTenant: enabled version is OK");
+          logger.info("checkSuperTenant: enabled version is {}", okapiModule);
           promise.complete();
           return;
         }
@@ -310,37 +300,32 @@ public class MainVerticle extends AbstractVerticle {
           }
         }
         final String ev = enver;
-        logger.debug("checkSuperTenant: Enabled version is '" + ev
-          + "', not '" + okapiModule + "'");
+        logger.debug("checkSuperTenant: Enabled version is '{}', not '{}'",
+          ev, okapiModule);
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) >= 4) {
-          logger.warn("checkSuperTenant: This Okapi is too old, "
-            + okapiVersion + " we already have " + ev + " in the database. "
-            + " Use that!");
+          logger.warn("checkSuperTenant: This Okapi is too old,"
+            + "{} we already have {} in the database. Use that!",
+            okapiVersion, ev);
         } else {
-          logger.info("checkSuperTenant: Need to upgrade the stored version");
+          logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
+            ev, okapiModule);
           // Use the commit, easier interface.
           // the internal module can not have dependencies
           // See Okapi-359 about version checks across the cluster
-          tenantManager.updateModuleCommit(XOkapiHeaders.SUPERTENANT_ID,
-            ev, okapiModule, ures -> {
+          tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
               if (ures.failed()) {
-                logger.debug("checkSuperTenant: "
-                  + "Updating enabled internalModule failed: " + ures.cause());
                 promise.fail(ures.cause());
                 return;
               }
-            logger.info("Upgraded the InternalModule version"
-              + " from '" + ev + "' to '" + okapiModule + "'"
-              + " for " + XOkapiHeaders.SUPERTENANT_ID);
+            logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
+              ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
             });
         }
         promise.complete();
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("checkSuperTenant: Could not get "
-          + XOkapiHeaders.SUPERTENANT_ID + ": " + gres.cause());
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
@@ -356,15 +341,7 @@ public class MainVerticle extends AbstractVerticle {
         + "}"
         + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
-      tenantManager.insert(ten, ires -> {
-        if (ires.failed()) {
-          logger.warn("Failed to create the superTenant "
-            + XOkapiHeaders.SUPERTENANT_ID + " " + ires.cause());
-          promise.fail(ires.cause()); // something went badly wrong
-          return;
-        }
-        promise.complete();
-      });
+      tenantManager.insert(ten, res -> promise.handle(res.mapEmpty()));
     });
   }
 
@@ -443,7 +420,7 @@ public class MainVerticle extends AbstractVerticle {
             logger.info("API Gateway started PID {}. Listening on port {}",
               ManagementFactory.getRuntimeMXBean().getName(), port);
           } else {
-            logger.fatal("createHttpServer failed for port {}: {}", port, result.cause());
+            logger.fatal("createHttpServer failed for port {}", port, result.cause());
           }
           promise.handle(result.mapEmpty());
         }
@@ -457,7 +434,8 @@ public class MainVerticle extends AbstractVerticle {
       if (res.succeeded()) {
         logger.info("Deploy completed succesfully");
       } else {
-        logger.info("Deploy failed: {}", res.cause());
+        // not reporting failure if re-deploy fails
+        logger.info("Deploy failed", res.cause());
       }
       if (enableProxy) {
         tenantManager.startTimers(promise);
