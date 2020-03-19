@@ -1,6 +1,7 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import org.folio.okapi.bean.ModuleInstance;
@@ -602,12 +603,7 @@ public class ProxyService {
         return;
       }
       HttpClientResponse res = res1.result();
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (newIt.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         pc.closeTimer();
@@ -739,12 +735,7 @@ public class ProxyService {
       }
       HttpClientResponse res = res1.result();
       fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
         makeTraceHeader(mi, res.statusCode(), pc);
         relayToRequest(res, pc, mi);
@@ -806,21 +797,7 @@ public class ProxyService {
         return;
       }
       HttpClientResponse res = res1.result();
-      Iterator<ModuleInstance> newIt;
-      if (res.statusCode() < 200 || res.statusCode() >= 300) {
-        newIt = getNewIterator(it, mi);
-        if (!newIt.hasNext()) {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, cReqs);
-          if (bcontent == null) {
-            stream.resume();
-          }
-          return;
-        }
-      } else {
-        newIt = it;
-      }
+      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
       if (newIt.hasNext()) {
         relayToRequest(res, pc, mi);
         storeResponseInfo(pc, mi, res);
@@ -830,7 +807,14 @@ public class ProxyService {
       } else {
         relayToResponse(ctx.response(), res, pc);
         makeTraceHeader(mi, res.statusCode(), pc);
-        proxyResponseImmediate(pc, stream, bcontent, cReqs);
+        if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+          proxyResponseImmediate(pc, stream, bcontent, cReqs);
+        } else {
+          proxyResponseImmediate(pc, res, null, cReqs);
+          if (bcontent == null) {
+            stream.resume();
+          }
+        }
       }
     });
     copyHeaders(cReq, ctx, mi);
@@ -1011,7 +995,7 @@ public class ProxyService {
     }
   }
 
-  private DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
+  private static DeploymentDescriptor pickInstance(List<DeploymentDescriptor> instances) {
     int sz = instances.size();
     return sz > 0 ? instances.get(random.nextInt(sz)) : null;
   }
@@ -1031,7 +1015,7 @@ public class ProxyService {
    */
   public void callSystemInterface(Tenant tenant, ModuleInstance inst,
     String request, ProxyContext pc,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    Handler<AsyncResult<OkapiClient>> fut) {
 
     String curTenantId = pc.getTenant(); // is often the supertenant
     MultiMap headersIn = pc.getCtx().request().headers();
@@ -1040,7 +1024,7 @@ public class ProxyService {
 
   public void callSystemInterface(String curTenantId, MultiMap headersIn,
     Tenant tenant, ModuleInstance inst,
-    String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    String request, Handler<AsyncResult<OkapiClient>> fut) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1073,8 +1057,8 @@ public class ProxyService {
           }
         }
       }
-      logger.debug("callSystemInterface: No auth for " + tenantId
-        + " calling with tenant header only");
+      logger.debug("callSystemInterface: No auth for {} calling with "
+        + "tenant header only", tenantId);
       doCallSystemInterface(headersIn, tenantId, null, inst, null, request, fut);
     });
   }
@@ -1085,7 +1069,7 @@ public class ProxyService {
    */
   private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
     String tenantId, ModuleInstance inst, String request, MultiMap headers,
-    Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    Handler<AsyncResult<OkapiClient>> fut) {
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
@@ -1106,14 +1090,13 @@ public class ProxyService {
     ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD, inst.isHandler());
     doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
       if (res.failed()) {
-        logger.warn("Auth check for systemInterface failed!");
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(res);
         return;
       }
       OkapiClient cli = res.result();
       String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-      logger.debug("authForSystemInterface:"
-        + Json.encode(cli.getRespHeaders().entries()));
+      logger.debug("authForSystemInterface: {}",
+        () -> Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
       String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);
@@ -1128,19 +1111,15 @@ public class ProxyService {
    */
   private void doCallSystemInterface(MultiMap headersIn,
     String tenantId, String authToken, ModuleInstance inst, String modPerms,
-    String request, Handler<ExtendedAsyncResult<OkapiClient>> fut) {
+    String request, Handler<AsyncResult<OkapiClient>> fut) {
 
-    discoveryManager.get(inst.getModuleDescriptor().getId(), gres -> {
-      if (gres.failed()) {
-        logger.warn("doCallSystemInterface on " + inst.getModuleDescriptor().getId() + " "
-          + inst.getPath()
-          + " failed. Could not find the module in discovery", gres.cause());
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
+    discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId(), gres -> {
+      DeploymentDescriptor instance = null;
+      if (gres.succeeded()) {
+        instance = pickInstance(gres.result());
       }
-      DeploymentDescriptor instance = pickInstance(gres.result());
       if (instance == null) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11100",
+        fut.handle(Future.failedFuture(messages.getMessage("11100",
           inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
@@ -1161,11 +1140,11 @@ public class ProxyService {
           String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
-          fut.handle(new Failure<>(ErrorType.INTERNAL, msg));
+          fut.handle(Future.failedFuture(msg));
           return;
         }
         // Pass response headers - needed for unit test, if nothing else
-        fut.handle(new Success<>(cli));
+        fut.handle(Future.succeededFuture(cli));
       });
     });
   }
@@ -1174,7 +1153,7 @@ public class ProxyService {
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private Map<String, String> sysReqHeaders(MultiMap headersIn,
+  private static Map<String, String> sysReqHeaders(MultiMap headersIn,
     String tenantId, String authToken, ModuleInstance inst, String modPerms) {
 
     Map<String, String> headersOut = new HashMap<>();
@@ -1249,7 +1228,7 @@ public class ProxyService {
   }
 
   // store Auth/Handler response, and pass header as needed
-  private void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
+  private static void storeResponseInfo(ProxyContext pc, ModuleInstance mi, HttpClientResponse res) {
     String phase = mi.getRoutingEntry().getPhase();
     // It was a real handler, remember the response code and headers
     if (mi.isHandler()) {
@@ -1264,7 +1243,12 @@ public class ProxyService {
   }
 
   // skip handler, but not if at pre/post filter phase
-  private Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi) {
+  private static Iterator<ModuleInstance> getNewIterator(Iterator<ModuleInstance> it, ModuleInstance mi,
+    int statusCode) {
+
+    if (statusCode >= 200 && statusCode <= 299) {
+      return it;
+    }
     String phase = mi.getRoutingEntry().getPhase();
     if (XOkapiHeaders.FILTER_PRE.equals(phase) || XOkapiHeaders.FILTER_POST.equals(phase)) {
       return it;
