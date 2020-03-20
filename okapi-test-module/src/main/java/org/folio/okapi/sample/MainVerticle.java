@@ -1,15 +1,11 @@
 package org.folio.okapi.sample;
 
-/*
- * Test module, to be used in Okapi's own unit tests
- */
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.Map;
 
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiClient;
@@ -27,6 +23,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
+/*
+ * Test module, to be used in Okapi's own unit tests
+ */
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {

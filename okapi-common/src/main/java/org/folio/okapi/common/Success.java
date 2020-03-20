@@ -1,7 +1,5 @@
 package org.folio.okapi.common;
 
-import org.folio.okapi.common.ErrorType;
-
 public class Success<T> implements ExtendedAsyncResult<T> {
 
   private T item;

@@ -6,7 +6,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.ErrorType;
 
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;

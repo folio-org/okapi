@@ -23,24 +23,17 @@ public enum ErrorType {
    * @return HTTP status
    */
   public static int httpCode(ErrorType t) {
-    int code = 500;
     switch (t) {
       case OK:
-        code = 200;
-        break;
+        return 200;
       case USER:
-        code = 400;
-        break;
+        return 400;
       case NOT_FOUND:
-        code = 404;
-        break;
+        return 404;
       case FORBIDDEN:
-        code = 403;
-        break;
+        return 403;
       default:
-        code = 500;
-        break;
+        return 500;
     }
-    return code;
   }
 }
