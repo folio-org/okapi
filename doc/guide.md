@@ -490,6 +490,11 @@ example, we can have two ways to manage our patrons, one based on a
 local database, one talking to an external system. The installation
 can know both, but each tenant must choose one or the other.
 
+When a module is created with a POST, the required dependencies are also
+checked - even before it is enabled for a tenant. This is to ensure
+that, at the very least, there are no modules that have dependencies that
+would never be satisfied when eventually enabled for a tenant. It also
+ensures that there are no cyclic dependencies.
 
 #### Version numbers
 
