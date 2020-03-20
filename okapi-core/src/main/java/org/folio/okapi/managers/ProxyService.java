@@ -259,7 +259,7 @@ public class ProxyService {
         pc.responseError(400, messages.getMessage("10104"));
         return null;
       } else {
-        ctx.request().headers().add(XOkapiHeaders.TOKEN, auth);
+        ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
         ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
         pc.debug("Okapi: Moved Authorization header to X-Okapi-Token");
       }
@@ -269,7 +269,7 @@ public class ProxyService {
       try {
         OkapiToken okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
         tenantId = okapiToken.getTenant();
-        if (tenantId != null && !tenantId.isEmpty()) {
+        if (tenantId != null) {
           ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
           pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
         }

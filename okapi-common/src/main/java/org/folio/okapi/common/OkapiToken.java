@@ -2,7 +2,6 @@ package org.folio.okapi.common;
 
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.RoutingContext;
 import java.util.Base64;
 
 /**

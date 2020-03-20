@@ -1234,11 +1234,29 @@ public class ProxyTest {
     // module. This is all right, since we explicitly ask sample to pass its
     // request headers into its response. See Okapi-266.
 
+    // Check that we accept Authorization without lead  "Bearer" <token>
+    // instead of X-Okapi-Token, and that we can extract the tenant from it.
+    given()
+      .header("X-all-headers", "H") // ask sample to report all headers
+      .header("Authorization", okapiToken)
+      .get("/testb")
+      .then().log().ifValidationFails()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .statusCode(200);
+
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Authorization", "Bearer " + okapiToken + "WRONG")
+      .get("/testb")
+      .then().log().ifValidationFails()
+      .statusCode(400);
+
+    // Check that we fail on invalid Token/Authorization
+    given().header("X-all-headers", "H") // ask sample to report all headers
+      .header("X-Okapi-Token", "xx")
+      .header("Authorization", "Bearer xx")
       .get("/testb")
       .then().log().ifValidationFails()
       .statusCode(400);
