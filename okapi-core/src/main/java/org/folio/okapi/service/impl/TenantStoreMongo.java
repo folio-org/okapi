@@ -1,12 +1,8 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.TenantStore;
-import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import java.util.SortedMap;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -16,6 +12,12 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.TenantStore;
+
+import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
 
 /**
  * Stores Tenants in a Mongo database.
@@ -99,7 +101,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateModules(String id, SortedMap<String, Boolean> enabled,
+                            Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(COLLECTION, jq, gres -> {
       if (gres.failed()) {

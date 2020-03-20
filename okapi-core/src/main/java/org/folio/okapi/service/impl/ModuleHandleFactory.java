@@ -1,10 +1,11 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.service.ModuleHandle;
+
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 
 public class ModuleHandleFactory {
 

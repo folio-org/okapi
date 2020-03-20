@@ -1,12 +1,5 @@
 package org.folio.okapi.managers;
 
-import org.folio.okapi.util.DepResolution;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import org.folio.okapi.bean.ModuleDescriptor;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -14,18 +7,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.util.CompList;
+import org.folio.okapi.util.DepResolution;
+import org.folio.okapi.util.LockedTypedMap1;
+
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -90,7 +92,7 @@ public class ModuleManager {
   /**
    * Load the modules from the database, if not already loaded.
    *
-   * @param fut
+   * @param fut future
    */
   private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     if (moduleStore == null) {
@@ -160,8 +162,11 @@ public class ModuleManager {
   /**
    * Create a module.
    *
-   * @param md
-   * @param fut
+   * @param md module descriptor
+   * @param check whether to check dependencies
+   * @param preRelease whether to allow pre-release
+   * @param npmSnapshot whehter to allow npm snapshot
+   * @param fut future
    */
   public void create(ModuleDescriptor md, boolean check, boolean preRelease,
           boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -171,10 +176,13 @@ public class ModuleManager {
   }
 
   /**
-   * Create a whole list of modules.
+   * Create a list of modules.
    *
-   * @param list
-   * @param fut
+   * @param list list of modules
+   * @param check whether to check dependencies
+   * @param preRelease whether to allow pre-releasee
+   * @param npmSnapshot whether to allow npm-snapshot
+   * @param fut future
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
           boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
@@ -187,7 +195,7 @@ public class ModuleManager {
       for (ModuleDescriptor md : ares.result()) {
         tempList.put(md.getId(), md);
       }
-      LinkedList<ModuleDescriptor> nList = new LinkedList<>();
+      LinkedList<ModuleDescriptor> newList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
@@ -200,17 +208,17 @@ public class ModuleManager {
           }
         } else {
           tempList.put(id, md);
-          nList.add(md);
+          newList.add(md);
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList, nList);
+        String res = DepResolution.checkDependencies(tempList, newList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(ErrorType.USER, res));
           return;
         }
       }
-      createList2(nList, fut);
+      createList2(newList, fut);
     });
   }
 
@@ -254,8 +262,8 @@ public class ModuleManager {
   /**
    * Update a module.
    *
-   * @param md
-   * @param fut
+   * @param md module descriptor
+   * @param fut future
    */
   public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = md.getId();
@@ -301,8 +309,8 @@ public class ModuleManager {
   /**
    * Delete a module.
    *
-   * @param id
-   * @param fut
+   * @param id module ID
+   * @param fut future
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
@@ -365,10 +373,10 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module.
+   * Get a module descriptor from ID.
    *
    * @param id to get. If null, returns a null.
-   * @param fut
+   * @param fut future with resulting Module Descriptor
    */
   public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     if (id != null) {

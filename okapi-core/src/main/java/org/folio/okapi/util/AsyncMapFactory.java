@@ -1,13 +1,14 @@
 package org.folio.okapi.util;
 
+import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Success;
+
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
-import org.folio.okapi.common.ErrorType;
 
 /**
  * Factory to create either a vert.x ClusterWideMap or a AsyncLocalmap, if not
@@ -20,13 +21,13 @@ class AsyncMapFactory {
   }
 
   /**
-   * Create a AsyncMap
+   * Creates an AsyncMap.
    *
    * @param <K> Key type
    * @param <V> Value type
-   * @param vertx
+   * @param vertx Vert.x handle
    * @param mapName name of the map. If null, will always create a local map
-   * @param fut
+   * @param fut future
    */
   public static <K, V> void create(Vertx vertx, String mapName,
     Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {

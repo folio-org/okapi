@@ -1,5 +1,11 @@
 package org.folio.okapi.util;
 
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
+
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -7,12 +13,9 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
+
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Helpers for the DropWizard instrumentation.
@@ -35,7 +38,7 @@ public class DropwizardHelper {
     metricsOpt.setEnabled(true).setRegistryName(registryName);
     vopt.setMetricsOptions(metricsOpt);
     Graphite graphite = new Graphite(new InetSocketAddress(graphiteHost, port));
-    final String prefix = "folio.okapi." + hostName ;
+    final String prefix = "folio.okapi." + hostName;
     GraphiteReporter reporter = GraphiteReporter.forRegistry(registry)
             .prefixedWith(prefix)
             .build(graphite);
@@ -48,13 +51,11 @@ public class DropwizardHelper {
    * Register a gauge.
    * That is, a number of some sort that gets polled at intervals, and
    * reported to Graphite. For example, the number of known modules.
+   * Call like this:
+   *     DropwizardHelper.registerGauge("moduleCount", () -> modules.size());
    *
    * @param key The key for the metric to report
    * @param g A Gauge with a lambda to get the value
-   *
-   * Call like this:
-   *     DropwizardHelper.registerGauge("moduleCount", () -> modules.size());
-
    */
   public static void registerGauge(String key, Gauge g) {
     try {
@@ -70,8 +71,8 @@ public class DropwizardHelper {
    * Get a timer.
    * Returns a timer. Get one at the beginning of some operation. When done,
    * call timer.close();
-   * @param metricKey
-   * @return
+   * @param metricKey string key
+   * @return timer for the key
    */
   public static Timer.Context getTimerContext(String metricKey) {
     Timer timer = SharedMetricRegistries.getOrCreate("okapi").timer(metricKey);
@@ -82,7 +83,7 @@ public class DropwizardHelper {
    * Mark an event.
    * Tells the metrics system that an event has occurred, for example a request
    * has arrived. The system will calculate rates and counts of these.
-   * @param metricKey
+   * @param metricKey string key
    */
   public static void markEvent(String metricKey) {
     SharedMetricRegistries.getOrCreate("okapi").meter(metricKey).mark();

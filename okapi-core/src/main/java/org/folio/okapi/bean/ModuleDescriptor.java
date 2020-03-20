@@ -1,15 +1,17 @@
 package org.folio.okapi.bean;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import org.folio.okapi.util.ProxyContext;
+
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.ProxyContext;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -40,17 +42,17 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Copy constructor.
+   * Copy constructor with id and tags from original.
    *
-   * @param other
-   * @param full
+   * @param original where we copy from
+   * @param includeName where name is also copied
    */
-  public ModuleDescriptor(ModuleDescriptor other, boolean includeName) {
-    this.id = other.id;
+  public ModuleDescriptor(ModuleDescriptor original, boolean includeName) {
+    this.id = original.id;
     if (includeName) {
-      this.name = other.name;
+      this.name = original.name;
     }
-    this.tags = other.tags;
+    this.tags = original.tags;
   }
 
   public String getId() {
@@ -119,13 +121,13 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   public void setProvides(InterfaceDescriptor[] provides) {
-    Set<String> pList = new TreeSet<>();
+    Set<String> p = new TreeSet<>();
     for (int i = 0; i < provides.length; i++) {
       InterfaceDescriptor pr = provides[i];
-      if (pList.contains(pr.getId())) {
+      if (p.contains(pr.getId())) {
         throw new IllegalArgumentException("Interface " + pr.getId() + " provided multiple times");
       }
-      pList.add(pr.getId());
+      p.add(pr.getId());
     }
     this.provides = provides;
   }
@@ -266,9 +268,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       this.replaces = null;
     } else {
       this.replaces = new ModuleId[replaces.length];
-      for (int i = 0; i < replaces.length; i++)
-      {
-        final ModuleId pId =new ModuleId(replaces[i]);
+      for (int i = 0; i < replaces.length; i++) {
+        final ModuleId pId = new ModuleId(replaces[i]);
         if (pId.hasSemVer()) {
           throw new IllegalArgumentException("No semantic version for: " + replaces[i]);
         }
@@ -279,10 +280,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Validate some features of a ModuleDescriptor.
-   *
    * In case of Deprecated things, writes warnings in the log.
    *
-   * @param pc
+   * @param pc proxy context
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate(ProxyContext pc) {

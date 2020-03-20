@@ -1,11 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpMethod;
-import static io.vertx.core.http.HttpMethod.*;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
-import io.vertx.ext.web.RoutingContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -15,6 +9,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -23,7 +18,6 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import org.folio.okapi.util.TenantInstallOptions;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -36,18 +30,22 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.util.TenantInstallOptions;
+
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * Okapi's built-in module. Managing /_/ endpoints.
- *
  * /_/proxy/modules /_/proxy/tenants /_/proxy/health /_/proxy/pull
  * /_/deployment /_/discovery /_/env /_/version etc
- *
  * Note that the endpoint /_/invoke/ can not be handled here, as the proxy must
  * read the request body before invoking this built-in module, and /_/invoke
  * uses ctx.reroute(), which assumes the body has not been read.
- *
- *
  */
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class InternalModule {
@@ -820,9 +818,10 @@ public class InternalModule {
     Handler<ExtendedAsyncResult<String>> fut) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
-      final boolean check = ModuleUtil.getParamBoolean(pc.getCtx().request(), "check", true);
-      final boolean preRelease = ModuleUtil.getParamBoolean(pc.getCtx().request(), "preRelease", true);
-      final boolean npmSnapshot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "npmSnapshot", true);
+      HttpServerRequest req = pc.getCtx().request();
+      final boolean check = ModuleUtil.getParamBoolean(req, "check", true);
+      final boolean preRelease = ModuleUtil.getParamBoolean(req, "preRelease", true);
+      final boolean npmSnapshot = ModuleUtil.getParamBoolean(req, "npmSnapshot", true);
 
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
@@ -1238,11 +1237,6 @@ public class InternalModule {
 
   /**
    * Dispatcher for all the built-in services.
-   *
-   * @param req The request body
-   * @param pc Proxy context, gives a ctx, path, and method
-   * @param fut Callback with the response body
-   *
    * Note that there are restrictions what we can do with the ctx. We can set a
    * result code (defaults to 200 OK) in successful operations, but be aware
    * that only if this is the last module in the pipeline, will this code be
@@ -1250,6 +1244,9 @@ public class InternalModule {
    * at least the (normalized) path and method, but the previous filters may
    * have done something to them already.
    *
+   * @param req The request body
+   * @param pc Proxy context, gives a ctx, path, and method
+   * @param fut Callback with the response body
    */
   // Cognitive Complexity of methods should not be too high
   // but this function is really just a big switch
@@ -1274,24 +1271,24 @@ public class InternalModule {
       if (segments[3].equals("modules")
         && moduleManager != null) {
         // /_/proxy/modules
-        if (n == 4 && m.equals(GET)) {
+        if (n == 4 && m.equals(HttpMethod.GET)) {
           listModules(pc, req, fut);
           return;
         }
-        if (n == 4 && m.equals(POST)) {
+        if (n == 4 && m.equals(HttpMethod.POST)) {
           createModule(pc, req, fut);
           return;
         }
         // /_/proxy/modules/:id
-        if (n == 5 && m.equals(GET)) {
+        if (n == 5 && m.equals(HttpMethod.GET)) {
           getModule(decodedSegs[4], fut);
           return;
         }
-        if (n == 5 && m.equals(PUT)) {
+        if (n == 5 && m.equals(HttpMethod.PUT)) {
           updateModule(pc, decodedSegs[4], req, fut);
           return;
         }
-        if (n == 5 && m.equals(DELETE)) {
+        if (n == 5 && m.equals(HttpMethod.DELETE)) {
           deleteModule(pc, decodedSegs[4], fut);
           return;
         }
@@ -1300,67 +1297,67 @@ public class InternalModule {
       if (segments[3].equals("tenants")
         && tenantManager != null) {
         // /_/proxy/tenants
-        if (n == 4 && m.equals(GET)) {
+        if (n == 4 && m.equals(HttpMethod.GET)) {
           listTenants(fut);
           return;
         }
-        if (n == 4 && m.equals(POST)) {
+        if (n == 4 && m.equals(HttpMethod.POST)) {
           createTenant(pc, req, fut);
           return;
         }
         // /_/proxy/tenants/:id
-        if (n == 5 && m.equals(GET)) {
+        if (n == 5 && m.equals(HttpMethod.GET)) {
           getTenant(decodedSegs[4], fut);
           return;
         }
-        if (n == 5 && m.equals(PUT)) {
+        if (n == 5 && m.equals(HttpMethod.PUT)) {
           updateTenant(decodedSegs[4], req, fut);
           return;
         }
-        if (n == 5 && m.equals(DELETE)) {
+        if (n == 5 && m.equals(HttpMethod.DELETE)) {
           deleteTenant(decodedSegs[4], fut);
           return;
         }
         // /_/proxy/tenants/:id/modules
-        if (n == 6 && m.equals(GET) && segments[5].equals("modules")) {
+        if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("modules")) {
           listModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
-        if (n == 6 && m.equals(POST) && segments[5].equals("modules")) {
+        if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("modules")) {
           enableModuleForTenant(pc, decodedSegs[4], req, fut);
           return;
         }
         // /_/proxy/tenants/:id/modules/:mod
-        if (n == 7 && m.equals(GET) && segments[5].equals("modules")) {
+        if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("modules")) {
           getModuleForTenant(decodedSegs[4], decodedSegs[6], fut);
           return;
         }
-        if (n == 7 && m.equals(POST) && segments[5].equals("modules")) {
+        if (n == 7 && m.equals(HttpMethod.POST) && segments[5].equals("modules")) {
           upgradeModuleForTenant(pc, decodedSegs[4], decodedSegs[6], req, fut);
           return;
         }
-        if (n == 7 && m.equals(DELETE) && segments[5].equals("modules")) {
+        if (n == 7 && m.equals(HttpMethod.DELETE) && segments[5].equals("modules")) {
           disableModuleForTenant(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
         // /_/proxy/tenants/:id/install
-        if (n == 6 && m.equals(POST) && segments[5].equals("install")) {
+        if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {
           installModulesForTenant(pc, decodedSegs[4], req, fut);
           return;
         }
         // /_/proxy/tenants/:id/upgrade
-        if (n == 6 && m.equals(POST) && segments[5].equals("upgrade")) {
+        if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("upgrade")) {
           upgradeModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
         // /_/proxy/tenants/:id/interfaces
-        if (n == 6 && m.equals(GET) && segments[5].equals("interfaces")) {
+        if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
           listInterfaces(pc, decodedSegs[4], fut);
           return;
         }
 
         // /_/proxy/tenants/:id/interfaces/:int
-        if (n == 7 && m.equals(GET) && segments[5].equals("interfaces")) {
+        if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
           listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
@@ -1368,12 +1365,12 @@ public class InternalModule {
 
       // /_/proxy/pull/modules
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
-        && m.equals(POST) && pullManager != null) {
+        && m.equals(HttpMethod.POST) && pullManager != null) {
         pullModules(req, fut);
         return;
       }
       // /_/proxy/health
-      if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
         getHealth(fut);
         return;
       }
@@ -1385,20 +1382,20 @@ public class InternalModule {
       && segments[3].equals("modules")
       && deploymentManager != null) {
       // /_/deployment/modules
-      if (n == 4 && m.equals(GET)) {
+      if (n == 4 && m.equals(HttpMethod.GET)) {
         listDeployments(fut);
         return;
       }
-      if (n == 4 && m.equals(POST)) {
+      if (n == 4 && m.equals(HttpMethod.POST)) {
         createDeployment(pc, req, fut);
         return;
       }
       // /_/deployment/modules/:id:
-      if (n == 5 && m.equals(GET)) {
+      if (n == 5 && m.equals(HttpMethod.GET)) {
         getDeployment(decodedSegs[4], fut);
         return;
       }
-      if (n == 5 && m.equals(DELETE)) {
+      if (n == 5 && m.equals(HttpMethod.DELETE)) {
         deleteDeployment(decodedSegs[4], fut);
         return;
       }
@@ -1407,64 +1404,64 @@ public class InternalModule {
     if (n >= 4 && p.startsWith("/_/discovery/")
       && discoveryManager != null) {
       // /_/discovery/nodes
-      if (n == 4 && segments[3].equals("nodes") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("nodes") && m.equals(HttpMethod.GET)) {
         listDiscoveryNodes(fut);
         return;
       }
       // /_/discovery/nodes/:nodeid
-      if (n == 5 && segments[3].equals("nodes") && m.equals(GET)) {
+      if (n == 5 && segments[3].equals("nodes") && m.equals(HttpMethod.GET)) {
         getDiscoveryNode(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/nodes/:nodeid
-      if (n == 5 && segments[3].equals("nodes") && m.equals(PUT)) {
+      if (n == 5 && segments[3].equals("nodes") && m.equals(HttpMethod.PUT)) {
         putDiscoveryNode(decodedSegs[4], req, fut);
         return;
       }
 
       // /_/discovery/modules
-      if (n == 4 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
         listDiscoveryModules(fut);
         return;
       }
-      if (n == 4 && segments[3].equals("modules") && m.equals(POST)) {
+      if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.POST)) {
         discoveryDeploy(pc, req, fut);
         return;
       }
       // /_/discovery/modules/:srvcid
-      if (n == 5 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 5 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
         discoveryGetSrvcId(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/modules/:srvcid/:instid"
-      if (n == 6 && segments[3].equals("modules") && m.equals(GET)) {
+      if (n == 6 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
         discoveryGetInstId(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
-      if (n == 6 && segments[3].equals("modules") && m.equals(DELETE)) {
+      if (n == 6 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
         discoveryUndeploy(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
-      if (n == 5 && segments[3].equals("modules") && m.equals(DELETE)) {
+      if (n == 5 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
         discoveryUndeploy(decodedSegs[4], fut);
         return;
       }
-      if (n == 4 && segments[3].equals("modules") && m.equals(DELETE)) {
+      if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
         discoveryUndeploy(fut);
         return;
       }
       // /_/discovery/health
-      if (n == 4 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
         discoveryHealthAll(fut);
         return;
       }
       // /_/discovery/health/:srvcId
-      if (n == 5 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 5 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
         discoveryHealthSrvcId(decodedSegs[4], fut);
         return;
       }
       // /_/discovery/health/:srvcId/:instid
-      if (n == 6 && segments[3].equals("health") && m.equals(GET)) {
+      if (n == 6 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
         discoveryHealthOne(decodedSegs[4], decodedSegs[5], fut);
         return;
       }
@@ -1474,27 +1471,27 @@ public class InternalModule {
       && segments[2].equals("env")) { // not envXX or such
 
       // /_/env
-      if (n == 3 && m.equals(GET)) {
+      if (n == 3 && m.equals(HttpMethod.GET)) {
         listEnv(fut);
         return;
       }
-      if (n == 3 && m.equals(POST)) {
+      if (n == 3 && m.equals(HttpMethod.POST)) {
         createEnv(pc, req, fut);
         return;
       }
       // /_/env/name
-      if (n == 4 && m.equals(GET)) {
+      if (n == 4 && m.equals(HttpMethod.GET)) {
         getEnv(decodedSegs[3], fut);
         return;
       }
-      if (n == 4 && m.equals(DELETE)) {
+      if (n == 4 && m.equals(HttpMethod.DELETE)) {
         deleteEnv(decodedSegs[3], fut);
         return;
       }
 
     } // env
 
-    if (p.equals("/_/version") && m.equals(GET)) {
+    if (p.equals("/_/version") && m.equals(HttpMethod.GET)) {
       getVersion(pc, fut);
       return;
     }

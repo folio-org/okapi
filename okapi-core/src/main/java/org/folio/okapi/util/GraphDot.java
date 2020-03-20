@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 
@@ -17,10 +18,6 @@ public class GraphDot {
     List<ModuleDescriptor> list = new LinkedList<>();
     list.addAll(modlist.values());
     return report(list);
-  }
-
-  private static String encodeDotId(String s) {
-    return s.replace("-", "__").replace(".", "_").replace(' ', '_');
   }
 
   public static String report(List<ModuleDescriptor> modlist) {
@@ -36,9 +33,10 @@ public class GraphDot {
         int number = 0;
         for (ModuleDescriptor smd : modlist) {
           for (InterfaceDescriptor pi : smd.getProvidesList()) {
-            if (pi.isRegularHandler() &&
-              req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
-              doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(smd.getId()) + ";\n");
+            if (pi.isRegularHandler()
+              && req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+              doc.append("  " + encodeDotId(tmd.getId())
+                + " -> " + encodeDotId(smd.getId()) + ";\n");
               number++;
             }
           }
@@ -55,5 +53,9 @@ public class GraphDot {
     }
     doc.append("}\n");
     return doc.toString();
+  }
+
+  private static String encodeDotId(String s) {
+    return s.replace("-", "__").replace(".", "_").replace(' ', '_');
   }
 }

@@ -1,9 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.OkapiLogger;
@@ -11,6 +7,11 @@ import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.service.TenantStore;
+
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 
 public class Storage {
 
@@ -26,6 +27,7 @@ public class Storage {
     INIT, // create database at startup
     PURGE  // purge the whole database
   }
+
   private JsonObject config;
   private final Logger logger = OkapiLogger.get();
 

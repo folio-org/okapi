@@ -1,12 +1,14 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
+
+import io.vertx.core.Handler;
 
 public class EnvStoreNull implements EnvStore {
 

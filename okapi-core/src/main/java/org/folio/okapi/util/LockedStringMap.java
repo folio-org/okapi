@@ -1,23 +1,26 @@
 package org.folio.okapi.util;
 
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
-import io.vertx.core.shareddata.AsyncMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.Success;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
+import io.vertx.core.shareddata.AsyncMap;
 
 public class LockedStringMap {
 
@@ -40,7 +43,7 @@ public class LockedStringMap {
         this.list = res.result();
         fut.handle(new Success<>());
       } else {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       }
     });
   }
@@ -52,18 +55,18 @@ public class LockedStringMap {
   public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         if (k2 == null) {
           if (val == null) {
-            fut.handle(new Failure<>(NOT_FOUND, k));
+            fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
           } else {
             fut.handle(new Success<>(val));
           }
         } else {
           if (val == null) {
-            fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
+            fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
           } else {
             StringMap smap = new StringMap();
             StringMap oldlist = Json.decodeValue(val, StringMap.class);
@@ -71,7 +74,7 @@ public class LockedStringMap {
             if (smap.strings.containsKey(k2)) {
               fut.handle(new Success<>(smap.strings.get(k2)));
             } else {
-              fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
+              fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
             }
           }
         }
@@ -82,7 +85,7 @@ public class LockedStringMap {
   public void getString(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         StringMap map;
@@ -90,7 +93,7 @@ public class LockedStringMap {
           map = Json.decodeValue(val, StringMap.class);
           fut.handle(new Success<>(map.strings.values()));
         } else {
-          fut.handle(new Failure<>(NOT_FOUND, k));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
         }
       }
     });
@@ -99,7 +102,7 @@ public class LockedStringMap {
   public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.keys(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(INTERNAL, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
         List<String> s2 = new ArrayList<>(res.result());
         java.util.Collections.sort(s2);
@@ -112,7 +115,7 @@ public class LockedStringMap {
     Handler<ExtendedAsyncResult<Void>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         String oldVal = resGet.result();
         String newVal;
@@ -125,7 +128,7 @@ public class LockedStringMap {
             smap.strings.putAll(oldlist.strings);
           }
           if (!allowReplace && smap.strings.containsKey(k2)) {
-            fut.handle(new Failure<>(USER, messages.getMessage("11400", k2)));
+            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11400", k2)));
             return;
           }
           smap.strings.put(k2, value);
@@ -149,7 +152,7 @@ public class LockedStringMap {
               -> addOrReplace(allowReplace, k, k2, value, fut));
           }
         } else {
-          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, resPut.cause()));
         }
       });
     } else { // existing entry, put and retry if someone else messed with it
@@ -162,7 +165,7 @@ public class LockedStringMap {
               -> addOrReplace(allowReplace, k, k2, value, fut));
           }
         } else {
-          fut.handle(new Failure<>(INTERNAL, resRepl.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, resRepl.cause()));
         }
       });
     }
@@ -177,18 +180,18 @@ public class LockedStringMap {
 
     list.get(k, resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(INTERNAL, resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         String val = resGet.result();
         if (val == null) {
-          fut.handle(new Failure<>(NOT_FOUND, k));
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
           return;
         }
         StringMap smap = new StringMap();
         if (k2 != null) {
           smap = Json.decodeValue(val, StringMap.class);
           if (!smap.strings.containsKey(k2)) {
-            fut.handle(new Failure<>(NOT_FOUND, k + "/" + k2));
+            fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
             return;
           }
           smap.strings.remove(k2);
@@ -210,7 +213,7 @@ public class LockedStringMap {
             vertx.setTimer(DELAY, res -> remove(k, k2, fut));
           }
         } else {
-          fut.handle(new Failure<>(INTERNAL, resDel.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, resDel.cause()));
         }
       });
     } else { // list was not empty, remove value
@@ -223,7 +226,7 @@ public class LockedStringMap {
             vertx.setTimer(DELAY, res -> remove(k, k2, fut));
           }
         } else {
-          fut.handle(new Failure<>(INTERNAL, resPut.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, resPut.cause()));
         }
       });
     }

@@ -1,12 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.json.Json;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -14,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
@@ -23,6 +17,14 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.Json;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PullManager {
@@ -64,7 +66,8 @@ public class PullManager {
           logger.warn("pull for {} failed with status {}",
             baseUrl, res.statusCode());
           fut.handle(new Failure<>(ErrorType.USER,
-            "pull for " + baseUrl + " returned status " + res.statusCode() + "\n" + body.toString()));
+            "pull for " + baseUrl + " returned status "
+              + res.statusCode() + "\n" + body.toString()));
         } else {
           List<String> result = new LinkedList<>();
           result.add(baseUrl);

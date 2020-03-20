@@ -17,7 +17,9 @@ public class ModuleInstance {
   private boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method, boolean handler) {
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re,
+                        String path, HttpMethod method, boolean handler) {
+
     this.md = md;
     this.url = null;
     this.re = re;

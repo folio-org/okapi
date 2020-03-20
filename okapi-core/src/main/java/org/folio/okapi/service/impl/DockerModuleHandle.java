@@ -1,8 +1,20 @@
 package org.folio.okapi.service.impl;
 
-// Docker Module. Using the Docker HTTP API.
-// We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
-// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-hostport-or-a-unix-socket
+import java.util.Iterator;
+import java.util.Map;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.AnyDescriptor;
+import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Config;
+import org.folio.okapi.common.HttpClientLegacy;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.TcpPortWaiting;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -15,19 +27,10 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
-import java.util.Iterator;
-import java.util.Map;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.AnyDescriptor;
-import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.bean.Ports;
-import org.folio.okapi.common.Config;
-import org.folio.okapi.common.HttpClientLegacy;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.util.TcpPortWaiting;
+
+// Docker Module. Using the Docker HTTP API.
+// We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
+// https://docs.docker.com/engine/reference/commandline/dockerd/#bind-docker-to-another-hostport-or-a-unix-socket
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
@@ -281,8 +284,8 @@ public class DockerModuleHandle implements ModuleHandle {
 
     if (this.cmd != null && this.cmd.length > 0) {
       JsonArray a = new JsonArray();
-      for (String aCmd : cmd) {
-        a.add(aCmd);
+      for (String cmdElement : cmd) {
+        a.add(cmdElement);
       }
       j.put("Cmd", a);
     }
@@ -311,9 +314,9 @@ public class DockerModuleHandle implements ModuleHandle {
     while (iterator.hasNext()) {
       Map.Entry<String, Object> next = iterator.next();
       String key = next.getKey();
-      String sPort = key.split("/")[0];
+      String port = key.split("/")[0];
       if (exposedPort == 0) {
-        exposedPort = Integer.valueOf(sPort);
+        exposedPort = Integer.valueOf(port);
       }
     }
     return exposedPort;

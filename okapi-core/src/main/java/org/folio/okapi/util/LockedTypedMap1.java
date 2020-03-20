@@ -1,14 +1,16 @@
 package org.folio.okapi.util;
 
+import java.util.Collection;
+import java.util.LinkedHashMap;
+
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
-import java.util.Collection;
-import java.util.LinkedHashMap;
-import org.folio.okapi.common.ErrorType;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 

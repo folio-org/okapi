@@ -1,11 +1,13 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
-import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
+
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
+
+import io.vertx.core.Handler;
+import io.vertx.ext.mongo.MongoClient;
 
 public class DeploymentStoreMongo implements DeploymentStore {
 

@@ -1,15 +1,17 @@
 package org.folio.okapi.util;
 
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
+
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
 
 public class ModuleUtil {
   private ModuleUtil() {
@@ -78,7 +80,7 @@ public class ModuleUtil {
     final boolean npmSnapshot = getParamBoolean(req, "npmSnapshot", true);
     final String scope = req.getParam("scope");
     if (!full) {
-        full = getParamBoolean(req, "full", false);
+      full = getParamBoolean(req, "full", false);
     }
     Iterator<ModuleDescriptor> iterator = list.iterator();
     while (iterator.hasNext()) {

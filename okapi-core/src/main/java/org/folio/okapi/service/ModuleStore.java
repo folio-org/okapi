@@ -1,9 +1,11 @@
 package org.folio.okapi.service;
 
-import io.vertx.core.Handler;
 import java.util.List;
+
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
+
+import io.vertx.core.Handler;
 
 public interface ModuleStore {
 

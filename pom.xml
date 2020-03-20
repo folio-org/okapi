@@ -118,15 +118,11 @@
         <version>3.1.1</version>
         <configuration>
           <configLocation>checkstyle.xml</configLocation>
+          <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
           <encoding>UTF-8</encoding>
           <violationSeverity>warning</violationSeverity>
           <consoleOutput>false</consoleOutput>
-          <!--
-              Todo: Must be set to 'true' when all violations will be fixed.
-              Note: there is also 'maxAllowedViolations' that can be set to
-              the current amount of found issues in order to not introduce new ones.
-          -->
-          <failsOnError>false</failsOnError>
+          <failsOnError>true</failsOnError>
           <failOnViolation>false</failOnViolation>
           <sourceDirectories>
             <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>

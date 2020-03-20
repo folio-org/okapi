@@ -1,11 +1,13 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.ModuleStore;
-import io.vertx.core.Handler;
-import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
+
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.service.ModuleStore;
+
+import io.vertx.core.Handler;
+import io.vertx.ext.mongo.MongoClient;
 
 /**
  * Stores ModuleDescriptors in a Mongo database.

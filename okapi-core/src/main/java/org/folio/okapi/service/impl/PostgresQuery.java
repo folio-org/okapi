@@ -1,16 +1,17 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.SqlConnection;
-import io.vertx.sqlclient.Tuple;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+
+import io.vertx.core.Handler;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.SqlConnection;
+import io.vertx.sqlclient.Tuple;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PostgresQuery {

@@ -1,11 +1,23 @@
 package org.folio.okapi;
 
-import com.hazelcast.config.Config;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.DropwizardHelper;
+
 import com.hazelcast.config.ClasspathXmlConfig;
+import com.hazelcast.config.Config;
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -17,15 +29,6 @@ import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.DropwizardHelper;
-import org.folio.okapi.common.Messages;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
@@ -33,7 +36,7 @@ public class MainDeploy {
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
   private VertxOptions vopt = new VertxOptions();
-  private Config hConfig = null;
+  private Config hazelcastConfig = null;
   private JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
@@ -47,7 +50,8 @@ public class MainDeploy {
     this.conf = conf;
   }
 
-  @SuppressWarnings({"squid:S1181"})  // suppress "Catch Exception instead of Throwable" to also log Throwable
+  // suppress "Catch Exception instead of Throwable" to also log Throwable
+  @SuppressWarnings({"squid:S1181"})
   public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     vopt.setPreferNativeTransport(true);
     try {
@@ -64,18 +68,18 @@ public class MainDeploy {
       }
       final String mode = conf.getString("mode", "dev");
       switch (mode) {
-      case "dev":
-      case "initdatabase":
-      case "purgedatabase":
-        deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
-        break;
-      case "cluster":
-      case "proxy":
-      case "deployment":
-        deployClustered(logger, fut);
-        break;
-      default:
-        fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
+        case "dev":
+        case "initdatabase":
+        case "purgedatabase":
+          deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
+          break;
+        case "cluster":
+        case "proxy":
+        case "deployment":
+          deployClustered(logger, fut);
+          break;
+        default:
+          fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
       }
     } catch (Throwable t) {
       fut.handle(Future.failedFuture(t));
@@ -117,7 +121,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new ClasspathXmlConfig(resource);
+          hazelcastConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -125,7 +129,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new FileSystemXmlConfig(resource);
+          hazelcastConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -133,7 +137,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new UrlXmlConfig(resource);
+          hazelcastConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -182,17 +186,17 @@ public class MainDeploy {
   }
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
-    if (hConfig == null) {
-      hConfig = ConfigUtil.loadConfig();
+    if (hazelcastConfig == null) {
+      hazelcastConfig = ConfigUtil.loadConfig();
       if (clusterHost != null) {
-        NetworkConfig network = hConfig.getNetworkConfig();
-        InterfacesConfig iFace = network.getInterfaces();
-        iFace.setEnabled(true).addInterface(clusterHost);
+        NetworkConfig network = hazelcastConfig.getNetworkConfig();
+        InterfacesConfig interfacesConfig = network.getInterfaces();
+        interfacesConfig.setEnabled(true).addInterface(clusterHost);
       }
     }
-    hConfig.setProperty("hazelcast.logging.type", "log4j");
+    hazelcastConfig.setProperty("hazelcast.logging.type", "log4j");
 
-    HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
+    HazelcastClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
     vopt.setClusterManager(mgr);
     EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {

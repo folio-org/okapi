@@ -1,12 +1,10 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.ErrorType;
@@ -18,6 +16,10 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
+
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 
 public class EnvManager {
 
@@ -73,10 +75,6 @@ public class EnvManager {
     });
   }
 
-  public void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
-    envMap.get(name, fut);
-  }
-
   private void getR(Iterator<String> it, List<EnvEntry> all,
           Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
     if (!it.hasNext()) {
@@ -93,6 +91,10 @@ public class EnvManager {
         }
       });
     }
+  }
+
+  public void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
+    envMap.get(name, fut);
   }
 
   public void get(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {

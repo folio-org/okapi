@@ -4,6 +4,32 @@ import java.lang.management.ManagementFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.common.Config;
+import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.common.ModuleVersionReporter;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.managers.DeploymentManager;
+import org.folio.okapi.managers.DiscoveryManager;
+import org.folio.okapi.managers.EnvManager;
+import org.folio.okapi.managers.InternalModule;
+import org.folio.okapi.managers.ModuleManager;
+import org.folio.okapi.managers.ProxyService;
+import org.folio.okapi.managers.PullManager;
+import org.folio.okapi.managers.TenantManager;
+import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.service.TenantStore;
+import org.folio.okapi.service.impl.Storage;
+import org.folio.okapi.service.impl.Storage.InitMode;
+import org.folio.okapi.service.impl.TenantStoreNull;
+import org.folio.okapi.util.LogHelper;
+
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -17,30 +43,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.CorsHandler;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.common.Config;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.ModuleVersionReporter;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.managers.DeploymentManager;
-import org.folio.okapi.managers.ModuleManager;
-import org.folio.okapi.managers.ProxyService;
-import org.folio.okapi.managers.TenantManager;
-import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.util.LogHelper;
-import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.managers.DiscoveryManager;
-import org.folio.okapi.managers.EnvManager;
-import org.folio.okapi.managers.PullManager;
-import org.folio.okapi.service.impl.Storage;
-import org.folio.okapi.service.impl.Storage.InitMode;
-import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.managers.InternalModule;
-import org.folio.okapi.service.impl.TenantStoreNull;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
@@ -90,7 +92,7 @@ public class MainVerticle extends AbstractVerticle {
       logger.info(messages.getMessage("10001"));
     }
     final String host = Config.getSysConf("host", "localhost", config);
-    String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port , config);
+    String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port, config);
     okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
     final String nodeName = Config.getSysConf("nodename", null, config);
     String storageType = Config.getSysConf("storage", "inmemory", config);
@@ -276,11 +278,6 @@ public class MainVerticle extends AbstractVerticle {
     return promise.future();
   }
 
-  /**
-   * Create the super tenant, if not already there.
-   * @param okapiModule
-   * @param promise
-   */
   private void checkSuperTenant(String okapiModule, Promise<Void> promise) {
     tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
       if (gres.succeeded()) { // we already have one, go on
@@ -305,7 +302,7 @@ public class MainVerticle extends AbstractVerticle {
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) >= 4) {
           logger.warn("checkSuperTenant: This Okapi is too old,"
-            + "{} we already have {} in the database. Use that!",
+              + "{} we already have {} in the database. Use that!",
             okapiVersion, ev);
         } else {
           logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
@@ -314,13 +311,13 @@ public class MainVerticle extends AbstractVerticle {
           // the internal module can not have dependencies
           // See Okapi-359 about version checks across the cluster
           tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
-              if (ures.failed()) {
-                promise.fail(ures.cause());
-                return;
-              }
+            if (ures.failed()) {
+              promise.fail(ures.cause());
+              return;
+            }
             logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
               ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
-            });
+          });
         }
         promise.complete();
         return;
@@ -371,7 +368,6 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startListening() {
-    Promise<Void> promise = Promise.promise();
     Router router = Router.router(vertx);
     logger.debug("Setting up routes");
     //handle CORS
@@ -409,6 +405,7 @@ public class MainVerticle extends AbstractVerticle {
       router.route("/*").handler(proxyService::proxy);
     }
 
+    Promise<Void> promise = Promise.promise();
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
       .setHandle100ContinueAutomatically(true);

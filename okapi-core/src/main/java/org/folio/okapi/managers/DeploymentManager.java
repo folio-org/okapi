@@ -1,12 +1,5 @@
 package org.folio.okapi.managers;
 
-import com.codahale.metrics.Timer;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,23 +8,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.bean.NodeDescriptor;
-import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.bean.Ports;
 import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.NodeDescriptor;
+import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.util.DropwizardHelper;
-import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.common.Messages;
+import org.folio.okapi.util.DropwizardHelper;
+
+import com.codahale.metrics.Timer;
+
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -62,8 +65,10 @@ public class DeploymentManager {
     this.nodeName = nodeName;
     this.eventBus = vertx.eventBus();
     this.config = config;
-    int portStart = Integer.parseInt(Config.getSysConf("port_start", Integer.toString(listenPort + 1), config));
-    int portEnd = Integer.parseInt(Config.getSysConf("port_end", Integer.toString(portStart + 10), config));
+    int portStart = Integer.parseInt(Config.getSysConf(
+      "port_start", Integer.toString(listenPort + 1), config));
+    int portEnd = Integer.parseInt(Config.getSysConf(
+      "port_end", Integer.toString(portStart + 10), config));
     this.ports = new Ports(portStart, portEnd);
   }
 
@@ -99,7 +104,7 @@ public class DeploymentManager {
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("fast shutdown");
     CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
-    Collection<DeploymentDescriptor > col = list.values();
+    Collection<DeploymentDescriptor> col = list.values();
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
       Promise<Void> promise = Promise.promise();
@@ -109,8 +114,10 @@ public class DeploymentManager {
     futures.all(fut);
   }
 
-  public void deploy(DeploymentDescriptor md1, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  public void deploy(DeploymentDescriptor md1,
+                     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getInstId();
+
     if (id != null && list.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10700", id)));
       return;

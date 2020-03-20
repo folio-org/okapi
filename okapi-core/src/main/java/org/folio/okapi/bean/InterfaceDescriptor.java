@@ -1,12 +1,14 @@
 package org.folio.okapi.bean;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+
 import org.folio.okapi.util.ProxyContext;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * InterfaceDescriptor describes an interface a module can provide, or depend
@@ -77,7 +79,7 @@ public class InterfaceDescriptor {
   /**
    * Return the version parts.
    *
-   * @param version
+   * @param version full interface version
    * @return an array of 3 elements, XX, YY, ZZ, with -1 for missing parts
    */
   private static int[] versionParts(String version, int idx) {
@@ -107,7 +109,7 @@ public class InterfaceDescriptor {
   /**
    * Check if this InterfaceDescriptor is compatible with the required one.
    *
-   * @param required
+   * @param required interface that is required
    * @return
    */
   public boolean isCompatible(InterfaceDescriptor required) {
@@ -123,8 +125,9 @@ public class InterfaceDescriptor {
       if (r == null) {
         break;
       }
-      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2])))
+      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2]))) {
         return true;
+      }
     }
     return false;
   }
@@ -180,7 +183,6 @@ public class InterfaceDescriptor {
 
   /**
    * Validate a moduleInterface.
-   *
    * Writes Warnings in the log in case of deprecated features.
    *
    * @param section "provides" or "requires" - the rules differ

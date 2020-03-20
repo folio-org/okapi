@@ -1,18 +1,20 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.mongo.MongoClient;
-import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+
+import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
+import io.vertx.ext.mongo.UpdateOptions;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class MongoUtil<T> {
@@ -60,15 +62,16 @@ class MongoUtil<T> {
     JsonObject document = new JsonObject(s);
     encode(document, null); // _id can not be put for Vert.x 3.5.1
     UpdateOptions options = new UpdateOptions().setUpsert(true);
-    cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
-      if (res.succeeded()) {
-        fut.handle(new Success<>());
-      } else {
-        logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
-        logger.warn("Document: {}", document.encodePrettily());
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      }
-    });
+    cli.updateCollectionWithOptions(collection, jq,
+      new JsonObject().put("$set", document), options, res -> {
+        if (res.succeeded()) {
+          fut.handle(new Success<>());
+        } else {
+          logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
+          logger.warn("Document: {}", document.encodePrettily());
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        }
+      });
   }
 
   public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {

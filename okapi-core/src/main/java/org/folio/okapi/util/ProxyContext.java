@@ -1,20 +1,23 @@
 package org.folio.okapi.util;
 
-import com.codahale.metrics.Timer;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.Messages;
+
+import com.codahale.metrics.Timer;
+
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.RoutingContext;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
@@ -54,18 +57,18 @@ public class ProxyContext {
     this.waitMs = waitMs;
     this.tenant = "-";
     this.modList = null;
-    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     String path = ctx.request().path();
     if (path == null) { // defensive coding, should always be there
       path = "";
     }
     path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-      // when rerouting, the query appears as part of the getPath, so we kill it
+    // when rerouting, the query appears as part of the getPath, so we kill it
     // here with the '?'.
     Random r = new Random();
     StringBuilder newid = new StringBuilder();
     newid.append(String.format("%06d", r.nextInt(1000000)));
     newid.append(path);
+    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);

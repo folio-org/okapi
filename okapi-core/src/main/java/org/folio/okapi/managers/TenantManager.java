@@ -1,5 +1,39 @@
 package org.folio.okapi.managers;
 
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.InterfaceDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.ModuleInstance;
+import org.folio.okapi.bean.PermissionList;
+import org.folio.okapi.bean.RoutingEntry;
+import org.folio.okapi.bean.Tenant;
+import org.folio.okapi.bean.TenantDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor;
+import org.folio.okapi.bean.TenantModuleDescriptor.Action;
+import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.Success;
+import org.folio.okapi.service.TenantStore;
+import org.folio.okapi.util.AsyncLock;
+import org.folio.okapi.util.CompList;
+import org.folio.okapi.util.DepResolution;
+import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.ProxyContext;
+import org.folio.okapi.util.TenantInstallOptions;
+
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -10,38 +44,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.shareddata.Lock;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.bean.InterfaceDescriptor;
-import org.folio.okapi.bean.ModuleInstance;
-import org.folio.okapi.bean.PermissionList;
-import org.folio.okapi.bean.RoutingEntry;
-import org.folio.okapi.bean.Tenant;
-import org.folio.okapi.bean.TenantDescriptor;
-import org.folio.okapi.util.TenantInstallOptions;
-import org.folio.okapi.bean.TenantModuleDescriptor;
-import org.folio.okapi.bean.TenantModuleDescriptor.Action;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
-import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.util.AsyncLock;
-import org.folio.okapi.util.DepResolution;
-import org.folio.okapi.util.ProxyContext;
 
 /**
  * Manages the tenants in the shared map, and passes updates to the database.
@@ -86,8 +88,8 @@ public class TenantManager {
   /**
    * Initialize the TenantManager.
    *
-   * @param vertx
-   * @param fut
+   * @param vertx Vert.x handle
+   * @param fut future
    */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
@@ -106,7 +108,7 @@ public class TenantManager {
    * Set the proxyService. So that we can use it to call the tenant interface,
    * etc.
    *
-   * @param px
+   * @param px Proxy Service handle
    */
   public void setProxyService(ProxyService px) {
     this.proxyService = px;
@@ -125,8 +127,8 @@ public class TenantManager {
   /**
    * Insert a tenant.
    *
-   * @param t
-   * @param fut
+   * @param t tenant
+   * @param fut future
    */
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
@@ -199,8 +201,8 @@ public class TenantManager {
   /**
    * Get a tenant.
    *
-   * @param id
-   * @param fut
+   * @param id tenant ID
+   * @param fut future
    */
   public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
     tenants.get(id, fut);
@@ -209,9 +211,8 @@ public class TenantManager {
   /**
    * Delete a tenant.
    *
-   * @param id
-   * @param fut callback with a boolean, true if actually deleted, false if not
-   * there.
+   * @param id tenant ID
+   * @param fut future with a boolean, true if actually deleted, false if not there.
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
     tenantStore.delete(id, dres -> {
@@ -268,14 +269,13 @@ public class TenantManager {
    * Enable a module for a tenant and disable another. Checks dependencies,
    * invokes the tenant interface, and the tenantPermissions interface, and
    * finally marks the modules as enabled and disabled.
+   * To avoid too much callback hell, this has been split into several helpers.
    *
    * @param tenantId - id of the the tenant in question
    * @param moduleFrom id of the module to be disabled, or null
    * @param moduleTo id of the module to be enabled, or null
    * @param pc proxyContext for proper logging, etc
    * @param fut callback with success, or various errors
-   *
-   * To avoid too much callback hell, this has been split into several helpers.
    */
   public void enableAndDisableModule(String tenantId,
     String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
@@ -353,10 +353,10 @@ public class TenantManager {
   /**
    * enableAndDisable helper 1: call the tenant interface.
    *
-   * @param tenant
-   * @param mdFrom
-   * @param mdTo
-   * @param fut
+   * @param tenant tenant
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param fut future
    */
   private void ead1TenantInterface(Tenant tenant, String tenantParameters,
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, boolean purge,
@@ -407,11 +407,11 @@ public class TenantManager {
   /**
    * enableAndDisable helper 2: Choose which permission module to invoke.
    *
-   * @param tenant
-   * @param mdFrom
-   * @param mdTo
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param pc ProxyContext
+   * @param fut future
    */
   private void ead2PermMod(Tenant tenant,
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
@@ -452,12 +452,12 @@ public class TenantManager {
    * place to push those permissions to, we do it recursively for all enabled
    * modules.
    *
-   * @param tenant
-   * @param moduleFrom
-   * @param mdTo
-   * @param permsModule
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param moduleFrom module from
+   * @param mdTo module to
+   * @param permsModule permissions module
+   * @param pc ProxyContext
+   * @param fut future
    */
   private void ead3RealoadPerms(Tenant tenant, Iterator<String> modit,
     String moduleFrom, ModuleDescriptor mdTo, ModuleDescriptor permsModule,
@@ -489,13 +489,11 @@ public class TenantManager {
    * enableAndDisable helper 4: Make the tenantPermissions call. For the module
    * itself.
    *
-   * @param tenant
-   * @param moduleFrom
-   * @param module_to
-   * @param mdTo
-   * @param permsModule
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param mdTo module to
+   * @param permsModule permissions module
+   * @param pc ProxyContext
+   * @param fut future
    */
   private void ead4Permissions(Tenant tenant,
     ModuleDescriptor mdTo, ModuleDescriptor permsModule,
@@ -516,11 +514,11 @@ public class TenantManager {
   /**
    * enableAndDisable helper 5: Commit the change in modules.
    *
-   * @param tenant
-   * @param moduleFrom
-   * @param moduleTo
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param pc ProxyContext
+   * @param fut future
    */
   private void ead5commit(Tenant tenant,
     ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
@@ -567,10 +565,6 @@ public class TenantManager {
     });
   }
 
-  private void handleTimer(String tenantId) {
-    handleTimer(tenantId, null, 0, null);
-  }
-
   private void stopTimer(String tenantId, String moduleId, int seq, Lock lockP) {
     if (lockP != null) {
       logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
@@ -580,21 +574,25 @@ public class TenantManager {
     }
   }
 
+  private void handleTimer(String tenantId) {
+    handleTimer(tenantId, null, 0, null);
+  }
+
   private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
-    tenants.get(tenantId, tRes -> {
-      if (tRes.failed()) {
+    tenants.get(tenantId, tres -> {
+      if (tres.failed()) {
         // tenant no longer exist
         stopTimer(tenantId, moduleId, seq1, lockP);
         return;
       }
-      Tenant tenant = tRes.result();
-      moduleManager.getEnabledModules(tenant, mRes -> {
-        if (mRes.failed()) {
+      Tenant tenant = tres.result();
+      moduleManager.getEnabledModules(tenant, mres -> {
+        if (mres.failed()) {
           stopTimer(tenantId, moduleId, seq1, lockP);
           return;
         }
-        List<ModuleDescriptor> mdList = mRes.result();
+        List<ModuleDescriptor> mdList = mres.result();
         try {
           handleTimer(tenant, mdList, moduleId, seq1, lockP);
         } catch (Exception ex) {
@@ -604,7 +602,8 @@ public class TenantManager {
     });
   }
 
-  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList, String moduleId, int seq1, Lock lockP) {
+  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList,
+                           String moduleId, int seq1, Lock lockP) {
     int noTimers = 0;
     final String tenantId = tenant.getId();
     for (ModuleDescriptor md : mdList) {
@@ -623,7 +622,8 @@ public class TenantManager {
     logger.info("handleTimer done no {}", noTimers);
   }
 
-  private int handleTimer(Tenant tenant, ModuleDescriptor md, List<RoutingEntry> routingEntries, int seq1, Lock lockP) {
+  private int handleTimer(Tenant tenant, ModuleDescriptor md,
+                          List<RoutingEntry> routingEntries, int seq1, Lock lockP) {
     int i = 0;
     final String tenantId = tenant.getId();
     for (RoutingEntry re : routingEntries) {
@@ -663,7 +663,8 @@ public class TenantManager {
     });
   }
 
-  private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path, Lock lock) {
+  private void fireTimer(Tenant tenant, ModuleDescriptor md,
+                         RoutingEntry re, String path, Lock lock) {
     String tenantId = tenant.getId();
     HttpMethod httpMethod = HttpMethod.POST;
     String[] methods = re.getMethods();
@@ -673,14 +674,14 @@ public class TenantManager {
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
-    proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cRes -> {
+    proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cres -> {
       lock.release();
-      if (cRes.succeeded()) {
+      if (cres.succeeded()) {
         logger.info("timer call succeeded to module {} for tenant {}",
           md.getId(), tenantId);
       } else {
         logger.info("timer call failed to module {} for tenant {} : {}",
-          md.getId(), tenantId, cRes.cause().getMessage());
+          md.getId(), tenantId, cres.cause().getMessage());
       }
     });
   }
@@ -738,10 +739,12 @@ public class TenantManager {
    * if the module provides a '_tenant' interface that is marked as a system
    * interface, and has a RoutingEntry that supports POST.
    *
-   * @param module
-   * @param fut callback with the getPath to the interface, "" if no interface,
-   * or a failure
-   *
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param jo Json Object to be POSTed
+   * @param tenantParameters tenant parameters (eg sample data)
+   * @param purge true if purging (DELETE)
+   * @param fut future
    */
   private void getTenantInterface(ModuleDescriptor mdFrom,
     ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge,
@@ -764,7 +767,8 @@ public class TenantManager {
               logger.warn("Module '{}' uses old-fashioned tenant "
                 + "interface. Define InterfaceType=system, and add a RoutingEntry."
                 + " Falling back to calling /_/tenant.", md.getId());
-              fut.handle(new Success<>(new ModuleInstance(md, null, "/_/tenant", HttpMethod.POST, true).withRetry()));
+              fut.handle(new Success<>(new ModuleInstance(md, null,
+                "/_/tenant", HttpMethod.POST, true).withRetry()));
               return;
             }
             break;
@@ -825,7 +829,8 @@ public class TenantManager {
               return true;
             }
           } else if (mdTo != null) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true).withRetry()));
+            fut.handle(new Success<>(new ModuleInstance(md, re, pattern,
+              HttpMethod.POST, true).withRetry()));
             return true;
           }
         }
@@ -968,25 +973,25 @@ public class TenantManager {
       Tenant t = gres.result();
       moduleManager.getModulesWithFilter(options.getPreRelease(),
         options.getNpmSnapshot(), null, mres -> {
-        if (mres.failed()) {
-          fut.handle(new Failure<>(mres.getType(), mres.cause()));
-          return;
-        }
-        List<ModuleDescriptor> modResult = mres.result();
-        HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modResult.size());
-        HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-        for (ModuleDescriptor md : modResult) {
-          modsAvailable.put(md.getId(), md);
-          logger.info("mod available: {}", md.getId());
-          if (t.isEnabled(md.getId())) {
-            logger.info("mod enabled: {}", md.getId());
-            modsEnabled.put(md.getId(), md);
+          if (mres.failed()) {
+            fut.handle(new Failure<>(mres.getType(), mres.cause()));
+            return;
           }
-        }
-        List<TenantModuleDescriptor> tml2
-          = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
-        installUpgradeModules2(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
-      });
+          List<ModuleDescriptor> modResult = mres.result();
+          HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modResult.size());
+          HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+          for (ModuleDescriptor md : modResult) {
+            modsAvailable.put(md.getId(), md);
+            logger.info("mod available: {}", md.getId());
+            if (t.isEnabled(md.getId())) {
+              logger.info("mod enabled: {}", md.getId());
+              modsEnabled.put(md.getId(), md);
+            }
+          }
+          List<TenantModuleDescriptor> tml2
+            = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
+          installUpgradeModules2(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
+        });
     });
   }
 
@@ -996,15 +1001,15 @@ public class TenantManager {
 
     if (tml == null) { // upgrade case . Mark all newer modules for install
       List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-      for (String fId : modsEnabled.keySet()) {
-        ModuleId moduleId = new ModuleId(fId);
-        String uId = moduleId.getLatest(modsAvailable.keySet());
-        if (!uId.equals(fId)) {
+      for (String id : modsEnabled.keySet()) {
+        ModuleId moduleId = new ModuleId(id);
+        String latestId = moduleId.getLatest(modsAvailable.keySet());
+        if (!latestId.equals(id)) {
           TenantModuleDescriptor tmd = new TenantModuleDescriptor();
           tmd.setAction(Action.enable);
-          tmd.setId(uId);
-          logger.info("upgrade.. enable {}", uId);
-          tmd.setFrom(fId);
+          tmd.setId(latestId);
+          logger.info("upgrade.. enable {}", latestId);
+          tmd.setFrom(id);
           tml2.add(tmd);
         }
       }
@@ -1189,9 +1194,9 @@ public class TenantManager {
         Tenant t = gres.result();
         List<ModuleDescriptor> tl = new LinkedList<>();
         CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
-        for (String mId : t.listModules()) {
+        for (String moduleId : t.listModules()) {
           Promise<ModuleDescriptor> promise = Promise.promise();
-          moduleManager.get(mId, res -> {
+          moduleManager.get(moduleId, res -> {
             if (res.succeeded()) {
               tl.add(res.result());
             }
@@ -1223,7 +1228,8 @@ public class TenantManager {
     });
   }
 
-  private void getModuleUserR(String mod, Iterator<String> it, Handler<ExtendedAsyncResult<Void>> fut) {
+  private void getModuleUserR(String mod, Iterator<String> it,
+                              Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) { // no problems found
       fut.handle(new Success<>());
     } else {
@@ -1244,9 +1250,9 @@ public class TenantManager {
   }
 
   /**
-   * Load tenants from the store into the shared memory map
+   * Load tenants from the store into the shared memory map.
    *
-   * @param fut
+   * @param fut future
    */
   private void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
     tenants.getKeys(gres -> {

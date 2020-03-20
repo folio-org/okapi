@@ -1,10 +1,12 @@
 package org.folio.okapi.service.impl;
 
-import io.vertx.core.Handler;
 import java.util.List;
+
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
+
+import io.vertx.core.Handler;
 
 public class DeploymentStorePostgres implements DeploymentStore {
 
@@ -14,7 +16,8 @@ public class DeploymentStorePostgres implements DeploymentStore {
   private final PostgresTable<DeploymentDescriptor> table;
 
   public DeploymentStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable<>(pg, "deployments", JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
+    this.table = new PostgresTable<>(pg, "deployments", JSON_COLUMN,
+      ID_INDEX, ID_SELECT, "inst_id");
   }
 
   @Override

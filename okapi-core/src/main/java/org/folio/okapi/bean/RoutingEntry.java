@@ -1,11 +1,13 @@
 package org.folio.okapi.bean;
 
+import org.folio.okapi.util.ProxyContext;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
-import org.folio.okapi.util.ProxyContext;
+import io.vertx.core.json.Json;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -121,11 +123,21 @@ public class RoutingEntry {
     this.unit = unit;
     if (unit != null) {
       switch (unit) {
-        case "millisecond": factor = 1; break;
-        case "second": factor = 1000; break;
-        case "minute": factor = 60000; break;
-        case "hour": factor = 3600000; break;
-        case "day": factor = 86400000; break;
+        case "millisecond":
+          factor = 1;
+          break;
+        case "second":
+          factor = 1000;
+          break;
+        case "minute":
+          factor = 60000;
+          break;
+        case "hour":
+          factor = 3600000;
+          break;
+        case "day":
+          factor = 86400000;
+          break;
         default: throw new IllegalArgumentException(unit);
       }
     }
