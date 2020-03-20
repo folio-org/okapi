@@ -46,7 +46,7 @@ import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.URLDecoder;
+import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -919,7 +919,7 @@ public class ModuleTest {
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
     Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    Assert.assertTrue(URLDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
+    Assert.assertTrue(UrlDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
 
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),

@@ -31,7 +31,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.common.URLDecoder;
+import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
@@ -1264,7 +1264,7 @@ public class InternalModule {
     String[] decodedSegs = new String[n];
     logger.debug("segment path={}", p);
     for (int i = 0; i < n; i++) {
-      decodedSegs[i] = URLDecoder.decode(segments[i], false);
+      decodedSegs[i] = UrlDecoder.decode(segments[i], false);
       logger.debug("segment {} {}->{}", i, segments[i], decodedSegs[i]);
     }
     HttpMethod m = ctx.request().method();

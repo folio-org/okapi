@@ -11,6 +11,7 @@ public class HttpClientLegacy {
   private HttpClientLegacy() {
     throw new IllegalStateException("HttpClientLegacy");
   }
+
   public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
     SocketAddress socketAddress, String url,
     Handler<HttpClientResponse> response) {

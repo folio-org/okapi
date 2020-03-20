@@ -1,6 +1,6 @@
 package org.folio.okapi.common;
 
-import static org.folio.okapi.common.ErrorType.*;
+import org.folio.okapi.common.ErrorType;
 
 public class Success<T> implements ExtendedAsyncResult<T> {
 
@@ -36,6 +36,6 @@ public class Success<T> implements ExtendedAsyncResult<T> {
 
   @Override
   public ErrorType getType() {
-    return OK;
+    return ErrorType.OK;
   }
 }

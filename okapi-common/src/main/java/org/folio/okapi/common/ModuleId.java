@@ -1,4 +1,5 @@
 package org.folio.okapi.common;
+
 import java.util.Collection;
 
 public class ModuleId implements Comparable<ModuleId> {
@@ -12,8 +13,8 @@ public class ModuleId implements Comparable<ModuleId> {
    * version).
    * May throw IllegalArgumentException for invalid syntax for semantic version.
    * @param s Module ID or product name. The module ID does not have restrictions
-   * on characters, but a digit following a hypyen-minus marks the beginning of
-   * a semantic version .. See {@link org.folio.okapi.common.SemVer}.
+   *     on characters, but a digit following a hyphen-minus marks the beginning of
+   *     a semantic version .. See {@link org.folio.okapi.common.SemVer}.
    */
   public ModuleId(String s) {
     id = s;
@@ -29,7 +30,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns Module ID as string
+   * Returns Module ID as string.
    * @return string representation
    */
   public String getId() {
@@ -37,7 +38,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns SemVer class that is part of this ModuleID
+   * Returns SemVer class that is part of this ModuleID.
    * @return SemVer instance or null if no semantic version is present
    */
   public SemVer getSemVer() {
@@ -45,7 +46,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns whether there's a version associated with this instance
+   * Returns whether there's a version associated with this instance.
    * @return true if there's a version; false otherwise
    */
   public boolean hasSemVer() {
@@ -53,7 +54,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Whether semantic version is an NPM snapshot
+   * Whether semantic version is an NPM snapshot.
    * @return true if there's an NPM snapshot version; false otherwise
    */
   public boolean hasNpmSnapshot() {
@@ -61,7 +62,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Whether there's pre release with version
+   * Whether there's pre release with version.
    * @return true if there's a version with pre-release; false otherwise
    */
   public boolean hasPreRelease() {
@@ -77,10 +78,10 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Compare one module with another
+   * Compare one module with another.
    * @param other module (this compare to other)
    * @return +-5 for product diff, +-4 for major diff, +-3 for minor,
-   * +-2 for rest, +-1 for patch, 0=equal
+   *     +-2 for rest, +-1 for patch, 0=equal
    */
   @Override
   public int compareTo(ModuleId other) {
@@ -104,7 +105,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Whether two products match
+   * Whether two products match.
    * @param that other module
    * @return true if equal; false otherwise
    */
@@ -140,11 +141,11 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * static comparsion
+   * Static module comparison.
    * @param i1 left
    * @param i2 right
    * @return See
-   * {@link org.folio.okapi.common.ModuleId#compareTo(org.folio.okapi.common.ModuleId)
+   * {@link org.folio.okapi.common.ModuleId#compareTo(org.folio.okapi.common.ModuleId)}
    */
   public static int compare(String i1, String i2) {
     ModuleId m1 = new ModuleId(i1);
@@ -153,24 +154,24 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Returns newest module out of a list of modules including this
+   * Returns newest module out of a list of modules including this.
    * @param l list of module IDs
    * @return newest module (possibly this module)
    */
   public String getLatest(Collection<String> l) {
     ModuleId latestModule = this;
-    for (String cId : l) {
-      ModuleId cModule = new ModuleId(cId);
-      if (product.equals(cModule.getProduct())
-        && cModule.compareTo(latestModule) > 0) {
-        latestModule = cModule;
+    for (String curId : l) {
+      ModuleId curModule = new ModuleId(curId);
+      if (product.equals(curModule.getProduct())
+        && curModule.compareTo(latestModule) > 0) {
+        latestModule = curModule;
       }
     }
     return latestModule.getId();
   }
 
   /**
-   * Whether this module has some prefix
+   * Test whether this module has some prefix.
    * @param other module ID which serves as prefix
    * @return true if this module has prefix of other; false otherwise
    */

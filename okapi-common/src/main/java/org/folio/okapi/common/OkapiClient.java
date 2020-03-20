@@ -1,5 +1,13 @@
 package org.folio.okapi.common;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.ErrorType;
+
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -9,12 +17,6 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.*;
 
 /**
  * Okapi client. Makes requests to other Okapi modules, or Okapi itself. Handles
@@ -88,8 +90,8 @@ public class OkapiClient {
   /**
    * Explicit constructor.
    *
-   * @param okapiUrl
-   * @param vertx
+   * @param okapiUrl OKAPI URL
+   * @param vertx Vert.x handle
    * @param headers may be null
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
@@ -150,17 +152,17 @@ public class OkapiClient {
     Handler<ExtendedAsyncResult<String>> fut) {
 
     if (this.okapiUrl == null) {
-      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
+      fut.handle(new Failure<>(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
       return;
     }
     HttpClientRequest req = request1(method, path, res -> {
-      if (res.failed() && res.getType() == ANY) {
+      if (res.failed() && res.getType() == ErrorType.ANY) {
         if (retryClosedCount > 0) {
           retryClosedCount--;
           vertx.setTimer(retryClosedWait, res1
             -> request(method, path, data, fut));
         } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         }
       } else {
         fut.handle(res);
@@ -189,7 +191,7 @@ public class OkapiClient {
     long t1 = System.nanoTime();
     HttpClientRequest req = httpClient.requestAbs(method, url, req1 -> {
       if (req1.failed()) {
-        fut.handle(new Failure<>(ANY, req1.cause()));
+        fut.handle(new Failure<>(ErrorType.ANY, req1.cause()));
         return;
       }
       HttpClientResponse reqres = req1.result();
@@ -229,7 +231,7 @@ public class OkapiClient {
       });
       reqres.exceptionHandler(e -> {
         logger.warn("{} OkapiClient exception 1 :", reqId, e);
-        fut.handle(new Failure<>(INTERNAL, e.getMessage()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, e.getMessage()));
       });
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -284,9 +286,9 @@ public class OkapiClient {
 
 
   /**
-   * Get the HTTP status code of last request
+   * Returns the HTTP status code of last request.
    *
-   * @return
+   * @return HTTP status
    */
   public int getStatusCode() {
     return statusCode;
@@ -307,10 +309,10 @@ public class OkapiClient {
   }
 
   /**
-   * Set the Okapi authentication token. Overrides the auth token. Should
-   * normally not be needed, but can be used in some special cases.
+   * Set the Okapi authentication token. Overrides the auth token.
+   * Should normally not be needed, but can be used in some special cases.
    *
-   * @param token
+   * @param token value to be used in the HTTP X-Okapi-Token header
    */
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);

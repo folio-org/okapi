@@ -2,8 +2,8 @@ package org.folio.okapi.common;
 
 import java.io.UnsupportedEncodingException;
 
-public class URLDecoder {
-  private URLDecoder() {
+public class UrlDecoder {
+  private UrlDecoder() {
     throw new IllegalStateException("Utility class");
   }
 

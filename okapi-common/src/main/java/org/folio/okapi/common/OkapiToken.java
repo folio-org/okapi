@@ -1,9 +1,10 @@
 package org.folio.okapi.common;
 
+import java.util.Base64;
+
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
-import java.util.Base64;
 
 /**
  * The Okapi security token.

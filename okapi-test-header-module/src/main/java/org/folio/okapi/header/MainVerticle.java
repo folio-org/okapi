@@ -1,15 +1,17 @@
 package org.folio.okapi.header;
 
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
+
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.streams.ReadStream;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Test module that works with headers-only. Also implements a few other test
@@ -36,7 +38,7 @@ public class MainVerticle extends AbstractVerticle {
    * Simple test to fake a _tenantPermission interface.
    * Captures the body, and reports it in a header.
    *
-   * @param ctx
+   * @param ctx routing context
    */
   private void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
