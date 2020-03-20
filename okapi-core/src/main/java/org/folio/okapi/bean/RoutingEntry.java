@@ -7,6 +7,9 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import org.folio.okapi.util.ProxyContext;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
  * methods, and the path they mean, for example "GET /foo". Incoming requests
@@ -33,6 +36,8 @@ public class RoutingEntry {
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
   private String pathRegex;
+  @JsonIgnore
+  private Pattern pattern;
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
   @JsonIgnore
@@ -228,7 +233,9 @@ public class RoutingEntry {
   }
 
   public void setPathPattern(String pathPattern) {
+    this.path = null;
     this.pathPattern = pathPattern;
+    this.pattern = null;
     StringBuilder b = new StringBuilder();
     b.append("^");
     int i = 0;
@@ -312,8 +319,12 @@ public class RoutingEntry {
       if (enableFastMatch) {
         return fastMatch(pathPattern, uri);
       }
+      if (pattern == null) {
+        pattern = Pattern.compile(pathRegex);
+      }
       String p = uri.substring(0, cutUri(uri));
-      return p.matches(pathRegex);
+      Matcher m = pattern.matcher(p);
+      return m.matches();
     }
     return path == null || uri.startsWith(path);
   }
