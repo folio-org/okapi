@@ -64,7 +64,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.id = id;
     this.containerHost = containerHost;
     this.image = desc.getDockerImage();
-    this.cmd = desc.getDockerCMD();
+    this.cmd = desc.getDockerCmd();
     this.env = desc.getEnv();
     this.dockerArgs = desc.getDockerArgs();
     this.client = vertx.createHttpClient();

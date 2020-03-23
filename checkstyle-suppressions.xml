@@ -5,6 +5,5 @@
     "http://checkstyle.sourceforge.net/dtds/suppressions_1_1.dtd">
 
 <suppressions>
-  <suppress checks="AbbreviationAsWordInName"  files="LaunchDescriptor.java"/>
   <suppress checks="indentation"  files="ProcessModuleHandle.java"/>
 </suppressions>
