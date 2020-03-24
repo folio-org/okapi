@@ -1076,7 +1076,7 @@ public class TenantManager {
                                     Handler<ExtendedAsyncResult<Void>> fut) {
 
     if (!it.hasNext()) {
-      fut.handle(new Success<>());
+      installUndeploy(tenant, options, modsAvailable, tml, tml.iterator(), fut);
       return;
     }
     TenantModuleDescriptor tm = it.next();
