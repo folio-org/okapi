@@ -1096,27 +1096,26 @@ public class TenantManager {
     }
     if (mdFrom == null && mdTo == null) {
       installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
-    } else {
-      ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
-        if (res.failed()) {
-          tm.setMessage(res.cause().getMessage());
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+      return;
+    }
+    ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
+      if (res.failed()) {
+        tm.setMessage(res.cause().getMessage());
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      installTenantCommit(tenant, pc, modsAvailable, tml, tm, res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(res1.getType(), res1.cause()));
           return;
         }
-        installTenantCommit(tenant, pc, options, modsAvailable, tml, tm, res1 -> {
-          if (res1.failed()) {
-            fut.handle(new Failure<>(res1.getType(), res1.cause()));
-            return;
-          }
-          installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
-        });
+        installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
       });
-    }
+    });
   }
 
   /* phase 3 commit tenant upgrade modules */
   private void installTenantCommit(Tenant tenant, ProxyContext pc,
-                                   TenantInstallOptions options,
                                    Map<String, ModuleDescriptor> modsAvailable,
                                    List<TenantModuleDescriptor> tml,
                                    TenantModuleDescriptor tm,
@@ -1137,45 +1136,45 @@ public class TenantManager {
 
   /* phase 4 undeploy if no longer needed */
   private void installUndeploy(Tenant tenant,
-    TenantInstallOptions options,
-    Map<String, ModuleDescriptor> modsAvailable,
-    List<TenantModuleDescriptor> tml,
-    Iterator<TenantModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                               TenantInstallOptions options,
+                               Map<String, ModuleDescriptor> modsAvailable,
+                               List<TenantModuleDescriptor> tml,
+                               Iterator<TenantModuleDescriptor> it,
+                               Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (it.hasNext() && options.getDeploy()) {
-      TenantModuleDescriptor tm = it.next();
-      ModuleDescriptor md = null;
-      if (tm.getAction() == Action.enable) {
-        md = modsAvailable.get(tm.getFrom());
-      }
-      if (tm.getAction() == Action.disable) {
-        md = modsAvailable.get(tm.getId());
-      }
-      if (md != null) {
-        final ModuleDescriptor mdF = md;
-        getModuleUser(md.getId(), ures -> {
-          if (ures.failed()) {
-            // in use or other error, so skip
-            installUndeploy(tenant, options, modsAvailable, tml, it, fut);
-          } else {
-            // success means : not in use, so we can undeploy it
-            logger.info("autoUndeploy mdF {}", mdF.getId());
-            proxyService.autoUndeploy(mdF, res -> {
-              if (res.failed()) {
-                fut.handle(new Failure<>(res.getType(), res.cause()));
-              } else {
-                installUndeploy(tenant, options, modsAvailable, tml, it, fut);
-              }
-            });
-          }
-        });
-      } else {
-        installUndeploy(tenant, options, modsAvailable, tml, it, fut);
-      }
-    } else {
+    if (!it.hasNext() || !options.getDeploy()) {
       fut.handle(new Success<>());
+      return;
     }
+    TenantModuleDescriptor tm = it.next();
+    ModuleDescriptor md = null;
+    if (tm.getAction() == Action.enable) {
+      md = modsAvailable.get(tm.getFrom());
+    }
+    if (tm.getAction() == Action.disable) {
+      md = modsAvailable.get(tm.getId());
+    }
+    if (md == null) {
+      installUndeploy(tenant, options, modsAvailable, tml, it, fut);
+      return;
+    }
+    final ModuleDescriptor mdF = md;
+    getModuleUser(md.getId(), ures -> {
+      if (ures.failed()) {
+        // in use or other error, so skip
+        installUndeploy(tenant, options, modsAvailable, tml, it, fut);
+        return;
+      }
+      // success means : not in use, so we can undeploy it
+      logger.info("autoUndeploy mdF {}", mdF.getId());
+      proxyService.autoUndeploy(mdF, res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+        } else {
+          installUndeploy(tenant, options, modsAvailable, tml, it, fut);
+        }
+      });
+    });
   }
 
   public void listModules(String id,
