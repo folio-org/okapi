@@ -1098,13 +1098,15 @@ public class TenantManager {
       installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
       return;
     }
+    ModuleDescriptor mdFromFinal = mdFrom;
+    ModuleDescriptor mdToFinal = mdTo;
     ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
       if (res.failed()) {
         tm.setMessage(res.cause().getMessage());
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      installTenantCommit(tenant, pc, modsAvailable, tml, tm, res1 -> {
+      ead5commit(tenant, mdFromFinal, mdToFinal, pc, res1 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res1.getType(), res1.cause()));
           return;
@@ -1112,26 +1114,6 @@ public class TenantManager {
         installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
       });
     });
-  }
-
-  /* phase 3 commit tenant upgrade modules */
-  private void installTenantCommit(Tenant tenant, ProxyContext pc,
-                                   Map<String, ModuleDescriptor> modsAvailable,
-                                   List<TenantModuleDescriptor> tml,
-                                   TenantModuleDescriptor tm,
-                                   Handler<ExtendedAsyncResult<Void>> fut) {
-
-    ModuleDescriptor mdFrom = null;
-    ModuleDescriptor mdTo = null;
-    if (tm.getAction() == Action.enable) {
-      if (tm.getFrom() != null) {
-        mdFrom = modsAvailable.get(tm.getFrom());
-      }
-      mdTo = modsAvailable.get(tm.getId());
-    } else if (tm.getAction() == Action.disable) {
-      mdFrom = modsAvailable.get(tm.getId());
-    }
-    ead5commit(tenant, mdFrom, mdTo, pc, fut);
   }
 
   /* phase 4 undeploy if no longer needed */
