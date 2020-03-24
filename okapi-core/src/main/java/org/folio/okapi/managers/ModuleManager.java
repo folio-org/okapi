@@ -1,5 +1,10 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -7,7 +12,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
@@ -22,12 +26,6 @@ import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
-
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -65,6 +63,11 @@ public class ModuleManager {
     this.tenantManager = tenantManager;
   }
 
+  /**
+   * Initialize module manager.
+   * @param vertx Vert.x handle
+   * @param fut async result
+   */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     consumeModulesUpdated();
@@ -123,7 +126,7 @@ public class ModuleManager {
     }
   }
 
-  public void enableAndDisableCheck(Tenant tenant,
+  void enableAndDisableCheck(Tenant tenant,
     ModuleDescriptor modFrom, ModuleDescriptor modTo,
     Handler<ExtendedAsyncResult<Void>> fut) {
 
@@ -386,7 +389,7 @@ public class ModuleManager {
     }
   }
 
-  public void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     ModuleId moduleId = new ModuleId(id);
     if (moduleId.hasSemVer()) {
       get(id, fut);
@@ -402,7 +405,7 @@ public class ModuleManager {
     }
   }
 
-  public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+  void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
     List<String> skipModules,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 

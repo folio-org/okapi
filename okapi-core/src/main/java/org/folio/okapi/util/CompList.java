@@ -1,23 +1,26 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 
 public class CompList<T> {
 
   List<Future> futures = new LinkedList<>();
   ErrorType errorType;
 
+  /**
+   * Specify error type to use - in case of failure.
+   * @param type error type
+   */
   public CompList(ErrorType type) {
     errorType = type;
   }
@@ -26,6 +29,11 @@ public class CompList<T> {
     futures.add(p.future());
   }
 
+  /**
+   * Composite result with success only if all added promises succeed.
+   * @param l value to return upon success
+   * @param fut future
+   */
   public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
     CompositeFuture.all(futures).setHandler(res -> {
       if (res.failed()) {
@@ -36,6 +44,10 @@ public class CompList<T> {
     });
   }
 
+  /**
+   * Composite result with success only if all added promises succeed.
+   * @param fut future
+   */
   public void all(Handler<ExtendedAsyncResult<Void>> fut) {
     CompositeFuture.all(futures).setHandler(res -> {
       if (res.failed()) {
@@ -46,6 +58,10 @@ public class CompList<T> {
     });
   }
 
+  /**
+   * Sequental result, stopping if any promise fails.
+   * @param fut future
+   */
   public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
     Future<Void> future = Future.succeededFuture();
     for (Future f : futures) {

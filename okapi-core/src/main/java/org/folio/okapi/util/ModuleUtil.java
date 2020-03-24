@@ -1,17 +1,16 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
 
 public class ModuleUtil {
   private ModuleUtil() {
@@ -20,6 +19,11 @@ public class ModuleUtil {
 
   private static Messages messages = Messages.getInstance();
 
+  /**
+   * Create tenant install options from HTTP request parameters.
+   * @param req HTTP server request
+   * @return tenant install options
+   */
   public static TenantInstallOptions createTenantOptions(HttpServerRequest req) {
     TenantInstallOptions options = new TenantInstallOptions();
 
@@ -32,6 +36,13 @@ public class ModuleUtil {
     return options;
   }
 
+  /**
+   * Lookup boolean query parameter in HTTP request.
+   * @param req HTTP server request
+   * @param name name of query parameter
+   * @param defValue default value if omitted
+   * @return boolean value
+   */
   public static boolean getParamBoolean(HttpServerRequest req, String name, boolean defValue) {
     String v = req.getParam(name);
     if (v == null) {
@@ -64,8 +75,17 @@ public class ModuleUtil {
     }
   }
 
+  /**
+   * Produce list of modules based on various filters.
+   * @param req HTTP server request
+   * @param list list of modules to consider
+   * @param full true: force full view of each module; false: consider "full" query parameter
+   * @param includeName whether to include module name property always
+   * @return list of modules
+   */
   public static List<ModuleDescriptor> filter(HttpServerRequest req, List<ModuleDescriptor> list,
     boolean full, boolean includeName) {
+
     ModuleId filter = null;
     String filterStr = req.getParam("filter");
     if (filterStr != null) {

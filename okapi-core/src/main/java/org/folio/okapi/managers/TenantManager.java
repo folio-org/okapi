@@ -1,5 +1,15 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.shareddata.Lock;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -8,7 +18,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -34,17 +43,6 @@ import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
 
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.shareddata.Lock;
-
 /**
  * Manages the tenants in the shared map, and passes updates to the database.
  */
@@ -63,11 +61,13 @@ public class TenantManager {
   private AsyncLock asyncLock;
   private Vertx vertx;
 
+  /**
+   * Create tenant manager.
+   * @param moduleManager module manager
+   * @param tenantStore tenant storage
+   */
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
     this.moduleManager = moduleManager;
-    if (tenantStore == null) {
-      throw new IllegalArgumentException("tenantStore can't be null");
-    }
     this.tenantStore = tenantStore;
   }
 
@@ -150,7 +150,7 @@ public class TenantManager {
     });
   }
 
-  public void updateDescriptor(TenantDescriptor td,
+  void updateDescriptor(TenantDescriptor td,
     Handler<ExtendedAsyncResult<Void>> fut) {
     final String id = td.getId();
     tenants.get(id, gres -> {
@@ -176,7 +176,7 @@ public class TenantManager {
     });
   }
 
-  public void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
+  void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
     tenants.getKeys(lres -> {
       if (lres.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, lres.cause()));
@@ -246,6 +246,13 @@ public class TenantManager {
     });
   }
 
+  /**
+   * Update module for tenant and commit to storage.
+   * @param t tenant
+   * @param moduleFrom null if no original module
+   * @param moduleTo null if removing a module for tenant
+   * @param fut async result
+   */
   public void updateModuleCommit(Tenant t,
     String moduleFrom, String moduleTo,
     Handler<ExtendedAsyncResult<Void>> fut) {
@@ -265,19 +272,7 @@ public class TenantManager {
     });
   }
 
-  /**
-   * Enable a module for a tenant and disable another. Checks dependencies,
-   * invokes the tenant interface, and the tenantPermissions interface, and
-   * finally marks the modules as enabled and disabled.
-   * To avoid too much callback hell, this has been split into several helpers.
-   *
-   * @param tenantId - id of the the tenant in question
-   * @param moduleFrom id of the module to be disabled, or null
-   * @param moduleTo id of the module to be enabled, or null
-   * @param pc proxyContext for proper logging, etc
-   * @param fut callback with success, or various errors
-   */
-  public void enableAndDisableModule(String tenantId,
+  void enableAndDisableModule(String tenantId,
     String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
     Handler<ExtendedAsyncResult<String>> fut) {
 
@@ -542,6 +537,10 @@ public class TenantManager {
     });
   }
 
+  /**
+   * start timers for all tenants.
+   * @param promise async result
+   */
   public void startTimers(Promise<Void> promise) {
     tenants.getKeys(res -> {
       if (res.succeeded()) {
@@ -879,7 +878,7 @@ public class TenantManager {
     });
   }
 
-  public void listInterfaces(String tenantId, boolean full, String interfaceType,
+  void listInterfaces(String tenantId, boolean full, String interfaceType,
     Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
 
     tenants.get(tenantId, tres -> {
@@ -922,7 +921,7 @@ public class TenantManager {
     });
   }
 
-  public void listModulesFromInterface(String tenantId,
+  void listModulesFromInterface(String tenantId,
     String interfaceName, String interfaceType,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
@@ -953,7 +952,7 @@ public class TenantManager {
     }); // tenant
   }
 
-  public void installUpgradeModules(String tenantId, ProxyContext pc,
+  void installUpgradeModules(String tenantId, ProxyContext pc,
     TenantInstallOptions options, List<TenantModuleDescriptor> tml,
     Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
 
@@ -1184,7 +1183,7 @@ public class TenantManager {
     }
   }
 
-  public void listModules(String id,
+  void listModules(String id,
     Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     tenants.get(id, gres -> {

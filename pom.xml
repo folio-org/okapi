@@ -117,8 +117,7 @@
         <artifactId>maven-checkstyle-plugin</artifactId>
         <version>3.1.1</version>
         <configuration>
-          <configLocation>checkstyle.xml</configLocation>
-          <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
+          <configLocation>checkstyle/folio_checks.xml</configLocation>
           <encoding>UTF-8</encoding>
           <violationSeverity>warning</violationSeverity>
           <consoleOutput>false</consoleOutput>

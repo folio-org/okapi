@@ -1,16 +1,15 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.json.Json;
 import java.util.Collection;
 import java.util.LinkedHashMap;
-
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.json.Json;
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
@@ -30,6 +29,11 @@ public class LockedTypedMap1<T> extends LockedStringMap {
     addOrReplace(true, k, null, json, fut);
   }
 
+  /**
+   * Get and deserialize to type from shared map.
+   * @param k key
+   * @param fut result with value if successful
+   */
   public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
     getString(k, null, res -> {
       if (res.failed()) {

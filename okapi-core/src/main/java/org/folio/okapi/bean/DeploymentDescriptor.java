@@ -1,12 +1,10 @@
 package org.folio.okapi.bean;
 
-import org.folio.okapi.service.ModuleHandle;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
-
 import io.vertx.core.json.DecodeException;
+import org.folio.okapi.service.ModuleHandle;
 
 /**
  * Description of one deployed module. Refers to one running instance of a
@@ -24,14 +22,20 @@ public class DeploymentDescriptor {
   @JsonIgnore
   private ModuleHandle moduleHandle;
 
+  /**
+   * Construct deployment descriptor.
+   */
   public DeploymentDescriptor() {
-    this.instId = null;
-    this.srvcId = null;
-    this.url = null;
-    this.descriptor = null;
-    this.moduleHandle = null;
   }
 
+  /**
+   * Consruct deployment descriptor based on remote URL.
+   * @param instId instance ID
+   * @param srvcId service ID (normally module ID)
+   * @param url URL for service
+   * @param descriptor launch descriptor
+   * @param moduleHandle module handle
+   */
   public DeploymentDescriptor(String instId, String srvcId,
     String url, LaunchDescriptor descriptor, ModuleHandle moduleHandle) {
     this.instId = instId;
@@ -41,6 +45,12 @@ public class DeploymentDescriptor {
     this.moduleHandle = moduleHandle;
   }
 
+  /**
+   * Construct deployment descriptor.
+   * @param instId instance ID
+   * @param srvcId service ID (normally module ID)
+   * @param descriptor launch descriptor
+   */
   public DeploymentDescriptor(String instId, String srvcId,
           LaunchDescriptor descriptor) {
     this.instId = instId;
@@ -62,6 +72,11 @@ public class DeploymentDescriptor {
     return srvcId;
   }
 
+  /**
+   * Sets service ID (normally same as module ID).
+   * Throws DecodeException if empty
+   * @param srvcId the service ID
+   */
   public void setSrvcId(String srvcId) {
     if (srvcId.isEmpty()) {
       throw new DecodeException("Empty srvcId not allowed");

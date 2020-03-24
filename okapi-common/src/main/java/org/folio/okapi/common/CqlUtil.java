@@ -2,7 +2,6 @@ package org.folio.okapi.common;
 
 import java.util.Comparator;
 import java.util.List;
-
 import org.z3950.zing.cql.CQLAndNode;
 import org.z3950.zing.cql.CQLBooleanNode;
 import org.z3950.zing.cql.CQLNode;
@@ -21,6 +20,13 @@ public class CqlUtil {
     throw new IllegalStateException("CQLUtil");
   }
 
+  /**
+   * Evaluate CQL tree with limit.
+   * @param vn1 The CQL query
+   * @param tn Term node that is used for comparison
+   * @param cmp Comparison handler
+   * @return true if query is not limited by tn+cmp; false if query is limited
+   */
   public static boolean eval(CQLNode vn1, CQLTermNode tn, Comparator<CQLTermNode> cmp) {
     if (vn1 instanceof CQLBooleanNode) {
       CQLBooleanNode n1 = (CQLBooleanNode) vn1;
@@ -50,6 +56,13 @@ public class CqlUtil {
     }
   }
 
+  /**
+   * Impose limit on CQL query.
+   * @param vn1 CQL query tree
+   * @param tn Term node that is used for comparison
+   * @param cmp Comparison handler
+   * @return simplified query or null if limit makes query empty
+   */
   public static CQLNode reducer(CQLNode vn1, CQLTermNode tn, Comparator<CQLTermNode> cmp) {
     if (vn1 instanceof CQLBooleanNode) {
       return reduceBoolean((CQLBooleanNode) vn1, tn, cmp);

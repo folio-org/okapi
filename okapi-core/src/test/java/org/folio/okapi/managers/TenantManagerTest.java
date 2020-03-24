@@ -246,10 +246,4 @@ public class TenantManagerTest {
       async.await();
     }
   }
-
- @Test(expected = IllegalArgumentException.class)
-  public void testTenantStoreNull(TestContext context) {
-    TenantManager tm = new TenantManager(null, null);
-  }
-
 }

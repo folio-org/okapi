@@ -1,9 +1,13 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Handler;
+import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
+import io.vertx.sqlclient.Tuple;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedMap;
-
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
@@ -11,12 +15,6 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
-
-import io.vertx.core.Handler;
-import io.vertx.core.json.JsonObject;
-import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
-import io.vertx.sqlclient.Tuple;
 
 /**
  * Stores Tenants in Postgres.

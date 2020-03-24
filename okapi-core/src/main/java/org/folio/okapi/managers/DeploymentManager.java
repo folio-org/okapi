@@ -1,5 +1,12 @@
 package org.folio.okapi.managers;
 
+import com.codahale.metrics.Timer;
+import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.EventBus;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -8,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -27,14 +33,6 @@ import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.DropwizardHelper;
 
-import com.codahale.metrics.Timer;
-
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.EventBus;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 
 /**
  * Manages deployment of modules. This actually spawns processes and allocates
@@ -55,6 +53,16 @@ public class DeploymentManager {
   private final JsonObject config;
   private Messages messages = Messages.getInstance();
 
+  /**
+   * Construct deployment manager.
+   * @param vertx Vert.x handle
+   * @param dm Discovery manager
+   * @param em Event manager
+   * @param host host name for deployed services
+   * @param listenPort listening port for deployment node
+   * @param nodeName Logical node name
+   * @param config configuration
+   */
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
     String host, int listenPort, String nodeName, JsonObject config) {
     this.dm = dm;
@@ -72,6 +80,10 @@ public class DeploymentManager {
     this.ports = new Ports(portStart, portEnd);
   }
 
+  /**
+   * Unitialize deployment manager.
+   * @param fut async result
+   */
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
     NodeDescriptor nd = new NodeDescriptor();
     nd.setUrl("http://" + host + ":" + listenPort);
@@ -101,6 +113,10 @@ public class DeploymentManager {
     dm.addNode(nd, fut);
   }
 
+  /**
+   * async shutdown of deployment manager.
+   * @param fut async result
+   */
   public void shutdown(Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("fast shutdown");
     CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
@@ -114,8 +130,8 @@ public class DeploymentManager {
     futures.all(fut);
   }
 
-  public void deploy(DeploymentDescriptor md1,
-                     Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  void deploy(DeploymentDescriptor md1,
+              Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     String id = md1.getInstId();
 
     if (id != null && list.containsKey(id)) {
@@ -205,7 +221,7 @@ public class DeploymentManager {
     });
   }
 
-  public void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("undeploy instId {}", id);
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10705", id)));
@@ -233,7 +249,7 @@ public class DeploymentManager {
     }
   }
 
-  public void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
     List<DeploymentDescriptor> ml = new LinkedList<>();
     for (Map.Entry<String, DeploymentDescriptor> entry : list.entrySet()) {
       ml.add(entry.getValue());
@@ -241,7 +257,7 @@ public class DeploymentManager {
     fut.handle(new Success<>(ml));
   }
 
-  public void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     if (!list.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10705", id)));
     } else {

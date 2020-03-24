@@ -1,20 +1,18 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Handler;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.mongo.MongoClient;
+import io.vertx.ext.mongo.UpdateOptions;
 import java.util.LinkedList;
 import java.util.List;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-
-import io.vertx.core.Handler;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.mongo.MongoClient;
-import io.vertx.ext.mongo.UpdateOptions;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class MongoUtil<T> {

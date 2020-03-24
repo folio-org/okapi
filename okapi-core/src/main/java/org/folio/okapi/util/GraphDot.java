@@ -5,7 +5,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 
@@ -14,12 +13,22 @@ public class GraphDot {
     throw new IllegalAccessError("GraphDot");
   }
 
+  /**
+   * Produce module graph in DOT format with dependencies.
+   * @param modlist list of modules in graph
+   * @return graph in DOT format
+   */
   public static String report(Map<String, ModuleDescriptor> modlist) {
     List<ModuleDescriptor> list = new LinkedList<>();
     list.addAll(modlist.values());
     return report(list);
   }
 
+  /**
+   * Produce module graph in DOT format with dependencies.
+   * @param modlist list of modules in graph
+   * @return graph in DOT format
+   */
   public static String report(List<ModuleDescriptor> modlist) {
     StringBuilder doc = new StringBuilder();
 

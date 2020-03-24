@@ -1,19 +1,18 @@
 package org.folio.okapi.service.impl;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
-
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
+import java.util.ArrayList;
+import java.util.List;
+import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Success;
+
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresTable<T> {
@@ -25,7 +24,7 @@ class PostgresTable<T> {
   private final String indexName;
   private final PostgresHandle pg;
 
-  public PostgresTable(PostgresHandle pg, String table, String jsonColumn,
+  PostgresTable(PostgresHandle pg, String table, String jsonColumn,
     String idIndex, String idSelect, String indexName) {
     this.pg = pg;
     this.table = table;
@@ -57,7 +56,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     if (!reset) {
       create(reset, q, fut);
@@ -73,7 +72,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
+  void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)";
     String s = Json.encode(dd);
@@ -88,7 +87,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
+  void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)"
       + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
@@ -104,7 +103,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "DELETE FROM " + table + " WHERE " + idSelect;
     q.query(sql, Tuple.of(id), res -> {
@@ -122,7 +121,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
+  void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + jsonColumn + " FROM " + table;
     q.query(sql, res -> {

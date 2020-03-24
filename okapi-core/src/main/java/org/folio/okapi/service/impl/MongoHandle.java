@@ -1,12 +1,11 @@
 package org.folio.okapi.service.impl;
 
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.Config;
-import org.folio.okapi.common.OkapiLogger;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Config;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Generic handle to the Mongo database. Encapsulates the configuration and
@@ -22,7 +21,7 @@ class MongoHandle {
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  protected MongoHandle(Vertx vertx, JsonObject conf) {
+  MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
     String h = Config.getSysConf("mongo_host", "localhost", conf);
     if (!h.isEmpty()) {

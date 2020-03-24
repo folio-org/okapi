@@ -17,6 +17,14 @@ public class ModuleInstance {
   private boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
 
+  /**
+   * Create module instance.
+   * @param md descriptor
+   * @param re routing entry
+   * @param path request path
+   * @param method HTTP method
+   * @param handler true: handler, false; filter/other
+   */
   public ModuleInstance(ModuleDescriptor md, RoutingEntry re,
                         String path, HttpMethod method, boolean handler) {
 

@@ -1,10 +1,22 @@
 package org.folio.okapi;
 
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.spi.cluster.ClusterManager;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.CorsHandler;
 import java.lang.management.ManagementFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
@@ -29,20 +41,6 @@ import org.folio.okapi.service.impl.Storage;
 import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LogHelper;
-
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.Context;
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.spi.cluster.ClusterManager;
-import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.CorsHandler;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {

@@ -1,18 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import java.io.IOException;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.bean.Ports;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.util.TcpPortWaiting;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -21,7 +8,17 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
-
+import java.io.IOException;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class ProcessModuleHandle implements ModuleHandle {
@@ -40,6 +37,13 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final Ports ports;
   TcpPortWaiting tcpPortWaiting;
 
+  /**
+   * Construct process module handler.
+   * @param vertx Vert.x handle
+   * @param desc launch descriptor
+   * @param ports ports handle
+   * @param port listening port for module
+   */
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
     Ports ports, int port) {
     this.vertx = vertx;
@@ -94,6 +98,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   private void start2(Handler<AsyncResult<Void>> startFuture) {
     vertx.executeBlocking(future -> {
       if (process == null) {
@@ -181,6 +186,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
     if (process == null) {
@@ -228,6 +234,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   private void stopProcess(Handler<AsyncResult<Void>> stopFuture) {
     vertx.executeBlocking(future -> {
       process.destroy();

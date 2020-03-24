@@ -1,13 +1,5 @@
 package org.folio.okapi.auth;
 
-import java.util.Base64;
-import java.util.HashMap;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpResponse;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.XOkapiHeaders;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
@@ -15,6 +7,12 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
+import java.util.Base64;
+import java.util.HashMap;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.

@@ -1,5 +1,11 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -9,7 +15,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -31,13 +36,6 @@ import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
-
-import io.vertx.core.Handler;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.json.DecodeException;
-import io.vertx.core.json.Json;
-import io.vertx.ext.web.RoutingContext;
 
 /**
  * Okapi's built-in module. Managing /_/ endpoints.
@@ -62,6 +60,16 @@ public class InternalModule {
   private static final String INTERFACE_VERSION = "1.9";
   private Messages messages = Messages.getInstance();
 
+  /**
+   * Construct internal module.
+   * @param modules module manager
+   * @param tenantManager tenant manager
+   * @param deploymentManager deployment manager
+   * @param discoveryManager discovery manager
+   * @param envManager event manager
+   * @param pullManager pull manager
+   * @param okapiVersion Okapi version
+   */
   public InternalModule(ModuleManager modules, TenantManager tenantManager,
     DeploymentManager deploymentManager, DiscoveryManager discoveryManager,
     EnvManager envManager, PullManager pullManager, String okapiVersion) {
@@ -75,6 +83,11 @@ public class InternalModule {
     logger.info("InternalModule starting okapiversion={}", okapiVersion);
   }
 
+  /**
+   * Return module descriptor for okapi itself.
+   * @param okapiVersion Okapi version; null and "0.0.0" will be assumed
+   * @return module descriptor as string
+   */
   public static ModuleDescriptor moduleDescriptor(String okapiVersion) {
     String v = okapiVersion;
     if (v == null) {  // happens at compile time,

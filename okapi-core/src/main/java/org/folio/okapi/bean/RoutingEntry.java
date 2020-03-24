@@ -1,13 +1,11 @@
 package org.folio.okapi.bean;
 
-import org.folio.okapi.util.ProxyContext;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
-
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
@@ -84,6 +82,10 @@ public class RoutingEntry {
     return type;
   }
 
+  /**
+   * Set routing entry type.
+   * @param type routing entry type
+   */
   public void setType(String type) {
     if ("request-response".equals(type)) {
       proxyType = ProxyType.REQUEST_RESPONSE;
@@ -119,6 +121,10 @@ public class RoutingEntry {
     return unit;
   }
 
+  /**
+   * Set timer unit for routing entry.
+   * @param unit unit name
+   */
   public void setUnit(String unit) {
     this.unit = unit;
     if (unit != null) {
@@ -151,6 +157,10 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
+  /**
+   * get timer delay in milliseconds.
+   * @return
+   */
   @JsonIgnore
   public long getDelayMilliSeconds() {
     if (this.delay != null && unit != null) {
@@ -179,6 +189,10 @@ public class RoutingEntry {
     return methods;
   }
 
+  /**
+   * Set routing methods.
+   * @param methods HTTP method name or "*" for all
+   */
   public void setMethods(String[] methods) {
     for (int i = 0; i < methods.length; i++) {
       String s = methods[i];
@@ -189,7 +203,10 @@ public class RoutingEntry {
     this.methods = methods;
   }
 
-
+  /**
+   * Get path pattern/path - whichever exist.
+   * @return
+   */
   @JsonIgnore
   public String getStaticPath() {
     if (path == null || path.isEmpty()) {
@@ -235,6 +252,12 @@ public class RoutingEntry {
     return i;
   }
 
+  /**
+   * set path pattern.
+   * Special constructs like {name} and * are supported.
+   * Throws DecodeException if pattern is invalid.
+   * @param pathPattern pattern string
+   */
   public void setPathPattern(String pathPattern) {
     this.pathPattern = pathPattern;
     StringBuilder b = new StringBuilder();
@@ -280,8 +303,15 @@ public class RoutingEntry {
     return true;
   }
 
-  public boolean match(String uri, String method) {
-    if (!matchUri(uri)) {
+  /**
+   * Match path and method against routing entry.
+   * If path includes query or fragment, that's not considered in match.
+   * @param path HTTP path
+   * @param method HTTP metrhod
+   * @return true on match; false otherwise
+   */
+  public boolean match(String path, String method) {
+    if (!matchUri(path)) {
       return false;
     }
     if (methods != null) {
@@ -294,6 +324,11 @@ public class RoutingEntry {
     return false;
   }
 
+  /**
+   * Get redirect URI path.
+   * @param uri path
+   * @return null if no redirect; redirect path otherwise
+   */
   public String getRedirectUri(String uri) {
     if (pathRegex != null) {
       int indx1 = uri.indexOf('?');
@@ -323,6 +358,10 @@ public class RoutingEntry {
     return phase;
   }
 
+  /**
+   * Set routing entry phrase.
+   * @param phase such as "auth", "pre", ..
+   */
   public void setPhase(String phase) {
     if (null == phase) {
       throw new DecodeException("Invalid phase " + phase);
@@ -344,6 +383,13 @@ public class RoutingEntry {
     this.phase = phase;
   }
 
+  /**
+   * Validate handler of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Procy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateHandlers(ProxyContext pc, String mod) {
     String section = "handlers";
     String err = validateCommon(pc, section, mod);
@@ -363,6 +409,13 @@ public class RoutingEntry {
     return err;
   }
 
+  /**
+   * Validate filters of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Procy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateFilters(ProxyContext pc, String mod) {
     return validateCommon(pc, "filters", mod);
   }

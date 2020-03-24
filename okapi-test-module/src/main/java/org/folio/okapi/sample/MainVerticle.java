@@ -1,17 +1,5 @@
 package org.folio.okapi.sample;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.util.Map;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpResponse;
-import org.folio.okapi.common.ModuleVersionReporter;
-import org.folio.okapi.common.OkapiClient;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.XOkapiHeaders;
-
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -23,6 +11,17 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.util.Map;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.ModuleVersionReporter;
+import org.folio.okapi.common.OkapiClient;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
+
 
 /*
  * Test module, to be used in Okapi's own unit tests

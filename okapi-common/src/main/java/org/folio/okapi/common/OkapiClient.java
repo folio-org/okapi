@@ -1,12 +1,5 @@
 package org.folio.okapi.common;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-
-import org.apache.logging.log4j.Logger;
-
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
@@ -16,6 +9,11 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Okapi client. Makes requests to other Okapi modules, or Okapi itself. Handles
@@ -66,6 +64,10 @@ public class OkapiClient {
     }
   }
 
+  /**
+   * specify HTTP headers.
+   * @param headers headers; a value of empty removes the header
+   */
   public void setHeaders(Map<String, String> headers) {
     this.headers.clear();
     if (headers != null) {
@@ -82,6 +84,10 @@ public class OkapiClient {
     }
   }
 
+  /**
+   * Specify OKAPI-URL for the client to use.
+   * @param okapiUrl URL string (such as http://localhost:1234)
+   */
   public void setOkapiUrl(String okapiUrl) {
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
   }
@@ -141,12 +147,26 @@ public class OkapiClient {
     headers.put(XOkapiHeaders.REQUEST_ID, reqId);
   }
 
+  /**
+   * Send HTTP request.
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data (null or "" for empty)
+   * @param fut future with response as string if successful
+   */
   public void request(HttpMethod method, String path, String data,
     Handler<ExtendedAsyncResult<String>> fut) {
 
     request(method, path, Buffer.buffer(data == null ? "" : data), fut);
   }
 
+  /**
+   * Send HTTP request.
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data
+   * @param fut future with response as string is successful
+   */
   public void request(HttpMethod method, String path, Buffer data,
     Handler<ExtendedAsyncResult<String>> fut) {
 
@@ -317,6 +337,9 @@ public class OkapiClient {
     headers.put(XOkapiHeaders.TOKEN, token);
   }
 
+  /**
+   * Close HTTP connection for client.
+   */
   public void close() {
     if (httpClient != null) {
       httpClient.close();

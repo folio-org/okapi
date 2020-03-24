@@ -1,23 +1,11 @@
 package org.folio.okapi;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.util.DropwizardHelper;
-
 import com.hazelcast.config.ClasspathXmlConfig;
 import com.hazelcast.config.Config;
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
 import com.hazelcast.config.UrlXmlConfig;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -29,6 +17,15 @@ import io.vertx.core.eventbus.EventBusOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.DropwizardHelper;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
@@ -52,7 +49,7 @@ public class MainDeploy {
 
   // suppress "Catch Exception instead of Throwable" to also log Throwable
   @SuppressWarnings({"squid:S1181"})
-  public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
+  void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     vopt.setPreferNativeTransport(true);
     try {
       final Logger logger = OkapiLogger.get();

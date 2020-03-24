@@ -141,7 +141,7 @@ public class ModuleId implements Comparable<ModuleId> {
   }
 
   /**
-   * Static module comparison.
+   * Module id comparison.
    * @param i1 left
    * @param i2 right
    * @return See

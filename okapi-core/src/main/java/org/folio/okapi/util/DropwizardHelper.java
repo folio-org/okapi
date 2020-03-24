@@ -1,11 +1,5 @@
 package org.folio.okapi.util;
 
-import java.net.InetSocketAddress;
-import java.util.concurrent.TimeUnit;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
-
 import com.codahale.metrics.Gauge;
 import com.codahale.metrics.Metric;
 import com.codahale.metrics.MetricRegistry;
@@ -13,9 +7,12 @@ import com.codahale.metrics.SharedMetricRegistries;
 import com.codahale.metrics.Timer;
 import com.codahale.metrics.graphite.Graphite;
 import com.codahale.metrics.graphite.GraphiteReporter;
-
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
+import java.net.InetSocketAddress;
+import java.util.concurrent.TimeUnit;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
 
 /**
  * Helpers for the DropWizard instrumentation.
@@ -29,6 +26,15 @@ public class DropwizardHelper {
 
   private static Logger logger = OkapiLogger.get();
 
+  /**
+   * Configure Dropwizard helper.
+   * @param graphiteHost graphite server host
+   * @param port  graphits server port
+   * @param tu time unit
+   * @param period reporting period
+   * @param vopt Vert.x options
+   * @param hostName logical hostname for this node (reporting)
+   */
   public static void config(String graphiteHost, int port, TimeUnit tu,
           int period, VertxOptions vopt, String hostName) {
     final String registryName = "okapi";

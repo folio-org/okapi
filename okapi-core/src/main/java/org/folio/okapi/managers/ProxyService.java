@@ -1,5 +1,22 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.streams.ReadStream;
+import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -13,7 +30,6 @@ import java.util.Random;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -33,23 +49,6 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
-import io.vertx.core.streams.ReadStream;
-import io.vertx.ext.web.RoutingContext;
 
 /**
  * Okapi's proxy service. Routes incoming requests to relevant modules, as
@@ -76,6 +75,16 @@ public class ProxyService {
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
   private Messages messages = Messages.getInstance();
 
+  /**
+   * Construct Proxy service.
+   * @param vertx Vert.x handle
+   * @param modules module manager
+   * @param tm tenant manager
+   * @param dm discovery manager
+   * @param im internal module
+   * @param okapiUrl Okapi URL
+   * @param config configuration
+   */
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
     DiscoveryManager dm, InternalModule im, String okapiUrl, JsonObject config) {
     this.vertx = vertx;
@@ -484,6 +493,10 @@ public class ProxyService {
     return mi.getUrl() + getPath(mi, ctx);
   }
 
+  /**
+   * Routing context hander (handling all requests for Okapi).
+   * @param ctx routing context
+   */
   public void proxy(RoutingContext ctx) {
     ctx.request().pause();
     ReadStream<Buffer> stream = ctx.request();
@@ -1032,7 +1045,7 @@ public class ProxyService {
     callSystemInterface(curTenantId, headersIn, tenant, inst, request, fut);
   }
 
-  public void callSystemInterface(String curTenantId, MultiMap headersIn,
+  void callSystemInterface(String curTenantId, MultiMap headersIn,
     Tenant tenant, ModuleInstance inst,
     String request, Handler<AsyncResult<OkapiClient>> fut) {
 

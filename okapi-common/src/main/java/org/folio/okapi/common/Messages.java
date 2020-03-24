@@ -18,7 +18,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Stream;
-
 import org.apache.logging.log4j.Logger;
 
 /**
@@ -55,9 +54,7 @@ public class Messages {
     }
   }
 
-  /** Returns Messages instance (singleton) .
-   * @return the singleton instance of Message
-   */
+  /** Returns Messages instance. */
   public static Messages getInstance() {
     return SingletonHelper.INSTANCE;
   }

@@ -1,9 +1,12 @@
 package org.folio.okapi.util;
 
+import com.codahale.metrics.Timer;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.RoutingContext;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
@@ -12,12 +15,6 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-
-import com.codahale.metrics.Timer;
-
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.RoutingContext;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
@@ -83,6 +80,10 @@ public class ProxyContext {
     handlerRes = 0;
   }
 
+  /**
+   * start Dropwizard timer.
+   * @param key Dropziard key
+   */
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
@@ -95,6 +96,9 @@ public class ProxyContext {
     }
   }
 
+  /**
+   * Stop Dropwizard timer.
+   */
   public void closeTimer() {
     if (timerId != null) {
       ctx.vertx().cancelTimer(timerId);
@@ -188,11 +192,19 @@ public class ProxyContext {
     this.handlerRes = handlerRes;
   }
 
+  /**
+   * Return handler headers.
+   * @return headers
+   */
   public MultiMap getHandlerHeaders() {
     return handlerHeaders;
   }
 
-  /* Helpers for logging and building responses */
+  /**
+   * Log that HTTP request has been received.
+   * @param ctx routing context
+   * @param tenant tenant
+   */
   public final void logRequest(RoutingContext ctx, String tenant) {
     StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
@@ -207,6 +219,12 @@ public class ProxyContext {
     }
   }
 
+  /**
+   * Log that a HTTP response has been received.
+   * @param module where HTTP response was recevied
+   * @param url URL for request
+   * @param statusCode HTTP status
+   */
   public void logResponse(String module, String url, int statusCode) {
     if (logger.isInfoEnabled()) {
       logger.info("{} RES {} {} {} {}", reqId,
@@ -226,6 +244,11 @@ public class ProxyContext {
     }
   }
 
+  /**
+   * Log that a HTTP response was received with error status.
+   * @param code HTTP status
+   * @param msg message to go along with it
+   */
   public void responseError(int code, String msg) {
     logResponse("okapi", msg, code);
     closeTimer();

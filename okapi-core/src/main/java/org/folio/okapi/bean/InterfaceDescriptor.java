@@ -1,14 +1,12 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-
 import org.folio.okapi.util.ProxyContext;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * InterfaceDescriptor describes an interface a module can provide, or depend
@@ -29,14 +27,17 @@ public class InterfaceDescriptor {
   private RoutingEntry[] handlers;
   private String[] scope;
 
+  /**
+   * Create interface descriptor.
+   */
   public InterfaceDescriptor() {
-    this.id = null;
-    this.version = null;
-    this.interfaceType = null;
-    this.handlers = null;
-    this.scope = null;
   }
 
+  /**
+   * Create interface descriptor with ID and version.
+   * @param id interface ID
+   * @param version interface version
+   */
   public InterfaceDescriptor(String id, String version) {
     this.id = id;
     if (validateVersion(version)) {
@@ -58,6 +59,10 @@ public class InterfaceDescriptor {
     return version;
   }
 
+  /**
+   * set interface version.
+   * @param version interface version
+   */
   public void setVersion(String version) {
     if (validateVersion(version)) {
       this.version = version;
@@ -151,6 +156,11 @@ public class InterfaceDescriptor {
     return isType("proxy");
   }
 
+  /**
+   * checks if interface descriptor is certain type.
+   * @param type type to check
+   * @returns
+   */
   @JsonIgnore
   public boolean isType(String type) {
     String haveType;
@@ -164,6 +174,10 @@ public class InterfaceDescriptor {
     return type.equals(haveType);
   }
 
+  /**
+   * Get routing entries as list.
+   * @return
+   */
   @JsonIgnore
   public List<RoutingEntry> getAllRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -270,6 +284,10 @@ public class InterfaceDescriptor {
     return "";
   }
 
+  /**
+   * Get scopes for interface (possibly empty).
+   * @return
+   */
   @JsonIgnore
   public List<String> getScopeArray() {
     if (scope == null) {

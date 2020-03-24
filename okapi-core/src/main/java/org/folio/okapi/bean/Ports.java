@@ -16,6 +16,11 @@ public class Ports {
 
   private final Logger logger = OkapiLogger.get();
 
+  /**
+   * Construct port handler.
+   * @param portStart start port range
+   * @param portEnd end port range (last port + 1)
+   */
   public Ports(int portStart, int portEnd) {
     this.portStart = portStart;
     this.portEnd = portEnd;

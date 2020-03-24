@@ -1,16 +1,14 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Handler;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.SortedMap;
-
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
-
-import io.vertx.core.Handler;
 
 public class TenantStoreNull implements TenantStore {
 

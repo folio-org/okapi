@@ -1,9 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.Config;
-import org.folio.okapi.common.OkapiLogger;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -12,6 +8,9 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.SqlConnection;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Config;
+import org.folio.okapi.common.OkapiLogger;
 
 /*
  * PostgreSQL interface for Okapi.
@@ -42,7 +41,7 @@ class PostgresHandle {
   private final PgPool pool;
   private final Vertx vertx;
 
-  protected PostgresHandle(Vertx vertx, JsonObject conf) {
+  PostgresHandle(Vertx vertx, JsonObject conf) {
     this.vertx = vertx;
     String val;
 

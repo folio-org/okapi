@@ -1,9 +1,5 @@
 package org.folio.okapi.util;
 
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -11,6 +7,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
 
 public class TcpPortWaiting {
 
@@ -23,6 +22,12 @@ public class TcpPortWaiting {
   private final String host;
   private final int port;
 
+  /**
+   * Create TCP port waiting utility.
+   * @param vertx Vert.x handle
+   * @param host host for server that utility it waiting for
+   * @param port port for server; special value 0 will disable waiting for the server
+   */
   public TcpPortWaiting(Vertx vertx, String host, int port) {
     this.vertx = vertx;
     this.host = host;
@@ -63,6 +68,11 @@ public class TcpPortWaiting {
     this.maxIterations = maxIterations;
   }
 
+  /**
+   * Wait for process and server to be listening.
+   * @param process Process to monitor
+   * @param startFuture async result
+   */
   public void waitReady(Process process, Handler<AsyncResult<Void>> startFuture) {
     if (port == 0) {
       startFuture.handle(Future.succeededFuture());

@@ -41,9 +41,9 @@ public class TenantDescriptor {
     this.id = id;
   }
 
+  /**
+   * Construct tenant descriptor.
+   */
   public TenantDescriptor() {
-    this.id = null;
-    this.name = null;
-    this.description = null;
   }
 }

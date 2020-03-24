@@ -1,5 +1,12 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.json.Json;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
@@ -7,7 +14,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
@@ -17,14 +23,6 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
-import io.vertx.core.json.Json;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PullManager {
@@ -158,7 +156,7 @@ public class PullManager {
     });
   }
 
-  public void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
     getRemoteUrl(Arrays.asList(pd.getUrls()).iterator(), resUrl -> {
       if (resUrl.failed()) {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));

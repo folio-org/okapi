@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.Handler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,7 +10,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -21,8 +21,6 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-
-import io.vertx.core.Handler;
 
 public class DepResolution {
 
@@ -146,6 +144,12 @@ public class DepResolution {
     return ints;
   }
 
+  /**
+   * Test required dependencies for a set of modules against an existing set.
+   * @param available existing set of modules
+   * @param testList modules whose dependencies we want to check
+   * @return empty string if all OK; error message otherwise
+   */
   public static String checkDependencies(
     Map<String, ModuleDescriptor> available, Collection<ModuleDescriptor> testList) {
 
@@ -163,6 +167,11 @@ public class DepResolution {
     }
   }
 
+  /**
+   * Test required dependencies for a set of modules.
+   * @param available existing set of modules to check
+   * @return empty string if all OK; error message otherwise
+   */
   public static String checkAllDependencies(Map<String, ModuleDescriptor> available) {
     Collection<ModuleDescriptor> testList = available.values();
     return checkDependencies(available, testList);
@@ -219,6 +228,13 @@ public class DepResolution {
     return null;
   }
 
+  /**
+   * Install modules with dependency checking only.
+   * @param modsAvailable available modules
+   * @param modsEnabled enabled modules (for some tenant)
+   * @param tml install list with actions
+   * @param fut future
+   */
   public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
     Map<String, ModuleDescriptor> modsEnabled,
     List<TenantModuleDescriptor> tml,
@@ -606,6 +622,12 @@ public class DepResolution {
     return ret;
   }
 
+  /**
+   * Return top-N set of modules - in order of module ID.
+   * @param limit max number for each module (Top-N)
+   * @param mdl modules to consider
+   * @return list with Top-N set
+   */
   public static List<ModuleDescriptor> getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
 
     Collections.sort(mdl, Collections.reverseOrder());

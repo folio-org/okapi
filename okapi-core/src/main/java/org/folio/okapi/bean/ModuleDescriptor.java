@@ -1,17 +1,15 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.util.ProxyContext;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -59,6 +57,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return id != null ? id.getId() : null;
   }
 
+  /**
+   * set module ID.
+   * @param s module ID
+   */
   public void setId(String s) {
     this.id = new ModuleId(s);
     if (!this.id.hasSemVer()) {
@@ -78,10 +80,18 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return tags;
   }
 
+  /**
+   * Set module tags.
+   * @param tags tags list
+   */
   public void setTags(String[] tags) {
     this.tags = tags;
   }
 
+  /**
+   * Get required and optional interfaces.
+   * @return
+   */
   @JsonIgnore
   public List<InterfaceDescriptor> getRequiresOptionalList() {
     List<InterfaceDescriptor> l = new ArrayList<>();
@@ -90,6 +100,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return l;
   }
 
+  /**
+   * Get required interfaces.
+   * @return interfaces list; empty if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getRequiresList() {
     if (requires == null) {
@@ -99,14 +113,26 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get required interfaces.
+   * @return interfaces; null if none is defined
+   */
   public InterfaceDescriptor[] getRequires() {
     return requires;
   }
 
+  /**
+   * set required interfaces.
+   * @param requires required interfaces
+   */
   public void setRequires(InterfaceDescriptor[] requires) {
     this.requires = requires;
   }
 
+  /**
+   * Get provided interfaces.
+   * @return interfaces; empty list if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getProvidesList() {
     if (provides == null) {
@@ -116,10 +142,18 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get provided interfaces.
+   * @return interfaces; null if none is defined
+   */
   public InterfaceDescriptor[] getProvides() {
     return provides;
   }
 
+  /**
+   * set provided interfaces.
+   * @param provides provided interfaces
+   */
   public void setProvides(InterfaceDescriptor[] provides) {
     Set<String> p = new TreeSet<>();
     for (int i = 0; i < provides.length; i++) {
@@ -140,6 +174,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.optional = optional;
   }
 
+  /**
+   * Get optional interfaces.
+   * @return interfaces; empty list if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getOptionalList() {
     if (optional == null) {
@@ -149,6 +187,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get filter routing entries.
+   * @return
+   */
   @JsonIgnore
   public List<RoutingEntry> getFilterRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -159,9 +201,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Get all RoutingEntries that are type proxy. Either from provided
-   * interfaces, or from the global level RoutingEntries.
-   *
+   * Get all RoutingEntries that are type proxy.
+   * Either from provided interfaces, or from the global level RoutingEntries.
    * @return
    */
   @JsonIgnore
@@ -176,6 +217,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return all;
   }
 
+  /**
+   * Get all routing entries that are of type multi.
+   * @return
+   */
   @JsonIgnore
   public List<RoutingEntry> getMultiRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -252,6 +297,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.filters = filters;
   }
 
+  /**
+   * Get list of replaced modules.
+   * @return
+   */
   public String[] getReplaces() {
     if (replaces == null) {
       return null;
@@ -263,6 +312,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return a;
   }
 
+  /**
+   * Set list of replaced modules.
+   * @param replaces replaced module
+   */
   public void setReplaces(String[] replaces) {
     if (replaces == null || replaces.length == 0) {
       this.replaces = null;

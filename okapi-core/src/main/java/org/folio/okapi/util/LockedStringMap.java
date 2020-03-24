@@ -1,11 +1,16 @@
 package org.folio.okapi.util;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
+import io.vertx.core.shareddata.AsyncMap;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
@@ -13,14 +18,6 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
-import io.vertx.core.shareddata.AsyncMap;
 
 public class LockedStringMap {
 
@@ -36,6 +33,12 @@ public class LockedStringMap {
   protected final Logger logger = OkapiLogger.get();
   private Messages messages = Messages.getInstance();
 
+  /**
+   * Initialize a shared map.
+   * @param vertx Vert.x handle
+   * @param mapName name of shared map
+   * @param fut async result
+   */
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     AsyncMapFactory.<String, String>create(vertx, mapName, res -> {
@@ -52,6 +55,12 @@ public class LockedStringMap {
     list.size(fut);
   }
 
+  /**
+   * Get value from shared map - primary and secondary level keys.
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @param fut async result with value if successful
+   */
   public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -82,6 +91,11 @@ public class LockedStringMap {
     });
   }
 
+  /**
+   * Get values from shared map with primary key.
+   * @param k primary-level key
+   * @param fut async result with values if successful
+   */
   public void getString(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -99,6 +113,10 @@ public class LockedStringMap {
     });
   }
 
+  /**
+   * Get all values from shared map.
+   * @param fut async result with values if successful
+   */
   public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
     list.keys(res -> {
       if (res.failed()) {
@@ -111,6 +129,14 @@ public class LockedStringMap {
     });
   }
 
+  /**
+   * Update value in shared map.
+   * @param allowReplace true: both insert and replace; false: insert only
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @param value new value
+   * @param fut async result
+   */
   public void addOrReplace(boolean allowReplace, String k, String k2, String value,
     Handler<ExtendedAsyncResult<Void>> fut) {
     list.get(k, resGet -> {
@@ -175,6 +201,12 @@ public class LockedStringMap {
     remove(k, null, fut);
   }
 
+  /**
+   * Remove entry from shared map.
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @param fut async result
+   */
   public void remove(String k, String k2,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 

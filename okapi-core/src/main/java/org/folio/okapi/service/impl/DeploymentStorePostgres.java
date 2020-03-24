@@ -1,12 +1,11 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Handler;
 import java.util.List;
-
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
 
-import io.vertx.core.Handler;
 
 public class DeploymentStorePostgres implements DeploymentStore {
 

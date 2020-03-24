@@ -2,7 +2,6 @@ package org.folio.okapi.common;
 
 import java.io.InputStream;
 import java.util.Properties;
-
 import org.apache.logging.log4j.Logger;
 
 public class ModuleVersionReporter {

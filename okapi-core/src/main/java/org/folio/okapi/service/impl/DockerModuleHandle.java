@@ -1,20 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import java.util.Iterator;
-import java.util.Map;
-
-import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.AnyDescriptor;
-import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.bean.LaunchDescriptor;
-import org.folio.okapi.bean.Ports;
-import org.folio.okapi.common.Config;
-import org.folio.okapi.common.HttpClientLegacy;
-import org.folio.okapi.common.Messages;
-import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.service.ModuleHandle;
-import org.folio.okapi.util.TcpPortWaiting;
-
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -27,6 +12,20 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
+import java.util.Iterator;
+import java.util.Map;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.AnyDescriptor;
+import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.Ports;
+import org.folio.okapi.common.Config;
+import org.folio.okapi.common.HttpClientLegacy;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
+import org.folio.okapi.util.TcpPortWaiting;
+
 
 // Docker Module. Using the Docker HTTP API.
 // We don't do local unix sockets. The dockerd must unfortunately be listening on localhost.
@@ -57,7 +56,7 @@ public class DockerModuleHandle implements ModuleHandle {
   static final String DEFAULT_DOCKER_URL = "unix:///var/run/docker.sock";
   static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
-  public DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+  DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
     String id, Ports ports, String containerHost, int port, JsonObject config) {
     this.hostPort = port;
     this.ports = ports;
