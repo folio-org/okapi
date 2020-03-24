@@ -40,10 +40,4 @@ public class TenantDescriptor {
   public void setId(String id) {
     this.id = id;
   }
-
-  /**
-   * Construct tenant descriptor.
-   */
-  public TenantDescriptor() {
-  }
 }
