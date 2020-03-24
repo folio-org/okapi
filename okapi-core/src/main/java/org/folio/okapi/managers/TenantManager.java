@@ -1069,14 +1069,14 @@ public class TenantManager {
 
   /* phase 2 enable modules for tenant */
   private void installTenantPrepare(Tenant tenant, ProxyContext pc,
-    TenantInstallOptions options,
-    Map<String, ModuleDescriptor> modsAvailable,
-    List<TenantModuleDescriptor> tml,
-    Iterator<TenantModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                                    TenantInstallOptions options,
+                                    Map<String, ModuleDescriptor> modsAvailable,
+                                    List<TenantModuleDescriptor> tml,
+                                    Iterator<TenantModuleDescriptor> it,
+                                    Handler<ExtendedAsyncResult<Void>> fut) {
 
     if (!it.hasNext()) {
-      installTenantCommit(tenant, pc, options, modsAvailable, tml, tml.iterator(), fut);
+      fut.handle(new Success<>());
       return;
     }
     TenantModuleDescriptor tm = it.next();
@@ -1101,26 +1101,27 @@ public class TenantManager {
         if (res.failed()) {
           tm.setMessage(res.cause().getMessage());
           fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
+          return;
         }
+        installTenantCommit(tenant, pc, options, modsAvailable, tml, tm, res1 -> {
+          if (res1.failed()) {
+            fut.handle(new Failure<>(res1.getType(), res1.cause()));
+            return;
+          }
+          installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
+        });
       });
     }
   }
 
   /* phase 3 commit tenant upgrade modules */
   private void installTenantCommit(Tenant tenant, ProxyContext pc,
-    TenantInstallOptions options,
-    Map<String, ModuleDescriptor> modsAvailable,
-    List<TenantModuleDescriptor> tml,
-    Iterator<TenantModuleDescriptor> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                                   TenantInstallOptions options,
+                                   Map<String, ModuleDescriptor> modsAvailable,
+                                   List<TenantModuleDescriptor> tml,
+                                   TenantModuleDescriptor tm,
+                                   Handler<ExtendedAsyncResult<Void>> fut) {
 
-    if (!it.hasNext()) {
-      installUndeploy(tenant, options, modsAvailable, tml, tml.iterator(), fut);
-      return;
-    }
-    TenantModuleDescriptor tm = it.next();
     ModuleDescriptor mdFrom = null;
     ModuleDescriptor mdTo = null;
     if (tm.getAction() == Action.enable) {
@@ -1131,9 +1132,7 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    ead5commit(tenant, mdFrom, mdTo, pc, res ->
-      installTenantCommit(tenant, pc, options, modsAvailable, tml, it, fut)
-    );
+    ead5commit(tenant, mdFrom, mdTo, pc, fut);
   }
 
   /* phase 4 undeploy if no longer needed */

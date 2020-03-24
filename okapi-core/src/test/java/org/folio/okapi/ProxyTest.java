@@ -2817,10 +2817,37 @@ public class ProxyTest {
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
-    Assert.assertEquals(1, ar.size());
-    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    timerTenantInitStatus = 200;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    ar = new JsonArray(body);
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.1", ar.getJsonObject(1).getString("id"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
   }
+
 
 }
