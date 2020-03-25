@@ -432,7 +432,7 @@ public class TenantManager {
             + "Carrying on without it.");
           fut.handle(new Success<>());
         } else {
-          pc.responseError(res.getType(), res.cause());
+          fut.handle(new Failure<>(res.getType(), res.cause()));
         }
         return;
       }
@@ -470,14 +470,14 @@ public class TenantManager {
     String mdid = modit.next();
     moduleManager.get(mdid, res -> {
       if (res.failed()) { // not likely to happen
-        pc.responseError(res.getType(), res.cause());
+        fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
       ModuleDescriptor md = res.result();
       pc.debug("ead3RealoadPerms: Should reload perms for " + md.getName());
       tenantPerms(tenant, md, permsModule, pc, pres -> {
         if (pres.failed()) { // not likely to happen
-          pc.responseError(res.getType(), res.cause());
+          fut.handle(pres);
           return;
         }
         ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
@@ -532,7 +532,7 @@ public class TenantManager {
     pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
     updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
       if (ures.failed()) {
-        pc.responseError(ures.getType(), ures.cause());
+        fut.handle(new Failure<>(ures.getType(), ures.cause()));
         return;
       }
       if (moduleTo != null) {
