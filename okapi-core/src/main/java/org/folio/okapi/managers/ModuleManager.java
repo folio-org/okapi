@@ -37,7 +37,7 @@ public class ModuleManager {
   private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
-  private final String eventName = "moduleUpdate";
+  private static final String EVENT_NAME = "moduleUpdate";
   private final LockedTypedMap1<ModuleDescriptor> modules
       = new LockedTypedMap1<>(ModuleDescriptor.class);
   private final Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
@@ -82,14 +82,14 @@ public class ModuleManager {
 
   private void consumeModulesUpdated() {
     EventBus eb = vertx.eventBus();
-    eb.consumer(eventName, res -> {
+    eb.consumer(EVENT_NAME, res -> {
       String moduleId = (String) res.body();
       enabledModulesCache.remove(moduleId);
     });
   }
 
   private void invalidateCacheEntry(String id) {
-    vertx.eventBus().publish(eventName, id);
+    vertx.eventBus().publish(EVENT_NAME, id);
   }
 
   /**

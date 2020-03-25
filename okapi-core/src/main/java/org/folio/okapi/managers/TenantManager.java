@@ -55,7 +55,7 @@ public class TenantManager {
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
-  private final String eventName = "timer";
+  private static final String EVENT_NAME = "timer";
   private final Set<String> timers = new HashSet<>();
   private final Messages messages = Messages.getInstance();
   private AsyncLock asyncLock;
@@ -506,7 +506,7 @@ public class TenantManager {
       }
       if (moduleTo != null) {
         EventBus eb = vertx.eventBus();
-        eb.publish(eventName, tenant.getId());
+        eb.publish(EVENT_NAME, tenant.getId());
       }
       pc.debug("ead5commit done");
       fut.handle(new Success<>());
@@ -534,7 +534,7 @@ public class TenantManager {
 
   private void consumeTimers() {
     EventBus eb = vertx.eventBus();
-    eb.consumer(eventName, res -> {
+    eb.consumer(EVENT_NAME, res -> {
       String tenantId = (String) res.body();
       handleTimer(tenantId);
     });
