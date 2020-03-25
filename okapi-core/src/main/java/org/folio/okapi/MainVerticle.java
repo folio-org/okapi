@@ -58,7 +58,7 @@ public class MainVerticle extends AbstractVerticle {
   private Storage.InitMode initMode = InitMode.NORMAL;
   private int port;
   private String okapiVersion = null;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
   boolean enableProxy = false;
 
   public void setClusterManager(ClusterManager mgr) {
@@ -100,7 +100,7 @@ public class MainVerticle extends AbstractVerticle {
     } else {
       String lev = System.getenv("OKAPI_LOGLEVEL");
       if (lev != null && !lev.isEmpty()) {
-        LogHelper.setRootLogLevel(loglevel);
+        LogHelper.setRootLogLevel(lev);
       }
     }
     String mode = config.getString("mode", "cluster");

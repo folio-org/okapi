@@ -59,7 +59,7 @@ class PostgresTable<T> {
   void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     if (!reset) {
-      create(reset, q, fut);
+      create(false, q, fut);
       return;
     }
     String dropSql = "DROP TABLE IF EXISTS " + table;
@@ -68,7 +68,7 @@ class PostgresTable<T> {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      create(reset, q, fut);
+      create(true, q, fut);
     });
   }
 

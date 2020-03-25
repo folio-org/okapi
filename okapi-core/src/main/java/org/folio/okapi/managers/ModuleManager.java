@@ -37,13 +37,13 @@ public class ModuleManager {
   private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
-  private String eventName = "moduleUpdate";
-  private LockedTypedMap1<ModuleDescriptor> modules
+  private final String eventName = "moduleUpdate";
+  private final LockedTypedMap1<ModuleDescriptor> modules
     = new LockedTypedMap1<>(ModuleDescriptor.class);
-  private Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
-  private ModuleStore moduleStore;
+  private final Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
+  private final ModuleStore moduleStore;
   private Vertx vertx;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -94,8 +94,6 @@ public class ModuleManager {
 
   /**
    * Load the modules from the database, if not already loaded.
-   *
-   * @param fut future
    */
   private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     if (moduleStore == null) {
@@ -168,7 +166,7 @@ public class ModuleManager {
    * @param md module descriptor
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-release
-   * @param npmSnapshot whehter to allow npm snapshot
+   * @param npmSnapshot whether to allow npm snapshot
    * @param fut future
    */
   public void create(ModuleDescriptor md, boolean check, boolean preRelease,
@@ -411,9 +409,7 @@ public class ModuleManager {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
-      for (String id : skipModules) {
-        skipIds.add(id);
-      }
+      skipIds.addAll(skipModules);
     }
     modules.getAll(kres -> {
       if (kres.failed()) {

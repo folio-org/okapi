@@ -19,7 +19,7 @@ class MongoUtil<T> {
 
   private final String collection;
   private final MongoClient cli;
-  private Logger logger = OkapiLogger.get();
+  private final Logger logger = OkapiLogger.get();
 
   public MongoUtil(String collection, MongoClient cli) {
     this.collection = collection;

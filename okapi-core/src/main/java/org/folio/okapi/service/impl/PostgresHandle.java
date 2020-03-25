@@ -39,10 +39,8 @@ class PostgresHandle {
 
   private final PgConnectOptions connectOptions;
   private final PgPool pool;
-  private final Vertx vertx;
 
   PostgresHandle(Vertx vertx, JsonObject conf) {
-    this.vertx = vertx;
     String val;
 
     connectOptions = new PgConnectOptions();

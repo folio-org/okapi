@@ -108,7 +108,7 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.succeededFuture());
       } else {
         String m = msg + " HTTP error "
-          + Integer.toString(res.statusCode()) + "\n"
+          + res.statusCode() + "\n"
           + body.toString();
         logger.error(m);
         future.handle(Future.failedFuture(m));
@@ -185,7 +185,7 @@ public class DockerModuleHandle implements ModuleHandle {
         tcpPortWaiting.waitReady(null, future);
       } else {
         String m = "getContainerLog HTTP error "
-          + Integer.toString(res.statusCode());
+          + res.statusCode();
         logger.error(m);
         future.handle(Future.failedFuture(m));
       }
@@ -209,7 +209,7 @@ public class DockerModuleHandle implements ModuleHandle {
           future.handle(Future.succeededFuture(b));
         } else {
           String m = url + " HTTP error "
-            + Integer.toString(res.statusCode()) + "\n"
+            + res.statusCode() + "\n"
             + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
@@ -245,7 +245,7 @@ public class DockerModuleHandle implements ModuleHandle {
           future.handle(Future.succeededFuture());
         } else {
           String m = msg + " HTTP error "
-            + Integer.toString(res.statusCode()) + "\n"
+            + res.statusCode() + "\n"
             + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
@@ -275,7 +275,7 @@ public class DockerModuleHandle implements ModuleHandle {
     JsonObject hp = new JsonObject().put("HostPort", Integer.toString(hostPort));
     JsonArray ep = new JsonArray().add(hp);
     JsonObject pb = new JsonObject();
-    pb.put(Integer.toString(exposedPort) + "/tcp", ep);
+    pb.put(exposedPort + "/tcp", ep);
     JsonObject hc = new JsonObject();
     hc.put("PortBindings", pb);
     hc.put("PublishAllPorts", Boolean.FALSE);
@@ -332,7 +332,7 @@ public class DockerModuleHandle implements ModuleHandle {
         startFuture.handle(Future.failedFuture(messages.getMessage("11300")));
         return;
       }
-      int exposedPort = 0;
+      int exposedPort;
       try {
         exposedPort = getExposedPort(res1.result());
       } catch (Exception ex) {

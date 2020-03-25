@@ -70,10 +70,10 @@ public class ProxyService {
   private final Vertx vertx;
   private final HttpClient httpClient;
   // for load balancing, so security is not an issue
-  private static Random random = new Random();
+  private static final Random random = new Random();
   private final int waitMs;
   private static final String REDIRECTQUERY = "redirect-query"; // See redirectProxy below
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Construct Proxy service.

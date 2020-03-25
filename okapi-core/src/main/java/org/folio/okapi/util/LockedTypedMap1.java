@@ -51,12 +51,12 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    * @param fut callback with the result, or some failure.
    */
   public void getAll(Handler<ExtendedAsyncResult<LinkedHashMap<String, T>>> fut) {
-    getKeys(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+    getKeys(keyRes -> {
+      if (keyRes.failed()) {
+        fut.handle(new Failure<>(keyRes.getType(), keyRes.cause()));
         return;
       }
-      Collection<String> keys = kres.result();
+      Collection<String> keys = keyRes.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
       CompList<LinkedHashMap<String,T>> futures = new CompList<>(ErrorType.INTERNAL);
       for (String key : keys) {

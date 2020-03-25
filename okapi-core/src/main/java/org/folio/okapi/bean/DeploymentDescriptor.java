@@ -29,7 +29,7 @@ public class DeploymentDescriptor {
   }
 
   /**
-   * Consruct deployment descriptor based on remote URL.
+   * Construct deployment descriptor based on remote URL.
    * @param instId instance ID
    * @param srvcId service ID (normally module ID)
    * @param url URL for service

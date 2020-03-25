@@ -14,7 +14,7 @@ public class ModuleInstance {
   private String authToken;
   private final String path; // The relative URI from the proxy request
   private final HttpMethod method;
-  private boolean handler;  // is true if handler; false otherwise (filter)
+  private final boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
 
   /**

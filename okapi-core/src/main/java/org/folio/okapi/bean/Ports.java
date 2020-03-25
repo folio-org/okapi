@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import java.util.Arrays;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
@@ -24,10 +25,8 @@ public class Ports {
   public Ports(int portStart, int portEnd) {
     this.portStart = portStart;
     this.portEnd = portEnd;
-    this.portsEnabled = new Boolean[portEnd - portStart];
-    for (int i = 0; i < portsEnabled.length; i++) {
-      portsEnabled[i] = false;
-    }
+    portsEnabled = new Boolean[portEnd - portStart];
+    Arrays.fill(portsEnabled, false);
   }
 
   /**

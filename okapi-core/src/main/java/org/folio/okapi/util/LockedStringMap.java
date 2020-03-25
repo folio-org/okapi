@@ -24,14 +24,14 @@ public class LockedStringMap {
   static class StringMap {
 
     @JsonProperty
-    Map<String, String> strings = new LinkedHashMap<>();
+    final Map<String, String> strings = new LinkedHashMap<>();
   }
 
   private AsyncMap<String, String> list = null;
   private Vertx vertx = null;
   private static final int DELAY = 10; // ms in recursing for retry of map
   protected final Logger logger = OkapiLogger.get();
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Initialize a shared map.
@@ -77,11 +77,11 @@ public class LockedStringMap {
           if (val == null) {
             fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
           } else {
-            StringMap smap = new StringMap();
-            StringMap oldlist = Json.decodeValue(val, StringMap.class);
-            smap.strings.putAll(oldlist.strings);
-            if (smap.strings.containsKey(k2)) {
-              fut.handle(new Success<>(smap.strings.get(k2)));
+            StringMap stringMap = new StringMap();
+            StringMap oldList = Json.decodeValue(val, StringMap.class);
+            stringMap.strings.putAll(oldList.strings);
+            if (stringMap.strings.containsKey(k2)) {
+              fut.handle(new Success<>(stringMap.strings.get(k2)));
             } else {
               fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
             }
@@ -150,8 +150,8 @@ public class LockedStringMap {
         } else {
           StringMap smap = new StringMap();
           if (oldVal != null) {
-            StringMap oldlist = Json.decodeValue(oldVal, StringMap.class);
-            smap.strings.putAll(oldlist.strings);
+            StringMap oldList = Json.decodeValue(oldVal, StringMap.class);
+            smap.strings.putAll(oldList.strings);
           }
           if (!allowReplace && smap.strings.containsKey(k2)) {
             fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11400", k2)));
@@ -219,24 +219,24 @@ public class LockedStringMap {
           fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
           return;
         }
-        StringMap smap = new StringMap();
+        StringMap stringMap = new StringMap();
         if (k2 != null) {
-          smap = Json.decodeValue(val, StringMap.class);
-          if (!smap.strings.containsKey(k2)) {
+          stringMap = Json.decodeValue(val, StringMap.class);
+          if (!stringMap.strings.containsKey(k2)) {
             fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
             return;
           }
-          smap.strings.remove(k2);
+          stringMap.strings.remove(k2);
         }
-        remove2(k, k2, smap, val, fut);
+        remove2(k, k2, stringMap, val, fut);
       }
     });
   }
 
-  private void remove2(String k, String k2, StringMap smap, String val,
+  private void remove2(String k, String k2, StringMap stringMap, String val,
     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
-    if (smap.strings.isEmpty()) {
+    if (stringMap.strings.isEmpty()) {
       list.removeIfPresent(k, val, resDel -> {
         if (resDel.succeeded()) {
           if (Boolean.TRUE.equals(resDel.result())) {
@@ -249,7 +249,7 @@ public class LockedStringMap {
         }
       });
     } else { // list was not empty, remove value
-      String newVal = Json.encodePrettily(smap);
+      String newVal = Json.encodePrettily(stringMap);
       list.replaceIfPresent(k, val, newVal, resPut -> {
         if (resPut.succeeded()) {
           if (Boolean.TRUE.equals(resPut.result())) {

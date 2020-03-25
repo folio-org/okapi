@@ -35,7 +35,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   private Process process;
   private final int port;
   private final Ports ports;
-  TcpPortWaiting tcpPortWaiting;
+  final TcpPortWaiting tcpPortWaiting;
 
   /**
    * Construct process module handler.

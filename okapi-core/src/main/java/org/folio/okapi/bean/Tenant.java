@@ -42,8 +42,6 @@ public class Tenant {
   /**
    * Get the name. The JsonIgnore tells JSON not to encode the name as a
    * top-level thing.
-   *
-   * @return
    */
   @JsonIgnore
   public String getName() {

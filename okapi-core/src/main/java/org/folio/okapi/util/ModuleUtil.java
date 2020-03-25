@@ -17,7 +17,7 @@ public class ModuleUtil {
     throw new IllegalAccessError(this.toString());
   }
 
-  private static Messages messages = Messages.getInstance();
+  private static final Messages messages = Messages.getInstance();
 
   /**
    * Create tenant install options from HTTP request parameters.

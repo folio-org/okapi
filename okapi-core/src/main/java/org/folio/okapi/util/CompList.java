@@ -14,8 +14,8 @@ import org.folio.okapi.common.Success;
 
 public class CompList<T> {
 
-  List<Future> futures = new LinkedList<>();
-  ErrorType errorType;
+  final List<Future> futures = new LinkedList<>();
+  final ErrorType errorType;
 
   /**
    * Specify error type to use - in case of failure.
@@ -59,7 +59,7 @@ public class CompList<T> {
   }
 
   /**
-   * Sequental result, stopping if any promise fails.
+   * Sequential result, stopping if any promise fails.
    * @param fut future
    */
   public void seq(Handler<ExtendedAsyncResult<Void>> fut) {

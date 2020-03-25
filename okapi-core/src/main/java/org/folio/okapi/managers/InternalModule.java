@@ -58,7 +58,7 @@ public class InternalModule {
   private final PullManager pullManager;
   private final String okapiVersion;
   private static final String INTERFACE_VERSION = "1.9";
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Construct internal module.

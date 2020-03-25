@@ -24,7 +24,7 @@ public class DropwizardHelper {
     throw new IllegalAccessError("DropwizardHelper");
   }
 
-  private static Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
 
   /**
    * Configure Dropwizard helper.

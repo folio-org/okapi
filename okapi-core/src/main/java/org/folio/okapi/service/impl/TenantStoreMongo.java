@@ -27,7 +27,7 @@ public class TenantStoreMongo implements TenantStore {
   private final MongoClient cli;
   private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   private JsonObject encodeTenant(Tenant t, String id) {
     JsonObject j = new JsonObject(Json.encode(t));

@@ -27,7 +27,7 @@ public class Storage {
     PURGE  // purge the whole database
   }
 
-  private JsonObject config;
+  private final JsonObject config;
   private final Logger logger = OkapiLogger.get();
 
   /**

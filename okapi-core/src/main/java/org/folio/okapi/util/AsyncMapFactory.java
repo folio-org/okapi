@@ -46,11 +46,11 @@ class AsyncMapFactory {
       // clustered mode, of course.
       // Also used in deploy-only nodes, where we want local-only tenant and
       // module lists with only the hard-coded supertenant and internalModule.
-      String newid = vertx.getOrCreateContext().deploymentID();
+      String id = vertx.getOrCreateContext().deploymentID();
       if (mapName != null) {
-        newid = mapName + newid;
+        id = mapName + id;
       }
-      shared.<K, V>getLocalAsyncMap(newid, res -> {
+      shared.<K, V>getLocalAsyncMap(id, res -> {
         if (res.succeeded()) {
           fut.handle(new Success<>(res.result()));
         } else {

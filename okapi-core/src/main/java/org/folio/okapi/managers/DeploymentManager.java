@@ -51,7 +51,7 @@ public class DeploymentManager {
   private final String nodeName;
   private final EventBus eventBus;
   private final JsonObject config;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Construct deployment manager.
@@ -81,7 +81,7 @@ public class DeploymentManager {
   }
 
   /**
-   * Unitialize deployment manager.
+   * Initialize deployment manager.
    * @param fut async result
    */
   public void init(Handler<ExtendedAsyncResult<Void>> fut) {
@@ -124,7 +124,7 @@ public class DeploymentManager {
     for (DeploymentDescriptor dd : col) {
       ModuleHandle mh = dd.getModuleHandle();
       Promise<Void> promise = Promise.promise();
-      mh.stop(promise::handle);
+      mh.stop(promise);
       futures.add(promise);
     }
     futures.all(fut);

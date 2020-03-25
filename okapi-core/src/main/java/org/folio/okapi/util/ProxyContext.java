@@ -35,13 +35,13 @@ public class ProxyContext {
 
   // store auth filter response status code, headers, and body
   private int authRes;
-  private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
+  private final MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
   private Buffer authResBody = Buffer.buffer();
   // store handler response status code and headers
   private int handlerRes;
-  private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
+  private final MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
 
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -112,8 +112,6 @@ public class ProxyContext {
 
   /**
    * Return the elapsed time since startTimer, in microseconds.
-   *
-   * @return
    */
   public String timeDiff() {
     if (timer != null) {

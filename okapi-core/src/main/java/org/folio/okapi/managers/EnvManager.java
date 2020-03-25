@@ -25,7 +25,7 @@ public class EnvManager {
   private final Logger logger = OkapiLogger.get();
   private final LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
   private final EnvStore envStore;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Construct event manager.
@@ -36,7 +36,7 @@ public class EnvManager {
   }
 
   /**
-   * Initalize event manager.
+   * Initialize event manager.
    * @param vertx Vert.x handle
    * @param fut async result
    */

@@ -16,7 +16,7 @@ import org.folio.okapi.common.Success;
 public class PostgresQuery {
 
   private SqlConnection conn;
-  private static Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
 
   PostgresQuery(PostgresHandle pg) {

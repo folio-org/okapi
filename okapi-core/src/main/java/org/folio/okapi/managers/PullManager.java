@@ -30,7 +30,7 @@ public class PullManager {
   private final Logger logger = OkapiLogger.get();
   private final HttpClient httpClient;
   private final ModuleManager moduleManager;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   public PullManager(Vertx vertx, ModuleManager moduleManager) {
     this.httpClient = vertx.createHttpClient();

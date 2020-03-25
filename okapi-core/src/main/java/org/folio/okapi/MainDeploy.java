@@ -32,12 +32,12 @@ public class MainDeploy {
 
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
-  private VertxOptions vopt = new VertxOptions();
+  private final VertxOptions vopt = new VertxOptions();
   private Config hazelcastConfig = null;
   private JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   public MainDeploy() {
     this.conf = new JsonObject();
@@ -83,12 +83,12 @@ public class MainDeploy {
     }
   }
 
-  private boolean readConf(String fname, Handler<AsyncResult<Vertx>> fut) {
+  private boolean readConf(String fileName, Handler<AsyncResult<Vertx>> fut) {
     try {
-      byte[] encoded = Files.readAllBytes(Paths.get(fname));
+      byte[] encoded = Files.readAllBytes(Paths.get(fileName));
       this.conf = new JsonObject(new String(encoded, StandardCharsets.UTF_8));
     } catch (IOException ex) {
-      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fname));
+      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fileName));
       return true;
     }
     return false;

@@ -51,7 +51,7 @@ public class DiscoveryManager implements NodeListener {
   private ModuleManager moduleManager;
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
   private DeliveryOptions deliveryOptions;
 
   /**
@@ -211,7 +211,7 @@ public class DiscoveryManager implements NodeListener {
     } else {
       if (launchDesc == null) {
         addAndDeploy2(dd, md, fut, nodeId);
-      } else { // Have a launchdesc already in dd
+      } else { // Have a launch descriptor already in dd
         callDeploy(nodeId, dd, fut);
       }
     }
@@ -236,12 +236,12 @@ public class DiscoveryManager implements NodeListener {
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
                           Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    getNode(nodeId, noderes -> {
-      if (noderes.failed()) {
-        fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
+    getNode(nodeId, nodeRes -> {
+      if (nodeRes.failed()) {
+        fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
       } else {
-        String reqdata = Json.encode(dd);
-        vertx.eventBus().request(noderes.result().getUrl() + "/deploy", reqdata,
+        String reqData = Json.encode(dd);
+        vertx.eventBus().request(nodeRes.result().getUrl() + "/deploy", reqData,
           deliveryOptions, ar -> {
             if (ar.failed()) {
               fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
@@ -367,6 +367,7 @@ public class DiscoveryManager implements NodeListener {
       final String nodeId = node.getNodeId();
       if (id.equals(nodeId) || id.equals(nodeName)) {
         found = true;
+        break;
       }
     }
     logger.debug("isAlive nodeId={} {}", id, found);

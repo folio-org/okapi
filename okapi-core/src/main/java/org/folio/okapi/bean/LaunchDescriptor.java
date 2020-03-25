@@ -21,7 +21,7 @@ public class LaunchDescriptor {
   private String[] dockerCmd;
   private EnvEntry[] env;
   private AnyDescriptor dockerArgs;
-  private Integer waitInterations;
+  private Integer waitIterations;
 
   public String getCmdlineStart() {
     return cmdlineStart;
@@ -88,11 +88,11 @@ public class LaunchDescriptor {
   }
 
   public Integer getWaitIterations() {
-    return waitInterations;
+    return waitIterations;
   }
 
   public void setWaitIterations(Integer waitIterations) {
-    this.waitInterations = waitIterations;
+    this.waitIterations = waitIterations;
   }
 
 }

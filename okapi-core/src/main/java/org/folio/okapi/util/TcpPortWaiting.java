@@ -15,7 +15,7 @@ public class TcpPortWaiting {
 
   private final Logger logger = OkapiLogger.get();
   private static final int MILLISECONDS = 200;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
   private final Vertx vertx;

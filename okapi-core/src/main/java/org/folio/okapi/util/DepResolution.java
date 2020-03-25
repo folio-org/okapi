@@ -24,8 +24,8 @@ import org.folio.okapi.common.Success;
 
 public class DepResolution {
 
-  private static Logger logger = OkapiLogger.get();
-  private static Messages messages = Messages.getInstance();
+  private static final Logger logger = OkapiLogger.get();
+  private static final Messages messages = Messages.getInstance();
 
   private DepResolution() {
     throw new IllegalAccessError("DepResolution");
@@ -80,7 +80,7 @@ public class DepResolution {
     StringBuilder moduses = new StringBuilder();
     String sep = "";
     for (InterfaceDescriptor seenVersion : seenVersions.values()) {
-      moduses.append(sep + seenVersion.getVersion());
+      moduses.append(sep).append(seenVersion.getVersion());
       sep = " ";
       for (ModuleDescriptor mdi : modList) {
         for (InterfaceDescriptor provi : mdi.getProvidesList()) {
@@ -132,6 +132,7 @@ public class DepResolution {
             String existingVersion = id.getVersion();
             if (existingVersion.equals(version)) {
               found = true;
+              break;
             }
           }
         }
@@ -207,7 +208,7 @@ public class DepResolution {
     List<TenantModuleDescriptor> tml) {
 
     Iterator<TenantModuleDescriptor> it = tml.iterator();
-    TenantModuleDescriptor tm = null;
+    TenantModuleDescriptor tm;
     while (it.hasNext()) {
       tm = it.next();
       TenantModuleDescriptor.Action action = tm.getAction();
@@ -458,10 +459,10 @@ public class DepResolution {
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
     while (it.hasNext()) {
-      String runningmodule = it.next();
-      ModuleDescriptor rm = modsEnabled.get(runningmodule);
+      String runningModule = it.next();
+      ModuleDescriptor rm = modsEnabled.get(runningModule);
       if (md.getProduct().equals(rm.getProduct())) {
-        logger.info("resolveModuleConflicts from {}", runningmodule);
+        logger.info("resolveModuleConflicts from {}", runningModule);
         it.remove();
         fromModule.add(rm);
         v++;
@@ -472,11 +473,11 @@ public class DepResolution {
               String confl = pi.getId();
               if (mi.getId().equals(confl)
                 && mi.isRegularHandler()
-                && modsEnabled.containsKey(runningmodule)) {
-                logger.info("resolveModuleConflicts remove {}", runningmodule);
+                && modsEnabled.containsKey(runningModule)) {
+                logger.info("resolveModuleConflicts remove {}", runningModule);
                 TenantModuleDescriptor tm = new TenantModuleDescriptor();
                 tm.setAction(TenantModuleDescriptor.Action.disable);
-                tm.setId(runningmodule);
+                tm.setId(runningModule);
                 tml.add(tm);
                 it.remove();
                 v++;
@@ -601,8 +602,8 @@ public class DepResolution {
         if (prov.isRegularHandler()) {
           Iterator<String> it = modsEnabled.keySet().iterator();
           while (it.hasNext()) {
-            String runningmodule = it.next();
-            ModuleDescriptor rm = modsEnabled.get(runningmodule);
+            String runningModule = it.next();
+            ModuleDescriptor rm = modsEnabled.get(runningModule);
             InterfaceDescriptor[] requires = rm.getRequiresList();
             for (InterfaceDescriptor ri : requires) {
               if (prov.getId().equals(ri.getId())) {

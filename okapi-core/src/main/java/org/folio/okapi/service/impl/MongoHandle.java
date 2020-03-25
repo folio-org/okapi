@@ -14,7 +14,6 @@ import org.folio.okapi.common.OkapiLogger;
  */
 class MongoHandle {
 
-  private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;
 
   // Little helper to get a config value:
@@ -35,6 +34,7 @@ class MongoHandle {
     if (!dbName.isEmpty()) {
       opt.put("db_name", dbName);
     }
+    Logger logger = OkapiLogger.get();
     logger.info("Using mongo backend at {} : {} / {}", h, p, dbName);
     this.cli = MongoClient.createShared(vertx, opt);
   }

@@ -115,7 +115,6 @@ public class InterfaceDescriptor {
    * Check if this InterfaceDescriptor is compatible with the required one.
    *
    * @param required interface that is required
-   * @return
    */
   public boolean isCompatible(InterfaceDescriptor required) {
     if (!this.getId().equals(required.getId())) {
@@ -148,8 +147,6 @@ public class InterfaceDescriptor {
   /**
    * Checks if the interface is a regular handler. Not a system interface, not
    * multiple, and not old-fashioned _tenant. Used to skip conflict checks.
-   *
-   * @return
    */
   @JsonIgnore
   public boolean isRegularHandler() {
@@ -159,7 +156,6 @@ public class InterfaceDescriptor {
   /**
    * checks if interface descriptor is certain type.
    * @param type type to check
-   * @returns
    */
   @JsonIgnore
   public boolean isType(String type) {
@@ -176,7 +172,6 @@ public class InterfaceDescriptor {
 
   /**
    * Get routing entries as list.
-   * @return
    */
   @JsonIgnore
   public List<RoutingEntry> getAllRoutingEntries() {
@@ -286,7 +281,6 @@ public class InterfaceDescriptor {
 
   /**
    * Get scopes for interface (possibly empty).
-   * @return
    */
   @JsonIgnore
   public List<String> getScopeArray() {

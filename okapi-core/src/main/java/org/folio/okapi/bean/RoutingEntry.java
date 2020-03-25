@@ -159,7 +159,6 @@ public class RoutingEntry {
 
   /**
    * get timer delay in milliseconds.
-   * @return
    */
   @JsonIgnore
   public long getDelayMilliSeconds() {
@@ -194,8 +193,7 @@ public class RoutingEntry {
    * @param methods HTTP method name or "*" for all
    */
   public void setMethods(String[] methods) {
-    for (int i = 0; i < methods.length; i++) {
-      String s = methods[i];
+    for (String s : methods) {
       if (!s.equals("*")) {
         HttpMethod.valueOf(s);
       }
@@ -205,7 +203,6 @@ public class RoutingEntry {
 
   /**
    * Get path pattern/path - whichever exist.
-   * @return
    */
   @JsonIgnore
   public String getStaticPath() {
@@ -255,8 +252,8 @@ public class RoutingEntry {
   /**
    * set path pattern.
    * Special constructs like {name} and * are supported.
-   * Throws DecodeException if pattern is invalid.
    * @param pathPattern pattern string
+   * @throws DecodeException if pattern is invalid.
    */
   public void setPathPattern(String pathPattern) {
     this.pathPattern = pathPattern;
@@ -285,17 +282,15 @@ public class RoutingEntry {
     if (uri != null) {
       if (pathRegex != null) {
         String p = uri;
-        int indx = p.indexOf('?');
-        if (indx > 0) {
-          p = p.substring(0, indx);
+        int index = p.indexOf('?');
+        if (index > 0) {
+          p = p.substring(0, index);
         }
-        indx = p.indexOf('#');
-        if (indx > 0) {
-          p = p.substring(0, indx);
+        index = p.indexOf('#');
+        if (index > 0) {
+          p = p.substring(0, index);
         }
-        if (!p.matches(pathRegex)) {
-          return false;
-        }
+        return p.matches(pathRegex);
       } else if (path != null && !uri.startsWith(path)) {
         return false;
       }
@@ -307,7 +302,7 @@ public class RoutingEntry {
    * Match path and method against routing entry.
    * If path includes query or fragment, that's not considered in match.
    * @param path HTTP path
-   * @param method HTTP metrhod
+   * @param method HTTP method
    * @return true on match; false otherwise
    */
   public boolean match(String path, String method) {
@@ -331,20 +326,20 @@ public class RoutingEntry {
    */
   public String getRedirectUri(String uri) {
     if (pathRegex != null) {
-      int indx1 = uri.indexOf('?');
-      final int indx2 = uri.indexOf('#');
-      if (indx1 == -1) {
-        indx1 = indx2;
+      int index1 = uri.indexOf('?');
+      final int index2 = uri.indexOf('#');
+      if (index1 == -1) {
+        index1 = index2;
       }
       String p;
-      if (indx1 != -1) {
-        p = uri.substring(0, indx1);
+      if (index1 != -1) {
+        p = uri.substring(0, index1);
       } else {
         p = uri;
       }
       p = p.replaceAll(pathRegex, this.redirectPath);
-      if (indx1 != -1) {
-        p = p.concat(uri.substring(indx1));
+      if (index1 != -1) {
+        p = p.concat(uri.substring(index1));
       }
       return p;
     } else if (path != null) {
@@ -363,9 +358,7 @@ public class RoutingEntry {
    * @param phase such as "auth", "pre", ..
    */
   public void setPhase(String phase) {
-    if (null == phase) {
-      throw new DecodeException("Invalid phase " + phase);
-    } else {
+    if (phase != null) {
       switch (phase) {
         case "auth":
           phaseLevel = "10";
@@ -386,7 +379,7 @@ public class RoutingEntry {
   /**
    * Validate handler of routing entry.
    * May log warnings via ProxyContext.warn.
-   * @param pc Procy context
+   * @param pc Proxy context
    * @param mod module name
    * @return empty string if OK; non-empty string with message otherwise
    */
@@ -400,7 +393,7 @@ public class RoutingEntry {
           + " uses 'phase' in the handlers section. "
           + "Leave it out");
       }
-      if (type != null && "request-response".equals(type)) {
+      if ("request-response".equals(type)) {
         pc.warn(prefix
           + " uses type=request-response. "
           + "That is the default, you can leave it out");
@@ -412,7 +405,7 @@ public class RoutingEntry {
   /**
    * Validate filters of routing entry.
    * May log warnings via ProxyContext.warn.
-   * @param pc Procy context
+   * @param pc Proxy context
    * @param mod module name
    * @return empty string if OK; non-empty string with message otherwise
    */
@@ -449,8 +442,8 @@ public class RoutingEntry {
           + " uses old type path"
           + ". Use a pathPattern instead");
       }
-      if (level != null && !"toplevel".equals(section)) {
-        String ph = "";  // toplevel has a higher-level warning
+      if (level != null) {
+        String ph = "";
         if ("filters".equals(section)) {
           ph = "Use a phase=auth instead";
         }

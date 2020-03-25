@@ -50,14 +50,14 @@ import org.folio.okapi.util.TenantInstallOptions;
 public class TenantManager {
 
   private final Logger logger = OkapiLogger.get();
-  private ModuleManager moduleManager = null;
+  private ModuleManager moduleManager;
   private ProxyService proxyService = null;
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
-  private String eventName = "timer";
-  private Set<String> timers = new HashSet<>();
-  private Messages messages = Messages.getInstance();
+  private final String eventName = "timer";
+  private final Set<String> timers = new HashSet<>();
+  private final Messages messages = Messages.getInstance();
   private AsyncLock asyncLock;
   private Vertx vertx;
 

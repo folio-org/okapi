@@ -90,7 +90,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Get required and optional interfaces.
-   * @return
    */
   @JsonIgnore
   public List<InterfaceDescriptor> getRequiresOptionalList() {
@@ -156,8 +155,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
    */
   public void setProvides(InterfaceDescriptor[] provides) {
     Set<String> p = new TreeSet<>();
-    for (int i = 0; i < provides.length; i++) {
-      InterfaceDescriptor pr = provides[i];
+    for (InterfaceDescriptor pr : provides) {
       if (p.contains(pr.getId())) {
         throw new IllegalArgumentException("Interface " + pr.getId() + " provided multiple times");
       }
@@ -189,7 +187,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Get filter routing entries.
-   * @return
    */
   @JsonIgnore
   public List<RoutingEntry> getFilterRoutingEntries() {
@@ -203,7 +200,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   /**
    * Get all RoutingEntries that are type proxy.
    * Either from provided interfaces, or from the global level RoutingEntries.
-   * @return
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
@@ -219,7 +215,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Get all routing entries that are of type multi.
-   * @return
    */
   @JsonIgnore
   public List<RoutingEntry> getMultiRoutingEntries() {
@@ -299,7 +294,6 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Get list of replaced modules.
-   * @return
    */
   public String[] getReplaces() {
     if (replaces == null) {
