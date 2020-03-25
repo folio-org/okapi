@@ -59,7 +59,7 @@ public class ProxyTest {
   private int timerDelaySum = 0;
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
-  private List<JsonObject> timerPermissions = new LinkedList<>();
+  private JsonObject timerPermissions = new JsonObject();
   private JsonObject timerTenantData;
 
   @BeforeClass
@@ -172,7 +172,9 @@ public class ProxyTest {
             ctx.response().setStatusCode(timerTenantInitStatus);
             ctx.response().end("timer response");
           } else if (p.startsWith("/permissionscall")) {
-            timerPermissions.add(new JsonObject(buf));
+
+            JsonObject permObject = new JsonObject(buf);
+            timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
             ctx.response().setStatusCode(timerTenantPermissionsStatus);
             ctx.response().end("timer permissions response");
           } else if (p.startsWith("/timercall/")) {
@@ -2637,14 +2639,6 @@ public class ProxyTest {
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
-      + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/permissionscall\"" + LS
-      + "    } ]" + LS
-      + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
@@ -2716,9 +2710,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(1, timerPermissions.size());
-    Assert.assertEquals("{\"moduleId\":\"timer-module-1.0.0\","
-      +"\"perms\":[{\"permissionName\":\"timercall.post.id\"}]}", timerPermissions.get(0).encode());
+    Assert.assertEquals(0, timerPermissions.size());
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -2784,7 +2776,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(1, timerPermissions.size());
+    Assert.assertEquals(0, timerPermissions.size());
 
     final String docEdge_1_0_0 = "{" + LS
       + "  \"id\" : \"edge-module-1.0.0\"," + LS
@@ -2797,7 +2789,11 @@ public class ProxyTest {
       + "      \"pathPattern\" : \"/edge/{id}\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"edge.post.id\"," + LS
+      + "    \"displayName\": \"e\"" + LS
+      + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
     r = c.given()
@@ -2821,7 +2817,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(1, timerPermissions.size());
+    Assert.assertEquals(0, timerPermissions.size());
 
     // deploy, but with no running instance of timer-module-1.0.1
     c = api.createRestAssured3();
@@ -2837,8 +2833,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(2, timerPermissions.size());
-    Assert.assertEquals("{\"moduleId\":\"edge-module-1.0.0\",\"perms\":null}", timerPermissions.get(1).encode());
+    Assert.assertEquals(0, timerPermissions.size());
 
     final String nodeDoc2 = "{" + LS
       + "  \"instId\" : \"localhost1-" + Integer.toString(portTimer) + "\"," + LS
@@ -2873,9 +2868,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(3, timerPermissions.size());
-    Assert.assertEquals("{\"moduleId\":\"edge-module-1.0.0\","
-      +"\"perms\":null}", timerPermissions.get(2).encode());
+    Assert.assertEquals(0, timerPermissions.size());
 
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
@@ -2897,15 +2890,16 @@ public class ProxyTest {
         + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
-      .then().statusCode(400).log().ifValidationFails()
-      .body(containsString("POST request for timer-module-1.0.0 "
-        +"/permissionscall failed with 400: timer permissions response"));
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+      .then().statusCode(200).log().ifValidationFails();
 
-    Assert.assertEquals(4, timerPermissions.size());
-    Assert.assertEquals("{\"moduleId\":\"edge-module-1.0.0\","
-      +"\"perms\":null}", timerPermissions.get(3).encode());
+    //  .then().statusCode(400).log().ifValidationFails()
+    //  .body(containsString("POST request for timer-module-1.0.0 "
+    //    +"/permissionscall failed with 400: timer permissions response"));
+    //Assert.assertTrue("raml: " + c.getLastReport().toString(),
+    //  c.getLastReport().isEmpty());
+
+    Assert.assertEquals(1, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
 
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
@@ -2930,11 +2924,9 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(6, timerPermissions.size());
-    Assert.assertEquals("{\"moduleId\":\"edge-module-1.0.0\","
-      +"\"perms\":null}", timerPermissions.get(4).encode());
-    Assert.assertEquals("{\"moduleId\":\"timer-module-1.0.1\","
-      +"\"perms\":[{\"permissionName\":\"timercall.post.id\",\"displayName\":\"d\"}]}", timerPermissions.get(5).encode());
+    Assert.assertEquals(2, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
