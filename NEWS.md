@@ -1,3 +1,8 @@
+## 2.37.2 2020-03-25
+
+   [OKAPI-819](https://issues.folio.org/browse/OKAPI-819) 
+   Fix Missing permissions POSTed to permissions module
+
 ## 2.37.1 2020-03-19
 
  * [OKAPI-773](https://issues.folio.org/browse/OKAPI-773) 
