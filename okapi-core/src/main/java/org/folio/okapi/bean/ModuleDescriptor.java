@@ -237,7 +237,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   public InterfaceDescriptor getSystemInterface(String interfaceId) {
     for (InterfaceDescriptor prov : getProvidesList()) {
       if ("system".equals(prov.getInterfaceType())
-        && interfaceId.equals(prov.getId())) {
+          && interfaceId.equals(prov.getId())) {
         return prov;
       }
     }
@@ -354,8 +354,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     } else {
       pc.warn("Module '" + mod + "' "
-        + "has no Requires section. If the module really does not require "
-        + "any other interfaces, provide an empty array to be explicit about it.");
+          + "has no Requires section. If the module really does not require "
+          + "any other interfaces, provide an empty array to be explicit about it.");
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {

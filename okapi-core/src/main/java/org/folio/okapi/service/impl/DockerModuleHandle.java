@@ -57,7 +57,7 @@ public class DockerModuleHandle implements ModuleHandle {
   static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    String id, Ports ports, String containerHost, int port, JsonObject config) {
+                     String id, Ports ports, String containerHost, int port, JsonObject config) {
     this.hostPort = port;
     this.ports = ports;
     this.id = id;
@@ -74,7 +74,7 @@ public class DockerModuleHandle implements ModuleHandle {
     this.dockerPull = b == null || b.booleanValue();
     StringBuilder socketFile = new StringBuilder();
     this.dockerUrl = setupDockerAddress(socketFile,
-      Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
+        Config.getSysConf("dockerUrl", DEFAULT_DOCKER_URL, config));
     if (socketFile.length() > 0) {
       socketAddress = SocketAddress.domainSocketAddress(socketFile.toString());
     } else {
@@ -100,7 +100,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private void handle204(HttpClientResponse res, String msg,
-    Handler<AsyncResult<Void>> future) {
+                         Handler<AsyncResult<Void>> future) {
     Buffer body = Buffer.buffer();
     res.handler(body::appendBuffer);
     res.endHandler(d -> {
@@ -108,8 +108,8 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.succeededFuture());
       } else {
         String m = msg + " HTTP error "
-          + res.statusCode() + "\n"
-          + body.toString();
+            + res.statusCode() + "\n"
+            + body.toString();
         logger.error(m);
         future.handle(Future.failedFuture(m));
       }
@@ -117,7 +117,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   private HttpClientRequest request(HttpMethod method, String url,
-    Handler<HttpClientResponse> response) {
+                                    Handler<HttpClientResponse> response) {
     if (socketAddress != null) {
       return HttpClientLegacy.requestAbs(client, method, socketAddress, dockerUrl + url, response);
     } else {
@@ -126,19 +126,19 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   void postUrl(String url, String msg,
-    Handler<AsyncResult<Void>> future) {
+               Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.POST, url,
-      res -> handle204(res, msg, future));
+        res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
 
   void deleteUrl(String url, String msg,
-    Handler<AsyncResult<Void>> future) {
+                 Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.DELETE, url,
-      res -> handle204(res, msg, future));
+        res -> handle204(res, msg, future));
     req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
     req.end();
   }
@@ -176,7 +176,7 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
     final String url = "/containers/" + containerId
-      + "/logs?stderr=1&stdout=1&follow=1";
+        + "/logs?stderr=1&stdout=1&follow=1";
     HttpClientRequest req = request(HttpMethod.GET, url, res -> {
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
@@ -185,7 +185,7 @@ public class DockerModuleHandle implements ModuleHandle {
         tcpPortWaiting.waitReady(null, future);
       } else {
         String m = "getContainerLog HTTP error "
-          + res.statusCode();
+            + res.statusCode();
         logger.error(m);
         future.handle(Future.failedFuture(m));
       }
@@ -209,8 +209,8 @@ public class DockerModuleHandle implements ModuleHandle {
           future.handle(Future.succeededFuture(b));
         } else {
           String m = url + " HTTP error "
-            + res.statusCode() + "\n"
-            + body.toString();
+              + res.statusCode() + "\n"
+              + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }
@@ -233,7 +233,7 @@ public class DockerModuleHandle implements ModuleHandle {
   }
 
   void postUrlJson(String url, String msg, String doc,
-    Handler<AsyncResult<Void>> future) {
+                   Handler<AsyncResult<Void>> future) {
 
     HttpClientRequest req = request(HttpMethod.POST, url, res -> {
       Buffer body = Buffer.buffer();
@@ -245,8 +245,8 @@ public class DockerModuleHandle implements ModuleHandle {
           future.handle(Future.succeededFuture());
         } else {
           String m = msg + " HTTP error "
-            + res.statusCode() + "\n"
-            + body.toString();
+              + res.statusCode() + "\n"
+              + body.toString();
           logger.error(m);
           future.handle(Future.failedFuture(m));
         }

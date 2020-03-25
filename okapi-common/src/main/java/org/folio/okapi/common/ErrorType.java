@@ -5,17 +5,17 @@ package org.folio.okapi.common;
  */
 public enum ErrorType {
   /** Not really an error, but a success code. */
-  OK (200),
+  OK(200),
   /** Internal errors of any kind. */
-  INTERNAL (500),
+  INTERNAL(500),
   /** Bad requests, etc. */
-  USER (400),
+  USER(400),
   /** Stuff that is not there. */
-  NOT_FOUND (404),
+  NOT_FOUND(404),
   /** Any kind of auth or permission problem. */
-  FORBIDDEN (403),
+  FORBIDDEN(403),
   /** Error type for anything else. */
-  ANY (500);
+  ANY(500);
 
   private final int statusCode;
 

@@ -29,8 +29,7 @@ class AsyncMapFactory {
    * @param fut future
    */
   public static <K, V> void create(Vertx vertx, String mapName,
-    Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
-
+                                   Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
     SharedData shared = vertx.sharedData();
     if (vertx.isClustered() && mapName != null) {
       shared.<K, V>getClusterWideMap(mapName, res -> {

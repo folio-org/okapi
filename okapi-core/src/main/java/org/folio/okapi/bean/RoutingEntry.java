@@ -390,13 +390,13 @@ public class RoutingEntry {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
         pc.warn(prefix
-          + " uses 'phase' in the handlers section. "
-          + "Leave it out");
+            + " uses 'phase' in the handlers section. "
+            + "Leave it out");
       }
       if ("request-response".equals(type)) {
         pc.warn(prefix
-          + " uses type=request-response. "
-          + "That is the default, you can leave it out");
+            + " uses type=request-response. "
+            + "That is the default, you can leave it out");
       }
     }
     return err;
@@ -422,9 +422,9 @@ public class RoutingEntry {
     }
     prefix += ": ";
     pc.debug(prefix
-      + "Validating RoutingEntry " + Json.encode(this));
+        + "Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
-      && (pathPattern == null || pathPattern.isEmpty())) {
+        && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
     }
 
@@ -435,12 +435,12 @@ public class RoutingEntry {
     } else {
       if (redirectPath != null && !redirectPath.isEmpty()) {
         pc.warn(prefix
-          + "has a redirectPath, even though it is not a redirect");
+            + "has a redirectPath, even though it is not a redirect");
       }
       if (pathPattern == null || pathPattern.isEmpty()) {
         pc.warn(prefix
-          + " uses old type path"
-          + ". Use a pathPattern instead");
+            + " uses old type path"
+            + ". Use a pathPattern instead");
       }
       if (level != null) {
         String ph = "";
@@ -448,16 +448,16 @@ public class RoutingEntry {
           ph = "Use a phase=auth instead";
         }
         pc.warn(prefix
-          + "uses DEPRECATED level. " + ph);
+            + "uses DEPRECATED level. " + ph);
       }
 
       if (pathPattern != null && pathPattern.endsWith("/")) {
         pc.warn(prefix
-          + "ends in a slash. Probably not what you intend");
+            + "ends in a slash. Probably not what you intend");
       }
       if ("system".equals(type)) {
         pc.warn(prefix
-          + "uses DEPRECATED type 'system'");
+            + "uses DEPRECATED type 'system'");
       }
     }
     return "";

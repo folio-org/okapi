@@ -44,7 +44,7 @@ public class DiscoveryManager implements NodeListener {
   private final Logger logger = OkapiLogger.get();
 
   private final LockedTypedMap2<DeploymentDescriptor> deployments
-    = new LockedTypedMap2<>(DeploymentDescriptor.class);
+      = new LockedTypedMap2<>(DeploymentDescriptor.class);
   private final LockedTypedMap1<NodeDescriptor> nodes = new LockedTypedMap1<>(NodeDescriptor.class);
   private Vertx vertx;
   private ClusterManager clusterManager;
@@ -140,7 +140,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void addAndDeploy(DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     addAndDeploy0(dd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -165,7 +165,7 @@ public class DiscoveryManager implements NodeListener {
    * </p>
    */
   private void addAndDeploy0(DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     String tmp = Json.encodePrettily(dd);
     logger.info("addAndDeploy: {}", tmp);
@@ -188,7 +188,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
@@ -218,8 +218,8 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
-
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
+                             String nodeId) {
     String modId = dd.getSrvcId();
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
@@ -242,21 +242,21 @@ public class DiscoveryManager implements NodeListener {
       } else {
         String reqData = Json.encode(dd);
         vertx.eventBus().request(nodeRes.result().getUrl() + "/deploy", reqData,
-          deliveryOptions, ar -> {
-            if (ar.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-            } else {
-              String b = (String) ar.result().body();
-              DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
-              fut.handle(new Success<>(pmd));
-            }
-          });
+            deliveryOptions, ar -> {
+              if (ar.failed()) {
+                fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+              } else {
+                String b = (String) ar.result().body();
+                DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
+                fut.handle(new Success<>(pmd));
+              }
+            });
       }
     });
   }
 
   void removeAndUndeploy(String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                         Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId {} instId {}", srvcId, instId);
     deployments.get(srvcId, instId, res -> {
@@ -272,7 +272,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void removeAndUndeploy(String srvcId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                         Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId {}", srvcId);
     deployments.get(srvcId, res -> {
@@ -297,7 +297,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void removeAndUndeploy(List<DeploymentDescriptor> ddList,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                                 Handler<ExtendedAsyncResult<Void>> fut) {
 
     CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
@@ -319,7 +319,7 @@ public class DiscoveryManager implements NodeListener {
                             Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("callUndeploy srvcId={} instId={} node={}",
-      md.getSrvcId(), md.getInstId(), md.getNodeId());
+        md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
       logger.info("callUndeploy remove");
@@ -332,20 +332,20 @@ public class DiscoveryManager implements NodeListener {
         } else {
           String reqdata = md.getInstId();
           vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
-            deliveryOptions, ar -> {
-              if (ar.failed()) {
-                fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-              } else {
-                fut.handle(new Success<>());
-              }
-            });
+              deliveryOptions, ar -> {
+                if (ar.failed()) {
+                  fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+                } else {
+                  fut.handle(new Success<>());
+                }
+              });
         }
       });
     }
   }
 
   void remove(String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+              Handler<ExtendedAsyncResult<Void>> fut) {
 
     deployments.remove(srvcId, instId, res -> {
       if (res.failed()) {
@@ -375,7 +375,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void autoDeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                  Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy {}", md.getId());
     // internal Okapi modules is not part of discovery so ignore it
@@ -402,8 +402,8 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void autoDeploy2(ModuleDescriptor md,
-    Collection<String> allNodes, List<DeploymentDescriptor> ddList,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                           Collection<String> allNodes, List<DeploymentDescriptor> ddList,
+                           Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     CompList<List<Void>> futures = new CompList<>(ErrorType.USER);
@@ -434,7 +434,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void autoUndeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                    Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy {}", md.getId());
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
@@ -460,7 +460,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void getNonEmpty(String srvcId,
-    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+                   Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
     deployments.get(srvcId, res -> {
       if (res.failed()) {
@@ -565,7 +565,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void health(DeploymentDescriptor md,
-    Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+                      Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
 
     HealthDescriptor hd = new HealthDescriptor();
     String url = md.getUrl();
@@ -686,7 +686,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void updateNode(String nodeId, NodeDescriptor nd,
-    Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+                  Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
@@ -753,7 +753,7 @@ public class DiscoveryManager implements NodeListener {
   @Override
   public void nodeLeft(String nodeID) {
     nodes.remove(nodeID, res
-      -> logger.info("node.remove {} result={}", nodeID, res.result())
+        -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
   }
 }

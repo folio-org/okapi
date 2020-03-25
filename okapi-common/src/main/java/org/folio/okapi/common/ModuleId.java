@@ -163,7 +163,7 @@ public class ModuleId implements Comparable<ModuleId> {
     for (String curId : l) {
       ModuleId curModule = new ModuleId(curId);
       if (product.equals(curModule.getProduct())
-        && curModule.compareTo(latestModule) > 0) {
+          && curModule.compareTo(latestModule) > 0) {
         latestModule = curModule;
       }
     }

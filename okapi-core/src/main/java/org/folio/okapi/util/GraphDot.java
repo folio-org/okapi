@@ -30,7 +30,6 @@ public class GraphDot {
    */
   public static String report(List<ModuleDescriptor> modList) {
     StringBuilder doc = new StringBuilder();
-
     doc.append("digraph okapi {\n");
     for (ModuleDescriptor md : modList) {
       doc.append("  " + encodeDotId(md.getId()) + " [label=\"" + md.getId() + "\"];\n");
@@ -42,9 +41,9 @@ public class GraphDot {
         for (ModuleDescriptor smd : modList) {
           for (InterfaceDescriptor pi : smd.getProvidesList()) {
             if (pi.isRegularHandler()
-              && req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+                && req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
               doc.append("  " + encodeDotId(tmd.getId())
-                + " -> " + encodeDotId(smd.getId()) + ";\n");
+                  + " -> " + encodeDotId(smd.getId()) + ";\n");
               number++;
             }
           }

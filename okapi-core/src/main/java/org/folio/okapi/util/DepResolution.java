@@ -32,16 +32,16 @@ public class DepResolution {
   }
 
   private static Map<String, InterfaceDescriptor> checkPresenceDependency(
-    ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, List<InterfaceDescriptor>> ints) {
+      ModuleDescriptor md, InterfaceDescriptor req,
+      Map<String, List<InterfaceDescriptor>> ints) {
 
     Map<String, InterfaceDescriptor> seenVersions = new HashMap<>();
     List<InterfaceDescriptor> intsList = ints.get(req.getId());
     if (intsList != null) {
       for (InterfaceDescriptor pi : intsList) {
         logger.debug("Checking dependency of {}: {} {} against {} {}",
-          md.getId(), req.getId(), req.getVersion(),
-          pi.getId(), pi.getVersion());
+            md.getId(), req.getId(), req.getVersion(),
+            pi.getId(), pi.getVersion());
         if (req.getId().equals(pi.getId())) {
           if (pi.isCompatible(req)) {
             logger.debug("Dependency OK");
@@ -63,8 +63,9 @@ public class DepResolution {
    * @return null if ok, or error message
    */
   private static String checkOneDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, List<InterfaceDescriptor>> ints, Collection<ModuleDescriptor> modList,
-    boolean optional) {
+                                           Map<String, List<InterfaceDescriptor>> ints,
+                                           Collection<ModuleDescriptor> modList,
+                                           boolean optional) {
 
     Map<String, InterfaceDescriptor> seenVersions = checkPresenceDependency(md, req, ints);
     if (seenVersions == null) { // found and compatible?
@@ -92,12 +93,12 @@ public class DepResolution {
       }
     }
     return messages.getMessage("10201", md.getId(), req.getId(),
-      req.getVersion(), moduses.toString());
+        req.getVersion(), moduses.toString());
   }
 
   private static List<String> checkDependenciesInts(
-    ModuleDescriptor md, Map<String, ModuleDescriptor> modlist,
-    Map<String, List<InterfaceDescriptor>> ints) {
+      ModuleDescriptor md, Map<String, ModuleDescriptor> modlist,
+      Map<String, List<InterfaceDescriptor>> ints) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of {}", md.getId());
@@ -117,7 +118,7 @@ public class DepResolution {
   }
 
   private static Map<String, List<InterfaceDescriptor>> getProvidedInterfaces(
-    Collection<ModuleDescriptor> modList) {
+      Collection<ModuleDescriptor> modList) {
 
     Map<String, List<InterfaceDescriptor>> ints = new HashMap<>();
     for (ModuleDescriptor md : modList) {
@@ -152,7 +153,7 @@ public class DepResolution {
    * @return empty string if all OK; error message otherwise
    */
   public static String checkDependencies(
-    Map<String, ModuleDescriptor> available, Collection<ModuleDescriptor> testList) {
+      Map<String, ModuleDescriptor> available, Collection<ModuleDescriptor> testList) {
 
     Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available.values());
 
@@ -205,7 +206,7 @@ public class DepResolution {
   }
 
   private static TenantModuleDescriptor getNextTM(Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
+                                                  List<TenantModuleDescriptor> tml) {
 
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     TenantModuleDescriptor tm;
@@ -237,9 +238,9 @@ public class DepResolution {
    * @param fut future
    */
   public static void installSimulate(Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+                                     Map<String, ModuleDescriptor> modsEnabled,
+                                     List<TenantModuleDescriptor> tml,
+                                     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     List<String> errors = new LinkedList<>();
     for (TenantModuleDescriptor tm : tml) {
@@ -294,15 +295,15 @@ public class DepResolution {
   }
 
   private static boolean tmAction(TenantModuleDescriptor tm,
-    Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
-
+                                  Map<String, ModuleDescriptor> modsAvailable,
+                                  Map<String, ModuleDescriptor> modsEnabled,
+                                  List<TenantModuleDescriptor> tml,
+                                  Handler<ExtendedAsyncResult<Boolean>> fut) {
     String id = tm.getId();
     TenantModuleDescriptor.Action action = tm.getAction();
     if (null == action) {
       fut.handle(new Failure<>(ErrorType.INTERNAL,
-        messages.getMessage("10404", "null")));
+          messages.getMessage("10404", "null")));
       return true;
     } else {
       switch (action) {
@@ -314,44 +315,46 @@ public class DepResolution {
           return tmDisable(id, modsAvailable, modsEnabled, tml, fut);
         default:
           fut.handle(new Failure<>(ErrorType.INTERNAL,
-            messages.getMessage("10404", action.name())));
+              messages.getMessage("10404", action.name())));
           return true;
       }
     }
   }
 
-  private static boolean tmEnable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+  private static boolean tmEnable(
+      String id, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     List<String> ret = addModuleDependencies(modsAvailable.get(id), modsAvailable,
-      modsEnabled, tml);
+        modsEnabled, tml);
     if (ret.isEmpty()) {
       upgradeLeafs(modsAvailable.get(id), modsAvailable, modsEnabled, tml);
       return false;
     }
     fut.handle(new Failure<>(ErrorType.USER, "enable " + id
-      + " failed: " + String.join(". ", ret)));
+        + " failed: " + String.join(". ", ret)));
     return true;
   }
 
   private static boolean tmDisable(String id, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+                                   Map<String, ModuleDescriptor> modsEnabled,
+                                   List<TenantModuleDescriptor> tml,
+                                   Handler<ExtendedAsyncResult<Boolean>> fut) {
     List<String> ret = removeModuleDependencies(modsAvailable.get(id),
-      modsEnabled, tml);
+        modsEnabled, tml);
     if (ret.isEmpty()) {
       return false;
     }
     fut.handle(new Failure<>(ErrorType.USER, "disable " + id + " failed: "
-      + String.join(". ", ret)));
+        + String.join(". ", ret)));
     return true;
   }
 
   private static List<String> checkInterfaceDependency(ModuleDescriptor md, InterfaceDescriptor req,
-    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
+                                                       Map<String, ModuleDescriptor> modsAvailable,
+                                                       Map<String, ModuleDescriptor> modsEnabled,
+                                                       List<TenantModuleDescriptor> tml) {
     List<String> ret = new LinkedList<>();
     // check if mentioned already in other install action
     ModuleDescriptor foundMd = checkInterfaceDepOtherInstall(tml, modsAvailable, req);
@@ -369,8 +372,8 @@ public class DepResolution {
       foundMd = productMd.get(k);
     } else {
       String s = "interface " + req.getId() + " required by module "
-        + md.getId() + " is provided by multiple products: "
-        + String.join(", ", productMd.keySet());
+          + md.getId() + " is provided by multiple products: "
+          + String.join(", ", productMd.keySet());
       ret.add(s);
       return ret;
     }
@@ -378,8 +381,7 @@ public class DepResolution {
   }
 
   private static Map<String, ModuleDescriptor> checkInterfaceDepAvailable(
-    Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
-
+      Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
     Set<String> replaceProducts = new HashSet<>();
     Map<String, ModuleDescriptor> productMd = new HashMap<>();
     for (Map.Entry<String, ModuleDescriptor> entry : modsAvailable.entrySet()) {
@@ -407,9 +409,9 @@ public class DepResolution {
     return productMd;
   }
 
-  private static ModuleDescriptor checkInterfaceDepOtherInstall(List<TenantModuleDescriptor> tml,
-    Map<String, ModuleDescriptor> modsAvailable, InterfaceDescriptor req) {
-
+  private static ModuleDescriptor checkInterfaceDepOtherInstall(
+      List<TenantModuleDescriptor> tml, Map<String, ModuleDescriptor> modsAvailable,
+      InterfaceDescriptor req) {
     ModuleDescriptor foundMd = null;
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     while (it.hasNext()) {
@@ -434,8 +436,8 @@ public class DepResolution {
    * @param req the interface to look for
    * @return null: interface not found, false: incompatible, true: compatible
    */
-  private static Boolean checkInterfaceDepAlreadyEnabled(Map<String, ModuleDescriptor> modsEnabled,
-    InterfaceDescriptor req) {
+  private static Boolean checkInterfaceDepAlreadyEnabled(
+      Map<String, ModuleDescriptor> modsEnabled, InterfaceDescriptor req) {
     Boolean exist = null;
     for (Map.Entry<String, ModuleDescriptor> entry : modsEnabled.entrySet()) {
       ModuleDescriptor md = entry.getValue();
@@ -453,9 +455,8 @@ public class DepResolution {
   }
 
   private static int resolveModuleConflicts(
-    ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
-
+      ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
+      List<TenantModuleDescriptor> tml, List<ModuleDescriptor> fromModule) {
     int v = 0;
     Iterator<String> it = modsEnabled.keySet().iterator();
     while (it.hasNext()) {
@@ -472,8 +473,8 @@ public class DepResolution {
             if (pi.isRegularHandler()) {
               String confl = pi.getId();
               if (mi.getId().equals(confl)
-                && mi.isRegularHandler()
-                && modsEnabled.containsKey(runningModule)) {
+                  && mi.isRegularHandler()
+                  && modsEnabled.containsKey(runningModule)) {
                 logger.info("resolveModuleConflicts remove {}", runningModule);
                 TenantModuleDescriptor tm = new TenantModuleDescriptor();
                 tm.setAction(TenantModuleDescriptor.Action.disable);
@@ -491,8 +492,7 @@ public class DepResolution {
   }
 
   private static void addOrReplace(List<TenantModuleDescriptor> tml, ModuleDescriptor md,
-    TenantModuleDescriptor.Action action, ModuleDescriptor fm) {
-
+                                   TenantModuleDescriptor.Action action, ModuleDescriptor fm) {
     logger.info("addOrReplace id {}", md.getId());
     Iterator<TenantModuleDescriptor> it = tml.iterator();
     boolean found = false;
@@ -501,7 +501,7 @@ public class DepResolution {
       if (tm.getAction().equals(action) && tm.getId().equals(md.getId())) {
         it.remove();
       } else if (fm != null && tm.getAction() == TenantModuleDescriptor.Action.enable
-        && tm.getId().equals(fm.getId())) {
+          && tm.getId().equals(fm.getId())) {
         logger.info("resolveConflict .. patch id {}", md.getId());
         tm.setId(md.getId());
         found = true;
@@ -519,9 +519,9 @@ public class DepResolution {
     tml.add(t);
   }
 
-  private static void upgradeLeafs(ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
-    Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
-
+  private static void upgradeLeafs(
+      ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
     Iterator<ModuleDescriptor> it = modsEnabled.values().iterator();
     while (it.hasNext()) {
       ModuleDescriptor me = it.next();
@@ -544,9 +544,8 @@ public class DepResolution {
   }
 
   private static ModuleDescriptor lookupAvailableForProvided(
-    Map<String, ModuleDescriptor> modsAvailable,
-    ModuleDescriptor me, InterfaceDescriptor prov, ModuleDescriptor mdTo) {
-
+      Map<String, ModuleDescriptor> modsAvailable,
+      ModuleDescriptor me, InterfaceDescriptor prov, ModuleDescriptor mdTo) {
     for (ModuleDescriptor ma : modsAvailable.values()) {
       if (!me.getProduct().equals(ma.getProduct())) {
         continue;
@@ -560,10 +559,9 @@ public class DepResolution {
     return mdTo;
   }
 
-  private static List<String> addModuleDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
-
+  private static List<String> addModuleDependencies(
+      ModuleDescriptor md, Map<String, ModuleDescriptor> modsAvailable,
+      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
     List<String> ret = new LinkedList<>();
     logger.info("addModuleDependencies {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
@@ -586,15 +584,14 @@ public class DepResolution {
 
     modsEnabled.put(md.getId(), md);
     addOrReplace(tml, md, TenantModuleDescriptor.Action.enable,
-      fromModule.isEmpty() ? null : fromModule.get(0));
+        fromModule.isEmpty() ? null : fromModule.get(0));
     return ret;
   }
 
-  private static List<String> removeModuleDependencies(ModuleDescriptor md,
-    Map<String, ModuleDescriptor> modsEnabled,
-    List<TenantModuleDescriptor> tml) {
+  private static List<String> removeModuleDependencies(
+      ModuleDescriptor md, Map<String, ModuleDescriptor> modsEnabled,
+      List<TenantModuleDescriptor> tml) {
     logger.info("removeModuleDependencies {}", md.getId());
-
     List<String> ret = new LinkedList<>();
     if (modsEnabled.containsKey(md.getId())) {
       InterfaceDescriptor[] provides = md.getProvidesList();
@@ -630,7 +627,6 @@ public class DepResolution {
    * @return list with Top-N set
    */
   public static List<ModuleDescriptor> getLatestProducts(int limit, List<ModuleDescriptor> mdl) {
-
     Collections.sort(mdl, Collections.reverseOrder());
     Iterator<ModuleDescriptor> it = mdl.listIterator();
     String product = "";

@@ -39,7 +39,7 @@ public class ModuleManager {
   private String mapName = "modules";
   private final String eventName = "moduleUpdate";
   private final LockedTypedMap1<ModuleDescriptor> modules
-    = new LockedTypedMap1<>(ModuleDescriptor.class);
+      = new LockedTypedMap1<>(ModuleDescriptor.class);
   private final Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
   private final ModuleStore moduleStore;
   private Vertx vertx;
@@ -125,8 +125,8 @@ public class ModuleManager {
   }
 
   void enableAndDisableCheck(Tenant tenant,
-    ModuleDescriptor modFrom, ModuleDescriptor modTo,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                             ModuleDescriptor modFrom, ModuleDescriptor modTo,
+                             Handler<ExtendedAsyncResult<Void>> fut) {
 
     getEnabledModules(tenant, gres -> {
       if (gres.failed()) {
@@ -145,7 +145,7 @@ public class ModuleManager {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
           fut.handle(new Failure<>(ErrorType.USER,
-            "Module " + modTo.getId() + " already provided"));
+              "Module " + modTo.getId() + " already provided"));
           return;
         }
         mods.put(modTo.getId(), modTo);
@@ -170,7 +170,7 @@ public class ModuleManager {
    * @param fut future
    */
   public void create(ModuleDescriptor md, boolean check, boolean preRelease,
-          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+                     boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
     createList(l, check, preRelease, npmSnapshot, fut);
@@ -186,7 +186,7 @@ public class ModuleManager {
    * @param fut future
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+                         boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
     getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -346,7 +346,7 @@ public class ModuleManager {
   }
 
   private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
-    LinkedHashMap<String, ModuleDescriptor> mods) {
+                                 LinkedHashMap<String, ModuleDescriptor> mods) {
 
     if (!mods.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10207")));
@@ -404,8 +404,8 @@ public class ModuleManager {
   }
 
   void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-    List<String> skipModules,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+                            List<String> skipModules,
+                            Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
@@ -420,8 +420,8 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())
-            && !skipIds.contains(id)) {
+              && (preRelease || !idThis.hasPreRelease())
+              && !skipIds.contains(id)) {
             mdl.add(md);
           }
         }
@@ -437,7 +437,7 @@ public class ModuleManager {
    * @param fut callback with a list of ModuleDescriptors (may be empty list)
    */
   public void getEnabledModules(Tenant ten,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+                                Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
     CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
@@ -451,7 +451,7 @@ public class ModuleManager {
             enabledModulesCache.put(id, res.result());
             mdl.add(res.result());
           } else {
-            logger.warn("getEnabledModules id={} failed {}", id, res.cause());
+            logger.warn("getEnabledModules id={} failed", id, res.cause());
           }
           promise.handle(res);
         });

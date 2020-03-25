@@ -25,7 +25,7 @@ class PostgresTable<T> {
   private final PostgresHandle pg;
 
   PostgresTable(PostgresHandle pg, String table, String jsonColumn,
-    String idIndex, String idSelect, String indexName) {
+                String idIndex, String idSelect, String indexName) {
     this.pg = pg;
     this.table = table;
     this.jsonColumn = jsonColumn;
@@ -37,14 +37,14 @@ class PostgresTable<T> {
   private void create(boolean reset, PostgresQuery q, Handler<ExtendedAsyncResult<Void>> fut) {
     String notExists = reset ? "" : "IF NOT EXISTS ";
     String createSql = "CREATE TABLE " + notExists + table
-      + " ( " + jsonColumn + " JSONB NOT NULL )";
+        + " ( " + jsonColumn + " JSONB NOT NULL )";
     q.query(createSql, res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
         return;
       }
       String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
-        + table + " USING btree((" + idIndex + "))";
+          + table + " USING btree((" + idIndex + "))";
       q.query(createSql1, res2 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
@@ -90,7 +90,7 @@ class PostgresTable<T> {
   void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)"
-      + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
+        + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
     q.query(sql, Tuple.of(doc), res -> {

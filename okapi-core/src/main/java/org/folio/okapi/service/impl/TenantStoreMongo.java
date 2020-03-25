@@ -60,7 +60,7 @@ public class TenantStoreMongo implements TenantStore {
     final String id = td.getId();
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(COLLECTION, jq, res
-      -> {
+        -> {
       if (res.failed()) {
         logger.warn("updateDescriptor: find failed: {}", res.cause().getMessage());
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
@@ -79,7 +79,7 @@ public class TenantStoreMongo implements TenantStore {
               fut.handle(new Success<>());
             } else {
               logger.warn("Failed to update descriptor for {}: {}",
-                id, ures.cause().getMessage());
+                  id, ures.cause().getMessage());
               fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
             }
           });

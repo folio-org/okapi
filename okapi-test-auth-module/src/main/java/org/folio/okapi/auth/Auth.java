@@ -7,12 +7,12 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Base64;
+import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-import java.util.Base64;
-import java.util.HashMap;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -41,8 +41,8 @@ class Auth {
 
     // Create a dummy JWT token with the correct tenant
     JsonObject payload = new JsonObject()
-                .put("sub", user)
-                .put("tenant", tenant);
+        .put("sub", user)
+        .put("tenant", tenant);
     String encodedpl = payload.encode();
     logger.debug("test-auth: payload: {}", encodedpl);
     byte[] bytes = encodedpl.getBytes();
@@ -73,7 +73,7 @@ class Auth {
     String correctpw = u + "-password";
     if (!p.getPassword().equals(correctpw)) {
       logger.warn("test-auth: Bad passwd for '{}'. Got '{}' expected '{}",
-        u, p.getPassword(), correctpw);
+          u, p.getPassword(), correctpw);
       HttpResponse.responseText(ctx, 401).end("Wrong username or password");
       return;
     }
@@ -140,9 +140,9 @@ class Auth {
 
     // Hack to test pre/post filter can see request headers
     if (ctx.request().headers().contains("X-request-" + phase + "-error")
-      && ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP)
-      && ctx.request().headers().contains(XOkapiHeaders.REQUEST_TIMESTAMP)
-      && ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP)
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_TIMESTAMP)
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
       ctx.response().setStatusCode(500);
     }
     echo(ctx);
@@ -205,7 +205,7 @@ class Auth {
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null) {
       logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
-        XOkapiHeaders.PERMISSIONS_REQUIRED, req);
+          XOkapiHeaders.PERMISSIONS_REQUIRED, req);
       HttpResponse.responseError(ctx, 403, "/_/tenant can not require permissions");
       return;
     }
@@ -223,9 +223,9 @@ class Auth {
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
-      .add(XOkapiHeaders.TOKEN, tok)
-      .add(XOkapiHeaders.MODULE_TOKENS, modTok)
-      .add(XOkapiHeaders.USER_ID, userId);
+        .add(XOkapiHeaders.TOKEN, tok)
+        .add(XOkapiHeaders.MODULE_TOKENS, modTok)
+        .add(XOkapiHeaders.USER_ID, userId);
     HttpResponse.responseText(ctx, 202); // Abusing 202 to say filter OK
     if (ctx.request().method() == HttpMethod.HEAD) {
       ctx.response().headers().remove("Content-Length");

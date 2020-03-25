@@ -89,7 +89,7 @@ public class ProxyContext {
     timer = DropwizardHelper.getTimerContext(key);
     if (waitMs > 0) {
       timerId = ctx.vertx().setPeriodic(waitMs, res
-        -> logger.warn(reqId + " WAIT {} {} {} {}",
+          -> logger.warn(reqId + " WAIT {} {} {} {}",
           ctx.request().remoteAddress(), tenant,
           ctx.request().method(), ctx.request().path())
       );
@@ -132,7 +132,7 @@ public class ProxyContext {
     MultiMap respH = ok.getRespHeaders();
     for (Map.Entry<String, String> e : respH.entries()) {
       if (XOkapiHeaders.TRACE.equals(e.getKey())
-        || "X-Tenant-Perms-Result".equals(e.getKey())) {
+          || "X-Tenant-Perms-Result".equals(e.getKey())) {
         ctx.response().headers().add(e.getKey(), e.getValue());
       }
     }
@@ -212,8 +212,8 @@ public class ProxyContext {
     }
     if (logger.isInfoEnabled()) {
       logger.info("{} REQ {} {} {} {} {}", reqId,
-        ctx.request().remoteAddress(), tenant, ctx.request().method(),
-        ctx.request().path(), mods);
+          ctx.request().remoteAddress(), tenant, ctx.request().method(),
+          ctx.request().path(), mods);
     }
   }
 
@@ -226,7 +226,7 @@ public class ProxyContext {
   public void logResponse(String module, String url, int statusCode) {
     if (logger.isInfoEnabled()) {
       logger.info("{} RES {} {} {} {}", reqId,
-        statusCode, timeDiff(), module, url);
+          statusCode, timeDiff(), module, url);
     }
   }
 

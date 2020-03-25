@@ -41,7 +41,7 @@ public class PostgresQuery {
   }
 
   void query(String sql, Tuple tuple,
-    Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
+             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
 
     getCon(gres -> {
       if (gres.failed()) {
@@ -52,7 +52,7 @@ public class PostgresQuery {
       conn.preparedQuery(sql, tuple, qres -> {
         if (qres.failed()) {
           logger.fatal("preparedQuery sql {} failed: {}",
-            sql, qres.cause().getMessage());
+              sql, qres.cause().getMessage());
           close();
           fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
           return;
@@ -63,7 +63,7 @@ public class PostgresQuery {
   }
 
   void query(String sql,
-    Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
+             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
 
     getCon(gres -> {
       if (gres.failed()) {
@@ -74,7 +74,7 @@ public class PostgresQuery {
       conn.query(sql, qres -> {
         if (qres.failed()) {
           logger.fatal("query sql {} failed: {}",
-            sql, qres.cause().getMessage());
+              sql, qres.cause().getMessage());
           close();
           fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
         } else {

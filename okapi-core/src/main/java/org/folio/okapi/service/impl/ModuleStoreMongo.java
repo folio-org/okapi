@@ -27,14 +27,13 @@ public class ModuleStoreMongo implements ModuleStore {
 
   @Override
   public void insert(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
-
+                     Handler<ExtendedAsyncResult<Void>> fut) {
     util.insert(md, md.getId(), fut);
   }
 
   @Override
   public void update(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                     Handler<ExtendedAsyncResult<Void>> fut) {
 
     util.add(md, md.getId(), fut);
   }

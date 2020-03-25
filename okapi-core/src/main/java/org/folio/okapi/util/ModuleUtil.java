@@ -11,7 +11,6 @@ import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 
-
 public class ModuleUtil {
   private ModuleUtil() {
     throw new IllegalAccessError(this.toString());
@@ -55,8 +54,8 @@ public class ModuleUtil {
     throw new DecodeException("Bad boolean for parameter " + name + ": " + v);
   }
 
-  private static boolean interfaceCheck(InterfaceDescriptor[] interfaces,
-    String interfaceStr, String scope) {
+  private static boolean interfaceCheck(
+      InterfaceDescriptor[] interfaces, String interfaceStr, String scope) {
     if (interfaceStr == null) {
       return true;
     } else {
@@ -65,8 +64,8 @@ public class ModuleUtil {
           String[] kv = interfaceStr.split("=");
           List<String> gotScope = pi.getScopeArray();
           if (pi.getId().equals(kv[0])
-            && (kv.length != 2 || pi.getVersion().equals(kv[1]))
-            && (scope == null || gotScope.contains(scope))) {
+              && (kv.length != 2 || pi.getVersion().equals(kv[1]))
+              && (scope == null || gotScope.contains(scope))) {
             return true;
           }
         }
@@ -83,9 +82,8 @@ public class ModuleUtil {
    * @param includeName whether to include module name property always
    * @return list of modules
    */
-  public static List<ModuleDescriptor> filter(HttpServerRequest req, List<ModuleDescriptor> list,
-    boolean full, boolean includeName) {
-
+  public static List<ModuleDescriptor> filter(
+      HttpServerRequest req, List<ModuleDescriptor> list, boolean full, boolean includeName) {
     ModuleId filter = null;
     String filterStr = req.getParam("filter");
     if (filterStr != null) {
@@ -108,10 +106,10 @@ public class ModuleUtil {
       String id = md.getId();
       ModuleId idThis = new ModuleId(id);
       if ((filter != null && !idThis.hasPrefix(filter))
-        || (!npmSnapshot && idThis.hasNpmSnapshot())
-        || (!preRelease && idThis.hasPreRelease())
-        || !interfaceCheck(md.getRequires(), requireStr, scope)
-        || !interfaceCheck(md.getProvides(), provideStr, scope)) {
+          || (!npmSnapshot && idThis.hasNpmSnapshot())
+          || (!preRelease && idThis.hasPreRelease())
+          || !interfaceCheck(md.getRequires(), requireStr, scope)
+          || !interfaceCheck(md.getProvides(), provideStr, scope)) {
         iterator.remove();
       }
     }

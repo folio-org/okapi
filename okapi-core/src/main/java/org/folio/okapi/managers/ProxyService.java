@@ -86,7 +86,7 @@ public class ProxyService {
    * @param config configuration
    */
   public ProxyService(Vertx vertx, ModuleManager modules, TenantManager tm,
-    DiscoveryManager dm, InternalModule im, String okapiUrl, JsonObject config) {
+                      DiscoveryManager dm, InternalModule im, String okapiUrl, JsonObject config) {
     this.vertx = vertx;
     this.moduleManager = modules;
     this.tenantManager = tm;
@@ -107,14 +107,14 @@ public class ProxyService {
    * @param pc ProxyContext
    */
   private void makeTraceHeader(ModuleInstance mi, int statusCode,
-    ProxyContext pc) {
+                               ProxyContext pc) {
 
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
     pc.addTraceHeaderLine(ctx.request().method() + " "
-      + mi.getModuleDescriptor().getId() + " "
-      + url.replaceFirst("[?#].*$", "..") // remove params
-      + " : " + statusCode + " " + pc.timeDiff());
+        + mi.getModuleDescriptor().getId() + " "
+        + url.replaceFirst("[?#].*$", "..") // remove params
+        + " : " + statusCode + " " + pc.timeDiff());
     pc.logResponse(mi.getModuleDescriptor().getId(), url, statusCode);
   }
 
@@ -123,9 +123,9 @@ public class ProxyService {
   }
 
   private boolean resolveRedirects(ProxyContext pc,
-    List<ModuleInstance> mods, RoutingEntry re,
-    List<ModuleDescriptor> enabledModules,
-    final String loop, final String uri) {
+                                   List<ModuleInstance> mods, RoutingEntry re,
+                                   List<ModuleDescriptor> enabledModules,
+                                   final String loop, final String uri) {
 
     RoutingContext ctx = pc.getCtx();
     if (re.getProxyType() == ProxyType.REDIRECT) { // resolve redirects
@@ -137,17 +137,17 @@ public class ProxyService {
             final String newUri = re.getRedirectUri(uri);
             found = true;
             pc.debug("resolveRedirects: "
-              + ctx.request().method() + " " + uri
-              + " => " + trymod + " " + newUri);
+                + ctx.request().method() + " " + uri
+                + " => " + trymod + " " + newUri);
             if (loop.contains(redirectPath + " ")) {
               pc.responseError(500, messages.getMessage("10100", loop, redirectPath));
               return false;
             }
             ModuleInstance mi = new ModuleInstance(trymod, tryre, newUri,
-              ctx.request().method(), false);
+                ctx.request().method(), false);
             mods.add(mi);
             if (!resolveRedirects(pc, mods, tryre, enabledModules,
-              loop + " -> " + redirectPath, newUri)) {
+                loop + " -> " + redirectPath, newUri)) {
               return false;
             }
           }
@@ -157,10 +157,10 @@ public class ProxyService {
             final String newUri = re.getRedirectUri(uri);
             found = true;
             pc.debug("resolveRedirects: "
-              + ctx.request().method() + " " + uri
-              + " => " + trymod + " " + newUri);
+                + ctx.request().method() + " " + uri
+                + " => " + trymod + " " + newUri);
             ModuleInstance mi = new ModuleInstance(trymod, tryre,
-              newUri, ctx.request().method(), true);
+                newUri, ctx.request().method(), true);
             mods.add(mi);
           }
         }
@@ -183,7 +183,7 @@ public class ProxyService {
    * @return a list of ModuleInstances. In case of error, sets up ctx and returns null.
    */
   private List<ModuleInstance> getModulesForRequest(ProxyContext pc,
-    List<ModuleDescriptor> enabledModules) {
+                                                    List<ModuleDescriptor> enabledModules) {
 
     List<ModuleInstance> mods = new ArrayList<>();
     HttpServerRequest req = pc.getCtx().request();
@@ -205,8 +205,8 @@ public class ProxyService {
             mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
             pc.debug("getMods:   Added " + md.getId() + " "
-              + re.getPathPattern() + " " + re.getPath() + " "
-              + re.getPhase() + "/" + re.getLevel());
+                + re.getPathPattern() + " " + re.getPath() + " "
+                + re.getPhase() + "/" + re.getLevel());
             break;
           }
         }
@@ -221,12 +221,13 @@ public class ProxyService {
             return null;
           }
           pc.debug("getMods:   Added " + md.getId() + " "
-            + re.getPathPattern() + " " + re.getPath() + " " + re.getPhase() + "/" + re.getLevel());
+              + re.getPathPattern() + " " + re.getPath() + " "
+              + re.getPhase() + "/" + re.getLevel());
         }
       }
     }
     Comparator<ModuleInstance> cmp = (ModuleInstance a, ModuleInstance b)
-      -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
+        -> a.getRoutingEntry().getPhaseLevel().compareTo(b.getRoutingEntry().getPhaseLevel());
     mods.sort(cmp);
 
     // Check that our pipeline has a real module in it, not just filters,
@@ -235,8 +236,8 @@ public class ProxyService {
     boolean found = false;
     for (ModuleInstance inst : mods) {
       pc.debug("getMods: Checking " + inst.getRoutingEntry().getPathPattern() + " "
-        + "'" + inst.getRoutingEntry().getPhase() + "' "
-        + "'" + inst.getRoutingEntry().getLevel() + "' "
+          + "'" + inst.getRoutingEntry().getPhase() + "' "
+          + "'" + inst.getRoutingEntry().getLevel() + "' "
       );
       if (inst.isHandler()) {
         found = true;
@@ -313,7 +314,7 @@ public class ProxyService {
    * X-Okapi-Module-Permissions for each module that has such.
    */
   private void authHeaders(List<ModuleInstance> modlist,
-    MultiMap requestHeaders, ProxyContext pc) {
+                           MultiMap requestHeaders, ProxyContext pc) {
     // Sanitize important headers from the incoming request
     sanitizeAuthHeaders(requestHeaders);
     Set<String> req = new HashSet<>();
@@ -363,7 +364,7 @@ public class ProxyService {
   }
 
   private void resolveUrls(Iterator<ModuleInstance> it,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                           Handler<ExtendedAsyncResult<Void>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Success<>());
     } else {
@@ -380,8 +381,8 @@ public class ProxyService {
           DeploymentDescriptor instance = pickInstance(res.result());
           if (instance == null) {
             fut.handle(new Failure<>(ErrorType.NOT_FOUND,
-              "No running module instance found for "
-              + mi.getModuleDescriptor().getId()));
+                "No running module instance found for "
+                    + mi.getModuleDescriptor().getId()));
             return;
           }
           mi.setUrl(instance.getUrl());
@@ -392,7 +393,7 @@ public class ProxyService {
   }
 
   private void relayToResponse(HttpServerResponse hres,
-    HttpClientResponse res, ProxyContext pc) {
+                               HttpClientResponse res, ProxyContext pc) {
     if (pc.getHandlerRes() != 0) {
       hres.setStatusCode(pc.getHandlerRes());
       hres.headers().addAll(pc.getHandlerHeaders());
@@ -455,9 +456,9 @@ public class ProxyService {
    * response headers too.
    */
   private void relayToRequest(HttpClientResponse res, ProxyContext pc,
-    ModuleInstance mi) {
+                              ModuleInstance mi) {
     if (XOkapiHeaders.FILTER_AUTH.equals(mi.getRoutingEntry().getPhase())
-      && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
+        && res.headers().contains(XOkapiHeaders.MODULE_TOKENS)) {
       authResponse(res, pc);
     }
     // Sanitize both request headers (to remove the auth stuff we may have added)
@@ -532,7 +533,7 @@ public class ProxyService {
         List<ModuleDescriptor> enabledModules = mres.result();
 
         String metricKey = "proxy." + tenantId + "."
-          + ctx.request().method() + "." + ctx.normalisedPath();
+            + ctx.request().method() + "." + ctx.normalisedPath();
         DropwizardHelper.markEvent(metricKey);
 
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
@@ -565,7 +566,7 @@ public class ProxyService {
   }
 
   private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> res,
-    Buffer bcontent, List<HttpClientRequest> clientRequestList) {
+                                      Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
     if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
@@ -595,13 +596,13 @@ public class ProxyService {
         ctx.response().end();
       });
       res.exceptionHandler(e
-        -> pc.warn("proxyRequestImmediate res exception ", e));
+          -> pc.warn("proxyRequestImmediate res exception ", e));
       res.resume();
     }
   }
 
   private boolean proxyHttpFail(ProxyContext pc, ModuleInstance mi,
-    AsyncResult<HttpClientResponse> res) {
+                                AsyncResult<HttpClientResponse> res) {
 
     if (res.succeeded()) {
       return false;
@@ -609,13 +610,14 @@ public class ProxyService {
     String e = res.cause().getMessage();
     pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
     pc.responseError(500, messages.getMessage("10107",
-      mi.getModuleDescriptor().getId(), mi.getUrl(), e));
+        mi.getModuleDescriptor().getId(), mi.getUrl(), e));
     return true;
   }
 
-  private void proxyRequestHttpClient(Iterator<ModuleInstance> it,
-    ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
-    ModuleInstance mi) {
+  private void proxyRequestHttpClient(
+      Iterator<ModuleInstance> it,
+      ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
+      ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
@@ -636,12 +638,12 @@ public class ProxyService {
         makeTraceHeader(mi, res.statusCode(), pc);
         res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
         res.exceptionHandler(e
-          -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
+            -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
       }
     });
     copyHeaders(clientRequest, ctx, mi);
     pc.trace("ProxyRequestHttpClient request buf '"
-      + bcontent + "'");
+        + bcontent + "'");
     for (HttpClientRequest r : clientRequestList) {
       r.end(bcontent);
     }
@@ -650,12 +652,12 @@ public class ProxyService {
   }
 
   private void proxyRequestLog(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+                               ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+                               List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res -> logger.debug("proxyRequestLog 2"));
+        makeUrl(mi, ctx), res -> logger.debug("proxyRequestLog 2"));
     clientRequestList.add(clientRequest);
     clientRequest.setChunked(true);
     if (!it.hasNext()) {
@@ -670,7 +672,7 @@ public class ProxyService {
   }
 
   private void proxyStreamToBuffer(ReadStream<Buffer> stream, Buffer bcontent,
-    Handler<Buffer> handle) {
+                                   Handler<Buffer> handle) {
     if (bcontent != null) {
       handle.handle(bcontent);
     } else {
@@ -682,20 +684,21 @@ public class ProxyService {
   }
 
   private void proxyRequestOnly(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+                                ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+                                List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     proxyStreamToBuffer(stream, bcontent, res
-      -> proxyRequestHttpClient(it, pc, res, clientRequestList, mi)
+        -> proxyRequestHttpClient(it, pc, res, clientRequestList, mi)
     );
   }
 
-  private void proxyRequestResponse10(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+  private void proxyRequestResponse10(
+      Iterator<ModuleInstance> it,
+      ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+      List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     proxyStreamToBuffer(stream, bcontent, res
-      -> proxyRequestResponse(it, pc, null, res, clientRequestList, mi)
+        -> proxyRequestResponse(it, pc, null, res, clientRequestList, mi)
     );
   }
 
@@ -751,29 +754,29 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res1 -> {
-        if (proxyHttpFail(pc, mi, res1)) {
-          return;
-        }
-        HttpClientResponse res = res1.result();
-        fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
-          makeTraceHeader(mi, res.statusCode(), pc);
-          relayToRequest(res, pc, mi);
-          final String ct = res.getHeader("Content-Type");
-          if (ct != null) {
-            ctx.request().headers().set("Content-Type", ct);
+        makeUrl(mi, ctx), res1 -> {
+          if (proxyHttpFail(pc, mi, res1)) {
+            return;
           }
-          storeResponseInfo(pc, mi, res);
-          res.pause();
-          proxyR(newIt, pc, res, null, new LinkedList<>());
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          proxyResponseImmediate(pc, res, null, new LinkedList<>());
-        }
-      });
+          HttpClientResponse res = res1.result();
+          fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
+          Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+          if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
+            makeTraceHeader(mi, res.statusCode(), pc);
+            relayToRequest(res, pc, mi);
+            final String ct = res.getHeader("Content-Type");
+            if (ct != null) {
+              ctx.request().headers().set("Content-Type", ct);
+            }
+            storeResponseInfo(pc, mi, res);
+            res.pause();
+            proxyR(newIt, pc, res, null, new LinkedList<>());
+          } else {
+            relayToResponse(ctx.response(), res, pc);
+            makeTraceHeader(mi, res.statusCode(), pc);
+            proxyResponseImmediate(pc, res, null, new LinkedList<>());
+          }
+        });
     copyHeaders(clientRequest, ctx, mi);
     if (bcontent != null) {
       pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
@@ -788,7 +791,7 @@ public class ProxyService {
       }
       stream.handler(data -> {
         pc.trace("proxyRequestResponse request chunk '"
-          + data.toString() + "'");
+            + data.toString() + "'");
         clientRequest.write(data);
         for (HttpClientRequest r : clientRequestList) {
           r.write(data);
@@ -802,7 +805,7 @@ public class ProxyService {
         clientRequest.end();
       });
       stream.exceptionHandler(e
-        -> pc.warn("proxyRequestResponse: content exception ", e));
+          -> pc.warn("proxyRequestResponse: content exception ", e));
       stream.resume();
     }
     log(pc, clientRequest);
@@ -814,39 +817,39 @@ public class ProxyService {
 
     RoutingContext ctx = pc.getCtx();
     HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-      makeUrl(mi, ctx), res1 -> {
-        if (proxyHttpFail(pc, mi, res1)) {
-          return;
-        }
-        HttpClientResponse res = res1.result();
-        Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-        if (newIt.hasNext()) {
-          relayToRequest(res, pc, mi);
-          storeResponseInfo(pc, mi, res);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          res.endHandler(x
-            -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
-        } else {
-          relayToResponse(ctx.response(), res, pc);
-          makeTraceHeader(mi, res.statusCode(), pc);
-          if (res.statusCode() >= 200 && res.statusCode() <= 299) {
-            proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
+        makeUrl(mi, ctx), res1 -> {
+          if (proxyHttpFail(pc, mi, res1)) {
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+          if (newIt.hasNext()) {
+            relayToRequest(res, pc, mi);
+            storeResponseInfo(pc, mi, res);
+            makeTraceHeader(mi, res.statusCode(), pc);
+            res.endHandler(x
+                -> proxyR(newIt, pc, stream, bcontent, clientRequestList));
           } else {
-            proxyResponseImmediate(pc, res, null, clientRequestList);
-            if (bcontent == null) {
-              stream.resume();
+            relayToResponse(ctx.response(), res, pc);
+            makeTraceHeader(mi, res.statusCode(), pc);
+            if (res.statusCode() >= 200 && res.statusCode() <= 299) {
+              proxyResponseImmediate(pc, stream, bcontent, clientRequestList);
+            } else {
+              proxyResponseImmediate(pc, res, null, clientRequestList);
+              if (bcontent == null) {
+                stream.resume();
+              }
             }
           }
-        }
-      });
+        });
     copyHeaders(clientRequest, ctx, mi);
     clientRequest.end();
     log(pc, clientRequest);
   }
 
   private void proxyRedirect(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+                             ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+                             List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     pc.trace("ProxyNull " + mi.getModuleDescriptor().getId());
     pc.closeTimer();
@@ -855,18 +858,18 @@ public class ProxyService {
   }
 
   private void proxyInternal(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
+                             ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+                             List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     proxyStreamToBuffer(stream, bcontent, res
-      -> proxyInternalBuffer(it, pc, res, clientRequestList, mi)
+        -> proxyInternalBuffer(it, pc, res, clientRequestList, mi)
     );
   }
 
-  private void proxyInternalBuffer(Iterator<ModuleInstance> it,
-    ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
-    ModuleInstance mi) {
-
+  private void proxyInternalBuffer(
+      Iterator<ModuleInstance> it,
+      ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,
+      ModuleInstance mi) {
     String req = bcontent.toString();
     pc.debug("proxyInternalBuffer " + req);
     RoutingContext ctx = pc.getCtx();
@@ -899,8 +902,8 @@ public class ProxyService {
   }
 
   private void proxyR(Iterator<ModuleInstance> it,
-    ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
-    List<HttpClientRequest> clientRequestList) {
+                      ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
+                      List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
     if (!it.hasNext()) {
@@ -914,7 +917,7 @@ public class ProxyService {
         tenantId = "???"; // Should not happen, we have validated earlier
       }
       String metricKey = "proxy." + tenantId
-        + ".module." + mi.getModuleDescriptor().getId();
+          + ".module." + mi.getModuleDescriptor().getId();
       pc.startTimer(metricKey);
 
       // Pass the right token
@@ -931,10 +934,10 @@ public class ProxyService {
       ProxyType proxyType = mi.getRoutingEntry().getProxyType();
       if (proxyType != ProxyType.REDIRECT) {
         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
-          + " type " + proxyType
-          + " level " + mi.getRoutingEntry().getPhaseLevel()
-          + " path " + mi.getPath()
-          + " url " + mi.getUrl());
+            + " type " + proxyType
+            + " level " + mi.getRoutingEntry().getPhaseLevel()
+            + " path " + mi.getPath()
+            + " url " + mi.getUrl());
       }
       final String pathPattern = mi.getRoutingEntry().getPathPattern();
       if (pathPattern != null) {
@@ -965,7 +968,7 @@ public class ProxyService {
         default:
           // Should not happen
           pc.responseError(500, messages.getMessage("10110",
-            proxyType, mi.getModuleDescriptor().getId()));
+              proxyType, mi.getModuleDescriptor().getId()));
           break;
       }
     }
@@ -1037,8 +1040,8 @@ public class ProxyService {
    *     and/or errors
    */
   public void callSystemInterface(Tenant tenant, ModuleInstance inst,
-    String request, ProxyContext pc,
-    Handler<AsyncResult<OkapiClient>> fut) {
+                                  String request, ProxyContext pc,
+                                  Handler<AsyncResult<OkapiClient>> fut) {
 
     String curTenantId = pc.getTenant(); // is often the supertenant
     MultiMap headersIn = pc.getCtx().request().headers();
@@ -1046,8 +1049,8 @@ public class ProxyService {
   }
 
   void callSystemInterface(String curTenantId, MultiMap headersIn,
-    Tenant tenant, ModuleInstance inst,
-    String request, Handler<AsyncResult<OkapiClient>> fut) {
+                           Tenant tenant, ModuleInstance inst,
+                           String request, Handler<AsyncResult<OkapiClient>> fut) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1081,7 +1084,7 @@ public class ProxyService {
         }
       }
       logger.debug("callSystemInterface: No auth for {} calling with "
-        + "tenant header only", tenantId);
+          + "tenant header only", tenantId);
       doCallSystemInterface(headersIn, tenantId, null, inst, null, request, fut);
     });
   }
@@ -1090,9 +1093,10 @@ public class ProxyService {
    * Helper to get a new authtoken before invoking doCallSystemInterface.
    *
    */
-  private void authForSystemInterface(ModuleDescriptor authMod, RoutingEntry filt,
-    String tenantId, ModuleInstance inst, String request, MultiMap headers,
-    Handler<AsyncResult<OkapiClient>> fut) {
+  private void authForSystemInterface(
+      ModuleDescriptor authMod, RoutingEntry filt,
+      String tenantId, ModuleInstance inst, String request, MultiMap headers,
+      Handler<AsyncResult<OkapiClient>> fut) {
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
@@ -1111,7 +1115,7 @@ public class ProxyService {
       logger.debug("authForSystemInterface: re is null, can't find modPerms");
     }
     ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(),
-      HttpMethod.HEAD, inst.isHandler());
+        HttpMethod.HEAD, inst.isHandler());
     doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
       if (res.failed()) {
         fut.handle(res);
@@ -1120,7 +1124,7 @@ public class ProxyService {
       OkapiClient cli = res.result();
       String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
       logger.debug("authForSystemInterface: {}",
-        () -> Json.encode(cli.getRespHeaders().entries()));
+          () -> Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
       String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);
@@ -1133,10 +1137,10 @@ public class ProxyService {
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
    */
-  private void doCallSystemInterface(MultiMap headersIn,
-    String tenantId, String authToken, ModuleInstance inst, String modPerms,
-    String request, Handler<AsyncResult<OkapiClient>> fut) {
-
+  private void doCallSystemInterface(
+      MultiMap headersIn,
+      String tenantId, String authToken, ModuleInstance inst, String modPerms,
+      String request, Handler<AsyncResult<OkapiClient>> fut) {
     discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId(), gres -> {
       DeploymentDescriptor instance = null;
       if (gres.succeeded()) {
@@ -1144,7 +1148,7 @@ public class ProxyService {
       }
       if (instance == null) {
         fut.handle(Future.failedFuture(messages.getMessage("11100",
-          inst.getModuleDescriptor().getId(), inst.getPath())));
+            inst.getModuleDescriptor().getId(), inst.getPath())));
         return;
       }
       String baseurl = instance.getUrl();
@@ -1162,7 +1166,7 @@ public class ProxyService {
         cli.close();
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
-            inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
+              inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
           fut.handle(Future.failedFuture(msg));
           return;
@@ -1177,9 +1181,9 @@ public class ProxyService {
    * Helper to make request headers for the system requests we make. Copies all
    * X- headers over. Adds a tenant, and a token, if we have one.
    */
-  private static Map<String, String> sysReqHeaders(MultiMap headersIn,
-    String tenantId, String authToken, ModuleInstance inst, String modPerms) {
-
+  private static Map<String, String> sysReqHeaders(
+      MultiMap headersIn, String tenantId, String authToken,
+      ModuleInstance inst, String modPerms) {
     Map<String, String> headersOut = new HashMap<>();
     for (String hdr : headersIn.names()) {
       if (hdr.matches("^X-.*$")) {
@@ -1227,9 +1231,9 @@ public class ProxyService {
     final String origPath = ctx.request().path();
     String qry = ctx.request().query();
     String tid = origPath
-      .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
+        .replaceFirst("^/_/invoke/tenant/([^/ ]+)/.*$", "$1");
     String newPath = origPath
-      .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
+        .replaceFirst("^/_/invoke/tenant/[^/ ]+(/.*$)", "$1");
     if (qry != null && !qry.isEmpty()) {
       // vert.x 3.5 clears the parameters on reroute, so we pass them in ctx
       ctx.data().put(REDIRECTQUERY, qry);
@@ -1240,13 +1244,13 @@ public class ProxyService {
   }
 
   public void autoDeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                         Handler<ExtendedAsyncResult<Void>> fut) {
 
     discoveryManager.autoDeploy(md, fut);
   }
 
   public void autoUndeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                           Handler<ExtendedAsyncResult<Void>> fut) {
 
     discoveryManager.autoUndeploy(md, fut);
   }

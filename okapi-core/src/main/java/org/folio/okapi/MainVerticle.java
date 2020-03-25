@@ -134,7 +134,7 @@ public class MainVerticle extends AbstractVerticle {
     }
     if (enableDeployment) {
       deploymentManager = new DeploymentManager(vertx, discoveryManager, envManager,
-        host, port, nodeName, config);
+          host, port, nodeName, config);
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
         public void run() {
@@ -162,11 +162,11 @@ public class MainVerticle extends AbstractVerticle {
       logger.info("Proxy using {} storage", storageType);
       PullManager pullManager = new PullManager(vertx, moduleManager);
       InternalModule internalModule = new InternalModule(moduleManager,
-              tenantManager, deploymentManager, discoveryManager,
-              envManager, pullManager,okapiVersion);
+          tenantManager, deploymentManager, discoveryManager,
+          envManager, pullManager,okapiVersion);
       proxyService = new ProxyService(vertx,
-        moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl, config);
+          moduleManager, tenantManager, discoveryManager,
+          internalModule, okapiUrl, config);
       tenantManager.setProxyService(proxyService);
     } else { // not really proxying, except to /_/deployment
       moduleManager = new ModuleManager(null);
@@ -176,12 +176,12 @@ public class MainVerticle extends AbstractVerticle {
       moduleManager.setTenantManager(tenantManager);
       discoveryManager.setModuleManager(moduleManager);
       InternalModule internalModule = new InternalModule(
-        null, null, deploymentManager, null,
-        envManager, null, okapiVersion);
+          null, null, deploymentManager, null,
+          envManager, null, okapiVersion);
       // no modules, tenants, or discovery. Only deployment and env.
       proxyService = new ProxyService(vertx,
-        moduleManager, tenantManager, discoveryManager,
-        internalModule, okapiUrl, config);
+          moduleManager, tenantManager, discoveryManager,
+          internalModule, okapiUrl, config);
     }
   }
 
@@ -220,7 +220,7 @@ public class MainVerticle extends AbstractVerticle {
         promise.complete();
       } else {
         promise.fail("getLock failed. Fix your Hazelcast configuration:\n"
-          + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
+            + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
       }
     });
     return promise.future();
@@ -253,7 +253,7 @@ public class MainVerticle extends AbstractVerticle {
     moduleManager.get(okapiModule, gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have {} "
-          + " with interface version {}", okapiModule, interfaceVersion);
+            + " with interface version {}", okapiModule, interfaceVersion);
         // See Okapi-359 about version checks across the cluster
         checkSuperTenant(okapiModule, promise);
         return;
@@ -263,7 +263,7 @@ public class MainVerticle extends AbstractVerticle {
         return;
       }
       logger.debug("Creating the internal Okapi module {} with interface version {}",
-        okapiModule, interfaceVersion);
+          okapiModule, interfaceVersion);
       moduleManager.create(md, true, true, true, ires -> {
         if (ires.failed()) {
           promise.fail(ires.cause()); // something went badly wrong
@@ -296,15 +296,15 @@ public class MainVerticle extends AbstractVerticle {
         }
         final String ev = enver;
         logger.debug("checkSuperTenant: Enabled version is '{}', not '{}'",
-          ev, okapiModule);
+            ev, okapiModule);
         // See Okapi-359 about version checks across the cluster
         if (ModuleId.compare(ev, okapiModule) >= 4) {
           logger.warn("checkSuperTenant: This Okapi is too old,"
-              + "{} we already have {} in the database. Use that!",
-            okapiVersion, ev);
+                  + "{} we already have {} in the database. Use that!",
+              okapiVersion, ev);
         } else {
           logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
-            ev, okapiModule);
+              ev, okapiModule);
           // Use the commit, easier interface.
           // the internal module can not have dependencies
           // See Okapi-359 about version checks across the cluster
@@ -314,7 +314,7 @@ public class MainVerticle extends AbstractVerticle {
               return;
             }
             logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
-              ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
+                ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
           });
         }
         promise.complete();
@@ -326,15 +326,15 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.info("Creating the superTenant " + XOkapiHeaders.SUPERTENANT_ID);
       final String docTenant = "{"
-        + "\"descriptor\" : {"
-        + " \"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
-        + " \"name\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
-        + " \"description\" : \"Okapi built-in super tenant\""
-        + " },"
-        + "\"enabled\" : {"
-        + "\"" + okapiModule + "\" : true"
-        + "}"
-        + "}";
+          + "\"descriptor\" : {"
+          + " \"id\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+          + " \"name\" : \"" + XOkapiHeaders.SUPERTENANT_ID + "\","
+          + " \"description\" : \"Okapi built-in super tenant\""
+          + " },"
+          + "\"enabled\" : {"
+          + "\"" + okapiModule + "\" : true"
+          + "}"
+          + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
       tenantManager.insert(ten, res -> promise.handle(res.mapEmpty()));
     });
@@ -370,28 +370,28 @@ public class MainVerticle extends AbstractVerticle {
     logger.debug("Setting up routes");
     //handle CORS
     router.route().handler(CorsHandler.create("*")
-      .allowedMethod(HttpMethod.PUT)
-      .allowedMethod(HttpMethod.DELETE)
-      .allowedMethod(HttpMethod.GET)
-      .allowedMethod(HttpMethod.POST)
-      //allow request headers
-      .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-      .allowedHeader(XOkapiHeaders.TENANT)
-      .allowedHeader(XOkapiHeaders.TOKEN)
-      .allowedHeader(XOkapiHeaders.AUTHORIZATION)
-      .allowedHeader(XOkapiHeaders.REQUEST_ID) //expose response headers
-      .allowedHeader(XOkapiHeaders.MODULE_ID)
-      .exposedHeader(HttpHeaders.LOCATION.toString())
-      .exposedHeader(XOkapiHeaders.TRACE)
-      .exposedHeader(XOkapiHeaders.TOKEN)
-      .exposedHeader(XOkapiHeaders.AUTHORIZATION)
-      .exposedHeader(XOkapiHeaders.REQUEST_ID)
-      .exposedHeader(XOkapiHeaders.MODULE_ID)
+        .allowedMethod(HttpMethod.PUT)
+        .allowedMethod(HttpMethod.DELETE)
+        .allowedMethod(HttpMethod.GET)
+        .allowedMethod(HttpMethod.POST)
+        //allow request headers
+        .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
+        .allowedHeader(XOkapiHeaders.TENANT)
+        .allowedHeader(XOkapiHeaders.TOKEN)
+        .allowedHeader(XOkapiHeaders.AUTHORIZATION)
+        .allowedHeader(XOkapiHeaders.REQUEST_ID) //expose response headers
+        .allowedHeader(XOkapiHeaders.MODULE_ID)
+        .exposedHeader(HttpHeaders.LOCATION.toString())
+        .exposedHeader(XOkapiHeaders.TRACE)
+        .exposedHeader(XOkapiHeaders.TOKEN)
+        .exposedHeader(XOkapiHeaders.AUTHORIZATION)
+        .exposedHeader(XOkapiHeaders.REQUEST_ID)
+        .exposedHeader(XOkapiHeaders.MODULE_ID)
     );
 
     if (proxyService != null) {
       router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*")
-        .handler(proxyService::redirectProxy);
+          .handler(proxyService::redirectProxy);
       // Note: This can not go into the InternalModule, it reads the req body,
       // and then we can not ctx.reroute(). Unless we do something trickier,
       // like a new HTTP request.
@@ -406,20 +406,20 @@ public class MainVerticle extends AbstractVerticle {
     Promise<Void> promise = Promise.promise();
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
-      .setHandle100ContinueAutomatically(true);
+        .setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(port,
-        result -> {
-          if (result.succeeded()) {
-            logger.info("API Gateway started PID {}. Listening on port {}",
-              ManagementFactory.getRuntimeMXBean().getName(), port);
-          } else {
-            logger.fatal("createHttpServer failed for port {}", port, result.cause());
-          }
-          promise.handle(result.mapEmpty());
-        }
-      );
+        .requestHandler(router)
+        .listen(port,
+            result -> {
+              if (result.succeeded()) {
+                logger.info("API Gateway started PID {}. Listening on port {}",
+                    ManagementFactory.getRuntimeMXBean().getName(), port);
+              } else {
+                logger.fatal("createHttpServer failed for port {}", port, result.cause());
+              }
+              promise.handle(result.mapEmpty());
+            }
+        );
     return promise.future();
   }
 

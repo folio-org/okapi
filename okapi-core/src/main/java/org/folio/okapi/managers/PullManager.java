@@ -38,7 +38,7 @@ public class PullManager {
   }
 
   private void getRemoteUrl(Iterator<String> it,
-    Handler<ExtendedAsyncResult<List<String>>> fut) {
+                            Handler<ExtendedAsyncResult<List<String>>> fut) {
     if (!it.hasNext()) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11000")));
       return;
@@ -53,7 +53,7 @@ public class PullManager {
     HttpClientRequest req = httpClient.getAbs(url, res1 -> {
       if (res1.failed()) {
         logger.warn("pull for {} failed: {}", baseUrl,
-          res1.cause().getMessage(), res1.cause());
+            res1.cause().getMessage(), res1.cause());
         getRemoteUrl(it, fut);
         return;
       }
@@ -62,10 +62,10 @@ public class PullManager {
       res.endHandler(x -> {
         if (res.statusCode() != 200) {
           logger.warn("pull for {} failed with status {}",
-            baseUrl, res.statusCode());
+              baseUrl, res.statusCode());
           fut.handle(new Failure<>(ErrorType.USER,
-            "pull for " + baseUrl + " returned status "
-              + res.statusCode() + "\n" + body.toString()));
+              "pull for " + baseUrl + " returned status "
+                  + res.statusCode() + "\n" + body.toString()));
         } else {
           List<String> result = new LinkedList<>();
           result.add(baseUrl);
@@ -74,15 +74,15 @@ public class PullManager {
         }
       });
       res.exceptionHandler(x
-        -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
+          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
       );
     });
     req.end();
   }
 
   private void getList(String urlBase,
-    Collection<ModuleDescriptor> skipList,
-    Handler<ExtendedAsyncResult<ModuleDescriptor[]>> fut) {
+                       Collection<ModuleDescriptor> skipList,
+                       Handler<ExtendedAsyncResult<ModuleDescriptor[]>> fut) {
     String url = urlBase;
     if (!url.endsWith("/")) {
       url += "/";
@@ -105,11 +105,11 @@ public class PullManager {
           return;
         }
         ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-          ModuleDescriptor[].class);
+            ModuleDescriptor[].class);
         fut.handle(new Success<>(ml));
       });
       res.exceptionHandler(x
-        -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
+          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
     });
     if (skipList != null) {
       String[] idList = new String[skipList.size()];
@@ -125,7 +125,7 @@ public class PullManager {
   }
 
   private void pullSmart(String remoteUrl, Collection<ModuleDescriptor> localList,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+                         Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     getList(remoteUrl, localList, resRemote -> {
       if (resRemote.failed()) {
@@ -162,17 +162,18 @@ public class PullManager {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
         return;
       }
-      moduleManager.getModulesWithFilter(true, true, null, resLocal -> {
-        if (resLocal.failed()) {
-          fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
-          return;
-        }
-        final String remoteUrl = resUrl.result().get(0);
-        final String remoteVersion = resUrl.result().get(1);
-        logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
-        logger.info("pull smart");
-        pullSmart(remoteUrl, resLocal.result(), fut);
-      });
+      moduleManager.getModulesWithFilter(true, true, null,
+          resLocal -> {
+            if (resLocal.failed()) {
+              fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
+              return;
+            }
+            final String remoteUrl = resUrl.result().get(0);
+            final String remoteVersion = resUrl.result().get(1);
+            logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
+            logger.info("pull smart");
+            pullSmart(remoteUrl, resLocal.result(), fut);
+          });
     });
   }
 }

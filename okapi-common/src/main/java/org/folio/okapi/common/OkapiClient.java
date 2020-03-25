@@ -54,7 +54,7 @@ public class OkapiClient {
     }
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
-        || hdr.startsWith("Accept")) {
+          || hdr.startsWith("Accept")) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr, hv);
         if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
@@ -155,7 +155,7 @@ public class OkapiClient {
    * @param fut future with response as string if successful
    */
   public void request(HttpMethod method, String path, String data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<ExtendedAsyncResult<String>> fut) {
 
     request(method, path, Buffer.buffer(data == null ? "" : data), fut);
   }
@@ -168,7 +168,7 @@ public class OkapiClient {
    * @param fut future with response as string is successful
    */
   public void request(HttpMethod method, String path, Buffer data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<ExtendedAsyncResult<String>> fut) {
 
     if (this.okapiUrl == null) {
       fut.handle(new Failure<>(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
@@ -179,7 +179,7 @@ public class OkapiClient {
         if (retryClosedCount > 0) {
           retryClosedCount--;
           vertx.setTimer(retryClosedWait, res1
-            -> request(method, path, data, fut));
+              -> request(method, path, data, fut));
         } else {
           fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         }
@@ -191,7 +191,7 @@ public class OkapiClient {
   }
 
   private HttpClientRequest request1(HttpMethod method, String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                                     Handler<ExtendedAsyncResult<String>> fut) {
 
     String url = this.okapiUrl + path;
     String tenant = "-";
@@ -201,7 +201,7 @@ public class OkapiClient {
 
     respHeaders = null;
     String logReqMsg = reqId + " REQ " + "okapiClient " + tenant + " "
-      + method.toString() + " " + url;
+        + method.toString() + " " + url;
     if (logInfo) {
       logger.info(logReqMsg);
     } else {
@@ -217,8 +217,8 @@ public class OkapiClient {
       statusCode = reqres.statusCode();
       long ns = System.nanoTime() - t1;
       String logResMsg = reqId
-        + " RES " + statusCode + " " + ns / 1000 + "us "
-        + "okapiClient " + url;
+          + " RES " + statusCode + " " + ns / 1000 + "us "
+          + "okapiClient " + url;
       if (logInfo) {
         logger.info(logResMsg);
       } else {
@@ -261,22 +261,22 @@ public class OkapiClient {
   }
 
   public void post(String path, String data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                   Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.POST, path, data, fut);
   }
 
   public void get(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                  Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.GET, path, "", fut);
   }
 
   public void delete(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                     Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
   public void head(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                   Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.HEAD, path, "", fut);
   }
 

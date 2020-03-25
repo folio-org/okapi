@@ -32,7 +32,7 @@ public class MainVerticle extends AbstractVerticle {
     final int port = Integer.parseInt(System.getProperty("port", "9020"));
 
     logger.info("Starting auth {} on port {}",
-      ManagementFactory.getRuntimeMXBean().getName(), port);
+        ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.post("/authn/login").handler(BodyHandler.create());
     router.post("/authn/login").handler(auth::login);
@@ -40,8 +40,8 @@ public class MainVerticle extends AbstractVerticle {
     router.route("/*").handler(auth::filter);
 
     vertx.createHttpServer()
-      .requestHandler(router)
-      .listen(port, result -> promise.handle(result.mapEmpty()));
+        .requestHandler(router)
+        .listen(port, result -> promise.handle(result.mapEmpty()));
   }
 
 }

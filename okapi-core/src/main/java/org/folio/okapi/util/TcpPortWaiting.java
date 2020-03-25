@@ -56,10 +56,10 @@ public class TcpPortWaiting {
         startFuture.handle(Future.failedFuture(messages.getMessage("11500", process.exitValue())));
       } else if (count < maxIterations) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
-          id -> tryConnect(process, count + 1, startFuture));
+            id -> tryConnect(process, count + 1, startFuture));
       } else {
         startFuture.handle(Future.failedFuture(messages.getMessage("11501",
-          Integer.toString(port), res.cause().getMessage())));
+            Integer.toString(port), res.cause().getMessage())));
       }
     });
   }

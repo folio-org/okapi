@@ -97,7 +97,7 @@ public class MainDeploy {
   private void enableMetrics() {
     final String graphiteHost = System.getProperty("graphiteHost", "localhost");
     final Integer graphitePort = Integer.parseInt(
-      System.getProperty("graphitePort", "2003"));
+        System.getProperty("graphitePort", "2003"));
     final TimeUnit tu = TimeUnit.valueOf(System.getProperty("reporterTimeUnit", "SECONDS"));
     final Integer reporterPeriod = Integer.parseInt(System.getProperty("reporterPeriod", "1"));
     final String hostName = System.getProperty("host", "localhost");
@@ -165,20 +165,20 @@ public class MainDeploy {
   @java.lang.SuppressWarnings({"squid:S106"})
   private void printUsage() {
     System.out.println("Usage: command [options]\n"
-      + "Commands:\n"
-      + "  help         Display help\n"
-      + "  cluster      Run in clustered mode\n"
-      + "  dev          Development mode\n"
-      + "  deployment   Deployment only. Clustered mode\n"
-      + "  proxy        Proxy + discovery. Clustered mode\n"
-      + "Options:\n"
-      + "  -conf file                    Read Okapi configuration from local file\n"
-      + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
-      + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
-      + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
-      + "  -cluster-host ip              Vertx cluster host\n"
-      + "  -cluster-port port            Vertx cluster port\n"
-      + "  -enable-metrics\n"
+        + "Commands:\n"
+        + "  help         Display help\n"
+        + "  cluster      Run in clustered mode\n"
+        + "  dev          Development mode\n"
+        + "  deployment   Deployment only. Clustered mode\n"
+        + "  proxy        Proxy + discovery. Clustered mode\n"
+        + "Options:\n"
+        + "  -conf file                    Read Okapi configuration from local file\n"
+        + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
+        + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
+        + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
+        + "  -cluster-host ip              Vertx cluster host\n"
+        + "  -cluster-port port            Vertx cluster port\n"
+        + "  -enable-metrics\n"
     );
   }
 
@@ -231,6 +231,4 @@ public class MainDeploy {
       }
     });
   }
-
-
 }

@@ -61,15 +61,15 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting okapi-test-header-module {} on port {}",
-      ManagementFactory.getRuntimeMXBean().getName(), port);
+        ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.get("/testb").handler(this::myHeaderHandle);
     router.post("/testb").handler(this::myHeaderHandle);
     router.post("/_/tenantPermissions")
-      .handler(this::myPermissionHandle);
+        .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
-      .requestHandler(router)
-      .listen(port, result -> promise.handle(result.mapEmpty()));
+        .requestHandler(router)
+        .listen(port, result -> promise.handle(result.mapEmpty()));
   }
 }

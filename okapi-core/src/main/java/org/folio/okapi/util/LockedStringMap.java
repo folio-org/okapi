@@ -138,7 +138,7 @@ public class LockedStringMap {
    * @param fut async result
    */
   public void addOrReplace(boolean allowReplace, String k, String k2, String value,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                           Handler<ExtendedAsyncResult<Void>> fut) {
     list.get(k, resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
@@ -166,7 +166,7 @@ public class LockedStringMap {
   }
 
   private void addOrReplace2(boolean allowReplace, String k, String k2, String value,
-    String oldVal, String newVal, Handler<ExtendedAsyncResult<Void>> fut) {
+                             String oldVal, String newVal, Handler<ExtendedAsyncResult<Void>> fut) {
 
     if (oldVal == null) { // new entry
       list.putIfAbsent(k, newVal, resPut -> {
@@ -175,7 +175,7 @@ public class LockedStringMap {
             fut.handle(new Success<>());
           } else { // Someone messed with it, try again
             vertx.setTimer(DELAY, res
-              -> addOrReplace(allowReplace, k, k2, value, fut));
+                -> addOrReplace(allowReplace, k, k2, value, fut));
           }
         } else {
           fut.handle(new Failure<>(ErrorType.INTERNAL, resPut.cause()));
@@ -188,7 +188,7 @@ public class LockedStringMap {
             fut.handle(new Success<>());
           } else {
             vertx.setTimer(DELAY, res
-              -> addOrReplace(allowReplace, k, k2, value, fut));
+                -> addOrReplace(allowReplace, k, k2, value, fut));
           }
         } else {
           fut.handle(new Failure<>(ErrorType.INTERNAL, resRepl.cause()));
@@ -208,7 +208,7 @@ public class LockedStringMap {
    * @param fut async result
    */
   public void remove(String k, String k2,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+                     Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     list.get(k, resGet -> {
       if (resGet.failed()) {
@@ -234,7 +234,7 @@ public class LockedStringMap {
   }
 
   private void remove2(String k, String k2, StringMap stringMap, String val,
-    Handler<ExtendedAsyncResult<Boolean>> fut) {
+                       Handler<ExtendedAsyncResult<Boolean>> fut) {
 
     if (stringMap.strings.isEmpty()) {
       list.removeIfPresent(k, val, resDel -> {

@@ -79,7 +79,7 @@ public class Storage {
     if (postgres != null && "1".equals(dbInit)) {
       logger.warn("Will initialize the whole database!");
       logger.warn("The postgres_db_init option is DEPRECATED!"
-        + " use 'initdatabase' command (instead of 'dev' on the command line)");
+          + " use 'initdatabase' command (instead of 'dev' on the command line)");
       mode = InitMode.INIT;
     }
     final InitMode initMode = mode;

@@ -37,7 +37,7 @@ public class DeploymentDescriptor {
    * @param moduleHandle module handle
    */
   public DeploymentDescriptor(String instId, String srvcId,
-    String url, LaunchDescriptor descriptor, ModuleHandle moduleHandle) {
+                              String url, LaunchDescriptor descriptor, ModuleHandle moduleHandle) {
     this.instId = instId;
     this.srvcId = srvcId;
     this.url = url;
@@ -52,7 +52,7 @@ public class DeploymentDescriptor {
    * @param descriptor launch descriptor
    */
   public DeploymentDescriptor(String instId, String srvcId,
-          LaunchDescriptor descriptor) {
+                              LaunchDescriptor descriptor) {
     this.instId = instId;
     this.srvcId = srvcId;
     this.url = null;

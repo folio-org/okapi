@@ -45,7 +45,7 @@ public class ProcessModuleHandle implements ModuleHandle {
    * @param port listening port for module
    */
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    Ports ports, int port) {
+                             Ports ports, int port) {
     this.vertx = vertx;
 
     this.exec = desc.getExec();
@@ -88,7 +88,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           NetSocket socket = res.result();
           socket.close();
           startFuture.handle(Future.failedFuture(
-            messages.getMessage("11502", Integer.toString(port))));
+              messages.getMessage("11502", Integer.toString(port))));
         } else {
           start2(startFuture);
         }
@@ -144,7 +144,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }, false, result -> {
       if (result.failed()) {
         logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
-          result.cause().getMessage());
+            result.cause().getMessage());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
         start3(startFuture);
@@ -175,7 +175,7 @@ public class ProcessModuleHandle implements ModuleHandle {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
             stopFuture.handle(Future.failedFuture(
-              messages.getMessage("11503", Integer.toString(port))));
+                messages.getMessage("11503", Integer.toString(port))));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());

@@ -64,7 +64,7 @@ public class DeploymentManager {
    * @param config configuration
    */
   public DeploymentManager(Vertx vertx, DiscoveryManager dm, EnvManager em,
-    String host, int listenPort, String nodeName, JsonObject config) {
+                           String host, int listenPort, String nodeName, JsonObject config) {
     this.dm = dm;
     this.em = em;
     this.vertx = vertx;
@@ -74,9 +74,9 @@ public class DeploymentManager {
     this.eventBus = vertx.eventBus();
     this.config = config;
     int portStart = Integer.parseInt(Config.getSysConf(
-      "port_start", Integer.toString(listenPort + 1), config));
+        "port_start", Integer.toString(listenPort + 1), config));
     int portEnd = Integer.parseInt(Config.getSysConf(
-      "port_end", Integer.toString(portStart + 10), config));
+        "port_end", Integer.toString(portStart + 10), config));
     this.ports = new Ports(portStart, portEnd);
   }
 
@@ -160,7 +160,7 @@ public class DeploymentManager {
   }
 
   private void deploy2(Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
-    Timer.Context tim, int usePort, DeploymentDescriptor md1) {
+                       Timer.Context tim, int usePort, DeploymentDescriptor md1) {
 
     LaunchDescriptor descriptor = md1.getDescriptor();
     if (descriptor == null) {
@@ -180,7 +180,7 @@ public class DeploymentManager {
       if (eres.failed()) {
         ports.free(usePort);
         fut.handle(new Failure<>(ErrorType.INTERNAL,
-          messages.getMessage("10704", eres.cause().getMessage())));
+            messages.getMessage("10704", eres.cause().getMessage())));
         tim.close();
         return;
       }
@@ -201,7 +201,7 @@ public class DeploymentManager {
         moduleHost = Config.getSysConf("containerHost", "localhost", config);
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
-        md1.getSrvcId(), ports, moduleHost, usePort, config);
+          md1.getSrvcId(), ports, moduleHost, usePort, config);
       mh.start(future -> {
         if (future.failed()) {
           tim.close();
@@ -211,7 +211,7 @@ public class DeploymentManager {
           return;
         }
         DeploymentDescriptor md2
-          = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
+            = new DeploymentDescriptor(md1.getInstId(), md1.getSrvcId(),
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);

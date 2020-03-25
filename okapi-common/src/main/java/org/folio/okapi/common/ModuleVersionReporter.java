@@ -25,7 +25,7 @@ public class ModuleVersionReporter {
     try {
       final String fp = "META-INF/maven/" + path + "/pom.properties";
       InputStream in = getClass().getClassLoader()
-        .getResourceAsStream(fp);
+          .getResourceAsStream(fp);
       if (in != null) {
         Properties prop = new Properties();
         prop.load(in);
