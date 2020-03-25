@@ -441,7 +441,7 @@ public class TenantManager {
         pc.debug("Using the tenantPermissions of this module itself");
         permsMod = mdTo;
       }
-      ead4Permissions(tenant, mdTo, permsMod, pc, fut);
+      tenantPerms(tenant, mdTo, permsMod, pc, fut);
     });
   }
 
@@ -464,7 +464,7 @@ public class TenantManager {
     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
     if (!modit.hasNext()) {
       pc.debug("ead3RealoadPerms: No more modules to reload");
-      ead4Permissions(tenant, mdTo, permsModule, pc, fut);
+      tenantPerms(tenant, mdTo, permsModule, pc, fut);
       return;
     }
     String mdid = modit.next();
@@ -482,34 +482,6 @@ public class TenantManager {
         }
         ead3RealoadPerms(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
       });
-    });
-  }
-
-  /**
-   * enableAndDisable helper 4: Make the tenantPermissions call. For the module
-   * itself.
-   *
-   * @param tenant
-   * @param moduleFrom
-   * @param module_to
-   * @param mdTo
-   * @param permsModule
-   * @param pc
-   * @param fut
-   */
-  private void ead4Permissions(Tenant tenant,
-    ModuleDescriptor mdTo, ModuleDescriptor permsModule,
-    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
-
-    pc.debug("ead4Permissions: Perms interface found in "
-      + permsModule.getName());
-
-    tenantPerms(tenant, mdTo, permsModule, pc, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>());
     });
   }
 
@@ -685,10 +657,6 @@ public class TenantManager {
     });
   }
 
-  /**
-   * Helper to make the tenantPermissions call for one module. Used from
-   * ead3RealoadPerms and ead4Permissions.
-   */
   private void tenantPerms(Tenant tenant, ModuleDescriptor mdTo,
     ModuleDescriptor permsModule, ProxyContext pc,
     Handler<ExtendedAsyncResult<Void>> fut) {
