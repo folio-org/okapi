@@ -25,6 +25,9 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
@@ -55,6 +58,9 @@ public class ProxyTest {
   private static RamlDefinition api;
   private int timerDelaySum = 0;
   private int timerTenantInitStatus = 200;
+  private int timerTenantPermissionsStatus = 200;
+  private JsonObject timerPermissions = new JsonObject();
+  private JsonObject timerTenantData;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -162,16 +168,26 @@ public class ProxyTest {
       ctx.request().endHandler(res -> {
         try {
           if (p.startsWith("/_/tenant")) {
+            timerTenantData = new JsonObject(buf);
             ctx.response().setStatusCode(timerTenantInitStatus);
             ctx.response().end("timer response");
-            return;
+          } else if (p.startsWith("/permissionscall")) {
+
+            JsonObject permObject = new JsonObject(buf);
+            timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+            ctx.response().setStatusCode(timerTenantPermissionsStatus);
+            ctx.response().end("timer permissions response");
+          } else if (p.startsWith("/timercall/")) {
+            long delay = Long.parseLong(p.substring(11)); // assume /timercall/[0-9]+
+            timerDelaySum += delay;
+            vertx.setTimer(delay, x -> {
+              ctx.response().setStatusCode(200);
+              ctx.response().end();
+            });
+          } else {
+            ctx.response().setStatusCode(404);
+            ctx.response().end(p);
           }
-          long delay = Long.parseLong(p.substring(1)); // assume /[0-9]+
-          timerDelaySum += delay;
-          vertx.setTimer(delay, x -> {
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
-          });
         } catch (Exception ex) {
           ctx.response().setStatusCode(400);
           ctx.response().end(ex.getMessage());
@@ -257,7 +273,8 @@ public class ProxyTest {
         .put("loglevel", "info")
         .put("port", Integer.toString(port))
         .put("httpCache", true));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
+    vertx.deployVerticle(MainVerticle.class.getName(), opt,
+      res -> {
       if (res.failed()) {
         context.fail(res.cause());
       } else {
@@ -2450,12 +2467,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/1\"," + LS
+      + "      \"pathPattern\" : \"/timercall/1\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
       + "      \"delay\" : \"10\"" + LS
       + "   }, {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
-      + "      \"path\" : \"/3\"," + LS
+      + "      \"path\" : \"/timercall/3\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
       + "      \"delay\" : \"30\"" + LS
       + "    } ]" + LS
@@ -2464,7 +2481,7 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -2521,7 +2538,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(200).log().ifValidationFails();
 
     // 10 msecond period and 100 total wait time.. 1 tick per call.. So 8-10 calls
@@ -2567,7 +2584,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(404).log().ifValidationFails();
 
     try {
@@ -2591,7 +2608,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(200).log().ifValidationFails();
 
     // disable and remove tenant as well
@@ -2623,6 +2640,8 @@ public class ProxyTest {
     RestAssuredClient c;
     Response r;
 
+    timerPermissions.clear();
+
     final String docTimer_1_0_0 = "{" + LS
       + "  \"id\" : \"timer-module-1.0.0\"," + LS
       + "  \"name\" : \"timer module\"," + LS
@@ -2642,10 +2661,18 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
       + "}";
 
     c = api.createRestAssured3();
@@ -2701,6 +2728,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    Assert.assertEquals(0, timerPermissions.size());
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -2713,7 +2741,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/1")
+      .body("Okapi").post("/timercall/1")
       .then().statusCode(200).log().ifValidationFails();
 
     final String docTimer_1_0_1 = "{" + LS
@@ -2731,14 +2759,31 @@ public class ProxyTest {
       + "      \"pathPattern\" : \"/_/tenant\"" + LS
       + "    } ]" + LS
       + "  }, {" + LS
+      + "    \"id\" : \"_tenantPermissions\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/permissionscall\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"," + LS
+      + "    \"displayName\": \"d\"" + LS
+      + "  } ]" + LS
       + "}";
 
     c = api.createRestAssured3();
@@ -2748,6 +2793,8 @@ public class ProxyTest {
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
 
     final String docEdge_1_0_0 = "{" + LS
       + "  \"id\" : \"edge-module-1.0.0\"," + LS
@@ -2760,7 +2807,11 @@ public class ProxyTest {
       + "      \"pathPattern\" : \"/edge/{id}\"" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"edge.post.id\"," + LS
+      + "    \"displayName\": \"e\"" + LS
+      + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
     r = c.given()
@@ -2770,6 +2821,7 @@ public class ProxyTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
 
     final String nodeDiscoverEdge = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
@@ -2782,6 +2834,8 @@ public class ProxyTest {
       .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
 
     // deploy, but with no running instance of timer-module-1.0.1
     c = api.createRestAssured3();
@@ -2796,6 +2850,8 @@ public class ProxyTest {
       .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /_/tenant"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
 
     final String nodeDoc2 = "{" + LS
       + "  \"instId\" : \"localhost1-" + Integer.toString(portTimer) + "\"," + LS
@@ -2830,15 +2886,154 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    Assert.assertEquals(0, timerPermissions.size());
+
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
-    Assert.assertEquals(1, ar.size());
-    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    timerTenantInitStatus = 200;
+    timerTenantPermissionsStatus = 400;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("POST request for timer-module-1.0.1 "
+        +"/permissionscall failed with 400: timer permissions response"));
+     Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    Assert.assertEquals(1, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
+    timerPermissions.clear(); // ensure that perms for edge-module-1.0.0 are POSTed again.
+
+    c = api.createRestAssured3();
+    body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    ar = new JsonArray(body);
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    timerTenantPermissionsStatus = 200;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    Assert.assertEquals(3, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/timercall/1")
+      .then().statusCode(200).log().ifValidationFails();
+
+
+    final String docTimer_1_0_2 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.2\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenantPermissions\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/permissionscall\"" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"," + LS
+      + "    \"displayName\": \"d\"" + LS
+      + "  } ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_2).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDoc3 = "{" + LS
+      + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.2\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc3).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    timerTenantPermissionsStatus = 400;
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("POST request for timer-module-1.0.2 "
+        +"/permissionscall failed with 400: timer permissions response"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
   }
+
 
 }
