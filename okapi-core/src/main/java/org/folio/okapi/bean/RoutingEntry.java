@@ -41,7 +41,7 @@ public class RoutingEntry {
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
   @JsonIgnore
-  boolean enableFastMatch = false;
+  boolean enableFastMatch = true;
 
   public enum ProxyType {
     REQUEST_RESPONSE,
