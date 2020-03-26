@@ -1129,7 +1129,7 @@ public class ProxyService {
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
       logger.info("syscall {}", baseurl + inst.getPath());
-      OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+      OkapiClient cli = new OkapiClient(this.httpClient, baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
@@ -1137,7 +1137,6 @@ public class ProxyService {
         cli.setClosedRetry(40000);
       }
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-        cli.close();
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
