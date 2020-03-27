@@ -910,7 +910,7 @@ public class ProxyService {
       // Do proxy work
       ProxyType pType = mi.getRoutingEntry().getProxyType();
       if (pType != ProxyType.REDIRECT) {
-        pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
+         pc.debug("Invoking module " + mi.getModuleDescriptor().getId()
           + " type " + pType
           + " level " + mi.getRoutingEntry().getPhaseLevel()
           + " path " + mi.getPath()
@@ -1089,7 +1089,7 @@ public class ProxyService {
     } else {
       logger.debug("authForSystemInterface: re is null, can't find modPerms");
     }
-    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.HEAD, inst.isHandler());
+    ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(), HttpMethod.GET, inst.isHandler());
     doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
       if (res.failed()) {
         fut.handle(res);
@@ -1128,8 +1128,8 @@ public class ProxyService {
       String baseurl = instance.getUrl();
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
       headers.put(XOkapiHeaders.URL_TO, baseurl);
-      logger.info("syscall {}", baseurl + inst.getPath());
-      OkapiClient cli = new OkapiClient(baseurl, vertx, headers);
+      logger.info("syscall begin {} {}",  inst.getMethod(), baseurl + inst.getPath());
+      OkapiClient cli = new OkapiClient(this.httpClient, baseurl, vertx, headers);
       String reqId = inst.getPath().replaceFirst("^[/_]*([^/]+).*", "$1");
       cli.newReqId(reqId); // "tenant" or "tenantpermissions"
       cli.enableInfoLog();
@@ -1137,7 +1137,7 @@ public class ProxyService {
         cli.setClosedRetry(40000);
       }
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
-        cli.close();
+        logger.info("syscall return {} {}",  inst.getMethod(), baseurl + inst.getPath());
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
             inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
