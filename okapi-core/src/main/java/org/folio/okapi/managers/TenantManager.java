@@ -603,13 +603,13 @@ public class TenantManager {
         if (seq1 == 0) {
           if (!timers.contains(key)) {
             timers.add(key);
-            lockTimer(tenantId, md, key, delay, seq);
+            lockTimer(tenantId, md, delay, seq);
           }
         } else if (seq == seq1) {
           if (discoveryManager.checkLeader()) {
             fireTimer(tenant, md, re, path);
           }
-          lockTimer(tenantId, md, key, delay, seq);
+          lockTimer(tenantId, md, delay, seq);
           return 1;
         }
       }
@@ -617,7 +617,7 @@ public class TenantManager {
     return 0;
   }
 
-  private void lockTimer(String tenantId, ModuleDescriptor md, String key, long delay, int seq) {
+  private void lockTimer(String tenantId, ModuleDescriptor md, long delay, int seq) {
     vertx.setTimer(delay, res4
         -> vertx.runOnContext(res5
         -> handleTimer(tenantId, md.getId(), seq)));
