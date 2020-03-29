@@ -9,7 +9,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.shareddata.Lock;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,7 +39,6 @@ import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.util.AsyncLock;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.ProxyContext;
 
@@ -52,13 +51,13 @@ public class TenantManager {
   private final Logger logger = OkapiLogger.get();
   private ModuleManager moduleManager = null;
   private ProxyService proxyService = null;
+  private DiscoveryManager discoveryManager;
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
   private String eventName = "timer";
   private Set<String> timers = new HashSet<>();
   private Messages messages = Messages.getInstance();
-  private AsyncLock asyncLock;
   private Vertx vertx;
 
   public TenantManager(ModuleManager moduleManager, TenantStore tenantStore) {
@@ -91,7 +90,6 @@ public class TenantManager {
    */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
-    asyncLock = new AsyncLock(vertx);
 
     tenants.init(vertx, mapName, ires -> {
       if (ires.failed()) {
@@ -516,7 +514,8 @@ public class TenantManager {
     });
   }
 
-  public void startTimers(Promise<Void> promise) {
+  public void startTimers(Promise<Void> promise, DiscoveryManager discoveryManager) {
+    this.discoveryManager = discoveryManager;
     tenants.getKeys(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
@@ -540,35 +539,32 @@ public class TenantManager {
   }
 
   private void handleTimer(String tenantId) {
-    handleTimer(tenantId, null, 0, null);
+    handleTimer(tenantId, null, 0);
   }
 
-  private void stopTimer(String tenantId, String moduleId, int seq, Lock lockP) {
-    if (lockP != null) {
-      logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
-      final String key = tenantId + "_" + moduleId + "_" + seq;
-      timers.remove(key);
-      lockP.release();
-    }
+  private void stopTimer(String tenantId, String moduleId, int seq) {
+    logger.info("remove timer for module {} for tenant {}", moduleId, tenantId);
+    final String key = tenantId + "_" + moduleId + "_" + seq;
+    timers.remove(key);
   }
 
-  private void handleTimer(String tenantId, String moduleId, int seq1, Lock lockP) {
+  private void handleTimer(String tenantId, String moduleId, int seq1) {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
     tenants.get(tenantId, tRes -> {
       if (tRes.failed()) {
         // tenant no longer exist
-        stopTimer(tenantId, moduleId, seq1, lockP);
+        stopTimer(tenantId, moduleId, seq1);
         return;
       }
       Tenant tenant = tRes.result();
       moduleManager.getEnabledModules(tenant, mRes -> {
         if (mRes.failed()) {
-          stopTimer(tenantId, moduleId, seq1, lockP);
+          stopTimer(tenantId, moduleId, seq1);
           return;
         }
         List<ModuleDescriptor> mdList = mRes.result();
         try {
-          handleTimer(tenant, mdList, moduleId, seq1, lockP);
+          handleTimer(tenant, mdList, moduleId, seq1);
         } catch (Exception ex) {
           logger.warn("handleTimer exception {}", ex.getMessage(), ex);
         }
@@ -576,7 +572,7 @@ public class TenantManager {
     });
   }
 
-  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList, String moduleId, int seq1, Lock lockP) {
+  private void handleTimer(Tenant tenant, List<ModuleDescriptor> mdList, String moduleId, int seq1) {
     int noTimers = 0;
     final String tenantId = tenant.getId();
     for (ModuleDescriptor md : mdList) {
@@ -584,18 +580,18 @@ public class TenantManager {
         InterfaceDescriptor timerInt = md.getSystemInterface("_timer");
         if (timerInt != null) {
           List<RoutingEntry> routingEntries = timerInt.getAllRoutingEntries();
-          noTimers += handleTimer(tenant, md, routingEntries, seq1, lockP);
+          noTimers += handleTimer(tenant, md, routingEntries, seq1);
         }
       }
     }
     if (noTimers == 0) {
       // module no longer enabled for tenant
-      stopTimer(tenantId, moduleId, seq1, lockP);
+      stopTimer(tenantId, moduleId, seq1);
     }
     logger.info("handleTimer done no {}", noTimers);
   }
 
-  private int handleTimer(Tenant tenant, ModuleDescriptor md, List<RoutingEntry> routingEntries, int seq1, Lock lockP) {
+  private int handleTimer(Tenant tenant, ModuleDescriptor md, List<RoutingEntry> routingEntries, int seq1) {
     int i = 0;
     final String tenantId = tenant.getId();
     for (RoutingEntry re : routingEntries) {
@@ -610,7 +606,9 @@ public class TenantManager {
             lockTimer(tenantId, md, key, delay, seq);
           }
         } else if (seq == seq1) {
-          fireTimer(tenant, md, re, path, lockP);
+          if (discoveryManager.checkLeader()) {
+            fireTimer(tenant, md, re, path);
+          }
           lockTimer(tenantId, md, key, delay, seq);
           return 1;
         }
@@ -620,22 +618,12 @@ public class TenantManager {
   }
 
   private void lockTimer(String tenantId, ModuleDescriptor md, String key, long delay, int seq) {
-    logger.info("wait for lock {}", key);
-    asyncLock.getLock(key, lockRes -> {
-      if (lockRes.succeeded()) {
-        logger.info("wait for lock {} returned", key);
-        Lock lock = lockRes.result();
-        logger.info("setTimer delay {}", delay);
-        vertx.setTimer(delay, res4
-          -> vertx.runOnContext(res5
-            -> handleTimer(tenantId, md.getId(), seq, lock)));
-      } else {
-        logger.info("wait for lock {} returned failure ", key, lockRes.cause());
-      }
-    });
+    vertx.setTimer(delay, res4
+        -> vertx.runOnContext(res5
+        -> handleTimer(tenantId, md.getId(), seq)));
   }
 
-  private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path, Lock lock) {
+  private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path) {
     String tenantId = tenant.getId();
     HttpMethod httpMethod = HttpMethod.POST;
     String[] methods = re.getMethods();
@@ -646,7 +634,6 @@ public class TenantManager {
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
     proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cRes -> {
-      lock.release();
       if (cRes.succeeded()) {
         logger.info("timer call succeeded to module {} for tenant {}",
           md.getId(), tenantId);

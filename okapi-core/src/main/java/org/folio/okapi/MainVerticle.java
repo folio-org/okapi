@@ -189,7 +189,6 @@ public class MainVerticle extends AbstractVerticle {
   public void start(Promise<Void> promise) {
     Future<Void> fut = startDatabases();
     if (initMode == InitMode.NORMAL) {
-      fut = fut.compose(x -> checkDistributedLock());
       fut = fut.compose(x -> startModmanager());
       fut = fut.compose(x -> startTenants());
       fut = fut.compose(x -> checkInternalModules());
@@ -208,22 +207,6 @@ public class MainVerticle extends AbstractVerticle {
       }
       promise.handle(x);
     });
-  }
-
-  private Future<Void> checkDistributedLock() {
-    logger.info("Checking for working distributed lock. Cluster={}", vertx.isClustered());
-    Promise<Void> promise = Promise.promise();
-    vertx.sharedData().getLockWithTimeout("test", 10000, res -> {
-      if (res.succeeded()) {
-        logger.info("Distributed lock ok");
-        res.result().release();
-        promise.complete();
-      } else {
-        promise.fail("getLock failed. Fix your Hazelcast configuration:\n"
-          + "https://vertx.io/docs/vertx-hazelcast/java/#_using_an_existing_hazelcast_cluster");
-      }
-    });
-    return promise.future();
   }
 
   private Future<Void> startDatabases() {
@@ -438,7 +421,7 @@ public class MainVerticle extends AbstractVerticle {
         logger.info("Deploy failed", res.cause());
       }
       if (enableProxy) {
-        tenantManager.startTimers(promise);
+        tenantManager.startTimers(promise, discoveryManager);
       } else {
         promise.complete();
       }

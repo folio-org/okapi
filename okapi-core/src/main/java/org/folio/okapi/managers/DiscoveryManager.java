@@ -10,10 +10,13 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
+
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
@@ -745,5 +748,13 @@ public class DiscoveryManager implements NodeListener {
     nodes.remove(nodeID, res
       -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
+  }
+
+  boolean checkLeader() {
+    if (clusterManager == null) {
+      return true;
+    }
+    List<String> nodeIds = clusterManager.getNodes();
+    return clusterManager.getNodeID().equals(Collections.max(nodeIds));
   }
 }
