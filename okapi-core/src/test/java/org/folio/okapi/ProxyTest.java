@@ -7,7 +7,9 @@ import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -199,88 +201,84 @@ public class ProxyTest {
     }
   }
 
-  private void setupPreServer(TestContext context, Async async) {
+  Future<Void> startPreServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myPreHandle);
 
+    Promise promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portPre,
-        result -> setupPostServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portPre, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupPostServer(TestContext context, Async async) {
+  Future<Void> startPostServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myPostHandle);
 
+    Promise promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portPost,
-        result -> setupTimerServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portPost, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupTimerServer(TestContext context, Async async) {
+  Future<Void> startTimerServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myTimerHandle);
 
+    Promise promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portTimer,
-        result -> setupEdgeServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portTimer, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupEdgeServer(TestContext context, Async async) {
+  Future<Void> startEdgeServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myEdgeHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Promise promise = Promise.promise();
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portEdge,
-        result -> {
-          if (result.failed()) {
-            context.fail(result.cause());
-          }
-          async.complete();
-        }
-      );
+        .requestHandler(router)
+        .listen(portEdge,  x -> promise.handle(x.mapEmpty()));
+    return promise.future();
+  }
+
+  Future<Void> startOkapi() {
+    DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(new JsonObject()
+            .put("loglevel", "info")
+            .put("port", Integer.toString(port))
+            .put("httpCache", true));
+    Promise promise = Promise.promise();
+    vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
-    Async async = context.async();
 
     timerTenantInitStatus = 200;
     RestAssured.port = port;
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject()
-        .put("loglevel", "info")
-        .put("port", Integer.toString(port))
-        .put("httpCache", true));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt,
-      res -> {
-      if (res.failed()) {
-        context.fail(res.cause());
-      } else {
-        this.setupPreServer(context, async);
-      }
-    });
+
+    Future future = Future.succeededFuture()
+        .compose(x -> startOkapi())
+        .compose(x -> startEdgeServer())
+        .compose(x -> startTimerServer())
+        .compose(x -> startPreServer())
+        .compose(x -> startPostServer());
+    future.setHandler(context.asyncAssertSuccess());
   }
 
   private void td(TestContext context, Async async) {
