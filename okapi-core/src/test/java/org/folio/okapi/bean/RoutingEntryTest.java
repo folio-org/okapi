@@ -61,19 +61,15 @@ public class RoutingEntryTest {
     String[] methods = new String[1];
     methods[0] = "GET";
     t.setMethods(methods);
-
-    for (int i = 0; i < 2; i++) {
-      t.enableFastMatch = i != 0;
-      t.setPathPattern("/");
-      assertTrue(t.match(null, "GET"));
-      assertTrue(t.match("/", "GET"));
-      assertFalse(t.match("/", "POST"));
-      assertFalse(t.match("/a", "GET"));
-      assertFalse(t.match("/a/", "GET"));
-      assertFalse(t.match("", "GET"));
-      assertTrue(t.match("/?query", "GET"));
-      assertTrue(t.match("/#x", "GET"));
-    }
+    t.setPathPattern("/");
+    assertTrue(t.match(null, "GET"));
+    assertTrue(t.match("/", "GET"));
+    assertFalse(t.match("/", "POST"));
+    assertFalse(t.match("/a", "GET"));
+    assertFalse(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertTrue(t.match("/?query", "GET"));
+    assertTrue(t.match("/#x", "GET"));
   }
 
   @Test
@@ -82,31 +78,26 @@ public class RoutingEntryTest {
     String[] methods = new String[1];
     methods[0] = "GET";
     t.setMethods(methods);
+    t.setPathPattern("/*");
 
-    for (int i = 0; i < 2; i++) {
-      t.enableFastMatch = i != 0;
-      t.setPathPattern("/*");
+    assertTrue(t.match("/", "GET"));
+    assertFalse(t.match("/", "POST"));
+    assertTrue(t.match("/a", "GET"));
+    assertTrue(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertTrue(t.match("/?query", "GET"));
+    assertTrue(t.match("/#x", "GET"));
 
-      assertTrue(t.match("/", "GET"));
-      assertFalse(t.match("/", "POST"));
-      assertTrue(t.match("/a", "GET"));
-      assertTrue(t.match("/a/", "GET"));
-      assertFalse(t.match("", "GET"));
-      assertTrue(t.match("/?query", "GET"));
-      assertTrue(t.match("/#x", "GET"));
-
-      t.setPathPattern("/*/a");
-
-      assertFalse(t.match("/", "GET"));
-      assertFalse(t.match("/", "POST"));
-      assertFalse(t.match("/a", "GET"));
-      assertFalse(t.match("/a/", "GET"));
-      assertFalse(t.match("", "GET"));
-      assertFalse(t.match("/?query", "GET"));
-      assertFalse(t.match("/#x", "GET"));
-      assertTrue(t.match("/b/a", "GET"));
-      assertTrue(t.match("/c/b/a", "GET"));
-    }
+    t.setPathPattern("/*/a");
+    assertFalse(t.match("/", "GET"));
+    assertFalse(t.match("/", "POST"));
+    assertFalse(t.match("/a", "GET"));
+    assertFalse(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertFalse(t.match("/?query", "GET"));
+    assertFalse(t.match("/#x", "GET"));
+    assertTrue(t.match("/b/a", "GET"));
+    assertTrue(t.match("/c/b/a", "GET"));
   }
 
   @Test
@@ -116,39 +107,35 @@ public class RoutingEntryTest {
     methods[0] = "GET";
     t.setMethods(methods);
 
-    for (int i = 0; i < 2; i++) {
-      t.enableFastMatch = i != 0;
+    t.setPathPattern("/a/{id}");
+    assertFalse(t.match("/", "GET"));
+    assertFalse(t.match("/", "POST"));
+    assertFalse(t.match("/a", "GET"));
+    assertFalse(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertFalse(t.match("/?query", "GET"));
+    assertFalse(t.match("/#x", "GET"));
+    assertTrue(t.match("/a/b", "GET"));
+    assertTrue(t.match("/a/0-9", "GET"));
+    assertTrue(t.match("/a/0-9?a=1", "GET"));
+    assertTrue(t.match("/a/0-9#a=1", "GET"));
+    assertFalse(t.match("/a/b/", "GET"));
+    assertFalse(t.match("/a/b/", "GET"));
+    assertFalse(t.match("/a/b/c", "GET"));
 
-      t.setPathPattern("/a/{id}");
-      assertFalse(t.match("/", "GET"));
-      assertFalse(t.match("/", "POST"));
-      assertFalse(t.match("/a", "GET"));
-      assertFalse(t.match("/a/", "GET"));
-      assertFalse(t.match("", "GET"));
-      assertFalse(t.match("/?query", "GET"));
-      assertFalse(t.match("/#x", "GET"));
-      assertTrue(t.match("/a/b", "GET"));
-      assertTrue(t.match("/a/0-9", "GET"));
-      assertTrue(t.match("/a/0-9?a=1", "GET"));
-      assertTrue(t.match("/a/0-9#a=1", "GET"));
-      assertFalse(t.match("/a/b/", "GET"));
-      assertFalse(t.match("/a/b/", "GET"));
-      assertFalse(t.match("/a/b/c", "GET"));
-
-      t.setPathPattern("/a/{id}/c");
-      assertFalse(t.match("/", "GET"));
-      assertFalse(t.match("/", "POST"));
-      assertFalse(t.match("/a", "GET"));
-      assertFalse(t.match("/a/", "GET"));
-      assertFalse(t.match("", "GET"));
-      assertFalse(t.match("/?query", "GET"));
-      assertFalse(t.match("/#x", "GET"));
-      assertFalse(t.match("/a/b", "GET"));
-      assertFalse(t.match("/a/0-9", "GET"));
-      assertFalse(t.match("/a/b/", "GET"));
-      assertFalse(t.match("/a/b/", "GET"));
-      assertTrue(t.match("/a/b/c", "GET"));
-    }
+    t.setPathPattern("/a/{id}/c");
+    assertFalse(t.match("/", "GET"));
+    assertFalse(t.match("/", "POST"));
+    assertFalse(t.match("/a", "GET"));
+    assertFalse(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertFalse(t.match("/?query", "GET"));
+    assertFalse(t.match("/#x", "GET"));
+    assertFalse(t.match("/a/b", "GET"));
+    assertFalse(t.match("/a/0-9", "GET"));
+    assertFalse(t.match("/a/b/", "GET"));
+    assertFalse(t.match("/a/b/", "GET"));
+    assertTrue(t.match("/a/b/c", "GET"));
   }
 
   @Test
@@ -169,48 +156,6 @@ public class RoutingEntryTest {
     assertTrue(RoutingEntry.fastMatch("{id1}/*/{id2}", "a//d"));
     assertFalse(RoutingEntry.fastMatch("{id1}/*/{id2}", "a/d"));
     assertFalse(RoutingEntry.fastMatch("{id1}/*/{id2}", "//"));
-  }
-
-  @Test
-  public void testPerformance() {
-    RoutingEntry t = new RoutingEntry();
-    String[] methods = new String[1];
-    methods[0] = "GET";
-    t.setMethods(methods);
-
-    t.setPathPattern("/inventory-storage/instances/{id}");
-
-    long t1, t2;
-    t.enableFastMatch = true;
-    t1 = testPerfmanceOne(t);
-    t.enableFastMatch = false;
-    t2 = testPerfmanceOne(t);
-    logger.info("comp tfast: {} ms tregular: {} ms", t1, t2);
-
-    t.setPathPattern("/inventory-*/instances/{id}");
-    t.enableFastMatch = true;
-    t1 = testPerfmanceOne(t);
-    t.enableFastMatch = false;
-    t2 = testPerfmanceOne(t);
-    logger.info("star+comp tfast: {} ms tregular: {} ms", t1, t2);
-  }
-
-  private long testPerfmanceOne(RoutingEntry t) {
-    final int it = 10000;
-
-    int count = -1;
-    if (t.match("/inventory-storage/instances/123", "GET")) {
-      count++;
-    }
-    long l = System.nanoTime();
-    for (int i = 0; i < it; i++) {
-      if (t.match("/inventory-storage/instances/123", "GET")) {
-        count++;
-      }
-    }
-    long msec = (System.nanoTime() - l) / 1000000;
-    assertEquals(it, count);
-    return msec;
   }
 
   @Test

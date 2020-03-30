@@ -7,9 +7,6 @@ import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
 import org.folio.okapi.util.ProxyContext;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 /**
  * One entry in Okapi's routing table. Each entry contains one or more HTTP
  * methods, and the path they mean, for example "GET /foo". Incoming requests
@@ -35,13 +32,7 @@ public class RoutingEntry {
   private String[] modulePermissions;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
-  private String pathRegex;
-  @JsonIgnore
-  private Pattern pattern;
-  @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
-  @JsonIgnore
-  boolean enableFastMatch = true;
 
   public enum ProxyType {
     REQUEST_RESPONSE,
@@ -201,7 +192,6 @@ public class RoutingEntry {
   public void setPath(String path) {
     this.path = path;
     this.pathPattern = null;
-    this.pathRegex = null;
   }
 
   public String getPathPattern() {
@@ -235,26 +225,17 @@ public class RoutingEntry {
   public void setPathPattern(String pathPattern) {
     this.path = null;
     this.pathPattern = pathPattern;
-    this.pattern = null;
-    StringBuilder b = new StringBuilder();
-    b.append("^");
     int i = 0;
     while (i < pathPattern.length()) {
       char c = pathPattern.charAt(i);
       if (c == '{') {
-        b.append("[^/?#]+");
         i = skipNamedPattern(pathPattern, i, c);
       } else if (c == '*') {
-        b.append(".*");
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
-      } else {
-        b.append(c);
       }
       i++;
     }
-    b.append("$");
-    this.pathRegex = b.toString();
   }
 
   static int cutUri(String uri) {
@@ -315,16 +296,8 @@ public class RoutingEntry {
     if (uri == null) {
       return true;
     }
-    if (pathRegex != null) {
-      if (enableFastMatch) {
-        return fastMatch(pathPattern, uri);
-      }
-      if (pattern == null) {
-        pattern = Pattern.compile(pathRegex);
-      }
-      String p = uri.substring(0, cutUri(uri));
-      Matcher m = pattern.matcher(p);
-      return m.matches();
+    if (pathPattern != null) {
+      return fastMatch(pathPattern, uri);
     }
     return path == null || uri.startsWith(path);
   }
@@ -341,19 +314,15 @@ public class RoutingEntry {
   }
 
   public String getRedirectUri(String uri) {
-    if (pathRegex != null) {
-      final int indx1 = cutUri(uri);
-      String p = uri.substring(0, indx1);
-      p = p.replaceAll(pathRegex, this.redirectPath);
-      if (indx1 < uri.length()) {
-        p = p.concat(uri.substring(indx1));
-      }
-      return p;
-    } else if (path != null) {
+    if (path != null) {
       return redirectPath + uri.substring(path.length());
-    } else {
-      return null;
     }
+    final int indx1 = cutUri(uri);
+    String p = this.redirectPath;
+    if (indx1 < uri.length()) {
+      p = p.concat(uri.substring(indx1));
+    }
+    return p;
   }
 
   public String getPhase() {
