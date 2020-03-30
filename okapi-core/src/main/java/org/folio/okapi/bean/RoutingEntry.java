@@ -230,7 +230,6 @@ public class RoutingEntry {
       char c = pathPattern.charAt(i);
       if (c == '{') {
         i = skipNamedPattern(pathPattern, i, c);
-      } else if (c == '*') {
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
       }
