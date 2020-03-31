@@ -1,9 +1,9 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.json.JsonObject;
-import org.junit.Test;
-import org.junit.Assert;
 import java.util.Base64;
+import org.junit.Assert;
+import org.junit.Test;
 
 
 public class OkapiTokenTest {
@@ -28,63 +28,41 @@ public class OkapiTokenTest {
   }
 
   @Test
-  public void testExceptions() {
+  public void testNull() {
     OkapiToken tok = new OkapiToken(null);
     Assert.assertEquals(null, tok.getTenant());
+  }
 
-    String msg = null;
-    tok = new OkapiToken("");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertEquals("Missing . separator for token", msg);
+  private String exceptionMessage(String token) {
+    Exception e = Assert.assertThrows(
+        IllegalArgumentException.class,
+        () -> new OkapiToken(token).getTenant());
+    return e.getMessage();
+  }
 
-    msg = null;
-    tok = new OkapiToken("a");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertEquals("Missing . separator for token", msg);
+  @Test
+  public void emptyTokenException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage(""));
+  }
 
-    msg = null;
-    tok = new OkapiToken("a.b");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertEquals("Missing . separator for token", msg);
+  @Test
+  public void noDotException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage("a"));
+  }
 
-    msg = null;
-    tok = new OkapiToken("a.b.c");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertEquals("Input byte[] should at least have 2 bytes for base64 bytes", msg);
+  @Test
+  public void oneDotException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage("a.b"));
+  }
 
-    msg = null;
-    tok = new OkapiToken("a.ewo=.c");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertTrue(msg.contains("Unexpected end-of-input"));
+  @Test
+  public void singleByteException() {
+    Assert.assertEquals("Input byte[] should at least have 2 bytes for base64 bytes",
+        exceptionMessage("a.b.c"));
+  }
 
-    msg = null;
-    tok = new OkapiToken("a.eyB9Cg==.c"); // "{ }"
-    try {
-      String v = tok.getTenant();
-      Assert.assertEquals(null, v);
-    } catch (IllegalArgumentException e) {
-      msg = e.getMessage();
-    }
-    Assert.assertNull(msg);
+  @Test
+  public void endOfInputException() {
+    Assert.assertTrue(exceptionMessage("a.ewo=.c").contains("Unexpected end-of-input"));
   }
 }
