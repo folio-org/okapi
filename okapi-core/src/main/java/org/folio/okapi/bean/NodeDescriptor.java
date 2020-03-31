@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 /**
  * Description of a node in the Okapi cluster.
- *
  */
 @JsonInclude(Include.NON_NULL)
 public class NodeDescriptor {
@@ -15,16 +14,16 @@ public class NodeDescriptor {
   private String nodeName;
 
   /**
-   * Get the value of nodeName
+   * Return node name.
    *
-   * @return the value of nodeName
+   * @return node name
    */
   public String getNodeName() {
     return nodeName;
   }
 
   /**
-   * Set the value of nodeName
+   * Set the node name.
    *
    * @param nodeName new value of nodeName
    */
@@ -33,28 +32,24 @@ public class NodeDescriptor {
   }
 
   /**
-   *
-   * @return
+   * get node ID.
+   * @return node ID string
    */
   public String getNodeId() {
     return nodeId;
   }
 
   /**
-   *
-   * @param name
+   * set node ID.
+   * @param id node ID
    */
-  public void setNodeId(String name) {
-    if (name == null || name.isEmpty()) {
-      name = null;
+  public void setNodeId(String id) {
+    if (id == null || id.isEmpty()) {
+      id = null;
     }
-    this.nodeId = name;
+    this.nodeId = id;
   }
 
-  /**
-   *
-   * @return
-   */
   public String getUrl() {
     return url;
   }

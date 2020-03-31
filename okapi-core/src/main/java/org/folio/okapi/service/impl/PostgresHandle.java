@@ -39,10 +39,8 @@ class PostgresHandle {
 
   private final PgConnectOptions connectOptions;
   private final PgPool pool;
-  private final Vertx vertx;
 
-  protected PostgresHandle(Vertx vertx, JsonObject conf) {
-    this.vertx = vertx;
+  PostgresHandle(Vertx vertx, JsonObject conf) {
     String val;
 
     connectOptions = new PgConnectOptions();
@@ -60,7 +58,7 @@ class PostgresHandle {
       }
     }
     connectOptions.setUser(Config.getSysConf("postgres_username",
-      Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
+        Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
 

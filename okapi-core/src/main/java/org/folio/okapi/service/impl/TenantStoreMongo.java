@@ -1,6 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.TenantStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -16,6 +15,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.TenantStore;
 
 /**
  * Stores Tenants in a Mongo database.
@@ -27,7 +27,7 @@ public class TenantStoreMongo implements TenantStore {
   private final MongoClient cli;
   private final MongoUtil<Tenant> util;
   private static final String COLLECTION = "okapi.tenants";
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   private JsonObject encodeTenant(Tenant t, String id) {
     JsonObject j = new JsonObject(Json.encode(t));
@@ -60,7 +60,7 @@ public class TenantStoreMongo implements TenantStore {
     final String id = td.getId();
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(COLLECTION, jq, res
-      -> {
+        -> {
       if (res.failed()) {
         logger.warn("updateDescriptor: find failed: {}", res.cause().getMessage());
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
@@ -79,7 +79,7 @@ public class TenantStoreMongo implements TenantStore {
               fut.handle(new Success<>());
             } else {
               logger.warn("Failed to update descriptor for {}: {}",
-                id, ures.cause().getMessage());
+                  id, ures.cause().getMessage());
               fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
             }
           });
@@ -99,7 +99,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateModules(String id, SortedMap<String, Boolean> enabled,
+                            Handler<ExtendedAsyncResult<Void>> fut) {
     JsonObject jq = new JsonObject().put("_id", id);
     cli.find(COLLECTION, jq, gres -> {
       if (gres.failed()) {

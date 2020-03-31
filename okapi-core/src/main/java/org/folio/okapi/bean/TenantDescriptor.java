@@ -1,13 +1,14 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
+
 /**
  * Description of a Tenant. This is what gets POSTed to "/_/proxy/tenants" to
  * create new tenants, etc. Carries an id, and some human-readable info about
  * the tenant.
  *
  */
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class TenantDescriptor {
@@ -38,11 +39,5 @@ public class TenantDescriptor {
 
   public void setId(String id) {
     this.id = id;
-  }
-
-  public TenantDescriptor() {
-    this.id = null;
-    this.name = null;
-    this.description = null;
   }
 }

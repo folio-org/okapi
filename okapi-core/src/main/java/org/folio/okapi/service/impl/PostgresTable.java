@@ -13,6 +13,7 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
+
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresTable<T> {
 
@@ -23,8 +24,8 @@ class PostgresTable<T> {
   private final String indexName;
   private final PostgresHandle pg;
 
-  public PostgresTable(PostgresHandle pg, String table, String jsonColumn,
-    String idIndex, String idSelect, String indexName) {
+  PostgresTable(PostgresHandle pg, String table, String jsonColumn,
+                String idIndex, String idSelect, String indexName) {
     this.pg = pg;
     this.table = table;
     this.jsonColumn = jsonColumn;
@@ -36,14 +37,14 @@ class PostgresTable<T> {
   private void create(boolean reset, PostgresQuery q, Handler<ExtendedAsyncResult<Void>> fut) {
     String notExists = reset ? "" : "IF NOT EXISTS ";
     String createSql = "CREATE TABLE " + notExists + table
-      + " ( " + jsonColumn + " JSONB NOT NULL )";
+        + " ( " + jsonColumn + " JSONB NOT NULL )";
     q.query(createSql, res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
         return;
       }
       String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
-        + table + " USING btree((" + idIndex + "))";
+          + table + " USING btree((" + idIndex + "))";
       q.query(createSql1, res2 -> {
         if (res1.failed()) {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
@@ -55,10 +56,10 @@ class PostgresTable<T> {
     });
   }
 
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     if (!reset) {
-      create(reset, q, fut);
+      create(false, q, fut);
       return;
     }
     String dropSql = "DROP TABLE IF EXISTS " + table;
@@ -67,11 +68,11 @@ class PostgresTable<T> {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
-      create(reset, q, fut);
+      create(true, q, fut);
     });
   }
 
-  public void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
+  void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)";
     String s = Json.encode(dd);
@@ -86,10 +87,10 @@ class PostgresTable<T> {
     });
   }
 
-  public void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
+  void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)"
-      + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
+        + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
     q.query(sql, Tuple.of(doc), res -> {
@@ -102,7 +103,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "DELETE FROM " + table + " WHERE " + idSelect;
     q.query(sql, Tuple.of(id), res -> {
@@ -120,7 +121,7 @@ class PostgresTable<T> {
     });
   }
 
-  public void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
+  void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + jsonColumn + " FROM " + table;
     q.query(sql, res -> {

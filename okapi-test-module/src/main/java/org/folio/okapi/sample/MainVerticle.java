@@ -1,8 +1,5 @@
 package org.folio.okapi.sample;
 
-/*
- * Test module, to be used in Okapi's own unit tests
- */
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -20,12 +17,15 @@ import java.lang.management.ManagementFactory;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
-import org.folio.okapi.common.XOkapiHeaders;
-
-import static org.folio.okapi.common.HttpResponse.*;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
+
+
+/*
+ * Test module, to be used in Okapi's own unit tests
+ */
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
@@ -93,7 +93,7 @@ public class MainVerticle extends AbstractVerticle {
     // see if POSTed text should be converted to XML.. To simulate a real handler
     // with request/response of different content types
     final boolean xmlConversion = accept != null && accept.toLowerCase().contains("text/xml")
-      && ctype != null && ctype.contains("text/plain");
+        && ctype != null && ctype.contains("text/plain");
 
     final StringBuilder msg = new StringBuilder();
     String hv = ctx.request().getHeader("X-my-header");
@@ -146,7 +146,7 @@ public class MainVerticle extends AbstractVerticle {
     String meth = ctx.request().method().name();
     if (logger.isInfoEnabled()) {
       logger.info("{} {} to okapi-est-module for tenant {}",
-        meth, ctx.request().uri(), tenant);
+          meth, ctx.request().uri(), tenant);
     }
     tenantParameters = null;
     if (ctx.request().method().equals(HttpMethod.DELETE)) {
@@ -172,15 +172,15 @@ public class MainVerticle extends AbstractVerticle {
         try {
           JsonObject j = new JsonObject(b);
           logger.info("module_from={} module_to={}",
-            j.getString("module_from"), j.getString("module_to"));
+              j.getString("module_from"), j.getString("module_to"));
           tenantParameters = j.getJsonArray("parameters");
-        } catch (DecodeException|ClassCastException ex) {
-          responseError(ctx, 400, ex.getLocalizedMessage());
+        } catch (DecodeException | ClassCastException ex) {
+          HttpResponse.responseError(ctx, 400, ex.getLocalizedMessage());
           return;
         }
         ctx.response().setStatusCode(200);
         ctx.response().write(meth + " " + ctx.request().uri() + " to okapi-test-module"
-          + " for tenant " + tenant + "\n");
+            + " for tenant " + tenant + "\n");
         ctx.response().end();
       });
     }
@@ -194,9 +194,9 @@ public class MainVerticle extends AbstractVerticle {
     String depthstr = d; // must be final
     int depth = Integer.parseInt(depthstr);
     if (depth < 0) {
-      responseError(ctx, 400, "Bad recursion, can not be negative " + depthstr);
+      HttpResponse.responseError(ctx, 400, "Bad recursion, can not be negative " + depthstr);
     } else if (depth == 0) {
-      responseText(ctx, 200);
+      HttpResponse.responseText(ctx, 200);
       ctx.response().end("Recursion done");
     } else {
       OkapiClient ok = new OkapiClient(ctx);
@@ -210,17 +210,17 @@ public class MainVerticle extends AbstractVerticle {
               ctx.response().headers().add(e.getKey(), e.getValue());
             }
           }
-          responseText(ctx, 200);
+          HttpResponse.responseText(ctx, 200);
           ctx.response().end(depthstr + " " + res.result());
         } else {
           String message = res.cause().getMessage();
-          responseError(ctx, 500, "Recurse " + depthstr + " failed with " + message);
+          HttpResponse.responseError(ctx, 500, "Recurse " + depthstr + " failed with " + message);
         }
       });
     }
   }
 
- private void myPermissionHandle(RoutingContext ctx) {
+  private void myPermissionHandle(RoutingContext ctx) {
     final Buffer incoming = Buffer.buffer();
     ctx.request().handler(incoming::appendBuffer);
     ctx.request().endHandler(x -> {
@@ -233,25 +233,24 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> promise) throws IOException {
-    Router router = Router.router(vertx);
-
     helloGreeting = System.getenv("helloGreeting");
     if (helloGreeting == null) {
       helloGreeting = "Hello";
     }
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
-    String bName = ManagementFactory.getRuntimeMXBean().getName();
+    String name = ManagementFactory.getRuntimeMXBean().getName();
 
     ModuleVersionReporter m = new ModuleVersionReporter("org.folio.okapi/okapi-test-module");
     m.logStart();
-    logger.info("Starting okapi-test-module {} on port {}", bName, port);
+    logger.info("Starting okapi-test-module {} on port {}", name, port);
 
+    Router router = Router.router(vertx);
     router.routeWithRegex("/testb").handler(this::myStreamHandle);
     router.routeWithRegex("/testb/.*").handler(this::myStreamHandle);
     router.get("/testr").handler(this::myStreamHandle);
     router.post("/testr").handler(this::myStreamHandle);
     router.post("/_/tenantpermissions")
-      .handler(this::myPermissionHandle);
+        .handler(this::myPermissionHandle);
 
     router.post("/_/tenant").handler(this::myTenantHandle);
     router.post("/_/tenant/disable").handler(this::myTenantHandle);
@@ -261,23 +260,23 @@ public class MainVerticle extends AbstractVerticle {
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        port,
-        result -> {
-          if (result.succeeded()) {
-            final String pidFile = System.getProperty("pidFile");
-            if (pidFile != null && !pidFile.isEmpty()) {
-              final String pid = bName.split("@")[0];
-              try (FileWriter fw = new FileWriter(pidFile)) {
-                fw.write(pid);
-                logger.info("Writing {}", pid);
-              } catch (IOException ex) {
-                logger.error(ex);
+        .requestHandler(router)
+        .listen(
+            port,
+            result -> {
+              if (result.succeeded()) {
+                final String pidFile = System.getProperty("pidFile");
+                if (pidFile != null && !pidFile.isEmpty()) {
+                  final String pid = name.split("@")[0];
+                  try (FileWriter fw = new FileWriter(pidFile)) {
+                    fw.write(pid);
+                    logger.info("Writing {}", pid);
+                  } catch (IOException ex) {
+                    logger.error(ex);
+                  }
+                }
               }
-            }
-          }
-          promise.handle(result.mapEmpty());
-        });
+              promise.handle(result.mapEmpty());
+            });
   }
 }

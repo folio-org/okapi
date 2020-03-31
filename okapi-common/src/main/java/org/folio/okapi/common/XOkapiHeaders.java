@@ -181,7 +181,7 @@ public class XOkapiHeaders {
    */
   public static final String HANDLER_RESULT = "X-Okapi-Handler-Result";
 
-    /**
+  /**
    * X-Okapi-Handler-Headers. Used for passing the HTTP headers response of the handler
    * to the post filter(s).
    */

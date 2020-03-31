@@ -18,7 +18,8 @@ public class TenantStoreNull implements TenantStore {
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
+  public void updateModules(String id, SortedMap<String, Boolean> enabled,
+                            Handler<ExtendedAsyncResult<Void>> fut) {
     fut.handle(new Success<>());
   }
 
