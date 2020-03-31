@@ -7,6 +7,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
 
+
 public class DeploymentStoreMongo implements DeploymentStore {
 
   private static final String COLLECTION = "okapi.deployments";

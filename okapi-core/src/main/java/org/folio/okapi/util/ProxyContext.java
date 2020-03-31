@@ -11,10 +11,10 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.Messages;
 
 /**
  * Helper for carrying around those things we need for proxying. Can also be
@@ -35,13 +35,13 @@ public class ProxyContext {
 
   // store auth filter response status code, headers, and body
   private int authRes;
-  private MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
+  private final MultiMap authHeaders = MultiMap.caseInsensitiveMultiMap();
   private Buffer authResBody = Buffer.buffer();
   // store handler response status code and headers
   private int handlerRes;
-  private MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
+  private final MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
 
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -54,18 +54,18 @@ public class ProxyContext {
     this.waitMs = waitMs;
     this.tenant = "-";
     this.modList = null;
-    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     String path = ctx.request().path();
     if (path == null) { // defensive coding, should always be there
       path = "";
     }
     path = path.replaceFirst("^(/_)?(/[^/?]+).*$", "$2");
-      // when rerouting, the query appears as part of the getPath, so we kill it
+    // when rerouting, the query appears as part of the getPath, so we kill it
     // here with the '?'.
     Random r = new Random();
     StringBuilder newid = new StringBuilder();
     newid.append(String.format("%06d", r.nextInt(1000000)));
     newid.append(path);
+    String curid = ctx.request().getHeader(XOkapiHeaders.REQUEST_ID);
     if (curid == null || curid.isEmpty()) {
       reqId = newid.toString();
       ctx.request().headers().add(XOkapiHeaders.REQUEST_ID, reqId);
@@ -80,18 +80,25 @@ public class ProxyContext {
     handlerRes = 0;
   }
 
+  /**
+   * start Dropwizard timer.
+   * @param key Dropziard key
+   */
   public final void startTimer(String key) {
     closeTimer();
     timer = DropwizardHelper.getTimerContext(key);
     if (waitMs > 0) {
       timerId = ctx.vertx().setPeriodic(waitMs, res
-        -> logger.warn(reqId + " WAIT {} {} {} {}",
+          -> logger.warn(reqId + " WAIT {} {} {} {}",
           ctx.request().remoteAddress(), tenant,
           ctx.request().method(), ctx.request().path())
       );
     }
   }
 
+  /**
+   * Stop Dropwizard timer.
+   */
   public void closeTimer() {
     if (timerId != null) {
       ctx.vertx().cancelTimer(timerId);
@@ -105,8 +112,6 @@ public class ProxyContext {
 
   /**
    * Return the elapsed time since startTimer, in microseconds.
-   *
-   * @return
    */
   public String timeDiff() {
     if (timer != null) {
@@ -127,7 +132,7 @@ public class ProxyContext {
     MultiMap respH = ok.getRespHeaders();
     for (Map.Entry<String, String> e : respH.entries()) {
       if (XOkapiHeaders.TRACE.equals(e.getKey())
-        || "X-Tenant-Perms-Result".equals(e.getKey())) {
+          || "X-Tenant-Perms-Result".equals(e.getKey())) {
         ctx.response().headers().add(e.getKey(), e.getValue());
       }
     }
@@ -185,11 +190,19 @@ public class ProxyContext {
     this.handlerRes = handlerRes;
   }
 
+  /**
+   * Return handler headers.
+   * @return headers
+   */
   public MultiMap getHandlerHeaders() {
     return handlerHeaders;
   }
 
-  /* Helpers for logging and building responses */
+  /**
+   * Log that HTTP request has been received.
+   * @param ctx routing context
+   * @param tenant tenant
+   */
   public final void logRequest(RoutingContext ctx, String tenant) {
     StringBuilder mods = new StringBuilder();
     if (modList != null && !modList.isEmpty()) {
@@ -199,15 +212,21 @@ public class ProxyContext {
     }
     if (logger.isInfoEnabled()) {
       logger.info("{} REQ {} {} {} {} {}", reqId,
-        ctx.request().remoteAddress(), tenant, ctx.request().method(),
-        ctx.request().path(), mods);
+          ctx.request().remoteAddress(), tenant, ctx.request().method(),
+          ctx.request().path(), mods);
     }
   }
 
+  /**
+   * Log that a HTTP response has been received.
+   * @param module where HTTP response was recevied
+   * @param url URL for request
+   * @param statusCode HTTP status
+   */
   public void logResponse(String module, String url, int statusCode) {
     if (logger.isInfoEnabled()) {
       logger.info("{} RES {} {} {} {}", reqId,
-        statusCode, timeDiff(), module, url);
+          statusCode, timeDiff(), module, url);
     }
   }
 
@@ -223,6 +242,11 @@ public class ProxyContext {
     }
   }
 
+  /**
+   * Log that a HTTP response was received with error status.
+   * @param code HTTP status
+   * @param msg message to go along with it
+   */
   public void responseError(int code, String msg) {
     logResponse("okapi", msg, code);
     closeTimer();

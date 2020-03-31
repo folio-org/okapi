@@ -206,7 +206,7 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myPreHandle);
 
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
         .requestHandler(router)
@@ -219,7 +219,7 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myPostHandle);
 
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
         .requestHandler(router)
@@ -232,7 +232,7 @@ public class ProxyTest {
 
     router.routeWithRegex("/.*").handler(this::myTimerHandle);
 
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
         .requestHandler(router)
@@ -246,7 +246,7 @@ public class ProxyTest {
     router.routeWithRegex("/.*").handler(this::myEdgeHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(portEdge,  x -> promise.handle(x.mapEmpty()));
@@ -259,7 +259,7 @@ public class ProxyTest {
             .put("loglevel", "info")
             .put("port", Integer.toString(port))
             .put("httpCache", true));
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
     return promise.future();
   }
@@ -272,7 +272,7 @@ public class ProxyTest {
     timerTenantInitStatus = 200;
     RestAssured.port = port;
 
-    Future future = Future.succeededFuture()
+    Future<Void> future = Future.succeededFuture()
         .compose(x -> startOkapi())
         .compose(x -> startEdgeServer())
         .compose(x -> startTimerServer())

@@ -4,7 +4,6 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-
 import java.util.List;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
@@ -247,11 +246,6 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testTenantStoreNull(TestContext context) {
-    TenantManager tm = new TenantManager(null, null);
   }
 
   @Test
