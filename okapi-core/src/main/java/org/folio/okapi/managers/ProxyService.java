@@ -252,17 +252,16 @@ public class ProxyService {
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
 
     if (auth != null) {
-      if (auth.startsWith("Bearer")) {
+      if (auth.startsWith("Bearer ")) {
         auth = auth.substring(6).trim();
       }
       if (tok != null && !auth.equals(tok)) {
         pc.responseError(400, messages.getMessage("10104"));
         return null;
-      } else {
-        ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
-        ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
-        pc.debug("Okapi: Moved Authorization header to X-Okapi-Token");
       }
+      ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
+      ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
+      pc.debug("Okapi: Moved Authorization header to X-Okapi-Token");
     }
     String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenantId == null) {
