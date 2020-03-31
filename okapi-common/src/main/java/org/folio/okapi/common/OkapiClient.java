@@ -50,9 +50,7 @@ public class OkapiClient {
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx());
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
-    if (this.okapiUrl != null) {
-      this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
-    }
+    this.okapiUrl = OkapiStringUtil.trimTrailingSlashes(this.okapiUrl);
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
         || hdr.startsWith("Accept")) {
@@ -82,7 +80,10 @@ public class OkapiClient {
   }
 
   public void setOkapiUrl(String okapiUrl) {
-    this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
+    if (okapiUrl == null) {
+      throw new NullPointerException("okapiUrl");
+    }
+    this.okapiUrl = OkapiStringUtil.trimTrailingSlashes(okapiUrl);
   }
 
   /**
