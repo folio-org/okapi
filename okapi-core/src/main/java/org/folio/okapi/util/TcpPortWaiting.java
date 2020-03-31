@@ -15,13 +15,19 @@ public class TcpPortWaiting {
 
   private final Logger logger = OkapiLogger.get();
   private static final int MILLISECONDS = 200;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   private int maxIterations = 30; // x*(x+1) * 0.1 seconds.
   private final Vertx vertx;
   private final String host;
   private final int port;
 
+  /**
+   * Create TCP port waiting utility.
+   * @param vertx Vert.x handle
+   * @param host host for server that utility it waiting for
+   * @param port port for server; special value 0 will disable waiting for the server
+   */
   public TcpPortWaiting(Vertx vertx, String host, int port) {
     this.vertx = vertx;
     this.host = host;
@@ -50,10 +56,10 @@ public class TcpPortWaiting {
         startFuture.handle(Future.failedFuture(messages.getMessage("11500", process.exitValue())));
       } else if (count < maxIterations) {
         vertx.setTimer((long) (count + 1) * MILLISECONDS,
-          id -> tryConnect(process, count + 1, startFuture));
+            id -> tryConnect(process, count + 1, startFuture));
       } else {
         startFuture.handle(Future.failedFuture(messages.getMessage("11501",
-          Integer.toString(port), res.cause().getMessage())));
+            Integer.toString(port), res.cause().getMessage())));
       }
     });
   }
@@ -62,6 +68,11 @@ public class TcpPortWaiting {
     this.maxIterations = maxIterations;
   }
 
+  /**
+   * Wait for process and server to be listening.
+   * @param process Process to monitor
+   * @param startFuture async result
+   */
   public void waitReady(Process process, Handler<AsyncResult<Void>> startFuture) {
     if (port == 0) {
       startFuture.handle(Future.succeededFuture());

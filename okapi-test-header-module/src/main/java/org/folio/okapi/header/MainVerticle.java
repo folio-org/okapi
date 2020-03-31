@@ -11,6 +11,7 @@ import java.lang.management.ManagementFactory;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 
+
 /**
  * Test module that works with headers-only. Also implements a few other test
  * facilities, like supporting a _tenantPermissions interface.
@@ -36,7 +37,7 @@ public class MainVerticle extends AbstractVerticle {
    * Simple test to fake a _tenantPermission interface.
    * Captures the body, and reports it in a header.
    *
-   * @param ctx
+   * @param ctx routing context
    */
   private void myPermissionHandle(RoutingContext ctx) {
     ReadStream<Buffer> content = ctx.request();
@@ -60,15 +61,15 @@ public class MainVerticle extends AbstractVerticle {
 
     final int port = Integer.parseInt(System.getProperty("port", "8080"));
     logger.info("Starting okapi-test-header-module {} on port {}",
-      ManagementFactory.getRuntimeMXBean().getName(), port);
+        ManagementFactory.getRuntimeMXBean().getName(), port);
 
     router.get("/testb").handler(this::myHeaderHandle);
     router.post("/testb").handler(this::myHeaderHandle);
     router.post("/_/tenantPermissions")
-      .handler(this::myPermissionHandle);
+        .handler(this::myPermissionHandle);
 
     vertx.createHttpServer()
-      .requestHandler(router)
-      .listen(port, result -> promise.handle(result.mapEmpty()));
+        .requestHandler(router)
+        .listen(port, result -> promise.handle(result.mapEmpty()));
   }
 }

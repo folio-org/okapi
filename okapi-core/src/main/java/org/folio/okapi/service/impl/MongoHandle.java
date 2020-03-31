@@ -14,14 +14,13 @@ import org.folio.okapi.common.OkapiLogger;
  */
 class MongoHandle {
 
-  private final Logger logger = OkapiLogger.get();
   private final MongoClient cli;
 
   // Little helper to get a config value:
   // First from System (-D on command line),
   // then from config (from the way the verticle gets deployed, e.g. in tests)
   // finally a default value.
-  protected MongoHandle(Vertx vertx, JsonObject conf) {
+  MongoHandle(Vertx vertx, JsonObject conf) {
     JsonObject opt = new JsonObject();
     String h = Config.getSysConf("mongo_host", "localhost", conf);
     if (!h.isEmpty()) {
@@ -35,6 +34,7 @@ class MongoHandle {
     if (!dbName.isEmpty()) {
       opt.put("db_name", dbName);
     }
+    Logger logger = OkapiLogger.get();
     logger.info("Using mongo backend at {} : {} / {}", h, p, dbName);
     this.cli = MongoClient.createShared(vertx, opt);
   }

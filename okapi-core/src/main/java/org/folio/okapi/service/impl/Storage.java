@@ -26,9 +26,16 @@ public class Storage {
     INIT, // create database at startup
     PURGE  // purge the whole database
   }
-  private JsonObject config;
+
+  private final JsonObject config;
   private final Logger logger = OkapiLogger.get();
 
+  /**
+   * Create storage.
+   * @param vertx Vert.x handle
+   * @param type storage type "inmemory", "postgres", ..
+   * @param config configuration
+   */
   public Storage(Vertx vertx, String type, JsonObject config) {
     this.config = config;
     switch (type) {
@@ -58,19 +65,24 @@ public class Storage {
     }
   }
 
-  public Future<Void> prepareDatabases(InitMode initModeP) {
+  /**
+   * prepare database.
+   * @param mode initialize mode
+   * @return future
+   */
+  public Future<Void> prepareDatabases(InitMode mode) {
     String dbInit = Config.getSysConf("mongo_db_init", "0", config);
     if (mongo != null && "1".equals(dbInit)) {
-      initModeP = InitMode.INIT;
+      mode = InitMode.INIT;
     }
     dbInit = Config.getSysConf("postgres_db_init", "0", config);
     if (postgres != null && "1".equals(dbInit)) {
       logger.warn("Will initialize the whole database!");
       logger.warn("The postgres_db_init option is DEPRECATED!"
-        + " use 'initdatabase' command (instead of 'dev' on the command line)");
-      initModeP = InitMode.INIT;
+          + " use 'initdatabase' command (instead of 'dev' on the command line)");
+      mode = InitMode.INIT;
     }
-    final InitMode initMode = initModeP;
+    final InitMode initMode = mode;
     logger.info("prepareDatabases: {}", initMode);
 
     boolean reset = initMode != InitMode.NORMAL;

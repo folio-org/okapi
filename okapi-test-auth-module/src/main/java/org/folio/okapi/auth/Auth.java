@@ -2,27 +2,21 @@ package org.folio.okapi.auth;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import static org.folio.okapi.common.HttpResponse.responseError;
-import static org.folio.okapi.common.HttpResponse.responseJson;
-import static org.folio.okapi.common.HttpResponse.responseText;
-
-import java.util.Base64;
-import java.util.HashMap;
-
-import org.folio.okapi.common.XOkapiHeaders;
-
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Base64;
+import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
  * Mostly for testing Okapi itself.
- *
  * Does generate tokens for module permissions, but otherwise does not filter
  * permissions for anything, but does return X-Okapi-Permissions-Desired in
  * X-Okapi-Permissions, as if all desired permissions were granted.
@@ -39,16 +33,16 @@ class Auth {
    * so Okapi can recover it in case it does not see a X-Okapi-Tenant header,
    * as happens in some unit tests.
    *
-   * @param tenant
-   * @param user
+   * @param tenant tenant string
+   * @param user user string
    * @return the token
    */
   private String token(String tenant, String user)  {
 
     // Create a dummy JWT token with the correct tenant
     JsonObject payload = new JsonObject()
-                .put("sub", user)
-                .put("tenant", tenant);
+        .put("sub", user)
+        .put("tenant", tenant);
     String encodedpl = payload.encode();
     logger.debug("test-auth: payload: {}", encodedpl);
     byte[] bytes = encodedpl.getBytes();
@@ -63,14 +57,14 @@ class Auth {
     final String json = ctx.getBodyAsString();
     if (json.length() == 0) {
       logger.debug("test-auth: accept OK in login");
-      responseText(ctx, 202).end("Auth accept in /authn/login");
+      HttpResponse.responseText(ctx, 202).end("Auth accept in /authn/login");
       return;
     }
     LoginParameters p;
     try {
       p = Json.decodeValue(json, LoginParameters.class);
     } catch (DecodeException ex) {
-      responseText(ctx, 400).end("Error in decoding parameters: " + ex);
+      HttpResponse.responseText(ctx, 400).end("Error in decoding parameters: " + ex);
       return;
     }
 
@@ -79,14 +73,14 @@ class Auth {
     String correctpw = u + "-password";
     if (!p.getPassword().equals(correctpw)) {
       logger.warn("test-auth: Bad passwd for '{}'. Got '{}' expected '{}",
-      u, p.getPassword(), correctpw);
-      responseText(ctx, 401).end("Wrong username or password");
+          u, p.getPassword(), correctpw);
+      HttpResponse.responseText(ctx, 401).end("Wrong username or password");
       return;
     }
     String tok;
     tok = token(p.getTenant(), p.getUsername());
     logger.info("test-auth: Ok login for {}: {}", u, tok);
-    responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
+    HttpResponse.responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
 
 
@@ -133,10 +127,10 @@ class Auth {
     ctx.response().putHeader("X-Auth-Filter-Phase", phase);
     // Hack to test return codes on various filter phases
     phase = phase.split(" ")[0];
-    String pHeader = ctx.request().headers().get("X-Filter-" + phase);
-    logger.debug("filter: 'X-Filter-{}': {}", phase, pHeader);
-    if (pHeader != null) {
-      ctx.response().setStatusCode(Integer.parseInt(pHeader));
+    String phaseHeader = ctx.request().headers().get("X-Filter-" + phase);
+    logger.debug("filter: 'X-Filter-{}': {}", phase, phaseHeader);
+    if (phaseHeader != null) {
+      ctx.response().setStatusCode(Integer.parseInt(phaseHeader));
     }
 
     // Hack to test pre/post filter returns error
@@ -145,13 +139,12 @@ class Auth {
     }
 
     // Hack to test pre/post filter can see request headers
-    if (ctx.request().headers().contains("X-request-" + phase + "-error") &&
-        ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP) &&
-        ctx.request().headers().contains(XOkapiHeaders.REQUEST_TIMESTAMP) &&
-        ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
+    if (ctx.request().headers().contains("X-request-" + phase + "-error")
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_IP)
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_TIMESTAMP)
+        && ctx.request().headers().contains(XOkapiHeaders.REQUEST_METHOD)) {
       ctx.response().setStatusCode(500);
     }
-
     echo(ctx);
   }
 
@@ -167,7 +160,7 @@ class Auth {
     if (tok == null || tok.isEmpty()) {
       // Only make a token if no permissions are required
       if (req != null && !req.isEmpty()) {
-        responseError(ctx, 401, "Permissions required: " + req);
+        HttpResponse.responseError(ctx, 401, "Permissions required: " + req);
         return;
       }
       tok = token(tenant, "-"); // create a dummy token without username
@@ -181,13 +174,13 @@ class Auth {
       String[] splitTok = tok.split("\\.");
       if (splitTok.length != 3) {
         logger.warn("test-auth: Bad JWT, can not split in three parts. '{}", tok);
-        responseError(ctx, 400, "Auth.check: Bad JWT");
+        HttpResponse.responseError(ctx, 400, "Auth.check: Bad JWT");
         return;
       }
 
       if (!"dummyJwt".equals(splitTok[0])) {
         logger.warn("test-auth: Bad dummy JWT, starts with '{}', not 'dummyJwt'", splitTok[0]);
-        responseError(ctx, 400, "Auth.check needs a dummyJwt");
+        HttpResponse.responseError(ctx, 400, "Auth.check needs a dummyJwt");
         return;
       }
       String payload = splitTok[1];
@@ -199,21 +192,21 @@ class Auth {
         userId = jtok.getString("sub", "");
 
       } catch (IllegalArgumentException e) {
-        responseError(ctx, 400, "Bad Json payload " + payload);
+        HttpResponse.responseError(ctx, 400, "Bad Json payload " + payload);
         return;
       }
       final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
       logger.info("ovTok={}", ovTok);
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
-        responseError(ctx, 400, "Bad additonal token: " + ovTok);
+        HttpResponse.responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
       }
     }
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null) {
       logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
-        XOkapiHeaders.PERMISSIONS_REQUIRED, req);
-      responseError(ctx, 403, "/_/tenant can not require permissions");
+          XOkapiHeaders.PERMISSIONS_REQUIRED, req);
+      HttpResponse.responseError(ctx, 403, "/_/tenant can not require permissions");
       return;
     }
     // Fake some desired permissions
@@ -221,17 +214,19 @@ class Auth {
     if (des != null) {
       ctx.response().headers().add(XOkapiHeaders.PERMISSIONS, des);
     }
-    if (req != null)
+    if (req != null) {
       ctx.response().headers().add("X-Auth-Permissions-Required", req);
-    if (des != null)
+    }
+    if (des != null) {
       ctx.response().headers().add("X-Auth-Permissions-Desired", des);
+    }
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
     ctx.response().headers()
-      .add(XOkapiHeaders.TOKEN, tok)
-      .add(XOkapiHeaders.MODULE_TOKENS, modTok)
-      .add(XOkapiHeaders.USER_ID, userId);
-    responseText(ctx, 202); // Abusing 202 to say filter OK
+        .add(XOkapiHeaders.TOKEN, tok)
+        .add(XOkapiHeaders.MODULE_TOKENS, modTok)
+        .add(XOkapiHeaders.USER_ID, userId);
+    HttpResponse.responseText(ctx, 202); // Abusing 202 to say filter OK
     if (ctx.request().method() == HttpMethod.HEAD) {
       ctx.response().headers().remove("Content-Length");
       ctx.response().setChunked(true);
@@ -268,11 +263,11 @@ class Auth {
    * These need to be accepted, so we can do a pre-filter before
    * the proper POST.
    *
-   * @param ctx
+   * @param ctx Routing context
    */
   public void accept(RoutingContext ctx) {
     logger.info("test-auth: Auth accept OK");
-    responseText(ctx, 202);
+    HttpResponse.responseText(ctx, 202);
     echo(ctx);
   }
 }

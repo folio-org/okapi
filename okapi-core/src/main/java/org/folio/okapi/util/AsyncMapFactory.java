@@ -4,10 +4,10 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
 import io.vertx.core.shareddata.SharedData;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.common.ErrorType;
 
 /**
  * Factory to create either a vert.x ClusterWideMap or a AsyncLocalmap, if not
@@ -20,17 +20,16 @@ class AsyncMapFactory {
   }
 
   /**
-   * Create a AsyncMap
+   * Creates an AsyncMap.
    *
    * @param <K> Key type
    * @param <V> Value type
-   * @param vertx
+   * @param vertx Vert.x handle
    * @param mapName name of the map. If null, will always create a local map
-   * @param fut
+   * @param fut future
    */
   public static <K, V> void create(Vertx vertx, String mapName,
-    Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
-
+                                   Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
     SharedData shared = vertx.sharedData();
     if (vertx.isClustered() && mapName != null) {
       shared.<K, V>getClusterWideMap(mapName, res -> {
@@ -46,11 +45,11 @@ class AsyncMapFactory {
       // clustered mode, of course.
       // Also used in deploy-only nodes, where we want local-only tenant and
       // module lists with only the hard-coded supertenant and internalModule.
-      String newid = vertx.getOrCreateContext().deploymentID();
+      String id = vertx.getOrCreateContext().deploymentID();
       if (mapName != null) {
-        newid = mapName + newid;
+        id = mapName + id;
       }
-      shared.<K, V>getLocalAsyncMap(newid, res -> {
+      shared.<K, V>getLocalAsyncMap(id, res -> {
         if (res.succeeded()) {
           fut.handle(new Success<>(res.result()));
         } else {

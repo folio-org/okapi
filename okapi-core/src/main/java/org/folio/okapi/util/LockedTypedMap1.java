@@ -1,14 +1,15 @@
 package org.folio.okapi.util;
 
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Success;
+
 
 public class LockedTypedMap1<T> extends LockedStringMap {
 
@@ -28,6 +29,11 @@ public class LockedTypedMap1<T> extends LockedStringMap {
     addOrReplace(true, k, null, json, fut);
   }
 
+  /**
+   * Get and deserialize to type from shared map.
+   * @param k key
+   * @param fut result with value if successful
+   */
   public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
     getString(k, null, res -> {
       if (res.failed()) {
@@ -45,12 +51,12 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    * @param fut callback with the result, or some failure.
    */
   public void getAll(Handler<ExtendedAsyncResult<LinkedHashMap<String, T>>> fut) {
-    getKeys(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
+    getKeys(keyRes -> {
+      if (keyRes.failed()) {
+        fut.handle(new Failure<>(keyRes.getType(), keyRes.cause()));
         return;
       }
-      Collection<String> keys = kres.result();
+      Collection<String> keys = keyRes.result();
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
       CompList<LinkedHashMap<String,T>> futures = new CompList<>(ErrorType.INTERNAL);
       for (String key : keys) {

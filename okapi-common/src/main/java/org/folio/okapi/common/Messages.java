@@ -24,12 +24,12 @@ import org.apache.logging.log4j.Logger;
  * Provide language specific messages, caching the language files in memory.
  */
 public class Messages {
-  /** directory in the jar file or in the current directory where to read the messages file from */
+  /** directory in the jar file or in the current directory where to read the messages file from. */
   public static final String      INFRA_MESSAGES_DIR     = "infra-messages";
   /** directory in the jar file or in the current directory where to read the
-   * optional messages file of the project/module */
+   * optional messages file of the project/module. */
   public static final String      MESSAGES_DIR           = "messages";
-  /** default language used for fall-back */
+  /** default language used for fall-back. */
   public static final String      DEFAULT_LANGUAGE       = "en";
   private static String           currentLanguage        = DEFAULT_LANGUAGE;
 
@@ -48,14 +48,13 @@ public class Messages {
   // safe
   private static class SingletonHelper {
     private static final Messages INSTANCE = new Messages();
+
     private SingletonHelper() {
       // prevent instantiation
     }
   }
 
-  /**
-   * @return the singleton instance of Message
-   */
+  /** Returns Messages instance. */
   public static Messages getInstance() {
     return SingletonHelper.INSTANCE;
   }
@@ -67,6 +66,14 @@ public class Messages {
     }
     //load project specific messages - they may not exist
     loadMessages(MESSAGES_DIR);
+  }
+
+  private FileSystem getFileSystem(URI uri) throws IOException {
+    try {
+      return FileSystems.newFileSystem(uri, Collections.<String, Object>emptyMap());
+    } catch (FileSystemAlreadyExistsException e) { // NOSONAR
+      return FileSystems.getFileSystem(uri);
+    }
   }
 
   void loadMessages(String dir) {
@@ -89,16 +96,8 @@ public class Messages {
         Path messagePath = Paths.get(uri);
         loadMessages(messagePath);
       }
-    } catch (IOException|URISyntaxException e) {
+    } catch (IOException | URISyntaxException e) {
       throw new IllegalArgumentException(dir, e);
-    }
-  }
-
-  private FileSystem getFileSystem(URI uri) throws IOException {
-    try {
-      return FileSystems.newFileSystem(uri, Collections.<String, Object> emptyMap());
-    } catch (FileSystemAlreadyExistsException e) { // NOSONAR
-      return FileSystems.getFileSystem(uri);
     }
   }
 
@@ -122,7 +121,7 @@ public class Messages {
         String chunk1 = name.substring(0, sep);
         String chunk2 = name.substring(sep + 1, dot);
         String lang = chunk2;
-        if(chunk1.length() < chunk2.length()){
+        if (chunk1.length() < chunk2.length()) {
           lang = chunk1;
         }
         String resource = "/" + messagePath.getFileName().toString() + "/" + name;
@@ -131,10 +130,9 @@ public class Messages {
         Properties properties = new Properties();
         properties.load(stream);
         Properties existing = messageMap.get(lang);
-        if(existing == null){
+        if (existing == null) {
           messageMap.put(lang, properties);
-        }
-        else{
+        } else {
           existing.putAll(properties);
           messageMap.put(lang, existing);
         }
@@ -143,7 +141,7 @@ public class Messages {
   }
 
   /**
-   * Return the message from the properties file.
+   * Returns the message from the properties file.
    *
    * @param language - the language of the properties file to search in
    * @param code - message code
@@ -158,7 +156,7 @@ public class Messages {
   }
 
   /**
-   * Return the message from the properties file.
+   * Returns the message from the properties file.
    * @param code - message code
    * @param messageArguments - message arguments to insert, see java.text.MessageFormat.format()
    * @return the message with arguments inserted
@@ -177,8 +175,8 @@ public class Messages {
     }
   }
 
-  /** Set default language */
-  public static void setLanguage(String language){
+  /** Sets default language. */
+  public static void setLanguage(String language) {
     Messages.currentLanguage = language;
   }
 }

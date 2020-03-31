@@ -19,17 +19,27 @@ import org.folio.okapi.service.EnvStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 
+
 public class EnvManager {
 
   private final Logger logger = OkapiLogger.get();
   private final LockedTypedMap1<EnvEntry> envMap = new LockedTypedMap1<>(EnvEntry.class);
   private final EnvStore envStore;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
+  /**
+   * Construct event manager.
+   * @param s storage
+   */
   public EnvManager(EnvStore s) {
     envStore = s;
   }
 
+  /**
+   * Initialize event manager.
+   * @param vertx Vert.x handle
+   * @param fut async result
+   */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     logger.debug("starting EnvManager");
     envMap.init(vertx, "env", res -> {
@@ -63,7 +73,7 @@ public class EnvManager {
     }
   }
 
-  public void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
+  void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
     add1(env, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -71,10 +81,6 @@ public class EnvManager {
         envStore.add(env, fut);
       }
     });
-  }
-
-  public void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
-    envMap.get(name, fut);
   }
 
   private void getR(Iterator<String> it, List<EnvEntry> all,
@@ -95,7 +101,11 @@ public class EnvManager {
     }
   }
 
-  public void get(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
+  void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
+    envMap.get(name, fut);
+  }
+
+  void get(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
     envMap.getKeys(resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
@@ -111,7 +121,7 @@ public class EnvManager {
     });
   }
 
-  public void remove(String name, Handler<ExtendedAsyncResult<Void>> fut) {
+  void remove(String name, Handler<ExtendedAsyncResult<Void>> fut) {
     envMap.remove(name, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
