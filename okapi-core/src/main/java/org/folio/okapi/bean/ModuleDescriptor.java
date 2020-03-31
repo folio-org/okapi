@@ -8,8 +8,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
-import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.common.ModuleId;
+import org.folio.okapi.util.ProxyContext;
 
 /**
  * Description of a module. These are used when creating modules under
@@ -40,23 +40,27 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Copy constructor.
+   * Copy constructor with id and tags from original.
    *
-   * @param other
-   * @param full
+   * @param original where we copy from
+   * @param includeName where name is also copied
    */
-  public ModuleDescriptor(ModuleDescriptor other, boolean includeName) {
-    this.id = other.id;
+  public ModuleDescriptor(ModuleDescriptor original, boolean includeName) {
+    this.id = original.id;
     if (includeName) {
-      this.name = other.name;
+      this.name = original.name;
     }
-    this.tags = other.tags;
+    this.tags = original.tags;
   }
 
   public String getId() {
     return id != null ? id.getId() : null;
   }
 
+  /**
+   * set module ID.
+   * @param s module ID
+   */
   public void setId(String s) {
     this.id = new ModuleId(s);
     if (!this.id.hasSemVer()) {
@@ -76,10 +80,17 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return tags;
   }
 
+  /**
+   * Set module tags.
+   * @param tags tags list
+   */
   public void setTags(String[] tags) {
     this.tags = tags;
   }
 
+  /**
+   * Get required and optional interfaces.
+   */
   @JsonIgnore
   public List<InterfaceDescriptor> getRequiresOptionalList() {
     List<InterfaceDescriptor> l = new ArrayList<>();
@@ -88,6 +99,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return l;
   }
 
+  /**
+   * Get required interfaces.
+   * @return interfaces list; empty if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getRequiresList() {
     if (requires == null) {
@@ -97,14 +112,26 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get required interfaces.
+   * @return interfaces; null if none is defined
+   */
   public InterfaceDescriptor[] getRequires() {
     return requires;
   }
 
+  /**
+   * set required interfaces.
+   * @param requires required interfaces
+   */
   public void setRequires(InterfaceDescriptor[] requires) {
     this.requires = requires;
   }
 
+  /**
+   * Get provided interfaces.
+   * @return interfaces; empty list if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getProvidesList() {
     if (provides == null) {
@@ -114,18 +141,25 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get provided interfaces.
+   * @return interfaces; null if none is defined
+   */
   public InterfaceDescriptor[] getProvides() {
     return provides;
   }
 
+  /**
+   * set provided interfaces.
+   * @param provides provided interfaces
+   */
   public void setProvides(InterfaceDescriptor[] provides) {
-    Set<String> pList = new TreeSet<>();
-    for (int i = 0; i < provides.length; i++) {
-      InterfaceDescriptor pr = provides[i];
-      if (pList.contains(pr.getId())) {
+    Set<String> p = new TreeSet<>();
+    for (InterfaceDescriptor pr : provides) {
+      if (p.contains(pr.getId())) {
         throw new IllegalArgumentException("Interface " + pr.getId() + " provided multiple times");
       }
-      pList.add(pr.getId());
+      p.add(pr.getId());
     }
     this.provides = provides;
   }
@@ -138,6 +172,10 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.optional = optional;
   }
 
+  /**
+   * Get optional interfaces.
+   * @return interfaces; empty list if none is defined
+   */
   @JsonIgnore
   public InterfaceDescriptor[] getOptionalList() {
     if (optional == null) {
@@ -147,6 +185,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     }
   }
 
+  /**
+   * Get filter routing entries.
+   */
   @JsonIgnore
   public List<RoutingEntry> getFilterRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -157,10 +198,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   }
 
   /**
-   * Get all RoutingEntries that are type proxy. Either from provided
-   * interfaces, or from the global level RoutingEntries.
-   *
-   * @return
+   * Get all RoutingEntries that are type proxy.
+   * Either from provided interfaces, or from the global level RoutingEntries.
    */
   @JsonIgnore
   public List<RoutingEntry> getProxyRoutingEntries() {
@@ -174,6 +213,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return all;
   }
 
+  /**
+   * Get all routing entries that are of type multi.
+   */
   @JsonIgnore
   public List<RoutingEntry> getMultiRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -195,7 +237,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
   public InterfaceDescriptor getSystemInterface(String interfaceId) {
     for (InterfaceDescriptor prov : getProvidesList()) {
       if ("system".equals(prov.getInterfaceType())
-        && interfaceId.equals(prov.getId())) {
+          && interfaceId.equals(prov.getId())) {
         return prov;
       }
     }
@@ -250,6 +292,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     this.filters = filters;
   }
 
+  /**
+   * Get list of replaced modules.
+   */
   public String[] getReplaces() {
     if (replaces == null) {
       return null;
@@ -261,14 +306,17 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
     return a;
   }
 
+  /**
+   * Set list of replaced modules.
+   * @param replaces replaced module
+   */
   public void setReplaces(String[] replaces) {
     if (replaces == null || replaces.length == 0) {
       this.replaces = null;
     } else {
       this.replaces = new ModuleId[replaces.length];
-      for (int i = 0; i < replaces.length; i++)
-      {
-        final ModuleId pId =new ModuleId(replaces[i]);
+      for (int i = 0; i < replaces.length; i++) {
+        final ModuleId pId = new ModuleId(replaces[i]);
         if (pId.hasSemVer()) {
           throw new IllegalArgumentException("No semantic version for: " + replaces[i]);
         }
@@ -279,10 +327,9 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   /**
    * Validate some features of a ModuleDescriptor.
-   *
    * In case of Deprecated things, writes warnings in the log.
    *
-   * @param pc
+   * @param pc proxy context
    * @return "" if ok, otherwise an informative error message.
    */
   public String validate(ProxyContext pc) {
@@ -307,8 +354,8 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       }
     } else {
       pc.warn("Module '" + mod + "' "
-        + "has no Requires section. If the module really does not require "
-        + "any other interfaces, provide an empty array to be explicit about it.");
+          + "has no Requires section. If the module really does not require "
+          + "any other interfaces, provide an empty array to be explicit about it.");
     }
     if (filters != null) {
       for (RoutingEntry fe : filters) {

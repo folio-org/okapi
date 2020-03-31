@@ -3,8 +3,8 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -80,6 +80,10 @@ public class RoutingEntry {
     return type;
   }
 
+  /**
+   * Set routing entry type.
+   * @param type routing entry type
+   */
   public void setType(String type) {
     if ("request-response".equals(type)) {
       proxyType = ProxyType.REQUEST_RESPONSE;
@@ -115,15 +119,29 @@ public class RoutingEntry {
     return unit;
   }
 
+  /**
+   * Set timer unit for routing entry.
+   * @param unit unit name
+   */
   public void setUnit(String unit) {
     this.unit = unit;
     if (unit != null) {
       switch (unit) {
-        case "millisecond": factor = 1; break;
-        case "second": factor = 1000; break;
-        case "minute": factor = 60000; break;
-        case "hour": factor = 3600000; break;
-        case "day": factor = 86400000; break;
+        case "millisecond":
+          factor = 1;
+          break;
+        case "second":
+          factor = 1000;
+          break;
+        case "minute":
+          factor = 60000;
+          break;
+        case "hour":
+          factor = 3600000;
+          break;
+        case "day":
+          factor = 86400000;
+          break;
         default: throw new IllegalArgumentException(unit);
       }
     }
@@ -137,6 +155,9 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
+  /**
+   * get timer delay in milliseconds.
+   */
   @JsonIgnore
   public long getDelayMilliSeconds() {
     if (this.delay != null && unit != null) {
@@ -165,9 +186,12 @@ public class RoutingEntry {
     return methods;
   }
 
+  /**
+   * Set routing methods.
+   * @param methods HTTP method name or "*" for all
+   */
   public void setMethods(String[] methods) {
-    for (int i = 0; i < methods.length; i++) {
-      String s = methods[i];
+    for (String s : methods) {
       if (!s.equals("*")) {
         HttpMethod.valueOf(s);
       }
@@ -175,7 +199,9 @@ public class RoutingEntry {
     this.methods = methods;
   }
 
-
+  /**
+   * Get path pattern/path - whichever exist.
+   */
   @JsonIgnore
   public String getStaticPath() {
     if (path == null || path.isEmpty()) {
@@ -222,6 +248,12 @@ public class RoutingEntry {
     return i;
   }
 
+  /**
+   * set path pattern.
+   * Special constructs like {name} and * are supported.
+   * @param pathPattern pattern string
+   * @throws DecodeException if pattern is invalid.
+   */
   public void setPathPattern(String pathPattern) {
     this.path = null;
     this.pathPattern = pathPattern;
@@ -301,6 +333,12 @@ public class RoutingEntry {
     return path == null || uri.startsWith(path);
   }
 
+  /**
+   * Match uri and method against routing entry.
+   * @param uri path in fact
+   * @param method HTTP method
+   * @return true on match; false otherwise
+   */
   public boolean match(String uri, String method) {
     if (methods != null) {
       for (String m : methods) {
@@ -312,6 +350,11 @@ public class RoutingEntry {
     return false;
   }
 
+  /**
+   * Get redirect URI path.
+   * @param uri path
+   * @return null if no redirect; redirect path otherwise
+   */
   public String getRedirectUri(String uri) {
     if (path != null) {
       return redirectPath + uri.substring(path.length());
@@ -328,10 +371,12 @@ public class RoutingEntry {
     return phase;
   }
 
+  /**
+   * Set routing entry phrase.
+   * @param phase such as "auth", "pre", ..
+   */
   public void setPhase(String phase) {
-    if (null == phase) {
-      throw new DecodeException("Invalid phase " + phase);
-    } else {
+    if (phase != null) {
       switch (phase) {
         case "auth":
           phaseLevel = "10";
@@ -349,6 +394,13 @@ public class RoutingEntry {
     this.phase = phase;
   }
 
+  /**
+   * Validate handler of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Proxy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateHandlers(ProxyContext pc, String mod) {
     String section = "handlers";
     String err = validateCommon(pc, section, mod);
@@ -356,18 +408,25 @@ public class RoutingEntry {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
         pc.warn(prefix
-          + " uses 'phase' in the handlers section. "
-          + "Leave it out");
+            + " uses 'phase' in the handlers section. "
+            + "Leave it out");
       }
-      if (type != null && "request-response".equals(type)) {
+      if ("request-response".equals(type)) {
         pc.warn(prefix
-          + " uses type=request-response. "
-          + "That is the default, you can leave it out");
+            + " uses type=request-response. "
+            + "That is the default, you can leave it out");
       }
     }
     return err;
   }
 
+  /**
+   * Validate filters of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Proxy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateFilters(ProxyContext pc, String mod) {
     return validateCommon(pc, "filters", mod);
   }
@@ -381,9 +440,9 @@ public class RoutingEntry {
     }
     prefix += ": ";
     pc.debug(prefix
-      + "Validating RoutingEntry " + Json.encode(this));
+        + "Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
-      && (pathPattern == null || pathPattern.isEmpty())) {
+        && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
     }
 
@@ -394,29 +453,29 @@ public class RoutingEntry {
     } else {
       if (redirectPath != null && !redirectPath.isEmpty()) {
         pc.warn(prefix
-          + "has a redirectPath, even though it is not a redirect");
+            + "has a redirectPath, even though it is not a redirect");
       }
       if (pathPattern == null || pathPattern.isEmpty()) {
         pc.warn(prefix
-          + " uses old type path"
-          + ". Use a pathPattern instead");
+            + " uses old type path"
+            + ". Use a pathPattern instead");
       }
-      if (level != null && !"toplevel".equals(section)) {
-        String ph = "";  // toplevel has a higher-level warning
+      if (level != null) {
+        String ph = "";
         if ("filters".equals(section)) {
           ph = "Use a phase=auth instead";
         }
         pc.warn(prefix
-          + "uses DEPRECATED level. " + ph);
+            + "uses DEPRECATED level. " + ph);
       }
 
       if (pathPattern != null && pathPattern.endsWith("/")) {
         pc.warn(prefix
-          + "ends in a slash. Probably not what you intend");
+            + "ends in a slash. Probably not what you intend");
       }
       if ("system".equals(type)) {
         pc.warn(prefix
-          + "uses DEPRECATED type 'system'");
+            + "uses DEPRECATED type 'system'");
       }
     }
     return "";

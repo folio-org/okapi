@@ -6,6 +6,7 @@ import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
 
+
 public class DeploymentStorePostgres implements DeploymentStore {
 
   private static final String JSON_COLUMN = "json";
@@ -14,7 +15,8 @@ public class DeploymentStorePostgres implements DeploymentStore {
   private final PostgresTable<DeploymentDescriptor> table;
 
   public DeploymentStorePostgres(PostgresHandle pg) {
-    this.table = new PostgresTable<>(pg, "deployments", JSON_COLUMN, ID_INDEX, ID_SELECT, "inst_id");
+    this.table = new PostgresTable<>(pg, "deployments", JSON_COLUMN,
+      ID_INDEX, ID_SELECT, "inst_id");
   }
 
   @Override

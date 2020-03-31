@@ -19,7 +19,9 @@ public class AsyncLock {
     isCluster = vertx.isClustered();
   }
 
-  private void getLockR(String name, AsyncResult<Lock> x, Handler<AsyncResult<Lock>> resultHandler) {
+  private void getLockR(String name, AsyncResult<Lock> x,
+                        Handler<AsyncResult<Lock>> resultHandler) {
+
     // when timeout is received we repeat again..
     if (x.failed() && x.cause().getMessage().startsWith("Timed out")) {
       getLock(name, resultHandler);

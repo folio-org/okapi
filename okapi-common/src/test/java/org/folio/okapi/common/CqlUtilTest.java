@@ -8,7 +8,7 @@ import org.z3950.zing.cql.CQLParser;
 import org.z3950.zing.cql.CQLRelation;
 import org.z3950.zing.cql.CQLTermNode;
 
-public class CQLUtilTest {
+public class CqlUtilTest {
 
   private boolean eval(String input) {
     CQLParser parser = new CQLParser(CQLParser.V1POINT2);
@@ -22,7 +22,7 @@ public class CQLUtilTest {
         }
         return 0;
       };
-      return CQLUtil.eval(top, source, f);
+      return CqlUtil.eval(top, source, f);
     } catch (Exception ex) {
       return false;
     }
@@ -54,7 +54,7 @@ public class CQLUtilTest {
       CQLNode top = parser.parse(input);
       Comparator<CQLTermNode> f = (CQLTermNode n1, CQLTermNode n2)
         -> n1.getIndex().equals(n2.getIndex()) ? 0 : -1;
-      CQLNode res = CQLUtil.reducer(top, source, f);
+      CQLNode res = CqlUtil.reducer(top, source, f);
       if (res == null) {
         return "null";
       } else {

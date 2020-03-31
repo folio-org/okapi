@@ -1,15 +1,15 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * Association of a module to a tenant. This encapsulates the id of the module.
  * Each tenant has a list of such associations, listing what modules have been
  * enabled for it.
  *
  */
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
-import com.fasterxml.jackson.annotation.*;
 
-@JsonInclude(Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class TenantModuleDescriptor {
 
   private String id; // For practical reasons, the UI folks prefer this to be
