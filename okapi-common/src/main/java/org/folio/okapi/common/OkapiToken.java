@@ -34,13 +34,11 @@ public class OkapiToken {
     }
     String encodedJson = token.substring(idx1, idx2);
     String decodedJson = new String(Base64.getDecoder().decode(encodedJson));
-    JsonObject j;
     try {
-      j = new JsonObject(decodedJson);
+      return new JsonObject(decodedJson);
     } catch (DecodeException e) {
       throw new IllegalArgumentException(e.getMessage());
     }
-    return j;
   }
 
   /**
