@@ -47,7 +47,7 @@ public class OkapiClient {
    * @param ctx routing context (using some headers from it)
    */
   public OkapiClient(RoutingContext ctx) {
-    init(ctx.vertx());
+    init(ctx.vertx(), ctx.vertx().createHttpClient());
     this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
     if (this.okapiUrl != null) {
       this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
@@ -100,17 +100,29 @@ public class OkapiClient {
    * @param headers may be null
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
-    init(vertx);
-    setOkapiUrl(okapiUrl);
-    setHeaders(headers);
-    respHeaders = null;
+    this(vertx.createHttpClient(), okapiUrl, vertx, headers);
   }
 
-  private void init(Vertx vertx) {
+  /**
+   * Explicit constructor.
+   *
+   * @param httpClient client to use
+   * @param okapiUrl OKAPI URL
+   * @param vertx Vert.x handle
+   * @param headers may be null
+   */
+  public OkapiClient(HttpClient httpClient, String okapiUrl,
+      Vertx vertx, Map<String, String> headers) {
+    init(vertx, httpClient);
+    setOkapiUrl(okapiUrl);
+    setHeaders(headers);
+  }
+
+  private void init(Vertx vertx, HttpClient httpClient) {
     this.vertx = vertx;
     this.retryClosedCount = 0;
     this.retryClosedWait = 0;
-    this.httpClient = vertx.createHttpClient();
+    this.httpClient = httpClient;
     this.headers = new HashMap<>();
     respHeaders = null;
     reqId = "";
