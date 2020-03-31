@@ -530,6 +530,13 @@ public class TenantManager {
     });
   }
 
+  /**
+   * For unit testing.
+   */
+  Set<String> getTimers() {
+    return timers;
+  }
+
   private void consumeTimers() {
     EventBus eb = vertx.eventBus();
     eb.consumer(eventName, res -> {
@@ -548,7 +555,7 @@ public class TenantManager {
     timers.remove(key);
   }
 
-  private void handleTimer(String tenantId, String moduleId, int seq1) {
+  void handleTimer(String tenantId, String moduleId, int seq1) {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
     tenants.get(tenantId, tRes -> {
       if (tRes.failed()) {
@@ -606,7 +613,7 @@ public class TenantManager {
             lockTimer(tenantId, md, delay, seq);
           }
         } else if (seq == seq1) {
-          if (discoveryManager.checkLeader()) {
+          if (discoveryManager.isLeader()) {
             fireTimer(tenant, md, re, path);
           }
           lockTimer(tenantId, md, delay, seq);

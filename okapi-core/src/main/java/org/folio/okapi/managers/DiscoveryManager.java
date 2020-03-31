@@ -750,7 +750,13 @@ public class DiscoveryManager implements NodeListener {
     );
   }
 
-  boolean checkLeader() {
+  /**
+   * Whether the node id of the cluster manager is the maximum node id of
+   * all nodes of the cluster manager.
+   *
+   * <p>Return true if running without cluster manager.
+   */
+  boolean isLeader() {
     if (clusterManager == null) {
       return true;
     }
