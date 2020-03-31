@@ -14,11 +14,15 @@ import java.util.Base64;
 public class OkapiToken {
   private String token;
 
+  /**
+   * Construct from token string.
+   * Note that there is no JWT validation taking place.
+   */
   public OkapiToken(String token) {
     this.token = token;
   }
 
-  private JsonObject getPayload() {
+  private JsonObject getPayloadWithoutValidation() {
     int idx1 = token.indexOf('.');
     if (idx1 == -1) {
       throw new IllegalArgumentException("Missing . separator for token");
@@ -41,13 +45,14 @@ public class OkapiToken {
 
   /**
    * Get the tenant out from the token.
+   * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
   public String getTenant() {
     if (token == null) {
       return null;
     }
-    JsonObject pl = this.getPayload();
+    JsonObject pl = this.getPayloadWithoutValidation();
     return pl.getString("tenant");
   }
 }
