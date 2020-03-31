@@ -10,7 +10,7 @@ import java.util.Map;
  */
 public class AnyDescriptor {
 
-  private Map<String, Object> properties = new LinkedHashMap<>();
+  private final Map<String, Object> properties = new LinkedHashMap<>();
 
   @JsonAnyGetter
   public Map<String, Object> properties() {

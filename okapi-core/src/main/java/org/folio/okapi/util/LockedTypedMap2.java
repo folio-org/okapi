@@ -1,12 +1,12 @@
 package org.folio.okapi.util;
 
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import java.util.LinkedList;
 import java.util.List;
+import org.folio.okapi.common.ExtendedAsyncResult;
+import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Success;
 
 public class LockedTypedMap2<T> extends LockedStringMap {
 
@@ -26,6 +26,12 @@ public class LockedTypedMap2<T> extends LockedStringMap {
     addOrReplace(true, k, k2, json, fut);
   }
 
+  /**
+   * get and deserialize value from shared map.
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @param fut async result with deserialized value on success
+   */
   public void get(String k, String k2, Handler<ExtendedAsyncResult<T>> fut) {
     getString(k, k2, res -> {
       if (res.failed()) {
@@ -36,6 +42,11 @@ public class LockedTypedMap2<T> extends LockedStringMap {
     });
   }
 
+  /**
+   * get and deserialize values from shared map.
+   * @param k primary-level key
+   * @param fut async result with deserialized values on success
+   */
   public void get(String k, Handler<ExtendedAsyncResult<List<T>>> fut) {
     getString(k, res -> {
       if (res.failed()) {

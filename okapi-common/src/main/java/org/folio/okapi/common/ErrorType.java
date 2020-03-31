@@ -4,39 +4,31 @@ package org.folio.okapi.common;
  * Types of errors.
  */
 public enum ErrorType {
-  /** Not really an error, but a success code */
-  OK,
-  /** Internal errors of any kind */
-  INTERNAL,
+  /** Not really an error, but a success code. */
+  OK(200),
+  /** Internal errors of any kind. */
+  INTERNAL(500),
   /** Bad requests, etc. */
-  USER,
-  /** Stuff that is not there */
-  NOT_FOUND,
-  /** Any kind of auth or permission problem */
-  FORBIDDEN,
-  /** Error type for anything else */
-  ANY;
+  USER(400),
+  /** Stuff that is not there. */
+  NOT_FOUND(404),
+  /** Any kind of auth or permission problem. */
+  FORBIDDEN(403),
+  /** Error type for anything else. */
+  ANY(500);
 
+  private final int statusCode;
+
+  ErrorType(int code) {
+    statusCode = code;
+  }
+
+  /**
+   * Maps error type to HTTP status code.
+   * @param t error type
+   * @return HTTP status
+   */
   public static int httpCode(ErrorType t) {
-    int code = 500;
-    switch (t) {
-      case OK:
-        code = 200;
-        break;
-      case USER:
-        code = 400;
-        break;
-      case NOT_FOUND:
-        code = 404;
-        break;
-      case FORBIDDEN:
-        code = 403;
-        break;
-      case INTERNAL:
-      case ANY:
-        code = 500;
-        break;
-    }
-    return code;
+    return t.statusCode;
   }
 }

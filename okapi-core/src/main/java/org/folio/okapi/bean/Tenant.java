@@ -1,6 +1,7 @@
 package org.folio.okapi.bean;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -41,8 +42,6 @@ public class Tenant {
   /**
    * Get the name. The JsonIgnore tells JSON not to encode the name as a
    * top-level thing.
-   *
-   * @return
    */
   @JsonIgnore
   public String getName() {
