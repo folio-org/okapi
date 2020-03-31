@@ -1,6 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.TenantStore;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
@@ -15,6 +14,7 @@ import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.service.TenantStore;
 
 /**
  * Stores Tenants in Postgres.
@@ -46,7 +46,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void updateDescriptor(TenantDescriptor td,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                               Handler<ExtendedAsyncResult<Void>> fut) {
 
     Tenant t = new Tenant(td);
     pgTable.update(t, fut);
@@ -63,8 +63,8 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   private void updateModuleR(PostgresQuery q, String id,
-    SortedMap<String, Boolean> enabled,
-    Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
+                             SortedMap<String, Boolean> enabled,
+                             Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
 
     if (!it.hasNext()) {
       fut.handle(new Success<>());
@@ -88,7 +88,7 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public void updateModules(String id, SortedMap<String, Boolean> enabled,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                            Handler<ExtendedAsyncResult<Void>> fut) {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;

@@ -17,20 +17,21 @@ import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.HealthDescriptor;
-import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
+import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
-import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.util.LockedTypedMap2;
-import org.folio.okapi.common.Success;
+import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.common.Messages;
+import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.LockedTypedMap2;
+
 
 /**
  * Keeps track of which modules are running where. Uses a shared map to list
@@ -42,16 +43,22 @@ import org.folio.okapi.common.Messages;
 public class DiscoveryManager implements NodeListener {
   private final Logger logger = OkapiLogger.get();
 
-  private final LockedTypedMap2<DeploymentDescriptor> deployments = new LockedTypedMap2<>(DeploymentDescriptor.class);
+  private final LockedTypedMap2<DeploymentDescriptor> deployments
+      = new LockedTypedMap2<>(DeploymentDescriptor.class);
   private final LockedTypedMap1<NodeDescriptor> nodes = new LockedTypedMap1<>(NodeDescriptor.class);
   private Vertx vertx;
   private ClusterManager clusterManager;
   private ModuleManager moduleManager;
   private HttpClient httpClient;
   private final DeploymentStore deploymentStore;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
   private DeliveryOptions deliveryOptions;
 
+  /**
+   * Initialize discovery manager.
+   * @param vertx Vert.x handle
+   * @param fut async result
+   */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
@@ -71,6 +78,10 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  /**
+   * Restart modules that were persisted in storage.
+   * @param fut async result
+   */
   public void restartModules(Handler<ExtendedAsyncResult<Void>> fut) {
     deploymentStore.getAll(res1 -> {
       if (res1.failed()) {
@@ -100,17 +111,17 @@ public class DiscoveryManager implements NodeListener {
     this.moduleManager = mgr;
   }
 
-  public void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+  void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
     deployments.getKeys(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
       }
       CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
-      for (String mId : res.result()) {
+      for (String moduleId : res.result()) {
         Promise<Void> promise = Promise.promise();
         futures.add(promise);
-        deployments.get(mId, md.getInstId(), r -> {
+        deployments.get(moduleId, md.getInstId(), r -> {
           if (r.succeeded()) {
             promise.fail("dup InstId");
             return;
@@ -128,8 +139,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void addAndDeploy(DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  void addAndDeploy(DeploymentDescriptor dd,
+                    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
     addAndDeploy0(dd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -147,13 +158,14 @@ public class DiscoveryManager implements NodeListener {
 
   /**
    * Adds a service to the discovery, and optionally deploys it too.
-   *
+   * <p>
    *   1: We have LaunchDescriptor and NodeId: Deploy on that node.
    *   2: NodeId, but no LaunchDescriptor: Fetch the module, use its LaunchDescriptor, and deploy.
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
+   * </p>
    */
   private void addAndDeploy0(DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     String tmp = Json.encodePrettily(dd);
     logger.info("addAndDeploy: {}", tmp);
@@ -176,7 +188,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
@@ -199,15 +211,15 @@ public class DiscoveryManager implements NodeListener {
     } else {
       if (launchDesc == null) {
         addAndDeploy2(dd, md, fut, nodeId);
-      } else { // Have a launchdesc already in dd
+      } else { // Have a launch descriptor already in dd
         callDeploy(nodeId, dd, fut);
       }
     }
   }
 
   private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut, final String nodeId) {
-
+                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
+                             String nodeId) {
     String modId = dd.getSrvcId();
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
@@ -222,29 +234,29 @@ public class DiscoveryManager implements NodeListener {
    * Helper to actually launch (deploy) a module on a node.
    */
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+                          Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    getNode(nodeId, noderes -> {
-      if (noderes.failed()) {
-        fut.handle(new Failure<>(noderes.getType(), noderes.cause()));
+    getNode(nodeId, nodeRes -> {
+      if (nodeRes.failed()) {
+        fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
       } else {
-        String reqdata = Json.encode(dd);
-        vertx.eventBus().request(noderes.result().getUrl() + "/deploy", reqdata,
-          deliveryOptions, ar -> {
-          if (ar.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-          } else {
-            String b = (String) ar.result().body();
-            DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
-            fut.handle(new Success<>(pmd));
-          }
-        });
+        String reqData = Json.encode(dd);
+        vertx.eventBus().request(nodeRes.result().getUrl() + "/deploy", reqData,
+            deliveryOptions, ar -> {
+              if (ar.failed()) {
+                fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+              } else {
+                String b = (String) ar.result().body();
+                DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
+                fut.handle(new Success<>(pmd));
+              }
+            });
       }
     });
   }
 
-  public void removeAndUndeploy(String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void removeAndUndeploy(String srvcId, String instId,
+                         Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId {} instId {}", srvcId, instId);
     deployments.get(srvcId, instId, res -> {
@@ -259,8 +271,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void removeAndUndeploy(String srvcId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void removeAndUndeploy(String srvcId,
+                         Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("removeAndUndeploy: srvcId {}", srvcId);
     deployments.get(srvcId, res -> {
@@ -273,8 +285,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void removeAndUndeploy(Handler<ExtendedAsyncResult<Void>> fut) {
-
+  void removeAndUndeploy(Handler<ExtendedAsyncResult<Void>> fut) {
     logger.info("removeAndUndeploy all");
     this.get(res -> {
       if (res.failed()) {
@@ -286,7 +297,7 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void removeAndUndeploy(List<DeploymentDescriptor> ddList,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                                 Handler<ExtendedAsyncResult<Void>> fut) {
 
     CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
     for (DeploymentDescriptor dd : ddList) {
@@ -305,9 +316,10 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void callUndeploy(DeploymentDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                            Handler<ExtendedAsyncResult<Void>> fut) {
 
-    logger.info("callUndeploy srvcId={} instId={} node={}", md.getSrvcId(), md.getInstId(), md.getNodeId());
+    logger.info("callUndeploy srvcId={} instId={} node={}",
+        md.getSrvcId(), md.getInstId(), md.getNodeId());
     final String nodeId = md.getNodeId();
     if (nodeId == null) {
       logger.info("callUndeploy remove");
@@ -320,20 +332,20 @@ public class DiscoveryManager implements NodeListener {
         } else {
           String reqdata = md.getInstId();
           vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
-            deliveryOptions, ar -> {
-            if (ar.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-            } else {
-              fut.handle(new Success<>());
-            }
-          });
+              deliveryOptions, ar -> {
+                if (ar.failed()) {
+                  fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+                } else {
+                  fut.handle(new Success<>());
+                }
+              });
         }
       });
     }
   }
 
-  public void remove(String srvcId, String instId,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void remove(String srvcId, String instId,
+              Handler<ExtendedAsyncResult<Void>> fut) {
 
     deployments.remove(srvcId, instId, res -> {
       if (res.failed()) {
@@ -355,39 +367,15 @@ public class DiscoveryManager implements NodeListener {
       final String nodeId = node.getNodeId();
       if (id.equals(nodeId) || id.equals(nodeName)) {
         found = true;
+        break;
       }
     }
     logger.debug("isAlive nodeId={} {}", id, found);
     return found;
   }
 
-  public void get(String srvcId, String instId,
-    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-
-    deployments.get(srvcId, instId, resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-        return;
-      }
-      DeploymentDescriptor md = resGet.result();
-      nodes.getAll(nodeRes -> {
-        if (nodeRes.failed()) {
-          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
-          return;
-        }
-        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
-        // check that the node is alive, but only on non-url instances
-        if (!isAlive(md, nodesCollection)) {
-          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10805")));
-          return;
-        }
-        fut.handle(new Success<>(md));
-      });
-    });
-  }
-
-  public void autoDeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void autoDeploy(ModuleDescriptor md,
+                  Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoDeploy {}", md.getId());
     // internal Okapi modules is not part of discovery so ignore it
@@ -414,8 +402,8 @@ public class DiscoveryManager implements NodeListener {
   }
 
   private void autoDeploy2(ModuleDescriptor md,
-    Collection<String> allNodes, List<DeploymentDescriptor> ddList,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+                           Collection<String> allNodes, List<DeploymentDescriptor> ddList,
+                           Handler<ExtendedAsyncResult<Void>> fut) {
 
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     CompList<List<Void>> futures = new CompList<>(ErrorType.USER);
@@ -445,8 +433,8 @@ public class DiscoveryManager implements NodeListener {
     futures.all(fut);
   }
 
-  public void autoUndeploy(ModuleDescriptor md,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void autoUndeploy(ModuleDescriptor md,
+                    Handler<ExtendedAsyncResult<Void>> fut) {
 
     logger.info("autoUndeploy {}", md.getId());
     if (md.getId().startsWith(XOkapiHeaders.OKAPI_MODULE)) {
@@ -471,19 +459,8 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void get(String srvcId,
-    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    getNonEmpty(srvcId, res -> {
-      if (res.failed() && res.getType() == ErrorType.NOT_FOUND) {
-        fut.handle(new Success<>(new LinkedList<>()));
-      } else {
-        fut.handle(res);
-      }
-    });
-  }
-
-  public void getNonEmpty(String srvcId,
-    Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  void getNonEmpty(String srvcId,
+                   Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
 
     deployments.get(srvcId, res -> {
       if (res.failed()) {
@@ -506,6 +483,16 @@ public class DiscoveryManager implements NodeListener {
         }
         fut.handle(new Success<>(result));
       });
+    });
+  }
+
+  void get(String srvcId, Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+    getNonEmpty(srvcId, res -> {
+      if (res.failed() && res.getType() == ErrorType.NOT_FOUND) {
+        fut.handle(new Success<>(new LinkedList<>()));
+      } else {
+        fut.handle(res);
+      }
     });
   }
 
@@ -535,8 +522,50 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
+  void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+
+    deployments.get(srvcId, instId, resGet -> {
+      if (resGet.failed()) {
+        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        return;
+      }
+      DeploymentDescriptor md = resGet.result();
+      nodes.getAll(nodeRes -> {
+        if (nodeRes.failed()) {
+          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+          return;
+        }
+        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
+        // check that the node is alive, but only on non-url instances
+        if (!isAlive(md, nodesCollection)) {
+          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10805")));
+          return;
+        }
+        fut.handle(new Success<>(md));
+      });
+    });
+  }
+
+  private void healthList(List<DeploymentDescriptor> list,
+                          Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+
+    List<HealthDescriptor> all = new LinkedList<>();
+    CompList<List<HealthDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
+    for (DeploymentDescriptor md : list) {
+      Promise<HealthDescriptor> promise = Promise.promise();
+      health(md, res -> {
+        if (res.succeeded()) {
+          all.add(res.result());
+        }
+        promise.handle(res);
+      });
+      futures.add(promise);
+    }
+    futures.all(all, fut);
+  }
+
   private void health(DeploymentDescriptor md,
-    Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+                      Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
 
     HealthDescriptor hd = new HealthDescriptor();
     String url = md.getUrl();
@@ -570,25 +599,7 @@ public class DiscoveryManager implements NodeListener {
     }
   }
 
-  private void healthList(List<DeploymentDescriptor> list,
-    Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-
-    List<HealthDescriptor> all = new LinkedList<>();
-    CompList<List<HealthDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
-    for (DeploymentDescriptor md : list) {
-      Promise<HealthDescriptor> promise = Promise.promise();
-      health(md, res -> {
-        if (res.succeeded()) {
-          all.add(res.result());
-        }
-        promise.handle(res);
-      });
-      futures.add(promise);
-    }
-    futures.all(all, fut);
-  }
-
-  public void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+  void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
     DiscoveryManager.this.get(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -598,7 +609,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void health(String srvcId, String instId, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+  void health(String srvcId, String instId, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
     DiscoveryManager.this.get(srvcId, instId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -608,7 +619,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
+  void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
     getNonEmpty(srvcId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -618,7 +629,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
+  void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeID());
     }
@@ -626,11 +637,10 @@ public class DiscoveryManager implements NodeListener {
   }
 
   /**
-   * Translate node url or node name to its id. If not found, returns the id
-   * itself.
+   * Translate node url or node name to its id. If not found, returns the id itself.
    *
-   * @param nodeId
-   * @param fut
+   * @param nodeId node ID
+   * @param fut future
    */
   private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
     getNodes(res -> {
@@ -654,7 +664,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+  void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
     nodeUrl(nodeId, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -675,8 +685,8 @@ public class DiscoveryManager implements NodeListener {
     nodes.get(nodeId, fut);
   }
 
-  public void updateNode(String nodeId, NodeDescriptor nd,
-    Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+  void updateNode(String nodeId, NodeDescriptor nd,
+                  Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
@@ -708,7 +718,7 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  public void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
+  void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
     nodes.getKeys(resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
@@ -743,7 +753,7 @@ public class DiscoveryManager implements NodeListener {
   @Override
   public void nodeLeft(String nodeID) {
     nodes.remove(nodeID, res
-      -> logger.info("node.remove {} result={}", nodeID, res.result())
+        -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
   }
 }

@@ -96,13 +96,15 @@ public class BeanTest {
       + "    \"dockerArgs\" : {" + LS
       + "      \"Hostname\" : \"localhost\"," + LS
       + "      \"User\" : \"nobody\"" + LS
-      + "    }" + LS
+      + "    }," + LS
+      + "    \"dockerCMD\" : [ \"a\", \"b\" ]" + LS
       + "  }" + LS
       + "}";
 
     try {
       final DeploymentDescriptor md = Json.decodeValue(docSampleDeployment,
         DeploymentDescriptor.class);
+      assertEquals("b", md.getDescriptor().getDockerCmd()[1]);
       String pretty = Json.encodePrettily(md);
       assertEquals(docSampleDeployment, pretty);
     } catch (DecodeException ex) {

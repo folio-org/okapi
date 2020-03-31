@@ -16,10 +16,10 @@ import org.folio.okapi.common.Success;
 public class PostgresQuery {
 
   private SqlConnection conn;
-  private static Logger logger = OkapiLogger.get();
+  private static final Logger logger = OkapiLogger.get();
   private final PostgresHandle pg;
 
-  public PostgresQuery(PostgresHandle pg) {
+  PostgresQuery(PostgresHandle pg) {
     this.pg = pg;
     this.conn = null;
   }
@@ -40,8 +40,8 @@ public class PostgresQuery {
     });
   }
 
-  public void query(String sql, Tuple tuple,
-    Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
+  void query(String sql, Tuple tuple,
+             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
 
     getCon(gres -> {
       if (gres.failed()) {
@@ -52,7 +52,7 @@ public class PostgresQuery {
       conn.preparedQuery(sql, tuple, qres -> {
         if (qres.failed()) {
           logger.fatal("preparedQuery sql {} failed: {}",
-            sql, qres.cause().getMessage());
+              sql, qres.cause().getMessage());
           close();
           fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
           return;
@@ -62,8 +62,8 @@ public class PostgresQuery {
     });
   }
 
-  public void query(String sql,
-    Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
+  void query(String sql,
+             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
 
     getCon(gres -> {
       if (gres.failed()) {
@@ -74,7 +74,7 @@ public class PostgresQuery {
       conn.query(sql, qres -> {
         if (qres.failed()) {
           logger.fatal("query sql {} failed: {}",
-            sql, qres.cause().getMessage());
+              sql, qres.cause().getMessage());
           close();
           fut.handle(new Failure<>(ErrorType.INTERNAL, qres.cause()));
         } else {
@@ -84,7 +84,7 @@ public class PostgresQuery {
     });
   }
 
-  public void close() {
+  void close() {
     if (conn != null) {
       conn.close();
       conn = null;

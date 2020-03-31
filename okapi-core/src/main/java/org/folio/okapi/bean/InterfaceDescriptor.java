@@ -27,14 +27,17 @@ public class InterfaceDescriptor {
   private RoutingEntry[] handlers;
   private String[] scope;
 
+  /**
+   * Create interface descriptor.
+   */
   public InterfaceDescriptor() {
-    this.id = null;
-    this.version = null;
-    this.interfaceType = null;
-    this.handlers = null;
-    this.scope = null;
   }
 
+  /**
+   * Create interface descriptor with ID and version.
+   * @param id interface ID
+   * @param version interface version
+   */
   public InterfaceDescriptor(String id, String version) {
     this.id = id;
     if (validateVersion(version)) {
@@ -56,6 +59,10 @@ public class InterfaceDescriptor {
     return version;
   }
 
+  /**
+   * set interface version.
+   * @param version interface version
+   */
   public void setVersion(String version) {
     if (validateVersion(version)) {
       this.version = version;
@@ -77,7 +84,7 @@ public class InterfaceDescriptor {
   /**
    * Return the version parts.
    *
-   * @param version
+   * @param version full interface version
    * @return an array of 3 elements, XX, YY, ZZ, with -1 for missing parts
    */
   private static int[] versionParts(String version, int idx) {
@@ -107,8 +114,7 @@ public class InterfaceDescriptor {
   /**
    * Check if this InterfaceDescriptor is compatible with the required one.
    *
-   * @param required
-   * @return
+   * @param required interface that is required
    */
   public boolean isCompatible(InterfaceDescriptor required) {
     if (!this.getId().equals(required.getId())) {
@@ -123,8 +129,9 @@ public class InterfaceDescriptor {
       if (r == null) {
         break;
       }
-      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2])))
+      if (t[0] == r[0] && (t[1] > r[1] || (t[1] == r[1] && r[2] <= t[2]))) {
         return true;
+      }
     }
     return false;
   }
@@ -140,14 +147,16 @@ public class InterfaceDescriptor {
   /**
    * Checks if the interface is a regular handler. Not a system interface, not
    * multiple, and not old-fashioned _tenant. Used to skip conflict checks.
-   *
-   * @return
    */
   @JsonIgnore
   public boolean isRegularHandler() {
     return isType("proxy");
   }
 
+  /**
+   * checks if interface descriptor is certain type.
+   * @param type type to check
+   */
   @JsonIgnore
   public boolean isType(String type) {
     String haveType;
@@ -161,6 +170,9 @@ public class InterfaceDescriptor {
     return type.equals(haveType);
   }
 
+  /**
+   * Get routing entries as list.
+   */
   @JsonIgnore
   public List<RoutingEntry> getAllRoutingEntries() {
     List<RoutingEntry> all = new ArrayList<>();
@@ -180,7 +192,6 @@ public class InterfaceDescriptor {
 
   /**
    * Validate a moduleInterface.
-   *
    * Writes Warnings in the log in case of deprecated features.
    *
    * @param section "provides" or "requires" - the rules differ
@@ -202,12 +213,12 @@ public class InterfaceDescriptor {
     }
     if (version.matches("\\d+\\.\\d+\\.\\d+")) {
       pc.warn(prefix + "has a 3-part version number '" + version + "'."
-        + "Interfaces should be 2-part");
+          + "Interfaces should be 2-part");
     }
 
     if ("_tenant".equals(this.id) && !"1.0 1.1 1.2".contains(version)) {
       pc.warn(prefix + " is '" + version + "'."
-        + " should be '1.0/1.1/1.2'");
+          + " should be '1.0/1.1/1.2'");
     }
     if ("_tenantPermissions".equals(this.id) && !"1.0".equals(version)) {
       pc.warn(prefix + " is '" + version + "'. should be '1.0'");
@@ -268,6 +279,9 @@ public class InterfaceDescriptor {
     return "";
   }
 
+  /**
+   * Get scopes for interface (possibly empty).
+   */
   @JsonIgnore
   public List<String> getScopeArray() {
     if (scope == null) {

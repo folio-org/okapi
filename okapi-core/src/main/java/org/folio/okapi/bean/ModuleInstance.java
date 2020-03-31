@@ -14,10 +14,20 @@ public class ModuleInstance {
   private String authToken;
   private final String path; // The relative URI from the proxy request
   private final HttpMethod method;
-  private boolean handler;  // is true if handler; false otherwise (filter)
+  private final boolean handler;  // is true if handler; false otherwise (filter)
   private boolean withRetry;
 
-  public ModuleInstance(ModuleDescriptor md, RoutingEntry re, String path, HttpMethod method, boolean handler) {
+  /**
+   * Create module instance.
+   * @param md descriptor
+   * @param re routing entry
+   * @param path request path
+   * @param method HTTP method
+   * @param handler true: handler, false; filter/other
+   */
+  public ModuleInstance(ModuleDescriptor md, RoutingEntry re,
+                        String path, HttpMethod method, boolean handler) {
+
     this.md = md;
     this.url = null;
     this.re = re;

@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import org.apache.logging.log4j.Logger;
-import static org.folio.okapi.common.ErrorType.*;
 
 /**
  * Okapi client. Makes requests to other Okapi modules, or Okapi itself. Handles
@@ -55,7 +54,7 @@ public class OkapiClient {
     }
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
-        || hdr.startsWith("Accept")) {
+          || hdr.startsWith("Accept")) {
         String hv = ctx.request().getHeader(hdr);
         headers.put(hdr, hv);
         if (hdr.equals(XOkapiHeaders.REQUEST_ID)) {
@@ -65,6 +64,10 @@ public class OkapiClient {
     }
   }
 
+  /**
+   * specify HTTP headers.
+   * @param headers headers; a value of empty removes the header
+   */
   public void setHeaders(Map<String, String> headers) {
     this.headers.clear();
     if (headers != null) {
@@ -81,6 +84,10 @@ public class OkapiClient {
     }
   }
 
+  /**
+   * Specify OKAPI-URL for the client to use.
+   * @param okapiUrl URL string (such as http://localhost:1234)
+   */
   public void setOkapiUrl(String okapiUrl) {
     this.okapiUrl = okapiUrl.replaceAll("/+$", ""); // no trailing slash
   }
@@ -88,15 +95,24 @@ public class OkapiClient {
   /**
    * Explicit constructor.
    *
-   * @param okapiUrl
-   * @param vertx
+   * @param okapiUrl OKAPI URL
+   * @param vertx Vert.x handle
    * @param headers may be null
    */
   public OkapiClient(String okapiUrl, Vertx vertx, Map<String, String> headers) {
     this(vertx.createHttpClient(), okapiUrl, vertx, headers);
   }
 
-  public OkapiClient(HttpClient httpClient, String okapiUrl, Vertx vertx, Map<String, String> headers) {
+  /**
+   * Explicit constructor.
+   *
+   * @param httpClient client to use
+   * @param okapiUrl OKAPI URL
+   * @param vertx Vert.x handle
+   * @param headers may be null
+   */
+  public OkapiClient(HttpClient httpClient, String okapiUrl,
+      Vertx vertx, Map<String, String> headers) {
     init(vertx, httpClient);
     setOkapiUrl(okapiUrl);
     setHeaders(headers);
@@ -143,27 +159,41 @@ public class OkapiClient {
     headers.put(XOkapiHeaders.REQUEST_ID, reqId);
   }
 
+  /**
+   * Send HTTP request.
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data (null or "" for empty)
+   * @param fut future with response as string if successful
+   */
   public void request(HttpMethod method, String path, String data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<ExtendedAsyncResult<String>> fut) {
 
     request(method, path, Buffer.buffer(data == null ? "" : data), fut);
   }
 
+  /**
+   * Send HTTP request.
+   * @param method HTTP method
+   * @param path URI path
+   * @param data request data
+   * @param fut future with response as string is successful
+   */
   public void request(HttpMethod method, String path, Buffer data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                      Handler<ExtendedAsyncResult<String>> fut) {
 
     if (this.okapiUrl == null) {
-      fut.handle(new Failure<>(INTERNAL, "OkapiClient: No OkapiUrl specified"));
+      fut.handle(new Failure<>(ErrorType.INTERNAL, "OkapiClient: No OkapiUrl specified"));
       return;
     }
     HttpClientRequest req = request1(method, path, res -> {
-      if (res.failed() && res.getType() == ANY) {
+      if (res.failed() && res.getType() == ErrorType.ANY) {
         if (retryClosedCount > 0) {
           retryClosedCount--;
           vertx.setTimer(retryClosedWait, res1
-            -> request(method, path, data, fut));
+              -> request(method, path, data, fut));
         } else {
-          fut.handle(new Failure<>(INTERNAL, res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         }
       } else {
         fut.handle(res);
@@ -173,7 +203,7 @@ public class OkapiClient {
   }
 
   private HttpClientRequest request1(HttpMethod method, String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                                     Handler<ExtendedAsyncResult<String>> fut) {
 
     String url = this.okapiUrl + path;
     String tenant = "-";
@@ -183,7 +213,7 @@ public class OkapiClient {
 
     respHeaders = null;
     String logReqMsg = reqId + " REQ " + "okapiClient " + tenant + " "
-      + method.toString() + " " + url;
+        + method.toString() + " " + url;
     if (logInfo) {
       logger.info(logReqMsg);
     } else {
@@ -192,15 +222,15 @@ public class OkapiClient {
     long t1 = System.nanoTime();
     HttpClientRequest req = httpClient.requestAbs(method, url, req1 -> {
       if (req1.failed()) {
-        fut.handle(new Failure<>(ANY, req1.cause()));
+        fut.handle(new Failure<>(ErrorType.ANY, req1.cause()));
         return;
       }
       HttpClientResponse reqres = req1.result();
       statusCode = reqres.statusCode();
       long ns = System.nanoTime() - t1;
       String logResMsg = reqId
-        + " RES " + statusCode + " " + ns / 1000 + "us "
-        + "okapiClient " + url;
+          + " RES " + statusCode + " " + ns / 1000 + "us "
+          + "okapiClient " + url;
       if (logInfo) {
         logger.info(logResMsg);
       } else {
@@ -232,7 +262,7 @@ public class OkapiClient {
       });
       reqres.exceptionHandler(e -> {
         logger.warn("{} OkapiClient exception 1 :", reqId, e);
-        fut.handle(new Failure<>(INTERNAL, e.getMessage()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, e.getMessage()));
       });
     });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
@@ -243,22 +273,22 @@ public class OkapiClient {
   }
 
   public void post(String path, String data,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                   Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.POST, path, data, fut);
   }
 
   public void get(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                  Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.GET, path, "", fut);
   }
 
   public void delete(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                     Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.DELETE, path, "", fut);
   }
 
   public void head(String path,
-    Handler<ExtendedAsyncResult<String>> fut) {
+                   Handler<ExtendedAsyncResult<String>> fut) {
     request(HttpMethod.HEAD, path, "", fut);
   }
 
@@ -287,9 +317,9 @@ public class OkapiClient {
 
 
   /**
-   * Get the HTTP status code of last request
+   * Returns the HTTP status code of last request.
    *
-   * @return
+   * @return HTTP status
    */
   public int getStatusCode() {
     return statusCode;
@@ -310,15 +340,18 @@ public class OkapiClient {
   }
 
   /**
-   * Set the Okapi authentication token. Overrides the auth token. Should
-   * normally not be needed, but can be used in some special cases.
+   * Set the Okapi authentication token. Overrides the auth token.
+   * Should normally not be needed, but can be used in some special cases.
    *
-   * @param token
+   * @param token value to be used in the HTTP X-Okapi-Token header
    */
   public void setOkapiToken(String token) {
     headers.put(XOkapiHeaders.TOKEN, token);
   }
 
+  /**
+   * Close HTTP connection for client.
+   */
   public void close() {
     if (httpClient != null) {
       httpClient.close();

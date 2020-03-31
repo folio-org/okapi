@@ -19,7 +19,7 @@ class MongoUtil<T> {
 
   private final String collection;
   private final MongoClient cli;
-  private Logger logger = OkapiLogger.get();
+  private final Logger logger = OkapiLogger.get();
 
   public MongoUtil(String collection, MongoClient cli) {
     this.collection = collection;
@@ -60,15 +60,16 @@ class MongoUtil<T> {
     JsonObject document = new JsonObject(s);
     encode(document, null); // _id can not be put for Vert.x 3.5.1
     UpdateOptions options = new UpdateOptions().setUpsert(true);
-    cli.updateCollectionWithOptions(collection, jq, new JsonObject().put("$set", document), options, res -> {
-      if (res.succeeded()) {
-        fut.handle(new Success<>());
-      } else {
-        logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
-        logger.warn("Document: {}", document.encodePrettily());
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      }
-    });
+    cli.updateCollectionWithOptions(collection, jq,
+        new JsonObject().put("$set", document), options, res -> {
+          if (res.succeeded()) {
+            fut.handle(new Success<>());
+          } else {
+            logger.warn("MongoUtil.add {} failed: {}", id, res.cause().getMessage());
+            logger.warn("Document: {}", document.encodePrettily());
+            fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+          }
+        });
   }
 
   public void insert(T md, String id, Handler<ExtendedAsyncResult<Void>> fut) {

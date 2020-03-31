@@ -24,8 +24,8 @@ public class ModuleVersionReporter {
   private void readProperties(String path, String gitProperties) {
     try {
       final String fp = "META-INF/maven/" + path + "/pom.properties";
-      InputStream in = getClass().getClassLoader().
-        getResourceAsStream(fp);
+      InputStream in = getClass().getClassLoader()
+          .getResourceAsStream(fp);
       if (in != null) {
         Properties prop = new Properties();
         prop.load(in);
