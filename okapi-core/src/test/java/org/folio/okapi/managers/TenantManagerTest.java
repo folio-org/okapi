@@ -9,15 +9,16 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.service.impl.TenantStoreNull;
-import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
+import org.folio.okapi.util.TestBase;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class TenantManagerTest {
+public class TenantManagerTest extends TestBase {
 
   private Vertx vertx;
 
@@ -245,5 +246,15 @@ public class TenantManagerTest {
       });
       async.await();
     }
+  }
+
+  @Test
+  public void handleTimerForNonexistingTenant(TestContext context) {
+    TenantManager tenantManager = new TenantManager(null, new TenantStoreNull());
+    tenantManager.getTimers().add("tenantId_moduleId_0");
+    tenantManager.init(Vertx.vertx(), asyncAssertSuccess(context, done -> {
+      tenantManager.handleTimer("tenantId", "moduleId", 0);
+      Assert.assertEquals(0, tenantManager.getTimers().size());
+    }));
   }
 }
