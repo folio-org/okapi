@@ -11,6 +11,7 @@ import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -755,5 +756,19 @@ public class DiscoveryManager implements NodeListener {
     nodes.remove(nodeID, res
         -> logger.info("node.remove {} result={}", nodeID, res.result())
     );
+  }
+
+  /**
+   * Whether the node id of the cluster manager is the maximum node id of
+   * all nodes of the cluster manager.
+   *
+   * <p>Return true if running without cluster manager.
+   */
+  boolean isLeader() {
+    if (clusterManager == null) {
+      return true;
+    }
+    List<String> nodeIds = clusterManager.getNodes();
+    return clusterManager.getNodeID().equals(Collections.max(nodeIds));
   }
 }
