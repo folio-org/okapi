@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -269,28 +267,23 @@ public class ProxyService {
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
 
     if (auth != null) {
-      // Grab anything after 'Bearer' and whitespace
-      Pattern pattern = Pattern.compile("Bearer\\s+(.+)");
-      Matcher matcher = pattern.matcher(auth);
-      if (matcher.find() && matcher.groupCount() > 0) {
-        auth = matcher.group(1);
+      if (auth.startsWith("Bearer ")) {
+        auth = auth.substring(6).trim();
       }
-    }
-    if (auth != null && tok != null && !auth.equals(tok)) {
-      pc.responseError(400, messages.getMessage("10104"));
-      return null;
-    }
-    if (tok == null && auth != null) {
-      ctx.request().headers().add(XOkapiHeaders.TOKEN, auth);
+      if (tok != null && !auth.equals(tok)) {
+        pc.responseError(400, messages.getMessage("10104"));
+        return null;
+      }
+      ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
       ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
       pc.debug("Okapi: Moved Authorization header to X-Okapi-Token");
     }
-
     String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
     if (tenantId == null) {
       try {
-        tenantId = new OkapiToken(ctx).getTenant();
-        if (tenantId != null && !tenantId.isEmpty()) {
+        OkapiToken okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+        tenantId = okapiToken.getTenant();
+        if (tenantId != null) {
           ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
           pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
         }
