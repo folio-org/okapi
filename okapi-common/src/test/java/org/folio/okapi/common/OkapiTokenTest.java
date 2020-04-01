@@ -1,16 +1,15 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.json.JsonObject;
-import org.junit.Test;
-import static org.junit.Assert.*;
 import java.util.Base64;
+import org.junit.Assert;
+import org.junit.Test;
+
 
 public class OkapiTokenTest {
 
   @Test
   public void test() {
-    OkapiToken t = new OkapiToken();
-
     JsonObject o = new JsonObject();
     o.put("tenant", "test-lib");
     o.put("foo", "bar");
@@ -18,82 +17,52 @@ public class OkapiTokenTest {
     byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
     String e = new String(encodedBytes);
     String tokenStr = "method." + e + ".trail";
-    t.setToken(tokenStr);
-    assertEquals("test-lib", t.getTenant());
+    OkapiToken tok = new OkapiToken(tokenStr);
+    Assert.assertEquals("test-lib", tok.getTenant());
   }
 
   @Test
-  public void test2() {
-    String s = "eyJzdWIiOiJfX3VuZGVmaW5lZF9fIiwidXNlcl9pZCI6Ijk5OTk5OTk5L"
-      + "Tk5OTktNDk5OS05OTk5LTk5OTk5OTk5OTk5OSIsInRlbmFudCI6InRlc3RsaWIifQ";
-    byte[] buf = Base64.getDecoder().decode(s);
-    String got = new String(buf);
-    String exp = "{\"sub\":\"__undefined__\","
-      + "\"user_id\":\"99999999-9999-4999-9999-999999999999\",\"tenant\":\"testlib\"}";
-    assertEquals(exp, got);
+  public void noTenant() {
+    OkapiToken tok = new OkapiToken("a.eyB9Cg==.c"); // "{ }"
+    Assert.assertNull(tok.getTenant());
   }
 
   @Test
-  public void test3() {
-    OkapiToken tok = new OkapiToken();
-    tok.setToken(null);
-    assertEquals(null, tok.getTenant());
+  public void testNull() {
+    OkapiToken tok = new OkapiToken(null);
+    Assert.assertEquals(null, tok.getTenant());
+  }
 
-    Boolean ex;
+  private String exceptionMessage(String token) {
+    Exception e = Assert.assertThrows(
+        IllegalArgumentException.class,
+        () -> new OkapiToken(token).getTenant());
+    return e.getMessage();
+  }
 
-    ex = false;
-    tok.setToken("");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertTrue(ex);
+  @Test
+  public void emptyTokenException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage(""));
+  }
 
-    ex = false;
-    tok.setToken("a");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertTrue(ex);
+  @Test
+  public void noDotException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage("a"));
+  }
 
-    ex = false;
-    tok.setToken("a.b");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertTrue(ex);
+  @Test
+  public void oneDotException() {
+    Assert.assertEquals("Missing . separator for token", exceptionMessage("a.b"));
+  }
 
-    ex = false;
-    tok.setToken("a.b.c");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertTrue(ex);
+  @Test
+  public void singleByteException() {
+    Assert.assertEquals("Input byte[] should at least have 2 bytes for base64 bytes",
+        exceptionMessage("a.b.c"));
+  }
 
-    ex = false;
-    tok.setToken("a.ewo=.c");
-    try {
-      String v = tok.getTenant();
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertTrue(ex);
-
-    ex = false;
-    tok.setToken("a.eyB9Cg==.c"); // "{ }"
-    try {
-      String v = tok.getTenant();
-      assertEquals(null, v);
-    } catch (IllegalArgumentException e) {
-      ex = true;
-    }
-    assertFalse(ex);
+  @Test
+  public void endOfInputException() {
+    Assert.assertTrue(exceptionMessage("a.ewo=.c").contains("Unexpected end-of-input"));
   }
 }
