@@ -26,6 +26,7 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.ModuleVersionReporter;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.OkapiStringUtil;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.managers.DeploymentManager;
 import org.folio.okapi.managers.DiscoveryManager;
@@ -91,7 +92,7 @@ public class MainVerticle extends AbstractVerticle {
     }
     final String host = Config.getSysConf("host", "localhost", config);
     String okapiUrl = Config.getSysConf("okapiurl", "http://localhost:" + port, config);
-    okapiUrl = okapiUrl.replaceAll("/+$", ""); // Remove trailing slash, if there
+    okapiUrl = OkapiStringUtil.trimTrailingSlashes(okapiUrl);
     final String nodeName = Config.getSysConf("nodename", null, config);
     String storageType = Config.getSysConf("storage", "inmemory", config);
     String loglevel = Config.getSysConf("loglevel", null, config);
