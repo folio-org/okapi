@@ -1,19 +1,68 @@
 package org.folio.okapi.bean;
 
 import io.vertx.core.json.DecodeException;
+import org.apache.logging.log4j.Logger;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 public class RoutingEntryTest {
+  private final Logger logger = OkapiLogger.get();
+
   @Test
-  public void test1() {
+  public void testMethods() {
+    RoutingEntry t = new RoutingEntry();
+
+    t.setPath("/a");
+    assertFalse(t.match("/a", "GET"));
+
+    String[] methods = new String[2];
+    methods[0] = "HEAD";
+    methods[1] = "GET";
+    t.setMethods(methods);
+    assertTrue(t.match("/a", "GET"));
+    assertTrue(t.match("/a", "HEAD"));
+    assertFalse(t.match("/a", "POST"));
+    assertTrue(t.match("/a", null));
+
+    methods[0] = "HEAD";
+    methods[1] = "*";
+    t.setMethods(methods);
+    assertTrue(t.match("/a", "GET"));
+    assertTrue(t.match("/a", "HEAD"));
+    assertTrue(t.match("/a", "POST"));
+  }
+
+  @Test
+  public void testPath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
 
-    t.setPathPattern("/");
     t.setMethods(methods);
+    assertTrue(t.match("/a", "GET"));
+    assertFalse(t.match("/a", "POST"));
+
+    t.setPath("/a");
+    assertTrue(t.match(null, "GET"));
+    assertFalse(t.match("/", "GET"));
+    assertTrue(t.match("/a", "GET"));
+    assertTrue(t.match("/a/", "GET"));
+    assertFalse(t.match("", "GET"));
+    assertFalse(t.match("/?query", "GET"));
+    assertFalse(t.match("/#x", "GET"));
+  }
+
+  @Test
+    public void testPathPatternSimple() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    methods[0] = "GET";
+    t.setMethods(methods);
+    t.setPathPattern("/");
+    assertTrue(t.match(null, "GET"));
     assertTrue(t.match("/", "GET"));
     assertFalse(t.match("/", "POST"));
     assertFalse(t.match("/a", "GET"));
@@ -21,8 +70,16 @@ public class RoutingEntryTest {
     assertFalse(t.match("", "GET"));
     assertTrue(t.match("/?query", "GET"));
     assertTrue(t.match("/#x", "GET"));
+  }
 
+  @Test
+  public void testPathPatternGlob() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    methods[0] = "GET";
+    t.setMethods(methods);
     t.setPathPattern("/*");
+
     assertTrue(t.match("/", "GET"));
     assertFalse(t.match("/", "POST"));
     assertTrue(t.match("/a", "GET"));
@@ -41,6 +98,14 @@ public class RoutingEntryTest {
     assertFalse(t.match("/#x", "GET"));
     assertTrue(t.match("/b/a", "GET"));
     assertTrue(t.match("/c/b/a", "GET"));
+  }
+
+  @Test
+  public void testPathPatternId() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    methods[0] = "GET";
+    t.setMethods(methods);
 
     t.setPathPattern("/a/{id}");
     assertFalse(t.match("/", "GET"));
@@ -52,6 +117,8 @@ public class RoutingEntryTest {
     assertFalse(t.match("/#x", "GET"));
     assertTrue(t.match("/a/b", "GET"));
     assertTrue(t.match("/a/0-9", "GET"));
+    assertTrue(t.match("/a/0-9?a=1", "GET"));
+    assertTrue(t.match("/a/0-9#a=1", "GET"));
     assertFalse(t.match("/a/b/", "GET"));
     assertFalse(t.match("/a/b/", "GET"));
     assertFalse(t.match("/a/b/c", "GET"));
@@ -69,7 +136,31 @@ public class RoutingEntryTest {
     assertFalse(t.match("/a/b/", "GET"));
     assertFalse(t.match("/a/b/", "GET"));
     assertTrue(t.match("/a/b/c", "GET"));
+  }
 
+  @Test
+  public void testFastMatch() {
+    assertTrue(RoutingEntry.fastMatch("{id}/", "a/"));
+    assertFalse(RoutingEntry.fastMatch("{/", "a/"));
+    assertTrue(RoutingEntry.fastMatch("{", "a"));
+    assertTrue(RoutingEntry.fastMatch("{}/", "a/"));
+    assertFalse(RoutingEntry.fastMatch("{id}/", "/"));
+    assertFalse(RoutingEntry.fastMatch("/{id}/", "//"));
+    assertTrue(RoutingEntry.fastMatch("/{id}/", "/a/"));
+    assertTrue(RoutingEntry.fastMatch("{id}/", "a/#a?"));
+    assertTrue(RoutingEntry.fastMatch("{id}/", "a/?a#"));
+    assertFalse(RoutingEntry.fastMatch("{id}/", "a#/"));
+    assertFalse(RoutingEntry.fastMatch("{id}/", "a?/"));
+    assertTrue(RoutingEntry.fastMatch("{ud}/", "a/?a"));
+    assertTrue(RoutingEntry.fastMatch("{id1}/*/{id2}", "a/b/c/d"));
+    assertTrue(RoutingEntry.fastMatch("{id1}/*/{id2}", "a//d"));
+    assertFalse(RoutingEntry.fastMatch("{id1}/*/{id2}", "a/d"));
+    assertFalse(RoutingEntry.fastMatch("{id1}/*/{id2}", "//"));
+  }
+
+  @Test
+  public void testInvalidPatterns() {
+    RoutingEntry t = new RoutingEntry();
     boolean caught = false;
     try {
       t.setPathPattern("/a{a{");
@@ -125,11 +216,10 @@ public class RoutingEntryTest {
       caught = true;
     }
     assertFalse(caught);
-
   }
 
   @Test
-  public void test2() {
+  public void testRedirectPath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -160,7 +250,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void test3() {
+  public void testRewritePath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "*";

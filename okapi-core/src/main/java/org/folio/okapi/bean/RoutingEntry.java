@@ -32,8 +32,6 @@ public class RoutingEntry {
   private String[] modulePermissions;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
-  private String pathRegex;
-  @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
 
   public enum ProxyType {
@@ -219,6 +217,7 @@ public class RoutingEntry {
 
   public void setPath(String path) {
     this.path = path;
+    this.pathPattern = null;
   }
 
   public String getPathPattern() {
@@ -244,7 +243,7 @@ public class RoutingEntry {
       }
     }
     if (c != '}') {
-      throw new DecodeException("Missing {-character for {}-construct in pathPattern");
+      throw new DecodeException("Missing }-character for {}-construct in pathPattern");
     }
     return i;
   }
@@ -256,63 +255,95 @@ public class RoutingEntry {
    * @throws DecodeException if pattern is invalid.
    */
   public void setPathPattern(String pathPattern) {
+    this.path = null;
     this.pathPattern = pathPattern;
-    StringBuilder b = new StringBuilder();
-    b.append("^");
     int i = 0;
     while (i < pathPattern.length()) {
       char c = pathPattern.charAt(i);
       if (c == '{') {
-        b.append("[^/?#]+");
         i = skipNamedPattern(pathPattern, i, c);
-      } else if (c == '*') {
-        b.append(".*");
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
-      } else {
-        b.append(c);
       }
       i++;
     }
-    b.append("$");
-    this.pathRegex = b.toString();
   }
 
-  private boolean matchUri(String uri) {
-    if (uri != null) {
-      if (pathRegex != null) {
-        String p = uri;
-        int index = p.indexOf('?');
-        if (index > 0) {
-          p = p.substring(0, index);
+  static int cutUri(String uri) {
+    int len = uri.indexOf('?');
+    if (len == -1) {
+      len = uri.length();
+    }
+    int idx = uri.indexOf('#');
+    if (idx != -1 && idx < len) {
+      len = idx;
+    }
+    return len;
+  }
+
+  static boolean fastMatch(String pathPattern, String uri) {
+    return fastMatch(pathPattern, 0, uri, 0, cutUri(uri));
+  }
+
+  static boolean fastMatch(String pathPattern, int patternI, String uri, int uriI, int uriLength) {
+    while (patternI < pathPattern.length()) {
+      char patternC = pathPattern.charAt(patternI);
+      patternI++;
+      if (patternC == '{') {
+        while (patternI < pathPattern.length()) {
+          if (pathPattern.charAt(patternI) == '}') {
+            patternI++;
+            break;
+          }
+          patternI++;
         }
-        index = p.indexOf('#');
-        if (index > 0) {
-          p = p.substring(0, index);
+        boolean empty = true;
+        while (uriI < uriLength && uri.charAt(uriI) != '/') {
+          uriI++;
+          empty = false;
         }
-        return p.matches(pathRegex);
-      } else if (path != null && !uri.startsWith(path)) {
+        if (empty) {
+          return false;
+        }
+      } else if (patternC != '*') {
+        if (uriI == uriLength || patternC != uri.charAt(uriI)) {
+          return false;
+        }
+        uriI++;
+      } else {
+        do {
+          if (fastMatch(pathPattern, patternI, uri, uriI, uriLength)) {
+            return true;
+          }
+          uriI++;
+        } while (uriI <= uriLength);
         return false;
       }
     }
-    return true;
+    return uriI == uriLength;
+  }
+
+  private boolean matchUri(String uri) {
+    if (uri == null) {
+      return true;
+    }
+    if (pathPattern != null) {
+      return fastMatch(pathPattern, uri);
+    }
+    return path == null || uri.startsWith(path);
   }
 
   /**
-   * Match path and method against routing entry.
-   * If path includes query or fragment, that's not considered in match.
-   * @param path HTTP path
+   * Match uri and method against routing entry.
+   * @param uri path in fact
    * @param method HTTP method
    * @return true on match; false otherwise
    */
-  public boolean match(String path, String method) {
-    if (!matchUri(path)) {
-      return false;
-    }
+  public boolean match(String uri, String method) {
     if (methods != null) {
       for (String m : methods) {
         if (method == null || m.equals("*") || m.equals(method)) {
-          return true;
+          return matchUri(uri);
         }
       }
     }
@@ -325,28 +356,15 @@ public class RoutingEntry {
    * @return null if no redirect; redirect path otherwise
    */
   public String getRedirectUri(String uri) {
-    if (pathRegex != null) {
-      int index1 = uri.indexOf('?');
-      final int index2 = uri.indexOf('#');
-      if (index1 == -1) {
-        index1 = index2;
-      }
-      String p;
-      if (index1 != -1) {
-        p = uri.substring(0, index1);
-      } else {
-        p = uri;
-      }
-      p = p.replaceAll(pathRegex, this.redirectPath);
-      if (index1 != -1) {
-        p = p.concat(uri.substring(index1));
-      }
-      return p;
-    } else if (path != null) {
+    if (path != null) {
       return redirectPath + uri.substring(path.length());
-    } else {
-      return null;
     }
+    final int indx1 = cutUri(uri);
+    String p = this.redirectPath;
+    if (indx1 < uri.length()) {
+      p = p.concat(uri.substring(indx1));
+    }
+    return p;
   }
 
   public String getPhase() {
