@@ -1,3 +1,21 @@
+## 2.38.0 2020-04-02
+
+A lot of documentation fixes and reformating because Okapi was changed to
+conform to Google code style (or close to). This included a few changes
+to the public API.
+
+Some performance improvements in various areas.
+
+ * OKAPI-821 timers: use node leader rather than distributed locks
+ * OKAPI-820 Wrong method for system call to auth and reusing clients
+ * OKAPI-818 Avoid regular expression for Authorization header match
+ * OKAPI-817 Faster match on routing entries
+ * OKAPI-809 Google Code style plugin and conformance. The two public classes
+   from okapi-common renamed: CQLUtil → CqlUtil and URLDecoder → UrlDecoder.
+ * OKAPI-819 Fix Missing permissions POSTed to permissions module
+ * OKAPI-773 Switch instance in "discovery" only if all modules
+   installed/upgraded succesfully
+
 ## 2.37.0 2020-02-26
 
  * OKAPI-797/OKAPI-799 Tenant init fails with Docker deployment
