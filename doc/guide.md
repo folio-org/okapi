@@ -1941,7 +1941,7 @@ a given interface. The interface specified does not have to be
 provided by another module. However, if the interface is provided
 by another module, it must be compatible (major, minor).
 
-The optional property has same structure as the requires property
+The `optional` property has same structure as the `requires` property
 in the module descriptor.
 
 ### Multiple interfaces
@@ -2569,8 +2569,8 @@ For Okapi version 1.11.0 and later the modules may be referred to
 without version. In the example above, we could have used
 `mod-users-bl`.  In this case, the latest available module will be
 picked for `action` = `enable` and the installed module will be picked
-for `action` = `disable`.  Okapi will always respond with the complete -
-resulting - module IDs.
+for `action` = `disable`.  Okapi will always respond with the complete,
+resulting, module IDs.
 
 If a module is upgraded from an older version, the `from` property
 contains the old module ID.
@@ -2788,9 +2788,9 @@ HTTP requests).  The port is passed as `%p` in the value of properties
 `exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
 exposed port (`EXPOSE`) to the dynamically assigned port.
 
-When starting Docker modules can be accessed from Okapi at the host
+When starting, Docker modules can be accessed from Okapi at the host
 given by setting `containerHost` - defaults to `localhost`.
-The value of `containerHost` can be referred to as `%c` in in
+The value of `containerHost` can be referred to as `%c` in
 `dockerArgs` of the deployment.
 
 It is also possible to refer to an already-launched process (maybe
@@ -2803,10 +2803,10 @@ URL where the module is running.
 Okapi uses the [Docker Engine API](https://docs.docker.com/engine/api/)
 for managing modules. Okapi can be configured to use the local socket
 (unix://[/path to socket]) or the HTTP TCP listener (tcp://[host]:[port][path]).
-Note that unix domain socket option is only avaiable on Linux platforms
+Note that unix domain socket option is only available on Linux platforms
 and Okapi 2.36 and later.
 
-Note that when the unix domain socket option is used the user-ID of
+Note that when the unix domain socket option is used, the user-ID of
 the Okapi process must be part of the `docker` group.
 
 For earlier versions of Okapi, Docker must be listening on a TCP port in
@@ -3054,7 +3054,7 @@ during the operation.
       -HContent-Type:application/json "-HAccept:*/*" \
       http://localhost:8081/_/tenant
 
-Add 'loadSample=true` to parameters load sample data as well.
+Add 'loadSample=true` to parameters, to load sample data as well.
 
 #### Upgrading
 
@@ -3104,7 +3104,7 @@ that are passed to the module when enabled or upgraded. Passing those
 are only performed when tenantParameters is specified for install and
 when the tenant interface is version 1.2.
 
-In Folio two such parameters are widely recognized:
+In FOLIO two such parameters are widely recognized:
 
  * `loadReference` with value `true` loads reference data.
  * `loadSample` with value `true` loads sample data.
