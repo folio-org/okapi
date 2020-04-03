@@ -89,8 +89,7 @@ public class ProxyContext {
     timer = DropwizardHelper.getTimerContext(key);
     if (waitMs > 0) {
       timerId = ctx.vertx().setPeriodic(waitMs, res
-          -> logger.warn(reqId + " WAIT {} {} {} {}",
-          ctx.request().remoteAddress(), tenant,
+          -> logger.warn("{} WAIT {} {} {} {}", reqId, ctx.request().remoteAddress(), tenant,
           ctx.request().method(), ctx.request().path())
       );
     }
