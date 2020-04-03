@@ -2539,8 +2539,8 @@ public class ProxyTest {
       .body("Okapi").post("/timercall/100")
       .then().statusCode(200).log().ifValidationFails();
 
-    // 10 msecond period and 100 total wait time.. 1 tick per call.. So up to 10 calls
-    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 110, "Got " + timerDelaySum);
+    // 10 msecond period and approx 100 total wait time.. 1 tick per call..
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 112, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
 
     // disable and enable (quickly)
