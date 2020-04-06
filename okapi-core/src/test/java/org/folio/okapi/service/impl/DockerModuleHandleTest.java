@@ -72,6 +72,7 @@ public class DockerModuleHandleTest {
       }
       async.complete();
     });
+    async.await(1000);
   }
 
   @Test
@@ -88,7 +89,6 @@ public class DockerModuleHandleTest {
       "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
     dh.getUrl("/version", res -> {
-      Assume.assumeTrue(res.succeeded());
       if (res.failed()) {
         logger.warn(res.cause().getMessage());
         async.complete();
@@ -110,5 +110,6 @@ public class DockerModuleHandleTest {
         });
       });
     });
+    async.await(1000);
   }
 }
