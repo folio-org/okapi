@@ -2893,7 +2893,8 @@ The routing entry must also include two properties, `unit` and
 `delay`, where `unit` is one of `millisecond`, `second`, `minute`,
 `hour`, `day`.
 
-The snippet below is an example of a module that gets `POST /testb` every 5 minutes.
+The snippet below is an example of a module that gets `POST /testb/1`
+every 5 minutes and `POST /testb/2` every half hour.
 
 ```
 {
@@ -2908,9 +2909,14 @@ The snippet below is an example of a module that gets `POST /testb` every 5 minu
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/testb",
+          "pathPattern": "/testb/1",
           "unit": "minute",
           "delay": "5"
+        }, {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/2",
+          "unit": "minute",
+          "delay": "30"
         }
       ]
     }
