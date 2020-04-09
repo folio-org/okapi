@@ -53,7 +53,6 @@ public class DockerModuleHandleTest {
 
   @Test
   public void testNoDockerAtPort(TestContext context) {
-    Async async = context.async();
     Vertx vertx = Vertx.vertx();
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setDockerImage("folioci/mod-users:5.0.0-SNAPSHOT");
@@ -64,21 +63,14 @@ public class DockerModuleHandleTest {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
       "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
-    dh.start(res -> {
-      context.assertTrue(res.failed());
-      if (res.failed()) {
-        context.assertTrue(res.cause().getMessage().contains("Connection refused"),
-          res.cause().getMessage());
-      }
-      async.complete();
-    });
-    async.await(1000);
+    dh.start(context.asyncAssertFailure(cause ->
+      context.assertTrue(cause.getMessage().contains("Connection refused"),
+        cause.getMessage())
+    ));
   }
 
   @Test
   public void testDockerVersionAtLocal(TestContext context) {
-    Async async = context.async();
-
     VertxOptions options = new VertxOptions();
     options.setPreferNativeTransport(true);
     Vertx vertx = Vertx.vertx(options);
@@ -88,28 +80,27 @@ public class DockerModuleHandleTest {
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
       "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
+    JsonObject versionRes = new JsonObject();
+    Async async = context.async();
     dh.getUrl("/version", res -> {
-      if (res.failed()) {
-        logger.warn(res.cause().getMessage());
-        async.complete();
-        return;
+      if (res.succeeded()) {
+        versionRes.put("result", res.result());
       }
-      dh.deleteUrl("/version", "msg", res2 -> { // provoke 404 not found
-        context.assertTrue(res2.failed());
-        if (res2.failed()) {
-          context.assertTrue(res2.cause().getMessage().startsWith("msg HTTP error 404"),
-            res2.cause().getMessage());
-        }
-        dh.postUrlJson("/version", "msg", "{}", res3 -> { // provoke 404 not found
-          context.assertTrue(res2.failed());
-          if (res3.failed()) {
-            context.assertTrue(res3.cause().getMessage().startsWith("msg HTTP error 404"),
-              res3.cause().getMessage());
-          }
-          async.complete();
-        });
-      });
+      async.complete();
     });
     async.await(1000);
+    Assume.assumeTrue(versionRes.containsKey("result"));
+    context.assertTrue(versionRes.getJsonObject("result").containsKey("Platform"));
+
+    // provoke 404 not found
+    dh.deleteUrl("/version", "msg", context.asyncAssertFailure(cause -> {
+      context.assertTrue(cause.getMessage().startsWith("msg HTTP error 404"),
+        cause.getMessage());
+      // provoke 404 not found
+      dh.postUrlJson("/version", "msg", "{}", context.asyncAssertFailure(cause2 -> {
+        context.assertTrue(cause2.getMessage().startsWith("msg HTTP error 404"),
+          cause2.getMessage());
+      }));
+    }));
   }
 }
