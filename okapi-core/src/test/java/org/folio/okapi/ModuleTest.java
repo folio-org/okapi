@@ -138,7 +138,7 @@ public class ModuleTest {
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
         // take version string from https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
-        postgres = new EmbeddedPostgres(() -> "10.11-3");
+        postgres = new EmbeddedPostgres(() -> "10.12-1");
         postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
     } else if ("mongo".equals(value)) {
