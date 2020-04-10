@@ -90,7 +90,7 @@ public class DockerModuleHandleTest {
     });
     async.await(1000);
     Assume.assumeTrue(versionRes.containsKey("result"));
-    context.assertTrue(versionRes.getJsonObject("result").containsKey("Platform"));
+    context.assertTrue(versionRes.getJsonObject("result").containsKey("Version"));
 
     // provoke 404 not found
     dh.deleteUrl("/version", "msg", context.asyncAssertFailure(cause -> {
