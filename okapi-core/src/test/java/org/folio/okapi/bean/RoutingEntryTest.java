@@ -1,9 +1,12 @@
 package org.folio.okapi.bean;
 
 import io.vertx.core.json.DecodeException;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.ProxyContext;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 
@@ -259,5 +262,25 @@ public class RoutingEntryTest {
     t.setRewritePath("/events");
     assertTrue(t.match("/", "GET"));
     assertEquals("/events", t.getRewritePath());
+  }
+
+  @Test
+  public void testPermissionsRequired() {
+    ProxyContext pc = Mockito.mock(ProxyContext.class);
+    RoutingEntry t = new RoutingEntry();
+    String mod = "test";
+    String perm = "user.read";
+    String expected = "missing field permissionsRequired";
+
+    assertTrue(t.validateHandlers(pc, mod).contains(expected));
+    assertTrue(t.validateFilters(pc, mod).contains(expected));
+
+    t.setPermissionsRequired(new String[] {});
+    assertFalse(t.validateHandlers(pc, mod).contains(expected));
+    assertFalse(t.validateFilters(pc, mod).contains(expected));
+
+    t.setPermissionsRequired(new String[] { perm });
+    assertFalse(t.validateHandlers(pc, mod).contains(expected));
+    assertFalse(t.validateFilters(pc, mod).contains(expected));
   }
 }
