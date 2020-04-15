@@ -135,14 +135,14 @@ public class ModuleManager {
       }
       List<ModuleDescriptor> modlist = gres.result();
       HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
+      for (ModuleDescriptor md : modlist) {
+        mods.put(md.getId(), md);
+      }
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
       if (!conflicts.isEmpty() || !deps.isEmpty()) {
         fut.handle(new Success<>()); // failures even before we change enabled modules
         return;
-      }
-      for (ModuleDescriptor md : modlist) {
-        mods.put(md.getId(), md);
       }
       if (modFrom != null) {
         mods.remove(modFrom.getId());
