@@ -3302,6 +3302,17 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    c = api.createRestAssured3();
+    c.given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
   }
 
 }
