@@ -664,6 +664,26 @@ types:
             description: Server Error
             body:
               text/plain:
+      delete:
+        description: Disable modules for tenant
+        responses:
+          204:
+            description: OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
       /{module_id}:
         description: CRUD service for getting module and upgrading module
           for a tenant.

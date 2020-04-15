@@ -8,6 +8,7 @@ public class TenantInstallOptions {
   private boolean purge = false;
   private String tenantParameters;
   private boolean npmSnapshot = false;
+  private boolean depCheck = true;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -56,5 +57,14 @@ public class TenantInstallOptions {
   public boolean getNpmSnapshot() {
     return npmSnapshot;
   }
+
+  public void setDepCheck(boolean v) {
+    depCheck = v;
+  }
+
+  public boolean getDepCheck() {
+    return depCheck;
+  }
+
 
 }
