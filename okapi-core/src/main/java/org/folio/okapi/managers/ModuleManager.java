@@ -138,9 +138,8 @@ public class ModuleManager {
       for (ModuleDescriptor md : modlist) {
         mods.put(md.getId(), md);
       }
-      String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
-      if (!conflicts.isEmpty() || !deps.isEmpty()) {
+      if (!deps.isEmpty()) {
         fut.handle(new Success<>()); // failures even before we change enabled modules
         return;
       }
@@ -156,7 +155,7 @@ public class ModuleManager {
         }
         mods.put(modTo.getId(), modTo);
       }
-      conflicts = DepResolution.checkAllConflicts(mods);
+      String conflicts = DepResolution.checkAllConflicts(mods);
       deps = DepResolution.checkAllDependencies(mods);
       if (!conflicts.isEmpty() || !deps.isEmpty()) {
         fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
