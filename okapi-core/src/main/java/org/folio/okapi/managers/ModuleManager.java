@@ -138,6 +138,13 @@ public class ModuleManager {
       for (ModuleDescriptor md : modlist) {
         mods.put(md.getId(), md);
       }
+      if (modTo == null) {
+        String deps = DepResolution.checkAllDependencies(mods);
+        if (!deps.isEmpty()) {
+          fut.handle(new Success<>()); // failures even before we remove a module
+          return;
+        }
+      }
       if (modFrom != null) {
         mods.remove(modFrom.getId());
       }
@@ -152,11 +159,11 @@ public class ModuleManager {
       }
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
-      if (conflicts.isEmpty() && deps.isEmpty()) {
-        fut.handle(new Success<>());
-      } else {
+      if (!conflicts.isEmpty() || !deps.isEmpty()) {
         fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
+        return;
       }
+      fut.handle(new Success<>());
     });
   }
 
@@ -213,7 +220,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList, newList);
+        String res = DepResolution.checkDependencies(tempList.values(), newList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(ErrorType.USER, res));
           return;
