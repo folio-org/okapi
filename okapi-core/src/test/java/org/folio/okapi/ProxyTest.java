@@ -3154,10 +3154,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"1.0\" } ]," + LS
@@ -3197,10 +3199,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"2.0\" } ]," + LS
