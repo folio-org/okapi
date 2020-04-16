@@ -280,6 +280,11 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
+        + "    \"methods\" :  [ \"DELETE\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/modules\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.modules.delete\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/modules/{moduleId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.modules.enabled.post\" ], "
@@ -656,9 +661,11 @@ public class InternalModule {
   private void enableModuleForTenant(ProxyContext pc, String id, String body,
                                      Handler<ExtendedAsyncResult<String>> fut) {
     try {
+      TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, null, td, pc, eres -> {
+      tenantManager.enableAndDisableModule(id, options, null, td, pc, eres -> {
         if (eres.failed()) {
           fut.handle(new Failure<>(eres.getType(), eres.cause()));
           return;
@@ -675,7 +682,8 @@ public class InternalModule {
   private void disableModuleForTenant(ProxyContext pc, String id, String module,
                                       Handler<ExtendedAsyncResult<String>> fut) {
     pc.debug("disablemodule t=" + id + " m=" + module);
-    tenantManager.enableAndDisableModule(id, module, null, pc, res -> {
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    tenantManager.enableAndDisableModule(id, options, module, null, pc, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -711,7 +719,6 @@ public class InternalModule {
                                        Handler<ExtendedAsyncResult<String>> fut) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-
     tenantManager.installUpgradeModules(id, pc, options, null, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -724,11 +731,12 @@ public class InternalModule {
 
   private void upgradeModuleForTenant(ProxyContext pc, String id, String mod,
                                       String body, Handler<ExtendedAsyncResult<String>> fut) {
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, module_from, td, pc, res -> {
+      tenantManager.enableAndDisableModule(id, options, module_from, td, pc, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
@@ -768,6 +776,20 @@ public class InternalModule {
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(ErrorType.USER, ex));
     }
+  }
+
+  private void disableModulesForTenant(ProxyContext pc, String id,
+                                       Handler<ExtendedAsyncResult<String>> fut) {
+
+    logger.info("disableModulesForTenant..........................................");
+    TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
+    tenantManager.disableModules(id, options, pc).setHandler(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+        return;
+      }
+      fut.handle(new Success<>(""));
+    });
   }
 
   private void getModuleForTenant(String id, String mod,
@@ -1338,6 +1360,10 @@ public class InternalModule {
         }
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("modules")) {
           enableModuleForTenant(pc, decodedSegs[4], req, fut);
+          return;
+        }
+        if (n == 6 && m.equals(HttpMethod.DELETE) && segments[5].equals("modules")) {
+          disableModulesForTenant(pc, decodedSegs[4], fut);
           return;
         }
         // /_/proxy/tenants/:id/modules/:mod

@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
@@ -269,77 +270,110 @@ public class TenantManager {
     });
   }
 
-  void enableAndDisableModule(String tenantId,
+  void enableAndDisableModule(String tenantId, TenantInstallOptions options,
                               String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
                               Handler<ExtendedAsyncResult<String>> fut) {
-
     tenants.get(tenantId, tres -> {
       if (tres.failed()) {
         fut.handle(new Failure<>(tres.getType(), tres.cause()));
-      } else {
-        Tenant tenant = tres.result();
-        enableAndDisableModule(tenant, moduleFrom, td, pc, fut);
+        return;
       }
+      Tenant tenant = tres.result();
+      enableAndDisableModule(tenant, options, moduleFrom, td, pc, fut);
     });
   }
 
-  private void enableAndDisableModule(Tenant tenant,
+  private void enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
                                       String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
                                       Handler<ExtendedAsyncResult<String>> fut) {
 
     if (td == null) {
-      moduleManager.get(moduleFrom, resFrom -> {
-        if (resFrom.failed()) {
-          fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
-        } else {
-          ModuleDescriptor mdFrom = resFrom.result();
-          enableAndDisableModule2(tenant, null, mdFrom, null, pc, fut);
-        }
-      });
+      enableAndDisableModule2(tenant, options, moduleFrom, null, pc, fut);
     } else {
       moduleManager.getLatest(td.getId(), resTo -> {
         if (resTo.failed()) {
           fut.handle(new Failure<>(resTo.getType(), resTo.cause()));
-        } else {
-          ModuleDescriptor mdTo = resTo.result();
-          moduleManager.get(moduleFrom, resFrom -> {
-            if (resFrom.failed()) {
-              fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
-            } else {
-              ModuleDescriptor mdFrom = resFrom.result();
-              enableAndDisableModule2(tenant, null, mdFrom, mdTo, pc, fut);
-            }
-          });
+          return;
         }
+        ModuleDescriptor mdTo = resTo.result();
+        enableAndDisableModule2(tenant, options, moduleFrom, mdTo, pc, fut);
       });
     }
   }
 
-  private void enableAndDisableModule2(
-      Tenant tenant, String tenantParameters,
-      ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
-      Handler<ExtendedAsyncResult<String>> fut) {
-
-    moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo, cres -> {
-      if (cres.failed()) {
-        pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
-        fut.handle(new Failure<>(cres.getType(), cres.cause()));
+  private Future<Void> enableAndDisableModuleFut(String tenantId, TenantInstallOptions options,
+                                                 String moduleFrom, TenantModuleDescriptor td,
+                                                 ProxyContext pc) {
+    Promise<Void> promise = Promise.promise();
+    enableAndDisableModule(tenantId, options, moduleFrom, td, pc, res -> {
+      if (res.failed()) {
+        promise.fail(res.cause());
       } else {
-        pc.debug("enableAndDisableModule: depcheck ok");
-        ead1TenantInterface(tenant, tenantParameters, mdFrom, mdTo, false, pc, res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(res.getType(), res.cause()));
+        promise.complete();
+      }
+    });
+    return promise.future();
+  }
+
+  Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
+    Promise<Void> promise = Promise.promise();
+    options.setDepCheck(false);
+    listModules(tenantId, res -> {
+      if (res.failed()) {
+        promise.fail(res.cause());
+        return;
+      }
+      Future<Void> future = Future.succeededFuture();
+      for (ModuleDescriptor md : res.result()) {
+        future = future.compose(x -> enableAndDisableModuleFut(tenantId, options,
+          md.getId(), null, pc));
+      }
+      future.setHandler(promise::handle);
+    });
+    return promise.future();
+  }
+
+  private void enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
+                                      String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc,
+                                      Handler<ExtendedAsyncResult<String>> fut) {
+
+    moduleManager.get(moduleFrom, resFrom -> {
+      if (resFrom.failed()) {
+        fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
+        return;
+      }
+      ModuleDescriptor mdFrom = resFrom.result();
+      if (options.getDepCheck()) {
+        moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo, cres -> {
+          if (cres.failed()) {
+            pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
+            fut.handle(new Failure<>(cres.getType(), cres.cause()));
             return;
           }
-          ead5commit(tenant, mdFrom, mdTo, pc, res1 -> {
-            if (res1.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, res.cause()));
-              return;
-            }
-            fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
-          });
+          enableAndDisableModule2(tenant, options, mdFrom, mdTo, pc, fut);
         });
+      } else {
+        enableAndDisableModule2(tenant, options, mdFrom, mdTo, pc, fut);
       }
+    });
+  }
+
+  private void enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
+                                       ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                       ProxyContext pc, Handler<ExtendedAsyncResult<String>> fut) {
+
+    ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, false, pc, res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(res.getType(), res.cause()));
+        return;
+      }
+      ead5commit(tenant, mdFrom, mdTo, pc, res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+          return;
+        }
+        fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
+      });
     });
   }
 

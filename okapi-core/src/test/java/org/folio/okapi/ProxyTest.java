@@ -1631,11 +1631,26 @@ public class ProxyTest {
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1")
       .then().statusCode(204);
 
-    // Disable the sample2 module. It has a tenant request handler which is
+    // Disable the sample2 module + auth-1. It has a tenant request handler which is
     // no longer invoked, so it does not matter we don't have a running instance
-    given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2-1")
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).body(equalTo("[ ]"));
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/unknown-tenant/modules")
+      .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given().delete(locationTenantRoskilde)
