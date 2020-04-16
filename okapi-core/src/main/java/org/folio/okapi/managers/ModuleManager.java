@@ -220,7 +220,7 @@ public class ModuleManager {
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList, newList);
+        String res = DepResolution.checkDependencies(tempList.values(), newList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(ErrorType.USER, res));
           return;
