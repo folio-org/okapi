@@ -1627,9 +1627,12 @@ public class ProxyTest {
       .then().statusCode(404); // because sample2 was removed
 
     // Disable the sample module. No tenant-destroy for sample
-    given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1")
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1?purge=true")
       .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
     // Disable the sample2 module + auth-1. It has a tenant request handler which is
     // no longer invoked, so it does not matter we don't have a running instance

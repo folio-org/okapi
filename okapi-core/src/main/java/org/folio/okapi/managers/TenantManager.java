@@ -362,7 +362,7 @@ public class TenantManager {
                                        ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                        ProxyContext pc, Handler<ExtendedAsyncResult<String>> fut) {
 
-    ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, false, pc, res -> {
+    ead1TenantInterface(tenant, options, mdFrom, mdTo, pc, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
         return;
@@ -385,8 +385,8 @@ public class TenantManager {
    * @param mdTo module to
    * @param fut future
    */
-  private void ead1TenantInterface(Tenant tenant, String tenantParameters,
-                                   ModuleDescriptor mdFrom, ModuleDescriptor mdTo, boolean purge,
+  private void ead1TenantInterface(Tenant tenant, TenantInstallOptions options,
+                                   ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
     JsonObject jo = new JsonObject();
@@ -396,6 +396,8 @@ public class TenantManager {
     if (mdFrom != null) {
       jo.put("module_from", mdFrom.getId());
     }
+    String tenantParameters = options.getTenantParameters();
+    boolean purge = mdTo == null && options.getPurge();
     getTenantInterface(mdFrom, mdTo, jo, tenantParameters, purge, ires -> {
       if (ires.failed()) {
         if (ires.getType() == ErrorType.NOT_FOUND) {
@@ -1085,7 +1087,6 @@ public class TenantManager {
     TenantModuleDescriptor tm = it.next();
     ModuleDescriptor mdFrom = null;
     ModuleDescriptor mdTo = null;
-    boolean purge = false;
     if (tm.getAction() == Action.enable) {
       if (tm.getFrom() != null) {
         mdFrom = modsAvailable.get(tm.getFrom());
@@ -1093,9 +1094,6 @@ public class TenantManager {
       mdTo = modsAvailable.get(tm.getId());
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
-      if (options.getPurge()) {
-        purge = true;
-      }
     }
     if (mdFrom == null && mdTo == null) {
       installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
@@ -1103,7 +1101,7 @@ public class TenantManager {
     }
     ModuleDescriptor mdFromFinal = mdFrom;
     ModuleDescriptor mdToFinal = mdTo;
-    ead1TenantInterface(tenant, options.getTenantParameters(), mdFrom, mdTo, purge, pc, res -> {
+    ead1TenantInterface(tenant, options, mdFrom, mdTo, pc, res -> {
       if (res.failed()) {
         tm.setMessage(res.cause().getMessage());
         fut.handle(new Failure<>(res.getType(), res.cause()));
