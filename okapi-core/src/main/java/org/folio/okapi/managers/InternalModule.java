@@ -781,7 +781,6 @@ public class InternalModule {
   private void disableModulesForTenant(ProxyContext pc, String id,
                                        Handler<ExtendedAsyncResult<String>> fut) {
 
-    logger.info("disableModulesForTenant..........................................");
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     tenantManager.disableModules(id, options, pc).setHandler(res -> {
       if (res.failed()) {
