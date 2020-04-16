@@ -1,3 +1,15 @@
+## 2.39.0 2020-04-16
+
+ * OKAPI-596 Facility: disable all modules for tenant
+   `DELETE /_/proxy/tenants/{tenant}/modules`
+ * OKAPI-752 Provide example in documentation with two timers
+ * OKAPI-826 PostgreSQL 10.11-3 Mac version does not exist
+   on enterprisedb.com
+ * OKAPI-822 ProxyTest.testTimer may fail
+ * OKAPI-823 DockerModuleHandleTest may fail for insufficient
+   Docker permissions
+ * OKAPI-827 Fix disabling module fails for existing broken dependencies
+
 ## 2.38.0 2020-04-02
 
 A lot of documentation fixes and reformating because Okapi was changed to
