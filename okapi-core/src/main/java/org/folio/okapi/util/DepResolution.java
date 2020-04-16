@@ -97,19 +97,19 @@ public class DepResolution {
   }
 
   private static List<String> checkDependenciesInts(
-      ModuleDescriptor md, Map<String, ModuleDescriptor> modlist,
+      ModuleDescriptor md, Collection<ModuleDescriptor> modlist,
       Map<String, List<InterfaceDescriptor>> ints) {
 
     List<String> list = new LinkedList<>(); // error messages (empty=no errors)
     logger.debug("Checking dependencies of {}", md.getId());
     for (InterfaceDescriptor req : md.getRequiresList()) {
-      String res = checkOneDependency(md, req, ints, modlist.values(), false);
+      String res = checkOneDependency(md, req, ints, modlist, false);
       if (res != null) {
         list.add(res);
       }
     }
     for (InterfaceDescriptor req : md.getOptionalList()) {
-      String res = checkOneDependency(md, req, ints, modlist.values(), true);
+      String res = checkOneDependency(md, req, ints, modlist, true);
       if (res != null) {
         list.add(res);
       }
@@ -152,11 +152,9 @@ public class DepResolution {
    * @param testList modules whose dependencies we want to check
    * @return empty string if all OK; error message otherwise
    */
-  public static String checkDependencies(
-      Map<String, ModuleDescriptor> available, Collection<ModuleDescriptor> testList) {
-
-    Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available.values());
-
+  public static String checkDependencies(Collection<ModuleDescriptor> available,
+                                         Collection<ModuleDescriptor> testList) {
+    Map<String, List<InterfaceDescriptor>> ints = getProvidedInterfaces(available);
     List<String> list = new LinkedList<>();
     for (ModuleDescriptor md : testList) {
       List<String> res = checkDependenciesInts(md, available, ints);
@@ -176,7 +174,7 @@ public class DepResolution {
    */
   public static String checkAllDependencies(Map<String, ModuleDescriptor> available) {
     Collection<ModuleDescriptor> testList = available.values();
-    return checkDependencies(available, testList);
+    return checkDependencies(testList, testList);
   }
 
   /**

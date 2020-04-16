@@ -3031,5 +3031,288 @@ public class ProxyTest {
 
   }
 
+  @Test
+  public void testTenantFailedUpgrade(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    final String okapiTenant = "roskilde";
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde));
+
+    final String docTimer_1_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docBusiness_1_0_0 = "{" + LS
+      + "  \"id\" : \"business-module-1.0.0\"," + LS
+      + "  \"name\" : \"business module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docTimer_2_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-2.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"2.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docBusiness_2_0_0 = "{" + LS
+      + "  \"id\" : \"business-module-2.0.0\"," + LS
+      + "  \"name\" : \"business module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"2.0\" } ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocTimer_1_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-1-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocTimer_1_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBusiness_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocBusiness_1_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-2-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"business-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocBusiness_1_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_2_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocTimer_2_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-3-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-2.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocTimer_2_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBusiness_2_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocBusiness_2_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-4-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"business-module-2.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocBusiness_2_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"timer-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"," + LS
+        + "  \"from\" : \"timer-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"business-module-2.0.0\"," + LS
+        + "  \"from\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    /* this will try to upgrade both, but business-module-2.0.0 tenant init fails,
+     so business-module-1.0.0 stays but timer-module is upgrade (no _tenant interface) */
+    timerTenantInitStatus = 400; // make business-module tenant init fail
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(equalTo("POST request for business-module-2.0.0 /_/tenant failed with 400: timer response"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"timer-module-2.0.0\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/timer-module-2.0.0")
+      .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+  }
 
 }
