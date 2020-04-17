@@ -1,3 +1,16 @@
+## 2.40.0 2020-04-17
+
+New facilities for services that enables and disables modules for tenant.
+
+ * OKAPI-831 Support purge and tenantParameters for old-style
+   disable/enable calls. Previously purge and tenantParameters were only
+   recgoznized for install/upgrade. Now also for
+   `/_/proxy/tenants/{tenant}/module` and
+   `/_/proxy/tenants/{tenant}/module/{module}`.
+ * OKAPI-832 Support new query parameter `invoke` which, with a value
+   of `false`, completely disables Okapi calling a module (whether tenant
+   POST, tenant purge or permission loading).
+
 ## 2.39.0 2020-04-16
 
  * OKAPI-596 Facility: disable all modules for tenant
