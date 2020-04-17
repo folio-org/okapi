@@ -666,6 +666,15 @@ types:
               text/plain:
       delete:
         description: Disable modules for tenant
+        queryParameters:
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          tenantParameters:
+            description: Parameters for Tenant init
+            type: string
+            required: false
         responses:
           204:
             description: OK
@@ -706,6 +715,15 @@ types:
             disable current module with new module ID in body and existing ID
             in path.
             This call will eventually be replaced by the 'install' service.
+          queryParameters:
+            purge:
+              description: Disabled modules will also be purged.
+              type: boolean
+              required: false
+            tenantParameters:
+              description: Parameters for Tenant init
+              type: string
+              required: false
           body:
             application/json:
               type: TenantModuleDescriptor
@@ -735,6 +753,15 @@ types:
         delete:
           description: Disable a module for a tenant.
             This call will eventually be replaced by the 'install' service.
+          queryParameters:
+            purge:
+              description: Disabled modules will also be purged.
+              type: boolean
+              required: false
+            tenantParameters:
+              description: Parameters for Tenant init
+              type: string
+              required: false
           responses:
             204:
               description: Gone
