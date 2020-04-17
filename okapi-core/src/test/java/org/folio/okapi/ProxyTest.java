@@ -3312,6 +3312,7 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // works, because timer-module-2.0.0 does not have tenant interface
     c = api.createRestAssured3();
     c.given()
       .delete("/_/proxy/tenants/" + okapiTenant + "/modules/timer-module-2.0.0")
@@ -3331,6 +3332,25 @@ public class ProxyTest {
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    // disable also fails with 400
+    Assert.assertEquals(400, timerTenantInitStatus);
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
+        .then().statusCode(400).log().ifValidationFails()
+        .body(equalTo("POST request for business-module-1.0.0 /_/tenant/disable failed with 400: timer response"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // however, purge does not
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules?purge=true")
+        .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
   }
 
 }
