@@ -1,3 +1,9 @@
+## 2.40.0 2020-04-17
+
+ * OKAPI-831 Purge and tenantParameters for old-style
+   disable/enable module for tenant calls and the new disable
+   all modules for tenant added in 2.39.0 (OKAPI-596).
+
 ## 2.39.0 2020-04-16
 
  * OKAPI-596 Facility: disable all modules for tenant
