@@ -389,6 +389,10 @@ public class TenantManager {
                                    ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
                                    ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
 
+    if (!options.getInvoke()) {
+      fut.handle(new Success<>());
+      return;
+    }
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
       jo.put("module_to", mdTo.getId());

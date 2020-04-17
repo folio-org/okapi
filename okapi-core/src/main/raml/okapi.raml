@@ -667,6 +667,11 @@ types:
       delete:
         description: Disable modules for tenant
         queryParameters:
+          invoke:
+            description: Whether to invoke for tenant init/permissions
+              (default:true).
+            type: boolean
+            required: false
           purge:
             description: Disabled modules will also be purged.
             type: boolean
@@ -716,6 +721,10 @@ types:
             in path.
             This call will eventually be replaced by the 'install' service.
           queryParameters:
+            invoke:
+              description: Whether to invoke for tenant init/permissions.
+              type: boolean
+              required: false
             purge:
               description: Disabled modules will also be purged.
               type: boolean
@@ -754,6 +763,10 @@ types:
           description: Disable a module for a tenant.
             This call will eventually be replaced by the 'install' service.
           queryParameters:
+            invoke:
+              description: Whether to invoke for tenant init/permissions.
+              type: boolean
+              required: false
             purge:
               description: Disabled modules will also be purged.
               type: boolean
@@ -791,13 +804,9 @@ types:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
-          simulate:
-            description: Whether the installation is simulated
-            type: boolean
-            required: false
-          preRelease:
-            description: Whether pre-releases should be considered for
-              installation.
+          invoke:
+            description: Whether to invoke for tenant init/permissions
+              (default:true)
             type: boolean
             required: false
           npmSnapshot:
@@ -805,8 +814,17 @@ types:
               (default:true).
             type: boolean
             required: false
+          preRelease:
+            description: Whether pre-releases should be considered for
+              installation.
+            type: boolean
+            required: false
           purge:
             description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          simulate:
+            description: Whether the installation is simulated
             type: boolean
             required: false
           tenantParameters:
@@ -847,8 +865,8 @@ types:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
-          simulate:
-            description: Whether the upgrade is simulated
+          invoke:
+            description: Whether to invoke for tenant init/permissions.
             type: boolean
             required: false
           preRelease:
@@ -858,6 +876,10 @@ types:
             required: false
           purge:
             description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          simulate:
+            description: Whether the upgrade is simulated
             type: boolean
             required: false
           tenantParameters:
