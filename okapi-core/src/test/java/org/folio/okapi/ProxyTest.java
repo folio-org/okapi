@@ -3351,6 +3351,33 @@ public class ProxyTest {
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+
+    // tenant init fails, but is not called because in next tests invoke=false
+    Assert.assertEquals(400, timerTenantInitStatus);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?invoke=false")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"business-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules?invoke=false")
+        .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
   }
 
 }
