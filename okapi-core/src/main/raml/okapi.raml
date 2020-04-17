@@ -25,10 +25,11 @@ types:
   PullDescriptor: !include PullDescriptor.json
 
 /_/deployment/modules:
-  description: Deployment service. This is responsible for starting and
-    stopping modules.
+  description: |
+    Deployment service. This is responsible for starting and stopping modules.
   post:
-    description: Deploy (launch process, start a container, etc) instance of a
+    description: |
+      Deploy (launch process, start a container, etc) instance of a
       particular service, according to the deployment descriptor.
     body:
       application/json:
@@ -66,7 +67,6 @@ types:
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
-
   /{instance_id}:
     get:
       description: Retrieve deployment descriptor for a particular instance
@@ -91,8 +91,9 @@ types:
               description: Okapi trace and timing
 
 /_/discovery/modules:
-  description: Discovery service. This is responsible for monitoring
-    all instances (deployed) on, possibly many, deployment nodes.
+  description: |
+    Discovery service. This is responsible for monitoring all instances
+    (deployed) on, possibly many, deployment nodes.
   post:
     description: Register instance under a specified service id
     body:
@@ -350,8 +351,9 @@ types:
         type: boolean
         required: false
       npmSnapshot:
-        description: Whether to allow NPM module snapshots in dependency check
-           (default:true).
+        description: |
+          Whether to allow NPM module snapshots in dependency check
+          default: true
         type: boolean
         required: false
     body:
@@ -668,8 +670,9 @@ types:
         description: Disable modules for tenant
         queryParameters:
           invoke:
-            description: Whether to invoke for tenant init/permissions
-              (default:true).
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
             type: boolean
             required: false
           purge:
@@ -722,7 +725,9 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: Whether to invoke for tenant init/permissions.
+              description: |
+                Whether to invoke for tenant init/permissions/purge
+                (default: true).
               type: boolean
               required: false
             purge:
@@ -764,7 +769,9 @@ types:
             This call will eventually be replaced by the 'install' service.
           queryParameters:
             invoke:
-              description: Whether to invoke for tenant init/permissions.
+              description: |
+                Whether to invoke for tenant init/permissions/purge
+                (default: true).
               type: boolean
               required: false
             purge:
@@ -805,13 +812,14 @@ types:
             type: boolean
             required: false
           invoke:
-            description: Whether to invoke for tenant init/permissions
-              (default:true)
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
             type: boolean
             required: false
           npmSnapshot:
-            description: Whether to include NPM module snapshots
-              (default:true).
+            description: |
+              Whether to include NPM module snapshots (default:true).
             type: boolean
             required: false
           preRelease:
@@ -866,12 +874,14 @@ types:
             type: boolean
             required: false
           invoke:
-            description: Whether to invoke for tenant init/permissions.
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
             type: boolean
             required: false
           preRelease:
-            description: Whether pre-releases should be considered for
-              installation.
+            description: |
+              Whether pre-releases should be considered for installation.
             type: boolean
             required: false
           purge:
@@ -1119,7 +1129,8 @@ types:
           text/plain:
 
 /_/invoke/tenant/{id}:
-  description: Call module with Tenant ID in path. This
+  description: |
+    Call module with Tenant ID in path. This
     service offers support for systems that need to "call-back" Okapi and
     don't allow setting the Tenant ID in the HTTP header.
   get:

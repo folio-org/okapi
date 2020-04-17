@@ -2589,6 +2589,15 @@ pairs separated by comma with key and value separated by equal sign
 to encode comma as `%2C` and equal as `%3D`.  See [Tenant
 Interface](#tenant-interface) for more information.
 
+For all calls that enables/disables modules for a tenant, it is possible
+to completely skip invoking module via HTTP by using query parameter
+`invoke` set to `false`. This facility was added in Okapi 2.40.0.
+Use with great care and may be used to disable modules if they are no
+longer running and/or the modules are known to be already "prepared"
+for use. When `invoke` is set to false, `tenantParameters` and `purge`
+query parameters are ignored as they only takes effect when Okapi
+invokes a module.
+
 ### Upgrading modules per tenant
 
 The upgrade facility consists of a POST request with ignored body
