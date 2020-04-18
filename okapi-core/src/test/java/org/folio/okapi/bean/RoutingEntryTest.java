@@ -1,7 +1,6 @@
 package org.folio.okapi.bean;
 
 import io.vertx.core.json.DecodeException;
-
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Test;
@@ -261,5 +260,4 @@ public class RoutingEntryTest {
     assertTrue(t.match("/", "GET"));
     assertEquals("/events", t.getRewritePath());
   }
-
 }
