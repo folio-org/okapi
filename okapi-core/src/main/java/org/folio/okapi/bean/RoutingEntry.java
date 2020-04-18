@@ -442,10 +442,6 @@ public class RoutingEntry {
     pc.debug(prefix
         + "Validating RoutingEntry " + Json.encode(this));
 
-    if (permissionsRequired == null) {
-      return prefix + "missing field permissionsRequired";
-    }
-
     if ((path == null || path.isEmpty())
         && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";

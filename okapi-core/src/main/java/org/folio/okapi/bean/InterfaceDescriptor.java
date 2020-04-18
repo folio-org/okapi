@@ -258,15 +258,37 @@ public class InterfaceDescriptor {
    * Validate those things that apply to the "provides" section.
    */
   private String validateProvides(ProxyContext pc, String mod) {
-    if (handlers != null) {
+    if (handlers != null && handlers.length > 0) {
+      boolean checkPermissionsRequired = !isType("system");
       for (RoutingEntry re : handlers) {
         String err = re.validateHandlers(pc, mod);
+        if (checkPermissionsRequired) {
+          err += validatePermissionsRequired(pc, mod, re);
+        }
         if (!err.isEmpty()) {
           return err;
         }
       }
     }
     return "";
+  }
+
+  /*
+   * Validate the required field "permissionsRequired"
+   */
+  private String validatePermissionsRequired(ProxyContext pc, String mod, RoutingEntry re) {
+    if (re.getPermissionsRequired() != null) {
+      return "";
+    }
+    String err = "Module '" + mod + "' " + "handler";
+    if (re.getPathPattern() != null && !re.getPathPattern().isEmpty()) {
+      err += " " + re.getPathPattern();
+    } else if (re.getPath() != null && !re.getPath().isEmpty()) {
+      err += " " + re.getPath();
+    }
+    err += ": Missing field permissionsRequired";
+    pc.warn(err);
+    return err;
   }
 
   /**
