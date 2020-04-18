@@ -281,8 +281,8 @@ public class InterfaceDescriptor {
       return "";
     }
     String path = re.getPathPattern() == null ? "" : re.getPathPattern();
-    path += re.getPath() == null ? "" : re.getPath();
-    String err = "Module '" + mod + "' " + "handler " + path + ": Missing field permissionsRequired";
+    path = (" " + path + (re.getPath() == null ? "" : re.getPath())).trim();
+    String err = "Module '" + mod + "' " + "handler" + path + ": Missing field permissionsRequired";
     pc.warn(err);
     return err;
   }
