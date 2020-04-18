@@ -107,9 +107,11 @@ public class ModuleInterfaceTest {
 
     RoutingEntry entry = new RoutingEntry();
     desc.setHandlers(new RoutingEntry[] { entry });
-    desc.getHandlers()[0].setPathPattern("pattern");
+    assertFalse(desc.validate(pc, section, mod).isEmpty());
+
+    desc.getHandlers()[0].setPathPattern("/pattern");
     assertTrue(desc.validate(pc, section, mod).contains(expected));
-    desc.getHandlers()[0].setPath("path");
+    desc.getHandlers()[0].setPath("/path");
     assertTrue(desc.validate(pc, section, mod).contains(expected));
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] {});

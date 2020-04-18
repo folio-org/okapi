@@ -262,8 +262,8 @@ public class InterfaceDescriptor {
       boolean checkPermissionsRequired = !isType("system");
       for (RoutingEntry re : handlers) {
         String err = re.validateHandlers(pc, mod);
-        if (checkPermissionsRequired) {
-          err += validatePermissionsRequired(pc, mod, re);
+        if (err.isEmpty() && checkPermissionsRequired) {
+          err = validatePermissionsRequired(pc, mod, re);
         }
         if (!err.isEmpty()) {
           return err;
@@ -281,7 +281,8 @@ public class InterfaceDescriptor {
       return "";
     }
     String path = re.getPathPattern() == null ? "" : re.getPathPattern();
-    path = (" " + path + (re.getPath() == null ? "" : re.getPath())).trim();
+    path += re.getPath() == null ? "" : re.getPath();
+    path = path.trim().isEmpty() ? "" : " " + path.trim();
     String err = "Module '" + mod + "' " + "handler" + path + ": Missing field permissionsRequired";
     pc.warn(err);
     return err;
