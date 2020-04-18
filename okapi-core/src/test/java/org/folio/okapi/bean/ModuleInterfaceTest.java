@@ -113,6 +113,8 @@ public class ModuleInterfaceTest {
     assertTrue(desc.validate(pc, section, mod).contains(expected));
     desc.getHandlers()[0].setPath("/path");
     assertTrue(desc.validate(pc, section, mod).contains(expected));
+    desc.getHandlers()[0].setPath(" ");
+    assertTrue(desc.validate(pc, section, mod).contains(expected));
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] {});
     assertTrue(desc.validate(pc, section, mod).isEmpty());
