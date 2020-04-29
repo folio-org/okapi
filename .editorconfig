@@ -16,3 +16,6 @@ indent_style = tab
 
 [md2toc]
 indent_size = 4
+
+[**.java]
+continuation_indent_size = 4
