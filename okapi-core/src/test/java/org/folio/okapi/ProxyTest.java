@@ -763,25 +763,10 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
 
-    c = api.createRestAssured3();
-    c.given()
+    // PUT not defined for RAML
+    given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule).put(locationAuthModule + "misMatch").then().statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    c = api.createRestAssured3();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
-
-    c = api.createRestAssured3();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+      .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(404);
 
     final String docAuthModule2 = "{" + LS
       + "  \"id\" : \"auth2-1\"," + LS
@@ -806,13 +791,12 @@ public class ProxyTest {
       + "  \"requires\" : [ ]" + LS
       + "}";
 
-    final String locationAuthModule2 = locationAuthModule.replace("auth-1", "auth2-1");
     c = api.createRestAssured3();
-    c.given()
+    final String locationAuthModule2 = c.given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule2).put(locationAuthModule2)
-      .then().statusCode(200)
-      .extract().response();
+      .body(docAuthModule2).post("/_/proxy/modules")
+      .then().statusCode(201)
+      .extract().header("Location");
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -925,23 +909,6 @@ public class ProxyTest {
 
     // Try to delete the auth module that our sample depends on
     c.given().delete(locationAuthModule).then().statusCode(400);
-
-    // Try to update the auth module to a lower version, would break
-    // sample dependency
-    final String docAuthLowerVersion = docAuthModule.replace("1.2", "1.0");
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthLowerVersion)
-      .put(locationAuthModule)
-      .then().statusCode(400);
-
-    // Update the auth module to a bit higher version
-    final String docAuthhigherVersion = docAuthModule.replace("1.2", "1.3");
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthhigherVersion)
-      .put(locationAuthModule)
-      .then().statusCode(200);
 
     // Create our tenant
     final String docTenantRoskilde = "{" + LS

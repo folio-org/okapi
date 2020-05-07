@@ -224,11 +224,6 @@ public class InternalModule {
         + "    \"permissionsRequired\" : [ ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
-        + "    \"methods\" :  [ \"PUT\" ],"
-        + "    \"pathPattern\" : \"/_/proxy/modules/{moduleId}\","
-        + "    \"permissionsRequired\" : [ \"okapi.proxy.modules.put\" ], "
-        + "    \"type\" : \"internal\" "
-        + "   }, {"
         + "    \"methods\" :  [ \"DELETE\" ],"
         + "    \"pathPattern\" : \"/_/proxy/modules/{moduleId}\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.modules.delete\" ], "
@@ -918,32 +913,6 @@ public class InternalModule {
     });
   }
 
-  private void updateModule(ProxyContext pc, String id, String body,
-                            Handler<ExtendedAsyncResult<String>> fut) {
-    try {
-      final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
-      if (!id.equals(md.getId())) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11606", md.getId(), id)));
-        return;
-      }
-      String validerr = md.validate(pc);
-      if (!validerr.isEmpty()) {
-        fut.handle(new Failure<>(ErrorType.USER, validerr));
-        return;
-      }
-      moduleManager.update(md, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
-        final String s = Json.encodePrettily(md);
-        fut.handle(new Success<>(s));
-      });
-    } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
-    }
-  }
-
   private void deleteModule(ProxyContext pc, String id,
                             Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.delete(id, res -> {
@@ -1316,10 +1285,6 @@ public class InternalModule {
         // /_/proxy/modules/:id
         if (n == 5 && m.equals(HttpMethod.GET)) {
           getModule(decodedSegs[4], fut);
-          return;
-        }
-        if (n == 5 && m.equals(HttpMethod.PUT)) {
-          updateModule(pc, decodedSegs[4], req, fut);
           return;
         }
         if (n == 5 && m.equals(HttpMethod.DELETE)) {
