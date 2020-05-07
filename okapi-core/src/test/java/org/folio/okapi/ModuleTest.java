@@ -1317,6 +1317,12 @@ public class ModuleTest {
     final String expPerms = "{ "
       + "\"moduleId\" : \"sample-module-1\", "
       + "\"perms\" : [ { "
+      + "\"permissionName\" : \"everything\", "
+      + "\"displayName\" : \"every possible permission\", "
+      + "\"description\" : \"All permissions combined\", "
+      + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
+      + "\"visible\" : true "
+      + "}, { "
       + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
       + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
       + "\"description\" : \"System generated permission set\", "
@@ -1328,12 +1334,6 @@ public class ModuleTest {
       + "\"description\" : \"System generated permission set\", "
       + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
       + "\"visible\" : false "
-      + "}, { "
-      + "\"permissionName\" : \"everything\", "
-      + "\"displayName\" : \"every possible permission\", "
-      + "\"description\" : \"All permissions combined\", "
-      + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
-      + "\"visible\" : true "
       + "} ] }";
 
     String locSampleEnable = given()

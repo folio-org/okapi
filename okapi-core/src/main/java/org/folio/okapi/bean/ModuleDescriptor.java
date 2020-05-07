@@ -287,9 +287,7 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
       return permissionSets;
     }
     if (permissionSets != null) {
-      for (Permission perm : permissionSets) {
-        perms.add(perm);
-      }
+      perms.addAll(0, Arrays.asList(permissionSets));
     }
     Permission[] permissions = new Permission[perms.size()];
     perms.toArray(permissions);

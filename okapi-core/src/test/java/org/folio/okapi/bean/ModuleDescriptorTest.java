@@ -48,6 +48,13 @@ public class ModuleDescriptorTest {
     md.setFilters(new RoutingEntry[] { filter });
     assertNull(md.getExpandedPermissionSets());
 
+    // empty module permissions
+    handler.setModulePermissions(new String[] { });
+    id.setHandlers(new RoutingEntry[] { handler });
+    filter.setModulePermissions(new String[] { });
+    md.setFilters(new RoutingEntry[] { filter });
+    assertNull(md.getExpandedPermissionSets());
+
     // add module permissions
     handler.setModulePermissions(new String[] { "handler.read", "handler.write" });
     id.setHandlers(new RoutingEntry[] { handler });
