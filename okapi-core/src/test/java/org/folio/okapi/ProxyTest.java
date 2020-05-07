@@ -358,24 +358,28 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myxfirst\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/client_id\"" + LS
+      + "      \"pathPattern\" : \"/testb/client_id\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"mysecond\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -491,14 +495,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -524,17 +530,20 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -732,7 +741,8 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -740,6 +750,7 @@ public class ProxyTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -793,7 +804,8 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -801,6 +813,7 @@ public class ProxyTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -1288,7 +1301,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
+      + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1430,17 +1444,20 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"05\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"45\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1719,10 +1736,12 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testr\"" + LS
+      + "      \"path\" : \"/testr\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -1730,7 +1749,8 @@ public class ProxyTest {
       + "    \"path\" : \"/loop2\"," + LS
       + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/loop1\"" + LS
+      + "    \"redirectPath\" : \"/loop1\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1738,6 +1758,7 @@ public class ProxyTest {
       + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1792,25 +1813,29 @@ public class ProxyTest {
       + "    \"path\" : \"/red\"," + LS
       + "    \"level\" : \"21\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/badredirect\"," + LS
       + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/nonexisting\"" + LS
+      + "    \"redirectPath\" : \"/nonexisting\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/simpleloop\"," + LS
       + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/simpleloop\"" + LS
+      + "    \"redirectPath\" : \"/simpleloop\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/loop1\"," + LS
       + "    \"level\" : \"24\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/loop2\"" + LS
+      + "    \"redirectPath\" : \"/loop2\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1818,6 +1843,7 @@ public class ProxyTest {
       + "    \"level\" : \"25\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/chain2\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"hdr.chain1\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1825,19 +1851,22 @@ public class ProxyTest {
       + "    \"level\" : \"26\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/chain3\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"hdr.chain2\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
       + "    \"level\" : \"27\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
       + "    \"level\" : \"28\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
@@ -2008,7 +2037,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"phase\" : \"pre\"," + LS
-      + "    \"type\" : \"request-log\"" + LS
+      + "    \"type\" : \"request-log\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -2026,7 +2056,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"phase\" : \"post\"," + LS
-      + "    \"type\" : \"request-log\"" + LS
+      + "    \"type\" : \"request-log\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -2044,7 +2075,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2070,14 +2102,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2103,7 +2137,8 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2282,14 +2317,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2315,17 +2352,20 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -2351,7 +2391,8 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
+      + "      \"pathPattern\" : \"/edge/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -2472,10 +2513,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_timer\"," + LS
@@ -2485,19 +2528,22 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/timercall/1\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"10\"" + LS
+      + "      \"delay\" : \"10\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "   }, {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"path\" : \"/timercall/3\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"30\"" + LS
+      + "      \"delay\" : \"30\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/timercall/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -2665,10 +2711,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -2767,10 +2815,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
@@ -2778,7 +2828,8 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/permissionscall\"" + LS
+      + "      \"pathPattern\" : \"/permissionscall\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -2818,7 +2869,8 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
+      + "      \"pathPattern\" : \"/edge/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -2979,10 +3031,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
@@ -2990,7 +3044,8 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/permissionscall\"" + LS
+      + "      \"pathPattern\" : \"/permissionscall\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
@@ -3099,10 +3154,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"1.0\" } ]," + LS
@@ -3142,10 +3199,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"2.0\" } ]," + LS

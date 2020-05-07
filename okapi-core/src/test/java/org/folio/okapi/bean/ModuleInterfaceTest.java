@@ -2,7 +2,10 @@ package org.folio.okapi.bean;
 
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.ProxyContext;
 import org.junit.Test;
+import org.mockito.Mockito;
+
 import static org.junit.Assert.*;
 
 @java.lang.SuppressWarnings({"squid:S1166", "squid:S1192", "squid:S1313"})
@@ -85,5 +88,41 @@ public class ModuleInterfaceTest {
     assertTrue(a.isCompatible(new InterfaceDescriptor("m", "3.4.4 2.9.2")));
     assertFalse(a.isCompatible(new InterfaceDescriptor("m", "2.9.2 3.4.6 4.0.0")));
     logger.debug("compatibilityTests() ok");
+  }
+
+  @Test
+  public void testPermissionsRequired() {
+    ProxyContext pc = Mockito.mock(ProxyContext.class);
+    String section = "provides";
+    String mod = "test";
+    String expected = "Missing field permissionsRequired";
+
+    InterfaceDescriptor desc = new InterfaceDescriptor();
+    desc.setId("a");
+    desc.setVersion("1.0");
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+
+    desc.setHandlers(new RoutingEntry[] {});
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+
+    RoutingEntry entry = new RoutingEntry();
+    desc.setHandlers(new RoutingEntry[] { entry });
+    assertFalse(desc.validate(pc, section, mod).isEmpty());
+
+    desc.getHandlers()[0].setPathPattern("/pattern");
+    assertTrue(desc.validate(pc, section, mod).contains(expected));
+    desc.getHandlers()[0].setPath("/path");
+    assertTrue(desc.validate(pc, section, mod).contains(expected));
+    desc.getHandlers()[0].setPath(" ");
+    assertTrue(desc.validate(pc, section, mod).contains(expected));
+
+    desc.getHandlers()[0].setPermissionsRequired(new String[] {});
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+
+    desc.getHandlers()[0].setPermissionsRequired(new String[] { "perm.a" });
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+
+    desc.getHandlers()[0].setPermissionsRequired(new String[] { "perm.b", "perm.c" });
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
   }
 }
