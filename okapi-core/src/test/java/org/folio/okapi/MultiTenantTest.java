@@ -41,7 +41,8 @@ public class MultiTenantTest {
     + "      \"methods\" : [ \"POST\" ]," + LS
     + "      \"path\" : \"/authn/login\"," + LS
     + "      \"level\" : \"20\"," + LS
-    + "      \"type\" : \"request-response\"" + LS
+    + "      \"type\" : \"request-response\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"filters\" : [ {" + LS
@@ -49,6 +50,7 @@ public class MultiTenantTest {
     + "    \"path\" : \"/\"," + LS
     + "    \"phase\" : \"auth\"," + LS
     + "    \"type\" : \"headers\"," + LS
+    + "    \"permissionsRequired\" : [ ]," + LS
     + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]," + LS
@@ -67,14 +69,16 @@ public class MultiTenantTest {
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-    + "      \"pathPattern\" : \"/_/tenant\"" + LS
+    + "      \"pathPattern\" : \"/_/tenant\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  }, {" + LS
     + "    \"id\" : \"myint\"," + LS
     + "    \"version\" : \"1.0\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-    + "      \"pathPattern\" : \"/testb\"" + LS
+    + "      \"pathPattern\" : \"/testb\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]," + LS
@@ -93,14 +97,16 @@ public class MultiTenantTest {
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-    + "      \"pathPattern\" : \"/_/tenant\"" + LS
+    + "      \"pathPattern\" : \"/_/tenant\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  }, {" + LS
     + "    \"id\" : \"myint\"," + LS
     + "    \"version\" : \"1.0\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-    + "      \"pathPattern\" : \"/testb\"" + LS
+    + "      \"pathPattern\" : \"/testb\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]" + LS

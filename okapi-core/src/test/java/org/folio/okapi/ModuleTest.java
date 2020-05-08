@@ -419,7 +419,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
@@ -445,14 +446,16 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -514,7 +517,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       //      + "    \"type\" : \"request-response\"" + LS
       // The only known use case for these uses req-only, so that's what we
       // test with. Tested req-resp manually, and it seems to work too
@@ -780,7 +784,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-response-1.0\"" + LS
+      + "      \"type\" : \"request-response-1.0\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -790,7 +795,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS // DEPRECATED, gives a warning
+      + "      \"type\" : \"system\"," + LS // DEPRECATED, gives a warning
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
@@ -1229,7 +1235,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/_/tenantPermissions\"," + LS
-      + "      \"level\" : \"20\"" + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1290,6 +1297,7 @@ public class ModuleTest {
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
       + "      \"type\" : \"system\"," + LS
+      + "      \"permissionsRequired\" : [ ]," + LS
       + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
@@ -1394,7 +1402,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -1402,6 +1411,7 @@ public class ModuleTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -1593,7 +1603,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1882,7 +1893,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1983,7 +1995,8 @@ public class ModuleTest {
         + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
         + "    \"path\" : \"/test2\"," + LS
         + "    \"level\" : \"20\"," + LS
-        + "    \"type\" : \"" + type + "\"" + LS
+        + "    \"type\" : \"" + type + "\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
       r = given()
@@ -2048,7 +2061,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -2065,7 +2079,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"10\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     r = given()
@@ -2250,7 +2265,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2279,7 +2295,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2326,7 +2343,8 @@ public class ModuleTest {
                     + "  \"interfaceType\" : \"proxy\"," + LS
                     + "  \"handlers\" : [ {" + LS
                     + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-                    + "    \"path\" : \"/testb\"" + LS
+                    + "    \"path\" : \"/testb\"," + LS
+                    + "    \"permissionsRequired\" : [ ]" + LS
                     + "  } ]" + LS
                     + "} ]"))
             .log().ifValidationFails();
@@ -2419,7 +2437,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2448,7 +2467,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
