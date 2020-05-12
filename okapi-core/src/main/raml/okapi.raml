@@ -455,23 +455,6 @@ types:
           body:
             application/json:
               type: ModuleDescriptor
-    put:
-      description: Update descriptor of a particular module
-      body:
-        application/json:
-          type: ModuleDescriptor
-      responses:
-        200:
-          headers:
-            X-Okapi-Trace:
-              description: Okapi trace and timing
-          body:
-            application/json:
-              type: ModuleDescriptor
-        400:
-          description: Bad Request
-          body:
-            text/plain:
     delete:
       description: Remove module descriptor for a particular module, module
         will no longer be selectable by tenants

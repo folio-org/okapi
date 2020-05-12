@@ -879,14 +879,6 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
-    // Bad RoutingEntry type with PUT
-    given()
-      .header("Content-Type", "application/json")
-      .body(docBadReType)
-      .put("/_/proxy/modules/sample-module-1+1")
-      .then()
-      .statusCode(400);
-
     String docMissingPath = docSampleModule.replace("/testb", "");
     given()
       .header("Content-Type", "application/json")
@@ -952,19 +944,6 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(400)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    logger.fatal("locSampleModule=" + locSampleModule);
-    // put it (update)
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule)
-      .put(locSampleModule)
-      .then()
-      .statusCode(200)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -2133,12 +2112,6 @@ public class ModuleTest {
       .delete(locationSampleModule)
       .then().statusCode(400)
       .body(equalTo("delete: module sample-module-5.0 is used by tenant " + okapiTenant));
-
-    given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule).put(locationSampleModule)
-      .then().statusCode(400)
-      .body(equalTo("update: module sample-module-5.0 is used by tenant " + okapiTenant));
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1.0\"" + LS
