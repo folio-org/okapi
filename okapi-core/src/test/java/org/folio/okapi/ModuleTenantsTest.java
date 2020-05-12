@@ -93,17 +93,20 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"bint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -175,17 +178,20 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/foo\"" + LS
+      + "      \"pathPattern\" : \"/testb/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -308,20 +314,24 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/foo\"" + LS
+      + "      \"pathPattern\" : \"/testb/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
@@ -426,10 +436,12 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -760,20 +772,24 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/foo\"" + LS
+      + "      \"pathPattern\" : \"/testb/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS
@@ -816,17 +832,20 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"bint\"," + LS
       + "    \"version\" : \"2.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -868,17 +887,20 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb\"" + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"2.0\" } ]," + LS
@@ -1039,7 +1061,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -1066,7 +1089,8 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"multiple\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]," + LS
       + "    \"scope\" : [ \"scopeA\", \"scopeB\" ]" + LS
       + "  } ]," + LS
@@ -1094,7 +1118,8 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"multiple\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]," + LS
       + "    \"scope\" : [ \"scopeB\" ]" + LS
       + "  } ]," + LS
@@ -1404,7 +1429,8 @@ public class ModuleTenantsTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -1485,17 +1511,20 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"bint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { " + LS
@@ -1572,7 +1601,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -1594,7 +1624,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -1616,7 +1647,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"1.0\" } ]" + LS
@@ -1640,7 +1672,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"1.0\" } ]" + LS
@@ -1870,7 +1903,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -1892,7 +1926,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"2.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -1944,7 +1979,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"1.0\" } ]" + LS
@@ -1968,7 +2004,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"2.0\" } ]" + LS
@@ -1991,7 +2028,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i1\", \"version\" : \"1.0 2.0\" } ]" + LS
@@ -2171,7 +2209,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i4\", \"version\" : \"1.0\"} ]" + LS
@@ -2242,7 +2281,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"i2\", \"version\" : \"1.0\"} ]" + LS
@@ -2325,7 +2365,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -2422,7 +2463,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -2496,7 +2538,8 @@ public class ModuleTenantsTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/foo\"" + LS
+      + "      \"pathPattern\" : \"/foo\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -2527,7 +2570,8 @@ public class ModuleTenantsTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ { \"id\" : \"bint\", \"version\" : \"1.0\" } ]," + LS

@@ -419,7 +419,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
@@ -445,14 +446,16 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -514,7 +517,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       //      + "    \"type\" : \"request-response\"" + LS
       // The only known use case for these uses req-only, so that's what we
       // test with. Tested req-resp manually, and it seems to work too
@@ -780,7 +784,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-response-1.0\"" + LS
+      + "      \"type\" : \"request-response-1.0\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -790,7 +795,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS // DEPRECATED, gives a warning
+      + "      \"type\" : \"system\"," + LS // DEPRECATED, gives a warning
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
@@ -873,14 +879,6 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
-    // Bad RoutingEntry type with PUT
-    given()
-      .header("Content-Type", "application/json")
-      .body(docBadReType)
-      .put("/_/proxy/modules/sample-module-1+1")
-      .then()
-      .statusCode(400);
-
     String docMissingPath = docSampleModule.replace("/testb", "");
     given()
       .header("Content-Type", "application/json")
@@ -946,19 +944,6 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(400)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    logger.fatal("locSampleModule=" + locSampleModule);
-    // put it (update)
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule)
-      .put(locSampleModule)
-      .then()
-      .statusCode(200)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1229,7 +1214,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/_/tenantPermissions\"," + LS
-      + "      \"level\" : \"20\"" + LS
+      + "      \"level\" : \"20\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1290,6 +1276,7 @@ public class ModuleTest {
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
       + "      \"type\" : \"system\"," + LS
+      + "      \"permissionsRequired\" : [ ]," + LS
       + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
@@ -1382,7 +1369,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -1390,6 +1378,7 @@ public class ModuleTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -1581,7 +1570,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1870,7 +1860,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1971,7 +1962,8 @@ public class ModuleTest {
         + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
         + "    \"path\" : \"/test2\"," + LS
         + "    \"level\" : \"20\"," + LS
-        + "    \"type\" : \"" + type + "\"" + LS
+        + "    \"type\" : \"" + type + "\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
       r = given()
@@ -2036,7 +2028,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -2053,7 +2046,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"10\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     r = given()
@@ -2118,12 +2112,6 @@ public class ModuleTest {
       .delete(locationSampleModule)
       .then().statusCode(400)
       .body(equalTo("delete: module sample-module-5.0 is used by tenant " + okapiTenant));
-
-    given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule).put(locationSampleModule)
-      .then().statusCode(400)
-      .body(equalTo("update: module sample-module-5.0 is used by tenant " + okapiTenant));
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1.0\"" + LS
@@ -2238,7 +2226,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2267,7 +2256,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2314,7 +2304,8 @@ public class ModuleTest {
                     + "  \"interfaceType\" : \"proxy\"," + LS
                     + "  \"handlers\" : [ {" + LS
                     + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-                    + "    \"path\" : \"/testb\"" + LS
+                    + "    \"path\" : \"/testb\"," + LS
+                    + "    \"permissionsRequired\" : [ ]" + LS
                     + "  } ]" + LS
                     + "} ]"))
             .log().ifValidationFails();
@@ -2407,7 +2398,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2436,7 +2428,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS

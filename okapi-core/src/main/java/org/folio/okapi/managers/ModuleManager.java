@@ -268,53 +268,6 @@ public class ModuleManager {
   }
 
   /**
-   * Update a module.
-   *
-   * @param md module descriptor
-   * @param fut future
-   */
-  public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    final String id = md.getId();
-    modules.getAll(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
-        return;
-      }
-      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
-      tempList.put(id, md);
-      String res = DepResolution.checkAllDependencies(tempList);
-      if (!res.isEmpty()) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10204", id, res)));
-        return;
-      }
-      tenantManager.getModuleUser(id, gres -> {
-        if (gres.failed()) {
-          if (gres.getType() == ErrorType.ANY) {
-            String ten = gres.cause().getMessage();
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10205", id, ten)));
-          } else { // any other error
-            fut.handle(new Failure<>(gres.getType(), gres.cause()));
-          }
-          return;
-        }
-        invalidateCacheEntry(id);
-        // all ok, we can update it
-        if (moduleStore == null) { // no db, just upd shared memory
-          modules.put(id, md, fut);
-        } else {
-          moduleStore.update(md, ures -> { // store in db first,
-            if (ures.failed()) {
-              fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            } else {
-              modules.put(id, md, fut);
-            }
-          });
-        }
-      }); // getModuleUser
-    }); // get
-  }
-
-  /**
    * Delete a module.
    *
    * @param id module ID
