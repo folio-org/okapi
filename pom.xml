@@ -1,222 +1,245 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.folio.okapi</groupId>
-  <artifactId>okapi</artifactId>
-  <packaging>pom</packaging>
-  <version>2.41.0-SNAPSHOT</version>
-  <name>okapi</name>
+  <parent>
+    <groupId>org.folio.okapi</groupId>
+    <artifactId>okapi</artifactId>
+    <version>2.41.0-SNAPSHOT</version>
+  </parent>
+  <artifactId>okapi-core</artifactId>
+  <dependencies>
+    <dependency>
+      <groupId>org.folio.okapi</groupId>
+      <artifactId>okapi-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j-impl</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-dropwizard-metrics</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-graphite</artifactId>
+      <version>3.1.2</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-mongo-client</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-pg-client</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-transport-native-epoll</artifactId>
+      <version>4.1.15.Final</version>
+      <classifier>linux-x86_64</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <version>3.0.7</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>guru.nidi.raml</groupId>
+      <artifactId>raml-tester</artifactId>
+      <version>0.9.1</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>logback-classic</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-hazelcast</artifactId>
+      <version>${vertx-version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast</artifactId>
+      <version>3.12</version>
+    </dependency>
+    <dependency>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast-aws</artifactId>
+      <version>2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.hazelcast</groupId>
+      <artifactId>hazelcast-kubernetes</artifactId>
+      <version>1.5</version>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-unit</artifactId>
+      <version>${vertx-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ru.yandex.qatools.embed</groupId>
+      <artifactId>postgresql-embedded</artifactId>
+      <version>2.10</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>de.flapdoodle.embed</groupId>
+      <artifactId>de.flapdoodle.embed.mongo</artifactId>
+      <version>2.0.0</version>
+      <scope>test</scope>
+    </dependency>
 
-  <modules>
-    <module>okapi-common</module>
-    <module>okapi-test-module</module>
-    <module>okapi-test-auth-module</module>
-    <module>okapi-test-header-module</module>
-    <!-- okapi-core must be last because its tests rely on the previous ones -->
-    <module>okapi-core</module>
-  </modules>
-
-  <licenses>
-    <license>
-      <name>Apache License 2.0</name>
-      <url>http://spdx.org/licenses/Apache-2.0</url>
-    </license>
-  </licenses>
-
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>4.0.0-milestone4</vertx-version>
-  </properties>
+  </dependencies>
 
   <build>
-    <extensions>
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-ssh</artifactId>
-        <version>2.10</version>
-      </extension>
-      <extension>
-        <groupId>org.apache.maven.wagon</groupId>
-        <artifactId>wagon-ssh-external</artifactId>
-        <version>2.10</version>
-      </extension>
-    </extensions>
-
     <plugins>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.3</version>
-        <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
-          <compilerArgument>-Xlint:unchecked</compilerArgument>
-        </configuration>
-      </plugin>
-
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.4</version>
-        <configuration>
-          <additionalparam>-Xdoclint:none</additionalparam>
-        </configuration>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>1.2.1</version>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>2.4</version>
         <executions>
           <execution>
-            <id>default-cli</id>
+            <phase>package</phase>
+            <id>fat</id>
             <goals>
-              <goal>exec</goal>
+              <goal>shade</goal>
             </goals>
             <configuration>
-              <executable>java</executable>
-              <arguments>
-                <argument>-jar</argument>
-                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                <argument>dev</argument>
-              </arguments>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/com.hazelcast.spi.discovery.DiscoveryStrategyFactory</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>org.folio.okapi.MainCluster</Main-Class>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+              <artifactSet />
+              <outputFile>${project.build.directory}/${project.artifactId}-fat.jar</outputFile>
             </configuration>
           </execution>
           <execution>
-            <id>debug</id>
+            <phase>package</phase>
+            <id>verticle</id>
             <goals>
-              <goal>exec</goal>
+              <goal>shade</goal>
             </goals>
             <configuration>
-              <executable>java</executable>
-              <arguments>
-                <argument>-Xdebug</argument>
-                <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005</argument>
-                <argument>-jar</argument>
-                <argument>${basedir}/okapi-core/target/okapi-core-fat.jar</argument>
-                <argument>dev</argument>
-              </arguments>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
+                  <resource>META-INF/services/com.hazelcast.spi.discovery.DiscoveryStrategyFactory</resource>
+                </transformer>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
+                    <Main-Verticle>org.folio.okapi.MainVerticle</Main-Verticle>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+              <artifactSet />
+              <outputFile>${project.build.directory}/${project.artifactId}-verticle.jar</outputFile>
             </configuration>
           </execution>
         </executions>
       </plugin>
-
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.5.3</version>
-        <configuration>
-          <preparationGoals>clean verify</preparationGoals>
-          <tagNameFormat>v@{project.version}</tagNameFormat>
-          <pushChanges>false</pushChanges>
-          <localCheckout>true</localCheckout>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.1.1</version>
-        <configuration>
-          <configLocation>checkstyle/folio_checks.xml</configLocation>
-          <encoding>UTF-8</encoding>
-          <violationSeverity>warning</violationSeverity>
-          <consoleOutput>false</consoleOutput>
-          <failsOnError>true</failsOnError>
-          <failOnViolation>true</failOnViolation>
-          <linkXRef>false</linkXRef>
-          <sourceDirectories>
-            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
-          </sourceDirectories>
-        </configuration>
+        <groupId>pl.project13.maven</groupId>
+        <artifactId>git-commit-id-plugin</artifactId>
+        <version>2.2.1</version>
         <executions>
           <execution>
-            <id>check</id>
-            <phase>compile</phase>
+            <id>get-the-git-infos</id>
             <goals>
-              <goal>check</goal>
+              <goal>revision</goal>
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>${project.build.outputDirectory}/git.properties</generateGitPropertiesFilename>
+        </configuration>
       </plugin>
     </plugins>
   </build>
-
-  <scm>
-    <url>https://github.com/folio-org/okapi</url>
-    <connection>scm:git:git://github.com/folio-org/okapi.git</connection>
-    <developerConnection>scm:git:git@github.com:folio-org/okapi.git</developerConnection>
-    <tag>HEAD</tag>
-  </scm>
-
-  <repositories>
-    <repository>
-      <id>folio-nexus</id>
-      <name>FOLIO Maven repository</name>
-      <url>https://repository.folio.org/repository/maven-folio</url>
-    </repository>
-    <repository>
-      <id>indexdata</id>
-      <name>Index Data</name>
-      <url>http://maven.indexdata.com/</url>
-    </repository>
-  </repositories>
-
-  <dependencyManagement>
-    <dependencies>
-      <!-- Jackson -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>2.10.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>2.10.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-api</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-1.2-api</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
-
-  <distributionManagement>
-    <repository>
-      <id>folio-nexus</id>
-      <name>FOLIO Release Repository</name>
-      <url>https://repository.folio.org/repository/maven-releases/</url>
-      <uniqueVersion>false</uniqueVersion>
-      <layout>default</layout>
-    </repository>
-    <snapshotRepository>
-      <id>folio-nexus</id>
-      <name>FOLIO Snapshot Repository</name>
-      <uniqueVersion>true</uniqueVersion>
-      <url>https://repository.folio.org/repository/maven-snapshots/</url>
-      <layout>default</layout>
-    </snapshotRepository>
-  </distributionManagement>
-
+  <profiles>
+    <profile>
+      <id>performance</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <executions>
+              <execution>
+                <phase>test</phase>
+                <goals>
+                  <goal>test</goal>
+                </goals>
+                <configuration>
+                  <skip>false</skip>
+                  <excludes>
+                    <exclude>none</exclude>
+                  </excludes>
+                  <includes>
+                    <include>**/*Performance.java</include>
+                  </includes>
+                  <systemPropertyVariables />
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
