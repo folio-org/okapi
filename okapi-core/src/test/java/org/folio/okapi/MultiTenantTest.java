@@ -135,9 +135,7 @@ public class MultiTenantTest {
   }
 
   private void td(TestContext context, Async async) {
-    vertx.close(x -> {
-      async.complete();
-    });
+    vertx.close(x -> async.complete());
   }
 
   @After
@@ -304,13 +302,19 @@ public class MultiTenantTest {
     JsonObject mod2 = new JsonObject(docTestModule2);
     mod2.put("launchDescriptor", mod1.getJsonObject("launchDescriptor"));
 
-    // deploy again .. should succeed
+    // remove
+    given()
+        .header("X-Okapi-Token", okapiTokenTenant2)
+        .delete("/_/proxy/modules/sample-module-2.0.0")
+        .then().statusCode(204).log().ifValidationFails();
+
+    // create again .. should succeed
     given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", okapiTokenSupertenant)
       .body(mod2.encodePrettily())
-      .put("/_/proxy/modules/sample-module-2.0.0")
-      .then().statusCode(200).log().ifValidationFails();
+      .post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
 
     // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
     given()
