@@ -199,7 +199,7 @@ public class MainVerticle extends AbstractVerticle {
       fut = fut.compose(x -> startListening());
       fut = fut.compose(x -> startRedeploy());
     }
-    fut.setHandler(x -> {
+    fut.onComplete(x -> {
       if (x.failed()) {
         logger.error(x.cause().getMessage());
       }
