@@ -8,7 +8,8 @@
       "handlers": [
         {
           "methods": [ "GET", "POST" ],
-          "pathPattern": "/testb/timer"
+          "pathPattern": "/testb/timer",
+          "permissionsRequired": []
         }
       ]
     },
@@ -19,11 +20,13 @@
       "handlers": [
         {
           "methods": ["POST"],
-          "pathPattern": "/_/tenant"
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
         },
         {
           "methods": ["DELETE"],
-          "pathPattern": "/_/tenant"
+          "pathPattern": "/_/tenant",
+          "permissionsRequired": []
         }
       ]
     },
@@ -46,7 +49,8 @@
       "handlers": [
         {
           "methods": [ "GET" ],
-          "pathPattern": "/recurse"
+          "pathPattern": "/recurse",
+          "permissionsRequired": []
         }
       ]
     }
