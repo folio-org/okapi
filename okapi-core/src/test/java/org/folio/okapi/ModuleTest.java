@@ -1209,7 +1209,7 @@ public class ModuleTest {
       + "  \"name\" : \"header-module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
