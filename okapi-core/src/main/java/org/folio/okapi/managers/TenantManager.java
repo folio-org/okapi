@@ -699,7 +699,7 @@ public class TenantManager {
     pc.debug("Loading permissions for " + mdTo.getName()
         + " (using " + permsModule.getName() + ")");
     String moduleTo = mdTo.getId();
-    PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
+    PermissionList pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
     String pljson = Json.encodePrettily(pl);
     pc.debug("tenantPerms Req: " + pljson);
     InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");

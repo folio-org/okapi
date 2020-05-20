@@ -1309,6 +1309,18 @@ public class ModuleTest {
       + "\"description\" : \"All permissions combined\", "
       + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
       + "\"visible\" : true "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.modperm\" ], "
+      + "\"visible\" : false "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
+      + "\"visible\" : false "
       + "} ] }";
 
     String locSampleEnable = given()

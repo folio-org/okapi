@@ -328,6 +328,8 @@ public class ProxyService {
       }
       String[] modp = re.getModulePermissions();
       if (modp != null) {
+        // replace module permissions with auto generated permission set id
+        modp = new String[] {re.generateSystemId(mod.getModuleDescriptor().getId())};
         if (re.getProxyType() == ProxyType.REDIRECT) {
           extraperms.addAll(Arrays.asList(modp));
         } else {
@@ -1098,6 +1100,8 @@ public class ProxyService {
       String[] modulePermissions = re.getModulePermissions();
       Map<String, String[]> mpMap = new HashMap<>();
       if (modulePermissions != null) {
+        // replace module permissions with auto generated permission set id
+        modulePermissions = new String[] {re.generateSystemId(inst.getModuleDescriptor().getId())};
         mpMap.put(inst.getModuleDescriptor().getId(), modulePermissions);
         logger.debug("authForSystemInterface: Found modPerms: {}", modPerms);
       } else {
