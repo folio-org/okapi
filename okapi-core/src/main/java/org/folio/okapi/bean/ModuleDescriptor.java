@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -266,6 +267,50 @@ public class ModuleDescriptor implements Comparable<ModuleDescriptor> {
 
   public void setPermissionSets(Permission[] permissionSets) {
     this.permissionSets = permissionSets;
+  }
+
+  /**
+   * Get existing permission sets plus those generated from modulePermissions.
+   *
+   * @return array of {@link Permission}
+   */
+  @JsonIgnore
+  public Permission[] getExpandedPermissionSets() {
+    List<Permission> perms = new ArrayList<>();
+    if (provides != null) {
+      for (InterfaceDescriptor idesc : provides) {
+        extractModulePermissions(idesc.getHandlers(), perms);
+      }
+    }
+    extractModulePermissions(filters, perms);
+    if (perms.isEmpty()) {
+      return permissionSets;
+    }
+    if (permissionSets != null) {
+      perms.addAll(0, Arrays.asList(permissionSets));
+    }
+    Permission[] permissions = new Permission[perms.size()];
+    perms.toArray(permissions);
+    return permissions;
+  }
+
+  private void extractModulePermissions(RoutingEntry[] routingEntries, List<Permission> perms) {
+    if (routingEntries == null) {
+      return;
+    }
+    for (RoutingEntry re : routingEntries) {
+      if (re.getModulePermissions() == null || re.getModulePermissions().length == 0) {
+        continue;
+      }
+      String permName = re.generateSystemId(id.getId());
+      Permission perm = new Permission();
+      perm.setPermissionName(permName);
+      perm.setDisplayName("System generated: " + permName);
+      perm.setDescription("System generated permission set");
+      perm.setSubPermissions(re.getModulePermissions());
+      perm.setVisible(Boolean.FALSE);
+      perms.add(perm);
+    }
   }
 
   public EnvEntry[] getEnv() {

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
+import java.util.Arrays;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -209,6 +210,17 @@ public class RoutingEntry {
     } else {
       return path;
     }
+  }
+
+  /**
+   * Generate a system id for this routing entry.
+   *
+   * @param moduleId - id of parent module
+   * @return {@link String}
+   */
+  @JsonIgnore
+  public String generateSystemId(String moduleId) {
+    return "SYS#" + moduleId + "#" + getStaticPath() + "#" + Arrays.deepToString(methods);
   }
 
   public String getPath() {
