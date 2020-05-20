@@ -328,7 +328,7 @@ public class TenantManager {
         future = future.compose(x -> enableAndDisableModuleFut(tenantId, options,
           md.getId(), null, pc));
       }
-      future.setHandler(promise::handle);
+      future.onComplete(promise::handle);
     });
     return promise.future();
   }
