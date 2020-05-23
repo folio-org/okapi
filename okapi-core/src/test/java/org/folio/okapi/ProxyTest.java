@@ -279,7 +279,7 @@ public class ProxyTest {
         .compose(x -> startTimerServer())
         .compose(x -> startPreServer())
         .compose(x -> startPostServer());
-    future.setHandler(context.asyncAssertSuccess());
+    future.onComplete(context.asyncAssertSuccess());
   }
 
   private void td(TestContext context, Async async) {
