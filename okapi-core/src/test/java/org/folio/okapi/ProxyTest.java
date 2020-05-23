@@ -28,8 +28,8 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
@@ -174,7 +174,6 @@ public class ProxyTest {
             ctx.response().setStatusCode(timerTenantInitStatus);
             ctx.response().end("timer response");
           } else if (p.startsWith("/permissionscall")) {
-
             JsonObject permObject = new JsonObject(buf);
             timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
             ctx.response().setStatusCode(timerTenantPermissionsStatus);
@@ -186,6 +185,8 @@ public class ProxyTest {
               ctx.response().setStatusCode(200);
               ctx.response().end();
             });
+          } else if (p.startsWith("/regularcall")) {
+            ctx.response().end(extractSubFromToken(ctx));
           } else {
             ctx.response().setStatusCode(404);
             ctx.response().end(p);
@@ -3404,6 +3405,246 @@ public class ProxyTest {
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
         c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testTenantPermissionsVersion() {
+    String tenant = "test-tenant-permissions-tenant";
+    String moduleId = "test-tenant-permissions-basic-module-1.0.0";
+    String authModuleId = "test-tenant-permissions-auth-module-1.0.0";
+    String body = new JsonObject().put("id", "test").encode();
+
+    setupBasicTenant(tenant);
+
+    // test _tenantpermissions 1.0 vs 1.1
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
+      timerPermissions.clear();
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion);
+      setupBasicAuth(tenant, authModuleId);
+      // system generates permission sets for 1.1 version
+      if (tenantPermissionsVersion.equals("1.0")) {
+        Assert.assertEquals(1, timerPermissions.getJsonArray(moduleId).size());
+      } else {
+        Assert.assertEquals(4, timerPermissions.getJsonArray(moduleId).size());
+      }
+      // proxy calls
+      RestAssuredClient c = api.createRestAssured3();
+      Response r = c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Token", getOkapiToken(tenant))
+        .body(body).post("/regularcall")
+        .then().statusCode(200).log().ifValidationFails()
+        .extract().response();
+      if (tenantPermissionsVersion.equals("1.0")) {
+        Assert.assertFalse(r.getBody().asString().contains("SYS#"));
+      } else {
+        Assert.assertTrue(r.getBody().asString().contains("SYS#"));
+      }
+      // system calls
+      given()
+        .header("X-Okapi-Tenant", tenant)
+        .header("Content-Type", "text/plain")
+        .header("Accept", "text/plain")
+        .body("Okapi").post("/timercall/10")
+        .then().statusCode(200).log().ifValidationFails();
+      // clean up
+      given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+      given().delete("/_/discovery/modules").then().statusCode(204);
+      given().delete("/_/proxy/modules/" + moduleId).then().statusCode(204);
+    }
+
+    // remove testing tenant
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  // add basic tenant
+  private void setupBasicTenant(String tenant) {
+    String tenantJson = new JsonObject().put("id", tenant).encode();
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(tenantJson).post("/_/proxy/tenants")
+      .then().statusCode(201);
+  }
+
+  // get X-Okapi-Token
+  private String getOkapiToken(String tenant) {
+    String loginJson = new JsonObject()
+      .put("tenant",  tenant)
+      .put("username", "peter")
+      .put("password", "peter-password")
+      .encode();
+    RestAssuredClient c = api.createRestAssured3();
+    return c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Tenant", tenant)
+      .body(loginJson).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+  }
+
+  // decode X-Okapi-Token
+  private JsonObject decodeOkapiToken(String token) {
+    String encodedJson = token.substring(token.indexOf(".") + 1, token.lastIndexOf("."));
+    return new JsonObject(new String(Base64.getDecoder().decode(encodedJson)));
+  }
+
+  // extract sub from token
+  private String extractSubFromToken(RoutingContext ctx) {
+    String token = ctx.request().getHeader("X-Okapi-Token");
+    if (token != null) {
+      return decodeOkapiToken(token).getString("sub");
+    }
+    return "";
+  }
+
+  // add auth module
+  private void setupBasicAuth(String tenant, String authModuleId) {
+    String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    String mdJson = new JsonObject()
+      .put("id", authModuleId)
+      .put("name", "auth")
+      .put("provides", new JsonArray()
+        .add(new JsonObject()
+          .put("id", "auth")
+          .put("version", "1.2")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("path", "/authn/login")
+              .put("level", "20")
+              .put("type", "request-response")
+              .put("permissionsRequired", new JsonArray())))))
+      .put("filters", new JsonArray()
+        .add(new JsonObject()
+          .put("methods", new JsonArray().add("*"))
+          .put("path", "/")
+          .put("phase", "auth")
+          .put("type", "headers")
+          .put("phase", "auth")
+          .put("permissionsRequired", new JsonArray())))
+      .put("requires", new JsonArray())
+      .put("launchDescriptor", new JsonObject()
+        .put("exec", "java -Dport=%p -jar " + testAuthJar))
+      .encodePrettily();
+
+    // registration
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(mdJson).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // deploy and enable
+    String installJson = new JsonArray().add(new JsonObject()
+      .put("id", authModuleId)
+      .put("action", "enable"))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(installJson)
+      .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+  }
+
+  // add basic module
+  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion) {
+    String mdJson = new JsonObject()
+      .put("id", moduleId)
+      .put("provides", new JsonArray()
+        .add(new JsonObject()
+          .put("id", "_tenant")
+          .put("version", "1.1")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/_/tenant/disable")
+              .put("permissionsRequired", new JsonArray()))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST").add("DELETE"))
+              .put("pathPattern", "/_/tenant")
+              .put("permissionsRequired", new JsonArray()))))
+        .add(new JsonObject()
+          .put("id", "_tenantPermissions")
+          .put("version", tenantPermissionsVersion)
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/permissionscall")
+              .put("permissionsRequired", new JsonArray()))))
+        .add(new JsonObject()
+          .put("id", "_timer")
+          .put("version", "1.0")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/timercall/1")
+              .put("unit", "millisecond")
+              .put("delay", "10")
+              .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
+              .put("modulePermissions", new JsonArray().add("timercall.test.post")))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("DELETE"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
+        .add(new JsonObject()
+          .put("id", "myint")
+          .put("version", "1.0")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray())
+              .put("modulePermissions", new JsonArray().add("timercall.post.id").add("timercall.delete.id")))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("DELETE"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
+        .add(new JsonObject()
+          .put("id", "mytest")
+          .put("version", "1.0")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/regularcall")
+              .put("permissionsRequired", new JsonArray())
+              .put("modulePermissions", new JsonArray().add("regularcall.test.post"))))))
+      .put("requires", new JsonArray())
+      .put("permissionSets", new JsonArray()
+        .add(new JsonObject()
+          .put("permissionName", "timercall.post.id")
+          .put("displayName", "d")))
+      .encodePrettily();
+
+    // registration
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(mdJson).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // discovery
+    String discoveryJson = new JsonObject()
+      .put("instId", "localhost-" + Integer.toString(portTimer))
+      .put("srvcId", moduleId)
+      .put("url", "http://localhost:" + Integer.toString(portTimer))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(discoveryJson).post("/_/discovery/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // install
+    String installJson = new JsonArray()
+      .add(new JsonObject().put("id", moduleId).put("action", "enable"))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(installJson)
+      .post("/_/proxy/tenants/" + tenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
   }
 
 }
