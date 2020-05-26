@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -48,7 +47,7 @@ public class ModuleManager {
   private Vertx vertx;
   private final Messages messages = Messages.getInstance();
   // tenants with new permission module (_tenantPermissions version 1.1 or later)
-  private ConcurrentMap<String, Boolean> newPermModuleTenants = new ConcurrentHashMap<>();
+  private Set<String> expandedPermModuleTenants = ConcurrentHashMap.newKeySet();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -410,7 +409,7 @@ public class ModuleManager {
       if (enabledModulesCache.containsKey(id)) {
         ModuleDescriptor md = enabledModulesCache.get(id);
         mdl.add(md);
-        updateNewPermModuleTenants(ten.getId(), md);
+        updateExpandedPermModuleTenants(ten.getId(), md);
       } else {
         Promise<ModuleDescriptor> promise = Promise.promise();
         modules.get(id, res -> {
@@ -418,7 +417,7 @@ public class ModuleManager {
             ModuleDescriptor md = res.result();
             enabledModulesCache.put(id, md);
             mdl.add(md);
-            updateNewPermModuleTenants(ten.getId(), md);
+            updateExpandedPermModuleTenants(ten.getId(), md);
           } else {
             logger.warn("getEnabledModules id={} failed", id, res.cause());
           }
@@ -430,20 +429,20 @@ public class ModuleManager {
     futures.all(mdl, fut);
   }
 
-  private void updateNewPermModuleTenants(String tenant, ModuleDescriptor md) {
+  private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
     InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
     if (id == null) {
       return;
     }
     if (id.getVersion().equals("1.0")) {
-      newPermModuleTenants.remove(tenant);
+      expandedPermModuleTenants.remove(tenant);
     } else {
-      newPermModuleTenants.put(tenant, Boolean.TRUE);
+      expandedPermModuleTenants.add(tenant);
     }
   }
 
-  public ConcurrentMap<String, Boolean> getNewPermModuleTenants() {
-    return newPermModuleTenants;
+  public Set<String> getExpandedPermModuleTenants() {
+    return expandedPermModuleTenants;
   }
 
 }
