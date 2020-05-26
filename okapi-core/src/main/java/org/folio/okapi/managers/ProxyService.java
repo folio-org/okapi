@@ -329,7 +329,7 @@ public class ProxyService {
       String[] modp = re.getModulePermissions();
       if (modp != null) {
         // replace module permissions with auto generated permission set id
-        if (moduleManager.getExpandedPermModuleTenants().containsKey(pc.getTenant())) {
+        if (moduleManager.getExpandedPermModuleTenants().contains(pc.getTenant())) {
           modp = new String[] {re.generateSystemId(mod.getModuleDescriptor().getId())};
         }
         if (re.getProxyType() == ProxyType.REDIRECT) {
@@ -1103,7 +1103,7 @@ public class ProxyService {
       Map<String, String[]> mpMap = new HashMap<>();
       if (modulePermissions != null) {
         // replace module permissions with auto generated permission set id
-        if (moduleManager.getExpandedPermModuleTenants().containsKey(tenantId)) {
+        if (moduleManager.getExpandedPermModuleTenants().contains(tenantId)) {
           modulePermissions = new String[] {re.generateSystemId(modId)};
         }
         mpMap.put(modId, modulePermissions);
