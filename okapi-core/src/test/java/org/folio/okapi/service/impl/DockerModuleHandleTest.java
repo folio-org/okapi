@@ -64,7 +64,7 @@ public class DockerModuleHandleTest {
       "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     dh.start(context.asyncAssertFailure(cause ->
-      context.assertTrue(cause.getMessage().contains("Connection refused"),
+      context.assertTrue(cause.getMessage().contains("java.net.ConnectException"),
         cause.getMessage())
     ));
   }
