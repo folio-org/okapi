@@ -1,10 +1,11 @@
 package org.folio.okapi.bean;
 
+import static org.mockito.Mockito.*;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.util.ProxyContext;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 
@@ -92,7 +93,7 @@ public class ModuleInterfaceTest {
 
   @Test
   public void testPermissionsRequired() {
-    ProxyContext pc = Mockito.mock(ProxyContext.class);
+    ProxyContext pc = mock(ProxyContext.class);
     String section = "provides";
     String mod = "test";
     String expected = "Missing field permissionsRequired";
@@ -124,5 +125,26 @@ public class ModuleInterfaceTest {
 
     desc.getHandlers()[0].setPermissionsRequired(new String[] { "perm.b", "perm.c" });
     assertTrue(desc.validate(pc, section, mod).isEmpty());
+  }
+
+  @Test
+  public void testTenantPermissionsVersion() {
+    ProxyContext pc = mock(ProxyContext.class);
+    String section = "provides";
+    String mod = "test";
+
+    InterfaceDescriptor desc = new InterfaceDescriptor();
+    desc.setId("_tenantPermissions");
+    desc.setVersion("1.0");
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    verify(pc, never()).warn(anyString());
+
+    desc.setVersion("1.1");
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    verify(pc, never()).warn(anyString());
+
+    desc.setVersion("1.2");
+    assertTrue(desc.validate(pc, section, mod).isEmpty());
+    verify(pc, times(1)).warn(anyString());
   }
 }

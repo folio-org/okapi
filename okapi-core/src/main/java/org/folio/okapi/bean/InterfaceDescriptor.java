@@ -220,8 +220,8 @@ public class InterfaceDescriptor {
       pc.warn(prefix + " is '" + version + "'."
           + " should be '1.0/1.1/1.2'");
     }
-    if ("_tenantPermissions".equals(this.id) && !"1.0".equals(version)) {
-      pc.warn(prefix + " is '" + version + "'. should be '1.0'");
+    if ("_tenantPermissions".equals(this.id) && !"1.0 1.1".contains(version)) {
+      pc.warn(prefix + " is '" + version + "'. should be '1.0/1.1'");
     }
 
     if (section.equals("provides")) {

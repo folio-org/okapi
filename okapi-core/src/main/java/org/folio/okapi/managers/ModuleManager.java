@@ -12,7 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
@@ -44,6 +46,8 @@ public class ModuleManager {
   private final ModuleStore moduleStore;
   private Vertx vertx;
   private final Messages messages = Messages.getInstance();
+  // tenants with new permission module (_tenantPermissions version 1.1 or later)
+  private Set<String> expandedPermModuleTenants = ConcurrentHashMap.newKeySet();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -403,13 +407,17 @@ public class ModuleManager {
     CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
       if (enabledModulesCache.containsKey(id)) {
-        mdl.add(enabledModulesCache.get(id));
+        ModuleDescriptor md = enabledModulesCache.get(id);
+        mdl.add(md);
+        updateExpandedPermModuleTenants(ten.getId(), md);
       } else {
         Promise<ModuleDescriptor> promise = Promise.promise();
         modules.get(id, res -> {
           if (res.succeeded()) {
-            enabledModulesCache.put(id, res.result());
-            mdl.add(res.result());
+            ModuleDescriptor md = res.result();
+            enabledModulesCache.put(id, md);
+            mdl.add(md);
+            updateExpandedPermModuleTenants(ten.getId(), md);
           } else {
             logger.warn("getEnabledModules id={} failed", id, res.cause());
           }
@@ -420,4 +428,21 @@ public class ModuleManager {
     }
     futures.all(mdl, fut);
   }
+
+  private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
+    InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
+    if (id == null) {
+      return;
+    }
+    if (id.getVersion().equals("1.0")) {
+      expandedPermModuleTenants.remove(tenant);
+    } else {
+      expandedPermModuleTenants.add(tenant);
+    }
+  }
+
+  public Set<String> getExpandedPermModuleTenants() {
+    return expandedPermModuleTenants;
+  }
+
 }
