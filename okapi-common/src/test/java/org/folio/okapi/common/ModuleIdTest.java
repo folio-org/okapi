@@ -24,11 +24,11 @@ public class ModuleIdTest {
     assertEquals("module", module_1plus2.getProduct());
     assertEquals("module-1-2+3", module_1plus2.toString());
 
-    assertFalse(module_1.equals(module_1plus2));
-    assertFalse(module_1.equals(this));
-    assertTrue(module_1.equals(module_1));
+    assertNotEquals(module_1, module_1plus2);
+    assertNotEquals(module_1, this);
+    assertEquals(module_1, module_1);
     ModuleId module_1plus2copy = new ModuleId("module-1-2+3");
-    assertTrue(module_1plus2.equals(module_1plus2copy));
+    assertEquals(module_1plus2, module_1plus2copy);
 
     assertEquals(module_1plus2.hashCode(), module_1plus2copy.hashCode());
 

@@ -916,8 +916,8 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
-    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    Assert.assertTrue(UrlDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
+    Assert.assertEquals("/_/proxy/modules/sample-module-1%2B1", locSampleModule);
+    Assert.assertEquals("/_/proxy/modules/sample-module-1+1", UrlDecoder.decode(locSampleModule));
 
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),

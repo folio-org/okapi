@@ -34,9 +34,10 @@ public class OkapiTokenTest {
   }
 
   private String exceptionMessage(String token) {
+    OkapiToken okapiToken = new OkapiToken(token);
     Exception e = Assert.assertThrows(
         IllegalArgumentException.class,
-        () -> new OkapiToken(token).getTenant());
+        () -> okapiToken.getTenant());
     return e.getMessage();
   }
 

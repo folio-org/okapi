@@ -22,7 +22,7 @@ public class SemVerTest {
         assertEquals(exp, ex.getMessage());
       }
     }
-    assertTrue(v == null);
+    assertNull(v);
   }
 
   @Test
@@ -65,11 +65,11 @@ public class SemVerTest {
     SemVer p6 = createVersion("1.0.0-beta.11", true, false);
     SemVer p7 = createVersion("1.0.0-rc.1", true, false);
     SemVer p8 = createVersion("1.0.0", false, false);
-    assertFalse(p1.equals(p2));
-    assertTrue(p1.equals(p1));
+    assertNotEquals(p1, p2);
+    assertEquals(p1, p1);
     SemVer p1Copy = createVersion("1.0.0-alpha", true, false);
-    assertTrue(p1.equals(p1Copy));
-    assertFalse(p1.equals(this));
+    assertEquals(p1, p1Copy);
+    assertNotEquals(p1, this);
 
     assertTrue(p1.hasPrefix(v1));
     assertTrue(p7.hasPrefix(v1));
