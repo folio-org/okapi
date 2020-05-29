@@ -1,3 +1,20 @@
+## 3.0.0 2020-05-29
+
+ * OKAPI-767 permissionsRequired required (securing APIs by default)
+   All modules must explicitly define permissionsRequired for each
+   routing entry for normal handlers.
+ * OKAPI-851 _tenantPermission version 1.1 makes permset; 1.0 does not
+   which is old behavior.
+ * OKAPI-850 pom.xml dependency management (bom), upgrade Vert.x
+   4.0 dependencies
+ * OKAPI-846 Include permissionsRequired in all examples in guide.md
+ * OKAPI-807 Module descriptors can no longer be updated. Module
+   descriptors are immutable.
+ * OKAPI-843 Update to log4j 2.13.2
+ * OKAPI-837 Remove permissions from X-Okapi-Token (JWT) - convert
+   module permissions to a permset
+ * Remove locale dependency
+
 ## 2.40.0 2020-04-17
 
 New facilities for services that enables and disables modules for tenant.
