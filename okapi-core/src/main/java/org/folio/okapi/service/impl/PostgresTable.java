@@ -112,7 +112,7 @@ class PostgresTable<T> {
         return;
       }
       q.close();
-      RowSet result = res.result();
+      RowSet<Row> result = res.result();
       if (result.rowCount() == 0) {
         fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
         return;
