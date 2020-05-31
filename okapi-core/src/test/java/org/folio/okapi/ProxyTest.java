@@ -3498,7 +3498,7 @@ public class ProxyTest {
       .statusCode(200)
       .log().ifValidationFails();
 
-    // with CORS delegate and query parameer
+    // with CORS delegate and query parameter
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
