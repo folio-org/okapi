@@ -2,6 +2,7 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
@@ -31,6 +32,8 @@ public class RoutingEntry {
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+  private boolean delegateCors;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
@@ -404,6 +407,15 @@ public class RoutingEntry {
       }
     }
     this.phase = phase;
+  }
+
+  @JsonProperty("delegateCORS")
+  public boolean isDelegateCors() {
+    return delegateCors;
+  }
+
+  public void setDelegateCors(boolean delegateCors) {
+    this.delegateCors = delegateCors;
   }
 
   /**
