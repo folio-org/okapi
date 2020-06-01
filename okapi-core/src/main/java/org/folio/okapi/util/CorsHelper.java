@@ -62,23 +62,22 @@ public class CorsHelper {
   }
 
   /**
-   * Check CORS delegate and reroute if necessary.
+   * Check CORS delegate to decide if reroute if necessary.
    *
    * @param ctx             - {@link RoutingContext}
    * @param moduleInstances a list of {@link ModuleInstance}
+   * @return true if reroute if needed, false otherwise
    */
-  public static void checkCorsDelegate(RoutingContext ctx, List<ModuleInstance> moduleInstances) {
+  public static boolean checkCorsDelegate(RoutingContext ctx, List<ModuleInstance> moduleInstances) {
     if (ctx.data().containsKey(CHECK_DELEGATE_CORS)) {
       ctx.data().remove(CHECK_DELEGATE_CORS);
       if (moduleInstances.stream().anyMatch(mi ->
           mi.isHandler() && mi.getRoutingEntry().isDelegateCors())) {
         ctx.data().put(DELEGATE_CORS, true);
-        ctx.request().resume();
-        ctx.reroute(ctx.request().path());
-        return;
+        return true;
       }
     }
-
+    return false;
   }
 
 }

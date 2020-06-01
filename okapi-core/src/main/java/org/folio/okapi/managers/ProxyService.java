@@ -540,8 +540,12 @@ public class ProxyService {
           return; // ctx already set up
         }
 
-        // handle delegate CORS
-        CorsHelper.checkCorsDelegate(ctx, l);
+        // check delegate CORS and reroute if necessary
+        if (CorsHelper.checkCorsDelegate(ctx, l)) {
+          stream.resume();
+          ctx.reroute(ctx.request().path());
+          return;
+        }
 
         pc.setModList(l);
 
