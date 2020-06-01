@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.MainVerticle;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
@@ -45,6 +44,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
 
@@ -541,15 +541,7 @@ public class ProxyService {
         }
 
         // handle delegate CORS
-        if (ctx.data().containsKey(MainVerticle.CHECK_DELEGATE_CORS)) {
-          ctx.data().remove(MainVerticle.CHECK_DELEGATE_CORS);
-          if (l.stream().anyMatch(mi -> mi.isHandler() && mi.getRoutingEntry().isDelegateCors())) {
-            ctx.data().put(MainVerticle.DELEGATE_CORS, true);
-            stream.resume();
-            ctx.reroute(ctx.request().path());
-            return;
-          }
-        }
+        CorsHelper.checkCorsDelegate(ctx, l);
 
         pc.setModList(l);
 

@@ -5,14 +5,11 @@ import io.vertx.core.Context;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.ext.web.Router;
-import io.vertx.ext.web.handler.CorsHandler;
 import java.lang.management.ManagementFactory;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
@@ -41,15 +38,13 @@ import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.service.impl.Storage;
 import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.service.impl.TenantStoreNull;
+import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.LogHelper;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
 
   private final Logger logger = OkapiLogger.get();
-
-  public static final String CHECK_DELEGATE_CORS = "check-delegate-CORS";
-  public static final String DELEGATE_CORS = "delegate-CORS";
 
   private ModuleManager moduleManager;
   private TenantManager tenantManager;
@@ -356,37 +351,8 @@ public class MainVerticle extends AbstractVerticle {
     Router router = Router.router(vertx);
     logger.debug("Setting up routes");
 
-    // handle delegate CORS
-    router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*").handler(ctx -> {
-      ctx.data().put(CHECK_DELEGATE_CORS, true);
-      ctx.next();
-    });
-
     //handle CORS
-    router.route().handler(ctx -> {
-      if (ctx.data().containsKey(DELEGATE_CORS)) {
-        ctx.next();
-      } else {
-        CorsHandler.create("*")
-          .allowedMethod(HttpMethod.PUT)
-          .allowedMethod(HttpMethod.DELETE)
-          .allowedMethod(HttpMethod.GET)
-          .allowedMethod(HttpMethod.POST)
-          //allow request headers
-          .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
-          .allowedHeader(XOkapiHeaders.TENANT)
-          .allowedHeader(XOkapiHeaders.TOKEN)
-          .allowedHeader(XOkapiHeaders.AUTHORIZATION)
-          .allowedHeader(XOkapiHeaders.REQUEST_ID) //expose response headers
-          .allowedHeader(XOkapiHeaders.MODULE_ID)
-          .exposedHeader(HttpHeaders.LOCATION.toString())
-          .exposedHeader(XOkapiHeaders.TRACE)
-          .exposedHeader(XOkapiHeaders.TOKEN)
-          .exposedHeader(XOkapiHeaders.AUTHORIZATION)
-          .exposedHeader(XOkapiHeaders.REQUEST_ID)
-          .exposedHeader(XOkapiHeaders.MODULE_ID).handle(ctx);
-      }
-    });
+    CorsHelper.addCorsHanlder(router);
 
     if (proxyService != null) {
       router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*")
