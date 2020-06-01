@@ -68,7 +68,8 @@ public class CorsHelper {
    * @param moduleInstances a list of {@link ModuleInstance}
    * @return true if reroute if needed, false otherwise
    */
-  public static boolean checkCorsDelegate(RoutingContext ctx, List<ModuleInstance> moduleInstances) {
+  public static boolean checkCorsDelegate(
+      RoutingContext ctx, List<ModuleInstance> moduleInstances) {
     if (ctx.data().containsKey(CHECK_DELEGATE_CORS)) {
       ctx.data().remove(CHECK_DELEGATE_CORS);
       if (moduleInstances.stream().anyMatch(mi ->
