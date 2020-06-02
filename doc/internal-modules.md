@@ -6,14 +6,14 @@ This is a working document, specifying what needs to be done to get the internal
 services to behave like modules, and what the implications will be. This is a
 working document, always under construction. When the job is all done, lots of
 this has become irrelevant, and the rest should be included in the real
-documentation...
+documentation.
 
 
 ## Overview:
 * Instead of Okapi just serving things like `/_/modules`, make it use a proper
-  pipeline for such
+  pipeline for such.
 * That implies that we can have auth checks in the pipeline, and finally have
-  access control for Okapi administration
+  access control for Okapi administration.
 * Since we will have access control, each request needs to be made on behalf
   of a tenant, by a logged-in user.
 * There is a start-up problem: We need to act on behalf of a tenant in order
@@ -29,11 +29,11 @@ documentation...
 
 ## How to get there
 * Make sure Okapi creates the super tenant and internal ModuleDescriptors at
-startup, if needed
-* Define the "internal" module type
-* Make proxy route requests to the internal type
-* Make sure one endpoint works with the internals, maybe `/_/tenants`
-* The rest of the services
+startup, if needed.
+* Define the "internal" module type.
+* Make proxy route requests to the internal type.
+* Make sure one endpoint works with the internals, maybe `/_/tenants`.
+* The rest of the services.
 
 
 ## Open questions
@@ -44,7 +44,7 @@ Since we will have access control, we need to design which permissions are
 needed for all the operations. Things to consider:
 * The UI may need to make some calls, for example for the `about` page. Most
 users should be allowed to see that, maybe it could be left totally unprotected?
-* Make an explicit list of the permissions for various operations
+* Make an explicit list of the permissions for various operations.
 * We can not make the ModulePermissions call for the internal modules, since
 we don't have mod-perms available at the time. What we can do instead, we can
 create a separate module, okapi-permsets, just for loading the permission sets.
@@ -58,16 +58,16 @@ Here is my idea of how things could work:
 
 * Okapi starts up, sees that its database is empty, so creates MDs for its internal services and a super-tenant
 * Admin installs and deploys mod-perms, mod-login, and mod-authtoken
-* Admin enables mod-perms and mod-login
+* Admin enables mod-perms and mod-login.
 * Admin posts credentials for the superuser into mod-login, and initial permissions to mod-perms
 * Admin enables mod-authtoken. Now the system is locked.
-* Admin logs in with the credentials just posted
+* Admin logs in with the credentials just posted.
 
 Admin installs and deploys the rest of the modules needed for the installation:
 
-* Admin creates a real tenant
-* Admin enables mod-perms and mod-login for the new tenant
-* Admin posts credentials for the tenants super-user
+* Admin creates a real tenant.
+* Admin enables mod-perms and mod-login for the new tenant.
+* Admin posts credentials for the tenants super-user.
 * Admin enables mod-authtoken for the tenant. Now the tenant is locked.
 * Admin may log in as the super-user for that tenant, and enable the rest of relevant modules.
 
