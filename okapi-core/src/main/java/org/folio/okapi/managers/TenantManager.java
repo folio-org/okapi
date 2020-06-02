@@ -328,7 +328,7 @@ public class TenantManager {
         future = future.compose(x -> enableAndDisableModuleFut(tenantId, options,
           md.getId(), null, pc));
       }
-      future.setHandler(promise::handle);
+      future.onComplete(promise::handle);
     });
     return promise.future();
   }
@@ -699,10 +699,15 @@ public class TenantManager {
     pc.debug("Loading permissions for " + mdTo.getName()
         + " (using " + permsModule.getName() + ")");
     String moduleTo = mdTo.getId();
-    PermissionList pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
+    PermissionList pl = null;
+    InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
+    if (permInt.getVersion().equals("1.0")) {
+      pl = new PermissionList(moduleTo, mdTo.getPermissionSets());
+    } else {
+      pl = new PermissionList(moduleTo, mdTo.getExpandedPermissionSets());
+    }
     String pljson = Json.encodePrettily(pl);
     pc.debug("tenantPerms Req: " + pljson);
-    InterfaceDescriptor permInt = permsModule.getSystemInterface("_tenantPermissions");
     String permPath = "";
     List<RoutingEntry> routingEntries = permInt.getAllRoutingEntries();
     ModuleInstance permInst = null;

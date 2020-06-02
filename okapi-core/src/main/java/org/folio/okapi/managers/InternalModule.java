@@ -777,7 +777,7 @@ public class InternalModule {
                                        Handler<ExtendedAsyncResult<String>> fut) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    tenantManager.disableModules(id, options, pc).setHandler(res -> {
+    tenantManager.disableModules(id, options, pc).onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(ErrorType.USER, res.cause()));
         return;

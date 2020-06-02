@@ -328,6 +328,10 @@ public class ProxyService {
       }
       String[] modp = re.getModulePermissions();
       if (modp != null) {
+        // replace module permissions with auto generated permission set id
+        if (moduleManager.getExpandedPermModuleTenants().contains(pc.getTenant())) {
+          modp = new String[] {re.generateSystemId(mod.getModuleDescriptor().getId())};
+        }
         if (re.getProxyType() == ProxyType.REDIRECT) {
           extraperms.addAll(Arrays.asList(modp));
         } else {
@@ -1093,12 +1097,16 @@ public class ProxyService {
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
-
+    String modId = inst.getModuleDescriptor().getId();
     if (re != null) {
       String[] modulePermissions = re.getModulePermissions();
       Map<String, String[]> mpMap = new HashMap<>();
       if (modulePermissions != null) {
-        mpMap.put(inst.getModuleDescriptor().getId(), modulePermissions);
+        // replace module permissions with auto generated permission set id
+        if (moduleManager.getExpandedPermModuleTenants().contains(tenantId)) {
+          modulePermissions = new String[] {re.generateSystemId(modId)};
+        }
+        mpMap.put(modId, modulePermissions);
         logger.debug("authForSystemInterface: Found modPerms: {}", modPerms);
       } else {
         logger.debug("authForSystemInterface: Got RoutingEntry, but null modulePermissions");
@@ -1120,7 +1128,7 @@ public class ProxyService {
           () -> Json.encode(cli.getRespHeaders().entries()));
       String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
       JsonObject jo = new JsonObject(modTok);
-      String token = jo.getString(inst.getModuleDescriptor().getId(), deftok);
+      String token = jo.getString(modId, deftok);
       logger.debug("authForSystemInterface: Got token {}", token);
       doCallSystemInterface(headers, tenantId, token, inst, null, request, fut);
     });

@@ -216,9 +216,11 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> {
-      logger.warn("{}: {}", url, d.getMessage());
-      future.handle(Future.failedFuture(url + ": " + d.getMessage()));
+    req.exceptionHandler(e -> {
+      Throwable cause = e.getCause() == null ? e : e.getCause();
+      String msg = url + ": " + e.getMessage() + " - " + cause.getClass().getName();
+      logger.warn(msg);
+      future.handle(Future.failedFuture(msg));
     });
     req.end();
   }

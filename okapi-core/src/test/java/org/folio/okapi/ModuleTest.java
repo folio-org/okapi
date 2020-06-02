@@ -916,8 +916,8 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
-    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    Assert.assertTrue(UrlDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
+    Assert.assertEquals("/_/proxy/modules/sample-module-1%2B1", locSampleModule);
+    Assert.assertEquals("/_/proxy/modules/sample-module-1+1", UrlDecoder.decode(locSampleModule));
 
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -1209,7 +1209,7 @@ public class ModuleTest {
       + "  \"name\" : \"header-module\"," + LS
       + "  \"provides\" : [ {" + LS
       + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
@@ -1309,6 +1309,18 @@ public class ModuleTest {
       + "\"description\" : \"All permissions combined\", "
       + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
       + "\"visible\" : true "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.modperm\" ], "
+      + "\"visible\" : false "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
+      + "\"visible\" : false "
       + "} ] }";
 
     String locSampleEnable = given()
