@@ -29,7 +29,7 @@ public class CorsHelper {
    *
    * @param router - {@link Router}
    */
-  public static void addCorsHanlder(Router router) {
+  public static void addCorsHandler(Router router) {
 
     router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*").handler(ctx -> {
       ctx.data().put(CHECK_DELEGATE_CORS, true);

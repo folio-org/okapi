@@ -352,7 +352,7 @@ public class MainVerticle extends AbstractVerticle {
     logger.debug("Setting up routes");
 
     //handle CORS
-    CorsHelper.addCorsHanlder(router);
+    CorsHelper.addCorsHandler(router);
 
     if (proxyService != null) {
       router.routeWithRegex("^/_/invoke/tenant/[^/ ]+/.*")
