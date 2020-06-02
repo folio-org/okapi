@@ -44,6 +44,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
 
@@ -538,6 +539,14 @@ public class ProxyService {
           stream.resume();
           return; // ctx already set up
         }
+
+        // check delegate CORS and reroute if necessary
+        if (CorsHelper.checkCorsDelegate(ctx, l)) {
+          stream.resume();
+          ctx.reroute(ctx.request().path());
+          return;
+        }
+
         pc.setModList(l);
 
         pc.logRequest(ctx, tenantId);

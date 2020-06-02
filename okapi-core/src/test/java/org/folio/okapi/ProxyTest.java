@@ -1,10 +1,12 @@
 package org.folio.okapi;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
-import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
@@ -14,6 +16,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
@@ -27,7 +30,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map.Entry;
@@ -36,8 +38,6 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -49,6 +49,7 @@ public class ProxyTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private static final String CORS_TEST_HEADER = "CORS_TEST_HEADER";
   private final int portTimer = 9235;
   private final int portPre = 9236;
   private final int portPost = 9237;
@@ -187,6 +188,9 @@ public class ProxyTest {
             });
           } else if (p.startsWith("/regularcall")) {
             ctx.response().end(extractSubFromToken(ctx));
+          } else if (p.startsWith("/corscall")) {
+            ctx.response().putHeader(CORS_TEST_HEADER, ctx.request().query());
+            ctx.response().end("Response from CORS test");
           } else {
             ctx.response().setStatusCode(404);
             ctx.response().end(p);
@@ -3457,6 +3461,62 @@ public class ProxyTest {
     given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
   }
 
+  @Test
+  public void testDelegateCORS() {
+    String tenant = "test-tenant-delegate-cors";
+    String moduleId = "test-tenant-delegate-cors-module-1.0.0";
+    String authModuleId = "test-tenant-delegate-cors-auth-module-1.0.0";
+    String body = new JsonObject().put("id", "test").encode();
+
+    setupBasicTenant(tenant);
+    setupBasicModule(tenant, moduleId, "1.1");
+    setupBasicAuth(tenant, authModuleId);
+
+    RestAssuredClient c = api.createRestAssured3();
+
+    // no CORS delegate
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/regularcall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), notNullValue())
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    // with CORS delegate
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/corscall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), nullValue())
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    // with CORS delegate and query parameter
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/corscall?x=y")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), nullValue())
+      .header(CORS_TEST_HEADER, "x=y")
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId).then().statusCode(204);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
   // add basic tenant
   private void setupBasicTenant(String tenant) {
     String tenantJson = new JsonObject().put("id", tenant).encode();
@@ -3610,7 +3670,16 @@ public class ProxyTest {
               .put("methods", new JsonArray().add("POST"))
               .put("pathPattern", "/regularcall")
               .put("permissionsRequired", new JsonArray())
-              .put("modulePermissions", new JsonArray().add("regularcall.test.post"))))))
+              .put("modulePermissions", new JsonArray().add("regularcall.test.post")))))
+        .add(new JsonObject()
+            .put("id", "CORS-TEST")
+            .put("version", "1.0")
+            .put("handlers", new JsonArray()
+              .add(new JsonObject()
+                .put("methods", new JsonArray().add("POST"))
+                .put("pathPattern", "/corscall")
+                .put("permissionsRequired", new JsonArray())
+                .put("delegateCORS", "true")))))
       .put("requires", new JsonArray())
       .put("permissionSets", new JsonArray()
         .add(new JsonObject()
