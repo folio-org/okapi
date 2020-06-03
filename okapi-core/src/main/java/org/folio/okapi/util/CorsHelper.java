@@ -42,6 +42,7 @@ public class CorsHelper {
       } else {
         CorsHandler.create("*")
           .allowedMethod(HttpMethod.PUT)
+          .allowedMethod(HttpMethod.PATCH)
           .allowedMethod(HttpMethod.DELETE)
           .allowedMethod(HttpMethod.GET)
           .allowedMethod(HttpMethod.POST)
