@@ -22,6 +22,40 @@ public class ConfigTest {
     Assert.assertEquals("124", Config.getSysConf(varName, "123", conf));
   }
 
+  private final static String KEY1 = "foo-bar92304231";
+  private final static String KEY2 = "foo-bar92304232";
+
+  private void testTwoKeys(String sys1, String sys2, String json1, String json2, String expected) {
+    if (sys1 == null) {
+      System.clearProperty(KEY1);
+    } else {
+      System.setProperty(KEY1, sys1);
+    }
+    if (sys2 == null) {
+      System.clearProperty(KEY2);
+    } else {
+      System.setProperty(KEY2, sys2);
+    }
+    JsonObject json = new JsonObject();
+    if (json1 != null) {
+      json.put(KEY1, json1);
+    }
+    if (json2 != null) {
+      json.put(KEY2, json2);
+    }
+    Assert.assertEquals(expected, Config.getSysConf(KEY1, KEY2, "someDefault", json));
+  }
+
+  @Test
+  public void testTwoKeys() {
+    testTwoKeys("a",  "b",  "c",  "d",  "a");
+    testTwoKeys("",   "b",  "c",  "d",  "b");
+    testTwoKeys(null, null, "c",  "d",  "c");
+    testTwoKeys(null, "",   null, "d",  "d");
+    testTwoKeys("",   "",   "",   "",   "someDefault");
+    testTwoKeys(null, null, null, null, "someDefault");
+  }
+
   @Test
   public void testBoolean() {
     JsonObject conf = new JsonObject();
@@ -60,5 +94,5 @@ public class ConfigTest {
     Assert.assertEquals(null, Config.getSysConfBoolean(varName, null, conf));
 
   }
-  
+
 }
