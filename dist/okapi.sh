@@ -17,6 +17,8 @@ fi
 DATA_DIR="${DATA_DIR:-/var/lib/okapi}"
 LIB_DIR="${LIB_DIR:-/usr/share/folio/okapi/lib}"
 OKAPI_JAR="${LIB_DIR}/okapi-core-fat.jar"
+# Copy from deprecated postgres_user into postgres_username
+postgres_username="${postgres_username:-${postgres_user:-okapi}}"
 
 parse_okapi_conf()  {
 
@@ -27,7 +29,7 @@ parse_okapi_conf()  {
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
          OKAPI_JAVA_OPTS+=" -Dpostgres_host=${postgres_host:-localhost}"
          OKAPI_JAVA_OPTS+=" -Dpostgres_port=${postgres_port:-5432}"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_user=${postgres_user:-okapi}"
+         OKAPI_JAVA_OPTS+=" -Dpostgres_username=${postgres_username:-okapi}"
          OKAPI_JAVA_OPTS+=" -Dpostgres_password=${postgres_password:-okapi25}"
          OKAPI_JAVA_OPTS+=" -Dpostgres_database=${postgres_database:-okapi}"
       else
@@ -133,7 +135,7 @@ java_check() {
 init_db() {
    # Postgres instance check
    if command -v psql >/dev/null; then
-      psql postgresql://${postgres_user}:${postgres_password}@${postgres_host}:${postgres_port}/${postgres_database}?connect_timeout=5 > /dev/null 2>&1 << EOF
+      psql postgresql://${postgres_username}:${postgres_password}@${postgres_host}:${postgres_port}/${postgres_database}?connect_timeout=5 > /dev/null 2>&1 << EOF
 \q
 EOF
       POSTGRES_RETVAL=$?
@@ -145,7 +147,7 @@ EOF
          exit 2
       else
          echo -n "Initializing okapi database..."
-         $JAVA -Dport=8600 -Dstorage=postgres -Dpostgres_host=${postgres_host} -Dpostgres_port=${postgres_port} -Dpostgres_user=${postgres_user} -Dpostgres_password=${postgres_password} -Dpostgres_database=${postgres_database} -jar ${OKAPI_JAR} initdatabase >/dev/null 2>&1
+         $JAVA -Dport=8600 -Dstorage=postgres -Dpostgres_host=${postgres_host} -Dpostgres_port=${postgres_port} -Dpostgres_username=${postgres_username} -Dpostgres_password=${postgres_password} -Dpostgres_database=${postgres_database} -jar ${OKAPI_JAR} initdatabase >/dev/null 2>&1
          INIT_RETVAL=$?
          if [ "$INIT_RETVAL" != 0 ]; then
             echo "Failed"
