@@ -57,6 +57,8 @@ class PostgresHandle {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
+
+    // postgres_user is supported for system configuration (-D option) only and is deprecated
     connectOptions.setUser(Config.getSysConf("postgres_username",
         Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
