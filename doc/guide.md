@@ -2679,6 +2679,7 @@ Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
 * `postgres_port` : PostgreSQL port. Defaults to 5432.
 * `postgres_username` : PostgreSQL username. Defaults to `okapi`.
+  (Don't use deprecated `postgres_user` that is implemented for `-D` only.)
 * `postgres_password`: PostgreSQL password. Defaults to `okapi25`.
 * `postgres_database`: PostgreSQL database. Defaults to `okapi`.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
