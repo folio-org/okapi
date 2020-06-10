@@ -70,6 +70,8 @@ class PostgresHandle {
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
     String serverPem = Config.getSysConf("postgres_server_pem", null, conf);
     if (serverPem != null) {
+      logger.debug("Enforcing SSL encryption for PostgreSQL connections, "
+          + "requiring TLSv1.3 with server name certificate");
       connectOptions.setSslMode(SslMode.VERIFY_FULL);
       connectOptions.setHostnameVerificationAlgorithm("HTTPS");
       connectOptions.setPemTrustOptions(
