@@ -2415,6 +2415,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .get("/_/proxy/tenants")
       .then().statusCode(200);
