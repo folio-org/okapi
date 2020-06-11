@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.XOkapiHeaders;
 
 
 /**
@@ -38,7 +39,7 @@ public class MainVerticle extends AbstractVerticle {
 
   /**
    * Simple test to fake a _tenantPermission interface.
-   * Captures the body, and reports it in a header.
+   * Saves permissions so they can be inspected later with /permsResult
    *
    * @param ctx routing context
    */
@@ -52,7 +53,11 @@ public class MainVerticle extends AbstractVerticle {
         savedPermissions.add(new JsonObject(buf));
       } catch (Exception e) {
         ctx.response().setStatusCode(400);
+        ctx.response().end(e.getMessage());
+        return;
       }
+      ctx.response().putHeader(XOkapiHeaders.TRACE, "GET test-header-module "
+          + ctx.request().path() + " 200 -");
       ctx.response().end();
     });
   }

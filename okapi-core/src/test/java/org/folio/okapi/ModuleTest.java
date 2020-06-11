@@ -1250,6 +1250,8 @@ public class ModuleTest {
       .log().ifValidationFails()
       .extract().headers();
     final String locHdrEnable = headers.getValue("Location");
+    // one trace from Okapi, two from the header module since it's called twice
+    context.assertEquals(3, headers.getValues("X-Okapi-Trace").size());
 
     String body = given()
         .header("X-Okapi-Tenant", okapiTenant)

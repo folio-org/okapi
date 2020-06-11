@@ -3,6 +3,7 @@ import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.folio.okapi.common.XOkapiHeaders;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -85,6 +86,8 @@ public class HeaderModuleTest {
       JsonObject perm = new JsonObject("{\"k\": \"v\"}");
       cli.post("/_/tenantPermissions", perm.encode(), res2 -> {
         context.assertTrue(res2.succeeded());
+        context.assertEquals("GET test-header-module /_/tenantPermissions 200 -",
+            cli.getRespHeaders().get(XOkapiHeaders.TRACE));
         cli.get("/permResult", res3 -> {
           cli.close();
           context.assertEquals(perm.encode(), new JsonArray(res3.result()).getJsonObject(0).encode());
