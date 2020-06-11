@@ -221,9 +221,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myPermissionHandle(RoutingContext ctx) {
-    ctx.request().endHandler(x -> {
-      ctx.response().end();
-    });
+    ctx.request().endHandler(x -> ctx.response().end());
   }
 
   @Override
