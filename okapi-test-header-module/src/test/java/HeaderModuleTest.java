@@ -1,6 +1,8 @@
 
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -78,11 +80,17 @@ public class HeaderModuleTest {
     HashMap<String, String> headers = new HashMap<>();
 
     OkapiClient cli = new OkapiClient(URL, vertx, headers);
-    cli.post("/_/tenantPermissions", "a, b,\nc", res -> {
-      cli.close();
-      context.assertTrue(res.succeeded());
-      context.assertEquals("a, b, c", cli.getRespHeaders().get("X-Tenant-Perms-Result"));
-      async.complete();
+    cli.post("/_/tenantPermissions", "{", res1 -> {
+      context.assertTrue(res1.failed());
+      JsonObject perm = new JsonObject("{\"k\": \"v\"}");
+      cli.post("/_/tenantPermissions", perm.encode(), res2 -> {
+        context.assertTrue(res2.succeeded());
+        cli.get("/permResult", res3 -> {
+          cli.close();
+          context.assertEquals(perm.encode(), new JsonArray(res3.result()).getJsonObject(0).encode());
+          async.complete();
+        });
+      });
     });
   }
 

@@ -122,16 +122,14 @@ public class ProxyContext {
 
   /**
    * Pass the response headers from an OkapiClient into the response of this
-   * request. Only selected X-Something headers: X-Okapi-Trace, and a special
-   * X-Tenant-Perms-Result, which is used in unit tests for the tenantPemissions
+   * request. Only selected X-Something headers: X-Okapi-Trace
    *
    * @param ok OkapiClient to take resp headers from
    */
   public void passOkapiTraceHeaders(OkapiClient ok) {
     MultiMap respH = ok.getRespHeaders();
     for (Map.Entry<String, String> e : respH.entries()) {
-      if (XOkapiHeaders.TRACE.equals(e.getKey())
-          || "X-Tenant-Perms-Result".equals(e.getKey())) {
+      if (XOkapiHeaders.TRACE.equals(e.getKey())) {
         ctx.response().headers().add(e.getKey(), e.getValue());
       }
     }
