@@ -1,3 +1,11 @@
+## 3.1.0 2020-06-15
+
+ * [OKAPI-854](https://issues.folio.org/browse/OKAPI-854) Deprecate `postgres_user` (use `postgres_username`)
+ * [OKAPI-852](https://issues.folio.org/browse/OKAPI-852) Support PATCH request
+ * [OKAPI-847](https://issues.folio.org/browse/OKAPI-847) Conditionally defer CORS handling to module when invoked via passthrough API
+ * [OKAPI-792](https://issues.folio.org/browse/OKAPI-792) PostgreSQL SSL CA Certificate configuration option
+ * [OKAPI-787](https://issues.folio.org/browse/OKAPI-787) Support SSL connections to Postgres
+
 ## 3.0.0 2020-05-29
 
  * [OKAPI-767](https://issues.folio.org/browse/OKAPI-767) `permissionsRequired` required (securing APIs by default)
