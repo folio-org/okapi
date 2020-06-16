@@ -27,11 +27,25 @@ parse_okapi_conf()  {
 
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_host=${postgres_host:-localhost}"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_port=${postgres_port:-5432}"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_username=${postgres_username:-okapi}"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_password=${postgres_password:-okapi25}"
-         OKAPI_JAVA_OPTS+=" -Dpostgres_database=${postgres_database:-okapi}"
+         # include postgres_server_pem only if defined (even if empty string)
+         jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"  \
+               --arg postgres_host       "${postgres_host:-localhost}"   \
+               --arg postgres_port       "${postgres_port:-5432}"        \
+               --arg postgres_username   "${postgres_username:-okapi}"   \
+               --arg postgres_password   "${postgres_password:-okapi25}" \
+               --arg postgres_database   "${postgres_database:-okapi}"   \
+               --arg postgres_server_pem "${postgres_server_pem}"        \
+               "{\$WARNING,
+                 \$postgres_host,
+                 \$postgres_port,
+                 \$postgres_username,
+                 \$postgres_password,
+                 \$postgres_database
+                 ${postgres_server_pem+,\$postgres_server_pem}
+               }" > "${PID_DIR}/okapi-postgres.conf"
+         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-postgres.conf"
+         echo "${PID_DIR}/okapi-postgres.conf = "
+         cat "${PID_DIR}/okapi-postgres.conf"
       else
          OKAPI_JAVA_OPTS+=" -Dstorage=inmemory"
       fi
