@@ -4,7 +4,6 @@ Priority: extra
 Maintainer: Index Data <support@indexdata.com>
 Build-Depends: debhelper (>=9),
         openjdk-8-jdk,
-        jq,
         maven (>=3.3)
 Standards-Version: 3.9.6
 Homepage: https://github.com/folio-org/okapi
