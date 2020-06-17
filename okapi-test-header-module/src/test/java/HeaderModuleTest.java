@@ -90,7 +90,7 @@ public class HeaderModuleTest {
             cli.getRespHeaders().get(XOkapiHeaders.TRACE));
         cli.get("/permResult", res3 -> {
           cli.close();
-          context.assertEquals(perm.encode(), new JsonArray(res3.result()).getJsonObject(0).encode());
+          context.assertEquals(perm, new JsonArray(res3.result()).getJsonObject(0));
           async.complete();
         });
       });

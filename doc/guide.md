@@ -2682,6 +2682,12 @@ Defaults to `localhost`.
   (Don't use deprecated `postgres_user` that is implemented for `-D` only.)
 * `postgres_password`: PostgreSQL password. Defaults to `okapi25`.
 * `postgres_database`: PostgreSQL database. Defaults to `okapi`.
+* `postgres_server_pem`: SSL/TLS certificate(s) in PEM format to
+  validate the PostgreSQL server certificate, this can be the server
+  certificate, the root CA certificate, or the chain of the intermediate
+  CA and the CA certificate. Defaults to none allowing unencrypted
+  connection only. If set requires a TLSv1.3 connection and a valid
+  server certificate.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 leave it unmodified (default).

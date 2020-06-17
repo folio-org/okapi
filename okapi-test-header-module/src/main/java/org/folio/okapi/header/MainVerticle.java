@@ -64,6 +64,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private void myPermResult(RoutingContext ctx) {
     ctx.response().setStatusCode(200);
+    ctx.response().putHeader("Content-Type", "application/json");
     ctx.response().end(savedPermissions.encodePrettily());
     savedPermissions.clear();
   }

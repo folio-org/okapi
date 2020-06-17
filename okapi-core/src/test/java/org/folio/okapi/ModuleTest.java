@@ -1,8 +1,5 @@
 package org.folio.okapi;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-
 import io.vertx.core.json.JsonArray;
 import org.junit.After;
 import org.junit.Assert;
@@ -36,6 +33,8 @@ import de.flapdoodle.embed.process.runtime.Network;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
 import io.restassured.http.Header;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
@@ -1253,18 +1252,15 @@ public class ModuleTest {
     // one trace from Okapi, two from the header module since it's called twice
     context.assertEquals(3, headers.getValues("X-Okapi-Trace").size());
 
-    String body = given()
+    given()
         .header("X-Okapi-Tenant", okapiTenant)
         .get("/permResult")
         .then()
         .statusCode(200)
         .log().ifValidationFails()
-        .extract().body().asString();
-
-    JsonArray ar = new JsonArray(body);
-    context.assertEquals(2, ar.size());
-    context.assertEquals("okapi-0.0.0", ar.getJsonObject(0).getString("moduleId"));
-    context.assertEquals("header-1", ar.getJsonObject(1).getString("moduleId"));
+        .body("$", hasSize(2))
+        .body("[0].moduleId", is("okapi-0.0.0"))
+        .body("[1].moduleId", is("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -1350,7 +1346,7 @@ public class ModuleTest {
       .log().ifValidationFails()
       .extract().header("Location");
 
-    body = given()
+    String body = given()
         .header("X-Okapi-Tenant", okapiTenant)
         .get("/permResult")
         .then()
@@ -1358,9 +1354,9 @@ public class ModuleTest {
         .log().ifValidationFails()
         .extract().body().asString();
 
-    ar = new JsonArray(body);
+    JsonArray ar = new JsonArray(body);
     context.assertEquals(1, ar.size());
-    context.assertEquals(new JsonObject(expPerms).encode(), ar.getJsonObject(0).encode());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(0));
 
     // Try with a minimal MD, to see we don't have null pointers hanging around
     final String docSampleModule2 = "{" + LS
@@ -1402,7 +1398,7 @@ public class ModuleTest {
 
     ar = new JsonArray(body);
     context.assertEquals(1, ar.size());
-    context.assertEquals(new JsonObject(expPerms2).encode(), ar.getJsonObject(0).encode());
+    context.assertEquals(new JsonObject(expPerms2), ar.getJsonObject(0));
 
     // Tests to see that we get a new auth token for the system calls
     // Disable sample, so we can re-enable it after we have established auth
@@ -1472,7 +1468,7 @@ public class ModuleTest {
 
     ar = new JsonArray(body);
     context.assertEquals(2, ar.size());
-    context.assertEquals(new JsonObject(expPerms).encode(), ar.getJsonObject(1).encode());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(1));
 
     // Check that the tenant interface and the tenantpermission interfaces
     // were called with proper auth tokens and with ModulePermissions
