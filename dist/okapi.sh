@@ -27,6 +27,10 @@ parse_okapi_conf()  {
 
       if [ "$storage" == "postgres" ]; then
          OKAPI_JAVA_OPTS+=" -Dstorage=postgres"
+         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-postgres.conf"
+         rm -f "${PID_DIR}/okapi-postgres.conf" > /dev/null 2>&1
+         touch "${PID_DIR}/okapi-postgres.conf"
+         chmod 600 "${PID_DIR}/okapi-postgres.conf"
          # include postgres_server_pem only if defined (even if empty string)
          jq -n --arg WARNING "AUTOMATICALLY CREATED FILE, DO NOT EDIT!"  \
                --arg postgres_host       "${postgres_host:-localhost}"   \
@@ -43,9 +47,8 @@ parse_okapi_conf()  {
                  \$postgres_database
                  ${postgres_server_pem+,\$postgres_server_pem}
                }" > "${PID_DIR}/okapi-postgres.conf"
-         OKAPI_OPTIONS+=" -conf ${PID_DIR}/okapi-postgres.conf"
          echo "${PID_DIR}/okapi-postgres.conf = "
-         cat "${PID_DIR}/okapi-postgres.conf"
+         cat "${PID_DIR}/okapi-postgres.conf" | sed 's/\(\"\postgres_password":\).*[^,]/\1 .../g'
       else
          OKAPI_JAVA_OPTS+=" -Dstorage=inmemory"
       fi
