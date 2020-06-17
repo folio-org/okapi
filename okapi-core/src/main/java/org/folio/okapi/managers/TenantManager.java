@@ -387,7 +387,7 @@ public class TenantManager {
   }
 
   /**
-   * invoke the tenant interface for a module
+   * invoke the tenant interface for a module.
    *
    * @param tenant tenant
    * @param mdFrom module from
