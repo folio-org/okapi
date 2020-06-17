@@ -14,6 +14,7 @@ import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBusOptions;
+import io.vertx.core.file.FileSystemOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
@@ -51,6 +52,9 @@ public class MainDeploy {
   @SuppressWarnings({"squid:S1181"})
   void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     vopt.setPreferNativeTransport(true);
+    FileSystemOptions fileSystemOptions = new FileSystemOptions();
+    fileSystemOptions.setClassPathResolvingEnabled(false); // do not use /tmp/vertx-cache
+    vopt.setFileSystemOptions(fileSystemOptions);
     try {
       final Logger logger = OkapiLogger.get();
       Messages.setLanguage(System.getProperty("lang", "en"));
