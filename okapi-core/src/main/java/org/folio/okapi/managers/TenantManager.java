@@ -365,14 +365,14 @@ public class TenantManager {
       fut.handle(new Success<>(""));
       return;
     }
-    invokeTenantInterface(tenant, options, mdFrom, mdTo, pc, res2 -> {
-      if (res2.failed()) {
-        fut.handle(new Failure<>(res2.getType(), res2.cause()));
+    invokePermissions(tenant, options, mdFrom, mdTo, pc, res1 -> {
+      if (res1.failed()) {
+        fut.handle(new Failure<>(res1.getType(), res1.cause()));
         return;
       }
-      invokePermissions(tenant, options, mdFrom, mdTo, pc, res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(res1.getType(), res1.cause()));
+      invokeTenantInterface(tenant, options, mdFrom, mdTo, pc, res2 -> {
+        if (res2.failed()) {
+          fut.handle(new Failure<>(res2.getType(), res2.cause()));
           return;
         }
         ead5commit(tenant, mdFrom, mdTo, pc, res3 -> {
