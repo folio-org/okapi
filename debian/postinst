@@ -27,7 +27,7 @@ if [ -f "$OKAPI_CONF_FILE" ]; then
     . "$OKAPI_CONF_FILE"
 else
     echo "Cannot locate okapi.conf"
-    exit 2 
+    exit 2
 fi
 
 
@@ -63,7 +63,7 @@ if [ "$IS_UPGRADE" != "true" ]; then
         echo "Configuring Okapi service..."
         systemctl enable okapi.service
         systemctl daemon-reload
-        echo -n "Starting Okapi..."       
+        echo -n "Starting Okapi..."
         systemctl start okapi.service || true
         echo " OK"
     fi
@@ -76,11 +76,11 @@ elif [ "$RESTART_ON_UPGRADE" = "true" ]; then
         systemctl restart okapi.service || true
         echo " OK"
     fi
-else 
+else
     # okapi upgrade and RESTART_ON_UPGRADE is false or not set.
     echo "Okapi upgraded but not restarted. To restart Okapi:"
     echo "   sudo systemctl daemon-reload"
-    echo "   sudo systemctl restart okapi.service" 
+    echo "   sudo systemctl restart okapi.service"
     echo ""
 fi
 

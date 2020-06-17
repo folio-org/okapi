@@ -26,7 +26,7 @@ INSTALLDIR  = install -p -d -o root -g root -m 755
 INSTALLFILE = install -p -o root -g root -m 644
 INSTALLBIN  = install -p -o root -g root -m 755
 
-clean: 
+clean:
 	dh_testdir
 	dh_testroot
 	dh_clean build-stamp install-stamp
@@ -38,7 +38,7 @@ build-indep: build-stamp
 
 build-stamp:
 	dh_testdir
-	$(MVN) package 
+	$(MVN) package
 	touch $@
 
 install: install-stamp
@@ -48,7 +48,7 @@ install-stamp: build
 	dh_testroot
 	dh_prep
 	dh_installdirs
-	
+
 	# jars and scripts
 	$(INSTALLDIR) $(OKAPIHOME)/lib
 	$(INSTALLDIR) $(OKAPIHOME)/bin

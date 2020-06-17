@@ -8,7 +8,7 @@ After=network-online.target postgresql.service docker.service
 EnvironmentFile=/etc/default/okapi
 User=okapi
 Group=okapi
-ExecStart=/usr/share/folio/okapi/bin/okapi.sh 
+ExecStart=/usr/share/folio/okapi/bin/okapi.sh
 WorkingDirectory=/var/lib/okapi
 RuntimeDirectory=okapi
 RuntimeDirectoryMode=755
@@ -28,7 +28,7 @@ RestartSec=2
 
 # StandardOutput is configured to redirect to journalctl since
 # some error messages may be logged in standard output before
-# the Okapi logging system is initialized. 
+# the Okapi logging system is initialized.
 StandardOutput=journal
 StandardError=inherit
 
