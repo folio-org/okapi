@@ -122,6 +122,11 @@ parse_okapi_conf()  {
       OKAPI_JAVA_OPTS+=" -Dokapiurl=${okapiurl}"
    fi
 
+   # configure Vert.x cache dir
+   if [ "$vertx_cache_dir_base" ]; then
+      OKAPI_JAVA_OPTS+=" -Dvertx.cacheDirBase=${vertx_cache_dir_base}"
+   fi
+
 }   # end parse_okapi_conf
 
 
