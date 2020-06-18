@@ -365,7 +365,7 @@ public class TenantManager {
       fut.handle(new Success<>(""));
       return;
     }
-    invokePermissions(tenant, options, mdFrom, mdTo, pc, res1 -> {
+    invokePermissions(tenant, options, mdTo, pc, res1 -> {
       if (res1.failed()) {
         fut.handle(new Failure<>(res1.getType(), res1.cause()));
         return;
@@ -447,13 +447,12 @@ public class TenantManager {
    *
    * @param tenant tenant
    * @param options install options
-   * @param mdFrom module from
    * @param mdTo module to
    * @param pc proxy context
    * @param fut response
    */
   private void invokePermissions(Tenant tenant, TenantInstallOptions options,
-                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                 ModuleDescriptor mdTo,
                                  ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
     if (mdTo == null || !options.getInvoke()
         || mdTo.getSystemInterface("_tenantPermissions") != null) {
