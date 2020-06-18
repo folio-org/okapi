@@ -2885,7 +2885,7 @@ public class ProxyTest {
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install")
       .then().statusCode(400).log().ifValidationFails()
-      .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /permissionscall"));
+      .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /_/tenant"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -2924,7 +2924,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(3, timerPermissions.size());
+    Assert.assertEquals(0, timerPermissions.size());
 
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
@@ -2953,7 +2953,7 @@ public class ProxyTest {
      Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(3, timerPermissions.size());
+    Assert.assertEquals(1, timerPermissions.size());
     Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
     timerPermissions.clear(); // ensure that perms for edge-module-1.0.0 are POSTed again.
 

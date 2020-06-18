@@ -375,12 +375,18 @@ public class TenantManager {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
           return;
         }
-        ead5commit(tenant, mdFrom, mdTo, pc, res3 -> {
-          if (res3.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, res3.cause()));
+        invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc, res4 -> {
+          if (res4.failed()) {
+            fut.handle(new Failure<>(res4.getType(), res4.cause()));
             return;
           }
-          fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
+          ead5commit(tenant, mdFrom, mdTo, pc, res3 -> {
+            if (res3.failed()) {
+              fut.handle(new Failure<>(ErrorType.USER, res3.cause()));
+              return;
+            }
+            fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
+          });
         });
       });
     });
@@ -437,47 +443,70 @@ public class TenantManager {
   }
 
   /**
-   * enableAndDisable helper 2: Choose which permission module to invoke.
+   * If enabling non-permissions module, announce permissions to permissions module if enabled.
    *
-   * @param tenant tenant
-   * @param mdFrom module from
-   * @param mdTo module to
-   * @param pc ProxyContext
-   * @param fut future
+   * @param tenant
+   * @param options
+   * @param mdFrom
+   * @param mdTo
+   * @param pc
+   * @param fut
    */
   private void invokePermissions(Tenant tenant, TenantInstallOptions options,
-                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
-                                 Handler<ExtendedAsyncResult<Void>> fut) {
-    if (mdTo == null || !options.getInvoke()) {
+                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                 ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (mdTo == null || !options.getInvoke()
+        || mdTo.getSystemInterface("_tenantPermissions") != null) {
       fut.handle(new Success<>());
       return;
     }
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     findSystemInterface(tenant, res -> {
       if (res.failed()) {
-        if (res.getType() == ErrorType.NOT_FOUND) { // no perms interface.
-          if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-            pc.debug("ead2PermMod: Here we reload perms of all enabled modules");
-            Set<String> listModules = tenant.listModules();
-            pc.debug("Got a list of already-enabled moduled: " + Json.encode(listModules));
-            Iterator<String> modit = listModules.iterator();
-            loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
-            return;
-          }
-          pc.debug("enablePermissions: No tenantPermissions interface found. "
-              + "Carrying on without it.");
-          fut.handle(new Success<>());
-        } else {
+        if (res.getType() != ErrorType.NOT_FOUND) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
         }
-        return;
+        // no perms module for now
+        fut.handle(new Success<>());
+      } else {
+        invokePermissionsForModule(tenant, mdTo, res.result(), pc, fut);
       }
-      ModuleDescriptor permsMod = res.result();
-      if (mdTo.getSystemInterface("_tenantPermissions") != null) {
-        pc.debug("Using the tenantPermissions of this module itself");
-        permsMod = mdTo;
+    });
+  }
+
+  /**
+   * If enabling permissions module, announce permissions to it
+   *
+   * @param tenant
+   * @param options
+   * @param mdFrom
+   * @param mdTo
+   * @param pc
+   * @param fut
+   */
+  private void invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
+                                        ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                        ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+    if (mdTo == null || !options.getInvoke()
+        || mdTo.getSystemInterface("_tenantPermissions") == null) {
+      fut.handle(new Success<>());
+      return;
+    }
+    // enabling permissions module.
+    String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
+    findSystemInterface(tenant, res -> {
+      if (res.failed()) {
+        if (res.getType() != ErrorType.NOT_FOUND) {
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        Set<String> listModules = tenant.listModules();
+        Iterator<String> modit = listModules.iterator();
+        loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
+      } else {
+        invokePermissionsForModule(tenant, mdTo, mdTo, pc, fut);
       }
-      invokePermissionsForModule(tenant, mdTo, permsMod, pc, fut);
     });
   }
 
