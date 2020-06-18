@@ -445,12 +445,12 @@ public class TenantManager {
   /**
    * If enabling non-permissions module, announce permissions to permissions module if enabled.
    *
-   * @param tenant
-   * @param options
-   * @param mdFrom
-   * @param mdTo
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param options install options
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param pc proxy context
+   * @param fut response
    */
   private void invokePermissions(Tenant tenant, TenantInstallOptions options,
                                  ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
@@ -476,14 +476,14 @@ public class TenantManager {
   }
 
   /**
-   * If enabling permissions module, announce permissions to it
+   * If enabling permissions module it, announce permissions to it.
    *
-   * @param tenant
-   * @param options
-   * @param mdFrom
-   * @param mdTo
-   * @param pc
-   * @param fut
+   * @param tenant tenant
+   * @param options install options
+   * @param mdFrom module from
+   * @param mdTo module to
+   * @param pc proxy context
+   * @param fut response
    */
   private void invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
                                         ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
