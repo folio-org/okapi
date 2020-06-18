@@ -460,7 +460,6 @@ public class TenantManager {
       fut.handle(new Success<>());
       return;
     }
-    String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     findSystemInterface(tenant, res -> {
       if (res.failed()) {
         if (res.getType() != ErrorType.NOT_FOUND) {
