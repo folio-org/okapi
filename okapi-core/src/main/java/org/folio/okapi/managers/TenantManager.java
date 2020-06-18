@@ -375,14 +375,14 @@ public class TenantManager {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
           return;
         }
-        invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc, res4 -> {
-          if (res4.failed()) {
-            fut.handle(new Failure<>(res4.getType(), res4.cause()));
+        invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc, res3 -> {
+          if (res3.failed()) {
+            fut.handle(new Failure<>(res3.getType(), res3.cause()));
             return;
           }
-          ead5commit(tenant, mdFrom, mdTo, pc, res3 -> {
-            if (res3.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, res3.cause()));
+          ead5commit(tenant, mdFrom, mdTo, pc, res4 -> {
+            if (res4.failed()) {
+              fut.handle(new Failure<>(ErrorType.USER, res4.cause()));
               return;
             }
             fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
