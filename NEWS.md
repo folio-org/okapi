@@ -1,3 +1,7 @@
+## 3.1.1 2020-06-18
+
+ * [OKAPI-859](https://issues.folio.org/browse/OKAPI-859) Fail to enable module if tenant API has module permissions
+
 ## 3.1.0 2020-06-15
 
  * [OKAPI-854](https://issues.folio.org/browse/OKAPI-854) Deprecate `postgres_user` (use `postgres_username`)
