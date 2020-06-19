@@ -63,6 +63,7 @@ public class ProxyTest {
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
   private JsonObject timerPermissions = new JsonObject();
+  private JsonArray edgePermissionsAtInit = null;
   private JsonObject timerTenantData;
 
   @BeforeClass
@@ -116,13 +117,16 @@ public class ProxyTest {
 
   private void myEdgeHandle(RoutingContext ctx) {
     logger.info("myEdgeHandle");
+    String p = ctx.request().path();
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else if (HttpMethod.POST.equals(ctx.request().method()) && p.equals("/_/tenant")) {
+      edgePermissionsAtInit = timerPermissions.getJsonArray("edge-module-1.0.0");
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 200).end());
     } else if (HttpMethod.GET.equals(ctx.request().method())) {
       Buffer buf = Buffer.buffer();
       ctx.request().handler(buf::appendBuffer);
       ctx.request().endHandler(res -> {
-        String p = ctx.request().path();
         if (!p.startsWith("/edge/")) {
           ctx.response().setStatusCode(404);
           ctx.response().end("Edge module reports not found");
@@ -130,10 +134,10 @@ public class ProxyTest {
         }
         String tenant = p.substring(6);
         final String docLogin = "{" + LS
-          + "  \"tenant\" : \"" + tenant + "\"," + LS
-          + "  \"username\" : \"peter\"," + LS
-          + "  \"password\" : \"peter-password\"" + LS
-          + "}";
+            + "  \"tenant\" : \"" + tenant + "\"," + LS
+            + "  \"username\" : \"peter\"," + LS
+            + "  \"password\" : \"peter-password\"" + LS
+            + "}";
         HttpClientRequest post = HttpClientLegacy.post(httpClient, port, "localhost", "/authn/login", res1 -> {
           Buffer loginBuf = Buffer.buffer();
           res1.handler(loginBuf::appendBuffer);
@@ -176,7 +180,9 @@ public class ProxyTest {
             ctx.response().end("timer response");
           } else if (p.startsWith("/permissionscall")) {
             JsonObject permObject = new JsonObject(buf);
-            timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+            if (timerTenantPermissionsStatus == 200) {
+              timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+            }
             ctx.response().setStatusCode(timerTenantPermissionsStatus);
             ctx.response().end("timer permissions response");
           } else if (p.startsWith("/timercall/")) {
@@ -2835,23 +2841,32 @@ public class ProxyTest {
     Assert.assertEquals(0, timerPermissions.size());
 
     final String docEdge_1_0_0 = "{" + LS
-      + "  \"id\" : \"edge-module-1.0.0\"," + LS
-      + "  \"name\" : \"edge module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"edge\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/edge/{id}\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ ]," + LS
-      + "  \"permissionSets\": [ {" + LS
-      + "    \"permissionName\": \"edge.post.id\"," + LS
-      + "    \"displayName\": \"e\"" + LS
-      + "  } ]" + LS
-      + "}";
+        + "  \"id\" : \"edge-module-1.0.0\"," + LS
+        + "  \"name\" : \"edge module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"edge\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/edge/{id}\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]," + LS
+        + "  \"permissionSets\": [ {" + LS
+        + "    \"permissionName\": \"edge.post.id\"," + LS
+        + "    \"displayName\": \"e\"" + LS
+        + "  } ]" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2954,9 +2969,7 @@ public class ProxyTest {
      Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
-    Assert.assertEquals(1, timerPermissions.size());
-    Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
-    timerPermissions.clear(); // ensure that perms for edge-module-1.0.0 are POSTed again.
+    Assert.assertEquals(0, timerPermissions.size());
 
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
@@ -2986,6 +2999,31 @@ public class ProxyTest {
     Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
     Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
     Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
+
+    // re-enable edge-module and check that permissions for it are available at tenant-init
+    timerPermissions.clear();
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"disable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    Assert.assertNotNull(edgePermissionsAtInit);
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
