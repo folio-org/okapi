@@ -216,7 +216,6 @@ public class MainDeploy {
     } else {
       logger.warn("clusterPort not set");
     }
-    eventBusOptions.setClustered(true);
 
     Vertx.clusteredVertx(vopt, res -> {
       if (res.succeeded()) {

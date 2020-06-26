@@ -7,6 +7,8 @@ import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
@@ -577,25 +579,27 @@ public class DiscoveryManager implements NodeListener {
       hd.setHealthStatus(false);
       fut.handle(new Success<>(hd));
     } else {
-      HttpClientRequest req = httpClient.getAbs(url, res1 -> {
-        if (res1.failed()) {
-          hd.setHealthMessage("Fail: " + res1.cause().getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
-          return;
-        }
-        HttpClientResponse res2 = res1.result();
-        res2.endHandler(res -> {
-          hd.setHealthMessage("OK");
-          hd.setHealthStatus(true);
-          fut.handle(new Success<>(hd));
-        });
-        res2.exceptionHandler(res -> {
-          hd.setHealthMessage("Fail: " + res.getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
-        });
-      });
+      HttpClientRequest req = httpClient.request(
+          new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
+          .onComplete(res1 -> {
+            if (res1.failed()) {
+              hd.setHealthMessage("Fail: " + res1.cause().getMessage());
+              hd.setHealthStatus(false);
+              fut.handle(new Success<>(hd));
+              return;
+            }
+            HttpClientResponse res2 = res1.result();
+            res2.endHandler(res -> {
+              hd.setHealthMessage("OK");
+              hd.setHealthStatus(true);
+              fut.handle(new Success<>(hd));
+            });
+            res2.exceptionHandler(res -> {
+              hd.setHealthMessage("Fail: " + res.getMessage());
+              hd.setHealthStatus(false);
+              fut.handle(new Success<>(hd));
+            });
+          });
       req.end();
     }
   }
@@ -632,7 +636,7 @@ public class DiscoveryManager implements NodeListener {
 
   void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
     if (clusterManager != null) {
-      nd.setNodeId(clusterManager.getNodeID());
+      nd.setNodeId(clusterManager.getNodeId());
     }
     nodes.put(nd.getNodeId(), nd, fut);
   }
@@ -769,6 +773,6 @@ public class DiscoveryManager implements NodeListener {
       return true;
     }
     List<String> nodeIds = clusterManager.getNodes();
-    return clusterManager.getNodeID().equals(Collections.max(nodeIds));
+    return clusterManager.getNodeId().equals(Collections.max(nodeIds));
   }
 }

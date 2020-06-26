@@ -195,11 +195,6 @@ public class RoutingEntry {
    * @param methods HTTP method name or "*" for all
    */
   public void setMethods(String[] methods) {
-    for (String s : methods) {
-      if (!s.equals("*")) {
-        HttpMethod.valueOf(s);
-      }
-    }
     this.methods = methods;
   }
 

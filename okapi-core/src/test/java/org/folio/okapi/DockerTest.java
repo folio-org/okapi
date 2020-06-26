@@ -9,6 +9,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
@@ -91,10 +92,9 @@ public class DockerTest {
       });
     } else {
       String l = locations.removeFirst();
-      HttpClientRequest req = client.delete(port, "localhost", l, res -> {
+      client.delete(port, "localhost",  l).onComplete(res -> {
         td(context, async);
       });
-      req.end();
     }
   }
 

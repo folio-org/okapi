@@ -30,9 +30,10 @@ public class OkapiClientTest {
 
   private Vertx vertx;
   private static final int PORT = 9230;
+  private static final int BAD_PORT = PORT + 1;
   private static final String LOCALHOST = "localhost";
   private static final String URL = "http://" + LOCALHOST + ":" + PORT;
-  private static final String BAD_URL = "http://" + LOCALHOST + ":" + (PORT + 1);
+  private static final String BAD_URL = "http://" + LOCALHOST + ":" + BAD_PORT;
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
 
@@ -349,7 +350,7 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy1(TestContext context) {
+  public void testLegacyRequestAbsOK(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
@@ -371,7 +372,7 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy2(TestContext context) {
+  public void testLegacyRequestAbsFail(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
@@ -392,7 +393,7 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy3(TestContext context) {
+  public void testLegacyRequestAbsSocketOk(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
@@ -414,18 +415,18 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy4(TestContext context) {
+  public void testLegacyRequestAbsSocketFail(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
-    SocketAddress sa = SocketAddress.inetSocketAddress(PORT + 1, LOCALHOST);
+    SocketAddress sa = SocketAddress.inetSocketAddress(BAD_PORT, LOCALHOST);
     HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, sa, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
+        HttpMethod.GET, sa, URL + "/test1", res -> {
+          b.append("response");
+          async.complete();
+        });
     requestAbs.exceptionHandler(res -> {
       b.append("exception");
       async.complete();
@@ -436,7 +437,7 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy5(TestContext context) {
+  public void testLegacyGetOk(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
@@ -457,7 +458,28 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy6(TestContext context) {
+  public void testLegacyGetFail(TestContext context) {
+    Async async = context.async();
+    StringBuilder b = new StringBuilder();
+
+    context.assertTrue(server != null);
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest requestAbs = HttpClientLegacy.get(client,
+        BAD_PORT, LOCALHOST, URL + "/test1", res -> {
+          b.append("response");
+          async.complete();
+        });
+    requestAbs.exceptionHandler(res -> {
+      b.append("exception");
+      async.complete();
+    });
+    requestAbs.end();
+    async.await();
+    context.assertEquals("exception", b.toString());
+  }
+
+  @Test
+  public void testLegacyDeleteOk(TestContext context) {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
@@ -477,5 +499,25 @@ public class OkapiClientTest {
     context.assertEquals("response", b.toString());
   }
 
+  @Test
+  public void testLegacyPostOk(TestContext context) {
+    Async async = context.async();
+    StringBuilder b = new StringBuilder();
+
+    context.assertTrue(server != null);
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest requestAbs = HttpClientLegacy.post(client,
+        PORT, LOCALHOST, URL + "/test1", res -> {
+          b.append("response");
+          async.complete();
+        });
+    requestAbs.exceptionHandler(res -> {
+      b.append("exception");
+      async.complete();
+    });
+    requestAbs.end();
+    async.await();
+    context.assertEquals("response", b.toString());
+  }
 
 }

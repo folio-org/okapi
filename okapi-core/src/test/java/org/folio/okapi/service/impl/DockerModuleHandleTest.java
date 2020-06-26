@@ -12,6 +12,7 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
 import org.junit.Assume;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -51,9 +52,10 @@ public class DockerModuleHandleTest {
     Assert.assertEquals("", s.toString());
   }
 
-  @Test
+  @Ignore
   public void testNoDockerAtPort(TestContext context) {
     Vertx vertx = Vertx.vertx();
+
     LaunchDescriptor ld = new LaunchDescriptor();
     ld.setDockerImage("folioci/mod-users:5.0.0-SNAPSHOT");
     ld.setWaitIterations(3);
@@ -61,12 +63,11 @@ public class DockerModuleHandleTest {
     JsonObject conf = new JsonObject().put("dockerUrl", "tcp://localhost:9231");
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-      "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
+        "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, conf);
 
     dh.start(context.asyncAssertFailure(cause ->
-      context.assertTrue(cause.getMessage().contains("java.net.ConnectException"),
-        cause.getMessage())
-    ));
+          context.assertTrue(cause.getMessage().contains("java.net.ConnectException"),
+              cause.getMessage())));
   }
 
   @Test

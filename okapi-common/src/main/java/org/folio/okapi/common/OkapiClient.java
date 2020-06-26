@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.ext.web.RoutingContext;
 import java.util.HashMap;
 import java.util.Map;
@@ -113,7 +114,7 @@ public class OkapiClient {
    * @param headers may be null
    */
   public OkapiClient(HttpClient httpClient, String okapiUrl,
-      Vertx vertx, Map<String, String> headers) {
+                     Vertx vertx, Map<String, String> headers) {
     init(vertx, httpClient);
     setOkapiUrl(okapiUrl);
     setHeaders(headers);
@@ -221,51 +222,53 @@ public class OkapiClient {
       logger.debug(logReqMsg);
     }
     long t1 = System.nanoTime();
-    HttpClientRequest req = httpClient.requestAbs(method, url, req1 -> {
-      if (req1.failed()) {
-        fut.handle(new Failure<>(ErrorType.ANY, req1.cause()));
-        return;
-      }
-      HttpClientResponse reqres = req1.result();
-      statusCode = reqres.statusCode();
-      long ns = System.nanoTime() - t1;
-      String logResMsg = reqId
-          + " RES " + statusCode + " " + ns / 1000 + "us "
-          + "okapiClient " + url;
-      if (logInfo) {
-        logger.info(logResMsg);
-      } else {
-        logger.debug(logResMsg);
-      }
-      final Buffer buf = Buffer.buffer();
-      respHeaders = reqres.headers();
-      reqres.handler(b -> {
-        logger.debug("{} OkapiClient Buffering response {}", reqId, b);
-        buf.appendBuffer(b);
-      });
-      reqres.endHandler(e -> {
-        responsebody = buf.toString();
-        if (statusCode >= 200 && statusCode <= 299) {
-          fut.handle(new Success<>(responsebody));
-        } else {
-          ErrorType errorType;
-          if (statusCode == 404) {
-            errorType = ErrorType.NOT_FOUND;
-          } else if (statusCode == 403) {
-            errorType = ErrorType.FORBIDDEN;
-          } else if (statusCode >= 500) {
-            errorType = ErrorType.INTERNAL;
-          } else {
-            errorType = ErrorType.USER;
+    HttpClientRequest req = httpClient.request(
+        new RequestOptions().setMethod(method).setAbsoluteURI(url))
+        .onComplete(req1 -> {
+          if (req1.failed()) {
+            fut.handle(new Failure<>(ErrorType.ANY, req1.cause()));
+            return;
           }
-          fut.handle(new Failure<>(errorType, Integer.toString(statusCode) + ": " + responsebody));
-        }
-      });
-      reqres.exceptionHandler(e -> {
-        logger.warn("{} OkapiClient exception 1 :", reqId, e);
-        fut.handle(new Failure<>(ErrorType.INTERNAL, e.getMessage()));
-      });
-    });
+          HttpClientResponse reqres = req1.result();
+          statusCode = reqres.statusCode();
+          long ns = System.nanoTime() - t1;
+          String logResMsg = reqId
+              + " RES " + statusCode + " " + ns / 1000 + "us "
+              + "okapiClient " + url;
+          if (logInfo) {
+            logger.info(logResMsg);
+          } else {
+            logger.debug(logResMsg);
+          }
+          final Buffer buf = Buffer.buffer();
+          respHeaders = reqres.headers();
+          reqres.handler(b -> {
+            logger.debug("{} OkapiClient Buffering response {}", reqId, b);
+            buf.appendBuffer(b);
+          });
+          reqres.endHandler(e -> {
+            responsebody = buf.toString();
+            if (statusCode >= 200 && statusCode <= 299) {
+              fut.handle(new Success<>(responsebody));
+            } else {
+              ErrorType errorType;
+              if (statusCode == 404) {
+                errorType = ErrorType.NOT_FOUND;
+              } else if (statusCode == 403) {
+                errorType = ErrorType.FORBIDDEN;
+              } else if (statusCode >= 500) {
+                errorType = ErrorType.INTERNAL;
+              } else {
+                errorType = ErrorType.USER;
+              }
+              fut.handle(new Failure<>(errorType, statusCode + ": " + responsebody));
+            }
+          });
+          reqres.exceptionHandler(e -> {
+            logger.warn("{} OkapiClient exception 1 :", reqId, e);
+            fut.handle(new Failure<>(ErrorType.INTERNAL, e.getMessage()));
+          });
+        });
     for (Map.Entry<String, String> entry : headers.entrySet()) {
       logger.debug("{} OkapiClient: adding header {}: {}", reqId, entry.getKey(), entry.getValue());
     }

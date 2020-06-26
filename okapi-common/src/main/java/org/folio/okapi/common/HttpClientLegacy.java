@@ -5,6 +5,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.net.SocketAddress;
 
 public class HttpClientLegacy {
@@ -24,11 +25,9 @@ public class HttpClientLegacy {
   public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
                                              SocketAddress socketAddress, String url,
                                              Handler<HttpClientResponse> response) {
-    return client.requestAbs(method, socketAddress, url, hndlr -> {
-      if (hndlr.succeeded()) {
-        response.handle(hndlr.result());
-      }
-    });
+    return client.request(socketAddress,
+        new RequestOptions().setMethod(method).setAbsoluteURI(url))
+        .onSuccess(response);
   }
 
   /**
@@ -41,11 +40,9 @@ public class HttpClientLegacy {
    */
   public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
                                              String url, Handler<HttpClientResponse> response) {
-    return client.requestAbs(method, url, hndlr -> {
-      if (hndlr.succeeded()) {
-        response.handle(hndlr.result());
-      }
-    });
+    return client.request(
+        new RequestOptions().setMethod(method).setAbsoluteURI(url))
+        .onSuccess(response);
   }
 
 
@@ -61,11 +58,9 @@ public class HttpClientLegacy {
   public static HttpClientRequest request(HttpClient client, HttpMethod method, int port,
                                           String host, String uri,
                                           Handler<HttpClientResponse> response) {
-    return client.request(method, port, host, uri, hndlr -> {
-      if (hndlr.succeeded()) {
-        response.handle(hndlr.result());
-      }
-    });
+    return client.request(
+        new RequestOptions().setMethod(method).setHost(host).setPort(port).setURI(uri))
+        .onSuccess(response);
   }
 
   /**

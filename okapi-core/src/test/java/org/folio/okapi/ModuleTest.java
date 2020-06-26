@@ -2718,7 +2718,7 @@ public class ModuleTest {
     conf.put("postgres_password", "badpass");
     undeployFirstAndDeploy(context, context.asyncAssertFailure(cause ->
         context.assertTrue(cause.getMessage().contains(
-          "password authentication failed for user \"okapi\""),
+          "password authentication failed for user "),
           cause.getMessage())));
     async.await(1000);
   }

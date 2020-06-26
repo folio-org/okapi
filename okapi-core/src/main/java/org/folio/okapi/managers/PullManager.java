@@ -6,6 +6,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,33 +52,35 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
-      if (res1.failed()) {
-        logger.warn("pull for {} failed: {}", baseUrl,
-            res1.cause().getMessage(), res1.cause());
-        getRemoteUrl(it, fut);
-        return;
-      }
-      HttpClientResponse res = res1.result();
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (res.statusCode() != 200) {
-          logger.warn("pull for {} failed with status {}",
-              baseUrl, res.statusCode());
-          fut.handle(new Failure<>(ErrorType.USER,
-              "pull for " + baseUrl + " returned status "
-                  + res.statusCode() + "\n" + body.toString()));
-        } else {
-          List<String> result = new LinkedList<>();
-          result.add(baseUrl);
-          result.add(body.toString());
-          fut.handle(new Success<>(result));
-        }
-      });
-      res.exceptionHandler(x
-          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
-      );
-    });
+    HttpClientRequest req = httpClient.request(
+        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
+        .onComplete(res1 -> {
+          if (res1.failed()) {
+            logger.warn("pull for {} failed: {}", baseUrl,
+                res1.cause().getMessage(), res1.cause());
+            getRemoteUrl(it, fut);
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          res.handler(body::appendBuffer);
+          res.endHandler(x -> {
+            if (res.statusCode() != 200) {
+              logger.warn("pull for {} failed with status {}",
+                  baseUrl, res.statusCode());
+              fut.handle(new Failure<>(ErrorType.USER,
+                  "pull for " + baseUrl + " returned status "
+                      + res.statusCode() + "\n" + body.toString()));
+            } else {
+              List<String> result = new LinkedList<>();
+              result.add(baseUrl);
+              result.add(body.toString());
+              fut.handle(new Success<>(result));
+            }
+          });
+          res.exceptionHandler(x
+              -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
+          );
+        });
     req.end();
   }
 
@@ -92,25 +96,27 @@ public class PullManager {
       url += "?full=true";
     }
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
-      if (res1.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause().getMessage()));
-        return;
-      }
-      HttpClientResponse res = res1.result();
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (res.statusCode() != 200) {
-          fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-          return;
-        }
-        ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-            ModuleDescriptor[].class);
-        fut.handle(new Success<>(ml));
-      });
-      res.exceptionHandler(x
-          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
-    });
+    HttpClientRequest req = httpClient.request(
+        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
+        .onComplete(res1 -> {
+          if (res1.failed()) {
+            fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause().getMessage()));
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          res.handler(body::appendBuffer);
+          res.endHandler(x -> {
+            if (res.statusCode() != 200) {
+              fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+              return;
+            }
+            ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
+                ModuleDescriptor[].class);
+            fut.handle(new Success<>(ml));
+          });
+          res.exceptionHandler(x
+              -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
+        });
     if (skipList != null) {
       String[] idList = new String[skipList.size()];
       int i = 0;

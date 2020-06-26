@@ -13,6 +13,7 @@ import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
@@ -555,7 +556,7 @@ public class ProxyService {
         headers.remove(XOkapiHeaders.MODULE_ID);
         headers.set(XOkapiHeaders.REQUEST_IP, ctx.request().remoteAddress().host());
         headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
-        headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().rawMethod());
+        headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
         resolveUrls(l.iterator(), res -> {
           if (res.failed()) {
@@ -628,25 +629,27 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     String url = makeUrl(mi, ctx);
     HttpMethod meth = ctx.request().method();
-    HttpClientRequest clientRequest = httpClient.requestAbs(meth, url, res1 -> {
-      if (proxyHttpFail(pc, mi, res1)) {
-        return;
-      }
-      HttpClientResponse res = res1.result();
-      Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
-      if (newIt.hasNext()) {
-        makeTraceHeader(mi, res.statusCode(), pc);
-        pc.closeTimer();
-        relayToRequest(res, pc, mi);
-        proxyR(newIt, pc, null, bcontent, new LinkedList<>());
-      } else {
-        relayToResponse(ctx.response(), res, pc);
-        makeTraceHeader(mi, res.statusCode(), pc);
-        res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
-        res.exceptionHandler(e
-            -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
-      }
-    });
+    HttpClientRequest clientRequest = httpClient.request(
+        new RequestOptions().setMethod(meth).setAbsoluteURI(url))
+        .onComplete(res1 -> {
+          if (proxyHttpFail(pc, mi, res1)) {
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
+          if (newIt.hasNext()) {
+            makeTraceHeader(mi, res.statusCode(), pc);
+            pc.closeTimer();
+            relayToRequest(res, pc, mi);
+            proxyR(newIt, pc, null, bcontent, new LinkedList<>());
+          } else {
+            relayToResponse(ctx.response(), res, pc);
+            makeTraceHeader(mi, res.statusCode(), pc);
+            res.endHandler(x -> proxyResponseImmediate(pc, null, bcontent, clientRequestList));
+            res.exceptionHandler(e
+                -> pc.warn("proxyRequestHttpClient: res exception (b)", e));
+          }
+        });
     copyHeaders(clientRequest, ctx, mi);
     pc.trace("ProxyRequestHttpClient request buf '"
         + bcontent + "'");
@@ -662,8 +665,9 @@ public class ProxyService {
                                List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-        makeUrl(mi, ctx), res -> logger.debug("proxyRequestLog 2"));
+    HttpClientRequest clientRequest = httpClient.request(
+        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)))
+        .onComplete(res -> logger.debug("proxyRequestLog 2"));
     clientRequestList.add(clientRequest);
     clientRequest.setChunked(true);
     if (!it.hasNext()) {
@@ -759,8 +763,9 @@ public class ProxyService {
                                     List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-        makeUrl(mi, ctx), res1 -> {
+    HttpClientRequest clientRequest = httpClient.request(
+        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)))
+        .onComplete(res1 -> {
           if (proxyHttpFail(pc, mi, res1)) {
             return;
           }
@@ -822,8 +827,9 @@ public class ProxyService {
                             List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
 
     RoutingContext ctx = pc.getCtx();
-    HttpClientRequest clientRequest = httpClient.requestAbs(ctx.request().method(),
-        makeUrl(mi, ctx), res1 -> {
+    HttpClientRequest clientRequest = httpClient.request(
+        new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)))
+        .onComplete(res1 -> {
           if (proxyHttpFail(pc, mi, res1)) {
             return;
           }

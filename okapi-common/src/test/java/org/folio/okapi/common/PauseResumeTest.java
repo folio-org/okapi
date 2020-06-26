@@ -28,7 +28,8 @@ public class PauseResumeTest {
   private void myStreamHandle2(RoutingContext ctx) {
     ctx.request().pause();
     HttpClient cli = vertx.createHttpClient();
-    HttpClientRequest req = cli.post(PORT, "localhost", "/test1", res -> {
+
+    HttpClientRequest req = HttpClientLegacy.post(cli, PORT, "localhost", "/test1", res -> {
       if (ctx.request().isEnded()) {
         ctx.response().end("OK2"); // Vert.x 3.6 series
       } else {
