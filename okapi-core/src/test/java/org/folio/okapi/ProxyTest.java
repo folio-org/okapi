@@ -34,6 +34,8 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
@@ -380,7 +382,7 @@ public class ProxyTest {
       + "    \"id\" : \"myxfirst\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\"]," + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"pathPattern\" : \"/testb/client_id\"," + LS
       + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
@@ -469,6 +471,35 @@ public class ProxyTest {
       .get("/testb/client_id/x")
       .then().statusCode(404).log().ifValidationFails();
 
+    Async async = context.async();
+    int bufSz = 1000000;
+    long bufCnt = 1000;
+    long total = bufSz * bufCnt;
+    logger.info("Sending {} GB", total / 1e9);
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest request = HttpClientLegacy.post(client, port, "localhost", "/testb/client_id", res -> {
+      context.assertEquals(200, res.statusCode());
+      AtomicLong cnt = new AtomicLong();
+      res.handler(h -> cnt.addAndGet(h.length()));
+      res.exceptionHandler(ex -> {context.fail(ex.getCause()); async.complete(); });
+      res.endHandler(end -> {context.assertEquals(total + 6, cnt.get()); async.complete();});
+    });
+    request.putHeader("X-Okapi-Tenant", okapiTenant);
+    request.putHeader("Content-Type", "text/plain");
+    request.putHeader("Accept", "text/plain");
+    request.setChunked(true);
+    Buffer buffer = Buffer.buffer();
+    for (int j = 0; j < bufSz; j++) {
+      buffer.appendString("X");
+    }
+    for (int i = 0; i < bufCnt; i++) {
+      request.write(buffer);
+    }
+    request.end();
+    async.await(20000);
+
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
   }
 
   @Test
