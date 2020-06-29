@@ -20,6 +20,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
@@ -354,7 +355,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
       HttpMethod.GET, URL + "/test1", res -> {
@@ -376,7 +376,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
       HttpMethod.GET, BAD_URL + "/test1", res -> {
@@ -397,7 +396,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     SocketAddress sa = SocketAddress.inetSocketAddress(PORT, LOCALHOST);
     HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
@@ -419,7 +417,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     SocketAddress sa = SocketAddress.inetSocketAddress(BAD_PORT, LOCALHOST);
     HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
@@ -441,7 +438,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest requestAbs = HttpClientLegacy.get(client,
       PORT, LOCALHOST, URL + "/test1", res -> {
@@ -462,7 +458,6 @@ public class OkapiClientTest {
     Async async = context.async();
     StringBuilder b = new StringBuilder();
 
-    context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
     HttpClientRequest requestAbs = HttpClientLegacy.get(client,
         BAD_PORT, LOCALHOST, URL + "/test1", res -> {
