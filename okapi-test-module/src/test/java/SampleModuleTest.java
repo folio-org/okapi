@@ -214,7 +214,7 @@ public class SampleModuleTest {
 
   @Test
   public void testUpload(TestContext context) {
-    int bufSz = 100000;
+    int bufSz = 200000;
     long bufCnt = 10000;
     long total = bufSz * bufCnt;
     HttpClient client = vertx.createHttpClient();
@@ -245,11 +245,16 @@ public class SampleModuleTest {
       for (int j = 0; j < bufSz; j++) {
         buffer.appendString("X");
       }
-      for (int i = 0; i < bufCnt; i++) {
-        request.write(buffer);
-      }
-      request.end();
+      endRequest(request, buffer, 0, bufCnt);
       async.await(50000);
+    }
+  }
+
+  void endRequest(HttpClientRequest req, Buffer buffer, long i, long cnt) {
+    if (i == cnt) {
+      req.end();
+    } else {
+      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
     }
   }
 }
