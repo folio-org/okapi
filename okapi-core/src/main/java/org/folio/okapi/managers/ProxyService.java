@@ -592,7 +592,8 @@ public class ProxyService {
         for (HttpClientRequest r : clientRequestList) {
           r.write(data);
         }
-        ctx.response().write(data);
+        res.pause();
+        ctx.response().write(data, end -> res.resume());
       });
       res.endHandler(v -> {
         pc.closeTimer();
@@ -798,7 +799,8 @@ public class ProxyService {
       stream.handler(data -> {
         pc.trace("proxyRequestResponse request chunk '"
             + data.toString() + "'");
-        clientRequest.write(data);
+        stream.pause();
+        clientRequest.write(data, comp -> stream.resume());
         for (HttpClientRequest r : clientRequestList) {
           r.write(data);
         }

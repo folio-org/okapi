@@ -472,8 +472,8 @@ public class ProxyTest {
       .then().statusCode(404).log().ifValidationFails();
 
     Async async = context.async();
-    int bufSz = 1000000;
-    long bufCnt = 1000;
+    int bufSz = 10000;
+    long bufCnt = 100000;
     long total = bufSz * bufCnt;
     logger.info("Sending {} GB", total / 1e9);
     HttpClient client = vertx.createHttpClient();
@@ -492,14 +492,19 @@ public class ProxyTest {
     for (int j = 0; j < bufSz; j++) {
       buffer.appendString("X");
     }
-    for (int i = 0; i < bufCnt; i++) {
-      request.write(buffer);
-    }
-    request.end();
+    endRequest(request, buffer, 0, bufCnt);
     async.await(20000);
 
     given().delete("/_/proxy/tenants/" + okapiTenant + "/modules").then().statusCode(204);
     given().delete("/_/discovery/modules").then().statusCode(204);
+  }
+
+  private void endRequest(HttpClientRequest req, Buffer buffer, long i, long cnt) {
+    if (i == cnt) {
+      req.end();
+    } else {
+      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
+    }
   }
 
   @Test
