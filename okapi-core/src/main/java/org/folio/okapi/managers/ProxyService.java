@@ -16,6 +16,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -571,13 +573,13 @@ public class ProxyService {
     });
   }
 
-  private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> res,
+  private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> readStream,
                                       Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
     if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
       if (bcontent == null) {
-        res.resume();
+        readStream.resume();
       }
       bcontent = pc.getAuthResBody();
     }
@@ -588,23 +590,7 @@ public class ProxyService {
       }
       ctx.response().end(bcontent);
     } else {
-      res.handler(data -> {
-        for (HttpClientRequest r : clientRequestList) {
-          r.write(data);
-        }
-        res.pause();
-        ctx.response().write(data, end -> res.resume());
-      });
-      res.endHandler(v -> {
-        pc.closeTimer();
-        for (HttpClientRequest r : clientRequestList) {
-          r.end();
-        }
-        ctx.response().end();
-      });
-      res.exceptionHandler(e
-          -> pc.warn("proxyRequestImmediate res exception ", e));
-      res.resume();
+      streamHandle(pc, readStream, ctx.response(), clientRequestList);
     }
   }
 
@@ -755,6 +741,36 @@ public class ProxyService {
     }
   }
 
+  private static void streamHandle(ProxyContext pc, ReadStream<Buffer> readStream,
+                                   WriteStream<Buffer> mainWriteStream,
+                                   List<HttpClientRequest> logWriteStreams) {
+    readStream.handler(data -> {
+      readStream.pause();
+      AtomicInteger pend = new AtomicInteger(1 + logWriteStreams.size());
+      mainWriteStream.write(data, x -> {
+        if (pend.decrementAndGet() == 0) {
+          readStream.resume();
+        }
+      });
+      for (WriteStream<Buffer> w : logWriteStreams) {
+        w.write(data, x -> {
+          if (pend.decrementAndGet() == 0) {
+            readStream.resume();
+          }
+        });
+      }
+    });
+    readStream.endHandler(v -> {
+      for (WriteStream<Buffer> w : logWriteStreams) {
+        w.end();
+      }
+      mainWriteStream.end();
+    });
+    readStream.exceptionHandler(e
+        -> pc.warn("streamHandle: content exception ", e));
+    readStream.resume();
+  }
+
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
                                     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
                                     List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
@@ -796,25 +812,7 @@ public class ProxyService {
       for (HttpClientRequest r : clientRequestList) {
         r.setChunked(true);
       }
-      stream.handler(data -> {
-        pc.trace("proxyRequestResponse request chunk '"
-            + data.toString() + "'");
-        stream.pause();
-        clientRequest.write(data, comp -> stream.resume());
-        for (HttpClientRequest r : clientRequestList) {
-          r.write(data);
-        }
-      });
-      stream.endHandler(v -> {
-        pc.trace("proxyRequestResponse request complete");
-        for (HttpClientRequest r : clientRequestList) {
-          r.end();
-        }
-        clientRequest.end();
-      });
-      stream.exceptionHandler(e
-          -> pc.warn("proxyRequestResponse: content exception ", e));
-      stream.resume();
+      streamHandle(pc, stream, clientRequest, clientRequestList);
     }
     log(pc, clientRequest);
   }
