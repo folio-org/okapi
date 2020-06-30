@@ -745,19 +745,38 @@ public class ProxyService {
                                    WriteStream<Buffer> mainWriteStream,
                                    List<HttpClientRequest> logWriteStreams) {
     readStream.handler(data -> {
-      readStream.pause();
-      AtomicInteger pend = new AtomicInteger(1 + logWriteStreams.size());
-      mainWriteStream.write(data, x -> {
-        if (pend.decrementAndGet() == 0) {
-          readStream.resume();
-        }
-      });
+      AtomicInteger pend = new AtomicInteger();
+      // two passes.. to avoid drainHandler being fired off too early.
+      // first pass: see if any of writing streams are full?
+      mainWriteStream.write(data);
+      if (mainWriteStream.writeQueueFull()) {
+        pend.incrementAndGet();
+      }
       for (WriteStream<Buffer> w : logWriteStreams) {
-        w.write(data, x -> {
-          if (pend.decrementAndGet() == 0) {
-            readStream.resume();
+        w.write(data);
+        if (w.writeQueueFull()) {
+          pend.incrementAndGet();
+        }
+      }
+      if (pend.get() > 0) {
+        // second pass: at least one was full. pause and set up drainHandlers for full ones.
+        readStream.pause();
+        if (mainWriteStream.writeQueueFull()) {
+          mainWriteStream.drainHandler(x -> {
+            if (pend.decrementAndGet() == 0) {
+              readStream.resume();
+            }
+          });
+        }
+        for (WriteStream<Buffer> w : logWriteStreams) {
+          if (w.writeQueueFull()) {
+            w.drainHandler(x -> {
+              if (pend.decrementAndGet() == 0) {
+                readStream.resume();
+              }
+            });
           }
-        });
+        }
       }
     });
     readStream.endHandler(v -> {
