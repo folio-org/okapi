@@ -1063,10 +1063,6 @@ public class ProxyService {
     }
     String tenantId = tenant.getId(); // the tenant we are about to enable
     String authToken = headersIn.get(XOkapiHeaders.TOKEN);
-    if (tenantId.equals(curTenantId)) {
-      doCallSystemInterface(headersIn, tenantId, authToken, inst, null, request, fut);
-      return;
-    }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
