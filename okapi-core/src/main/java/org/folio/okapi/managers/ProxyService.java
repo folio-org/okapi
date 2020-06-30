@@ -1049,12 +1049,11 @@ public class ProxyService {
                                   String request, ProxyContext pc,
                                   Handler<AsyncResult<OkapiClient>> fut) {
 
-    String curTenantId = pc.getTenant(); // is often the supertenant
     MultiMap headersIn = pc.getCtx().request().headers();
-    callSystemInterface(curTenantId, headersIn, tenant, inst, request, fut);
+    callSystemInterface(headersIn, tenant, inst, request, fut);
   }
 
-  void callSystemInterface(String curTenantId, MultiMap headersIn,
+  void callSystemInterface(MultiMap headersIn,
                            Tenant tenant, ModuleInstance inst,
                            String request, Handler<AsyncResult<OkapiClient>> fut) {
 
@@ -1062,11 +1061,6 @@ public class ProxyService {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
     }
     String tenantId = tenant.getId(); // the tenant we are about to enable
-    String authToken = headersIn.get(XOkapiHeaders.TOKEN);
-    if (tenantId.equals(curTenantId)) {
-      doCallSystemInterface(headersIn, tenantId, authToken, inst, null, request, fut);
-      return;
-    }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
