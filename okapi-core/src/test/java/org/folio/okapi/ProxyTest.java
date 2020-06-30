@@ -493,7 +493,7 @@ public class ProxyTest {
       buffer.appendString("X");
     }
     endRequest(request, buffer, 0, bufCnt);
-    async.await(20000);
+    async.await(30000);
 
     given().delete("/_/proxy/tenants/" + okapiTenant + "/modules").then().statusCode(204);
     given().delete("/_/discovery/modules").then().statusCode(204);

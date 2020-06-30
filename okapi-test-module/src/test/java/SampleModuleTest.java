@@ -218,7 +218,7 @@ public class SampleModuleTest {
     long bufCnt = 10000;
     long total = bufSz * bufCnt;
     HttpClient client = vertx.createHttpClient();
-    for (int loop = 0; loop < 10; loop++) {
+    for (int loop = 0; loop < 2; loop++) {
       Async async = context.async();
       logger.info("Sending {} GB", total / 1e9);
       HttpClientRequest request = HttpClientLegacy.post(client, PORT, "localhost", "/testb", res -> {
