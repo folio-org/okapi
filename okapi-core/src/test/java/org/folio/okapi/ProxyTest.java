@@ -20,6 +20,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.streams.Pump;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.common.OkapiLogger;
@@ -172,6 +173,16 @@ public class ProxyTest {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else if (HttpMethod.POST.equals(ctx.request().method())) {
+      if (p.startsWith("/echo")) {
+        ctx.response().setStatusCode(200);
+        ctx.response().setChunked(true);
+        Pump pump = Pump.pump(ctx.request(), ctx.response());
+        pump.start();
+        ctx.request().endHandler(e -> ctx.response().end());
+        ctx.request().pause();
+        vertx.setTimer(100, x -> ctx.request().resume()); // pause to provoke writeQueueFull()
+        return;
+      }
       Buffer buf = Buffer.buffer();
       ctx.request().handler(buf::appendBuffer);
       ctx.request().endHandler(res -> {
@@ -262,7 +273,7 @@ public class ProxyTest {
     Promise<Void> promise = Promise.promise();
     vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(portEdge,  x -> promise.handle(x.mapEmpty()));
+        .listen(portEdge, x -> promise.handle(x.mapEmpty()));
     return promise.future();
   }
 
@@ -317,25 +328,130 @@ public class ProxyTest {
   public void testBadToken(TestContext context) {
 
     given()
-      .header("X-Okapi-Token", "a")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(containsString("Invalid Token: "));
+        .header("X-Okapi-Token", "a")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(containsString("Invalid Token: "));
 
     given()
-      .header("X-Okapi-Token", "a.b.c")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
+        .header("X-Okapi-Token", "a.b.c")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
 
     given()
-      .header("X-Okapi-Token", "a.ewo=.d")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(containsString("Unexpected end-of-input"));
+        .header("X-Okapi-Token", "a.ewo=.d")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(containsString("Unexpected end-of-input"));
+  }
+
+  @Test
+  public void testUpload(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String tenant = "roskilde";
+
+    setupBasicTenant(tenant);
+
+    final String docTimer_1_0_0 = "{" + LS
+        + "  \"id\" : \"timer-module-1.0.0\"," + LS
+        + "  \"name\" : \"timer module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"echo\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/echo\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-1\"," + LS
+        + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    final String docRequestPre = "{" + LS
+        + "  \"id\" : \"request-pre-1.0.0\"," + LS
+        + "  \"name\" : \"request-pre\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/echo\"," + LS
+        + "    \"phase\" : \"pre\"," + LS
+        + "    \"type\" : \"request-log\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc2 = "{" + LS
+        + "  \"instId\" : \"localhost-2\"," + LS
+        + "  \"srvcId\" : \"request-pre-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc2).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonArray().add(new JsonObject().put("id", "timer-module-1.0.0").put("action", "enable"))
+            .add(new JsonObject().put("id", "request-pre-1.0.0").put("action", "enable")).encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails();
+
+    upload(context, tenant, "/echo", 0);
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/timer-module-1.0.0").then().statusCode(204);
+    given().delete("/_/proxy/modules/request-pre-1.0.0").then().statusCode(204);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  private void upload(TestContext context, String tenant, String uri, int offset) {
+    Async async = context.async();
+    int bufSz = 10000;
+    long bufCnt = 100000;
+    long total = bufSz * bufCnt;
+    logger.info("Sending {} GB", total / 1e9);
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest request = HttpClientLegacy.post(client, port, "localhost", uri, res -> {
+      context.assertEquals(200, res.statusCode());
+      AtomicLong cnt = new AtomicLong();
+      res.handler(h -> cnt.addAndGet(h.length()));
+      res.exceptionHandler(ex -> {context.fail(ex.getCause()); async.complete(); });
+      res.endHandler(end -> {context.assertEquals(total + offset, cnt.get()); async.complete();});
+    });
+    request.putHeader("X-Okapi-Tenant", tenant);
+    request.putHeader("Content-Type", "text/plain");
+    request.putHeader("Accept", "text/plain");
+    request.setChunked(true);
+    Buffer buffer = Buffer.buffer();
+    for (int j = 0; j < bufSz; j++) {
+      buffer.appendString("X");
+    }
+    endRequest(request, buffer, 0, bufCnt);
+    async.await(30000);
   }
 
   @Test
@@ -458,42 +574,20 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     r = c.given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-all-headers", "B")
-      .get("/testb/client_id%2Fx")
-      .then().statusCode(200).log().ifValidationFails()
-      .extract().response();
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("X-all-headers", "B")
+        .get("/testb/client_id%2Fx")
+        .then().statusCode(200).log().ifValidationFails()
+        .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
+
+    upload(context, okapiTenant, "/testb/client_id", 6);
 
     c = api.createRestAssured3();
     c.given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .get("/testb/client_id/x")
-      .then().statusCode(404).log().ifValidationFails();
-
-    Async async = context.async();
-    int bufSz = 10000;
-    long bufCnt = 100000;
-    long total = bufSz * bufCnt;
-    logger.info("Sending {} GB", total / 1e9);
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest request = HttpClientLegacy.post(client, port, "localhost", "/testb/client_id", res -> {
-      context.assertEquals(200, res.statusCode());
-      AtomicLong cnt = new AtomicLong();
-      res.handler(h -> cnt.addAndGet(h.length()));
-      res.exceptionHandler(ex -> {context.fail(ex.getCause()); async.complete(); });
-      res.endHandler(end -> {context.assertEquals(total + 6, cnt.get()); async.complete();});
-    });
-    request.putHeader("X-Okapi-Tenant", okapiTenant);
-    request.putHeader("Content-Type", "text/plain");
-    request.putHeader("Accept", "text/plain");
-    request.setChunked(true);
-    Buffer buffer = Buffer.buffer();
-    for (int j = 0; j < bufSz; j++) {
-      buffer.appendString("X");
-    }
-    endRequest(request, buffer, 0, bufCnt);
-    async.await(30000);
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/testb/client_id/x")
+        .then().statusCode(404).log().ifValidationFails();
 
     given().delete("/_/proxy/tenants/" + okapiTenant + "/modules").then().statusCode(204);
     given().delete("/_/discovery/modules").then().statusCode(204);
