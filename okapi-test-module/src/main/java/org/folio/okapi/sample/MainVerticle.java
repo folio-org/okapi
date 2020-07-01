@@ -9,6 +9,7 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.streams.Pump;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.io.FileWriter;
@@ -130,13 +131,9 @@ public class MainVerticle extends AbstractVerticle {
         ctx.response().write("<test>");
       }
       ctx.response().write(helloGreeting + " " + msg);
-      ctx.request().handler(x -> {
-        ctx.response().write(x);
-        if (xmlConversion) {
-          ctx.response().write("</test>");
-        }
-      });
-      ctx.request().endHandler(x -> ctx.response().end());
+      Pump p = Pump.pump(ctx.request(), ctx.response());
+      p.start();
+      ctx.request().endHandler(x -> ctx.response().end(xmlConversion ? "</test>" : ""));
     }
     ctx.request().resume();
   }
