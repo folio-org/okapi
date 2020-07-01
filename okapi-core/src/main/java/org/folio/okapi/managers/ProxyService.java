@@ -744,15 +744,25 @@ public class ProxyService {
   private static void streamHandle(ProxyContext pc, ReadStream<Buffer> readStream,
                                    WriteStream<Buffer> mainWriteStream,
                                    List<HttpClientRequest> logWriteStreams) {
+    List<WriteStream<Buffer>> writeStreams = new LinkedList<>();
+    writeStreams.add(mainWriteStream);
+    for (WriteStream<Buffer> w : logWriteStreams) {
+      writeStreams.add(w);
+    }
+    pumpOneToMany(readStream, writeStreams);
+    readStream.exceptionHandler(e
+        -> pc.warn("streamHandle: content exception ", e));
+    readStream.resume();
+  }
+
+  private static void pumpOneToMany(ReadStream<Buffer> readStream,
+                                    List<WriteStream<Buffer>> writeStreams) {
+
     readStream.handler(data -> {
       AtomicInteger pend = new AtomicInteger();
       // two passes.. to avoid drainHandler being fired off too early.
       // first pass: see if any of writing streams are full?
-      mainWriteStream.write(data);
-      if (mainWriteStream.writeQueueFull()) {
-        pend.incrementAndGet();
-      }
-      for (WriteStream<Buffer> w : logWriteStreams) {
+      for (WriteStream<Buffer> w : writeStreams) {
         w.write(data);
         if (w.writeQueueFull()) {
           pend.incrementAndGet();
@@ -763,14 +773,7 @@ public class ProxyService {
       }
       // second pass: at least one was full. pause and set up drainHandlers for full ones.
       readStream.pause();
-      if (mainWriteStream.writeQueueFull()) {
-        mainWriteStream.drainHandler(x -> {
-          if (pend.decrementAndGet() == 0) {
-            readStream.resume();
-          }
-        });
-      }
-      for (WriteStream<Buffer> w : logWriteStreams) {
+      for (WriteStream<Buffer> w : writeStreams) {
         if (w.writeQueueFull()) {
           w.drainHandler(x -> {
             if (pend.decrementAndGet() == 0) {
@@ -779,17 +782,12 @@ public class ProxyService {
           });
         }
       }
-
     });
     readStream.endHandler(v -> {
-      for (WriteStream<Buffer> w : logWriteStreams) {
+      for (WriteStream<Buffer> w : writeStreams) {
         w.end();
       }
-      mainWriteStream.end();
     });
-    readStream.exceptionHandler(e
-        -> pc.warn("streamHandle: content exception ", e));
-    readStream.resume();
   }
 
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
