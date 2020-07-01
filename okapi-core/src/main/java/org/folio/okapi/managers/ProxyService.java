@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -759,27 +758,17 @@ public class ProxyService {
                                     List<WriteStream<Buffer>> writeStreams) {
 
     readStream.handler(data -> {
-      AtomicInteger pend = new AtomicInteger();
-      // two passes.. to avoid drainHandler being fired off too early.
-      // first pass: see if any of writing streams are full?
       for (WriteStream<Buffer> w : writeStreams) {
         w.write(data);
-        if (w.writeQueueFull()) {
-          pend.incrementAndGet();
-        }
       }
-      if (pend.get() == 0) {
-        return;
-      }
-      // second pass: at least one was full. pause and set up drainHandlers for full ones.
-      readStream.pause();
       for (WriteStream<Buffer> w : writeStreams) {
-        if (w.writeQueueFull()) {
+        if (!w.writeQueueFull()) {
           w.drainHandler(x -> {
-            if (pend.decrementAndGet() == 0) {
-              readStream.resume();
-            }
           });
+        } else {
+          readStream.pause();
+          w.drainHandler(x -> readStream.resume());
+          return;
         }
       }
     });
