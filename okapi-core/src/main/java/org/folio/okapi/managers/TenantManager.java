@@ -711,7 +711,7 @@ public class TenantManager {
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
-    proxyService.callSystemInterface("supertenant", headers, tenant, inst, "", cres -> {
+    proxyService.callSystemInterface(headers, tenant, inst, "", cres -> {
       if (cres.succeeded()) {
         logger.info("timer call succeeded to module {} for tenant {}",
             md.getId(), tenantId);
