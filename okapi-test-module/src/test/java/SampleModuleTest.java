@@ -1,6 +1,8 @@
-
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientRequest;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -8,8 +10,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -206,5 +210,51 @@ public class SampleModuleTest {
 
       async.complete();
     });
+  }
+
+  @Test
+  public void testUpload(TestContext context) {
+    int bufSz = 200000;
+    long bufCnt = 10000;
+    long total = bufSz * bufCnt;
+    HttpClient client = vertx.createHttpClient();
+    for (int loop = 0; loop < 2; loop++) {
+      Async async = context.async();
+      logger.info("Sending {} GB", total / 1e9);
+      HttpClientRequest request = HttpClientLegacy.post(client, PORT, "localhost", "/testb", res -> {
+        context.assertEquals(200, res.statusCode());
+        AtomicLong cnt = new AtomicLong();
+        res.handler(h -> cnt.addAndGet(h.length()));
+        res.exceptionHandler(ex -> {
+          context.fail(ex);
+          async.complete();
+        });
+        res.endHandler(end -> {
+          context.assertEquals(total + 6, cnt.get());
+          async.complete();
+        });
+      });
+      request.exceptionHandler(ex -> {
+        context.fail(ex.getCause());
+        async.complete();
+      });
+      request.putHeader("Content-Type", "text/plain");
+      request.putHeader("Accept", "text/plain");
+      request.setChunked(true);
+      Buffer buffer = Buffer.buffer();
+      for (int j = 0; j < bufSz; j++) {
+        buffer.appendString("X");
+      }
+      endRequest(request, buffer, 0, bufCnt);
+      async.await(50000);
+    }
+  }
+
+  void endRequest(HttpClientRequest req, Buffer buffer, long i, long cnt) {
+    if (i == cnt) {
+      req.end();
+    } else {
+      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
+    }
   }
 }
