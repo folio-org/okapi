@@ -1,3 +1,10 @@
+## 3.1.2 2020-07-02
+
+ * [OKAPI-869](https://issues.folio.org/browse/OKAPI-869) Fix System calls
+   ignore module permissions if tenant is the same
+ * [OKAPI-866](https://issues.folio.org/browse/OKAPI-866) Fix Okapi uses
+   excessive memory or OOM for bulk instance id download
+
 ## 3.1.1 2020-06-18
 
  * [OKAPI-859](https://issues.folio.org/browse/OKAPI-859) Fail to enable module if tenant API has module permissions
