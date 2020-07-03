@@ -221,14 +221,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void myPermissionHandle(RoutingContext ctx) {
-    final Buffer incoming = Buffer.buffer();
-    ctx.request().handler(incoming::appendBuffer);
-    ctx.request().endHandler(x -> {
-      String body = incoming.toString();
-      body = body.replaceAll("\\s+", " "); // remove newlines etc
-      ctx.response().putHeader("X-Tenant-Perms-Result", body);
-      ctx.response().end();
-    });
+    ctx.request().endHandler(x -> ctx.response().end());
   }
 
   @Override
