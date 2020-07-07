@@ -17,6 +17,7 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -572,13 +573,13 @@ public class ProxyService {
     });
   }
 
-  private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> res,
+  private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> readStream,
                                       Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
     RoutingContext ctx = pc.getCtx();
     if (pc.getAuthRes() != 0 && (pc.getAuthRes() < 200 || pc.getAuthRes() >= 300)) {
       if (bcontent == null) {
-        res.resume();
+        readStream.resume();
       }
       bcontent = pc.getAuthResBody();
     }
@@ -589,22 +590,7 @@ public class ProxyService {
       }
       ctx.response().end(bcontent);
     } else {
-      res.handler(data -> {
-        for (HttpClientRequest r : clientRequestList) {
-          r.write(data);
-        }
-        ctx.response().write(data);
-      });
-      res.endHandler(v -> {
-        pc.closeTimer();
-        for (HttpClientRequest r : clientRequestList) {
-          r.end();
-        }
-        ctx.response().end();
-      });
-      res.exceptionHandler(e
-          -> pc.warn("proxyRequestImmediate res exception ", e));
-      res.resume();
+      streamHandle(pc, readStream, ctx.response(), clientRequestList);
     }
   }
 
@@ -758,6 +744,54 @@ public class ProxyService {
     }
   }
 
+  private static void streamHandle(ProxyContext pc, ReadStream<Buffer> readStream,
+                                   WriteStream<Buffer> mainWriteStream,
+                                   List<HttpClientRequest> logWriteStreams) {
+    List<WriteStream<Buffer>> writeStreams = new LinkedList<>();
+    writeStreams.add(mainWriteStream);
+    for (WriteStream<Buffer> w : logWriteStreams) {
+      writeStreams.add(w);
+    }
+    pumpOneToMany(readStream, writeStreams);
+    readStream.exceptionHandler(e
+        -> pc.warn("streamHandle: content exception ", e));
+    readStream.resume();
+  }
+
+  private static void pauseAndResume(ReadStream<Buffer> readStream,
+                                     List<WriteStream<Buffer>> writeStreams) {
+    boolean pause = false;
+
+    for (WriteStream<Buffer> w : writeStreams) {
+      if (w.writeQueueFull()) {
+        w.drainHandler(handler -> pauseAndResume(readStream, writeStreams));
+        pause = true;
+      } else {
+        w.drainHandler(null);
+      }
+    }
+    if (pause) {
+      readStream.pause();
+    } else {
+      readStream.resume();
+    }
+  }
+
+  static void pumpOneToMany(ReadStream<Buffer> readStream,
+                            List<WriteStream<Buffer>> writeStreams) {
+    readStream.handler(data -> {
+      for (WriteStream<Buffer> w : writeStreams) {
+        w.write(data);
+      }
+      pauseAndResume(readStream, writeStreams);
+    });
+    readStream.endHandler(v -> {
+      for (WriteStream<Buffer> w : writeStreams) {
+        w.end();
+      }
+    });
+  }
+
   private void proxyRequestResponse(Iterator<ModuleInstance> it,
                                     ProxyContext pc, ReadStream<Buffer> stream, Buffer bcontent,
                                     List<HttpClientRequest> clientRequestList, ModuleInstance mi) {
@@ -800,24 +834,7 @@ public class ProxyService {
       for (HttpClientRequest r : clientRequestList) {
         r.setChunked(true);
       }
-      stream.handler(data -> {
-        pc.trace("proxyRequestResponse request chunk '"
-            + data.toString() + "'");
-        clientRequest.write(data);
-        for (HttpClientRequest r : clientRequestList) {
-          r.write(data);
-        }
-      });
-      stream.endHandler(v -> {
-        pc.trace("proxyRequestResponse request complete");
-        for (HttpClientRequest r : clientRequestList) {
-          r.end();
-        }
-        clientRequest.end();
-      });
-      stream.exceptionHandler(e
-          -> pc.warn("proxyRequestResponse: content exception ", e));
-      stream.resume();
+      streamHandle(pc, stream, clientRequest, clientRequestList);
     }
     log(pc, clientRequest);
   }
@@ -1055,12 +1072,11 @@ public class ProxyService {
                                   String request, ProxyContext pc,
                                   Handler<AsyncResult<OkapiClient>> fut) {
 
-    String curTenantId = pc.getTenant(); // is often the supertenant
     MultiMap headersIn = pc.getCtx().request().headers();
-    callSystemInterface(curTenantId, headersIn, tenant, inst, request, fut);
+    callSystemInterface(headersIn, tenant, inst, request, fut);
   }
 
-  void callSystemInterface(String curTenantId, MultiMap headersIn,
+  void callSystemInterface(MultiMap headersIn,
                            Tenant tenant, ModuleInstance inst,
                            String request, Handler<AsyncResult<OkapiClient>> fut) {
 
@@ -1068,11 +1084,6 @@ public class ProxyService {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
     }
     String tenantId = tenant.getId(); // the tenant we are about to enable
-    String authToken = headersIn.get(XOkapiHeaders.TOKEN);
-    if (tenantId.equals(curTenantId)) {
-      doCallSystemInterface(headersIn, tenantId, authToken, inst, null, request, fut);
-      return;
-    }
     // Check if the actual tenant has auth enabled. If yes, get a token for it.
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);

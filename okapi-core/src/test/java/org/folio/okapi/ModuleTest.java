@@ -1,8 +1,6 @@
 package org.folio.okapi;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-
+import io.vertx.core.json.JsonArray;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,6 +33,8 @@ import de.flapdoodle.embed.process.runtime.Network;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
 import io.restassured.http.Header;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
@@ -1205,23 +1205,31 @@ public class ModuleTest {
     // this.
     final String testHdrJar = "../okapi-test-header-module/target/okapi-test-header-module-fat.jar";
     final String docHdrModule = "{" + LS
-      + "  \"id\" : \"header-1\"," + LS
-      + "  \"name\" : \"header-module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.1\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"path\" : \"/_/tenantPermissions\"," + LS
-      + "      \"level\" : \"20\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"header-1\"," + LS
+        + "  \"name\" : \"header-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenantPermissions\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"path\" : \"/_/tenantPermissions\"," + LS
+        + "      \"level\" : \"20\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"permResult\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"path\" : \"/permResult\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
+        + "  }" + LS
+        + "}";
 
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
@@ -1241,12 +1249,18 @@ public class ModuleTest {
       .log().ifValidationFails()
       .extract().headers();
     final String locHdrEnable = headers.getValue("Location");
-    List<Header> list = headers.getList("X-Tenant-Perms-Result");
-    Assert.assertEquals(2, list.size()); // one for okapi, one for header-1
-    Assert.assertThat("okapi perm result",
-      list.get(0).getValue(), containsString("okapi.all"));
-    Assert.assertThat("header-1perm result",
-      list.get(1).getValue(), containsString("header-1"));
+    // one trace from Okapi, two from the header module since it's called twice
+    context.assertEquals(3, headers.getValues("X-Okapi-Trace").size());
+
+    given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .body("$", hasSize(2))
+        .body("[0].moduleId", is("okapi-0.0.0"))
+        .body("[1].moduleId", is("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -1330,8 +1344,19 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
+
+    String body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    JsonArray ar = new JsonArray(body);
+    context.assertEquals(1, ar.size());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(0));
 
     // Try with a minimal MD, to see we don't have null pointers hanging around
     final String docSampleModule2 = "{" + LS
@@ -1361,8 +1386,19 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms2)
       .extract().header("Location");
+
+    body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    ar = new JsonArray(body);
+    context.assertEquals(1, ar.size());
+    context.assertEquals(new JsonObject(expPerms2), ar.getJsonObject(0));
 
     // Tests to see that we get a new auth token for the system calls
     // Disable sample, so we can re-enable it after we have established auth
@@ -1420,8 +1456,20 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
+
+    body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    ar = new JsonArray(body);
+    context.assertEquals(2, ar.size());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(1));
+
     // Check that the tenant interface and the tenantpermission interfaces
     // were called with proper auth tokens and with ModulePermissions
 
