@@ -45,6 +45,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
@@ -513,6 +514,10 @@ public class ProxyService {
       stream.resume();
       return; // Error code already set in ctx
     }
+
+    FolioLoggingContext.put("tenantId", tenantId);
+
+    FolioLoggingContext.put("requestId", ctx.request().headers().get(XOkapiHeaders.REQUEST_ID));
 
     final MultiMap headers = ctx.request().headers();
     sanitizeAuthHeaders(headers);
