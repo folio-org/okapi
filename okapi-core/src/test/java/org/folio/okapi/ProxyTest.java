@@ -26,6 +26,9 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -68,6 +71,14 @@ public class ProxyTest {
   private JsonObject timerPermissions = new JsonObject();
   private JsonArray edgePermissionsAtInit = null;
   private JsonObject timerTenantData;
+
+  @Rule
+  public TestWatcher watchman = new TestWatcher() {
+    @Override
+    public void starting(final Description method) {
+      logger.info("being run..." + method.getMethodName());
+    }
+  };
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
