@@ -1,30 +1,38 @@
 package org.folio.okapi.logging;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
-import org.apache.logging.log4j.core.lookup.StrLookup;
-
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.ContextInternal;
+import org.apache.logging.log4j.core.lookup.StrLookup;
 
 /**
  * This class should be used for storing context variables
- * and use them in logging events
+ * and use them in logging events.
  */
 @Plugin(name = "FolioLoggingContext", category = StrLookup.CATEGORY)
 public class FolioLoggingContext implements StrLookup {
 
-  public String EMPTY_VALUE = "";
+  public static final String EMPTY_VALUE = "";
 
+  /**
+   * Lookup value by key
+   *
+   * @param key
+   * @return value for key or *empty string* if there is no such key
+   */
   public String lookup(String key) {
     return lookup(null, key);
   }
 
+  /**
+   * Lookup value by key. LogEvent isn't used.
+   *
+   * @param key
+   * @return value for key or *empty string* if there is no such key
+   */
   public String lookup(LogEvent event, String key) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {
@@ -33,6 +41,12 @@ public class FolioLoggingContext implements StrLookup {
     return EMPTY_VALUE;
   }
 
+   /**
+   * Put value by key to the logging context.
+   *
+   * @param key
+   * @return value for key or *empty string* if there is no such key
+   */
   public static void put(String key, String value) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {
@@ -40,14 +54,7 @@ public class FolioLoggingContext implements StrLookup {
     }
   }
 
-  public static Map<String, String> getAll() {
-    ContextInternal ctx = (ContextInternal) Vertx.currentContext();
-    if (ctx != null) {
-      return new HashMap<>(getContextMap(ctx));
-    }
-    return null;
-  }
-
+  @SuppressWarnings("unchecked")
   private static ConcurrentMap<String, String> getContextMap(ContextInternal ctx) {
     return (ConcurrentMap<String, String>) ctx.localContextData()
         .computeIfAbsent(FolioLoggingContext.class, (k) -> new ConcurrentHashMap<String, String>());
