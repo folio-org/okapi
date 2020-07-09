@@ -1,11 +1,11 @@
 package org.folio.okapi.logging;
 
+import io.vertx.core.Vertx;
+import io.vertx.core.impl.ContextInternal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
-import io.vertx.core.Vertx;
-import io.vertx.core.impl.ContextInternal;
 import org.apache.logging.log4j.core.lookup.StrLookup;
 
 /**
@@ -18,9 +18,9 @@ public class FolioLoggingContext implements StrLookup {
   public static final String EMPTY_VALUE = "";
 
   /**
-   * Lookup value by key
+   * Lookup value by key.
    *
-   * @param key
+   * @param key the name of logging variable (e.g. requestId)
    * @return value for key or *empty string* if there is no such key
    */
   public String lookup(String key) {
@@ -28,11 +28,11 @@ public class FolioLoggingContext implements StrLookup {
   }
 
   /**
-   * Lookup value by key. LogEvent isn't used.
-   *
-   * @param key
-   * @return value for key or *empty string* if there is no such key
-   */
+  * Lookup value by key. LogEvent isn't used.
+  *
+  * @param key the name of logging variable (e.g. requestId)
+  * @return value for key or *empty string* if there is no such key
+  */
   public String lookup(LogEvent event, String key) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {
@@ -41,12 +41,10 @@ public class FolioLoggingContext implements StrLookup {
     return EMPTY_VALUE;
   }
 
-   /**
-   * Put value by key to the logging context.
-   *
-   * @param key
-   * @return value for key or *empty string* if there is no such key
-   */
+  /**
+  * Put value by key to the logging context.   *
+  * @param key the name of logging variable (e.g. requestId)
+  */
   public static void put(String key, String value) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {

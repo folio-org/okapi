@@ -519,6 +519,10 @@ public class ProxyService {
 
     FolioLoggingContext.put("requestId", ctx.request().headers().get(XOkapiHeaders.REQUEST_ID));
 
+    FolioLoggingContext.put("userId", ctx.request().headers().get(XOkapiHeaders.USER_ID));
+
+    FolioLoggingContext.put("moduleId", ctx.request().headers().get(XOkapiHeaders.MODULE_ID));
+
     final MultiMap headers = ctx.request().headers();
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
