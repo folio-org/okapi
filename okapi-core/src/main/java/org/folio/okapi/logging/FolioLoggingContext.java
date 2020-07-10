@@ -1,7 +1,7 @@
 package org.folio.okapi.logging;
 
+import io.vertx.core.Context;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.ContextInternal;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.lookup.StrLookup;
@@ -34,7 +34,7 @@ public class FolioLoggingContext implements StrLookup {
   * @return value for key or *empty string* if there is no such key
   */
   public String lookup(LogEvent event, String key) {
-    ContextInternal ctx = (ContextInternal) Vertx.currentContext();
+    Context ctx = Vertx.currentContext();
     if (ctx != null) {
       String val = ctx.getLocal(LOGGING_VAR_PREFIX + key);
       if (val != null) {
@@ -49,7 +49,7 @@ public class FolioLoggingContext implements StrLookup {
   * @param key the name of logging variable (e.g. requestId)
   */
   public static void put(String key, String value) {
-    ContextInternal ctx = (ContextInternal) Vertx.currentContext();
+    Context ctx = Vertx.currentContext();
     if (ctx != null) {
       ctx.putLocal(key, value);
     }
