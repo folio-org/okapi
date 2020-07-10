@@ -51,7 +51,11 @@ public class FolioLoggingContext implements StrLookup {
   public static void put(String key, String value) {
     Context ctx = Vertx.currentContext();
     if (ctx != null) {
-      ctx.putLocal(LOGGING_VAR_PREFIX + key, value);
+      if (value != null) {
+        ctx.putLocal(LOGGING_VAR_PREFIX + key, value);
+      } else {
+        ctx.removeLocal(LOGGING_VAR_PREFIX + key);
+      }
     }
   }
 
