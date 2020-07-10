@@ -2,8 +2,6 @@ package org.folio.okapi.logging;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.ContextInternal;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.config.plugins.Plugin;
 import org.apache.logging.log4j.core.lookup.StrLookup;
@@ -15,7 +13,9 @@ import org.apache.logging.log4j.core.lookup.StrLookup;
 @Plugin(name = "FolioLoggingContext", category = StrLookup.CATEGORY)
 public class FolioLoggingContext implements StrLookup {
 
-  public static final String EMPTY_VALUE = "";
+  private static final String EMPTY_VALUE = "";
+
+  public static final String LOGGING_VAR_PREFIX = "folio_";
 
   /**
    * Lookup value by key.
@@ -36,7 +36,10 @@ public class FolioLoggingContext implements StrLookup {
   public String lookup(LogEvent event, String key) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {
-      return getContextMap(ctx).getOrDefault(key, EMPTY_VALUE);
+      String val = ctx.getLocal(LOGGING_VAR_PREFIX + key);
+      if (val != null) {
+        return val;
+      }
     }
     return EMPTY_VALUE;
   }
@@ -48,14 +51,8 @@ public class FolioLoggingContext implements StrLookup {
   public static void put(String key, String value) {
     ContextInternal ctx = (ContextInternal) Vertx.currentContext();
     if (ctx != null) {
-      getContextMap(ctx).put(key, value);
+      ctx.putLocal(key, value);
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static ConcurrentMap<String, String> getContextMap(ContextInternal ctx) {
-    return (ConcurrentMap<String, String>) ctx.localContextData()
-        .computeIfAbsent(FolioLoggingContext.class, (k) -> new ConcurrentHashMap<String, String>());
   }
 
 }
