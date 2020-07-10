@@ -25,8 +25,8 @@ public class ModuleIdTest {
     assertEquals("module-1-2+3", module_1plus2.toString());
 
     assertNotEquals(module_1, module_1plus2);
-    assertNotEquals(module_1, this);
-    assertEquals(module_1, module_1);
+    ModuleId module_1_ref = module_1;
+    assertEquals(module_1, module_1_ref);
     ModuleId module_1plus2copy = new ModuleId("module-1-2+3");
     assertEquals(module_1plus2, module_1plus2copy);
 
@@ -64,8 +64,7 @@ public class ModuleIdTest {
     assertEquals(-4, ModuleId.compare("abc-2.9", "abc-3.5"));
     assertEquals(-5, ModuleId.compare("abc-2", "abcd-3"));
 
-    assertTrue(module_1.equals(module_1));
-    assertFalse(module_1.equals(foobar_1_2));
+    assertNotEquals(module_1, foobar_1_2);
 
     assertTrue(module_1.hasSemVer());
     assertEquals("1", module_1.getSemVer().toString());
