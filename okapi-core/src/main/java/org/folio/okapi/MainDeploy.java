@@ -83,6 +83,13 @@ public class MainDeploy {
           fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
       }
     } catch (Throwable t) {
+      String message = t.getMessage();
+      if ("Failed to create cache dir".equals(message)) {
+        // https://issues.folio.org/browse/OKAPI-857 Okapi crashes on user change
+        // https://github.com/eclipse-vertx/vert.x/blob/3.9.1/src/main/java/io/vertx/core/file/FileSystemOptions.java#L49
+        message += " " + FileSystemOptions.DEFAULT_FILE_CACHING_DIR;
+        t = new RuntimeException(message, t);
+      }
       fut.handle(Future.failedFuture(t));
     }
   }
