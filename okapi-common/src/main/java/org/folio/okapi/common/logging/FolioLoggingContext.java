@@ -15,7 +15,7 @@ public class FolioLoggingContext implements StrLookup {
 
   private static final String EMPTY_VALUE = "";
 
-  public static final String LOGGING_VAR_PREFIX = "folio_";
+  private static final String LOGGING_VAR_PREFIX = "folio_";
 
   public static final String TENANT_ID_LOGGING_VAR_NAME = "tenantid";
 
