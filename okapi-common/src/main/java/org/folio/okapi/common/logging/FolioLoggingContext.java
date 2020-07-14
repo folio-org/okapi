@@ -1,4 +1,4 @@
-package org.folio.okapi.logging;
+package org.folio.okapi.common.logging;
 
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -16,6 +16,14 @@ public class FolioLoggingContext implements StrLookup {
   private static final String EMPTY_VALUE = "";
 
   public static final String LOGGING_VAR_PREFIX = "folio_";
+
+  public static final String TENANT_ID_LOGGING_VAR_NAME = "tenantid";
+
+  public static final String REQUEST_ID_LOGGING_VAR_NAME = "requestid";
+
+  public static final String MODULE_ID_LOGGING_VAR_NAME = "moduleid";
+
+  public static final String USER_ID_LOGGING_VAR_NAME = "userid";
 
   /**
    * Lookup value by key.

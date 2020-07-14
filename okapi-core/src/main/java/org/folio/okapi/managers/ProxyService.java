@@ -45,7 +45,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.logging.FolioLoggingContext;
+import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
@@ -515,19 +515,13 @@ public class ProxyService {
       return; // Error code already set in ctx
     }
 
-    FolioLoggingContext.put("tenantId", tenantId);
-
-    if (ctx.request() != null && ctx.request().headers() != null) {
-
-      FolioLoggingContext.put("requestId", ctx.request().headers().get(XOkapiHeaders.REQUEST_ID));
-
-      FolioLoggingContext.put("moduleId", ctx.request().headers().get(XOkapiHeaders.MODULE_ID));
-
-      FolioLoggingContext.put("userId", ctx.request().headers().get(XOkapiHeaders.USER_ID));
-
-    }
-
     final MultiMap headers = ctx.request().headers();
+
+    FolioLoggingContext.put(FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME, tenantId);
+    FolioLoggingContext.put(FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.REQUEST_ID));
+    FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.MODULE_ID));
+    FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME, headers.get(XOkapiHeaders.USER_ID));
+
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
