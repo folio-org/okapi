@@ -1,3 +1,8 @@
+## 2.40.1 2020-07-20
+
+ * [OKAPI-873](https://issues.folio.org/browse/OKAPI-873) security fix:
+   Update Netty (CVE-2019-16869) and Jackson (CVE-2019-14540)
+
 ## 2.40.0 2020-04-17
 
 New facilities for services that enables and disables modules for tenant.
