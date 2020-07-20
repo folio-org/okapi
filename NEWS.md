@@ -2,6 +2,8 @@
 
  * [OKAPI-873](https://issues.folio.org/browse/OKAPI-873) security fix:
    Update Netty (CVE-2019-16869) and Jackson (CVE-2019-14540)
+ * [OKAPI-877](https://issues.folio.org/browse/OKAPI-877) security fix:
+   Update log4j from 2.12.1 to 2.13.3 in okapi 2.40 (CVE-2020-9488)
 
 ## 2.40.0 2020-04-17
 
