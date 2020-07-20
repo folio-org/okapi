@@ -16,8 +16,9 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 public class FolioLoggingContextTest {
 
 
-  private static String KEY = "KEY";
-  private static String VALUE = "VALUE";
+  private static final String KEY = "KEY";
+  private static final String VALUE = "VALUE";
+  private static final String EMPTY_STRING = "";
 
   private Vertx vertx;
 
@@ -34,7 +35,7 @@ public class FolioLoggingContextTest {
   @Test
   public void lookupWithoutContextTest(TestContext context) {
     FolioLoggingContext loggingContext = new FolioLoggingContext();
-    context.assertEquals(null, loggingContext.lookup(KEY));
+    context.assertEquals(EMPTY_STRING, loggingContext.lookup(KEY));
   }
 
 
@@ -69,7 +70,7 @@ public class FolioLoggingContextTest {
     vertx.runOnContext(e -> {
           FolioLoggingContext.put(KEY, VALUE);
           FolioLoggingContext.put(KEY, null);
-          context.assertEquals("", loggingContext.lookup(KEY));
+          context.assertEquals(EMPTY_STRING, loggingContext.lookup(KEY));
           async.complete();
         }
     );
