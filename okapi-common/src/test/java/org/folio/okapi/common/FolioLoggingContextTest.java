@@ -2,6 +2,7 @@ package org.folio.okapi.common;
 
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -31,27 +32,34 @@ public class FolioLoggingContextTest {
   }
 
   @Test
-  public void lookupWithoutContextTest() {
+  public void lookupWithoutContextTest(TestContext context) {
     FolioLoggingContext loggingContext = new FolioLoggingContext();
-    loggingContext.lookup(null);
+    context.assertEquals(null, loggingContext.lookup(KEY));
   }
 
 
   @Test
   public void lookupPutTest(TestContext context) {
+    Async async = context.async();
     vertx.runOnContext(e -> {
       FolioLoggingContext loggingContext = new FolioLoggingContext();
       FolioLoggingContext.put(KEY, VALUE);
-      context.assertEquals(loggingContext.lookup(KEY), VALUE);
+      vertx.runOnContext(c -> {
+            context.assertEquals(VALUE, loggingContext.lookup(KEY));
+            async.complete();
+          }
+      );
     });
   }
 
   @Test
   public void lookupNullTest(TestContext context) {
+    Async async = context.async();
     FolioLoggingContext loggingContext = new FolioLoggingContext();
-    vertx.runOnContext(e -> {
-      loggingContext.lookup(null);
-    });
+    vertx.runOnContext(run -> context.verify(block -> {
+      Assert.assertThrows(IllegalArgumentException.class, () -> loggingContext.lookup(null));
+      async.complete();
+    }));
   }
 
   @Test
@@ -59,8 +67,9 @@ public class FolioLoggingContextTest {
     Async async = context.async();
     FolioLoggingContext loggingContext = new FolioLoggingContext();
     vertx.runOnContext(e -> {
+          FolioLoggingContext.put(KEY, VALUE);
           FolioLoggingContext.put(KEY, null);
-          context.assertEquals(loggingContext.lookup(KEY), "");
+          context.assertEquals("", loggingContext.lookup(KEY));
           async.complete();
         }
     );
