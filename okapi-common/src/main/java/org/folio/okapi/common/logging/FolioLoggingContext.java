@@ -66,7 +66,7 @@ public class FolioLoggingContext implements StrLookup {
   /**
   * Put value by key to the logging context.
   * @param key the name of logging variable, {@code null} key isn't allowed.
-  * @param value the value of  logging variable.
+  * @param value the value of logging variable.
   *             If {@code null} is passed, entry is removed from context.
   */
   public static void put(String key, String value) {
