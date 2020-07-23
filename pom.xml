@@ -30,6 +30,45 @@
 
   <dependencyManagement>
     <dependencies>
+
+      <!-- Overwrite 4.1.42.FINAL (from vertx-stack-depchain 4.0.0-milestone4) by 4.1.51.Final.
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16869/
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.51.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Override 2.0.26.Final (from vertx-stack-depchain 4.0.0-milestone4) by 2.0.31.Final =
+           matching version for netty 4.1.51.FINAL.
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative-boringssl-static</artifactId>
+        <version>2.0.31.Final</version>
+      </dependency>
+
+      <!-- Override 2.9.9 (from vertx-stack-depchain 4.0.0-milestone4) by 2.10.2 =
+	   the same version RMB uses for Goldenrod.
+           Fixes https://www.cvedetails.com/cve/CVE-2019-14540/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16335/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16942/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16943/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-17267/
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.10.2</version>
+        <type>pom</type>
+      </dependency>
+
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
