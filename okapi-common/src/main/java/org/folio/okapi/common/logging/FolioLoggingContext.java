@@ -13,8 +13,7 @@ import org.apache.logging.log4j.core.lookup.StrLookup;
  * {@link io.vertx.core.Context#putLocal Context}
  * and can be used in log4j log lines by using
  * {@link org.apache.logging.log4j.core.lookup.StrLookup StrLookup}
- *
- * , Vertx vertx local data
+ * Vertx vertx local data
  */
 @Plugin(name = "FolioLoggingContext", category = StrLookup.CATEGORY)
 public class FolioLoggingContext implements StrLookup {
