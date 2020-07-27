@@ -483,6 +483,7 @@ public class ModuleTest {
     List<String> traces = c.given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
+      .header("X-Okapi-User-Id", "peter")
       .header("X-all-headers", "BL") // ask sample to report all headers
       .get("/testb")
       .then().statusCode(200)
