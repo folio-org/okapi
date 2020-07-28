@@ -929,12 +929,8 @@ public class ProxyService {
       pc.debug("proxyR: Not found");
       pc.responseError(404, ""); // Should have been caught earlier
     } else {
-      String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
-      if (tenantId == null || tenantId.isEmpty()) {
-        tenantId = "???"; // Should not happen, we have validated earlier
-      }
-      pc.startTimer();
       ModuleInstance mi = it.next();
+      pc.startTimer();
 
       // Pass the right token
       ctx.request().headers().remove(XOkapiHeaders.TOKEN);
