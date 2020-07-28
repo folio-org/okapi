@@ -530,9 +530,6 @@ public class ProxyService {
         }
         List<ModuleDescriptor> enabledModules = mres.result();
 
-        String metricKey = "proxy." + tenantId + "."
-            + ctx.request().method() + "." + ctx.normalisedPath();
-
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
           stream.resume();
@@ -932,14 +929,12 @@ public class ProxyService {
       pc.debug("proxyR: Not found");
       pc.responseError(404, ""); // Should have been caught earlier
     } else {
-      ModuleInstance mi = it.next();
       String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
       if (tenantId == null || tenantId.isEmpty()) {
         tenantId = "???"; // Should not happen, we have validated earlier
       }
-      String metricKey = "proxy." + tenantId
-          + ".module." + mi.getModuleDescriptor().getId();
-      pc.startTimer(metricKey);
+      pc.startTimer();
+      ModuleInstance mi = it.next();
 
       // Pass the right token
       ctx.request().headers().remove(XOkapiHeaders.TOKEN);

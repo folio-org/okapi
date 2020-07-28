@@ -80,10 +80,9 @@ public class ProxyContext {
   }
 
   /**
-   * start Dropwizard timer.
-   * @param key Dropziard key
+   * Start timer.
    */
-  public final void startTimer(String key) {
+  public final void startTimer() {
     closeTimer();
     nanoTimeStart = System.nanoTime();
     if (waitMs > 0) {
@@ -95,7 +94,7 @@ public class ProxyContext {
   }
 
   /**
-   * Stop Dropwizard timer.
+   * Stop timer.
    */
   public void closeTimer() {
     if (timerId != null) {
