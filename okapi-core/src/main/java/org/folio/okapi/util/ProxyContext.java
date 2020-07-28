@@ -1,6 +1,5 @@
 package org.folio.okapi.util;
 
-import com.codahale.metrics.Timer;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
@@ -29,7 +28,7 @@ public class ProxyContext {
   private final String reqId;
   private String tenant;
   private final RoutingContext ctx;
-  private Timer.Context timer;
+  private long nanoTimeStart; // = 0 for no start time
   private Long timerId;
   private final int waitMs;
 
@@ -75,18 +74,17 @@ public class ProxyContext {
       ctx.request().headers().set(XOkapiHeaders.REQUEST_ID, reqId);
       this.debug("Appended a reqId " + newid);
     }
-    timer = null;
+    nanoTimeStart = 0;
     timerId = null;
     handlerRes = 0;
   }
 
   /**
-   * start Dropwizard timer.
-   * @param key Dropziard key
+   * Start timer.
    */
-  public final void startTimer(String key) {
+  public final void startTimer() {
     closeTimer();
-    timer = DropwizardHelper.getTimerContext(key);
+    nanoTimeStart = System.nanoTime();
     if (waitMs > 0) {
       timerId = ctx.vertx().setPeriodic(waitMs, res
           -> logger.warn("{} WAIT {} {} {} {}", reqId, ctx.request().remoteAddress(), tenant,
@@ -96,25 +94,22 @@ public class ProxyContext {
   }
 
   /**
-   * Stop Dropwizard timer.
+   * Stop timer.
    */
   public void closeTimer() {
     if (timerId != null) {
       ctx.vertx().cancelTimer(timerId);
       timerId = null;
     }
-    if (timer != null) {
-      timer.close();
-      timer = null;
-    }
+    nanoTimeStart = 0;
   }
 
   /**
    * Return the elapsed time since startTimer, in microseconds.
    */
   public String timeDiff() {
-    if (timer != null) {
-      return (timer.stop() / 1000) + "us";
+    if (nanoTimeStart != 0) {
+      return ((System.nanoTime() - nanoTimeStart) / 1000) + "us";
     } else {
       return "-";
     }
