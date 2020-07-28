@@ -41,7 +41,8 @@ public class MultiTenantTest {
     + "      \"methods\" : [ \"POST\" ]," + LS
     + "      \"path\" : \"/authn/login\"," + LS
     + "      \"level\" : \"20\"," + LS
-    + "      \"type\" : \"request-response\"" + LS
+    + "      \"type\" : \"request-response\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"filters\" : [ {" + LS
@@ -49,6 +50,7 @@ public class MultiTenantTest {
     + "    \"path\" : \"/\"," + LS
     + "    \"phase\" : \"auth\"," + LS
     + "    \"type\" : \"headers\"," + LS
+    + "    \"permissionsRequired\" : [ ]," + LS
     + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]," + LS
@@ -67,14 +69,16 @@ public class MultiTenantTest {
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-    + "      \"pathPattern\" : \"/_/tenant\"" + LS
+    + "      \"pathPattern\" : \"/_/tenant\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  }, {" + LS
     + "    \"id\" : \"myint\"," + LS
     + "    \"version\" : \"1.0\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-    + "      \"pathPattern\" : \"/testb\"" + LS
+    + "      \"pathPattern\" : \"/testb\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]," + LS
@@ -93,14 +97,16 @@ public class MultiTenantTest {
     + "    \"interfaceType\" : \"system\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-    + "      \"pathPattern\" : \"/_/tenant\"" + LS
+    + "      \"pathPattern\" : \"/_/tenant\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  }, {" + LS
     + "    \"id\" : \"myint\"," + LS
     + "    \"version\" : \"1.0\"," + LS
     + "    \"handlers\" : [ {" + LS
     + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-    + "      \"pathPattern\" : \"/testb\"" + LS
+    + "      \"pathPattern\" : \"/testb\"," + LS
+    + "      \"permissionsRequired\" : [ ]" + LS
     + "    } ]" + LS
     + "  } ]," + LS
     + "  \"requires\" : [ ]" + LS
@@ -129,9 +135,7 @@ public class MultiTenantTest {
   }
 
   private void td(TestContext context, Async async) {
-    vertx.close(x -> {
-      async.complete();
-    });
+    vertx.close(x -> async.complete());
   }
 
   @After
@@ -298,13 +302,19 @@ public class MultiTenantTest {
     JsonObject mod2 = new JsonObject(docTestModule2);
     mod2.put("launchDescriptor", mod1.getJsonObject("launchDescriptor"));
 
-    // deploy again .. should succeed
+    // remove
+    given()
+        .header("X-Okapi-Token", okapiTokenTenant2)
+        .delete("/_/proxy/modules/sample-module-2.0.0")
+        .then().statusCode(204).log().ifValidationFails();
+
+    // create again .. should succeed
     given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", okapiTokenSupertenant)
       .body(mod2.encodePrettily())
-      .put("/_/proxy/modules/sample-module-2.0.0")
-      .then().statusCode(200).log().ifValidationFails();
+      .post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
 
     // enable+deploy sample-module-2.0.0 for tenant2 as tenant2
     given()

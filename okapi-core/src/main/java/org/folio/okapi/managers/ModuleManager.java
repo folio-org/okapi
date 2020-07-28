@@ -1,9 +1,7 @@
 package org.folio.okapi.managers;
 
-import org.folio.okapi.util.DepResolution;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
-import org.folio.okapi.bean.ModuleDescriptor;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -14,18 +12,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.InterfaceDescriptor;
+import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
+import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
-import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.LockedTypedMap1;
-import org.folio.okapi.common.ModuleId;
-import org.folio.okapi.common.Messages;
 import org.folio.okapi.service.ModuleStore;
+import org.folio.okapi.util.CompList;
+import org.folio.okapi.util.DepResolution;
+import org.folio.okapi.util.LockedTypedMap1;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -37,13 +39,15 @@ public class ModuleManager {
   private final Logger logger = OkapiLogger.get();
   private TenantManager tenantManager = null;
   private String mapName = "modules";
-  private String eventName = "moduleUpdate";
-  private LockedTypedMap1<ModuleDescriptor> modules
-    = new LockedTypedMap1<>(ModuleDescriptor.class);
-  private Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
-  private ModuleStore moduleStore;
+  private static final String EVENT_NAME = "moduleUpdate";
+  private final LockedTypedMap1<ModuleDescriptor> modules
+      = new LockedTypedMap1<>(ModuleDescriptor.class);
+  private final Map<String,ModuleDescriptor> enabledModulesCache = new HashMap<>();
+  private final ModuleStore moduleStore;
   private Vertx vertx;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
+  // tenants with new permission module (_tenantPermissions version 1.1 or later)
+  private Set<String> expandedPermModuleTenants = ConcurrentHashMap.newKeySet();
 
   public ModuleManager(ModuleStore moduleStore) {
     this.moduleStore = moduleStore;
@@ -63,6 +67,11 @@ public class ModuleManager {
     this.tenantManager = tenantManager;
   }
 
+  /**
+   * Initialize module manager.
+   * @param vertx Vert.x handle
+   * @param fut async result
+   */
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
     consumeModulesUpdated();
@@ -77,20 +86,18 @@ public class ModuleManager {
 
   private void consumeModulesUpdated() {
     EventBus eb = vertx.eventBus();
-    eb.consumer(eventName, res -> {
+    eb.consumer(EVENT_NAME, res -> {
       String moduleId = (String) res.body();
       enabledModulesCache.remove(moduleId);
     });
   }
 
   private void invalidateCacheEntry(String id) {
-    vertx.eventBus().publish(eventName, id);
+    vertx.eventBus().publish(EVENT_NAME, id);
   }
 
   /**
    * Load the modules from the database, if not already loaded.
-   *
-   * @param fut
    */
   private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
     if (moduleStore == null) {
@@ -121,9 +128,9 @@ public class ModuleManager {
     }
   }
 
-  public void enableAndDisableCheck(Tenant tenant,
-    ModuleDescriptor modFrom, ModuleDescriptor modTo,
-    Handler<ExtendedAsyncResult<Void>> fut) {
+  void enableAndDisableCheck(Tenant tenant,
+                             ModuleDescriptor modFrom, ModuleDescriptor modTo,
+                             Handler<ExtendedAsyncResult<Void>> fut) {
 
     getEnabledModules(tenant, gres -> {
       if (gres.failed()) {
@@ -135,6 +142,13 @@ public class ModuleManager {
       for (ModuleDescriptor md : modlist) {
         mods.put(md.getId(), md);
       }
+      if (modTo == null) {
+        String deps = DepResolution.checkAllDependencies(mods);
+        if (!deps.isEmpty()) {
+          fut.handle(new Success<>()); // failures even before we remove a module
+          return;
+        }
+      }
       if (modFrom != null) {
         mods.remove(modFrom.getId());
       }
@@ -142,42 +156,48 @@ public class ModuleManager {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
           fut.handle(new Failure<>(ErrorType.USER,
-            "Module " + modTo.getId() + " already provided"));
+              "Module " + modTo.getId() + " already provided"));
           return;
         }
         mods.put(modTo.getId(), modTo);
       }
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
-      if (conflicts.isEmpty() && deps.isEmpty()) {
-        fut.handle(new Success<>());
-      } else {
+      if (!conflicts.isEmpty() || !deps.isEmpty()) {
         fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
+        return;
       }
+      fut.handle(new Success<>());
     });
   }
 
   /**
    * Create a module.
    *
-   * @param md
-   * @param fut
+   * @param md module descriptor
+   * @param check whether to check dependencies
+   * @param preRelease whether to allow pre-release
+   * @param npmSnapshot whether to allow npm snapshot
+   * @param fut future
    */
   public void create(ModuleDescriptor md, boolean check, boolean preRelease,
-          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+                     boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
     createList(l, check, preRelease, npmSnapshot, fut);
   }
 
   /**
-   * Create a whole list of modules.
+   * Create a list of modules.
    *
-   * @param list
-   * @param fut
+   * @param list list of modules
+   * @param check whether to check dependencies
+   * @param preRelease whether to allow pre-releasee
+   * @param npmSnapshot whether to allow npm-snapshot
+   * @param fut future
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+                         boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
     getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
       if (ares.failed()) {
         fut.handle(new Failure<>(ares.getType(), ares.cause()));
@@ -187,7 +207,7 @@ public class ModuleManager {
       for (ModuleDescriptor md : ares.result()) {
         tempList.put(md.getId(), md);
       }
-      LinkedList<ModuleDescriptor> nList = new LinkedList<>();
+      LinkedList<ModuleDescriptor> newList = new LinkedList<>();
       for (ModuleDescriptor md : list) {
         final String id = md.getId();
         if (tempList.containsKey(id)) {
@@ -200,17 +220,17 @@ public class ModuleManager {
           }
         } else {
           tempList.put(id, md);
-          nList.add(md);
+          newList.add(md);
         }
       }
       if (check) {
-        String res = DepResolution.checkDependencies(tempList, nList);
+        String res = DepResolution.checkDependencies(tempList.values(), newList);
         if (!res.isEmpty()) {
           fut.handle(new Failure<>(ErrorType.USER, res));
           return;
         }
       }
-      createList2(nList, fut);
+      createList2(newList, fut);
     });
   }
 
@@ -252,57 +272,10 @@ public class ModuleManager {
   }
 
   /**
-   * Update a module.
-   *
-   * @param md
-   * @param fut
-   */
-  public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    final String id = md.getId();
-    modules.getAll(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
-        return;
-      }
-      LinkedHashMap<String, ModuleDescriptor> tempList = ares.result();
-      tempList.put(id, md);
-      String res = DepResolution.checkAllDependencies(tempList);
-      if (!res.isEmpty()) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10204", id, res)));
-        return;
-      }
-      tenantManager.getModuleUser(id, gres -> {
-        if (gres.failed()) {
-          if (gres.getType() == ErrorType.ANY) {
-            String ten = gres.cause().getMessage();
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10205", id, ten)));
-          } else { // any other error
-            fut.handle(new Failure<>(gres.getType(), gres.cause()));
-          }
-          return;
-        }
-        invalidateCacheEntry(id);
-        // all ok, we can update it
-        if (moduleStore == null) { // no db, just upd shared memory
-          modules.put(id, md, fut);
-        } else {
-          moduleStore.update(md, ures -> { // store in db first,
-            if (ures.failed()) {
-              fut.handle(new Failure<>(ures.getType(), ures.cause()));
-            } else {
-              modules.put(id, md, fut);
-            }
-          });
-        }
-      }); // getModuleUser
-    }); // get
-  }
-
-  /**
    * Delete a module.
    *
-   * @param id
-   * @param fut
+   * @param id module ID
+   * @param fut future
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
     modules.getAll(ares -> {
@@ -337,7 +310,7 @@ public class ModuleManager {
   }
 
   private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
-    LinkedHashMap<String, ModuleDescriptor> mods) {
+                                 LinkedHashMap<String, ModuleDescriptor> mods) {
 
     if (!mods.containsKey(id)) {
       fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10207")));
@@ -365,10 +338,10 @@ public class ModuleManager {
   }
 
   /**
-   * Get a module.
+   * Get a module descriptor from ID.
    *
    * @param id to get. If null, returns a null.
-   * @param fut
+   * @param fut future with resulting Module Descriptor
    */
   public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     if (id != null) {
@@ -378,7 +351,7 @@ public class ModuleManager {
     }
   }
 
-  public void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     ModuleId moduleId = new ModuleId(id);
     if (moduleId.hasSemVer()) {
       get(id, fut);
@@ -394,15 +367,13 @@ public class ModuleManager {
     }
   }
 
-  public void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-    List<String> skipModules,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+                            List<String> skipModules,
+                            Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
-      for (String id : skipModules) {
-        skipIds.add(id);
-      }
+      skipIds.addAll(skipModules);
     }
     modules.getAll(kres -> {
       if (kres.failed()) {
@@ -413,8 +384,8 @@ public class ModuleManager {
           String id = md.getId();
           ModuleId idThis = new ModuleId(id);
           if ((npmSnapshot || !idThis.hasNpmSnapshot())
-            && (preRelease || !idThis.hasPreRelease())
-            && !skipIds.contains(id)) {
+              && (preRelease || !idThis.hasPreRelease())
+              && !skipIds.contains(id)) {
             mdl.add(md);
           }
         }
@@ -430,21 +401,25 @@ public class ModuleManager {
    * @param fut callback with a list of ModuleDescriptors (may be empty list)
    */
   public void getEnabledModules(Tenant ten,
-    Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+                                Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
     CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
     for (String id : ten.getEnabled().keySet()) {
       if (enabledModulesCache.containsKey(id)) {
-        mdl.add(enabledModulesCache.get(id));
+        ModuleDescriptor md = enabledModulesCache.get(id);
+        mdl.add(md);
+        updateExpandedPermModuleTenants(ten.getId(), md);
       } else {
         Promise<ModuleDescriptor> promise = Promise.promise();
         modules.get(id, res -> {
           if (res.succeeded()) {
-            enabledModulesCache.put(id, res.result());
-            mdl.add(res.result());
+            ModuleDescriptor md = res.result();
+            enabledModulesCache.put(id, md);
+            mdl.add(md);
+            updateExpandedPermModuleTenants(ten.getId(), md);
           } else {
-            logger.warn("getEnabledModules id={} failed {}", id, res.cause());
+            logger.warn("getEnabledModules id={} failed", id, res.cause());
           }
           promise.handle(res);
         });
@@ -453,4 +428,21 @@ public class ModuleManager {
     }
     futures.all(mdl, fut);
   }
+
+  private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
+    InterfaceDescriptor id = md.getSystemInterface("_tenantPermissions");
+    if (id == null) {
+      return;
+    }
+    if (id.getVersion().equals("1.0")) {
+      expandedPermModuleTenants.remove(tenant);
+    } else {
+      expandedPermModuleTenants.add(tenant);
+    }
+  }
+
+  public Set<String> getExpandedPermModuleTenants() {
+    return expandedPermModuleTenants;
+  }
+
 }

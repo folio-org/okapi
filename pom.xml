@@ -5,7 +5,7 @@
   <groupId>org.folio.okapi</groupId>
   <artifactId>okapi</artifactId>
   <packaging>pom</packaging>
-  <version>2.38.0-SNAPSHOT</version>
+  <version>4.0.0-SNAPSHOT</version>
   <name>okapi</name>
 
   <modules>
@@ -26,8 +26,113 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <vertx-version>4.0.0-milestone4</vertx-version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- Overwrite 4.1.42.FINAL (from vertx-stack-depchain 4.0.0-milestone4) by 4.1.51.Final.
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16869/
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>4.1.51.Final</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- Override 2.0.26.Final (from vertx-stack-depchain 4.0.0-milestone4) by 2.0.31.Final =
+           matching version for netty 4.1.51.FINAL.
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-tcnative-boringssl-static</artifactId>
+        <version>2.0.31.Final</version>
+      </dependency>
+
+      <!-- Override 2.9.9 (from vertx-stack-depchain 4.0.0-milestone4) by 2.10.2 =
+	   the same version RMB uses for Goldenrod.
+           Fixes https://www.cvedetails.com/cve/CVE-2019-14540/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16335/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16942/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-16943/
+           Fixes https://www.cvedetails.com/cve/CVE-2019-17267/
+           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
+      -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.10.2</version>
+        <type>pom</type>
+      </dependency>
+
+      <dependency>
+        <groupId>io.vertx</groupId>
+        <artifactId>vertx-stack-depchain</artifactId>
+        <version>4.0.0-milestone4</version> <!-- also update depending versions below! -->
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- START: versions that depend on the vertx-stack-depchain version -->
+      <dependency>
+        <groupId>io.dropwizard.metrics</groupId>
+        <artifactId>metrics-graphite</artifactId>
+        <version>4.0.2</version>  <!-- https://github.com/vert-x3/vertx-dropwizard-metrics/blob/master/pom.xml -->
+      </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast</artifactId>
+        <version>3.12.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+      </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast-aws</artifactId>
+        <version>2.4</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
+      </dependency>
+      <dependency>
+        <groupId>com.hazelcast</groupId>
+        <artifactId>hazelcast-kubernetes</artifactId>
+        <version>1.5.1</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+      </dependency>
+      <!-- END: versions that depend on the vertx-stack-depchain version -->
+
+      <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-bom</artifactId>
+        <version>2.13.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>junit</groupId>
+        <artifactId>junit</artifactId>
+        <version>4.13</version>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>3.16.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>5.6.2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>1.14.3</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <extensions>
@@ -112,6 +217,37 @@
           <localCheckout>true</localCheckout>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <version>3.1.1</version>
+        <configuration>
+          <configLocation>checkstyle/folio_checks.xml</configLocation>
+          <encoding>UTF-8</encoding>
+          <violationSeverity>warning</violationSeverity>
+          <consoleOutput>false</consoleOutput>
+          <failsOnError>true</failsOnError>
+          <failOnViolation>true</failOnViolation>
+          <linkXRef>false</linkXRef>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+          </sourceDirectories>
+        </configuration>
+        <executions>
+          <execution>
+            <id>check</id>
+            <phase>compile</phase>
+            <goals>
+              <goal>check</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.2</version>
+      </plugin>
 
     </plugins>
   </build>
@@ -135,47 +271,6 @@
       <url>http://maven.indexdata.com/</url>
     </repository>
   </repositories>
-
-  <dependencyManagement>
-    <dependencies>
-      <!-- Jackson -->
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-core</artifactId>
-        <version>2.10.1</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>2.10.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-api</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-core</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-1.2-api</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.logging.log4j</groupId>
-        <artifactId>log4j-slf4j-impl</artifactId>
-        <version>2.12.1</version>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.12</version>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
 
   <distributionManagement>
     <repository>

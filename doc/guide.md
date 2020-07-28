@@ -1940,7 +1940,7 @@ a given interface. The interface specified does not have to be
 provided by another module. However, if the interface is provided
 by another module, it must be compatible (major, minor).
 
-The optional property has same structure as the requires property
+The `optional` property has same structure as the `requires` property
 in the module descriptor.
 
 ### Multiple interfaces
@@ -2568,8 +2568,8 @@ For Okapi version 1.11.0 and later the modules may be referred to
 without version. In the example above, we could have used
 `mod-users-bl`.  In this case, the latest available module will be
 picked for `action` = `enable` and the installed module will be picked
-for `action` = `disable`.  Okapi will always respond with the complete -
-resulting - module IDs.
+for `action` = `disable`.  Okapi will always respond with the complete,
+resulting, module IDs.
 
 If a module is upgraded from an older version, the `from` property
 contains the old module ID.
@@ -2587,6 +2587,15 @@ pairs separated by comma with key and value separated by equal sign
 (`=`). It is a single argument as far as URI is concerned so be sure
 to encode comma as `%2C` and equal as `%3D`.  See [Tenant
 Interface](#tenant-interface) for more information.
+
+For all calls that enables/disables modules for a tenant, it is possible
+to completely skip invoking module via HTTP by using query parameter
+`invoke` set to `false`. This facility was added in Okapi 2.40.0.
+Use with great care and may be used to disable modules if they are no
+longer running and/or the modules are known to be already "prepared"
+for use. When `invoke` is set to false, `tenantParameters` and `purge`
+query parameters are ignored as they only takes effect when Okapi
+invokes a module.
 
 ### Upgrading modules per tenant
 
@@ -2669,8 +2678,15 @@ Defaults to `localhost`.
 * `postgres_host` : PostgreSQL host. Defaults to `localhost`.
 * `postgres_port` : PostgreSQL port. Defaults to 5432.
 * `postgres_username` : PostgreSQL username. Defaults to `okapi`.
+  (Don't use deprecated `postgres_user` that is implemented for `-D` only.)
 * `postgres_password`: PostgreSQL password. Defaults to `okapi25`.
 * `postgres_database`: PostgreSQL database. Defaults to `okapi`.
+* `postgres_server_pem`: SSL/TLS certificate(s) in PEM format to
+  validate the PostgreSQL server certificate, this can be the server
+  certificate, the root CA certificate, or the chain of the intermediate
+  CA and the CA certificate. Defaults to none allowing unencrypted
+  connection only. If set requires a TLSv1.3 connection and a valid
+  server certificate.
 * `postgres_db_init`: For a value of `1`, Okapi will drop existing
 PostgreSQL database and prepare a new one. A value of `0` (null) will
 leave it unmodified (default).
@@ -2785,9 +2801,9 @@ HTTP requests).  The port is passed as `%p` in the value of properties
 `exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
 exposed port (`EXPOSE`) to the dynamically assigned port.
 
-When starting Docker modules can be accessed from Okapi at the host
+When starting, Docker modules can be accessed from Okapi at the host
 given by setting `containerHost` - defaults to `localhost`.
-The value of `containerHost` can be referred to as `%c` in in
+The value of `containerHost` can be referred to as `%c` in
 `dockerArgs` of the deployment.
 
 It is also possible to refer to an already-launched process (maybe
@@ -2800,10 +2816,10 @@ URL where the module is running.
 Okapi uses the [Docker Engine API](https://docs.docker.com/engine/api/)
 for managing modules. Okapi can be configured to use the local socket
 (unix://[/path to socket]) or the HTTP TCP listener (tcp://[host]:[port][path]).
-Note that unix domain socket option is only avaiable on Linux platforms
+Note that unix domain socket option is only available on Linux platforms
 and Okapi 2.36 and later.
 
-Note that when the unix domain socket option is used the user-ID of
+Note that when the unix domain socket option is used, the user-ID of
 the Okapi process must be part of the `docker` group.
 
 For earlier versions of Okapi, Docker must be listening on a TCP port in
@@ -2890,7 +2906,8 @@ The routing entry must also include two properties, `unit` and
 `delay`, where `unit` is one of `millisecond`, `second`, `minute`,
 `hour`, `day`.
 
-The snippet below is an example of a module that gets `POST /testb` every 5 minutes.
+The snippet below is an example of a module that gets `POST /testb/1`
+every 5 minutes and `POST /testb/2` every half hour.
 
 ```
 {
@@ -2905,9 +2922,14 @@ The snippet below is an example of a module that gets `POST /testb` every 5 minu
       "handlers": [
         {
           "methods": [ "POST" ],
-          "pathPattern": "/testb",
+          "pathPattern": "/testb/1",
           "unit": "minute",
           "delay": "5"
+        }, {
+          "methods": [ "POST" ],
+          "pathPattern": "/testb/2",
+          "unit": "minute",
+          "delay": "30"
         }
       ]
     }
@@ -2981,7 +3003,7 @@ during the operation.
       -HContent-Type:application/json "-HAccept:*/*" \
       http://localhost:8081/_/tenant
 
-Add 'loadSample=true` to parameters load sample data as well.
+Add 'loadSample=true` to parameters, to load sample data as well.
 
 #### Upgrading
 
@@ -3031,7 +3053,7 @@ that are passed to the module when enabled or upgraded. Passing those
 are only performed when tenantParameters is specified for install and
 when the tenant interface is version 1.2.
 
-In Folio two such parameters are widely recognized:
+In FOLIO two such parameters are widely recognized:
 
  * `loadReference` with value `true` loads reference data.
  * `loadSample` with value `true` loads sample data.

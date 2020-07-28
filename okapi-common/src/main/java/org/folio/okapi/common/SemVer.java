@@ -18,7 +18,7 @@ public class SemVer implements Comparable<SemVer> {
   private final String metadata;
 
   /**
-   * Construct semantic version from string
+   * Construct semantic version from string.
    * May throw IllegalArgumentException if string supplied can not be parsed
    * @param v semantic version
    */
@@ -66,7 +66,7 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Compare two version components
+   * Compare two version components.
    * If both operands are numeric, compare numerically
    * If both operands are non-numeric, compare lexicographically
    * If mixed, non-numeric operand compares over numeric operand
@@ -116,7 +116,7 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Whether the version appears to be an NPM snapshot (at least in FOLIO)
+   * Test whether the version appears to be an NPM snapshot (at least in FOLIO).
    * @return true if it appears to be an NPM snapshot; false otherwise
    */
   public boolean hasNpmSnapshot() {
@@ -124,7 +124,7 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Whether version has pre-release
+   * Test whether version has pre-release.
    * @return true if version has pre-release; false otherwise
    */
   public boolean hasPreRelease() {
@@ -132,7 +132,7 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Whether this version has prefix of other
+   * Test whether this version has prefix of other.
    * @param other the prefix
    * @return true if this version has prefix of other; false otherwise
    */
@@ -179,11 +179,11 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Compares two versions
-   * @param other
+   * Compares two semantic versions.
+   * @param other version to compare against this
    * @return -4 is this is major less than other; -3 if this is minor less than
-   * other; -2 if this is patch less than other; -1 for pre-release/build less;
-   * 0 if version as equal; 1, 2, 3, 4, as the opposite negatives
+   *     other; -2 if this is patch less than other; -1 for pre-release/build less;
+   *     0 if version as equal; 1, 2, 3, 4, as the opposite negatives
    */
   @Override
   public int compareTo(SemVer other) {
@@ -247,8 +247,8 @@ public class SemVer implements Comparable<SemVer> {
   }
 
   /**
-   * Whether this version is equal to other
-   * @param that
+   * Test whether this version is equal to other.
+   * @param that Test this against that
    * @return true if equal; false otherwise
    */
   @Override

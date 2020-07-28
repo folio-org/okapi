@@ -13,32 +13,37 @@ public class GraphDot {
     throw new IllegalAccessError("GraphDot");
   }
 
-  public static String report(Map<String, ModuleDescriptor> modlist) {
-    List<ModuleDescriptor> list = new LinkedList<>();
-    list.addAll(modlist.values());
+  /**
+   * Produce module graph in DOT format with dependencies.
+   * @param modList list of modules in graph
+   * @return graph in DOT format
+   */
+  public static String report(Map<String, ModuleDescriptor> modList) {
+    List<ModuleDescriptor> list = new LinkedList<>(modList.values());
     return report(list);
   }
 
-  private static String encodeDotId(String s) {
-    return s.replace("-", "__").replace(".", "_").replace(' ', '_');
-  }
-
-  public static String report(List<ModuleDescriptor> modlist) {
+  /**
+   * Produce module graph in DOT format with dependencies.
+   * @param modList list of modules in graph
+   * @return graph in DOT format
+   */
+  public static String report(List<ModuleDescriptor> modList) {
     StringBuilder doc = new StringBuilder();
-
     doc.append("digraph okapi {\n");
-    for (ModuleDescriptor md : modlist) {
+    for (ModuleDescriptor md : modList) {
       doc.append("  " + encodeDotId(md.getId()) + " [label=\"" + md.getId() + "\"];\n");
     }
     Set<String> pseudoNodes = new TreeSet<>();
-    for (ModuleDescriptor tmd : modlist) {
+    for (ModuleDescriptor tmd : modList) {
       for (InterfaceDescriptor req : tmd.getRequiresList()) {
         int number = 0;
-        for (ModuleDescriptor smd : modlist) {
+        for (ModuleDescriptor smd : modList) {
           for (InterfaceDescriptor pi : smd.getProvidesList()) {
-            if (pi.isRegularHandler() &&
-              req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
-              doc.append("  " + encodeDotId(tmd.getId()) + " -> " + encodeDotId(smd.getId()) + ";\n");
+            if (pi.isRegularHandler()
+                && req.getId().equals(pi.getId()) && pi.isCompatible(req)) {
+              doc.append("  " + encodeDotId(tmd.getId())
+                  + " -> " + encodeDotId(smd.getId()) + ";\n");
               number++;
             }
           }
@@ -55,5 +60,9 @@ public class GraphDot {
     }
     doc.append("}\n");
     return doc.toString();
+  }
+
+  private static String encodeDotId(String s) {
+    return s.replace("-", "__").replace(".", "_").replace(' ', '_');
   }
 }

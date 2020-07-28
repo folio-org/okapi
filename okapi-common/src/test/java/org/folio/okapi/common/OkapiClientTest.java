@@ -50,7 +50,7 @@ public class OkapiClientTest {
     final int status = e == null ? 200 : Integer.parseInt(e);
 
     HttpResponse.responseText(ctx, status);
-    OkapiToken token = new OkapiToken(ctx);
+    OkapiToken token = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
 
     ctx.request().handler(x -> msg.append(x));
     ctx.request().endHandler(x -> {
@@ -172,8 +172,7 @@ public class OkapiClientTest {
     byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
     String e = new String(encodedBytes);
     String tokenStr = "method." + e + ".trail";
-    OkapiToken t = new OkapiToken();
-    t.setToken(tokenStr);
+    OkapiToken t = new OkapiToken(tokenStr);
     assertEquals("test-lib", t.getTenant());
 
     cli.setOkapiToken(tokenStr);

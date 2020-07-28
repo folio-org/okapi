@@ -9,7 +9,8 @@ public class Config {
   }
 
   /**
-   * Inspect Check string property first in system; if not found OR empty,
+   * Returns string config info from properties and JSON config.
+   * Check string property first in system; if not found OR empty,
    * inspect JSON configuration
    * @param key property key (JSON key)
    * @param def default value (may be null)
@@ -26,7 +27,8 @@ public class Config {
   }
 
   /**
-   * Inspect Check boolean property first in system; if not found OR empty,
+   * Returns boolean config info from properties and JSON config.
+   * Check boolean property first in system; if not found OR empty,
    * inspect JSON configuration
    * @param key property key (JSON key)
    * @param def default value (may be null)

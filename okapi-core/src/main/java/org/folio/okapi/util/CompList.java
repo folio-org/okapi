@@ -11,11 +11,16 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
 
+
 public class CompList<T> {
 
-  List<Future> futures = new LinkedList<>();
-  ErrorType errorType;
+  final List<Future> futures = new LinkedList<>();
+  final ErrorType errorType;
 
+  /**
+   * Specify error type to use - in case of failure.
+   * @param type error type
+   */
   public CompList(ErrorType type) {
     errorType = type;
   }
@@ -24,8 +29,13 @@ public class CompList<T> {
     futures.add(p.future());
   }
 
+  /**
+   * Composite result with success only if all added promises succeed.
+   * @param l value to return upon success
+   * @param fut future
+   */
   public void all(T l, Handler<ExtendedAsyncResult<T>> fut) {
-    CompositeFuture.all(futures).setHandler(res -> {
+    CompositeFuture.all(futures).onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(errorType, res.cause()));
       } else {
@@ -34,8 +44,12 @@ public class CompList<T> {
     });
   }
 
+  /**
+   * Composite result with success only if all added promises succeed.
+   * @param fut future
+   */
   public void all(Handler<ExtendedAsyncResult<Void>> fut) {
-    CompositeFuture.all(futures).setHandler(res -> {
+    CompositeFuture.all(futures).onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(errorType, res.cause()));
       } else {
@@ -44,6 +58,10 @@ public class CompList<T> {
     });
   }
 
+  /**
+   * Sequential result, stopping if any promise fails.
+   * @param fut future
+   */
   public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
     Future<Void> future = Future.succeededFuture();
     for (Future f : futures) {
@@ -55,7 +73,7 @@ public class CompList<T> {
         }
       });
     }
-    future.setHandler(res -> {
+    future.onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(errorType, res.cause()));
       } else {

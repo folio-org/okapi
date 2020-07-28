@@ -225,14 +225,16 @@ public class EnvTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb\"" + LS
+      + "      \"pathPattern\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"env\" : [ {" + LS

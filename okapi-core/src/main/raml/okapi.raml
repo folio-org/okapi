@@ -25,10 +25,11 @@ types:
   PullDescriptor: !include PullDescriptor.json
 
 /_/deployment/modules:
-  description: Deployment service. This is responsible for starting and
-    stopping modules.
+  description: |
+    Deployment service. This is responsible for starting and stopping modules.
   post:
-    description: Deploy (launch process, start a container, etc) instance of a
+    description: |
+      Deploy (launch process, start a container, etc) instance of a
       particular service, according to the deployment descriptor.
     body:
       application/json:
@@ -66,7 +67,6 @@ types:
         headers:
           X-Okapi-Trace:
             description: Okapi trace and timing
-
   /{instance_id}:
     get:
       description: Retrieve deployment descriptor for a particular instance
@@ -91,8 +91,9 @@ types:
               description: Okapi trace and timing
 
 /_/discovery/modules:
-  description: Discovery service. This is responsible for monitoring
-    all instances (deployed) on, possibly many, deployment nodes.
+  description: |
+    Discovery service. This is responsible for monitoring all instances
+    (deployed) on, possibly many, deployment nodes.
   post:
     description: Register instance under a specified service id
     body:
@@ -350,8 +351,9 @@ types:
         type: boolean
         required: false
       npmSnapshot:
-        description: Whether to allow NPM module snapshots in dependency check
-           (default:true).
+        description: |
+          Whether to allow NPM module snapshots in dependency check
+          default: true
         type: boolean
         required: false
     body:
@@ -453,23 +455,6 @@ types:
           body:
             application/json:
               type: ModuleDescriptor
-    put:
-      description: Update descriptor of a particular module
-      body:
-        application/json:
-          type: ModuleDescriptor
-      responses:
-        200:
-          headers:
-            X-Okapi-Trace:
-              description: Okapi trace and timing
-          body:
-            application/json:
-              type: ModuleDescriptor
-        400:
-          description: Bad Request
-          body:
-            text/plain:
     delete:
       description: Remove module descriptor for a particular module, module
         will no longer be selectable by tenants
@@ -664,6 +649,41 @@ types:
             description: Server Error
             body:
               text/plain:
+      delete:
+        description: Disable modules for tenant
+        queryParameters:
+          invoke:
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
+            type: boolean
+            required: false
+          purge:
+            description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          tenantParameters:
+            description: Parameters for Tenant init
+            type: string
+            required: false
+        responses:
+          204:
+            description: OK
+            headers:
+              X-Okapi-Trace:
+                description: Okapi trace and timing
+          400:
+            description: Bad Request
+            body:
+              text/plain:
+          404:
+            description: Not Found
+            body:
+              text/plain:
+          500:
+            description: Server Error
+            body:
+              text/plain:
       /{module_id}:
         description: CRUD service for getting module and upgrading module
           for a tenant.
@@ -686,6 +706,21 @@ types:
             disable current module with new module ID in body and existing ID
             in path.
             This call will eventually be replaced by the 'install' service.
+          queryParameters:
+            invoke:
+              description: |
+                Whether to invoke for tenant init/permissions/purge
+                (default: true).
+              type: boolean
+              required: false
+            purge:
+              description: Disabled modules will also be purged.
+              type: boolean
+              required: false
+            tenantParameters:
+              description: Parameters for Tenant init
+              type: string
+              required: false
           body:
             application/json:
               type: TenantModuleDescriptor
@@ -715,6 +750,21 @@ types:
         delete:
           description: Disable a module for a tenant.
             This call will eventually be replaced by the 'install' service.
+          queryParameters:
+            invoke:
+              description: |
+                Whether to invoke for tenant init/permissions/purge
+                (default: true).
+              type: boolean
+              required: false
+            purge:
+              description: Disabled modules will also be purged.
+              type: boolean
+              required: false
+            tenantParameters:
+              description: Parameters for Tenant init
+              type: string
+              required: false
           responses:
             204:
               description: Gone
@@ -744,8 +794,15 @@ types:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
-          simulate:
-            description: Whether the installation is simulated
+          invoke:
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
+            type: boolean
+            required: false
+          npmSnapshot:
+            description: |
+              Whether to include NPM module snapshots (default:true).
             type: boolean
             required: false
           preRelease:
@@ -753,13 +810,12 @@ types:
               installation.
             type: boolean
             required: false
-          npmSnapshot:
-            description: Whether to include NPM module snapshots
-              (default:true).
-            type: boolean
-            required: false
           purge:
             description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          simulate:
+            description: Whether the installation is simulated
             type: boolean
             required: false
           tenantParameters:
@@ -800,17 +856,23 @@ types:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
             required: false
-          simulate:
-            description: Whether the upgrade is simulated
+          invoke:
+            description: |
+              Whether to invoke for tenant init/permissions/purge
+              (default: true).
             type: boolean
             required: false
           preRelease:
-            description: Whether pre-releases should be considered for
-              installation.
+            description: |
+              Whether pre-releases should be considered for installation.
             type: boolean
             required: false
           purge:
             description: Disabled modules will also be purged.
+            type: boolean
+            required: false
+          simulate:
+            description: Whether the upgrade is simulated
             type: boolean
             required: false
           tenantParameters:
@@ -1050,7 +1112,8 @@ types:
           text/plain:
 
 /_/invoke/tenant/{id}:
-  description: Call module with Tenant ID in path. This
+  description: |
+    Call module with Tenant ID in path. This
     service offers support for systems that need to "call-back" Okapi and
     don't allow setting the Tenant ID in the HTTP header.
   get:

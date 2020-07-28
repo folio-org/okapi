@@ -10,15 +10,14 @@ class MainCluster {
 
   public static void main(String[] args) {
     System.setProperty("vertx.logger-delegate-factory-class-name",
-     "io.vertx.core.logging.Log4jLogDelegateFactory");
+        "io.vertx.core.logging.Log4jLogDelegateFactory");
     Logger logger = OkapiLogger.get();
     MainDeploy d = new MainDeploy();
     d.init(args, res -> {
       if (res.failed()) {
-        logger.error(res.cause().getMessage());
+        logger.error(res.cause().getMessage(), res.cause());
         System.exit(1);
       }
     });
   }
-
 }

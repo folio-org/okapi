@@ -1,20 +1,26 @@
 package org.folio.okapi;
 
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
 import guru.nidi.ramltester.RamlDefinition;
 import guru.nidi.ramltester.RamlLoaders;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
-import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.streams.Pump;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.folio.okapi.common.OkapiLogger;
@@ -25,14 +31,16 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Arrays;
+import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.XOkapiHeaders;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -44,6 +52,7 @@ public class ProxyTest {
   private Vertx vertx;
   private HttpClient httpClient;
   private static final String LS = System.lineSeparator();
+  private static final String CORS_TEST_HEADER = "CORS_TEST_HEADER";
   private final int portTimer = 9235;
   private final int portPre = 9236;
   private final int portPost = 9237;
@@ -55,6 +64,10 @@ public class ProxyTest {
   private static RamlDefinition api;
   private int timerDelaySum = 0;
   private int timerTenantInitStatus = 200;
+  private int timerTenantPermissionsStatus = 200;
+  private JsonObject timerPermissions = new JsonObject();
+  private JsonArray edgePermissionsAtInit = null;
+  private JsonObject timerTenantData;
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -107,13 +120,16 @@ public class ProxyTest {
 
   private void myEdgeHandle(RoutingContext ctx) {
     logger.info("myEdgeHandle");
+    String p = ctx.request().path();
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
+    } else if (HttpMethod.POST.equals(ctx.request().method()) && p.equals("/_/tenant")) {
+      edgePermissionsAtInit = timerPermissions.getJsonArray("edge-module-1.0.0");
+      ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 200).end());
     } else if (HttpMethod.GET.equals(ctx.request().method())) {
       Buffer buf = Buffer.buffer();
       ctx.request().handler(buf::appendBuffer);
       ctx.request().endHandler(res -> {
-        String p = ctx.request().path();
         if (!p.startsWith("/edge/")) {
           ctx.response().setStatusCode(404);
           ctx.response().end("Edge module reports not found");
@@ -121,10 +137,10 @@ public class ProxyTest {
         }
         String tenant = p.substring(6);
         final String docLogin = "{" + LS
-          + "  \"tenant\" : \"" + tenant + "\"," + LS
-          + "  \"username\" : \"peter\"," + LS
-          + "  \"password\" : \"peter-password\"" + LS
-          + "}";
+            + "  \"tenant\" : \"" + tenant + "\"," + LS
+            + "  \"username\" : \"peter\"," + LS
+            + "  \"password\" : \"peter-password\"" + LS
+            + "}";
         HttpClientRequest post = HttpClientLegacy.post(httpClient, port, "localhost", "/authn/login", res1 -> {
           Buffer loginBuf = Buffer.buffer();
           res1.handler(loginBuf::appendBuffer);
@@ -157,21 +173,47 @@ public class ProxyTest {
     if (HttpMethod.DELETE.equals(ctx.request().method())) {
       ctx.request().endHandler(x -> HttpResponse.responseText(ctx, 204).end());
     } else if (HttpMethod.POST.equals(ctx.request().method())) {
+      if (p.startsWith("/echo")) {
+        ctx.response().setStatusCode(200);
+        ctx.response().setChunked(true);
+        Pump pump = Pump.pump(ctx.request(), ctx.response());
+        pump.start();
+        ctx.request().endHandler(e -> ctx.response().end());
+        ctx.request().pause();
+        vertx.setTimer(100, x -> ctx.request().resume()); // pause to provoke writeQueueFull()
+        return;
+      }
       Buffer buf = Buffer.buffer();
       ctx.request().handler(buf::appendBuffer);
       ctx.request().endHandler(res -> {
         try {
           if (p.startsWith("/_/tenant")) {
+            timerTenantData = new JsonObject(buf);
             ctx.response().setStatusCode(timerTenantInitStatus);
             ctx.response().end("timer response");
-            return;
+          } else if (p.startsWith("/permissionscall")) {
+            JsonObject permObject = new JsonObject(buf);
+            if (timerTenantPermissionsStatus == 200) {
+              timerPermissions.put(permObject.getString("moduleId"), permObject.getJsonArray("perms"));
+            }
+            ctx.response().setStatusCode(timerTenantPermissionsStatus);
+            ctx.response().end("timer permissions response");
+          } else if (p.startsWith("/timercall/")) {
+            long delay = Long.parseLong(p.substring(11)); // assume /timercall/[0-9]+
+            timerDelaySum += delay;
+            vertx.setTimer(delay, x -> {
+              ctx.response().setStatusCode(200);
+              ctx.response().end();
+            });
+          } else if (p.startsWith("/regularcall")) {
+            ctx.response().end(extractSubFromToken(ctx));
+          } else if (p.startsWith("/corscall")) {
+            ctx.response().putHeader(CORS_TEST_HEADER, ctx.request().query());
+            ctx.response().end("Response from CORS test");
+          } else {
+            ctx.response().setStatusCode(404);
+            ctx.response().end(p);
           }
-          long delay = Long.parseLong(p.substring(1)); // assume /[0-9]+
-          timerDelaySum += delay;
-          vertx.setTimer(delay, x -> {
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
-          });
         } catch (Exception ex) {
           ctx.response().setStatusCode(400);
           ctx.response().end(ex.getMessage());
@@ -183,87 +225,84 @@ public class ProxyTest {
     }
   }
 
-  private void setupPreServer(TestContext context, Async async) {
+  Future<Void> startPreServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myPreHandle);
 
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portPre,
-        result -> setupPostServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portPre, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupPostServer(TestContext context, Async async) {
+  Future<Void> startPostServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myPostHandle);
 
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portPost,
-        result -> setupTimerServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portPost, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupTimerServer(TestContext context, Async async) {
+  Future<Void> startTimerServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myTimerHandle);
 
+    Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portTimer,
-        result -> setupEdgeServer(context, async)
-      );
+        .requestHandler(router)
+        .listen(portTimer, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
-  private void setupEdgeServer(TestContext context, Async async) {
+  Future<Void> startEdgeServer() {
     Router router = Router.router(vertx);
 
     router.routeWithRegex("/.*").handler(this::myEdgeHandle);
 
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
+    Promise<Void> promise = Promise.promise();
     vertx.createHttpServer(so)
-      .requestHandler(router)
-      .listen(
-        portEdge,
-        result -> {
-          if (result.failed()) {
-            context.fail(result.cause());
-          }
-          async.complete();
-        }
-      );
+        .requestHandler(router)
+        .listen(portEdge, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
+  }
+
+  Future<Void> startOkapi() {
+    DeploymentOptions opt = new DeploymentOptions()
+        .setConfig(new JsonObject()
+            .put("loglevel", "info")
+            .put("port", Integer.toString(port))
+            .put("httpCache", true));
+    Promise<Void> promise = Promise.promise();
+    vertx.deployVerticle(MainVerticle.class.getName(), opt, x -> promise.handle(x.mapEmpty()));
+    return promise.future();
   }
 
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
     httpClient = vertx.createHttpClient();
-    Async async = context.async();
 
     timerTenantInitStatus = 200;
     RestAssured.port = port;
-    DeploymentOptions opt = new DeploymentOptions()
-      .setConfig(new JsonObject()
-        .put("loglevel", "info")
-        .put("port", Integer.toString(port))
-        .put("httpCache", true));
-    vertx.deployVerticle(MainVerticle.class.getName(), opt, res -> {
-      if (res.failed()) {
-        context.fail(res.cause());
-      } else {
-        this.setupPreServer(context, async);
-      }
-    });
+
+    Future<Void> future = Future.succeededFuture()
+        .compose(x -> startOkapi())
+        .compose(x -> startEdgeServer())
+        .compose(x -> startTimerServer())
+        .compose(x -> startPreServer())
+        .compose(x -> startPostServer());
+    future.onComplete(context.asyncAssertSuccess());
   }
 
   private void td(TestContext context, Async async) {
@@ -289,25 +328,130 @@ public class ProxyTest {
   public void testBadToken(TestContext context) {
 
     given()
-      .header("X-Okapi-Token", "a")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(containsString("Invalid Token: "));
+        .header("X-Okapi-Token", "a")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(containsString("Invalid Token: "));
 
     given()
-      .header("X-Okapi-Token", "a.b.c")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
+        .header("X-Okapi-Token", "a.b.c")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(equalTo("Invalid Token: Input byte[] should at least have 2 bytes for base64 bytes"));
 
     given()
-      .header("X-Okapi-Token", "a.ewo=.d")
-      .header("Content-Type", "application/json")
-      .get("/_/proxy/modules")
-      .then().statusCode(400)
-      .body(containsString("Unexpected end-of-input"));
+        .header("X-Okapi-Token", "a.ewo=.d")
+        .header("Content-Type", "application/json")
+        .get("/_/proxy/modules")
+        .then().statusCode(400)
+        .body(containsString("Unexpected end-of-input"));
+  }
+
+  @Test
+  public void testUpload(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+    final String tenant = "roskilde";
+
+    setupBasicTenant(tenant);
+
+    final String docTimer_1_0_0 = "{" + LS
+        + "  \"id\" : \"timer-module-1.0.0\"," + LS
+        + "  \"name\" : \"timer module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"echo\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/echo\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc1 = "{" + LS
+        + "  \"instId\" : \"localhost-1\"," + LS
+        + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc1).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    final String docRequestPre = "{" + LS
+        + "  \"id\" : \"request-pre-1.0.0\"," + LS
+        + "  \"name\" : \"request-pre\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/echo\"," + LS
+        + "    \"phase\" : \"pre\"," + LS
+        + "    \"type\" : \"request-log\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
+    given()
+        .header("Content-Type", "application/json")
+        .body(docRequestPre).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc2 = "{" + LS
+        + "  \"instId\" : \"localhost-2\"," + LS
+        + "  \"srvcId\" : \"request-pre-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    given().header("Content-Type", "application/json")
+        .body(nodeDoc2).post("/_/discovery/modules")
+        .then().statusCode(201);
+
+    given()
+        .header("Content-Type", "application/json")
+        .body(new JsonArray().add(new JsonObject().put("id", "timer-module-1.0.0").put("action", "enable"))
+            .add(new JsonObject().put("id", "request-pre-1.0.0").put("action", "enable")).encode())
+        .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails();
+
+    upload(context, tenant, "/echo", 0);
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/timer-module-1.0.0").then().statusCode(204);
+    given().delete("/_/proxy/modules/request-pre-1.0.0").then().statusCode(204);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  private void upload(TestContext context, String tenant, String uri, int offset) {
+    Async async = context.async();
+    int bufSz = 10000;
+    long bufCnt = 100000;
+    long total = bufSz * bufCnt;
+    logger.info("Sending {} GB", total / 1e9);
+    HttpClient client = vertx.createHttpClient();
+    HttpClientRequest request = HttpClientLegacy.post(client, port, "localhost", uri, res -> {
+      context.assertEquals(200, res.statusCode());
+      AtomicLong cnt = new AtomicLong();
+      res.handler(h -> cnt.addAndGet(h.length()));
+      res.exceptionHandler(ex -> {context.fail(ex.getCause()); async.complete(); });
+      res.endHandler(end -> {context.assertEquals(total + offset, cnt.get()); async.complete();});
+    });
+    request.putHeader("X-Okapi-Tenant", tenant);
+    request.putHeader("Content-Type", "text/plain");
+    request.putHeader("Accept", "text/plain");
+    request.setChunked(true);
+    Buffer buffer = Buffer.buffer();
+    for (int j = 0; j < bufSz; j++) {
+      buffer.appendString("X");
+    }
+    endRequest(request, buffer, 0, bufCnt);
+    async.await(30000);
   }
 
   @Test
@@ -343,24 +487,28 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myxfirst\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/client_id\"" + LS
+      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/testb/client_id\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"mysecond\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -426,19 +574,31 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     r = c.given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .header("X-all-headers", "B")
-      .get("/testb/client_id%2Fx")
-      .then().statusCode(200).log().ifValidationFails()
-      .extract().response();
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("X-all-headers", "B")
+        .get("/testb/client_id%2Fx")
+        .then().statusCode(200).log().ifValidationFails()
+        .extract().response();
     Assert.assertTrue(r.body().asString().contains("X-Okapi-Match-Path-Pattern:/testb/{id}"));
+
+    upload(context, okapiTenant, "/testb/client_id", 6);
 
     c = api.createRestAssured3();
     c.given()
-      .header("X-Okapi-Tenant", okapiTenant)
-      .get("/testb/client_id/x")
-      .then().statusCode(404).log().ifValidationFails();
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/testb/client_id/x")
+        .then().statusCode(404).log().ifValidationFails();
 
+    given().delete("/_/proxy/tenants/" + okapiTenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+  }
+
+  private void endRequest(HttpClientRequest req, Buffer buffer, long i, long cnt) {
+    if (i == cnt) {
+      req.end();
+    } else {
+      req.write(buffer, res -> endRequest(req, buffer, i + 1, cnt));
+    }
   }
 
   @Test
@@ -476,14 +636,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -509,17 +671,20 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\"]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -717,7 +882,8 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -725,6 +891,7 @@ public class ProxyTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -748,25 +915,10 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
     final String locationAuthModule = r.getHeader("Location");
 
-    c = api.createRestAssured3();
-    c.given()
+    // PUT not defined for RAML
+    given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule).put(locationAuthModule + "misMatch").then().statusCode(400);
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    c = api.createRestAssured3();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(400);
-
-    c = api.createRestAssured3();
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthModule).put(locationAuthModule).then().statusCode(200)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+      .body("{ \"bad Json\" ").put(locationAuthModule).then().statusCode(404);
 
     final String docAuthModule2 = "{" + LS
       + "  \"id\" : \"auth2-1\"," + LS
@@ -778,7 +930,8 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -786,18 +939,18 @@ public class ProxyTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"level\" : \"10\"," + LS
       + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
       + "}";
 
-    final String locationAuthModule2 = locationAuthModule.replace("auth-1", "auth2-1");
     c = api.createRestAssured3();
-    c.given()
+    final String locationAuthModule2 = c.given()
       .header("Content-Type", "application/json")
-      .body(docAuthModule2).put(locationAuthModule2)
-      .then().statusCode(200)
-      .extract().response();
+      .body(docAuthModule2).post("/_/proxy/modules")
+      .then().statusCode(201)
+      .extract().header("Location");
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
@@ -910,23 +1063,6 @@ public class ProxyTest {
 
     // Try to delete the auth module that our sample depends on
     c.given().delete(locationAuthModule).then().statusCode(400);
-
-    // Try to update the auth module to a lower version, would break
-    // sample dependency
-    final String docAuthLowerVersion = docAuthModule.replace("1.2", "1.0");
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthLowerVersion)
-      .put(locationAuthModule)
-      .then().statusCode(400);
-
-    // Update the auth module to a bit higher version
-    final String docAuthhigherVersion = docAuthModule.replace("1.2", "1.3");
-    c.given()
-      .header("Content-Type", "application/json")
-      .body(docAuthhigherVersion)
-      .put(locationAuthModule)
-      .then().statusCode(200);
 
     // Create our tenant
     final String docTenantRoskilde = "{" + LS
@@ -1234,11 +1370,29 @@ public class ProxyTest {
     // module. This is all right, since we explicitly ask sample to pass its
     // request headers into its response. See Okapi-266.
 
+    // Check that we accept Authorization without lead  "Bearer" <token>
+    // instead of X-Okapi-Token, and that we can extract the tenant from it.
+    given()
+      .header("X-all-headers", "H") // ask sample to report all headers
+      .header("Authorization", okapiToken)
+      .get("/testb")
+      .then().log().ifValidationFails()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .statusCode(200);
+
     // Check that we fail on conflicting X-Okapi-Token and Auth tokens
     given().header("X-all-headers", "H") // ask sample to report all headers
       .header("X-Okapi-Tenant", okapiTenant)
       .header("X-Okapi-Token", okapiToken)
       .header("Authorization", "Bearer " + okapiToken + "WRONG")
+      .get("/testb")
+      .then().log().ifValidationFails()
+      .statusCode(400);
+
+    // Check that we fail on invalid Token/Authorization
+    given().header("X-all-headers", "H") // ask sample to report all headers
+      .header("X-Okapi-Token", "xx")
+      .header("Authorization", "Bearer xx")
       .get("/testb")
       .then().log().ifValidationFails()
       .statusCode(400);
@@ -1255,7 +1409,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"31\"," + LS
-      + "    \"type\" : \"request-response\"" + LS
+      + "    \"type\" : \"request-response\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1397,17 +1552,20 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"05\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"45\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1594,15 +1752,33 @@ public class ProxyTest {
       .then().statusCode(404); // because sample2 was removed
 
     // Disable the sample module. No tenant-destroy for sample
-    given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1")
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module-1?purge=true")
       .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
 
-    // Disable the sample2 module. It has a tenant request handler which is
+    // Disable the sample2 module + auth-1. It has a tenant request handler which is
     // no longer invoked, so it does not matter we don't have a running instance
-    given()
-      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/sample-module2-1")
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(204);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).body(equalTo("[ ]"));
+
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/unknown-tenant/modules")
+      .then().statusCode(400);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
 
     c = api.createRestAssured3();
     c.given().delete(locationTenantRoskilde)
@@ -1668,10 +1844,12 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testr\"" + LS
+      + "      \"path\" : \"/testr\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -1679,7 +1857,8 @@ public class ProxyTest {
       + "    \"path\" : \"/loop2\"," + LS
       + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/loop1\"" + LS
+      + "    \"redirectPath\" : \"/loop1\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"modulePermissions\" : [ \"sample.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1687,6 +1866,7 @@ public class ProxyTest {
       + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"sample.chain3\" ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -1741,25 +1921,29 @@ public class ProxyTest {
       + "    \"path\" : \"/red\"," + LS
       + "    \"level\" : \"21\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/badredirect\"," + LS
       + "    \"level\" : \"22\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/nonexisting\"" + LS
+      + "    \"redirectPath\" : \"/nonexisting\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/simpleloop\"," + LS
       + "    \"level\" : \"23\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/simpleloop\"" + LS
+      + "    \"redirectPath\" : \"/simpleloop\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
       + "    \"path\" : \"/loop1\"," + LS
       + "    \"level\" : \"24\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/loop2\"" + LS
+      + "    \"redirectPath\" : \"/loop2\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"modulePermissions\" : [ \"hdr.modperm\" ]," + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1767,6 +1951,7 @@ public class ProxyTest {
       + "    \"level\" : \"25\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/chain2\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"hdr.chain1\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"GET\" ]," + LS
@@ -1774,19 +1959,22 @@ public class ProxyTest {
       + "    \"level\" : \"26\"," + LS
       + "    \"type\" : \"redirect\"," + LS
       + "    \"redirectPath\" : \"/chain3\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"hdr.chain2\" ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
       + "    \"level\" : \"27\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  }, {" + LS
       + "    \"methods\" : [ \"POST\" ]," + LS
       + "    \"path\" : \"/multiple\"," + LS
       + "    \"level\" : \"28\"," + LS
       + "    \"type\" : \"redirect\"," + LS
-      + "    \"redirectPath\" : \"/testr\"" + LS
+      + "    \"redirectPath\" : \"/testr\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : \"java -Dport=%p -jar ../okapi-test-header-module/target/okapi-test-header-module-fat.jar\"" + LS
@@ -1957,7 +2145,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"phase\" : \"pre\"," + LS
-      + "    \"type\" : \"request-log\"" + LS
+      + "    \"type\" : \"request-log\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1975,7 +2164,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"phase\" : \"post\"," + LS
-      + "    \"type\" : \"request-log\"" + LS
+      + "    \"type\" : \"request-log\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     c = api.createRestAssured3();
@@ -1993,7 +2183,8 @@ public class ProxyTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
       + "    \"exec\" : "
@@ -2019,14 +2210,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2052,7 +2245,8 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2231,14 +2425,16 @@ public class ProxyTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2264,17 +2460,20 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/testb/{id}\"" + LS
+      + "      \"pathPattern\" : \"/testb/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -2300,7 +2499,8 @@ public class ProxyTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
+      + "      \"pathPattern\" : \"/edge/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -2351,6 +2551,7 @@ public class ProxyTest {
 
     c = api.createRestAssured3();
     given()
+      .header("X-Okapi-Token", okapiToken)
       .header("Content-Type", "application/json")
       .get("/_/proxy/tenants")
       .then().statusCode(200);
@@ -2421,10 +2622,12 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_timer\"," + LS
@@ -2432,21 +2635,24 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/1\"," + LS
+      + "      \"pathPattern\" : \"/timercall/1\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"10\"" + LS
+      + "      \"delay\" : \"10\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "   }, {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
-      + "      \"path\" : \"/3\"," + LS
+      + "      \"path\" : \"/timercall/3\"," + LS
       + "      \"unit\" : \"millisecond\"," + LS
-      + "      \"delay\" : \"30\"" + LS
+      + "      \"delay\" : \"30\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]" + LS
@@ -2503,11 +2709,11 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(200).log().ifValidationFails();
 
-    // 10 msecond period and 100 total wait time.. 1 tick per call.. So 8-10 calls
-    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 110, "Got " + timerDelaySum);
+    // 10 msecond period and approx 100 total wait time.. 1 tick per call..
+    context.assertTrue(timerDelaySum >= 103 && timerDelaySum <= 112, "Got " + timerDelaySum);
     logger.info("timerDelaySum=" + timerDelaySum);
 
     // disable and enable (quickly)
@@ -2542,14 +2748,12 @@ public class ProxyTest {
         + "]")
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
 
     given()
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(404).log().ifValidationFails();
 
     try {
@@ -2573,7 +2777,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/100")
+      .body("Okapi").post("/timercall/100")
       .then().statusCode(200).log().ifValidationFails();
 
     // disable and remove tenant as well
@@ -2605,6 +2809,8 @@ public class ProxyTest {
     RestAssuredClient c;
     Response r;
 
+    timerPermissions.clear();
+
     final String docTimer_1_0_0 = "{" + LS
       + "  \"id\" : \"timer-module-1.0.0\"," + LS
       + "  \"name\" : \"timer module\"," + LS
@@ -2614,20 +2820,30 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
       + "}";
 
     c = api.createRestAssured3();
@@ -2683,6 +2899,7 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    Assert.assertEquals(0, timerPermissions.size());
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
@@ -2695,7 +2912,7 @@ public class ProxyTest {
       .header("X-Okapi-Tenant", okapiTenant)
       .header("Content-Type", "text/plain")
       .header("Accept", "text/plain")
-      .body("Okapi").post("/1")
+      .body("Okapi").post("/timercall/1")
       .then().statusCode(200).log().ifValidationFails();
 
     final String docTimer_1_0_1 = "{" + LS
@@ -2707,20 +2924,40 @@ public class ProxyTest {
       + "    \"interfaceType\" : \"system\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant/disable\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    }, {" + LS
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
-      + "      \"pathPattern\" : \"/_/tenant\"" + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenantPermissions\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/permissionscall\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"myint\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/{id}\"" + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"," + LS
+      + "    \"displayName\": \"d\"" + LS
+      + "  } ]" + LS
       + "}";
 
     c = api.createRestAssured3();
@@ -2731,19 +2968,35 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    Assert.assertEquals(0, timerPermissions.size());
+
     final String docEdge_1_0_0 = "{" + LS
-      + "  \"id\" : \"edge-module-1.0.0\"," + LS
-      + "  \"name\" : \"edge module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"edge\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"pathPattern\" : \"/edge/{id}\"" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"requires\" : [ ]" + LS
-      + "}";
+        + "  \"id\" : \"edge-module-1.0.0\"," + LS
+        + "  \"name\" : \"edge module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"edge\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/edge/{id}\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]," + LS
+        + "  \"permissionSets\": [ {" + LS
+        + "    \"permissionName\": \"edge.post.id\"," + LS
+        + "    \"displayName\": \"e\"" + LS
+        + "  } ]" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2752,6 +3005,7 @@ public class ProxyTest {
     Assert.assertTrue(
       "raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
 
     final String nodeDiscoverEdge = "{" + LS
       + "  \"instId\" : \"localhost-" + Integer.toString(portEdge) + "\"," + LS
@@ -2764,6 +3018,8 @@ public class ProxyTest {
       .then().statusCode(201);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
 
     // deploy, but with no running instance of timer-module-1.0.1
     c = api.createRestAssured3();
@@ -2778,6 +3034,8 @@ public class ProxyTest {
       .body(containsString("No running instances for module timer-module-1.0.1. Can not invoke /_/tenant"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
 
     final String nodeDoc2 = "{" + LS
       + "  \"instId\" : \"localhost1-" + Integer.toString(portTimer) + "\"," + LS
@@ -2812,15 +3070,819 @@ public class ProxyTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 
+    Assert.assertEquals(0, timerPermissions.size());
+
     c = api.createRestAssured3();
     body = c.given().header("Content-Type", "application/json")
       .get("/_/proxy/tenants/" + okapiTenant + "/modules")
       .then().statusCode(200).extract().body().asString();
     ar = new JsonArray(body);
-    Assert.assertEquals(1, ar.size());
-    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
+
+    timerTenantInitStatus = 200;
+    timerTenantPermissionsStatus = 400;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("POST request for timer-module-1.0.1 "
+        +"/permissionscall failed with 400: timer permissions response"));
+     Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    Assert.assertEquals(0, timerPermissions.size());
+
+    c = api.createRestAssured3();
+    body = c.given().header("Content-Type", "application/json")
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).extract().body().asString();
+    ar = new JsonArray(body);
+    Assert.assertEquals(2, ar.size());
+    Assert.assertEquals("edge-module-1.0.0", ar.getJsonObject(0).getString("id"));
+    Assert.assertEquals("timer-module-1.0.0", ar.getJsonObject(1).getString("id"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    timerTenantPermissionsStatus = 200;
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"},"
+        + " {\"id\" : \"timer-module-1.0.1\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    Assert.assertEquals(3, timerPermissions.size());
+    Assert.assertTrue(timerPermissions.containsKey("edge-module-1.0.0"));
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.0"));
+    Assert.assertTrue(timerPermissions.containsKey("timer-module-1.0.1"));
+
+    // re-enable edge-module and check that permissions for it are available at tenant-init
+    timerPermissions.clear();
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"disable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("["
+            + " {\"id\" : \"edge-module-1.0.0\", \"action\" : \"enable\"}"
+            + "]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install")
+        .then().statusCode(200).log().ifValidationFails();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    Assert.assertNotNull(edgePermissionsAtInit);
+
+    given()
+      .header("X-Okapi-Tenant", okapiTenant)
+      .header("Content-Type", "text/plain")
+      .header("Accept", "text/plain")
+      .body("Okapi").post("/timercall/1")
+      .then().statusCode(200).log().ifValidationFails();
+
+
+    final String docTimer_1_0_2 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.2\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"_tenantPermissions\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/permissionscall\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  }, {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"," + LS
+      + "    \"displayName\": \"d\"" + LS
+      + "  } ]" + LS
+      + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_2).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String nodeDoc3 = "{" + LS
+      + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.2\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(nodeDoc3).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    timerTenantPermissionsStatus = 400;
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("["
+        + " {\"id\" : \"timer-module\", \"action\" : \"enable\"}"
+        + "]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(containsString("POST request for timer-module-1.0.2 "
+        +"/permissionscall failed with 400: timer permissions response"));
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+  }
+
+  @Test
+  public void testTenantFailedUpgrade(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    final String okapiTenant = "roskilde";
+    // add tenant
+    final String docTenantRoskilde = "{" + LS
+      + "  \"id\" : \"" + okapiTenant + "\"," + LS
+      + "  \"name\" : \"" + okapiTenant + "\"," + LS
+      + "  \"description\" : \"Roskilde bibliotek\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    given()
+      .header("Content-Type", "application/json")
+      .body(docTenantRoskilde).post("/_/proxy/tenants")
+      .then().statusCode(201)
+      .body(equalTo(docTenantRoskilde));
+
+    final String docTimer_1_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-1.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"1.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docBusiness_1_0_0 = "{" + LS
+      + "  \"id\" : \"business-module-1.0.0\"," + LS
+      + "  \"name\" : \"business module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"1.0\" } ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docTimer_2_0_0 = "{" + LS
+      + "  \"id\" : \"timer-module-2.0.0\"," + LS
+      + "  \"name\" : \"timer module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"myint\"," + LS
+      + "    \"version\" : \"2.0\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.post.id\" ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/timercall/{id}\"," + LS
+      + "      \"permissionsRequired\" : [ \"timercall.delete.id\" ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    final String docBusiness_2_0_0 = "{" + LS
+      + "  \"id\" : \"business-module-2.0.0\"," + LS
+      + "  \"name\" : \"business module\"," + LS
+      + "  \"provides\" : [ {" + LS
+      + "    \"id\" : \"_tenant\"," + LS
+      + "    \"version\" : \"1.1\"," + LS
+      + "    \"interfaceType\" : \"system\"," + LS
+      + "    \"handlers\" : [ {" + LS
+      + "      \"methods\" : [ \"POST\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    }, {" + LS
+      + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+      + "      \"pathPattern\" : \"/_/tenant\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
+      + "    } ]" + LS
+      + "  } ]," + LS
+      + "  \"requires\" : [ { \"id\" : \"myint\", \"version\" : \"2.0\" } ]," + LS
+      + "  \"permissionSets\": [ {" + LS
+      + "    \"permissionName\": \"timercall.post.id\"" + LS
+      + "  } ]" + LS
+      + "}";
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocTimer_1_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-1-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocTimer_1_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBusiness_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocBusiness_1_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-2-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"business-module-1.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocBusiness_1_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docTimer_2_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocTimer_2_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-3-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"timer-module-2.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocTimer_2_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    r = c.given()
+      .header("Content-Type", "application/json")
+      .body(docBusiness_2_0_0).post("/_/proxy/modules").then().statusCode(201)
+      .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    final String deployDocBusiness_2_0_0 = "{" + LS
+      + "  \"instId\" : \"localhost-4-" + Integer.toString(portTimer) + "\"," + LS
+      + "  \"srvcId\" : \"business-module-2.0.0\"," + LS
+      + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+      + "}";
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+      .body(deployDocBusiness_2_0_0).post("/_/discovery/modules")
+      .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"timer-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"," + LS
+        + "  \"from\" : \"timer-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"business-module-2.0.0\"," + LS
+        + "  \"from\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"enable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    /* this will try to upgrade both, but business-module-2.0.0 tenant init fails,
+     so business-module-1.0.0 stays but timer-module is upgrade (no _tenant interface) */
+    timerTenantInitStatus = 400; // make business-module tenant init fail
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .post("/_/proxy/tenants/" + okapiTenant + "/upgrade")
+      .then().statusCode(400).log().ifValidationFails()
+      .body(equalTo("POST request for business-module-2.0.0 /_/tenant failed with 400: timer response"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body("[ {\"id\" : \"timer-module-2.0.0\", \"action\" : \"disable\"} ]")
+      .post("/_/proxy/tenants/" + okapiTenant + "/install?simulate=true")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "}, {" + LS
+        + "  \"id\" : \"timer-module-2.0.0\"," + LS
+        + "  \"action\" : \"disable\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // works, because timer-module-2.0.0 does not have tenant interface
+    c = api.createRestAssured3();
+    c.given()
+      .delete("/_/proxy/tenants/" + okapiTenant + "/modules/timer-module-2.0.0")
+      .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+      .get("/_/proxy/tenants/" + okapiTenant + "/modules")
+      .then().statusCode(200).log().ifValidationFails()
+      .body(equalTo("[ {" + LS
+        + "  \"id\" : \"business-module-1.0.0\"" + LS
+        + "} ]"));
+    Assert.assertTrue(
+      "raml: " + c.getLastReport().toString(),
+      c.getLastReport().isEmpty());
+
+    // disable also fails with 400
+    Assert.assertEquals(400, timerTenantInitStatus);
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules")
+        .then().statusCode(400).log().ifValidationFails()
+        .body(equalTo("POST request for business-module-1.0.0 /_/tenant/disable failed with 400: timer response"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // however, purge does not
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules?purge=true")
+        .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // tenant init fails, but is not called because in next tests invoke=false
+    Assert.assertEquals(400, timerTenantInitStatus);
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"business-module-1.0.0\", \"action\" : \"enable\"}, {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?invoke=false")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"business-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .delete("/_/proxy/tenants/" + okapiTenant + "/modules?invoke=false")
+        .then().statusCode(204).log().ifValidationFails();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+  }
+
+  @Test
+  public void testTenantPermissionsVersion() {
+    String tenant = "test-tenant-permissions-tenant";
+    String moduleId = "test-tenant-permissions-basic-module-1.0.0";
+    String authModuleId = "test-tenant-permissions-auth-module-1.0.0";
+    String body = new JsonObject().put("id", "test").encode();
+
+    setupBasicTenant(tenant);
+
+    // test _tenantpermissions 1.0 vs 1.1
+    for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
+      timerPermissions.clear();
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion);
+      setupBasicAuth(tenant, authModuleId);
+      // system generates permission sets for 1.1 version
+      if (tenantPermissionsVersion.equals("1.0")) {
+        Assert.assertEquals(1, timerPermissions.getJsonArray(moduleId).size());
+      } else {
+        Assert.assertEquals(4, timerPermissions.getJsonArray(moduleId).size());
+      }
+      // proxy calls
+      RestAssuredClient c = api.createRestAssured3();
+      Response r = c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Token", getOkapiToken(tenant))
+        .body(body).post("/regularcall")
+        .then().statusCode(200).log().ifValidationFails()
+        .extract().response();
+      if (tenantPermissionsVersion.equals("1.0")) {
+        Assert.assertFalse(r.getBody().asString().contains("SYS#"));
+      } else {
+        Assert.assertTrue(r.getBody().asString().contains("SYS#"));
+      }
+      // system calls
+      given()
+        .header("X-Okapi-Tenant", tenant)
+        .header("Content-Type", "text/plain")
+        .header("Accept", "text/plain")
+        .body("Okapi").post("/timercall/10")
+        .then().statusCode(200).log().ifValidationFails();
+      // clean up
+      given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+      given().delete("/_/discovery/modules").then().statusCode(204);
+      given().delete("/_/proxy/modules/" + moduleId).then().statusCode(204);
+    }
+
+    // remove testing tenant
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  @Test
+  public void testDelegateCORS() {
+    String tenant = "test-tenant-delegate-cors";
+    String moduleId = "test-tenant-delegate-cors-module-1.0.0";
+    String authModuleId = "test-tenant-delegate-cors-auth-module-1.0.0";
+    String body = new JsonObject().put("id", "test").encode();
+
+    setupBasicTenant(tenant);
+    setupBasicModule(tenant, moduleId, "1.1");
+    setupBasicAuth(tenant, authModuleId);
+
+    RestAssuredClient c = api.createRestAssured3();
+
+    // no CORS delegate
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/regularcall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), notNullValue())
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    // with CORS delegate
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/corscall")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), nullValue())
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    // with CORS delegate and query parameter
+    c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Token", getOkapiToken(tenant))
+      .header("origin", "localhost")
+      .body(body)
+      .post("/_/invoke/tenant/" + tenant + "/corscall?x=y")
+      .then()
+      .header(HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS.toString(), nullValue())
+      .header(CORS_TEST_HEADER, "x=y")
+      .statusCode(200)
+      .log().ifValidationFails();
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(204);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId).then().statusCode(204);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  // add basic tenant
+  private void setupBasicTenant(String tenant) {
+    String tenantJson = new JsonObject().put("id", tenant).encode();
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(tenantJson).post("/_/proxy/tenants")
+      .then().statusCode(201);
+  }
+
+  // get X-Okapi-Token
+  private String getOkapiToken(String tenant) {
+    String loginJson = new JsonObject()
+      .put("tenant",  tenant)
+      .put("username", "peter")
+      .put("password", "peter-password")
+      .encode();
+    RestAssuredClient c = api.createRestAssured3();
+    return c.given()
+      .header("Content-Type", "application/json")
+      .header("X-Okapi-Tenant", tenant)
+      .body(loginJson).post("/authn/login")
+      .then().statusCode(200).extract().header("X-Okapi-Token");
+  }
+
+  // decode X-Okapi-Token
+  private JsonObject decodeOkapiToken(String token) {
+    String encodedJson = token.substring(token.indexOf(".") + 1, token.lastIndexOf("."));
+    return new JsonObject(new String(Base64.getDecoder().decode(encodedJson)));
+  }
+
+  // extract sub from token
+  private String extractSubFromToken(RoutingContext ctx) {
+    String token = ctx.request().getHeader("X-Okapi-Token");
+    if (token != null) {
+      return decodeOkapiToken(token).getString("sub");
+    }
+    return "";
+  }
+
+  // add auth module
+  private void setupBasicAuth(String tenant, String authModuleId) {
+    String testAuthJar = "../okapi-test-auth-module/target/okapi-test-auth-module-fat.jar";
+    String mdJson = new JsonObject()
+      .put("id", authModuleId)
+      .put("name", "auth")
+      .put("provides", new JsonArray()
+        .add(new JsonObject()
+          .put("id", "auth")
+          .put("version", "1.2")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("path", "/authn/login")
+              .put("level", "20")
+              .put("type", "request-response")
+              .put("permissionsRequired", new JsonArray())))))
+      .put("filters", new JsonArray()
+        .add(new JsonObject()
+          .put("methods", new JsonArray().add("*"))
+          .put("path", "/")
+          .put("phase", "auth")
+          .put("type", "headers")
+          .put("phase", "auth")
+          .put("permissionsRequired", new JsonArray())))
+      .put("requires", new JsonArray())
+      .put("launchDescriptor", new JsonObject()
+        .put("exec", "java -Dport=%p -jar " + testAuthJar))
+      .encodePrettily();
+
+    // registration
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(mdJson).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // deploy and enable
+    String installJson = new JsonArray().add(new JsonObject()
+      .put("id", authModuleId)
+      .put("action", "enable"))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(installJson)
+      .post("/_/proxy/tenants/" + tenant + "/install?deploy=true")
+      .then().statusCode(200).log().ifValidationFails();
+  }
+
+  // add basic module
+  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion) {
+    String mdJson = new JsonObject()
+      .put("id", moduleId)
+      .put("provides", new JsonArray()
+        .add(new JsonObject()
+          .put("id", "_tenant")
+          .put("version", "1.1")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/_/tenant/disable")
+              .put("permissionsRequired", new JsonArray()))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST").add("DELETE"))
+              .put("pathPattern", "/_/tenant")
+              .put("permissionsRequired", new JsonArray()))))
+        .add(new JsonObject()
+          .put("id", "_tenantPermissions")
+          .put("version", tenantPermissionsVersion)
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/permissionscall")
+              .put("permissionsRequired", new JsonArray()))))
+        .add(new JsonObject()
+          .put("id", "_timer")
+          .put("version", "1.0")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/timercall/1")
+              .put("unit", "millisecond")
+              .put("delay", "10")
+              .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
+              .put("modulePermissions", new JsonArray().add("timercall.test.post")))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("DELETE"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
+        .add(new JsonObject()
+          .put("id", "myint")
+          .put("version", "1.0")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray())
+              .put("modulePermissions", new JsonArray().add("timercall.post.id").add("timercall.delete.id")))
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("DELETE"))
+              .put("pathPattern", "/timercall/{id}")
+              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
+        .add(new JsonObject()
+          .put("id", "mytest")
+          .put("version", "1.0")
+          .put("handlers", new JsonArray()
+            .add(new JsonObject()
+              .put("methods", new JsonArray().add("POST"))
+              .put("pathPattern", "/regularcall")
+              .put("permissionsRequired", new JsonArray())
+              .put("modulePermissions", new JsonArray().add("regularcall.test.post")))))
+        .add(new JsonObject()
+            .put("id", "CORS-TEST")
+            .put("version", "1.0")
+            .put("handlers", new JsonArray()
+              .add(new JsonObject()
+                .put("methods", new JsonArray().add("POST"))
+                .put("pathPattern", "/corscall")
+                .put("permissionsRequired", new JsonArray())
+                .put("delegateCORS", "true")))))
+      .put("requires", new JsonArray())
+      .put("permissionSets", new JsonArray()
+        .add(new JsonObject()
+          .put("permissionName", "timercall.post.id")
+          .put("displayName", "d")))
+      .encodePrettily();
+
+    // registration
+    RestAssuredClient c = api.createRestAssured3();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(mdJson).post("/_/proxy/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // discovery
+    String discoveryJson = new JsonObject()
+      .put("instId", "localhost-" + Integer.toString(portTimer))
+      .put("srvcId", moduleId)
+      .put("url", "http://localhost:" + Integer.toString(portTimer))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(discoveryJson).post("/_/discovery/modules")
+      .then().statusCode(201).log().ifValidationFails();
+
+    // install
+    String installJson = new JsonArray()
+      .add(new JsonObject().put("id", moduleId).put("action", "enable"))
+      .encode();
+    c.given()
+      .header("Content-Type", "application/json")
+      .body(installJson)
+      .post("/_/proxy/tenants/" + tenant + "/install")
+      .then().statusCode(200).log().ifValidationFails();
   }
 
 }

@@ -1,6 +1,5 @@
 package org.folio.okapi.service.impl;
 
-import org.folio.okapi.service.ModuleHandle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -13,11 +12,12 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.bean.Ports;
-import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.LaunchDescriptor;
+import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.util.TcpPortWaiting;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -32,13 +32,20 @@ public class ProcessModuleHandle implements ModuleHandle {
   private final EnvEntry[] env;
   private final Messages messages = Messages.getInstance();
 
-  private Process p;
+  private Process process;
   private final int port;
   private final Ports ports;
-  TcpPortWaiting tcpPortWaiting;
+  final TcpPortWaiting tcpPortWaiting;
 
+  /**
+   * Construct process module handler.
+   * @param vertx Vert.x handle
+   * @param desc launch descriptor
+   * @param ports ports handle
+   * @param port listening port for module
+   */
   public ProcessModuleHandle(Vertx vertx, LaunchDescriptor desc,
-    Ports ports, int port) {
+                             Ports ports, int port) {
     this.vertx = vertx;
 
     this.exec = desc.getExec();
@@ -47,7 +54,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     this.env = desc.getEnv();
     this.port = port;
     this.ports = ports;
-    this.p = null;
+    this.process = null;
     this.tcpPortWaiting = new TcpPortWaiting(vertx, "localhost", port);
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
@@ -80,7 +87,8 @@ public class ProcessModuleHandle implements ModuleHandle {
         if (res.succeeded()) {
           NetSocket socket = res.result();
           socket.close();
-          startFuture.handle(Future.failedFuture(messages.getMessage("11502", Integer.toString(port))));
+          startFuture.handle(Future.failedFuture(
+              messages.getMessage("11502", Integer.toString(port))));
         } else {
           start2(startFuture);
         }
@@ -90,9 +98,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   private void start2(Handler<AsyncResult<Void>> startFuture) {
     vertx.executeBlocking(future -> {
-      if (p == null) {
+      if (process == null) {
         String c = "";
         try {
           String[] l;
@@ -116,8 +125,8 @@ public class ProcessModuleHandle implements ModuleHandle {
           }
           ProcessBuilder pb = createProcessBuilder(l);
           pb.inheritIO();
-          p = pb.start();
-          p.waitFor(1, TimeUnit.SECONDS);
+          process = pb.start();
+          process.waitFor(1, TimeUnit.SECONDS);
         } catch (InterruptedException ex) {
           logger.warn("when starting {}", c, ex);
           Thread.currentThread().interrupt();
@@ -126,8 +135,8 @@ public class ProcessModuleHandle implements ModuleHandle {
           future.fail(ex);
           return;
         }
-        if (!p.isAlive() && p.exitValue() != 0) {
-          future.handle(Future.failedFuture(messages.getMessage("11500", p.exitValue())));
+        if (!process.isAlive() && process.exitValue() != 0) {
+          future.handle(Future.failedFuture(messages.getMessage("11500", process.exitValue())));
           return;
         }
       }
@@ -135,7 +144,7 @@ public class ProcessModuleHandle implements ModuleHandle {
     }, false, result -> {
       if (result.failed()) {
         logger.debug("ProcessModuleHandle.start2() executeBlocking failed {}",
-          result.cause().getMessage());
+            result.cause().getMessage());
         startFuture.handle(Future.failedFuture(result.cause()));
       } else {
         start3(startFuture);
@@ -144,7 +153,7 @@ public class ProcessModuleHandle implements ModuleHandle {
   }
 
   private void start3(Handler<AsyncResult<Void>> startFuture) {
-    tcpPortWaiting.waitReady(p, x -> {
+    tcpPortWaiting.waitReady(process, x -> {
       if (x.failed()) {
         this.stopProcess(y -> startFuture.handle(Future.failedFuture(x.cause())));
       } else {
@@ -165,7 +174,8 @@ public class ProcessModuleHandle implements ModuleHandle {
           if (iter > 0) {
             vertx.setTimer(100, x -> waitPortToClose(stopFuture, iter - 1));
           } else {
-            stopFuture.handle(Future.failedFuture(messages.getMessage("11503", Integer.toString(port))));
+            stopFuture.handle(Future.failedFuture(
+                messages.getMessage("11503", Integer.toString(port))));
           }
         } else {
           stopFuture.handle(Future.succeededFuture());
@@ -176,9 +186,10 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   @Override
   public void stop(Handler<AsyncResult<Void>> stopFuture) {
-    if (p == null) {
+    if (process == null) {
       ports.free(port);
       stopFuture.handle(Future.succeededFuture());
       return;
@@ -223,13 +234,14 @@ public class ProcessModuleHandle implements ModuleHandle {
     }
   }
 
+  @SuppressWarnings("indentation")
   private void stopProcess(Handler<AsyncResult<Void>> stopFuture) {
     vertx.executeBlocking(future -> {
-      p.destroy();
-      while (p.isAlive()) {
+      process.destroy();
+      while (process.isAlive()) {
         boolean exited = true;
         try {
-          p.exitValue();
+          process.exitValue();
         } catch (IllegalThreadStateException e) {
           exited = false;
         } catch (Exception e) {
@@ -241,7 +253,7 @@ public class ProcessModuleHandle implements ModuleHandle {
           return;
         }
         try {
-          p.waitFor();
+          process.waitFor();
         } catch (InterruptedException ex) {
           Thread.currentThread().interrupt();
         }

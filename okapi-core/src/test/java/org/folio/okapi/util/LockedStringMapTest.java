@@ -47,7 +47,7 @@ public class LockedStringMapTest {
   public void listEmpty(TestContext context) {
     map.getKeys(res -> {
       assertTrue(res.succeeded());
-      assertTrue("[]".equals(res.result().toString()));
+      assertEquals("[]", res.result().toString());
       testadd(context);
     });
   }
@@ -153,7 +153,7 @@ public class LockedStringMapTest {
   private void listKeys1(TestContext context) {
     map.getKeys(res -> {
       assertTrue(res.succeeded());
-      assertTrue("[k1, k1.1]".equals(res.result().toString()));
+      assertEquals("[k1, k1.1]", res.result().toString());
       deleteKey2(context);
     });
   }
@@ -177,7 +177,7 @@ public class LockedStringMapTest {
   private void listKeys2(TestContext context) {
     map.getKeys(res -> {
       assertTrue(res.succeeded());
-      assertTrue("[k1.1]".equals(res.result().toString()));
+      assertEquals("[k1.1]", res.result().toString());
       done(context);
     });
   }

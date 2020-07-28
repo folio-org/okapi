@@ -1,8 +1,6 @@
 package org.folio.okapi;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-
+import io.vertx.core.json.JsonArray;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,6 +33,8 @@ import de.flapdoodle.embed.process.runtime.Network;
 import guru.nidi.ramltester.restassured3.RestAssuredClient;
 import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
+
 import io.restassured.http.Header;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
@@ -46,7 +46,7 @@ import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.URLDecoder;
+import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -138,7 +138,7 @@ public class ModuleTest {
         .put("postgres_port", Integer.toString(POSTGRES_PORT));
       if (postgres == null) {
         // take version string from https://www.enterprisedb.com/downloads/postgres-postgresql-downloads
-        postgres = new EmbeddedPostgres(() -> "10.11-3");
+        postgres = new EmbeddedPostgres(() -> "10.12-1");
         postgres.start("localhost", POSTGRES_PORT, "okapi", "okapi", "okapi25");
       }
     } else if ("mongo".equals(value)) {
@@ -419,7 +419,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\" ]," + LS
       + "      \"pathPattern\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ ]," + LS
@@ -445,14 +446,16 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -514,7 +517,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"*\" ]," + LS
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"PHASE\"," + LS // This will get replaced later
-      + "    \"type\" : \"request-only\"" + LS
+      + "    \"type\" : \"request-only\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       //      + "    \"type\" : \"request-response\"" + LS
       // The only known use case for these uses req-only, so that's what we
       // test with. Tested req-resp manually, and it seems to work too
@@ -780,7 +784,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\" ]," + LS
       + "      \"pathPattern\" : \"/recurse\"," + LS
-      + "      \"type\" : \"request-response-1.0\"" + LS
+      + "      \"type\" : \"request-response-1.0\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -790,7 +795,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
-      + "      \"type\" : \"system\"" + LS // DEPRECATED, gives a warning
+      + "      \"type\" : \"system\"," + LS // DEPRECATED, gives a warning
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"permissionSets\" : [ {" + LS
@@ -873,14 +879,6 @@ public class ModuleTest {
       .then()
       .statusCode(400);
 
-    // Bad RoutingEntry type with PUT
-    given()
-      .header("Content-Type", "application/json")
-      .body(docBadReType)
-      .put("/_/proxy/modules/sample-module-1+1")
-      .then()
-      .statusCode(400);
-
     String docMissingPath = docSampleModule.replace("/testb", "");
     given()
       .header("Content-Type", "application/json")
@@ -918,8 +916,8 @@ public class ModuleTest {
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
     String locSampleModule = r.getHeader("Location");
-    Assert.assertTrue(locSampleModule.equals("/_/proxy/modules/sample-module-1%2B1"));
-    Assert.assertTrue(URLDecoder.decode(locSampleModule).equals("/_/proxy/modules/sample-module-1+1"));
+    Assert.assertEquals("/_/proxy/modules/sample-module-1%2B1", locSampleModule);
+    Assert.assertEquals("/_/proxy/modules/sample-module-1+1", UrlDecoder.decode(locSampleModule));
 
     // Damn restAssured encodes the urls in get(), so we need to decode this here.
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
@@ -946,19 +944,6 @@ public class ModuleTest {
       .post("/_/proxy/modules")
       .then()
       .statusCode(400)
-      .extract().response();
-    Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
-
-    logger.fatal("locSampleModule=" + locSampleModule);
-    // put it (update)
-    c = api.createRestAssured3();
-    r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule)
-      .put(locSampleModule)
-      .then()
-      .statusCode(200)
       .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
@@ -1220,22 +1205,31 @@ public class ModuleTest {
     // this.
     final String testHdrJar = "../okapi-test-header-module/target/okapi-test-header-module-fat.jar";
     final String docHdrModule = "{" + LS
-      + "  \"id\" : \"header-1\"," + LS
-      + "  \"name\" : \"header-module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenantPermissions\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"interfaceType\" : \"system\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"POST\" ]," + LS
-      + "      \"path\" : \"/_/tenantPermissions\"," + LS
-      + "      \"level\" : \"20\"" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"header-1\"," + LS
+        + "  \"name\" : \"header-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenantPermissions\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"path\" : \"/_/tenantPermissions\"," + LS
+        + "      \"level\" : \"20\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"permResult\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\" ]," + LS
+        + "      \"path\" : \"/permResult\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : \"java -Dport=%p -jar " + testHdrJar + "\"" + LS
+        + "  }" + LS
+        + "}";
 
     // Create, deploy, and enable the header module
     final String locHdrModule = createModule(docHdrModule);
@@ -1255,12 +1249,18 @@ public class ModuleTest {
       .log().ifValidationFails()
       .extract().headers();
     final String locHdrEnable = headers.getValue("Location");
-    List<Header> list = headers.getList("X-Tenant-Perms-Result");
-    Assert.assertEquals(2, list.size()); // one for okapi, one for header-1
-    Assert.assertThat("okapi perm result",
-      list.get(0).getValue(), containsString("okapi.all"));
-    Assert.assertThat("header-1perm result",
-      list.get(1).getValue(), containsString("header-1"));
+    // one trace from Okapi, two from the header module since it's called twice
+    context.assertEquals(3, headers.getValues("X-Okapi-Trace").size());
+
+    given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .body("$", hasSize(2))
+        .body("[0].moduleId", is("okapi-0.0.0"))
+        .body("[1].moduleId", is("header-1"));
 
     // Set up the test module
     // It provides a _tenant interface, but no _tenantPermissions
@@ -1290,6 +1290,7 @@ public class ModuleTest {
       + "      \"path\" : \"/_/tenant\"," + LS
       + "      \"level\" : \"10\"," + LS
       + "      \"type\" : \"system\"," + LS
+      + "      \"permissionsRequired\" : [ ]," + LS
       + "      \"modulePermissions\" : [ \"sample.tenantperm\" ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
@@ -1322,6 +1323,18 @@ public class ModuleTest {
       + "\"description\" : \"All permissions combined\", "
       + "\"subPermissions\" : [ \"sample.needed\", \"sample.extra\" ], "
       + "\"visible\" : true "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/testb#[GET, POST]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.modperm\" ], "
+      + "\"visible\" : false "
+      + "}, { "
+      + "\"permissionName\" : \"SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"displayName\" : \"System generated: SYS#sample-module-1#/_/tenant#[POST, DELETE]\", "
+      + "\"description\" : \"System generated permission set\", "
+      + "\"subPermissions\" : [ \"sample.tenantperm\" ], "
+      + "\"visible\" : false "
       + "} ] }";
 
     String locSampleEnable = given()
@@ -1331,8 +1344,19 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
+
+    String body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    JsonArray ar = new JsonArray(body);
+    context.assertEquals(1, ar.size());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(0));
 
     // Try with a minimal MD, to see we don't have null pointers hanging around
     final String docSampleModule2 = "{" + LS
@@ -1362,8 +1386,19 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms2)
       .extract().header("Location");
+
+    body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    ar = new JsonArray(body);
+    context.assertEquals(1, ar.size());
+    context.assertEquals(new JsonObject(expPerms2), ar.getJsonObject(0));
 
     // Tests to see that we get a new auth token for the system calls
     // Disable sample, so we can re-enable it after we have established auth
@@ -1382,7 +1417,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"POST\" ]," + LS
       + "      \"path\" : \"/authn/login\"," + LS
       + "      \"level\" : \"20\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"filters\" : [ {" + LS
@@ -1390,6 +1426,7 @@ public class ModuleTest {
       + "    \"path\" : \"/\"," + LS
       + "    \"phase\" : \"auth\"," + LS
       + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]," + LS
       + "    \"permissionsDesired\" : [ \"auth.extra\" ]" + LS
       + "  } ]," + LS
       + "  \"requires\" : [ ]," + LS
@@ -1419,8 +1456,20 @@ public class ModuleTest {
       .then()
       .statusCode(201)
       .log().ifValidationFails()
-      .header("X-Tenant-Perms-Result", expPerms)
       .extract().header("Location");
+
+    body = given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .get("/permResult")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails()
+        .extract().body().asString();
+
+    ar = new JsonArray(body);
+    context.assertEquals(2, ar.size());
+    context.assertEquals(new JsonObject(expPerms), ar.getJsonObject(1));
+
     // Check that the tenant interface and the tenantpermission interfaces
     // were called with proper auth tokens and with ModulePermissions
 
@@ -1581,7 +1630,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1870,7 +1920,8 @@ public class ModuleTest {
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
       + "      \"level\" : \"30\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  }, {" + LS
       + "    \"id\" : \"_tenant\"," + LS
@@ -1971,7 +2022,8 @@ public class ModuleTest {
         + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
         + "    \"path\" : \"/test2\"," + LS
         + "    \"level\" : \"20\"," + LS
-        + "    \"type\" : \"" + type + "\"" + LS
+        + "    \"type\" : \"" + type + "\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
         + "  } ]" + LS
         + "}";
       r = given()
@@ -2036,7 +2088,8 @@ public class ModuleTest {
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "      \"path\" : \"/testb\"," + LS
-      + "      \"type\" : \"request-response\"" + LS
+      + "      \"type\" : \"request-response\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]" + LS
       + "}";
@@ -2053,7 +2106,8 @@ public class ModuleTest {
       + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
       + "    \"path\" : \"/testb\"," + LS
       + "    \"level\" : \"10\"," + LS
-      + "    \"type\" : \"headers\"" + LS
+      + "    \"type\" : \"headers\"," + LS
+      + "    \"permissionsRequired\" : [ ]" + LS
       + "  } ]" + LS
       + "}";
     r = given()
@@ -2118,12 +2172,6 @@ public class ModuleTest {
       .delete(locationSampleModule)
       .then().statusCode(400)
       .body(equalTo("delete: module sample-module-5.0 is used by tenant " + okapiTenant));
-
-    given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule).put(locationSampleModule)
-      .then().statusCode(400)
-      .body(equalTo("update: module sample-module-5.0 is used by tenant " + okapiTenant));
 
     final String docEnableHeader = "{" + LS
       + "  \"id\" : \"header-module-1.0\"" + LS
@@ -2238,7 +2286,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2267,7 +2316,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2314,7 +2364,8 @@ public class ModuleTest {
                     + "  \"interfaceType\" : \"proxy\"," + LS
                     + "  \"handlers\" : [ {" + LS
                     + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-                    + "    \"path\" : \"/testb\"" + LS
+                    + "    \"path\" : \"/testb\"," + LS
+                    + "    \"permissionsRequired\" : [ ]" + LS
                     + "  } ]" + LS
                     + "} ]"))
             .log().ifValidationFails();
@@ -2407,7 +2458,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS
@@ -2436,7 +2488,8 @@ public class ModuleTest {
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
       + "      \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "      \"path\" : \"/testb\"" + LS
+      + "      \"path\" : \"/testb\"," + LS
+      + "      \"permissionsRequired\" : [ ]" + LS
       + "    } ]" + LS
       + "  } ]," + LS
       + "  \"launchDescriptor\" : {" + LS

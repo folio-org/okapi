@@ -29,6 +29,8 @@ public class MainDeployTest {
 
   @Before
   public void setUp(TestContext context) {
+    System.setProperty("vertx.logger-delegate-factory-class-name",
+        "io.vertx.core.logging.Log4jLogDelegateFactory");
     // can't set Verticle options so we set a property instead
     System.setProperty("port", Integer.toString(port));
     async = context.async();
@@ -255,6 +257,7 @@ public class MainDeployTest {
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
+    async.await(1000);
   }
 
   @Test
@@ -269,6 +272,7 @@ public class MainDeployTest {
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
+    async.await(1000);
   }
 
   @Test
@@ -283,6 +287,7 @@ public class MainDeployTest {
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
+    async.await(1000);
   }
 
   @Test
@@ -297,6 +302,7 @@ public class MainDeployTest {
       Assert.assertTrue("main1 " + res.cause(), res.failed());
       async.complete();
     });
+    async.await(1000);
   }
 
   @Test

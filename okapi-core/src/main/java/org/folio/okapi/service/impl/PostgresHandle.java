@@ -3,11 +3,16 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.net.OpenSSLEngineOptions;
+import io.vertx.core.net.PemTrustOptions;
 import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.pgclient.PgPool;
+import io.vertx.pgclient.SslMode;
 import io.vertx.sqlclient.PoolOptions;
 import io.vertx.sqlclient.SqlConnection;
+import java.util.Collections;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.OkapiLogger;
@@ -39,10 +44,8 @@ class PostgresHandle {
 
   private final PgConnectOptions connectOptions;
   private final PgPool pool;
-  private final Vertx vertx;
 
-  protected PostgresHandle(Vertx vertx, JsonObject conf) {
-    this.vertx = vertx;
+  PostgresHandle(Vertx vertx, JsonObject conf) {
     String val;
 
     connectOptions = new PgConnectOptions();
@@ -59,10 +62,23 @@ class PostgresHandle {
         logger.warn("Bad postgres_port value: {}: {}", val, e.getMessage());
       }
     }
+
+    // postgres_user is supported for system configuration (-D option) only and is deprecated
     connectOptions.setUser(Config.getSysConf("postgres_username",
-      Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
+        Config.getSysConf("postgres_user", "okapi", new JsonObject()), conf));
     connectOptions.setPassword(Config.getSysConf("postgres_password", "okapi25", conf));
     connectOptions.setDatabase(Config.getSysConf("postgres_database", "okapi", conf));
+    String serverPem = Config.getSysConf("postgres_server_pem", null, conf);
+    if (serverPem != null) {
+      logger.debug("Enforcing SSL encryption for PostgreSQL connections, "
+          + "requiring TLSv1.3 with server name certificate");
+      connectOptions.setSslMode(SslMode.VERIFY_FULL);
+      connectOptions.setHostnameVerificationAlgorithm("HTTPS");
+      connectOptions.setPemTrustOptions(
+          new PemTrustOptions().addCertValue(Buffer.buffer(serverPem)));
+      connectOptions.setEnabledSecureTransportProtocols(Collections.singleton("TLSv1.3"));
+      connectOptions.setOpenSslEngineOptions(new OpenSSLEngineOptions());
+    }
 
     PoolOptions poolOptions = new PoolOptions();
     poolOptions.setMaxSize(5);

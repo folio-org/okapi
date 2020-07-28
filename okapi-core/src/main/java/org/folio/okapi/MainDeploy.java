@@ -1,7 +1,7 @@
 package org.folio.okapi;
 
-import com.hazelcast.config.Config;
 import com.hazelcast.config.ClasspathXmlConfig;
+import com.hazelcast.config.Config;
 import com.hazelcast.config.FileSystemXmlConfig;
 import com.hazelcast.config.InterfacesConfig;
 import com.hazelcast.config.NetworkConfig;
@@ -14,29 +14,30 @@ import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.eventbus.EventBusOptions;
+import io.vertx.core.file.FileSystemOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.spi.cluster.hazelcast.ConfigUtil;
 import io.vertx.spi.cluster.hazelcast.HazelcastClusterManager;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Messages;
+import org.folio.okapi.common.OkapiLogger;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
 
   private static final String CANNOT_LOAD_STR = "Cannot load ";
 
-  private VertxOptions vopt = new VertxOptions();
-  private Config hConfig = null;
+  private final VertxOptions vopt = new VertxOptions();
+  private Config hazelcastConfig = null;
   private JsonObject conf;
   private String clusterHost = null;
   private int clusterPort = -1;
-  private Messages messages = Messages.getInstance();
+  private final Messages messages = Messages.getInstance();
 
   public MainDeploy() {
     this.conf = new JsonObject();
@@ -46,8 +47,9 @@ public class MainDeploy {
     this.conf = conf;
   }
 
-  @SuppressWarnings({"squid:S1181"})  // suppress "Catch Exception instead of Throwable" to also log Throwable
-  public void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
+  // suppress "Catch Exception instead of Throwable" to also log Throwable
+  @SuppressWarnings({"squid:S1181"})
+  void init(String[] args, Handler<AsyncResult<Vertx>> fut) {
     vopt.setPreferNativeTransport(true);
     try {
       final Logger logger = OkapiLogger.get();
@@ -63,30 +65,37 @@ public class MainDeploy {
       }
       final String mode = conf.getString("mode", "dev");
       switch (mode) {
-      case "dev":
-      case "initdatabase":
-      case "purgedatabase":
-        deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
-        break;
-      case "cluster":
-      case "proxy":
-      case "deployment":
-        deployClustered(logger, fut);
-        break;
-      default:
-        fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
+        case "dev":
+        case "initdatabase":
+        case "purgedatabase":
+          deploy(new MainVerticle(), Vertx.vertx(vopt), fut);
+          break;
+        case "cluster":
+        case "proxy":
+        case "deployment":
+          deployClustered(logger, fut);
+          break;
+        default:
+          fut.handle(Future.failedFuture(messages.getMessage("10601", mode)));
       }
     } catch (Throwable t) {
+      String message = t.getMessage();
+      if ("Failed to create cache dir".equals(message)) {
+        // https://issues.folio.org/browse/OKAPI-857 Okapi crashes on user change
+        // https://github.com/eclipse-vertx/vert.x/blob/3.9.1/src/main/java/io/vertx/core/file/FileSystemOptions.java#L49
+        message += " " + FileSystemOptions.DEFAULT_FILE_CACHING_DIR;
+        t = new RuntimeException(message, t);
+      }
       fut.handle(Future.failedFuture(t));
     }
   }
 
-  private boolean readConf(String fname, Handler<AsyncResult<Vertx>> fut) {
+  private boolean readConf(String fileName, Handler<AsyncResult<Vertx>> fut) {
     try {
-      byte[] encoded = Files.readAllBytes(Paths.get(fname));
+      byte[] encoded = Files.readAllBytes(Paths.get(fileName));
       this.conf = new JsonObject(new String(encoded, StandardCharsets.UTF_8));
     } catch (IOException ex) {
-      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fname));
+      fut.handle(Future.failedFuture(CANNOT_LOAD_STR + fileName));
       return true;
     }
     return false;
@@ -106,7 +115,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-cp".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new ClasspathXmlConfig(resource);
+          hazelcastConfig = new ClasspathXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -114,7 +123,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-file".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new FileSystemXmlConfig(resource);
+          hazelcastConfig = new FileSystemXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -122,7 +131,7 @@ public class MainDeploy {
       } else if ("-hazelcast-config-url".equals(args[i]) && i < args.length - 1) {
         String resource = args[++i];
         try {
-          hConfig = new UrlXmlConfig(resource);
+          hazelcastConfig = new UrlXmlConfig(resource);
         } catch (Exception e) {
           fut.handle(Future.failedFuture(CANNOT_LOAD_STR + resource + ": " + e));
           return true;
@@ -151,34 +160,34 @@ public class MainDeploy {
   @java.lang.SuppressWarnings({"squid:S106"})
   private void printUsage() {
     System.out.println("Usage: command [options]\n"
-      + "Commands:\n"
-      + "  help         Display help\n"
-      + "  cluster      Run in clustered mode\n"
-      + "  dev          Development mode\n"
-      + "  deployment   Deployment only. Clustered mode\n"
-      + "  proxy        Proxy + discovery. Clustered mode\n"
-      + "Options:\n"
-      + "  -conf file                    Read Okapi configuration from local file\n"
-      + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
-      + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
-      + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
-      + "  -cluster-host ip              Vertx cluster host\n"
-      + "  -cluster-port port            Vertx cluster port\n"
+        + "Commands:\n"
+        + "  help         Display help\n"
+        + "  cluster      Run in clustered mode\n"
+        + "  dev          Development mode\n"
+        + "  deployment   Deployment only. Clustered mode\n"
+        + "  proxy        Proxy + discovery. Clustered mode\n"
+        + "Options:\n"
+        + "  -conf file                    Read Okapi configuration from local file\n"
+        + "  -hazelcast-config-cp file     Read Hazelcast config from class path\n"
+        + "  -hazelcast-config-file file   Read Hazelcast config from local file\n"
+        + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
+        + "  -cluster-host ip              Vertx cluster host\n"
+        + "  -cluster-port port            Vertx cluster port\n"
     );
   }
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
-    if (hConfig == null) {
-      hConfig = ConfigUtil.loadConfig();
+    if (hazelcastConfig == null) {
+      hazelcastConfig = ConfigUtil.loadConfig();
       if (clusterHost != null) {
-        NetworkConfig network = hConfig.getNetworkConfig();
-        InterfacesConfig iFace = network.getInterfaces();
-        iFace.setEnabled(true).addInterface(clusterHost);
+        NetworkConfig network = hazelcastConfig.getNetworkConfig();
+        InterfacesConfig interfacesConfig = network.getInterfaces();
+        interfacesConfig.setEnabled(true).addInterface(clusterHost);
       }
     }
-    hConfig.setProperty("hazelcast.logging.type", "log4j");
+    hazelcastConfig.setProperty("hazelcast.logging.type", "log4j");
 
-    HazelcastClusterManager mgr = new HazelcastClusterManager(hConfig);
+    HazelcastClusterManager mgr = new HazelcastClusterManager(hazelcastConfig);
     vopt.setClusterManager(mgr);
     EventBusOptions eventBusOptions = vopt.getEventBusOptions();
     if (clusterHost != null) {
@@ -216,6 +225,4 @@ public class MainDeploy {
       }
     });
   }
-
-
 }

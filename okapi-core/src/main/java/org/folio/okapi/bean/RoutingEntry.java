@@ -2,9 +2,11 @@ package org.folio.okapi.bean;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.Json;
 import io.vertx.core.json.DecodeException;
+import io.vertx.core.json.Json;
+import java.util.Arrays;
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -30,9 +32,9 @@ public class RoutingEntry {
   private String[] permissionsRequired;
   private String[] permissionsDesired;
   private String[] modulePermissions;
+  @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+  private boolean delegateCors;
   private static final String INVALID_PATH_CHARS = "\\%+{}()[].;:=?@#^$\"' ";
-  @JsonIgnore
-  private String pathRegex;
   @JsonIgnore
   private String phaseLevel = "50"; // default for regular handler
 
@@ -82,6 +84,10 @@ public class RoutingEntry {
     return type;
   }
 
+  /**
+   * Set routing entry type.
+   * @param type routing entry type
+   */
   public void setType(String type) {
     if ("request-response".equals(type)) {
       proxyType = ProxyType.REQUEST_RESPONSE;
@@ -117,15 +123,29 @@ public class RoutingEntry {
     return unit;
   }
 
+  /**
+   * Set timer unit for routing entry.
+   * @param unit unit name
+   */
   public void setUnit(String unit) {
     this.unit = unit;
     if (unit != null) {
       switch (unit) {
-        case "millisecond": factor = 1; break;
-        case "second": factor = 1000; break;
-        case "minute": factor = 60000; break;
-        case "hour": factor = 3600000; break;
-        case "day": factor = 86400000; break;
+        case "millisecond":
+          factor = 1;
+          break;
+        case "second":
+          factor = 1000;
+          break;
+        case "minute":
+          factor = 60000;
+          break;
+        case "hour":
+          factor = 3600000;
+          break;
+        case "day":
+          factor = 86400000;
+          break;
         default: throw new IllegalArgumentException(unit);
       }
     }
@@ -139,6 +159,9 @@ public class RoutingEntry {
     this.delay = delay;
   }
 
+  /**
+   * get timer delay in milliseconds.
+   */
   @JsonIgnore
   public long getDelayMilliSeconds() {
     if (this.delay != null && unit != null) {
@@ -167,9 +190,12 @@ public class RoutingEntry {
     return methods;
   }
 
+  /**
+   * Set routing methods.
+   * @param methods HTTP method name or "*" for all
+   */
   public void setMethods(String[] methods) {
-    for (int i = 0; i < methods.length; i++) {
-      String s = methods[i];
+    for (String s : methods) {
       if (!s.equals("*")) {
         HttpMethod.valueOf(s);
       }
@@ -177,7 +203,9 @@ public class RoutingEntry {
     this.methods = methods;
   }
 
-
+  /**
+   * Get path pattern/path - whichever exist.
+   */
   @JsonIgnore
   public String getStaticPath() {
     if (path == null || path.isEmpty()) {
@@ -187,12 +215,24 @@ public class RoutingEntry {
     }
   }
 
+  /**
+   * Generate a system id for this routing entry.
+   *
+   * @param moduleId - id of parent module
+   * @return {@link String}
+   */
+  @JsonIgnore
+  public String generateSystemId(String moduleId) {
+    return "SYS#" + moduleId + "#" + getStaticPath() + "#" + Arrays.deepToString(methods);
+  }
+
   public String getPath() {
     return path;
   }
 
   public void setPath(String path) {
     this.path = path;
+    this.pathPattern = null;
   }
 
   public String getPathPattern() {
@@ -218,103 +258,140 @@ public class RoutingEntry {
       }
     }
     if (c != '}') {
-      throw new DecodeException("Missing {-character for {}-construct in pathPattern");
+      throw new DecodeException("Missing }-character for {}-construct in pathPattern");
     }
     return i;
   }
 
+  /**
+   * set path pattern.
+   * Special constructs like {name} and * are supported.
+   * @param pathPattern pattern string
+   * @throws DecodeException if pattern is invalid.
+   */
   public void setPathPattern(String pathPattern) {
+    this.path = null;
     this.pathPattern = pathPattern;
-    StringBuilder b = new StringBuilder();
-    b.append("^");
     int i = 0;
     while (i < pathPattern.length()) {
       char c = pathPattern.charAt(i);
       if (c == '{') {
-        b.append("[^/?#]+");
         i = skipNamedPattern(pathPattern, i, c);
-      } else if (c == '*') {
-        b.append(".*");
       } else if (INVALID_PATH_CHARS.indexOf(c) != -1) {
         throw new DecodeException("Invalid character " + c + " for pathPattern");
-      } else {
-        b.append(c);
       }
       i++;
     }
-    b.append("$");
-    this.pathRegex = b.toString();
   }
 
-  private boolean matchUri(String uri) {
-    if (uri != null) {
-      if (pathRegex != null) {
-        String p = uri;
-        int indx = p.indexOf('?');
-        if (indx > 0) {
-          p = p.substring(0, indx);
+  static int cutUri(String uri) {
+    int len = uri.indexOf('?');
+    if (len == -1) {
+      len = uri.length();
+    }
+    int idx = uri.indexOf('#');
+    if (idx != -1 && idx < len) {
+      len = idx;
+    }
+    return len;
+  }
+
+  static boolean fastMatch(String pathPattern, String uri) {
+    return fastMatch(pathPattern, 0, uri, 0, cutUri(uri));
+  }
+
+  static boolean fastMatch(String pathPattern, int patternI, String uri, int uriI, int uriLength) {
+    while (patternI < pathPattern.length()) {
+      char patternC = pathPattern.charAt(patternI);
+      patternI++;
+      if (patternC == '{') {
+        while (patternI < pathPattern.length()) {
+          if (pathPattern.charAt(patternI) == '}') {
+            patternI++;
+            break;
+          }
+          patternI++;
         }
-        indx = p.indexOf('#');
-        if (indx > 0) {
-          p = p.substring(0, indx);
+        boolean empty = true;
+        while (uriI < uriLength && uri.charAt(uriI) != '/') {
+          uriI++;
+          empty = false;
         }
-        if (!p.matches(pathRegex)) {
+        if (empty) {
           return false;
         }
-      } else if (path != null && !uri.startsWith(path)) {
+      } else if (patternC != '*') {
+        if (uriI == uriLength || patternC != uri.charAt(uriI)) {
+          return false;
+        }
+        uriI++;
+      } else {
+        do {
+          if (fastMatch(pathPattern, patternI, uri, uriI, uriLength)) {
+            return true;
+          }
+          uriI++;
+        } while (uriI <= uriLength);
         return false;
       }
     }
-    return true;
+    return uriI == uriLength;
   }
 
-  public boolean match(String uri, String method) {
-    if (!matchUri(uri)) {
-      return false;
+  private boolean matchUri(String uri) {
+    if (uri == null) {
+      return true;
     }
+    if (pathPattern != null) {
+      return fastMatch(pathPattern, uri);
+    }
+    return path == null || uri.startsWith(path);
+  }
+
+  /**
+   * Match uri and method against routing entry.
+   * @param uri path in fact
+   * @param method HTTP method
+   * @return true on match; false otherwise
+   */
+  public boolean match(String uri, String method) {
     if (methods != null) {
       for (String m : methods) {
         if (method == null || m.equals("*") || m.equals(method)) {
-          return true;
+          return matchUri(uri);
         }
       }
     }
     return false;
   }
 
+  /**
+   * Get redirect URI path.
+   * @param uri path
+   * @return null if no redirect; redirect path otherwise
+   */
   public String getRedirectUri(String uri) {
-    if (pathRegex != null) {
-      int indx1 = uri.indexOf('?');
-      final int indx2 = uri.indexOf('#');
-      if (indx1 == -1) {
-        indx1 = indx2;
-      }
-      String p;
-      if (indx1 != -1) {
-        p = uri.substring(0, indx1);
-      } else {
-        p = uri;
-      }
-      p = p.replaceAll(pathRegex, this.redirectPath);
-      if (indx1 != -1) {
-        p = p.concat(uri.substring(indx1));
-      }
-      return p;
-    } else if (path != null) {
+    if (path != null) {
       return redirectPath + uri.substring(path.length());
-    } else {
-      return null;
     }
+    final int indx1 = cutUri(uri);
+    String p = this.redirectPath;
+    if (indx1 < uri.length()) {
+      p = p.concat(uri.substring(indx1));
+    }
+    return p;
   }
 
   public String getPhase() {
     return phase;
   }
 
+  /**
+   * Set routing entry phrase.
+   * @param phase such as "auth", "pre", ..
+   */
   public void setPhase(String phase) {
-    if (null == phase) {
-      throw new DecodeException("Invalid phase " + phase);
-    } else {
+    if (phase != null) {
       switch (phase) {
         case "auth":
           phaseLevel = "10";
@@ -332,6 +409,22 @@ public class RoutingEntry {
     this.phase = phase;
   }
 
+  @JsonProperty("delegateCORS")
+  public boolean isDelegateCors() {
+    return delegateCors;
+  }
+
+  public void setDelegateCors(boolean delegateCors) {
+    this.delegateCors = delegateCors;
+  }
+
+  /**
+   * Validate handler of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Proxy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateHandlers(ProxyContext pc, String mod) {
     String section = "handlers";
     String err = validateCommon(pc, section, mod);
@@ -339,18 +432,25 @@ public class RoutingEntry {
       String prefix = "Module '" + mod + "' " + section;
       if (phase != null) {
         pc.warn(prefix
-          + " uses 'phase' in the handlers section. "
-          + "Leave it out");
+            + " uses 'phase' in the handlers section. "
+            + "Leave it out");
       }
-      if (type != null && "request-response".equals(type)) {
+      if ("request-response".equals(type)) {
         pc.warn(prefix
-          + " uses type=request-response. "
-          + "That is the default, you can leave it out");
+            + " uses type=request-response. "
+            + "That is the default, you can leave it out");
       }
     }
     return err;
   }
 
+  /**
+   * Validate filters of routing entry.
+   * May log warnings via ProxyContext.warn.
+   * @param pc Proxy context
+   * @param mod module name
+   * @return empty string if OK; non-empty string with message otherwise
+   */
   public String validateFilters(ProxyContext pc, String mod) {
     return validateCommon(pc, "filters", mod);
   }
@@ -364,9 +464,9 @@ public class RoutingEntry {
     }
     prefix += ": ";
     pc.debug(prefix
-      + "Validating RoutingEntry " + Json.encode(this));
+        + "Validating RoutingEntry " + Json.encode(this));
     if ((path == null || path.isEmpty())
-      && (pathPattern == null || pathPattern.isEmpty())) {
+        && (pathPattern == null || pathPattern.isEmpty())) {
       return "Bad routing entry, needs a pathPattern or at least a path";
     }
 
@@ -377,29 +477,29 @@ public class RoutingEntry {
     } else {
       if (redirectPath != null && !redirectPath.isEmpty()) {
         pc.warn(prefix
-          + "has a redirectPath, even though it is not a redirect");
+            + "has a redirectPath, even though it is not a redirect");
       }
       if (pathPattern == null || pathPattern.isEmpty()) {
         pc.warn(prefix
-          + " uses old type path"
-          + ". Use a pathPattern instead");
+            + " uses old type path"
+            + ". Use a pathPattern instead");
       }
-      if (level != null && !"toplevel".equals(section)) {
-        String ph = "";  // toplevel has a higher-level warning
+      if (level != null) {
+        String ph = "";
         if ("filters".equals(section)) {
           ph = "Use a phase=auth instead";
         }
         pc.warn(prefix
-          + "uses DEPRECATED level. " + ph);
+            + "uses DEPRECATED level. " + ph);
       }
 
       if (pathPattern != null && pathPattern.endsWith("/")) {
         pc.warn(prefix
-          + "ends in a slash. Probably not what you intend");
+            + "ends in a slash. Probably not what you intend");
       }
       if ("system".equals(type)) {
         pc.warn(prefix
-          + "uses DEPRECATED type 'system'");
+            + "uses DEPRECATED type 'system'");
       }
     }
     return "";
