@@ -46,7 +46,6 @@ import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.CorsHelper;
-import org.folio.okapi.util.DropwizardHelper;
 import org.folio.okapi.util.ProxyContext;
 
 
@@ -531,10 +530,6 @@ public class ProxyService {
         }
         List<ModuleDescriptor> enabledModules = mres.result();
 
-        String metricKey = "proxy." + tenantId + "."
-            + ctx.request().method() + "." + ctx.normalisedPath();
-        DropwizardHelper.markEvent(metricKey);
-
         List<ModuleInstance> l = getModulesForRequest(pc, enabledModules);
         if (l == null) {
           stream.resume();
@@ -935,13 +930,7 @@ public class ProxyService {
       pc.responseError(404, ""); // Should have been caught earlier
     } else {
       ModuleInstance mi = it.next();
-      String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
-      if (tenantId == null || tenantId.isEmpty()) {
-        tenantId = "???"; // Should not happen, we have validated earlier
-      }
-      String metricKey = "proxy." + tenantId
-          + ".module." + mi.getModuleDescriptor().getId();
-      pc.startTimer(metricKey);
+      pc.startTimer();
 
       // Pass the right token
       ctx.request().headers().remove(XOkapiHeaders.TOKEN);
