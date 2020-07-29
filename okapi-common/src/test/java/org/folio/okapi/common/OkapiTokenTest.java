@@ -10,8 +10,12 @@ public class OkapiTokenTest {
 
   @Test
   public void test() {
+    String username = "tenant_user_id";
+    String userId = "a9b62db1-f313-48eb-a64c-68a6f2b7fe36";
     JsonObject o = new JsonObject();
     o.put("tenant", "test-lib");
+    o.put("sub", username);
+    o.put("user_id", userId);
     o.put("foo", "bar");
     String s = o.encodePrettily();
     byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
@@ -19,6 +23,8 @@ public class OkapiTokenTest {
     String tokenStr = "method." + e + ".trail";
     OkapiToken tok = new OkapiToken(tokenStr);
     Assert.assertEquals("test-lib", tok.getTenant());
+    Assert.assertEquals(username, tok.getUsername());
+    Assert.assertEquals(userId, tok.getUserId());
   }
 
   @Test
