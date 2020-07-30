@@ -33,6 +33,14 @@ public class FolioLoggingContextTest {
   }
 
   @Test
+  public void putWithoutContextTest(TestContext context) {
+    FolioLoggingContext loggingContext = new FolioLoggingContext();
+    FolioLoggingContext.put(KEY, VALUE);
+    context.assertEquals(EMPTY_STRING, loggingContext.lookup(KEY));
+  }
+
+
+  @Test
   public void lookupWithoutContextTest(TestContext context) {
     FolioLoggingContext loggingContext = new FolioLoggingContext();
     context.assertEquals(EMPTY_STRING, loggingContext.lookup(KEY));
