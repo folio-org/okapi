@@ -523,8 +523,6 @@ public class ProxyService {
         headers.get(XOkapiHeaders.REQUEST_ID));
     FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME,
         headers.get(XOkapiHeaders.MODULE_ID));
-    FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
-        headers.get(XOkapiHeaders.USER_ID));
 
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
