@@ -53,4 +53,30 @@ public class OkapiToken {
     JsonObject pl = this.getPayloadWithoutValidation();
     return pl.getString("tenant");
   }
+
+  /**
+   * Get the user name out from the token.
+   * Note there is no JWT validation taking place.
+   * @return null if no token, or no tenant there
+   */
+  public String getUsername() {
+    if (token == null) {
+      return null;
+    }
+    JsonObject pl = this.getPayloadWithoutValidation();
+    return pl.getString("sub");
+  }
+
+  /**
+   * Get the user id out from the token.
+   * Note there is no JWT validation taking place.
+   * @return null if no token, or no tenant there
+   */
+  public String getUserId() {
+    if (token == null) {
+      return null;
+    }
+    JsonObject pl = this.getPayloadWithoutValidation();
+    return pl.getString("user_id");
+  }
 }

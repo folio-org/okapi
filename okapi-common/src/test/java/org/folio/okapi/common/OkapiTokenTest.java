@@ -1,6 +1,9 @@
 package org.folio.okapi.common;
 
 import io.vertx.core.json.JsonObject;
+
+import static org.junit.Assert.assertNull;
+
 import java.util.Base64;
 import org.junit.Assert;
 import org.junit.Test;
@@ -8,10 +11,15 @@ import org.junit.Test;
 
 public class OkapiTokenTest {
 
+  private static final String USERNAME = "tenant_user_id";
+  private static final String USERID = "a9b62db1-f313-48eb-a64c-68a6f2b7fe36";
+
   @Test
   public void test() {
     JsonObject o = new JsonObject();
     o.put("tenant", "test-lib");
+    o.put("sub", USERNAME);
+    o.put("user_id", USERID);
     o.put("foo", "bar");
     String s = o.encodePrettily();
     byte[] encodedBytes = Base64.getEncoder().encode(s.getBytes());
@@ -19,6 +27,15 @@ public class OkapiTokenTest {
     String tokenStr = "method." + e + ".trail";
     OkapiToken tok = new OkapiToken(tokenStr);
     Assert.assertEquals("test-lib", tok.getTenant());
+    Assert.assertEquals(USERNAME, tok.getUsername());
+    Assert.assertEquals(USERID, tok.getUserId());
+  }
+
+  @Test
+  public void testNullToken() {
+    OkapiToken tok = new OkapiToken(null);
+    assertNull(tok.getUsername());
+    assertNull(tok.getUserId());
   }
 
   @Test
