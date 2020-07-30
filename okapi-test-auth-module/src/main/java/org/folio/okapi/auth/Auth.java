@@ -13,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
-import org.folio.okapi.common.logging.FolioLoggingContext;
 
 /**
  * A dummy auth module. Provides a minimal authentication mechanism.
@@ -223,8 +222,6 @@ class Auth {
     }
     // Fake some module tokens
     String modTok = moduleTokens(ctx);
-    FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
-        userId);
     ctx.response().headers()
         .add(XOkapiHeaders.TOKEN, tok)
         .add(XOkapiHeaders.MODULE_TOKENS, modTok)

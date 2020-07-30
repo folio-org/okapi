@@ -12,7 +12,8 @@ import java.util.Base64;
  * tenant-id, or some other piece of information.
  */
 public class OkapiToken {
-  private String token;
+  private final String token;
+  private final JsonObject payloadWithoutValidation;
 
   /**
    * Construct from token string.
@@ -20,6 +21,7 @@ public class OkapiToken {
    */
   public OkapiToken(String token) {
     this.token = token;
+    payloadWithoutValidation = this.getPayloadWithoutValidation();
   }
 
   private JsonObject getPayloadWithoutValidation() {
@@ -50,8 +52,7 @@ public class OkapiToken {
     if (token == null) {
       return null;
     }
-    JsonObject pl = this.getPayloadWithoutValidation();
-    return pl.getString("tenant");
+    return payloadWithoutValidation.getString("tenant");
   }
 
   /**
@@ -63,8 +64,7 @@ public class OkapiToken {
     if (token == null) {
       return null;
     }
-    JsonObject pl = this.getPayloadWithoutValidation();
-    return pl.getString("sub");
+    return payloadWithoutValidation.getString("sub");
   }
 
   /**
@@ -76,7 +76,6 @@ public class OkapiToken {
     if (token == null) {
       return null;
     }
-    JsonObject pl = this.getPayloadWithoutValidation();
-    return pl.getString("user_id");
+    return payloadWithoutValidation.getString("user_id");
   }
 }

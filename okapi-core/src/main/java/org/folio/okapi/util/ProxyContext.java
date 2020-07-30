@@ -20,7 +20,7 @@ import org.folio.okapi.common.XOkapiHeaders;
  * used for Okapi's own services, without the modList. Also has lots of helpers
  * for logging, in order to get the request-id in most log messages.
  */
-@java.lang.SuppressWarnings({"squid:S1192"})
+@SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
   private final Logger logger = OkapiLogger.get();
@@ -41,6 +41,7 @@ public class ProxyContext {
   private final MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
 
   private final Messages messages = Messages.getInstance();
+  private String userId;
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -269,4 +270,11 @@ public class ProxyContext {
     logger.trace("{} {}", getReqId(), msg);
   }
 
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
 }
