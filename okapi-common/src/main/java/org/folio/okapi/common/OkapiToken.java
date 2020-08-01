@@ -25,6 +25,9 @@ public class OkapiToken {
   }
 
   private JsonObject getPayloadWithoutValidation() {
+    if (token == null) {
+      return null;
+    }
     int idx1 = token.indexOf('.');
     if (idx1 == -1) {
       throw new IllegalArgumentException("Missing . separator for token");
@@ -43,16 +46,20 @@ public class OkapiToken {
     }
   }
 
+  private String getFieldFromToken(String field) {
+    if (payloadWithoutValidation == null) {
+      return null;
+    }
+    return payloadWithoutValidation.getString(field);
+  }
+
   /**
    * Get the tenant out from the token.
    * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
   public String getTenant() {
-    if (token == null) {
-      return null;
-    }
-    return payloadWithoutValidation.getString("tenant");
+    return getFieldFromToken("tenant");
   }
 
   /**
@@ -61,10 +68,7 @@ public class OkapiToken {
    * @return null if no token, or no tenant there
    */
   public String getUsername() {
-    if (token == null) {
-      return null;
-    }
-    return payloadWithoutValidation.getString("sub");
+    return getFieldFromToken("sub");
   }
 
   /**
@@ -73,9 +77,6 @@ public class OkapiToken {
    * @return null if no token, or no tenant there
    */
   public String getUserId() {
-    if (token == null) {
-      return null;
-    }
-    return payloadWithoutValidation.getString("user_id");
+    return getFieldFromToken("user_id");
   }
 }

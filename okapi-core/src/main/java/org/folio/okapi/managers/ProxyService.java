@@ -284,7 +284,7 @@ public class ProxyService {
 
     OkapiToken okapiToken = null;
 
-    if (tenantId == null || userId == null) {
+    if (tenantId == null) {
       try {
         okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
       } catch (IllegalArgumentException e) {
@@ -293,8 +293,18 @@ public class ProxyService {
       }
     }
 
+    // userId does not exist all the time
     if (userId == null) {
-      pc.setUserId(okapiToken.getUserId());
+      if (okapiToken == null) {
+        try {
+          okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+        } catch (IllegalArgumentException e) {
+          okapiToken = null;
+        }
+      }
+      if (okapiToken != null) {
+        pc.setUserId(okapiToken.getUserId());
+      }
     }
 
     if (tenantId == null) {
@@ -303,16 +313,14 @@ public class ProxyService {
         ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
         pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
       }
-
       if (tenantId == null) {
         logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
         tenantId = XOkapiHeaders.SUPERTENANT_ID;
         ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
       }
-
-      pc.setTenant(tenantId);
     }
 
+    pc.setTenant(tenantId);
   }
 
   /**
