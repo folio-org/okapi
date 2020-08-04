@@ -3,6 +3,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -13,7 +14,6 @@ import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -221,31 +221,31 @@ public class SampleModuleTest {
     for (int loop = 0; loop < 2; loop++) {
       Async async = context.async();
       logger.info("Sending {} GB", total / 1e9);
-      HttpClientRequest request = HttpClientLegacy.post(client, PORT, "localhost", "/testb", res -> {
-        context.assertEquals(200, res.statusCode());
-        AtomicLong cnt = new AtomicLong();
-        res.handler(h -> cnt.addAndGet(h.length()));
-        res.exceptionHandler(ex -> {
-          context.fail(ex);
-          async.complete();
-        });
-        res.endHandler(end -> {
-          context.assertEquals(total + 6, cnt.get());
-          async.complete();
+      client.request(HttpMethod.POST, PORT, "localhost", "/testb", ar -> {
+        context.assertTrue(ar.succeeded());
+        HttpClientRequest request = ar.result();
+        request.putHeader("Content-Type", "text/plain");
+        request.putHeader("Accept", "text/plain");
+        request.setChunked(true);
+        Buffer buffer = Buffer.buffer();
+        for (int j = 0; j < bufSz; j++) {
+          buffer.appendString("X");
+        }
+        endRequest(request, buffer, 0, bufCnt);
+        request.onSuccess(res -> {
+          context.assertEquals(200, res.statusCode());
+          AtomicLong cnt = new AtomicLong();
+          res.handler(h -> cnt.addAndGet(h.length()));
+          res.exceptionHandler(ex -> {
+            context.fail(ex);
+            async.complete();
+          });
+          res.endHandler(end -> {
+            context.assertEquals(total + 6, cnt.get());
+            async.complete();
+          });
         });
       });
-      request.exceptionHandler(ex -> {
-        context.fail(ex.getCause());
-        async.complete();
-      });
-      request.putHeader("Content-Type", "text/plain");
-      request.putHeader("Accept", "text/plain");
-      request.setChunked(true);
-      Buffer buffer = Buffer.buffer();
-      for (int j = 0; j < bufSz; j++) {
-        buffer.appendString("X");
-      }
-      endRequest(request, buffer, 0, bufCnt);
       async.await(50000);
     }
   }

@@ -1,5 +1,7 @@
 package org.folio.okapi.common;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
@@ -20,14 +22,15 @@ public class HttpClientLegacy {
    * @param socketAddress socket address
    * @param url Full URL
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
-                                             SocketAddress socketAddress, String url,
-                                             Handler<HttpClientResponse> response) {
-    return client.request(socketAddress,
-        new RequestOptions().setMethod(method).setAbsoluteURI(url))
-        .onSuccess(response);
+  public static void requestAbs(HttpClient client, HttpMethod method,
+                                SocketAddress socketAddress, String url,
+                                Handler<AsyncResult<HttpClientRequest>> response) {
+    client.request(new RequestOptions()
+        .setMethod(method)
+        .setAbsoluteURI(url)
+        .setServer(socketAddress))
+        .onComplete(response);
   }
 
   /**
@@ -36,15 +39,14 @@ public class HttpClientLegacy {
    * @param method HTTP method
    * @param url Full URL
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest requestAbs(HttpClient client, HttpMethod method,
-                                             String url, Handler<HttpClientResponse> response) {
-    return client.request(
-        new RequestOptions().setMethod(method).setAbsoluteURI(url))
-        .onSuccess(response);
+  public static void requestAbs(HttpClient client, HttpMethod method,
+                                String url, Handler<AsyncResult<HttpClientRequest>> response) {
+    client.request(new RequestOptions()
+        .setMethod(method)
+        .setAbsoluteURI(url))
+        .onComplete(response);
   }
-
 
   /**
    * Send HTTP request with style ala Vert.x 3.
@@ -53,14 +55,13 @@ public class HttpClientLegacy {
    * @param port server port
    * @param host server host
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest request(HttpClient client, HttpMethod method, int port,
-                                          String host, String uri,
-                                          Handler<HttpClientResponse> response) {
-    return client.request(
+  public static void request(HttpClient client, HttpMethod method, int port,
+                             String host, String uri,
+                             Handler<AsyncResult<HttpClientRequest>> response) {
+    client.request(
         new RequestOptions().setMethod(method).setHost(host).setPort(port).setURI(uri))
-        .onSuccess(response);
+        .onComplete(response);
   }
 
   /**
@@ -69,12 +70,11 @@ public class HttpClientLegacy {
    * @param port server port
    * @param host server host
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest post(HttpClient client, int port,
-                                       String host, String uri,
-                                       Handler<HttpClientResponse> response) {
-    return request(client, HttpMethod.POST, port, host, uri, response);
+  public static void post(HttpClient client, int port,
+                          String host, String uri,
+                          Handler<AsyncResult<HttpClientRequest>> response) {
+    request(client, HttpMethod.POST, port, host, uri, response);
   }
 
   /**
@@ -83,12 +83,11 @@ public class HttpClientLegacy {
    * @param port server port
    * @param host server host
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest get(HttpClient client, int port,
-                                      String host, String uri,
-                                      Handler<HttpClientResponse> response) {
-    return request(client, HttpMethod.GET, port, host, uri, response);
+  public static void get(HttpClient client, int port,
+                         String host, String uri,
+                         Handler<AsyncResult<HttpClientRequest>> response) {
+    request(client, HttpMethod.GET, port, host, uri, response);
   }
 
   /**
@@ -97,11 +96,10 @@ public class HttpClientLegacy {
    * @param port server port
    * @param host server host
    * @param response response handler
-   * @return handler for HTTP request
    */
-  public static HttpClientRequest delete(HttpClient client, int port,
-                                         String host, String uri,
-                                         Handler<HttpClientResponse> response) {
-    return request(client, HttpMethod.DELETE, port, host, uri, response);
+  public static void delete(HttpClient client, int port,
+                            String host, String uri,
+                            Handler<AsyncResult<HttpClientRequest>> response) {
+    request(client, HttpMethod.DELETE, port, host, uri, response);
   }
 }

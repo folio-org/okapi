@@ -356,39 +356,28 @@ public class OkapiClientTest {
     StringBuilder b = new StringBuilder();
 
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, URL + "/test1", res -> {
-      b.append("response");
-      context.assertEquals(200, res.statusCode());
-      async.complete();
-    });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
+    HttpClientLegacy.requestAbs(client,
+      HttpMethod.GET, URL + "/test1", context.asyncAssertSuccess(request -> {
+          request.onSuccess(response -> {
+            b.append("response");
+            context.assertEquals(200, response.statusCode());
+            async.complete();
+          });
+          request.exceptionHandler(ex -> {
+            b.append("exception");
+            async.complete();
+          });
+          request.end();
+        }));
     async.await();
     context.assertEquals("response", b.toString());
   }
 
   @Test
   public void testLegacyRequestAbsFail(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, BAD_URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("exception", b.toString());
+    HttpClientLegacy.requestAbs(client,
+        HttpMethod.GET, BAD_URL + "/test1", context.asyncAssertFailure());
   }
 
   @Test
@@ -398,39 +387,30 @@ public class OkapiClientTest {
 
     HttpClient client = vertx.createHttpClient();
     SocketAddress sa = SocketAddress.inetSocketAddress(PORT, LOCALHOST);
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, sa, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
+
+    HttpClientLegacy.requestAbs(client,
+        HttpMethod.GET, sa, URL + "/test1", context.asyncAssertSuccess(request -> {
+          request.onSuccess(response -> {
+            b.append("response");
+            context.assertEquals(200, response.statusCode());
+            async.complete();
+          });
+          request.exceptionHandler(ex -> {
+            b.append("exception");
+            async.complete();
+          });
+          request.end();
+        }));
     async.await();
     context.assertEquals("response", b.toString());
   }
 
   @Test
   public void testLegacyRequestAbsSocketFail(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
     HttpClient client = vertx.createHttpClient();
     SocketAddress sa = SocketAddress.inetSocketAddress(BAD_PORT, LOCALHOST);
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-        HttpMethod.GET, sa, URL + "/test1", res -> {
-          b.append("response");
-          async.complete();
-        });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("exception", b.toString());
+    HttpClientLegacy.requestAbs(client,
+        HttpMethod.GET, sa, URL + "/test1", context.asyncAssertFailure());
   }
 
   @Test
@@ -439,38 +419,28 @@ public class OkapiClientTest {
     StringBuilder b = new StringBuilder();
 
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.get(client,
-      PORT, LOCALHOST, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
+    HttpClientLegacy.get(client,
+        PORT, LOCALHOST, URL + "/test1", context.asyncAssertSuccess(request -> {
+          request.onSuccess(response -> {
+            b.append("response");
+            context.assertEquals(200, response.statusCode());
+            async.complete();
+          });
+          request.exceptionHandler(ex -> {
+            b.append("exception");
+            async.complete();
+          });
+          request.end();
+        }));
     async.await();
     context.assertEquals("response", b.toString());
   }
 
   @Test
   public void testLegacyGetFail(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.get(client,
-        BAD_PORT, LOCALHOST, URL + "/test1", res -> {
-          b.append("response");
-          async.complete();
-        });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("exception", b.toString());
+    HttpClientLegacy.get(client,
+        BAD_PORT, LOCALHOST, URL + "/test1", context.asyncAssertFailure());
   }
 
   @Test
@@ -480,16 +450,19 @@ public class OkapiClientTest {
 
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.delete(client,
-      PORT, LOCALHOST, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
+    HttpClientLegacy.delete(client,
+        PORT, LOCALHOST, URL + "/test1", context.asyncAssertSuccess(request -> {
+          request.onSuccess(response -> {
+            b.append("response");
+            context.assertEquals(204, response.statusCode());
+            async.complete();
+          });
+          request.exceptionHandler(ex -> {
+            b.append("exception");
+            async.complete();
+          });
+          request.end();
+        }));
     async.await();
     context.assertEquals("response", b.toString());
   }
@@ -501,16 +474,19 @@ public class OkapiClientTest {
 
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.post(client,
-        PORT, LOCALHOST, URL + "/test1", res -> {
-          b.append("response");
-          async.complete();
-        });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
+    HttpClientLegacy.post(client,
+        PORT, LOCALHOST, URL + "/test1", context.asyncAssertSuccess(requestAbs -> {
+          requestAbs.onSuccess(response -> {
+            b.append("response");
+            context.assertEquals(200, response.statusCode());
+            async.complete();
+          });
+          requestAbs.exceptionHandler(ex -> {
+            b.append("exception");
+            async.complete();
+          });
+          requestAbs.end();
+        }));
     async.await();
     context.assertEquals("response", b.toString());
   }

@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -578,30 +579,35 @@ public class DiscoveryManager implements NodeListener {
       hd.setHealthMessage("Unknown");
       hd.setHealthStatus(false);
       fut.handle(new Success<>(hd));
-    } else {
-      HttpClientRequest req = httpClient.request(
-          new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
-          .onComplete(res1 -> {
-            if (res1.failed()) {
-              hd.setHealthMessage("Fail: " + res1.cause().getMessage());
-              hd.setHealthStatus(false);
-              fut.handle(new Success<>(hd));
-              return;
-            }
-            HttpClientResponse res2 = res1.result();
-            res2.endHandler(res -> {
-              hd.setHealthMessage("OK");
-              hd.setHealthStatus(true);
-              fut.handle(new Success<>(hd));
-            });
-            res2.exceptionHandler(res -> {
-              hd.setHealthMessage("Fail: " + res.getMessage());
-              hd.setHealthStatus(false);
-              fut.handle(new Success<>(hd));
-            });
-          });
-      req.end();
+      return;
     }
+    Future<HttpClientRequest> fut2 = httpClient.request(
+        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url));
+    fut2.onFailure(res -> {
+      hd.setHealthMessage("Fail: " + res.getMessage());
+      hd.setHealthStatus(false);
+      fut.handle(new Success<>(hd));
+    });
+    fut2.onSuccess(req -> {
+      req.end();
+      req.onFailure(res -> {
+        hd.setHealthMessage("Fail: " + res.getMessage());
+        hd.setHealthStatus(false);
+        fut.handle(new Success<>(hd));
+      });
+      req.onSuccess(response -> {
+        response.endHandler(res -> {
+          hd.setHealthMessage("OK");
+          hd.setHealthStatus(true);
+          fut.handle(new Success<>(hd));
+        });
+        response.exceptionHandler(res -> {
+          hd.setHealthMessage("Fail: " + res.getMessage());
+          hd.setHealthStatus(false);
+          fut.handle(new Success<>(hd));
+        });
+      });
+    });
   }
 
   void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {

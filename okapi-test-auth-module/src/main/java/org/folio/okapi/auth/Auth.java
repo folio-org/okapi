@@ -55,8 +55,8 @@ class Auth {
 
   public void login(RoutingContext ctx) {
     final String json = ctx.getBodyAsString();
-    if (json.length() == 0) {
-      logger.debug("test-auth: accept OK in login");
+    if (json == null || json.length() == 0) {
+      logger.info("test-auth: accept OK in login");
       HttpResponse.responseText(ctx, 202).end("Auth accept in /authn/login");
       return;
     }
@@ -82,7 +82,6 @@ class Auth {
     logger.info("test-auth: Ok login for {}: {}", u, tok);
     HttpResponse.responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
-
 
   /**
    * Fake some module permissions.
