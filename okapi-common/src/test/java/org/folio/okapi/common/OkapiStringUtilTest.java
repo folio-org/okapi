@@ -36,6 +36,7 @@ public class OkapiStringUtilTest {
     Assert.assertEquals("", OkapiStringUtil.removeLogCharacters(""));
     Assert.assertEquals("x", OkapiStringUtil.removeLogCharacters("x"));
     Assert.assertEquals("___", OkapiStringUtil.removeLogCharacters("\r\n\t"));
+    Assert.assertEquals("|", OkapiStringUtil.removeLogCharacters("|"));
   }
 
 }
