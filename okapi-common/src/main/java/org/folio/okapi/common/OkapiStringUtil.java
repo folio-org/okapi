@@ -26,7 +26,7 @@ public final class OkapiStringUtil {
     if (s == null) {
       return null;
     }
-    return s.replaceAll("[\n|\r|\t]", "_");
+    return s.replaceAll("[\\n|\\r|\\t]", "_");
   }
 
 }
