@@ -96,15 +96,14 @@ public class PullManager {
     for (ModuleDescriptor md : skipList) {
       idList[i++] = md.getId();
     }
-    Buffer requestBody = Buffer.buffer(Json.encodePrettily(idList));
-    final Buffer body = Buffer.buffer();
     httpClient.request(
         new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
         .onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())))
         .onSuccess(req -> {
-          req.end(requestBody);
+          req.end(Json.encodePrettily(idList));
           req.onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())));
           req.onSuccess(res -> {
+            final Buffer body = Buffer.buffer();
             res.handler(body::appendBuffer);
             res.endHandler(x -> {
               if (res.statusCode() != 200) {
