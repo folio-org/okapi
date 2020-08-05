@@ -91,15 +91,12 @@ public class PullManager {
     if (skipList != null) {
       url += "?full=true";
     }
-    final Buffer requestBody = Buffer.buffer();
-    if (skipList != null) {
-      String[] idList = new String[skipList.size()];
-      int i = 0;
-      for (ModuleDescriptor md : skipList) {
-        idList[i++] = md.getId();
-      }
-      requestBody.appendString(Json.encodePrettily(idList));
+    String[] idList = new String[skipList.size()];
+    int i = 0;
+    for (ModuleDescriptor md : skipList) {
+      idList[i++] = md.getId();
     }
+    Buffer requestBody = Buffer.buffer(Json.encodePrettily(idList));
     final Buffer body = Buffer.buffer();
     httpClient.request(
         new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
