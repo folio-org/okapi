@@ -52,36 +52,33 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.request(
-        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
-        .onComplete(res1 -> {
-          if (res1.failed()) {
-            logger.warn("pull for {} failed: {}", baseUrl,
-                res1.cause().getMessage(), res1.cause());
-            getRemoteUrl(it, fut);
-            return;
-          }
-          HttpClientResponse res = res1.result();
-          res.handler(body::appendBuffer);
-          res.endHandler(x -> {
-            if (res.statusCode() != 200) {
-              logger.warn("pull for {} failed with status {}",
-                  baseUrl, res.statusCode());
-              fut.handle(new Failure<>(ErrorType.USER,
-                  "pull for " + baseUrl + " returned status "
-                      + res.statusCode() + "\n" + body.toString()));
-            } else {
-              List<String> result = new LinkedList<>();
-              result.add(baseUrl);
-              result.add(body.toString());
-              fut.handle(new Success<>(result));
-            }
-          });
-          res.exceptionHandler(x
-              -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
-          );
-        });
-    req.end();
+    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
+      if (res1.failed()) {
+        logger.warn("pull for {} failed: {}", baseUrl,
+            res1.cause().getMessage(), res1.cause());
+        getRemoteUrl(it, fut);
+        return;
+      }
+      HttpClientResponse res = res1.result();
+      res.handler(body::appendBuffer);
+      res.endHandler(x -> {
+        if (res.statusCode() != 200) {
+          logger.warn("pull for {} failed with status {}",
+              baseUrl, res.statusCode());
+          fut.handle(new Failure<>(ErrorType.USER,
+              "pull for " + baseUrl + " returned status "
+                  + res.statusCode() + "\n" + body.toString()));
+        } else {
+          List<String> result = new LinkedList<>();
+          result.add(baseUrl);
+          result.add(body.toString());
+          fut.handle(new Success<>(result));
+        }
+      });
+      res.exceptionHandler(x
+          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
+      );
+    });
   }
 
   private void getList(String urlBase,
@@ -95,39 +92,37 @@ public class PullManager {
     if (skipList != null) {
       url += "?full=true";
     }
-    final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.request(
-        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
-        .onComplete(res1 -> {
-          if (res1.failed()) {
-            fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause().getMessage()));
-            return;
-          }
-          HttpClientResponse res = res1.result();
-          res.handler(body::appendBuffer);
-          res.endHandler(x -> {
-            if (res.statusCode() != 200) {
-              fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-              return;
-            }
-            ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-                ModuleDescriptor[].class);
-            fut.handle(new Success<>(ml));
-          });
-          res.exceptionHandler(x
-              -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
-        });
+    final Buffer requestBody = Buffer.buffer();
     if (skipList != null) {
       String[] idList = new String[skipList.size()];
       int i = 0;
       for (ModuleDescriptor md : skipList) {
-        idList[i] = md.getId();
-        i++;
+        idList[i++] = md.getId();
       }
-      req.end(Json.encodePrettily(idList));
-    } else {
-      req.end();
+      requestBody.appendString(Json.encodePrettily(idList));
     }
+    final Buffer body = Buffer.buffer();
+    httpClient.request(
+        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
+        .onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())))
+        .onSuccess(req -> {
+          req.end(requestBody);
+          req.onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())));
+          req.onSuccess(res -> {
+            res.handler(body::appendBuffer);
+            res.endHandler(x -> {
+              if (res.statusCode() != 200) {
+                fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+                return;
+              }
+              ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
+                  ModuleDescriptor[].class);
+              fut.handle(new Success<>(ml));
+            });
+            res.exceptionHandler(x
+                -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
+          });
+        });
   }
 
   private void pullSmart(String remoteUrl, Collection<ModuleDescriptor> localList,

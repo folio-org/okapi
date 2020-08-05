@@ -20,6 +20,8 @@ import io.vertx.sqlclient.Tuple;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collector;
+
+import io.vertx.sqlclient.spi.DatabaseMetadata;
 import org.folio.okapi.common.ErrorType;
 
 import org.junit.After;
@@ -125,6 +127,11 @@ public class PostgresQueryTest {
     @Override
     public void close(Handler<AsyncResult<Void>> handler) {
 
+    }
+
+    @Override
+    public DatabaseMetadata databaseMetadata() {
+      return null;
     }
 
     @Override

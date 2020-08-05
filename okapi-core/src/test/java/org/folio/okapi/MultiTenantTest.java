@@ -1,7 +1,6 @@
 package org.folio.okapi;
 
 import io.restassured.RestAssured;
-import static io.restassured.RestAssured.given;
 import io.restassured.response.Response;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
@@ -11,15 +10,16 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
 import org.junit.runner.RunWith;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 @RunWith(VertxUnitRunner.class)
@@ -143,14 +143,14 @@ public class MultiTenantTest {
     Async async = context.async();
     HttpClient httpClient = vertx.createHttpClient();
 
-    HttpClientLegacy.delete(httpClient, port, "localhost",
-      "/_/discovery/modules", response -> {
+    httpClient.delete(port, "localhost",
+      "/_/discovery/modules", context.asyncAssertSuccess(response -> {
       context.assertEquals(204, response.statusCode());
       response.endHandler(x -> {
         httpClient.close();
         td(context, async);
       });
-    }).end();
+    }));
   }
 
   @Test

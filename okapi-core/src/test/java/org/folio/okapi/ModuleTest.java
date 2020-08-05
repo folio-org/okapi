@@ -35,7 +35,6 @@ import io.restassured.RestAssured;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
-import io.restassured.http.Header;
 import io.restassured.http.Headers;
 import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
@@ -44,7 +43,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
@@ -180,59 +178,56 @@ public class ModuleTest {
 
   private void td(TestContext context) {
     if (locationAuthDeployment != null) {
-      HttpClientLegacy.delete(httpClient, port, "localhost",
-        locationAuthDeployment, response -> {
+      httpClient.delete(port, "localhost", locationAuthDeployment,
+          context.asyncAssertSuccess(response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationAuthDeployment = null;
           td(context);
         });
-      }).end();
+      }));
       return;
     }
     if (locationSampleDeployment != null) {
-      HttpClientLegacy.delete(httpClient, port, "localhost",
-        locationSampleDeployment, response -> {
-        context.assertEquals(204, response.statusCode());
-        locationSampleDeployment = null;
-        td(context);
-      }).exceptionHandler(x -> {
-        locationSampleDeployment = null;
-        td(context);
-      }).end();
+      httpClient.delete(port, "localhost", locationSampleDeployment,
+          context.asyncAssertSuccess(response -> {
+            context.assertEquals(204, response.statusCode());
+            locationSampleDeployment = null;
+            td(context);
+          }));
       return;
     }
     if (locationHeaderDeployment != null) {
-      HttpClientLegacy.delete(httpClient, port, "localhost",
-        locationHeaderDeployment, response -> {
+      httpClient.delete(port, "localhost", locationHeaderDeployment,
+          context.asyncAssertSuccess(response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationHeaderDeployment = null;
           td(context);
         });
-      }).end();
+      }));
       return;
     }
     if (locationPreDeployment != null) {
-      HttpClientLegacy.delete(httpClient, port, "localhost",
-        locationPreDeployment, response -> {
+      httpClient.delete(port, "localhost",
+        locationPreDeployment, context.asyncAssertSuccess(response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPreDeployment = null;
           td(context);
         });
-      }).end();
+      }));
       return;
     }
     if (locationPostDeployment != null) {
-      HttpClientLegacy.delete(httpClient, port, "localhost",
-        locationPostDeployment, response -> {
+      httpClient.delete(port, "localhost",
+        locationPostDeployment, context.asyncAssertSuccess(response -> {
         context.assertEquals(204, response.statusCode());
         response.endHandler(x -> {
           locationPostDeployment = null;
           td(context);
         });
-      }).end();
+      }));
       return;
     }
     vertx.close(x -> {
