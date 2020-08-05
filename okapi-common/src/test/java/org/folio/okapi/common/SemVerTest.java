@@ -66,10 +66,8 @@ public class SemVerTest {
     SemVer p7 = createVersion("1.0.0-rc.1", true, false);
     SemVer p8 = createVersion("1.0.0", false, false);
     assertNotEquals(p1, p2);
-    assertEquals(p1, p1);
     SemVer p1Copy = createVersion("1.0.0-alpha", true, false);
     assertEquals(p1, p1Copy);
-    assertNotEquals(p1, this);
 
     assertTrue(p1.hasPrefix(v1));
     assertTrue(p7.hasPrefix(v1));

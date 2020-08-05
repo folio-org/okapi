@@ -14,6 +14,7 @@ import org.folio.okapi.common.Success;
 
 public class CompList<T> {
 
+  @java.lang.SuppressWarnings({"squid:S3740"}) // Raw types should not be used
   final List<Future> futures = new LinkedList<>();
   final ErrorType errorType;
 
@@ -25,6 +26,7 @@ public class CompList<T> {
     errorType = type;
   }
 
+  @java.lang.SuppressWarnings({"squid:S3740"}) // Raw types should not be used
   public void add(Promise p) {
     futures.add(p.future());
   }
@@ -64,7 +66,7 @@ public class CompList<T> {
    */
   public void seq(Handler<ExtendedAsyncResult<Void>> fut) {
     Future<Void> future = Future.succeededFuture();
-    for (Future f : futures) {
+    for (Future<Void> f : futures) {
       future = future.compose(x -> {
         if (f.failed()) {
           return Future.failedFuture(f.cause());
