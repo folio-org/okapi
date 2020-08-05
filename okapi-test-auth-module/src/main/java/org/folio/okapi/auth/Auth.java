@@ -173,8 +173,10 @@ class Auth {
 
       String[] splitTok = tok.split("\\.");
       if (splitTok.length != 3) {
-        logger.warn("test-auth: Bad JWT, can not split in three parts. '{}",
-            OkapiStringUtil.removeLogCharacters(tok));
+        if (logger.isWarnEnabled()) {
+          logger.warn("test-auth: Bad JWT, can not split in three parts. '{}",
+              OkapiStringUtil.removeLogCharacters(tok));
+        }
         HttpResponse.responseError(ctx, 400, "Auth.check: Bad JWT");
         return;
       }
@@ -197,7 +199,9 @@ class Auth {
         return;
       }
       final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
-      logger.info("ovTok={}", OkapiStringUtil.removeLogCharacters(ovTok));
+      if (logger.isInfoEnabled()) {
+        logger.info("ovTok={}", OkapiStringUtil.removeLogCharacters(ovTok));
+      }
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
         HttpResponse.responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
@@ -205,8 +209,10 @@ class Auth {
     }
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null) {
-      logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
-          XOkapiHeaders.PERMISSIONS_REQUIRED, OkapiStringUtil.removeLogCharacters(req));
+      if (logger.isWarnEnabled()) {
+        logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
+            XOkapiHeaders.PERMISSIONS_REQUIRED, OkapiStringUtil.removeLogCharacters(req));
+      }
       HttpResponse.responseError(ctx, 403, "/_/tenant can not require permissions");
       return;
     }
