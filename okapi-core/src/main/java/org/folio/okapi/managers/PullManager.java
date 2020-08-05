@@ -87,10 +87,7 @@ public class PullManager {
     if (!url.endsWith("/")) {
       url += "/";
     }
-    url += "_/proxy/modules";
-    if (skipList != null) {
-      url += "?full=true";
-    }
+    url += "_/proxy/modules?full=true";
     String[] idList = new String[skipList.size()];
     int i = 0;
     for (ModuleDescriptor md : skipList) {
