@@ -12,7 +12,6 @@ import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
 import org.junit.Assume;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -52,7 +51,6 @@ public class DockerModuleHandleTest {
     Assert.assertEquals("", s.toString());
   }
 
-  @Ignore
   public void testNoDockerAtPort(TestContext context) {
     Vertx vertx = Vertx.vertx();
 

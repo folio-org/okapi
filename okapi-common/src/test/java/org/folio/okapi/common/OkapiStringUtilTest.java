@@ -29,4 +29,13 @@ public class OkapiStringUtilTest {
     Assert.assertEquals("/abc/x-y-z/123/c", OkapiStringUtil.trimTrailingSlashes("/abc/x-y-z/123/c///"));
     Assert.assertEquals("\n\r\t ", OkapiStringUtil.trimTrailingSlashes("\n\r\t /"));
   }
+
+  @Test
+  public void removeLogCharacters() {
+    Assert.assertEquals(null, OkapiStringUtil.removeLogCharacters(null));
+    Assert.assertEquals("", OkapiStringUtil.removeLogCharacters(""));
+    Assert.assertEquals("x", OkapiStringUtil.removeLogCharacters("x"));
+    Assert.assertEquals("___", OkapiStringUtil.removeLogCharacters("\r\n\t"));
+  }
+
 }

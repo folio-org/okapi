@@ -597,19 +597,6 @@ public class ProxyService {
         mi.getModuleDescriptor().getId(), mi.getUrl(), e));
   }
 
-  private boolean proxyHttpFail(ProxyContext pc, ModuleInstance mi,
-                                AsyncResult<HttpClientResponse> res) {
-
-    if (res.succeeded()) {
-      return false;
-    }
-    String e = res.cause().getMessage();
-    pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
-    pc.responseError(500, messages.getMessage("10107",
-        mi.getModuleDescriptor().getId(), mi.getUrl(), e));
-    return true;
-  }
-
   private void proxyRequestHttpClient(
       Iterator<ModuleInstance> it,
       ProxyContext pc, Buffer bcontent, List<HttpClientRequest> clientRequestList,

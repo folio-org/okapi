@@ -5,8 +5,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
 import io.vertx.ext.web.RoutingContext;
@@ -49,8 +47,8 @@ public class OkapiClient {
    */
   public OkapiClient(RoutingContext ctx) {
     init(ctx.vertx(), ctx.vertx().createHttpClient());
-    this.okapiUrl = ctx.request().getHeader(XOkapiHeaders.URL);
-    this.okapiUrl = OkapiStringUtil.trimTrailingSlashes(this.okapiUrl);
+    this.okapiUrl = OkapiStringUtil.trimTrailingSlashes(
+        OkapiStringUtil.removeLogCharacters(ctx.request().getHeader(XOkapiHeaders.URL)));
     for (String hdr : ctx.request().headers().names()) {
       if (hdr.startsWith(XOkapiHeaders.PREFIX)
           || hdr.startsWith("Accept")) {
@@ -222,9 +220,7 @@ public class OkapiClient {
     long t1 = System.nanoTime();
     httpClient.request(
         new RequestOptions().setMethod(method).setAbsoluteURI(url))
-        .onFailure(res -> {
-          fut.handle(new Failure<>(ErrorType.ANY, res));
-        })
+        .onFailure(res -> fut.handle(new Failure<>(ErrorType.ANY, res)))
         .onSuccess(request -> {
           for (Map.Entry<String, String> entry : headers.entrySet()) {
             logger.debug("{} OkapiClient: adding header {}: {}", reqId,
