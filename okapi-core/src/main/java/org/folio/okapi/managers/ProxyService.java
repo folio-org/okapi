@@ -589,10 +589,9 @@ public class ProxyService {
     }
   }
 
-  private void proxyHttpFail(ProxyContext pc, ModuleInstance mi, Throwable res) {
-
+  private void proxyClientFailure(ProxyContext pc, ModuleInstance mi, Throwable res) {
     String e = res.getMessage();
-    pc.warn("proxyRequestHttpClient failure: " + mi.getUrl() + ": " + e);
+    pc.warn("proxyRequest failure: " + mi.getUrl() + ": " + e);
     pc.responseError(500, messages.getMessage("10107",
         mi.getModuleDescriptor().getId(), mi.getUrl(), e));
   }
@@ -607,7 +606,7 @@ public class ProxyService {
     HttpMethod meth = ctx.request().method();
     Future<HttpClientRequest> fut = httpClient.request(
         new RequestOptions().setMethod(meth).setAbsoluteURI(url));
-    fut.onFailure(res -> proxyHttpFail(pc, mi, res));
+    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
       copyHeaders(clientRequest, ctx, mi);
       pc.trace("ProxyRequestHttpClient request buf '"
@@ -617,7 +616,7 @@ public class ProxyService {
       }
       clientRequest.end(bcontent);
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyHttpFail(pc, mi, res));
+      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (newIt.hasNext()) {
@@ -790,7 +789,7 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     Future<HttpClientRequest> fut = httpClient.request(
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
-    fut.onFailure(res -> proxyHttpFail(pc, mi, res));
+    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
       copyHeaders(clientRequest, ctx, mi);
       if (bcontent != null) {
@@ -807,7 +806,7 @@ public class ProxyService {
         streamHandle(pc, stream, clientRequest, clientRequestList);
       }
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyHttpFail(pc, mi, res));
+      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
         fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
@@ -837,12 +836,12 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
     Future<HttpClientRequest> fut = httpClient.request(
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
-    fut.onFailure(res -> proxyHttpFail(pc, mi, res));
+    fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
       log(pc, clientRequest);
-      clientRequest.onFailure(res -> proxyHttpFail(pc, mi, res));
+      clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (newIt.hasNext()) {

@@ -19,6 +19,7 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -68,6 +69,7 @@ public class ProxyTest {
   private int timerDelaySum = 0;
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
+  private HttpServer listenTimer;
   private JsonObject timerPermissions = new JsonObject();
   private JsonArray edgePermissionsAtInit = null;
   private JsonObject timerTenantData;
@@ -284,7 +286,7 @@ public class ProxyTest {
 
     Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    listenTimer = vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(portTimer, x -> promise.handle(x.mapEmpty()));
     return promise.future();
@@ -3616,6 +3618,42 @@ public class ProxyTest {
   }
 
   @Test
+  public void testProxyClientFailure() {
+    String tenant = "test-tenant-permissions-tenant";
+    setupBasicTenant(tenant);
+
+    String moduleId = "module-1.0.0";
+    setupBasicModule(tenant, moduleId, "1.1", false);
+    RestAssuredClient c = api.createRestAssured3();
+
+    String body = new JsonObject().put("id", "test").encode();
+    c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant)
+        .body(body)
+        .post("/regularcall")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails();
+
+    // shut down listener for module so proxy client fails
+    listenTimer.close();
+    c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant)
+        .body(body)
+        .post("/regularcall")
+        .then()
+        .statusCode(500)
+        .log().ifValidationFails().assertThat().body(containsString("proxyClient failure"));
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(400);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId).then().statusCode(400);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  @Test
   public void testTenantPermissionsVersion() {
     String tenant = "test-tenant-permissions-tenant";
     String moduleId = "test-tenant-permissions-basic-module-1.0.0";
@@ -3627,7 +3665,7 @@ public class ProxyTest {
     // test _tenantpermissions 1.0 vs 1.1
     for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true);
       setupBasicAuth(tenant, authModuleId);
       // system generates permission sets for 1.1 version
       if (tenantPermissionsVersion.equals("1.0")) {
@@ -3673,7 +3711,7 @@ public class ProxyTest {
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
-    setupBasicModule(tenant, moduleId, "1.1");
+    setupBasicModule(tenant, moduleId, "1.1", false);
     setupBasicAuth(tenant, authModuleId);
 
     RestAssuredClient c = api.createRestAssured3();
@@ -3811,10 +3849,30 @@ public class ProxyTest {
   }
 
   // add basic module
-  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion) {
+  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion,
+                                boolean includeTimer) {
+    JsonArray providesAr = new JsonArray();
+    if (includeTimer) {
+        providesAr.add(new JsonObject()
+          .put("id", "_timer")
+          .put("version", "1.0")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+              .add(new JsonObject()
+                  .put("methods", new JsonArray().add("POST"))
+                  .put("pathPattern", "/timercall/1")
+                  .put("unit", "millisecond")
+                  .put("delay", "10")
+                  .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
+                  .put("modulePermissions", new JsonArray().add("timercall.test.post")))
+              .add(new JsonObject()
+                  .put("methods", new JsonArray().add("DELETE"))
+                  .put("pathPattern", "/timercall/{id}")
+                  .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))));
+    }
     String mdJson = new JsonObject()
       .put("id", moduleId)
-      .put("provides", new JsonArray()
+      .put("provides", providesAr
         .add(new JsonObject()
           .put("id", "_tenant")
           .put("version", "1.1")
@@ -3837,22 +3895,6 @@ public class ProxyTest {
               .put("methods", new JsonArray().add("POST"))
               .put("pathPattern", "/permissionscall")
               .put("permissionsRequired", new JsonArray()))))
-        .add(new JsonObject()
-          .put("id", "_timer")
-          .put("version", "1.0")
-          .put("interfaceType", "system")
-          .put("handlers", new JsonArray()
-            .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/timercall/1")
-              .put("unit", "millisecond")
-              .put("delay", "10")
-              .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
-              .put("modulePermissions", new JsonArray().add("timercall.test.post")))
-            .add(new JsonObject()
-              .put("methods", new JsonArray().add("DELETE"))
-              .put("pathPattern", "/timercall/{id}")
-              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
         .add(new JsonObject()
           .put("id", "myint")
           .put("version", "1.0")
