@@ -13,6 +13,7 @@ public class UrlDecoderTest {
     assertEquals("1 2", UrlDecoder.decode("1+2", true));
     assertEquals("1+2", UrlDecoder.decode("1+2", false));
     assertEquals("1+2", UrlDecoder.decode("1+2", false));
+    assertEquals("1 2 3", UrlDecoder.decode("1+2+3", true));
   }
 
 }

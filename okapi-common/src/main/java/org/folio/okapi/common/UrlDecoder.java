@@ -28,7 +28,7 @@ public class UrlDecoder {
    */
   public static String decode(String url, boolean plus) {
     if (!plus) {
-      return decode(url.replaceAll("\\+", "%2B"));
+      return decode(url.replace("+", "%2B"));
     } else {
       return decode(url);
     }
