@@ -568,6 +568,12 @@ public class ProxyService {
     });
   }
 
+  private static void clientsEnd(Buffer bcontent, List<HttpClientRequest> clientRequestList) {
+    for (HttpClientRequest r : clientRequestList) {
+      r.end(bcontent);
+    }
+  }
+
   private void proxyResponseImmediate(ProxyContext pc, ReadStream<Buffer> readStream,
                                       Buffer bcontent, List<HttpClientRequest> clientRequestList) {
 
@@ -580,9 +586,7 @@ public class ProxyService {
     }
     if (bcontent != null) {
       pc.closeTimer();
-      for (HttpClientRequest r : clientRequestList) {
-        r.end(bcontent);
-      }
+      clientsEnd(bcontent, clientRequestList);
       ctx.response().end(bcontent);
     } else {
       streamHandle(pc, readStream, ctx.response(), clientRequestList);
@@ -611,9 +615,7 @@ public class ProxyService {
       copyHeaders(clientRequest, ctx, mi);
       pc.trace("ProxyRequestHttpClient request buf '"
           + bcontent + "'");
-      for (HttpClientRequest r : clientRequestList) {
-        r.end(bcontent);
-      }
+      clientsEnd(bcontent, clientRequestList);
       clientRequest.end(bcontent);
       log(pc, clientRequest);
       clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
@@ -794,9 +796,7 @@ public class ProxyService {
       copyHeaders(clientRequest, ctx, mi);
       if (bcontent != null) {
         pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
-        for (HttpClientRequest r : clientRequestList) {
-          r.end(bcontent);
-        }
+        clientsEnd(bcontent, clientRequestList);
         clientRequest.end(bcontent);
       } else {
         clientRequest.setChunked(true);
@@ -893,9 +893,7 @@ public class ProxyService {
     pc.debug("proxyInternalBuffer " + req);
     RoutingContext ctx = pc.getCtx();
 
-    for (HttpClientRequest r : clientRequestList) {
-      r.end(bcontent);
-    }
+    clientsEnd(bcontent, clientRequestList);
     internalModule.internalService(req, pc, res -> {
       if (res.failed()) {
         pc.responseError(res.getType(), res.cause());
