@@ -3665,7 +3665,6 @@ public class ProxyTest {
     given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
   }
 
-  @Ignore
   @Test
   public void testDelegateCORS() {
     String tenant = "test-tenant-delegate-cors";
@@ -3683,7 +3682,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/regularcall")
       .then()
@@ -3695,7 +3694,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/corscall")
       .then()
@@ -3707,7 +3706,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/corscall?x=y")
       .then()
