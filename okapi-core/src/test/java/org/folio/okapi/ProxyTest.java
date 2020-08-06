@@ -2176,16 +2176,16 @@ public class ProxyTest {
     final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docRequestPre = "{" + LS
-      + "  \"id\" : \"request-pre-1.0.0\"," + LS
-      + "  \"name\" : \"request-pre\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"phase\" : \"pre\"," + LS
-      + "    \"type\" : \"request-log\"," + LS
-      + "    \"permissionsRequired\" : [ ]" + LS
-      + "  } ]" + LS
-      + "}";
+        + "  \"id\" : \"request-pre-1.0.0\"," + LS
+        + "  \"name\" : \"request-pre\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/testb\"," + LS
+        + "    \"phase\" : \"pre\"," + LS
+        + "    \"type\" : \"request-log\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2214,20 +2214,20 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
 
     final String docRequestOnly = "{" + LS
-      + "  \"id\" : \"request-only-1.0.0\"," + LS
-      + "  \"name\" : \"request-only\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"," + LS
-      + "    \"permissionsRequired\" : [ ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"request-only-1.0.0\"," + LS
+        + "  \"name\" : \"request-only\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/testb\"," + LS
+        + "    \"level\" : \"30\"," + LS
+        + "    \"type\" : \"request-only\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2272,25 +2272,25 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
 
     final String docSample = "{" + LS
-      + "  \"id\" : \"sample-module-1.0.0\"," + LS
-      + "  \"name\" : \"sample-module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"myfirst\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"name\" : \"sample-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.0\"" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"myfirst\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
+        + "      \"path\" : \"/testb\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2443,6 +2443,71 @@ public class ProxyTest {
       context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
       async.complete();
     });
+    async.await();
+
+    // same as sample-1.0.0 but with request-response-1.0
+    final String docSample2 = "{" + LS
+        + "  \"id\" : \"sample-module-1.0.1\"," + LS
+        + "  \"name\" : \"sample-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.0\"" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"myfirst\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
+        + "      \"path\" : \"/testb\"," + LS
+        + "      \"type\" : \"request-response-1.0\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(docSample2).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"sample-module-1.0.1\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"sample-module-1.0.1\"," + LS
+            + "  \"from\" : \"sample-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .header("X-Okapi-Token", okapiToken)
+        .header("Content-Type", "text/plain")
+        .header("Accept", "text/xml")
+        .body("Okapi").post("/testb")
+        .then().statusCode(200).log().ifValidationFails()
+        .header("Content-Type", "text/xml")
+        .body(equalTo("<test>Hello Okapi</test>"));
+
+    Async async2 = context.async();
+    vertx.setTimer(300, res -> {
+      context.assertEquals("Okapi", preBuffer.toString());
+      context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
+      context.assertNotNull(postHandlerHeaders);
+      context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
+      async2.complete();
+    });
+    async2.await();
   }
 
   @Test
