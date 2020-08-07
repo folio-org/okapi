@@ -3,9 +3,12 @@ package org.folio.okapi.bean;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import java.util.Arrays;
+import java.util.List;
+
 import org.folio.okapi.util.ProxyContext;
 
 /**
@@ -194,6 +197,12 @@ public class RoutingEntry {
    * @param methods HTTP method name or "*" for all
    */
   public void setMethods(String[] methods) {
+    List<HttpMethod> all = HttpMethod.values();
+    for (String s : methods) {
+      if (!s.equals("*") && !all.contains(HttpMethod.valueOf(s))) {
+        throw new DecodeException(s);
+      }
+    }
     this.methods = methods;
   }
 

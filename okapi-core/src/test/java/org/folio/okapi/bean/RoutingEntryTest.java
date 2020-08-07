@@ -1,14 +1,12 @@
 package org.folio.okapi.bean;
 
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-@java.lang.SuppressWarnings({"squid:S1166", "squid:S1192"})
 public class RoutingEntryTest {
   private final Logger logger = OkapiLogger.get();
 
@@ -162,61 +160,17 @@ public class RoutingEntryTest {
   @Test
   public void testInvalidPatterns() {
     RoutingEntry t = new RoutingEntry();
-    boolean caught = false;
-    try {
-      t.setPathPattern("/a{a{");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/a{a{"));
 
-    caught = false;
-    try {
-      t.setPathPattern("/a{");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/a{"));
 
-    caught = false;
-    try {
-      t.setPathPattern("/?a=b");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/?a=b"));
 
-    caught = false;
-    try {
-      t.setPathPattern("/a.b");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/a.b"));
 
-    caught = false;
-    try {
-      t.setPathPattern("/a\\b");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/a\\b"));
 
-    caught = false;
-    try {
-      t.setPathPattern("/a{:}b");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertTrue(caught);
-
-    caught = false;
-    try {
-      t.setPathPattern("/a{}b");
-    } catch (DecodeException e) {
-      caught = true;
-    }
-    assertFalse(caught);
+    assertThrows(DecodeException.class, () -> t.setPathPattern("/a{:}b"));
   }
 
   @Test
@@ -263,14 +217,27 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testBadMethod() {
+  public void testBadMethods() {
     RoutingEntry t = new RoutingEntry();
-    String[] methods = new String[1];
-    // HttpMethod allows any value
-    assertEquals("GYF", HttpMethod.valueOf("GYF").name());
-    methods[0] = "GYF";
-    t.setMethods(methods);
-    t.setPathPattern("/*");
-    assertTrue(t.match("/bar", "GYF"));
+    Exception e = assertThrows(DecodeException.class, () -> {
+      String[] methods = { "GET", "GYF" };
+        t.setMethods(methods);
+      });
+    assertEquals("GYF", e.getMessage());
+
+    e = assertThrows(DecodeException.class, () -> {
+      String[] methods = { "get" };
+      t.setMethods(methods);
+    });
+    assertEquals("get", e.getMessage());
   }
+
+  @Test
+  public void testGoodMethods() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = { "GET", "PUT", "POST", "DELETE",
+        "OPTIONS", "PATCH", "CONNECT", "TRACE", "*"};
+    t.setMethods(methods);
+  }
+
 }

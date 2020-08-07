@@ -224,7 +224,7 @@ public class BeanTest {
   }
 
   @Test
-  public void testModuleDescriptorBadProperty() {
+  public void testModuleDescriptorBadMethod() {
     int fail = 0;
 
     final String docModuleDescriptor = "{" + LS
@@ -233,7 +233,7 @@ public class BeanTest {
       + "    \"id\" : \"sample\"," + LS
       + "    \"version\" : \"1.0\"," + LS
       + "    \"handlers\" : [ {" + LS
-      + "      \"methods1\" : [ \"GET\", \"POST\" ]," + LS
+      + "      \"methods\" : [ \"GET\", \"NOST\" ]," + LS
       + "      \"pathPattern\" : \"/users/{id}\"" + LS
       + "    } ]" + LS
       + "  } ]" + LS
