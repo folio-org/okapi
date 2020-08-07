@@ -106,14 +106,15 @@ public class DockerModuleHandle implements ModuleHandle {
       future.handle(res.mapEmpty());
       return;
     }
+    HttpClientResponse result = res.result();
     Buffer body = Buffer.buffer();
-    res.result().handler(body::appendBuffer);
-    res.result().endHandler(d -> {
-      if (res.result().statusCode() == 204) {
+    result.handler(body::appendBuffer);
+    result.endHandler(d -> {
+      if (result.statusCode() == 204) {
         future.handle(Future.succeededFuture());
       } else {
         String m = msg + " HTTP error "
-            + res.result().statusCode() + "\n"
+            + result.statusCode() + "\n"
             + body.toString();
         logger.error(m);
         future.handle(Future.failedFuture(m));

@@ -342,10 +342,10 @@ public class ProxyTest {
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-    httpClient.delete(port, "localhost", "/_/discovery/modules",
-        MultiMap.caseInsensitiveMultiMap(), res1 -> {
+    httpClient.delete(port, "localhost", "/_/discovery/modules", res1 -> {
           context.assertTrue(res1.succeeded());
           HttpClientResponse response = res1.result();
+          context.assertEquals(204, response.statusCode());
           response.endHandler(x -> {
             httpClient.close();
             td(context, async);
@@ -2690,22 +2690,33 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    given()
+    c.given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/roskilde")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("It works"));
 
-    given()
+    c.given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/unknown")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("No such Tenant unknown"));
 
-    given()
-      .header("X-Okapi-Token", okapiToken)
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/edge-module-1.0.0").then().statusCode(204);
+
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/basic-module-1.0.0").then().statusCode(204);
+
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/auth-module-1.0.0").then().statusCode(204);
+
+    c.given()
       .delete("/_/discovery/modules")
       .then().statusCode(204).log().ifValidationFails();
   }
