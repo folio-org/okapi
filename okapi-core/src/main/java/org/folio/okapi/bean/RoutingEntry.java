@@ -206,8 +206,8 @@ public class RoutingEntry {
   }
 
   /**
-   * Return first method of routing entry or default if empty
-   * @param defaultMethod
+   * Return first method of routing entry or default if empty.
+   * @param defaultMethod method to be returned if there's none
    * @return
    */
   @JsonIgnore
