@@ -206,6 +206,19 @@ public class RoutingEntry {
   }
 
   /**
+   * Return first method of routing entry or default if empty
+   * @param defaultMethod
+   * @return
+   */
+  @JsonIgnore
+  public HttpMethod getDefaultMethod(HttpMethod defaultMethod) {
+    if (methods != null && methods.length > 0) {
+      return HttpMethod.valueOf(methods[0]);
+    }
+    return defaultMethod;
+  }
+
+  /**
    * Get path pattern/path - whichever exist.
    */
   @JsonIgnore

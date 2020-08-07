@@ -703,11 +703,7 @@ public class TenantManager {
 
   private void fireTimer(Tenant tenant, ModuleDescriptor md, RoutingEntry re, String path) {
     String tenantId = tenant.getId();
-    HttpMethod httpMethod = HttpMethod.POST;
-    String[] methods = re.getMethods();
-    if (methods != null && methods.length >= 1) {
-      httpMethod = HttpMethod.valueOf(methods[0]);
-    }
+    HttpMethod httpMethod = re.getDefaultMethod(HttpMethod.POST);
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);

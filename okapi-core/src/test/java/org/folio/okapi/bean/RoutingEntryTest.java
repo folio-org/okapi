@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
@@ -238,6 +239,19 @@ public class RoutingEntryTest {
     String[] methods = { "GET", "PUT", "POST", "DELETE",
         "OPTIONS", "PATCH", "CONNECT", "TRACE", "*"};
     t.setMethods(methods);
+  }
+
+  @Test
+  public void testDefaultMethod() {
+    RoutingEntry t = new RoutingEntry();
+    assertEquals(HttpMethod.PUT, t.getDefaultMethod(HttpMethod.PUT));
+    String[] methods0 = {};
+    t.setMethods(methods0);
+    assertEquals(HttpMethod.PUT, t.getDefaultMethod(HttpMethod.PUT));
+
+    String[] methods2 = {"POST"};
+    t.setMethods(methods2);
+    assertEquals(HttpMethod.POST, t.getDefaultMethod(HttpMethod.PUT));
   }
 
 }
