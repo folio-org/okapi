@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.DecodeException;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
@@ -259,5 +260,17 @@ public class RoutingEntryTest {
     t.setRewritePath("/events");
     assertTrue(t.match("/", "GET"));
     assertEquals("/events", t.getRewritePath());
+  }
+
+  @Test
+  public void testBadMethod() {
+    RoutingEntry t = new RoutingEntry();
+    String[] methods = new String[1];
+    // HttpMethod allows any value
+    assertEquals("GYF", HttpMethod.valueOf("GYF").name());
+    methods[0] = "GYF";
+    t.setMethods(methods);
+    t.setPathPattern("/*");
+    assertTrue(t.match("/bar", "GYF"));
   }
 }

@@ -705,7 +705,7 @@ public class TenantManager {
     String tenantId = tenant.getId();
     HttpMethod httpMethod = HttpMethod.POST;
     String[] methods = re.getMethods();
-    if (methods != null && re.getMethods().length >= 1) {
+    if (methods != null && methods.length >= 1) {
       httpMethod = HttpMethod.valueOf(methods[0]);
     }
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
