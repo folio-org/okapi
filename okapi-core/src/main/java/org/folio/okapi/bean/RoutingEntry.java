@@ -8,7 +8,6 @@ import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import java.util.Arrays;
 import java.util.List;
-
 import org.folio.okapi.util.ProxyContext;
 
 /**
