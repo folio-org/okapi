@@ -8,11 +8,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RoutingEntryTest {
+class RoutingEntryTest {
   private final Logger logger = OkapiLogger.get();
 
   @Test
-  public void testMethods() {
+  void testMethods() {
     RoutingEntry t = new RoutingEntry();
 
     t.setPath("/a");
@@ -36,7 +36,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testPath() {
+  void testPath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -56,7 +56,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-    public void testPathPatternSimple() {
+  void testPathPatternSimple() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -73,7 +73,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testPathPatternGlob() {
+  void testPathPatternGlob() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -101,7 +101,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testPathPatternId() {
+  void testPathPatternId() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -139,7 +139,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testFastMatch() {
+  void testFastMatch() {
     assertTrue(RoutingEntry.fastMatch("{id}/", "a/"));
     assertFalse(RoutingEntry.fastMatch("{/", "a/"));
     assertTrue(RoutingEntry.fastMatch("{", "a"));
@@ -159,7 +159,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testInvalidPatterns() {
+  void testInvalidPatterns() {
     RoutingEntry t = new RoutingEntry();
     assertThrows(DecodeException.class, () -> t.setPathPattern("/a{a{"));
 
@@ -175,7 +175,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testRedirectPath() {
+  void testRedirectPath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "GET";
@@ -206,7 +206,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testRewritePath() {
+  void testRewritePath() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = new String[1];
     methods[0] = "*";
@@ -218,7 +218,7 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testBadMethods() {
+  void testBadMethods() {
     RoutingEntry t = new RoutingEntry();
     Exception e = assertThrows(DecodeException.class, () -> {
       String[] methods = { "GET", "GYF" };
@@ -234,15 +234,18 @@ public class RoutingEntryTest {
   }
 
   @Test
-  public void testGoodMethods() {
+  void testGoodMethods() {
     RoutingEntry t = new RoutingEntry();
     String[] methods = { "GET", "PUT", "POST", "DELETE",
         "OPTIONS", "PATCH", "CONNECT", "TRACE", "*"};
     t.setMethods(methods);
+    String[] methods1 = t.getMethods();
+    assertEquals("GET", methods1[0]);
+    assertEquals("*", methods1[8]);
   }
 
   @Test
-  public void testDefaultMethod() {
+  void testDefaultMethod() {
     RoutingEntry t = new RoutingEntry();
     assertEquals(HttpMethod.PUT, t.getDefaultMethod(HttpMethod.PUT));
     String[] methods0 = {};
