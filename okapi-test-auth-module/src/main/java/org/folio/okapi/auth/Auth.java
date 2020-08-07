@@ -12,6 +12,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.HttpResponse;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.common.OkapiStringUtil;
 import org.folio.okapi.common.XOkapiHeaders;
 
 /**
@@ -55,8 +56,8 @@ class Auth {
 
   public void login(RoutingContext ctx) {
     final String json = ctx.getBodyAsString();
-    if (json.length() == 0) {
-      logger.debug("test-auth: accept OK in login");
+    if (json == null || json.length() == 0) {
+      logger.info("test-auth: accept OK in login");
       HttpResponse.responseText(ctx, 202).end("Auth accept in /authn/login");
       return;
     }
@@ -82,7 +83,6 @@ class Auth {
     logger.info("test-auth: Ok login for {}: {}", u, tok);
     HttpResponse.responseJson(ctx, 200).putHeader(XOkapiHeaders.TOKEN, tok).end(json);
   }
-
 
   /**
    * Fake some module permissions.
@@ -173,7 +173,9 @@ class Auth {
 
       String[] splitTok = tok.split("\\.");
       if (splitTok.length != 3) {
-        logger.warn("test-auth: Bad JWT, can not split in three parts. '{}", tok);
+        String tmp = tok;
+        logger.warn("test-auth: Bad JWT, can not split in three parts. '{}",
+            () -> OkapiStringUtil.removeLogCharacters(tmp));
         HttpResponse.responseError(ctx, 400, "Auth.check: Bad JWT");
         return;
       }
@@ -196,7 +198,7 @@ class Auth {
         return;
       }
       final String ovTok = headers.get(XOkapiHeaders.ADDITIONAL_TOKEN);
-      logger.info("ovTok={}", ovTok);
+      logger.info("ovTok={}", () -> OkapiStringUtil.removeLogCharacters(ovTok));
       if (ovTok != null && !"dummyJwt".equals(ovTok)) {
         HttpResponse.responseError(ctx, 400, "Bad additonal token: " + ovTok);
         return;
@@ -205,7 +207,7 @@ class Auth {
     // Fail a call to /_/tenant that requires permissions (Okapi-538)
     if ("/_/tenant".equals(ctx.request().path()) && req != null) {
       logger.warn("test-auth: Rejecting request to /_/tenant because of {}: {}",
-          XOkapiHeaders.PERMISSIONS_REQUIRED, req);
+          () -> XOkapiHeaders.PERMISSIONS_REQUIRED, () -> OkapiStringUtil.removeLogCharacters(req));
       HttpResponse.responseError(ctx, 403, "/_/tenant can not require permissions");
       return;
     }

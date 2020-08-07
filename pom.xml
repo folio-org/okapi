@@ -31,7 +31,7 @@
   <dependencyManagement>
     <dependencies>
 
-      <!-- Overwrite 4.1.42.FINAL (from vertx-stack-depchain 4.0.0-milestone4) by 4.1.51.Final.
+      <!-- Overwrite 4.1.49.FINAL (from vertx-stack-depchain 4.0.0.Beta1) by 4.1.51.Final.
            Fixes https://www.cvedetails.com/cve/CVE-2019-16869/
            Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
       -->
@@ -43,7 +43,7 @@
         <scope>import</scope>
       </dependency>
 
-      <!-- Override 2.0.26.Final (from vertx-stack-depchain 4.0.0-milestone4) by 2.0.31.Final =
+      <!-- Override 2.0.30.Final (from vertx-stack-depchain 4.0.0.Beta1) by 2.0.31.Final =
            matching version for netty 4.1.51.FINAL.
            Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
       -->
@@ -53,26 +53,10 @@
         <version>2.0.31.Final</version>
       </dependency>
 
-      <!-- Override 2.9.9 (from vertx-stack-depchain 4.0.0-milestone4) by 2.10.2 =
-	   the same version RMB uses for Goldenrod.
-           Fixes https://www.cvedetails.com/cve/CVE-2019-14540/
-           Fixes https://www.cvedetails.com/cve/CVE-2019-16335/
-           Fixes https://www.cvedetails.com/cve/CVE-2019-16942/
-           Fixes https://www.cvedetails.com/cve/CVE-2019-16943/
-           Fixes https://www.cvedetails.com/cve/CVE-2019-17267/
-           Remove this when upgrading vertx-stack-depchain to >= 4.0.0-milestone6
-      -->
-      <dependency>
-        <groupId>com.fasterxml.jackson</groupId>
-        <artifactId>jackson-bom</artifactId>
-        <version>2.10.2</version>
-        <type>pom</type>
-      </dependency>
-
       <dependency>
         <groupId>io.vertx</groupId>
         <artifactId>vertx-stack-depchain</artifactId>
-        <version>4.0.0-milestone4</version> <!-- also update depending versions below! -->
+        <version>4.0.0.Beta1</version> <!-- also update depending versions below! -->
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -86,17 +70,17 @@
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast</artifactId>
-        <version>3.12.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+        <version>4.0.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-aws</artifactId>
-        <version>2.4</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
+        <version>3.2</version>  <!-- https://github.com/hazelcast/hazelcast-aws#requirements -->
       </dependency>
       <dependency>
         <groupId>com.hazelcast</groupId>
         <artifactId>hazelcast-kubernetes</artifactId>
-        <version>1.5.1</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
+        <version>2.0.2</version>  <!-- https://github.com/vert-x3/vertx-hazelcast/blob/master/pom.xml -->
       </dependency>
       <!-- END: versions that depend on the vertx-stack-depchain version -->
 

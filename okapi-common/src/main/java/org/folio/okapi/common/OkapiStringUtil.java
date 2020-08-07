@@ -18,4 +18,15 @@ public final class OkapiStringUtil {
     }
     return s.subSequence(0, end + 1).toString();
   }
+
+  /**
+   * Remove line-breaking characters to avoid log mixup (S5145).
+   */
+  public static String removeLogCharacters(String s) {
+    if (s == null) {
+      return null;
+    }
+    return s.replaceAll("[\\n\\r\\t]", "_");
+  }
+
 }

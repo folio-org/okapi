@@ -1,6 +1,5 @@
 package org.folio.okapi.managers;
 
-import io.vertx.codegen.annotations.Nullable;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -22,7 +21,7 @@ public class ProxyServiceTest implements WithAssertions {
       return this;
     }
 
-    public ReadStream<Buffer> handler(@Nullable Handler<Buffer> handler) {
+    public ReadStream<Buffer> handler(Handler<Buffer> handler) {
       this.handler = handler;
       return this;
     }
@@ -50,7 +49,7 @@ public class ProxyServiceTest implements WithAssertions {
       return this;
     }
 
-    public ReadStream<Buffer> endHandler(@Nullable Handler<Void> endHandler) {
+    public ReadStream<Buffer> endHandler(Handler<Void> endHandler) {
       this.endHandler = endHandler;
       return this;
     }
@@ -116,7 +115,7 @@ public class ProxyServiceTest implements WithAssertions {
       return queue >= maxSize;
     }
 
-    public WriteStream<Buffer> drainHandler(@Nullable Handler<Void> handler) {
+    public WriteStream<Buffer> drainHandler(Handler<Void> handler) {
       drainHandler = handler;
       return this;
     }

@@ -3,12 +3,14 @@ package org.folio.okapi.service.impl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -20,7 +22,6 @@ import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
-import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
@@ -99,16 +100,21 @@ public class DockerModuleHandle implements ModuleHandle {
     return u + "/" + DEFAULT_DOCKER_VERSION;
   }
 
-  private void handle204(HttpClientResponse res, String msg,
+  private void handle204(AsyncResult<HttpClientResponse> res, String msg,
                          Handler<AsyncResult<Void>> future) {
+    if (res.failed()) {
+      future.handle(res.mapEmpty());
+      return;
+    }
+    HttpClientResponse result = res.result();
     Buffer body = Buffer.buffer();
-    res.handler(body::appendBuffer);
-    res.endHandler(d -> {
-      if (res.statusCode() == 204) {
+    result.handler(body::appendBuffer);
+    result.endHandler(d -> {
+      if (result.statusCode() == 204) {
         future.handle(Future.succeededFuture());
       } else {
         String m = msg + " HTTP error "
-            + res.statusCode() + "\n"
+            + result.statusCode() + "\n"
             + body.toString();
         logger.error(m);
         future.handle(Future.failedFuture(m));
@@ -116,31 +122,41 @@ public class DockerModuleHandle implements ModuleHandle {
     });
   }
 
-  private HttpClientRequest request(HttpMethod method, String url,
-                                    Handler<HttpClientResponse> response) {
+  private void request(HttpMethod method, String url, MultiMap headers, Buffer body,
+                       Handler<AsyncResult<HttpClientResponse>> response) {
+    RequestOptions requestOptions = new RequestOptions()
+        .setMethod(method)
+        .setAbsoluteURI(dockerUrl + url);
     if (socketAddress != null) {
-      return HttpClientLegacy.requestAbs(client, method, socketAddress, dockerUrl + url, response);
-    } else {
-      return HttpClientLegacy.requestAbs(client, method, dockerUrl + url, response);
+      requestOptions.setServer(socketAddress);
     }
+    client.request(requestOptions, req1 -> {
+      if (req1.failed()) {
+        response.handle(Future.failedFuture(req1.cause()));
+        return;
+      }
+      HttpClientRequest request = req1.result();
+      request.onComplete(response);
+      request.exceptionHandler(d -> response.handle(Future.failedFuture(d)));
+      if (headers != null) {
+        request.headers().setAll(headers);
+      }
+      request.end(body);
+    });
   }
 
   void postUrl(String url, String msg,
                Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = request(HttpMethod.POST, url,
+    request(HttpMethod.POST, url, null, Buffer.buffer(),
         res -> handle204(res, msg, future));
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.end();
   }
 
   void deleteUrl(String url, String msg,
                  Handler<AsyncResult<Void>> future) {
 
-    HttpClientRequest req = request(HttpMethod.DELETE, url,
+    request(HttpMethod.DELETE, url, null, Buffer.buffer(),
         res -> handle204(res, msg, future));
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.end();
   }
 
   private void startContainer(Handler<AsyncResult<Void>> future) {
@@ -177,7 +193,12 @@ public class DockerModuleHandle implements ModuleHandle {
   private void getContainerLog(Handler<AsyncResult<Void>> future) {
     final String url = "/containers/" + containerId
         + "/logs?stderr=1&stdout=1&follow=1";
-    HttpClientRequest req = request(HttpMethod.GET, url, res -> {
+    request(HttpMethod.GET, url, null, Buffer.buffer(), hndlr -> {
+      if (hndlr.failed()) {
+        future.handle(hndlr.mapEmpty());
+        return;
+      }
+      HttpClientResponse res = hndlr.result();
       if (res.statusCode() == 200) {
         // stream OK. Continue other work but keep fetching!
         // remove 8 bytes of binary data and final newline
@@ -190,12 +211,15 @@ public class DockerModuleHandle implements ModuleHandle {
         future.handle(Future.failedFuture(m));
       }
     });
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.end();
   }
 
   void getUrl(String url, Handler<AsyncResult<JsonObject>> future) {
-    HttpClientRequest req = request(HttpMethod.GET, url, res -> {
+    request(HttpMethod.GET, url, null, Buffer.buffer(), hndlr -> {
+      if (hndlr.failed()) {
+        future.handle(hndlr.mapEmpty());
+        return;
+      }
+      HttpClientResponse res = hndlr.result();
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> {
         logger.warn("{}: {}", url, d.getMessage());
@@ -216,13 +240,6 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(e -> {
-      Throwable cause = e.getCause() == null ? e : e.getCause();
-      String msg = url + ": " + e.getMessage() + " - " + cause.getClass().getName();
-      logger.warn(msg);
-      future.handle(Future.failedFuture(msg));
-    });
-    req.end();
   }
 
   private void getImage(Handler<AsyncResult<JsonObject>> future) {
@@ -231,20 +248,27 @@ public class DockerModuleHandle implements ModuleHandle {
 
   private void pullImage(Handler<AsyncResult<Void>> future) {
     logger.info("pull image {}", image);
-    postUrlJson("/images/create?fromImage=" + image, "pullImage", "", future);
+    postUrlJson("/images/create?fromImage=" + image, "pullImage", "",
+        res -> future.handle(res.mapEmpty()));
   }
 
   void postUrlJson(String url, String msg, String doc,
-                   Handler<AsyncResult<Void>> future) {
+                   Handler<AsyncResult<Buffer>> future) {
 
-    HttpClientRequest req = request(HttpMethod.POST, url, res -> {
+    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+    headers.add("Content-Type", "application/json");
+    request(HttpMethod.POST, url, headers, Buffer.buffer(doc), hndlr -> {
+      if (hndlr.failed()) {
+        future.handle(hndlr.mapEmpty());
+        return;
+      }
+      HttpClientResponse res = hndlr.result();
       Buffer body = Buffer.buffer();
       res.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
       res.handler(body::appendBuffer);
       res.endHandler(d -> {
         if (res.statusCode() >= 200 && res.statusCode() <= 201) {
-          containerId = body.toJsonObject().getString("Id");
-          future.handle(Future.succeededFuture());
+          future.handle(Future.succeededFuture(body));
         } else {
           String m = msg + " HTTP error "
               + res.statusCode() + "\n"
@@ -254,9 +278,6 @@ public class DockerModuleHandle implements ModuleHandle {
         }
       });
     });
-    req.exceptionHandler(d -> future.handle(Future.failedFuture(d.getCause())));
-    req.putHeader("Content-Type", "application/json");
-    req.end(doc);
   }
 
   private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
@@ -298,7 +319,12 @@ public class DockerModuleHandle implements ModuleHandle {
     String doc = j.encodePrettily();
     doc = doc.replace("%p", Integer.toString(hostPort)).replace("%c", containerHost);
     logger.info("createContainer {}", doc);
-    postUrlJson("/containers/create", "createContainer", doc, future);
+    postUrlJson("/containers/create", "createContainer", doc, res -> {
+      if (res.succeeded()) {
+        containerId = res.result().toJsonObject().getString("Id");
+      }
+      future.handle(res.mapEmpty());
+    });
   }
 
   private int getExposedPort(JsonObject b) {

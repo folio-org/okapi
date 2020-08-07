@@ -20,6 +20,7 @@ import java.util.HashMap;
 import org.apache.logging.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 import org.junit.runner.RunWith;
@@ -30,9 +31,10 @@ public class OkapiClientTest {
 
   private Vertx vertx;
   private static final int PORT = 9230;
+  private static final int BAD_PORT = PORT + 1;
   private static final String LOCALHOST = "localhost";
   private static final String URL = "http://" + LOCALHOST + ":" + PORT;
-  private static final String BAD_URL = "http://" + LOCALHOST + ":" + (PORT + 1);
+  private static final String BAD_URL = "http://" + LOCALHOST + ":" + BAD_PORT;
   private final Logger logger = OkapiLogger.get();
   private HttpServer server;
 
@@ -349,133 +351,14 @@ public class OkapiClientTest {
   }
 
   @Test
-  public void testHttpClientLegacy1(TestContext context) {
-    Async async = context.async();
+  public void testLegacyPostOk(TestContext context) {
     StringBuilder b = new StringBuilder();
 
     context.assertTrue(server != null);
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, URL + "/test1", res -> {
-      b.append("response");
-      context.assertEquals(200, res.statusCode());
-      async.complete();
-    });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("response", b.toString());
+    client.post(PORT, LOCALHOST, URL + "/test1", Buffer.buffer(), context.asyncAssertSuccess(response -> {
+      context.assertEquals(200, response.statusCode());
+    }));
   }
-
-  @Test
-  public void testHttpClientLegacy2(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
-    context.assertTrue(server != null);
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, BAD_URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("exception", b.toString());
-  }
-
-  @Test
-  public void testHttpClientLegacy3(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
-    context.assertTrue(server != null);
-    HttpClient client = vertx.createHttpClient();
-    SocketAddress sa = SocketAddress.inetSocketAddress(PORT, LOCALHOST);
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, sa, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("response", b.toString());
-  }
-
-  @Test
-  public void testHttpClientLegacy4(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
-    context.assertTrue(server != null);
-    HttpClient client = vertx.createHttpClient();
-    SocketAddress sa = SocketAddress.inetSocketAddress(PORT + 1, LOCALHOST);
-    HttpClientRequest requestAbs = HttpClientLegacy.requestAbs(client,
-      HttpMethod.GET, sa, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("exception", b.toString());
-  }
-
-  @Test
-  public void testHttpClientLegacy5(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
-    context.assertTrue(server != null);
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.get(client,
-      PORT, LOCALHOST, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("response", b.toString());
-  }
-
-  @Test
-  public void testHttpClientLegacy6(TestContext context) {
-    Async async = context.async();
-    StringBuilder b = new StringBuilder();
-
-    context.assertTrue(server != null);
-    HttpClient client = vertx.createHttpClient();
-    HttpClientRequest requestAbs = HttpClientLegacy.delete(client,
-      PORT, LOCALHOST, URL + "/test1", res -> {
-        b.append("response");
-        async.complete();
-      });
-    requestAbs.exceptionHandler(res -> {
-      b.append("exception");
-      async.complete();
-    });
-    requestAbs.end();
-    async.await();
-    context.assertEquals("response", b.toString());
-  }
-
 
 }
