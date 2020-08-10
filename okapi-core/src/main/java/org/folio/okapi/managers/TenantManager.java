@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -1067,44 +1068,42 @@ public class TenantManager {
       }
       if (options.getSimulate()) {
         fut.handle(new Success<>(tml));
-      } else {
-        installAutodeploy(t, pc, options, modsAvailable, tml, tml.iterator(),
-            res1 -> {
-              if (res1.failed()) {
-                fut.handle(new Failure<>(res1.getType(), res1.cause()));
-              } else {
-                fut.handle(new Success<>(tml));
-              }
-            });
+        return;
       }
+      Future<Void> future = Future.succeededFuture();
+      if (options.getDeploy()) {
+        future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
+      }
+      future.onComplete(res1 -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
+          return;
+        }
+        installTenantPrepare(t, pc, options, modsAvailable, tml, tml.iterator(), res2 -> {
+          if (res2.failed()) {
+            fut.handle(new Failure<>(res2.getType(), res2.cause()));
+          } else {
+            fut.handle(new Success<>(tml));
+          }
+        });
+      });
     });
   }
 
-  /* phase 1 deploy modules if necessary */
-  private void installAutodeploy(Tenant t, ProxyContext pc,
-                                 TenantInstallOptions options,
-                                 Map<String, ModuleDescriptor> modsAvailable,
-                                 List<TenantModuleDescriptor> tml,
-                                 Iterator<TenantModuleDescriptor> it,
-                                 Handler<ExtendedAsyncResult<Void>> fut) {
-
-    if (!it.hasNext() || !options.getDeploy()) {
-      installTenantPrepare(t, pc, options, modsAvailable, tml, tml.iterator(), fut);
-      return;
+  private Future<Void> autoDeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
+                                  List<TenantModuleDescriptor> tml) {
+    List<Future> futures = new LinkedList<>();
+    for (TenantModuleDescriptor tm : tml) {
+      if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
+        ModuleDescriptor md = modsAvailable.get(tm.getId());
+        Promise p = Promise.promise();
+        futures.add(p.future());
+        proxyService.autoDeploy(md, res -> p.handle(res.mapEmpty()));
+      }
     }
-    TenantModuleDescriptor tm = it.next();
-    if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
-      ModuleDescriptor md = modsAvailable.get(tm.getId());
-      proxyService.autoDeploy(md, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          installAutodeploy(t, pc, options, modsAvailable, tml, it, fut);
-        }
-      });
-    } else {
-      installAutodeploy(t, pc, options, modsAvailable, tml, it, fut);
-    }
+    Promise<Void> promise = Promise.promise();
+    CompositeFuture.all(futures).onComplete(res -> promise.handle(res.mapEmpty()));
+    return promise.future();
   }
 
   /* phase 2 enable modules for tenant */
