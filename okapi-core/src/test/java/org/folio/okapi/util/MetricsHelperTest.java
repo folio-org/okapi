@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.bean.RoutingEntry;
@@ -16,7 +15,6 @@ import org.mockito.Mockito;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
 import io.vertx.core.VertxOptions;
@@ -27,18 +25,18 @@ import io.vertx.core.json.JsonObject;
 public class MetricsHelperTest {
 
   @AfterAll
-  public static void disableMetrics() {
+  static void disableMetrics() {
     MetricsHelper.setEnabled(false);
   }
 
   @BeforeEach
-  public void enableMetrics() {
+  void enableMetrics() {
     MetricsHelper.setEnabled(true);
   }
 
   @Test
   @Order(1)
-  public void testMetricsNotEnabled() {
+  void testMetricsNotEnabled() {
     MetricsHelper.setEnabled(false);
     assertNull(MetricsHelper.getTimerSample());
     assertNull(MetricsHelper.recordHttpClientResponse(null, "a", 0, "b", null));
@@ -47,12 +45,12 @@ public class MetricsHelperTest {
   }
 
   @Test
-  public void testMetricsEnabled() {
+  void testMetricsEnabled() {
     assertNotNull(MetricsHelper.getTimerSample());
   }
 
   @Test
-  public void testConfig() {
+  void testConfig() {
     VertxOptions vopt = new VertxOptions();
     MetricsHelper.config(vopt, null, null, null, null);
     verifyConfig(vopt, "http://localhost:8086", "okapi", null, null);
@@ -61,7 +59,7 @@ public class MetricsHelperTest {
   }
 
   @Test
-  public void testRecordHttpServerProcessingTime() {
+  void testRecordHttpServerProcessingTime() {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     // null ModuleInstance should be OK
     Timer timer = MetricsHelper.recordHttpServerProcessingTime(sample, "a", 200, "GET", null);
@@ -73,7 +71,7 @@ public class MetricsHelperTest {
   }
 
   @Test
-  public void testRecordHttpClientResponseTime() {
+  void testRecordHttpClientResponseTime() {
     Timer.Sample sample = MetricsHelper.getTimerSample();
     // null ModuleInstance should be OK
     Timer timer = MetricsHelper.recordHttpClientResponse(sample, "a", 200, "GET", null);
@@ -97,7 +95,7 @@ public class MetricsHelperTest {
   }
 
   @Test
-  public void testRecordHttpClientError() {
+  void testRecordHttpClientError() {
     Counter counter = MetricsHelper.recordHttpClientError("a", "GET", "/a");
     assertEquals(1, counter.count());
     // increment by one
@@ -106,7 +104,7 @@ public class MetricsHelperTest {
   }
 
   @Test
-  public void testGetHost() {
+  void testGetHost() {
     assertNotEquals(MetricsHelper.HOST_UNKNOWN, MetricsHelper.getHost());
     try (MockedStatic<InetAddress> mocked = Mockito.mockStatic(InetAddress.class)) {
       mocked.when(InetAddress::getLocalHost).thenThrow(UnknownHostException.class);

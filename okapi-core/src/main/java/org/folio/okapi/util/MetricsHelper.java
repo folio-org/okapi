@@ -15,6 +15,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.OkapiLogger;
@@ -72,7 +73,7 @@ public class MetricsHelper {
     if (influxUserName != null) {
       influxDbOptions.setUserName(influxUserName);
     }
-    logger.info(influxDbOptions.toJson().encodePrettily());
+    logger.log(Level.INFO, influxDbOptions.toJson().encodePrettily());
     if (influxPassword != null) {
       influxDbOptions.setPassword(influxPassword);
     }
@@ -151,9 +152,8 @@ public class MetricsHelper {
       return null;
     }
     String name = server ? METRICS_HTTP_SERVER_PROCESSING_TIME : METRICS_HTTP_CLIENT_RESPONSE_TIME;
-    boolean createPhaseTag = server ? false : true;
     Timer timer = Timer.builder(name)
-        .tags(createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, createPhaseTag))
+        .tags(createHttpTags(tenant, httpStatusCode, httpMethod, moduleInstance, !server))
         .register(getRegistry());
     sample.stop(timer);
     return timer;
