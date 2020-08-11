@@ -15,7 +15,6 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleInstance;
 import org.folio.okapi.common.OkapiLogger;
@@ -73,7 +72,7 @@ public class MetricsHelper {
     if (influxUserName != null) {
       influxDbOptions.setUserName(influxUserName);
     }
-    logger.info("Influx config: {}", influxDbOptions.toJson().encodePrettily());
+    logger.info("Influx config: {}", () -> influxDbOptions.toJson().encodePrettily());
     if (influxPassword != null) {
       influxDbOptions.setPassword(influxPassword);
     }
