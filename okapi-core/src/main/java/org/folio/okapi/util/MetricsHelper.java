@@ -73,7 +73,7 @@ public class MetricsHelper {
     if (influxUserName != null) {
       influxDbOptions.setUserName(influxUserName);
     }
-    logger.log(Level.INFO, influxDbOptions.toJson().encodePrettily());
+    logger.info("Influx config: {}", influxDbOptions.toJson().encodePrettily());
     if (influxPassword != null) {
       influxDbOptions.setPassword(influxPassword);
     }
