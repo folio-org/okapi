@@ -84,6 +84,11 @@ parse_okapi_conf()  {
 
    fi
 
+   # Set performance metric options
+   if [ "$enable_metrics" == 1 ]; then
+      OKAPI_OPTIONS+=" -enable-metrics"
+   fi
+
    # configure log file if specified
    if [ "$log4j_config" ]; then
       OKAPI_JAVA_OPTS+=" -Dhazelcast.logging.type=log4j"
