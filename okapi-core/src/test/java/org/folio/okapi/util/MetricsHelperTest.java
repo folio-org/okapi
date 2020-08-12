@@ -46,6 +46,7 @@ class MetricsHelperTest {
 
   @Test
   void testMetricsEnabled() {
+    assertTrue(MetricsHelper.isEnabled());
     assertNotNull(MetricsHelper.getTimerSample());
   }
 
@@ -67,6 +68,10 @@ class MetricsHelperTest {
 
     ModuleInstance mi = createModuleInstance(true);
     timer = MetricsHelper.recordHttpServerProcessingTime(sample, "a", 200, "GET", mi);
+    assertEquals(1, timer.count());
+
+    // null tenant and httpMethod
+    timer = MetricsHelper.recordHttpServerProcessingTime(sample, null, 200, null, mi);
     assertEquals(1, timer.count());
   }
 

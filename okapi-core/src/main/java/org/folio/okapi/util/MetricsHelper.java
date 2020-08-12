@@ -67,8 +67,8 @@ public class MetricsHelper {
       String influxDbName, String influxUserName, String influxPassword) {
     VertxInfluxDbOptions influxDbOptions = new VertxInfluxDbOptions()
         .setEnabled(true)
-        .setUri(Optional.ofNullable(influxUrl).orElse("http://localhost:8086"))
-        .setDb(Optional.ofNullable(influxDbName).orElse("okapi"));
+        .setUri(influxUrl == null ? "http://localhost:8086" : influxUrl)
+        .setDb(influxDbName == null ? "okapi" : influxDbName);
     if (influxUserName != null) {
       influxDbOptions.setUserName(influxUserName);
     }
@@ -161,9 +161,9 @@ public class MetricsHelper {
   private static List<Tag> createHttpTags(String tenant, int httpStatusCode, String httpMethod,
       ModuleInstance moduleInstance, boolean createPhaseTag) {
     List<Tag> tags = new ArrayList<>();
-    tags.add(Tag.of(TAG_TENANT, Optional.of(tenant).orElse(TAG_EMPTY)));
+    tags.add(Tag.of(TAG_TENANT, tenant == null ? TAG_EMPTY : tenant));
     tags.add(Tag.of(TAG_CODE, "" + httpStatusCode));
-    tags.add(Tag.of(TAG_METHOD, Optional.of(httpMethod).orElse(TAG_EMPTY)));
+    tags.add(Tag.of(TAG_METHOD, httpMethod == null ? TAG_EMPTY : httpMethod));
     if (moduleInstance != null) {
       tags.add(Tag.of(TAG_MODULE, moduleInstance.getModuleDescriptor().getId()));
       // legacy case where module instance has no routing entry
@@ -175,7 +175,7 @@ public class MetricsHelper {
         }
       } else {
         tags.add(Tag.of(TAG_URL, moduleInstance.getPath()));
-        tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler" : ""));
+        tags.add(Tag.of(TAG_PHASE, moduleInstance.isHandler() ? "handler" : TAG_EMPTY));
       }
     } else {
       tags.add(Tag.of(TAG_MODULE, TAG_EMPTY));
