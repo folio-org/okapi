@@ -11,7 +11,7 @@ System requirements
 
 The Okapi software has the following compile-time dependencies:
 
-* Java 8
+* Java 11
 
 * Apache Maven 3.3.x or higher
 
