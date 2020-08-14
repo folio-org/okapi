@@ -3,14 +3,14 @@ Section: net
 Priority: extra
 Maintainer: Index Data <support@indexdata.com>
 Build-Depends: debhelper (>=9),
-        openjdk-8-jdk,
+        openjdk-11-jdk,
         maven (>=3.3)
 Standards-Version: 3.9.6
 Homepage: https://github.com/folio-org/okapi
 
 Package: okapi
 Architecture: all
-Depends: openjdk-8-jdk | openjdk-8-jre,
+Depends: openjdk-11-jdk | openjdk-11-jre,
          jq,
          adduser,
          postgresql-client-common
