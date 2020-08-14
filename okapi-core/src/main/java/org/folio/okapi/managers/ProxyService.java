@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.micrometer.core.instrument.Timer;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -47,6 +48,7 @@ import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.CorsHelper;
+import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.ProxyContext;
 
 
@@ -204,6 +206,7 @@ public class ProxyService {
             ModuleInstance mi = new ModuleInstance(md, re, req.uri(), req.method(), true);
             mi.setAuthToken(req.headers().get(XOkapiHeaders.TOKEN));
             mods.add(mi);
+            pc.setHandlerModuleInstance(mi);
             pc.debug("getMods:   Added " + md.getId() + " "
                 + re.getPathPattern() + " " + re.getPath() + " "
                 + re.getPhase() + "/" + re.getLevel());
@@ -539,6 +542,9 @@ public class ProxyService {
 
         // check delegate CORS and reroute if necessary
         if (CorsHelper.checkCorsDelegate(ctx, l)) {
+          // HTTP code 100 is chosen purely as metrics tag placeholder
+          MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(), 100,
+              pc.getCtx().request().method().name(), pc.getHandlerModuleInstance());
           stream.resume();
           ctx.reroute(ctx.request().path());
           return;
@@ -591,11 +597,16 @@ public class ProxyService {
     } else {
       streamHandle(pc, readStream, ctx.response(), clientRequestList);
     }
+    MetricsHelper.recordHttpServerProcessingTime(pc.getSample(), pc.getTenant(),
+        ctx.response().getStatusCode(), ctx.request().method().name(),
+        pc.getHandlerModuleInstance());
   }
 
   private void proxyClientFailure(ProxyContext pc, ModuleInstance mi, Throwable res) {
     String e = res.getMessage();
     pc.warn("proxyRequest failure: " + mi.getUrl() + ": " + e);
+    MetricsHelper.recordHttpClientError(pc.getTenant(), mi.getMethod().name(),
+        mi.getRoutingEntry().getStaticPath());
     pc.responseError(500, messages.getMessage("10107",
         mi.getModuleDescriptor().getId(), mi.getUrl(), e));
   }
@@ -612,6 +623,7 @@ public class ProxyService {
         new RequestOptions().setMethod(meth).setAbsoluteURI(url));
     fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
+      final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       pc.trace("ProxyRequestHttpClient request buf '"
           + bcontent + "'");
@@ -620,6 +632,8 @@ public class ProxyService {
       log(pc, clientRequest);
       clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
+        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+            meth.name(), mi);
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (newIt.hasNext()) {
           makeTraceHeader(mi, res.statusCode(), pc);
@@ -647,6 +661,13 @@ public class ProxyService {
     fut.onSuccess(clientRequest -> {
       clientRequestList.add(clientRequest);
       clientRequest.setChunked(true);
+      String method = ctx.request().method().name();
+      String path = mi.getRoutingEntry().getStaticPath();
+      final Timer.Sample sample = MetricsHelper.getTimerSample();
+      clientRequest.onFailure(e -> MetricsHelper.recordHttpClientError(pc.getTenant(),
+          method, path));
+      clientRequest.onSuccess(res -> MetricsHelper.recordHttpClientResponse(sample,
+          pc.getTenant(), res.statusCode(), method, mi));
       if (!it.hasNext()) {
         relayToResponse(ctx.response(), null, pc);
         copyHeaders(clientRequest, ctx, mi);
@@ -793,6 +814,7 @@ public class ProxyService {
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
     fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
+      final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       if (bcontent != null) {
         pc.trace("proxyRequestResponse request buf '" + bcontent + "'");
@@ -808,6 +830,8 @@ public class ProxyService {
       log(pc, clientRequest);
       clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
+        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+            ctx.request().method().name(), mi);
         fixupXOkapiToken(mi.getModuleDescriptor(), ctx.request().headers(), res.headers());
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (res.getHeader(XOkapiHeaders.STOP) == null && newIt.hasNext()) {
@@ -838,11 +862,14 @@ public class ProxyService {
         new RequestOptions().setMethod(ctx.request().method()).setAbsoluteURI(makeUrl(mi, ctx)));
     fut.onFailure(res -> proxyClientFailure(pc, mi, res));
     fut.onSuccess(clientRequest -> {
+      final Timer.Sample sample = MetricsHelper.getTimerSample();
       copyHeaders(clientRequest, ctx, mi);
       clientRequest.end();
       log(pc, clientRequest);
       clientRequest.onFailure(res -> proxyClientFailure(pc, mi, res));
       clientRequest.onSuccess(res -> {
+        MetricsHelper.recordHttpClientResponse(sample, pc.getTenant(), res.statusCode(),
+            ctx.request().method().name(), mi);
         Iterator<ModuleInstance> newIt = getNewIterator(it, mi, res.statusCode());
         if (newIt.hasNext()) {
           relayToRequest(res, pc, mi);
@@ -1171,15 +1198,19 @@ public class ProxyService {
       if (inst.isWithRetry()) {
         cli.setClosedRetry(40000);
       }
+      final Timer.Sample sample = MetricsHelper.getTimerSample();
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         logger.info("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
         if (cres.failed()) {
           String msg = messages.getMessage("11101", inst.getMethod(),
               inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
+          MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
           fut.handle(Future.failedFuture(msg));
           return;
         }
+        MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
+            inst.getMethod().name(), inst);
         // Pass response headers - needed for unit test, if nothing else
         fut.handle(Future.succeededFuture(cli));
       });
