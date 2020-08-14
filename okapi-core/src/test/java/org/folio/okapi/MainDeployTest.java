@@ -11,6 +11,7 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.MetricsHelper;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -323,4 +324,24 @@ public class MainDeployTest {
       });
     });
   }
+
+  @Test
+  public void testEnableMetrics(TestContext context) {
+    async = context.async();
+
+    String[] args = { "-enable-metrics" };
+
+    context.assertFalse(MetricsHelper.isEnabled());
+
+    MainDeploy d = new MainDeploy();
+    d.init(args, res -> {
+      vertx = res.succeeded() ? res.result() : null;
+      Assert.assertTrue("main1 " + res.cause(), res.succeeded());
+      context.assertTrue(res.succeeded());
+      context.assertTrue(MetricsHelper.isEnabled());
+      MetricsHelper.setEnabled(false);
+      async.complete();
+    });
+  }
+
 }
