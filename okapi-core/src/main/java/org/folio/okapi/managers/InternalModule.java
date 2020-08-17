@@ -1329,7 +1329,7 @@ public class InternalModule {
                               Handler<ExtendedAsyncResult<String>> fut) {
 
     RoutingContext ctx = pc.getCtx();
-    String p = ctx.normalisedPath();
+    String p = ctx.normalizedPath();
     String[] segments = p.split("/");
     int n = segments.length;
     String[] decodedSegs = new String[n];
