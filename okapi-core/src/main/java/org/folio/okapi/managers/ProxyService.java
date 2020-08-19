@@ -307,12 +307,12 @@ public class ProxyService {
         }
       }
       if (okapiToken != null) {
-        pc.setUserId(okapiToken.getUserId());
+        pc.setUserId(okapiToken.getUserIdWithoutValidation());
       }
     }
 
     if (tenantId == null) {
-      tenantId = okapiToken.getTenant();
+      tenantId = okapiToken.getTenantWithoutValidation();
       if (tenantId != null) {
         ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
         pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
@@ -549,7 +549,7 @@ public class ProxyService {
     FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME,
         headers.get(XOkapiHeaders.MODULE_ID));
     FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
-        pc.getUserId());
+        pc.getUserIdWithoutValidation());
 
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
