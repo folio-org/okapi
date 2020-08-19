@@ -549,7 +549,7 @@ public class ProxyService {
     FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME,
         headers.get(XOkapiHeaders.MODULE_ID));
     FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
-        pc.getUserIdWithoutValidation());
+        pc.getUserId());
 
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
