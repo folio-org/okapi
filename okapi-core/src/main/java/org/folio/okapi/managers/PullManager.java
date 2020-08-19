@@ -4,8 +4,9 @@ import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import java.util.Arrays;
 import java.util.Collection;
@@ -50,7 +51,7 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
+    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
       if (res1.failed()) {
         logger.warn("pull for {} failed: {}", baseUrl,
             res1.cause().getMessage(), res1.cause());
@@ -77,7 +78,6 @@ public class PullManager {
           -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
       );
     });
-    req.end();
   }
 
   private void getList(String urlBase,
@@ -87,41 +87,34 @@ public class PullManager {
     if (!url.endsWith("/")) {
       url += "/";
     }
-    url += "_/proxy/modules";
-    if (skipList != null) {
-      url += "?full=true";
+    url += "_/proxy/modules?full=true";
+    String[] idList = new String[skipList.size()];
+    int i = 0;
+    for (ModuleDescriptor md : skipList) {
+      idList[i++] = md.getId();
     }
-    final Buffer body = Buffer.buffer();
-    HttpClientRequest req = httpClient.getAbs(url, res1 -> {
-      if (res1.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause().getMessage()));
-        return;
-      }
-      HttpClientResponse res = res1.result();
-      res.handler(body::appendBuffer);
-      res.endHandler(x -> {
-        if (res.statusCode() != 200) {
-          fut.handle(new Failure<>(ErrorType.USER, body.toString()));
-          return;
-        }
-        ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
-            ModuleDescriptor[].class);
-        fut.handle(new Success<>(ml));
-      });
-      res.exceptionHandler(x
-          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
-    });
-    if (skipList != null) {
-      String[] idList = new String[skipList.size()];
-      int i = 0;
-      for (ModuleDescriptor md : skipList) {
-        idList[i] = md.getId();
-        i++;
-      }
-      req.end(Json.encodePrettily(idList));
-    } else {
-      req.end();
-    }
+    httpClient.request(
+        new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
+        .onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())))
+        .onSuccess(req -> {
+          req.end(Json.encodePrettily(idList));
+          req.onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())));
+          req.onSuccess(res -> {
+            final Buffer body = Buffer.buffer();
+            res.handler(body::appendBuffer);
+            res.endHandler(x -> {
+              if (res.statusCode() != 200) {
+                fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+                return;
+              }
+              ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
+                  ModuleDescriptor[].class);
+              fut.handle(new Success<>(ml));
+            });
+            res.exceptionHandler(x
+                -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
+          });
+        });
   }
 
   private void pullSmart(String remoteUrl, Collection<ModuleDescriptor> localList,

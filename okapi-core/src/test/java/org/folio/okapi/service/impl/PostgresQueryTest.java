@@ -9,6 +9,8 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.sqlclient.PreparedQuery;
+import io.vertx.sqlclient.PreparedStatement;
+import io.vertx.sqlclient.Query;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlConnection;
@@ -16,7 +18,10 @@ import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Transaction;
 import io.vertx.sqlclient.Tuple;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collector;
+
+import io.vertx.sqlclient.spi.DatabaseMetadata;
 import org.folio.okapi.common.ErrorType;
 
 import org.junit.After;
@@ -30,15 +35,57 @@ public class PostgresQueryTest {
 
   Vertx vertx;
 
+  class FakeQuery<T> implements PreparedQuery<T>  {
+
+    @Override
+    public void execute(Tuple tuple, Handler<AsyncResult<T>> handler) {
+       handler.handle(execute(tuple));
+    }
+
+    @Override
+    public Future<T> execute(Tuple tuple) {
+      return execute();
+    }
+
+    @Override
+    public void executeBatch(List<Tuple> list, Handler<AsyncResult<T>> handler) {
+      handler.handle(executeBatch(list));
+    }
+
+    @Override
+    public Future<T> executeBatch(List<Tuple> list) {
+      return Future.failedFuture("fake batch querty failed");
+    }
+
+    @Override
+    public void execute(Handler<AsyncResult<T>> handler) {
+      handler.handle(execute());
+    }
+
+    @Override
+    public Future<T> execute() {
+      return Future.failedFuture("fake query failed");
+    }
+
+    @Override
+    public <R> PreparedQuery<SqlResult<R>> collecting(Collector<Row, ?, R> collector) {
+      return null;
+    }
+
+    @Override
+    public <U> PreparedQuery<RowSet<U>> mapping(Function<Row, U> function) {
+      return null;
+    }
+  }
   class FakeSqlConnection implements SqlConnection {
 
     @Override
-    public SqlConnection prepare(String string, Handler<AsyncResult<PreparedQuery>> hndlr) {
+    public SqlConnection prepare(String s, Handler<AsyncResult<PreparedStatement>> handler) {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
     @Override
-    public Future<PreparedQuery> prepare(String string) {
+    public Future<PreparedStatement> prepare(String s) {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
@@ -53,8 +100,13 @@ public class PostgresQueryTest {
     }
 
     @Override
-    public Transaction begin() {
+    public void begin(Handler<AsyncResult<Transaction>> handler) {
       throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public Future<Transaction> begin() {
+      return null;
     }
 
     @Override
@@ -63,91 +115,29 @@ public class PostgresQueryTest {
     }
 
     @Override
-    public void close() {
+    public Query<RowSet<Row>> query(String s) {
+      return new FakeQuery<>();
     }
 
     @Override
-    public SqlConnection preparedQuery(String string, Handler<AsyncResult<RowSet<Row>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public PreparedQuery<RowSet<Row>> preparedQuery(String s) {
+      return new FakeQuery<>();
     }
 
     @Override
-    public <R> SqlConnection preparedQuery(String string, Collector<Row, ?, R> clctr, Handler<AsyncResult<SqlResult<R>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public void close(Handler<AsyncResult<Void>> handler) {
+
     }
 
     @Override
-    public SqlConnection query(String string, Handler<AsyncResult<RowSet<Row>>> hndlr) {
-      hndlr.handle(Future.failedFuture("fake query failed"));
-      return this;
+    public DatabaseMetadata databaseMetadata() {
+      return null;
     }
 
     @Override
-    public <R> SqlConnection query(String string, Collector<Row, ?, R> clctr, Handler<AsyncResult<SqlResult<R>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    public Future<Void> close() {
+      return null;
     }
-
-    @Override
-    public SqlConnection preparedQuery(String string, Tuple tuple, Handler<AsyncResult<RowSet<Row>>> hndlr) {
-      hndlr.handle(Future.failedFuture("fake preparedQuery failed"));
-      return this;
-    }
-
-    @Override
-    public <R> SqlConnection preparedQuery(String string, Tuple tuple, Collector<Row, ?, R> clctr, Handler<AsyncResult<SqlResult<R>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public SqlConnection preparedBatch(String string, List<Tuple> list, Handler<AsyncResult<RowSet<Row>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <R> SqlConnection preparedBatch(String string, List<Tuple> list, Collector<Row, ?, R> clctr, Handler<AsyncResult<SqlResult<R>>> hndlr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Future<RowSet<Row>> query(String string) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <R> Future<SqlResult<R>> query(String string, Collector<Row, ?, R> clctr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Future<RowSet<Row>> preparedQuery(String string) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <R> Future<SqlResult<R>> preparedQuery(String string, Collector<Row, ?, R> clctr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Future<RowSet<Row>> preparedQuery(String string, Tuple tuple) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <R> Future<SqlResult<R>> preparedQuery(String string, Tuple tuple, Collector<Row, ?, R> clctr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public Future<RowSet<Row>> preparedBatch(String string, List<Tuple> list) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
-    @Override
-    public <R> Future<SqlResult<R>> preparedBatch(String string, List<Tuple> list, Collector<Row, ?, R> clctr) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
-
   }
 
   class FakeHandle extends PostgresHandle {
@@ -221,7 +211,7 @@ public class PostgresQueryTest {
     q.query("select", Tuple.of("id"), res -> {
       context.assertTrue(res.failed());
       context.assertEquals(ErrorType.INTERNAL, res.getType());
-      context.assertEquals("fake preparedQuery failed", res.cause().getMessage());
+      context.assertEquals("fake query failed", res.cause().getMessage());
       async.complete();
     });
   }

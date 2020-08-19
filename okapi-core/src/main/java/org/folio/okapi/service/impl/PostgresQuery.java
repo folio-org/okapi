@@ -49,7 +49,7 @@ public class PostgresQuery {
         return;
       }
       logger.debug("preparedQuery sql {}", sql);
-      conn.preparedQuery(sql, tuple, qres -> {
+      conn.preparedQuery(sql).execute(tuple, qres -> {
         if (qres.failed()) {
           logger.fatal("preparedQuery sql {} failed: {}",
               sql, qres.cause().getMessage());
@@ -71,7 +71,7 @@ public class PostgresQuery {
         return;
       }
       logger.debug("query sql {}", sql);
-      conn.query(sql, qres -> {
+      conn.query(sql).execute(qres -> {
         if (qres.failed()) {
           logger.fatal("query sql {} failed: {}",
               sql, qres.cause().getMessage());

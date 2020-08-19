@@ -1,3 +1,18 @@
+## 4.0.0 2020-08-17
+
+ * [OKAPI-879](https://issues.folio.org/browse/OKAPI-879) Upgrade Okapi to OpenJDK 11
+ * [OKAPI-865](https://issues.folio.org/browse/OKAPI-865) Upgrade to Vert.x Beta 1
+ * [OKAPI-860](https://issues.folio.org/browse/OKAPI-860) Add HTTP metrics to Okapi
+ * [OKAPI-864](https://issues.folio.org/browse/OKAPI-864) Remove dropWizard metrics
+ * [OKAPI-835](https://issues.folio.org/browse/OKAPI-835) Secure Okapi internal APIs
+ * [OKAPI-873](https://issues.folio.org/browse/OKAPI-873) Update Netty (CVE-2019-16869) and Jackson (CVE-2019-14540)
+ * [OKAPI-866](https://issues.folio.org/browse/OKAPI-866) Okapi uses excessive memory or OOM for bulk instance id download
+ * [OKAPI-861](https://issues.folio.org/browse/OKAPI-861) Skip PostgresHandleTest if Docker is unavailable
+ * [OKAPI-859](https://issues.folio.org/browse/OKAPI-859) Fail to enable module if tenant API has module permissions
+ * [OKAPI-862](https://issues.folio.org/browse/OKAPI-862) Debian package from okapi-debian to okapi
+ * [OKAPI-857](https://issues.folio.org/browse/OKAPI-857) Fix Okapi crashes on vertx-cache dir when changing user 'okapi'
+ * [OKAPI-858](https://issues.folio.org/browse/OKAPI-858) okapi.sh should not put credentials into -D command line options
+
 ## 3.1.0 2020-06-15
 
  * [OKAPI-854](https://issues.folio.org/browse/OKAPI-854) Deprecate `postgres_user` (use `postgres_username`)

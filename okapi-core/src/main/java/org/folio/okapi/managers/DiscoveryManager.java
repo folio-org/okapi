@@ -5,8 +5,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.spi.cluster.ClusterManager;
 import io.vertx.core.spi.cluster.NodeListener;
@@ -565,7 +565,7 @@ public class DiscoveryManager implements NodeListener {
     futures.all(all, fut);
   }
 
-  private void health(DeploymentDescriptor md,
+  void health(DeploymentDescriptor md,
                       Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
 
     HealthDescriptor hd = new HealthDescriptor();
@@ -576,28 +576,27 @@ public class DiscoveryManager implements NodeListener {
       hd.setHealthMessage("Unknown");
       hd.setHealthStatus(false);
       fut.handle(new Success<>(hd));
-    } else {
-      HttpClientRequest req = httpClient.getAbs(url, res1 -> {
-        if (res1.failed()) {
-          hd.setHealthMessage("Fail: " + res1.cause().getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
-          return;
-        }
-        HttpClientResponse res2 = res1.result();
-        res2.endHandler(res -> {
-          hd.setHealthMessage("OK");
-          hd.setHealthStatus(true);
-          fut.handle(new Success<>(hd));
-        });
-        res2.exceptionHandler(res -> {
-          hd.setHealthMessage("Fail: " + res.getMessage());
-          hd.setHealthStatus(false);
-          fut.handle(new Success<>(hd));
-        });
-      });
-      req.end();
+      return;
     }
+    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
+      if (res1.failed()) {
+        hd.setHealthMessage("Fail: " + res1.cause().getMessage());
+        hd.setHealthStatus(false);
+        fut.handle(new Success<>(hd));
+        return;
+      }
+      HttpClientResponse response = res1.result();
+      response.endHandler(res -> {
+        hd.setHealthMessage("OK");
+        hd.setHealthStatus(true);
+        fut.handle(new Success<>(hd));
+      });
+      response.exceptionHandler(res -> {
+        hd.setHealthMessage("Fail: " + res.getMessage());
+        hd.setHealthStatus(false);
+        fut.handle(new Success<>(hd));
+      });
+    });
   }
 
   void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
@@ -632,7 +631,7 @@ public class DiscoveryManager implements NodeListener {
 
   void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
     if (clusterManager != null) {
-      nd.setNodeId(clusterManager.getNodeID());
+      nd.setNodeId(clusterManager.getNodeId());
     }
     nodes.put(nd.getNodeId(), nd, fut);
   }
@@ -769,6 +768,6 @@ public class DiscoveryManager implements NodeListener {
       return true;
     }
     List<String> nodeIds = clusterManager.getNodes();
-    return clusterManager.getNodeID().equals(Collections.max(nodeIds));
+    return clusterManager.getNodeId().equals(Collections.max(nodeIds));
   }
 }

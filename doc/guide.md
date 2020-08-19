@@ -44,6 +44,7 @@ managing and running microservices.
     * [Deployment](#deployment)
     * [Docker](#docker)
     * [System Interfaces](#system-interfaces)
+    * [Instrumentation](#instrumentation)
 * [Module Reference](#module-reference)
     * [Life cycle of a module](#life-cycle-of-a-module)
     * [Tenant Interface](#tenant-interface)
@@ -601,7 +602,7 @@ before and after each step of execution of the request processing
 pipeline. Besides monitoring, instrumentation is crucial for the
 ability to quickly diagnose issues in the running system ("hot"
 debugging) and discovering performance bottlenecks (profiling). We are
-looking at established solutions in this regard: e.g. JMX, Dropwizard
+looking at established solutions in this regard: e.g. JMX, Micrometer
 Metrics, Graphite, etc.
 
 A multi-module system may provide a wide variety of metrics and an
@@ -2711,6 +2712,7 @@ These options are at the end of the command line:
 * `-hazelcast-config-cp` _file_ -- Read Hazelcast config from class path
 * `-hazelcast-config-file` _file_ -- Read Hazelcast config from local file
 * `-hazelcast-config-url` _url_ -- Read Hazelcast config from URL
+* `-enable-metrics` -- Enables the sending of various metrics to InfluxDB
 * `-cluster-host` _ip_ -- Vertx cluster host
 * `-cluster-port` _port_ -- Vertx cluster port
 
@@ -2938,6 +2940,26 @@ every 5 minutes and `POST /testb/2` every half hour.
 Note that the call made by Okapi will call auth-token to get a token
 for the tenant this module is enabled for. No user is involved in this.
 Use `modulePermissions` to grant permissions for the token.
+
+### Instrumentation
+
+Okapi pushes instrumentation data to an InfluxDB backend, from which
+they can be shown with something like Grafana. Vert.x pushes some numbers
+automatically, but various parts of Okapi push their own numbers explicitly,
+so we can classify by tenant or module. Individual
+modules may push their own numbers as well, as needed. It is hoped that they
+will use a key naming scheme that is close to what we do in Okapi.
+
+Enabling the metrics via `-enable-metrics` will start sending metrics to `localhost:8086`
+
+Follwing Java parameters can be used to config InfluxDB connection.
+* `influxUrl` - default to `http://localhost:8086`
+* `influxDbName` - default to `okapi`
+* `influxUser` - default to null
+* `influxPassword` - default to null
+
+For example: `java -DinfluxUrl=http://influx.yourdomain.io:8086 -jar okapi-core/target/okapi-core-fat.jar dev -enable-metrics` then metrics
+will be sent to `http://influx.yourdomain.io:8086`
 
 ## Module Reference
 

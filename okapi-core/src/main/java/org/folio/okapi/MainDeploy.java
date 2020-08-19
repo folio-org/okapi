@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
+import org.folio.okapi.util.MetricsHelper;
 
 @java.lang.SuppressWarnings({"squid:S3776"})
 public class MainDeploy {
@@ -100,6 +101,14 @@ public class MainDeploy {
     return false;
   }
 
+  private void enableMetrics() {
+    String influxUrl = System.getProperty("influxUrl");
+    String influxDbName = System.getProperty("influxDbName");
+    String influxUserName = System.getProperty("influxUserName");
+    String influxPassword = System.getProperty("influxPassword");
+    MetricsHelper.config(vopt, influxUrl, influxDbName, influxUserName, influxPassword);
+  }
+
   private boolean parseOptions(String[] args, Handler<AsyncResult<Vertx>> fut) {
     int i = 0;
     String mode = null;
@@ -139,6 +148,8 @@ public class MainDeploy {
         clusterHost = args[++i];
       } else if ("-cluster-port".equals(args[i]) && i < args.length - 1) {
         clusterPort = Integer.parseInt(args[++i]);
+      } else if ("-enable-metrics".equals(args[i])) {
+        enableMetrics();
       } else if ("-conf".equals(args[i]) && i < args.length - 1) {
         if (readConf(args[++i], fut)) {
           return true;
@@ -172,7 +183,7 @@ public class MainDeploy {
         + "  -hazelcast-config-url url     Read Hazelcast config from URL\n"
         + "  -cluster-host ip              Vertx cluster host\n"
         + "  -cluster-port port            Vertx cluster port\n"
-    );
+        + "  -enable-metrics\n");
   }
 
   private void deployClustered(final Logger logger, Handler<AsyncResult<Vertx>> fut) {
@@ -201,7 +212,6 @@ public class MainDeploy {
     } else {
       logger.warn("clusterPort not set");
     }
-    eventBusOptions.setClustered(true);
 
     Vertx.clusteredVertx(vopt, res -> {
       if (res.succeeded()) {

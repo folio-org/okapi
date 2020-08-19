@@ -16,18 +16,16 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
+import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.Pump;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.folio.okapi.common.OkapiLogger;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.runner.RunWith;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -36,14 +34,20 @@ import java.util.Base64;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpClientLegacy;
-import org.folio.okapi.common.HttpResponse;
-import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.folio.okapi.common.HttpResponse;
+import org.folio.okapi.common.XOkapiHeaders;
 
 @RunWith(VertxUnitRunner.class)
 public class ProxyTest {
@@ -65,9 +69,18 @@ public class ProxyTest {
   private int timerDelaySum = 0;
   private int timerTenantInitStatus = 200;
   private int timerTenantPermissionsStatus = 200;
+  private HttpServer listenTimer;
   private JsonObject timerPermissions = new JsonObject();
   private JsonArray edgePermissionsAtInit = null;
   private JsonObject timerTenantData;
+
+  @Rule
+  public TestWatcher watchman = new TestWatcher() {
+    @Override
+    public void starting(final Description method) {
+      logger.info("being run..." + method.getMethodName());
+    }
+  };
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -106,16 +119,23 @@ public class ProxyTest {
   }
 
   private void myEdgeCallTest(RoutingContext ctx, String token) {
-    HttpClientRequest get = HttpClientLegacy.get(httpClient, port, "localhost", "/testb/1", res1 -> {
-      Buffer resBuf = Buffer.buffer();
-      res1.handler(resBuf::appendBuffer);
-      res1.endHandler(res2 -> {
-        ctx.response().setStatusCode(res1.statusCode());
-        ctx.response().end(resBuf);
-      });
-    });
-    get.putHeader("X-Okapi-Token", token);
-    get.end();
+    httpClient.get(port, "localhost", "/testb/1",
+        MultiMap.caseInsensitiveMultiMap().add("X-Okapi-Token", token),
+        res1 -> {
+          if (res1.failed()) {
+            ctx.response().setStatusCode(500);
+            ctx.response().end();
+            return;
+          }
+          HttpClientResponse res = res1.result();
+          Buffer resBuf = Buffer.buffer();
+          res.handler(resBuf::appendBuffer);
+          res.endHandler(res2 -> {
+            ctx.response().setStatusCode(res.statusCode());
+            ctx.response().end(resBuf);
+          });
+
+        });
   }
 
   private void myEdgeHandle(RoutingContext ctx) {
@@ -141,22 +161,30 @@ public class ProxyTest {
             + "  \"username\" : \"peter\"," + LS
             + "  \"password\" : \"peter-password\"" + LS
             + "}";
-        HttpClientRequest post = HttpClientLegacy.post(httpClient, port, "localhost", "/authn/login", res1 -> {
+        httpClient.post(port, "localhost", "/authn/login",
+            MultiMap.caseInsensitiveMultiMap()
+            .add("Content-Type", "application/json")
+            .add("Accept", "application/json")
+            .add("X-Okapi-Tenant", tenant),
+        Buffer.buffer(docLogin),
+        res1 -> {
+          if (res1.failed()) {
+            ctx.response().setStatusCode(500);
+            ctx.response().end();
+            return;
+          }
+          HttpClientResponse response = res1.result();
           Buffer loginBuf = Buffer.buffer();
-          res1.handler(loginBuf::appendBuffer);
-          res1.endHandler(res2 -> {
-            if (res1.statusCode() != 200) {
-              ctx.response().setStatusCode(res1.statusCode());
+          response.handler(loginBuf::appendBuffer);
+          response.endHandler(x -> {
+            if (response.statusCode() != 200) {
+              ctx.response().setStatusCode(response.statusCode());
               ctx.response().end(loginBuf);
             } else {
-              myEdgeCallTest(ctx, res1.getHeader("X-Okapi-Token"));
+              myEdgeCallTest(ctx, response.getHeader("X-Okapi-Token"));
             }
           });
         });
-        post.putHeader("Content-Type", "application/json");
-        post.putHeader("Accept", "application/json");
-        post.putHeader("X-Okapi-Tenant", tenant);
-        post.end(docLogin);
       });
     } else {
       ctx.response().setStatusCode(404);
@@ -258,7 +286,7 @@ public class ProxyTest {
 
     Promise<Void> promise = Promise.promise();
     HttpServerOptions so = new HttpServerOptions().setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    listenTimer = vertx.createHttpServer(so)
         .requestHandler(router)
         .listen(portTimer, x -> promise.handle(x.mapEmpty()));
     return promise.future();
@@ -314,14 +342,15 @@ public class ProxyTest {
   @After
   public void tearDown(TestContext context) {
     Async async = context.async();
-
-    HttpClientLegacy.delete(httpClient, port, "localhost", "/_/discovery/modules", response -> {
-      context.assertTrue(response.statusCode() == 404 || response.statusCode() == 204);
-      response.endHandler(x -> {
-        httpClient.close();
-        td(context, async);
-      });
-    }).end();
+    httpClient.delete(port, "localhost", "/_/discovery/modules", res1 -> {
+          context.assertTrue(res1.succeeded());
+          HttpClientResponse response = res1.result();
+          context.assertEquals(204, response.statusCode());
+          response.endHandler(x -> {
+            httpClient.close();
+            td(context, async);
+          });
+        });
   }
 
   @Test
@@ -435,22 +464,30 @@ public class ProxyTest {
     long total = bufSz * bufCnt;
     logger.info("Sending {} GB", total / 1e9);
     HttpClient client = vertx.createHttpClient();
-    HttpClientRequest request = HttpClientLegacy.post(client, port, "localhost", uri, res -> {
-      context.assertEquals(200, res.statusCode());
-      AtomicLong cnt = new AtomicLong();
-      res.handler(h -> cnt.addAndGet(h.length()));
-      res.exceptionHandler(ex -> {context.fail(ex.getCause()); async.complete(); });
-      res.endHandler(end -> {context.assertEquals(total + offset, cnt.get()); async.complete();});
-    });
-    request.putHeader("X-Okapi-Tenant", tenant);
-    request.putHeader("Content-Type", "text/plain");
-    request.putHeader("Accept", "text/plain");
-    request.setChunked(true);
-    Buffer buffer = Buffer.buffer();
-    for (int j = 0; j < bufSz; j++) {
-      buffer.appendString("X");
-    }
-    endRequest(request, buffer, 0, bufCnt);
+
+    httpClient.request(HttpMethod.POST, port, "localhost", uri, context.asyncAssertSuccess(request -> {
+      request.onComplete(context.asyncAssertSuccess(res -> {
+        context.assertEquals(200, res.statusCode());
+        AtomicLong cnt = new AtomicLong();
+        res.handler(h -> cnt.addAndGet(h.length()));
+        res.exceptionHandler(ex -> {
+          context.fail(ex.getCause());
+          async.complete();
+        });
+        res.endHandler(end -> {
+          context.assertEquals(total + offset, cnt.get());
+          async.complete();});
+      }));
+      request.putHeader("X-Okapi-Tenant", tenant);
+      request.putHeader("Content-Type", "text/plain");
+      request.putHeader("Accept", "text/plain");
+      request.setChunked(true);
+      Buffer buffer = Buffer.buffer();
+      for (int j = 0; j < bufSz; j++) {
+        buffer.appendString("X");
+      }
+      endRequest(request, buffer, 0, bufCnt);
+    }));
     async.await(30000);
   }
 
@@ -2139,16 +2176,16 @@ public class ProxyTest {
     final String locationTenantRoskilde = r.getHeader("Location");
 
     final String docRequestPre = "{" + LS
-      + "  \"id\" : \"request-pre-1.0.0\"," + LS
-      + "  \"name\" : \"request-pre\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"phase\" : \"pre\"," + LS
-      + "    \"type\" : \"request-log\"," + LS
-      + "    \"permissionsRequired\" : [ ]" + LS
-      + "  } ]" + LS
-      + "}";
+        + "  \"id\" : \"request-pre-1.0.0\"," + LS
+        + "  \"name\" : \"request-pre\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/testb\"," + LS
+        + "    \"phase\" : \"pre\"," + LS
+        + "    \"type\" : \"request-log\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2177,20 +2214,20 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
 
     final String docRequestOnly = "{" + LS
-      + "  \"id\" : \"request-only-1.0.0\"," + LS
-      + "  \"name\" : \"request-only\"," + LS
-      + "  \"filters\" : [ {" + LS
-      + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
-      + "    \"path\" : \"/testb\"," + LS
-      + "    \"level\" : \"33\"," + LS
-      + "    \"type\" : \"request-only\"," + LS
-      + "    \"permissionsRequired\" : [ ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"request-only-1.0.0\"," + LS
+        + "  \"name\" : \"request-only\"," + LS
+        + "  \"filters\" : [ {" + LS
+        + "    \"methods\" : [ \"GET\", \"POST\" ]," + LS
+        + "    \"path\" : \"/testb\"," + LS
+        + "    \"level\" : \"30\"," + LS
+        + "    \"type\" : \"request-only\"," + LS
+        + "    \"permissionsRequired\" : [ ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2235,25 +2272,25 @@ public class ProxyTest {
       c.getLastReport().isEmpty());
 
     final String docSample = "{" + LS
-      + "  \"id\" : \"sample-module-1.0.0\"," + LS
-      + "  \"name\" : \"sample-module\"," + LS
-      + "  \"provides\" : [ {" + LS
-      + "    \"id\" : \"_tenant\"," + LS
-      + "    \"version\" : \"1.0\"" + LS
-      + "  }, {" + LS
-      + "    \"id\" : \"myfirst\"," + LS
-      + "    \"version\" : \"1.0\"," + LS
-      + "    \"handlers\" : [ {" + LS
-      + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
-      + "      \"path\" : \"/testb\"," + LS
-      + "      \"permissionsRequired\" : [ ]" + LS
-      + "    } ]" + LS
-      + "  } ]," + LS
-      + "  \"launchDescriptor\" : {" + LS
-      + "    \"exec\" : "
-      + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
-      + "  }" + LS
-      + "}";
+        + "  \"id\" : \"sample-module-1.0.0\"," + LS
+        + "  \"name\" : \"sample-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.0\"" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"myfirst\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
+        + "      \"path\" : \"/testb\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
     c = api.createRestAssured3();
     r = c.given()
       .header("Content-Type", "application/json")
@@ -2406,6 +2443,71 @@ public class ProxyTest {
       context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
       async.complete();
     });
+    async.await();
+
+    // same as sample-1.0.0 but with request-response-1.0
+    final String docSample2 = "{" + LS
+        + "  \"id\" : \"sample-module-1.0.1\"," + LS
+        + "  \"name\" : \"sample-module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.0\"" + LS
+        + "  }, {" + LS
+        + "    \"id\" : \"myfirst\"," + LS
+        + "    \"version\" : \"1.0\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"GET\", \"POST\", \"DELETE\"]," + LS
+        + "      \"path\" : \"/testb\"," + LS
+        + "      \"type\" : \"request-response-1.0\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"launchDescriptor\" : {" + LS
+        + "    \"exec\" : "
+        + "\"java -Dport=%p -jar ../okapi-test-module/target/okapi-test-module-fat.jar\"" + LS
+        + "  }" + LS
+        + "}";
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body(docSample2).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"sample-module-1.0.1\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
+        .then().statusCode(200).log().ifValidationFails()
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"sample-module-1.0.1\"," + LS
+            + "  \"from\" : \"sample-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"));
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    given().header("X-Okapi-Tenant", okapiTenant)
+        .header("X-Okapi-Token", okapiToken)
+        .header("Content-Type", "text/plain")
+        .header("Accept", "text/xml")
+        .body("Okapi").post("/testb")
+        .then().statusCode(200).log().ifValidationFails()
+        .header("Content-Type", "text/xml")
+        .body(equalTo("<test>Hello Okapi</test>"));
+
+    Async async2 = context.async();
+    vertx.setTimer(300, res -> {
+      context.assertEquals("Okapi", preBuffer.toString());
+      context.assertEquals("<test>Hello Okapi</test>", postBuffer.toString());
+      context.assertNotNull(postHandlerHeaders);
+      context.assertEquals("200", postHandlerHeaders.get(XOkapiHeaders.HANDLER_RESULT));
+      async2.complete();
+    });
+    async2.await();
   }
 
   @Test
@@ -2588,22 +2690,33 @@ public class ProxyTest {
       .post("/_/proxy/tenants/" + okapiTenant + "/install?deploy=true")
       .then().statusCode(200).log().ifValidationFails();
 
-    given()
+    c.given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/roskilde")
       .then().statusCode(200).log().ifValidationFails()
       .body(equalTo("It works"));
 
-    given()
+    c.given()
       .header("Content-Type", "text/plain")
       .header("Accept", "text/xml")
       .body("Okapi").get("/edge/unknown")
       .then().statusCode(400).log().ifValidationFails()
       .body(equalTo("No such Tenant unknown"));
 
-    given()
-      .header("X-Okapi-Token", okapiToken)
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/edge-module-1.0.0").then().statusCode(204);
+
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/basic-module-1.0.0").then().statusCode(204);
+
+    c.given()
+        .header("X-Okapi-Token", okapiToken)
+        .delete("/_/proxy/tenants/supertenant/modules/auth-module-1.0.0").then().statusCode(204);
+
+    c.given()
       .delete("/_/discovery/modules")
       .then().statusCode(204).log().ifValidationFails();
   }
@@ -3581,6 +3694,42 @@ public class ProxyTest {
   }
 
   @Test
+  public void testProxyClientFailure() {
+    String tenant = "test-tenant-permissions-tenant";
+    setupBasicTenant(tenant);
+
+    String moduleId = "module-1.0.0";
+    setupBasicModule(tenant, moduleId, "1.1", false);
+    RestAssuredClient c = api.createRestAssured3();
+
+    String body = new JsonObject().put("id", "test").encode();
+    c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant)
+        .body(body)
+        .post("/regularcall")
+        .then()
+        .statusCode(200)
+        .log().ifValidationFails();
+
+    // shut down listener for module so proxy client fails
+    listenTimer.close();
+    c.given()
+        .header("Content-Type", "application/json")
+        .header("X-Okapi-Tenant", tenant)
+        .body(body)
+        .post("/regularcall")
+        .then()
+        .statusCode(500)
+        .log().ifValidationFails().assertThat().body(containsString("proxyClient failure"));
+
+    given().delete("/_/proxy/tenants/" + tenant + "/modules").then().statusCode(400);
+    given().delete("/_/discovery/modules").then().statusCode(204);
+    given().delete("/_/proxy/modules/" + moduleId).then().statusCode(400);
+    given().delete("/_/proxy/tenants/" + tenant).then().statusCode(204);
+  }
+
+  @Test
   public void testTenantPermissionsVersion() {
     String tenant = "test-tenant-permissions-tenant";
     String moduleId = "test-tenant-permissions-basic-module-1.0.0";
@@ -3592,7 +3741,7 @@ public class ProxyTest {
     // test _tenantpermissions 1.0 vs 1.1
     for (String tenantPermissionsVersion : Arrays.asList("1.0", "1.1")) {
       timerPermissions.clear();
-      setupBasicModule(tenant, moduleId, tenantPermissionsVersion);
+      setupBasicModule(tenant, moduleId, tenantPermissionsVersion, true);
       setupBasicAuth(tenant, authModuleId);
       // system generates permission sets for 1.1 version
       if (tenantPermissionsVersion.equals("1.0")) {
@@ -3638,7 +3787,7 @@ public class ProxyTest {
     String body = new JsonObject().put("id", "test").encode();
 
     setupBasicTenant(tenant);
-    setupBasicModule(tenant, moduleId, "1.1");
+    setupBasicModule(tenant, moduleId, "1.1", false);
     setupBasicAuth(tenant, authModuleId);
 
     RestAssuredClient c = api.createRestAssured3();
@@ -3647,7 +3796,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/regularcall")
       .then()
@@ -3659,7 +3808,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/corscall")
       .then()
@@ -3671,7 +3820,7 @@ public class ProxyTest {
     c.given()
       .header("Content-Type", "application/json")
       .header("X-Okapi-Token", getOkapiToken(tenant))
-      .header("origin", "localhost")
+      .header("Origin", "http://localhost")
       .body(body)
       .post("/_/invoke/tenant/" + tenant + "/corscall?x=y")
       .then()
@@ -3776,10 +3925,30 @@ public class ProxyTest {
   }
 
   // add basic module
-  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion) {
+  private void setupBasicModule(String tenant, String moduleId, String tenantPermissionsVersion,
+                                boolean includeTimer) {
+    JsonArray providesAr = new JsonArray();
+    if (includeTimer) {
+        providesAr.add(new JsonObject()
+          .put("id", "_timer")
+          .put("version", "1.0")
+          .put("interfaceType", "system")
+          .put("handlers", new JsonArray()
+              .add(new JsonObject()
+                  .put("methods", new JsonArray().add("POST"))
+                  .put("pathPattern", "/timercall/1")
+                  .put("unit", "millisecond")
+                  .put("delay", "10")
+                  .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
+                  .put("modulePermissions", new JsonArray().add("timercall.test.post")))
+              .add(new JsonObject()
+                  .put("methods", new JsonArray().add("DELETE"))
+                  .put("pathPattern", "/timercall/{id}")
+                  .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))));
+    }
     String mdJson = new JsonObject()
       .put("id", moduleId)
-      .put("provides", new JsonArray()
+      .put("provides", providesAr
         .add(new JsonObject()
           .put("id", "_tenant")
           .put("version", "1.1")
@@ -3802,22 +3971,6 @@ public class ProxyTest {
               .put("methods", new JsonArray().add("POST"))
               .put("pathPattern", "/permissionscall")
               .put("permissionsRequired", new JsonArray()))))
-        .add(new JsonObject()
-          .put("id", "_timer")
-          .put("version", "1.0")
-          .put("interfaceType", "system")
-          .put("handlers", new JsonArray()
-            .add(new JsonObject()
-              .put("methods", new JsonArray().add("POST"))
-              .put("pathPattern", "/timercall/1")
-              .put("unit", "millisecond")
-              .put("delay", "10")
-              .put("permissionsRequired", new JsonArray().add("timercall.post.id"))
-              .put("modulePermissions", new JsonArray().add("timercall.test.post")))
-            .add(new JsonObject()
-              .put("methods", new JsonArray().add("DELETE"))
-              .put("pathPattern", "/timercall/{id}")
-              .put("permissionsRequired", new JsonArray().add("timercall.delete.id")))))
         .add(new JsonObject()
           .put("id", "myint")
           .put("version", "1.0")

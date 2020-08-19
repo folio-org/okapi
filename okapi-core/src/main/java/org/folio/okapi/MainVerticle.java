@@ -84,7 +84,7 @@ public class MainVerticle extends AbstractVerticle {
     }
 
     if (clusterManager != null) {
-      logger.info(messages.getMessage("10000", clusterManager.getNodeID()));
+      logger.info(messages.getMessage("10000", clusterManager.getNodeId()));
     } else {
       logger.info(messages.getMessage("10001"));
     }

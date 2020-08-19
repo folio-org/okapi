@@ -13,8 +13,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientRequest;
-import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpClientResponse;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
@@ -23,7 +23,6 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.LinkedList;
 import org.apache.logging.log4j.Logger;
-import org.folio.okapi.common.HttpClientLegacy;
 import org.folio.okapi.common.OkapiLogger;
 import org.junit.After;
 import org.junit.Before;
@@ -91,10 +90,9 @@ public class DockerTest {
       });
     } else {
       String l = locations.removeFirst();
-      HttpClientRequest req = client.delete(port, "localhost", l, res -> {
+      client.delete(port, "localhost",  l).onComplete(res -> {
         td(context, async);
       });
-      req.end();
     }
   }
 
@@ -102,39 +100,37 @@ public class DockerTest {
     final SocketAddress socketAddress
       = SocketAddress.domainSocketAddress("/var/run/docker.sock");
     final String url = "http://localhost/images/json?all=1";
-    HttpClientRequest req = HttpClientLegacy.requestAbs(client, HttpMethod.GET,
-      socketAddress, url, res -> {
-        Buffer body = Buffer.buffer();
-        res.handler(d -> {
-          body.appendBuffer(d);
-        });
-        res.endHandler(d -> {
-          if (res.statusCode() == 200) {
-            boolean gotIt = false;
-            try {
-              JsonArray ar = body.toJsonArray();
-              future.handle(Future.succeededFuture(ar));
-            } catch (Exception ex) {
-              logger.warn(ex);
-              future.handle(Future.failedFuture(ex));
-            }
-          } else {
-            String m = "checkDocker HTTP error " + res.statusCode() + "\n"
-              + body.toString();
-            logger.error(m);
-            future.handle(Future.failedFuture(m));
+    client.get(new RequestOptions().setURI(url).setServer(socketAddress),
+    res1 -> {
+      if (res1.failed()) {
+        future.handle(Future.failedFuture(res1.cause()));
+        return;
+      }
+      HttpClientResponse res = res1.result();
+      Buffer body = Buffer.buffer();
+      res.handler(body::appendBuffer);
+      res.endHandler(d -> {
+        if (res.statusCode() == 200) {
+          boolean gotIt = false;
+          try {
+            JsonArray ar = body.toJsonArray();
+            future.handle(Future.succeededFuture(ar));
+          } catch (Exception ex) {
+            logger.warn(ex);
+            future.handle(Future.failedFuture(ex));
           }
-        });
-        res.exceptionHandler(d -> {
-          logger.warn("exceptionHandler 2 " + d, d);
-          future.handle(Future.failedFuture(d));
-        });
+        } else {
+          String m = "checkDocker HTTP error " + res.statusCode() + "\n"
+              + body.toString();
+          logger.error(m);
+          future.handle(Future.failedFuture(m));
+        }
       });
-    req.exceptionHandler(d -> {
-      logger.warn("exceptionHandler 1 " + d, d);
-      future.handle(Future.failedFuture(d));
+      res.exceptionHandler(d -> {
+        logger.warn("exceptionHandler 2 " + d, d);
+        future.handle(Future.failedFuture(d));
+      });
     });
-    req.end();
   }
 
   private static boolean checkTestModulePresent(JsonArray ar) {
