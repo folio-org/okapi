@@ -57,7 +57,7 @@ public class OkapiClientTest {
       if (msg.length() > 0) {
         ctx.response().write(msg.toString());
       } else {
-        ctx.response().write("hello " + token.getTenant());
+        ctx.response().write("hello " + token.getTenantWithoutValidation());
       }
       ctx.response().end();
     });
@@ -173,7 +173,7 @@ public class OkapiClientTest {
     String e = new String(encodedBytes);
     String tokenStr = "method." + e + ".trail";
     OkapiToken t = new OkapiToken(tokenStr);
-    assertEquals("test-lib", t.getTenant());
+    assertEquals("test-lib", t.getTenantWithoutValidation());
 
     cli.setOkapiToken(tokenStr);
     assertEquals(tokenStr, cli.getOkapiToken());

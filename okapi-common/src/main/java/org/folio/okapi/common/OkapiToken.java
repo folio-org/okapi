@@ -46,7 +46,7 @@ public class OkapiToken {
     }
   }
 
-  private String getFieldFromToken(String field) {
+  private String getFieldFromTokenWithoutValidation(String field) {
     if (payloadWithoutValidation == null) {
       return null;
     }
@@ -58,8 +58,8 @@ public class OkapiToken {
    * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
-  public String getTenant() {
-    return getFieldFromToken("tenant");
+  public String getTenantWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("tenant");
   }
 
   /**
@@ -67,8 +67,8 @@ public class OkapiToken {
    * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
-  public String getUsername() {
-    return getFieldFromToken("sub");
+  public String getUsernameWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("sub");
   }
 
   /**
@@ -76,7 +76,7 @@ public class OkapiToken {
    * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
-  public String getUserId() {
-    return getFieldFromToken("user_id");
+  public String getUserIdWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("user_id");
   }
 }
