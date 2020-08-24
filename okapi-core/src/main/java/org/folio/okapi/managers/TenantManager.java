@@ -1079,12 +1079,21 @@ public class TenantManager {
           fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
           return;
         }
-        installTenantPrepare(t, pc, options, modsAvailable, tml, tml.iterator(), res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          } else {
-            fut.handle(new Success<>(tml));
+        Future<Void> f = Future.succeededFuture();
+        for (TenantModuleDescriptor tm : tml) {
+          f = f.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+        }
+        if (options.getDeploy()) {
+          for (TenantModuleDescriptor tm : tml) {
+            f = f.compose(x -> installUndeploy(t, modsAvailable, tm));
           }
+        }
+        f.onComplete(x -> {
+          if (x.failed()) {
+            fut.handle(new Failure<>(ErrorType.USER, x.cause()));
+            return;
+          }
+          fut.handle(new Success<>(tml));
         });
       });
     });
@@ -1106,19 +1115,10 @@ public class TenantManager {
     return promise.future();
   }
 
-  /* phase 2 enable modules for tenant */
-  private void installTenantPrepare(Tenant tenant, ProxyContext pc,
-                                    TenantInstallOptions options,
-                                    Map<String, ModuleDescriptor> modsAvailable,
-                                    List<TenantModuleDescriptor> tml,
-                                    Iterator<TenantModuleDescriptor> it,
-                                    Handler<ExtendedAsyncResult<Void>> fut) {
-
-    if (!it.hasNext()) {
-      installUndeploy(tenant, options, modsAvailable, tml, tml.iterator(), fut);
-      return;
-    }
-    TenantModuleDescriptor tm = it.next();
+  private Future<Void> installTenantModule(Tenant tenant, ProxyContext pc,
+                                           TenantInstallOptions options,
+                                           Map<String, ModuleDescriptor> modsAvailable,
+                                           TenantModuleDescriptor tm) {
     ModuleDescriptor mdFrom = null;
     ModuleDescriptor mdTo = null;
     if (tm.getAction() == Action.enable) {
@@ -1129,28 +1129,20 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
+    Promise promise = Promise.promise();
     enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
+        promise.fail(res.cause());
+      } else {
+        promise.complete();
       }
-      installTenantPrepare(tenant, pc, options, modsAvailable, tml, it, fut);
     });
+    return promise.future();
   }
 
-  /* phase 4 undeploy if no longer needed */
-  private void installUndeploy(Tenant tenant,
-                               TenantInstallOptions options,
-                               Map<String, ModuleDescriptor> modsAvailable,
-                               List<TenantModuleDescriptor> tml,
-                               Iterator<TenantModuleDescriptor> it,
-                               Handler<ExtendedAsyncResult<Void>> fut) {
-
-    if (!it.hasNext() || !options.getDeploy()) {
-      fut.handle(new Success<>());
-      return;
-    }
-    TenantModuleDescriptor tm = it.next();
+  private Future<Void> installUndeploy(Tenant tenant,
+                                       Map<String, ModuleDescriptor> modsAvailable,
+                                       TenantModuleDescriptor tm) {
     ModuleDescriptor md = null;
     if (tm.getAction() == Action.enable) {
       md = modsAvailable.get(tm.getFrom());
@@ -1159,30 +1151,30 @@ public class TenantManager {
       md = modsAvailable.get(tm.getId());
     }
     if (md == null) {
-      installUndeploy(tenant, options, modsAvailable, tml, it, fut);
-      return;
+      return Future.succeededFuture();
     }
+    Promise promise = Promise.promise();
     final ModuleDescriptor mdF = md;
     getModuleUser(md.getId(), ures -> {
       if (ures.failed()) {
+        promise.complete();
         // in use or other error, so skip
-        installUndeploy(tenant, options, modsAvailable, tml, it, fut);
         return;
       }
       // success means : not in use, so we can undeploy it
       logger.info("autoUndeploy mdF {}", mdF.getId());
       proxyService.autoUndeploy(mdF, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          installUndeploy(tenant, options, modsAvailable, tml, it, fut);
+          promise.fail(res.cause());
+          return;
         }
+        promise.complete();
       });
     });
+    return promise.future();
   }
 
-  void listModules(String id,
-                   Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  void listModules(String id, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     tenants.get(id, gres -> {
       if (gres.failed()) {
