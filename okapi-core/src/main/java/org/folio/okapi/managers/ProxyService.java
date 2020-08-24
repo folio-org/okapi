@@ -47,6 +47,7 @@ import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
+import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.MetricsHelper;
 import org.folio.okapi.util.ProxyContext;
@@ -266,44 +267,64 @@ public class ProxyService {
    * @return null in case of errors, with the response already set in ctx. If
    *     all went well, returns the tenantId for further processing.
    */
-  private String tenantHeader(ProxyContext pc) {
+  private void parseTokenAndPopulateContext(ProxyContext pc) {
     RoutingContext ctx = pc.getCtx();
     String auth = ctx.request().getHeader(XOkapiHeaders.AUTHORIZATION);
     String tok = ctx.request().getHeader(XOkapiHeaders.TOKEN);
-
     if (auth != null) {
       if (auth.startsWith("Bearer ")) {
         auth = auth.substring(6).trim();
       }
       if (tok != null && !auth.equals(tok)) {
         pc.responseError(400, messages.getMessage("10104"));
-        return null;
+        throw new IllegalArgumentException("X-Okapi-Token is not equal to Authorization token");
       }
       ctx.request().headers().set(XOkapiHeaders.TOKEN, auth);
       ctx.request().headers().remove(XOkapiHeaders.AUTHORIZATION);
       pc.debug("Okapi: Moved Authorization header to X-Okapi-Token");
     }
     String tenantId = ctx.request().getHeader(XOkapiHeaders.TENANT);
+    String userId = ctx.request().getHeader(XOkapiHeaders.USER_ID);
+
+    OkapiToken okapiToken = null;
+
     if (tenantId == null) {
       try {
-        OkapiToken okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
-        tenantId = okapiToken.getTenant();
-        if (tenantId != null) {
-          ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
-          pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
-        }
+        okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
       } catch (IllegalArgumentException e) {
         pc.responseError(400, messages.getMessage("10105", e.getMessage()));
-        return null;
+        throw new IllegalArgumentException(e);
       }
     }
-    if (tenantId == null) {
-      logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
-      tenantId = XOkapiHeaders.SUPERTENANT_ID;
-      ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
+
+    // userId does not exist all the time
+    if (userId == null) {
+      if (okapiToken == null) {
+        try {
+          okapiToken = new OkapiToken(ctx.request().getHeader(XOkapiHeaders.TOKEN));
+        } catch (IllegalArgumentException e) {
+          okapiToken = null;
+        }
+      }
+      if (okapiToken != null) {
+        pc.setUserId(okapiToken.getUserIdWithoutValidation());
+      }
     }
+
+    if (tenantId == null) {
+      tenantId = okapiToken.getTenantWithoutValidation();
+      if (tenantId != null) {
+        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
+        pc.debug("Okapi: Recovered tenant from token: '" + tenantId + "'");
+      }
+      if (tenantId == null) {
+        logger.debug("No tenantId, defaulting to " + XOkapiHeaders.SUPERTENANT_ID);
+        tenantId = XOkapiHeaders.SUPERTENANT_ID;
+        ctx.request().headers().add(XOkapiHeaders.TENANT, tenantId);
+      }
+    }
+
     pc.setTenant(tenantId);
-    return tenantId;
   }
 
   /**
@@ -511,13 +532,25 @@ public class ProxyService {
     // It would be nice to pass the request-id to the client, so it knows what
     // to look for in Okapi logs. But that breaks the schemas, and RMB-based
     // modules will not accept the response. Maybe later...
-    String tenantId = tenantHeader(pc);
-    if (tenantId == null) {
+    try {
+      parseTokenAndPopulateContext(pc);
+    } catch (IllegalArgumentException e) {
       stream.resume();
       return; // Error code already set in ctx
     }
+    String tenantId = pc.getTenant();
 
     final MultiMap headers = ctx.request().headers();
+
+    FolioLoggingContext.put(FolioLoggingContext.TENANT_ID_LOGGING_VAR_NAME,
+        tenantId);
+    FolioLoggingContext.put(FolioLoggingContext.REQUEST_ID_LOGGING_VAR_NAME,
+        headers.get(XOkapiHeaders.REQUEST_ID));
+    FolioLoggingContext.put(FolioLoggingContext.MODULE_ID_LOGGING_VAR_NAME,
+        headers.get(XOkapiHeaders.MODULE_ID));
+    FolioLoggingContext.put(FolioLoggingContext.USER_ID_LOGGING_VAR_NAME,
+        pc.getUserId());
+
     sanitizeAuthHeaders(headers);
     tenantManager.get(tenantId, gres -> {
       if (gres.failed()) {
