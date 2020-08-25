@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -128,13 +129,13 @@ public class ModuleManager {
     }
   }
 
-  void enableAndDisableCheck(Tenant tenant,
-                             ModuleDescriptor modFrom, ModuleDescriptor modTo,
-                             Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
+                                     ModuleDescriptor modTo) {
 
+    Promise<Void> promise = Promise.promise();
     getEnabledModules(tenant, gres -> {
       if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        promise.fail(gres.cause());
         return;
       }
       List<ModuleDescriptor> modlist = gres.result();
@@ -145,7 +146,7 @@ public class ModuleManager {
       if (modTo == null) {
         String deps = DepResolution.checkAllDependencies(mods);
         if (!deps.isEmpty()) {
-          fut.handle(new Success<>()); // failures even before we remove a module
+          promise.complete(); // failures even before we remove a module
           return;
         }
       }
@@ -155,8 +156,7 @@ public class ModuleManager {
       if (modTo != null) {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
-          fut.handle(new Failure<>(ErrorType.USER,
-              "Module " + modTo.getId() + " already provided"));
+          promise.fail("Module " + modTo.getId() + " already provided");
           return;
         }
         mods.put(modTo.getId(), modTo);
@@ -164,11 +164,12 @@ public class ModuleManager {
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
       if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        fut.handle(new Failure<>(ErrorType.USER, conflicts + " " + deps));
+        promise.fail(conflicts + " " + deps);
         return;
       }
-      fut.handle(new Success<>());
+      promise.complete();
     });
+    return promise.future();
   }
 
   /**

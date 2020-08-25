@@ -335,8 +335,8 @@ public class TenantManager {
   }
 
   private void enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
-                                      String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc,
-                                      Handler<ExtendedAsyncResult<String>> fut) {
+                                       String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc,
+                                       Handler<ExtendedAsyncResult<String>> fut) {
 
     moduleManager.get(moduleFrom, resFrom -> {
       if (resFrom.failed()) {
@@ -344,54 +344,34 @@ public class TenantManager {
         return;
       }
       ModuleDescriptor mdFrom = resFrom.result();
+      Future<Void> future = Future.succeededFuture();
       if (options.getDepCheck()) {
-        moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo, cres -> {
-          if (cres.failed()) {
-            pc.debug("enableAndDisableModule: depcheck fail: " + cres.cause().getMessage());
-            fut.handle(new Failure<>(cres.getType(), cres.cause()));
-            return;
-          }
-          enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc, fut);
-        });
-      } else {
-        enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc, fut);
+        future = future.compose(x -> moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo));
       }
+      Future<String> future2 = future.compose(x ->
+          enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc));
+      future2.onComplete(res -> {
+        if (res.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+          return;
+        }
+        fut.handle(new Success<>(res.result()));
+      });
     });
   }
 
-  private void enableAndDisableModule3(Tenant tenant, TenantInstallOptions options,
-                                       ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                       ProxyContext pc, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> enableAndDisableModule3(Tenant tenant, TenantInstallOptions options,
+                                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                                 ProxyContext pc) {
     if (mdFrom == null && mdTo == null) {
-      fut.handle(new Success<>(""));
-      return;
+      return Future.succeededFuture("");
     }
     Future<Void> future = invokePermissions(tenant, options, mdTo, pc);
-    future.onComplete(res1 -> {
-      if (res1.failed()) {
-        fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
-        return;
-      }
-      invokeTenantInterface(tenant, options, mdFrom, mdTo, pc, res2 -> {
-        if (res2.failed()) {
-          fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          return;
-        }
-        Future<Void> future3 = invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc);
-        future3.onComplete(res3 -> {
-          if (res3.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, res3.cause()));
-            return;
-          }
-          ead5commit(tenant, mdFrom, mdTo, pc, res4 -> {
-            if (res4.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, res4.cause()));
-              return;
-            }
-            fut.handle(new Success<>(mdTo != null ? mdTo.getId() : ""));
-          });
-        });
-      });
+    future = future.compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc));
+    future = future.compose(x -> invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc));
+    future = future.compose(x -> ead5commit(tenant, mdFrom, mdTo, pc));
+    return future.compose(x -> {
+      return Future.succeededFuture((mdTo != null ? mdTo.getId() : ""));
     });
   }
 
@@ -401,15 +381,14 @@ public class TenantManager {
    * @param tenant tenant
    * @param mdFrom module from
    * @param mdTo module to
-   * @param fut future
+   * @return fut future
    */
-  private void invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
-                                     ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                     ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> invokeTenantInterface(Tenant tenant, TenantInstallOptions options,
+                                             ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                             ProxyContext pc) {
 
     if (!options.getInvoke()) {
-      fut.handle(new Success<>());
-      return;
+      return Future.succeededFuture();
     }
     JsonObject jo = new JsonObject();
     if (mdTo != null) {
@@ -420,29 +399,31 @@ public class TenantManager {
     }
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
+    Promise<Void> promise = Promise.promise();
     getTenantInterface(mdFrom, mdTo, jo, tenantParameters, purge, ires -> {
       if (ires.failed()) {
         if (ires.getType() == ErrorType.NOT_FOUND) {
           logger.debug("eadTenantInterface: {} has no support for tenant init",
               (mdTo != null ? mdTo.getId() : mdFrom.getId()));
-          fut.handle(new Success<>());
+          promise.complete();
         } else {
-          fut.handle(new Failure<>(ires.getType(), ires.cause()));
+          promise.fail(ires.cause());
         }
       } else {
         ModuleInstance tenInst = ires.result();
         final String req = purge ? "" : jo.encodePrettily();
         proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
           if (cres.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, cres.cause()));
+            promise.fail(cres.cause());
           } else {
             pc.passOkapiTraceHeaders(cres.result());
             // We can ignore the result, the call went well.
-            fut.handle(new Success<>());
+            promise.complete();
           }
         });
       }
     });
+    return promise.future();
   }
 
   /**
@@ -572,19 +553,19 @@ public class TenantManager {
    * @param mdFrom module from
    * @param mdTo module to
    * @param pc ProxyContext
-   * @param fut future
+   * @return future
    */
-  private void ead5commit(Tenant tenant,
-                          ModuleDescriptor mdFrom, ModuleDescriptor mdTo, ProxyContext pc,
-                          Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> ead5commit(Tenant tenant, ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                  ProxyContext pc) {
 
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo != null ? mdTo.getId() : null;
 
     pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
+    Promise<Void> promise = Promise.promise();
     updateModuleCommit(tenant, moduleFrom, moduleTo, ures -> {
       if (ures.failed()) {
-        fut.handle(new Failure<>(ures.getType(), ures.cause()));
+        promise.fail(ures.cause());
         return;
       }
       if (moduleTo != null) {
@@ -592,8 +573,9 @@ public class TenantManager {
         eb.publish(EVENT_NAME, tenant.getId());
       }
       pc.debug("ead5commit done");
-      fut.handle(new Success<>());
+      promise.complete();
     });
+    return promise.future();
   }
 
   /**
@@ -1120,15 +1102,7 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    Promise promise = Promise.promise();
-    enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-      } else {
-        promise.complete();
-      }
-    });
-    return promise.future();
+    return enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc).mapEmpty();
   }
 
   private Future<Void> autoUndeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
