@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.micrometer.core.instrument.Timer;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.RoutingContext;
@@ -20,7 +21,7 @@ import org.folio.okapi.common.XOkapiHeaders;
  * used for Okapi's own services, without the modList. Also has lots of helpers
  * for logging, in order to get the request-id in most log messages.
  */
-@java.lang.SuppressWarnings({"squid:S1192"})
+@SuppressWarnings({"squid:S1192"})
 public class ProxyContext {
 
   private final Logger logger = OkapiLogger.get();
@@ -41,6 +42,18 @@ public class ProxyContext {
   private final MultiMap handlerHeaders = MultiMap.caseInsensitiveMultiMap();
 
   private final Messages messages = Messages.getInstance();
+  private String userId;
+
+  private Timer.Sample sample;
+  private ModuleInstance handlerModuleInstance;
+
+  public ModuleInstance getHandlerModuleInstance() {
+    return handlerModuleInstance;
+  }
+
+  public void setHandlerModuleInstance(ModuleInstance handlerModuleInstance) {
+    this.handlerModuleInstance = handlerModuleInstance;
+  }
 
   /**
    * Constructor to be used from proxy. Does not log the request, as we do not
@@ -77,6 +90,7 @@ public class ProxyContext {
     nanoTimeStart = 0;
     timerId = null;
     handlerRes = 0;
+    this.sample = MetricsHelper.getTimerSample();
   }
 
   /**
@@ -242,6 +256,8 @@ public class ProxyContext {
   public void responseError(int code, String msg) {
     logResponse("okapi", msg, code);
     closeTimer();
+    MetricsHelper.recordHttpServerProcessingTime(this.sample, this.tenant, code,
+        this.ctx.request().method().name(), this.handlerModuleInstance);
     HttpResponse.responseError(ctx, code, msg);
   }
 
@@ -269,4 +285,15 @@ public class ProxyContext {
     logger.trace("{} {}", getReqId(), msg);
   }
 
+  public Timer.Sample getSample() {
+    return sample;
+  }
+
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
+
+  public String getUserId() {
+    return userId;
+  }
 }

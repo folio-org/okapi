@@ -12,7 +12,8 @@ import java.util.Base64;
  * tenant-id, or some other piece of information.
  */
 public class OkapiToken {
-  private String token;
+  private final String token;
+  private final JsonObject payloadWithoutValidation;
 
   /**
    * Construct from token string.
@@ -20,9 +21,13 @@ public class OkapiToken {
    */
   public OkapiToken(String token) {
     this.token = token;
+    payloadWithoutValidation = this.getPayloadWithoutValidation();
   }
 
   private JsonObject getPayloadWithoutValidation() {
+    if (token == null) {
+      return null;
+    }
     int idx1 = token.indexOf('.');
     if (idx1 == -1) {
       throw new IllegalArgumentException("Missing . separator for token");
@@ -41,16 +46,37 @@ public class OkapiToken {
     }
   }
 
+  private String getFieldFromTokenWithoutValidation(String field) {
+    if (payloadWithoutValidation == null) {
+      return null;
+    }
+    return payloadWithoutValidation.getString(field);
+  }
+
   /**
    * Get the tenant out from the token.
    * Note there is no JWT validation taking place.
    * @return null if no token, or no tenant there
    */
-  public String getTenant() {
-    if (token == null) {
-      return null;
-    }
-    JsonObject pl = this.getPayloadWithoutValidation();
-    return pl.getString("tenant");
+  public String getTenantWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("tenant");
+  }
+
+  /**
+   * Get the user name out from the token.
+   * Note there is no JWT validation taking place.
+   * @return null if no token, or no tenant there
+   */
+  public String getUsernameWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("sub");
+  }
+
+  /**
+   * Get the user id out from the token.
+   * Note there is no JWT validation taking place.
+   * @return null if no token, or no tenant there
+   */
+  public String getUserIdWithoutValidation() {
+    return getFieldFromTokenWithoutValidation("user_id");
   }
 }
