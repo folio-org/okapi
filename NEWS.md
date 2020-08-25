@@ -1,3 +1,7 @@
+## 4.1.0 2020-08-25
+
+ * [OKAPI-871](https://issues.folio.org/browse/OKAPI-871) PoC: structured logging with JSON in Okapi
+
 ## 4.0.0 2020-08-17
 
  * [OKAPI-879](https://issues.folio.org/browse/OKAPI-879) Upgrade Okapi to OpenJDK 11
