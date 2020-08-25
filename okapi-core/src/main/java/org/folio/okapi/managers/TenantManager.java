@@ -366,9 +366,10 @@ public class TenantManager {
       fut.handle(new Success<>(""));
       return;
     }
-    invokePermissions(tenant, options, mdTo, pc, res1 -> {
+    Future<Void> future = invokePermissions(tenant, options, mdTo, pc);
+    future.onComplete(res1 -> {
       if (res1.failed()) {
-        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+        fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
         return;
       }
       invokeTenantInterface(tenant, options, mdFrom, mdTo, pc, res2 -> {
@@ -376,9 +377,10 @@ public class TenantManager {
           fut.handle(new Failure<>(res2.getType(), res2.cause()));
           return;
         }
-        invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc, res3 -> {
+        Future<Void> future3 = invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc);
+        future3.onComplete(res3 -> {
           if (res3.failed()) {
-            fut.handle(new Failure<>(res3.getType(), res3.cause()));
+            fut.handle(new Failure<>(ErrorType.USER, res3.cause()));
             return;
           }
           ead5commit(tenant, mdFrom, mdTo, pc, res4 -> {
@@ -449,28 +451,30 @@ public class TenantManager {
    * @param tenant tenant
    * @param options install options
    * @param mdTo module to
-   * @param pc proxy context
-   * @param fut response
+   * @param pc proxy content
+   * @return Future
    */
-  private void invokePermissions(Tenant tenant, TenantInstallOptions options,
-                                 ModuleDescriptor mdTo,
-                                 ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> invokePermissions(Tenant tenant, TenantInstallOptions options,
+                                         ModuleDescriptor mdTo,
+                                         ProxyContext pc) {
     if (mdTo == null || !options.getInvoke()
         || mdTo.getSystemInterface("_tenantPermissions") != null) {
-      fut.handle(new Success<>());
-      return;
+      return Future.succeededFuture();
     }
-    findSystemInterface(tenant, res -> {
-      if (res.failed()) {
-        if (res.getType() != ErrorType.NOT_FOUND) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
-        // no perms module for now
-        fut.handle(new Success<>());
-      } else {
-        invokePermissionsForModule(tenant, mdTo, res.result(), pc, fut);
+    Future<ModuleDescriptor> future = findSystemInterface(tenant, "_tenantPermissions");
+    return future.compose(x -> {
+      if (x == null) {
+        return Future.succeededFuture();
       }
+      Promise<Void> promise = Promise.promise();
+      invokePermissionsForModule(tenant, mdTo, x, pc, m -> {
+        if (m.failed()) {
+          promise.fail(m.cause());
+        } else {
+          promise.complete();
+        }
+      });
+      return promise.future();
     });
   }
 
@@ -482,30 +486,41 @@ public class TenantManager {
    * @param mdFrom module from
    * @param mdTo module to
    * @param pc proxy context
-   * @param fut response
+   * @return fut response
    */
-  private void invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
-                                        ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                        ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> invokePermissionsPermMod(Tenant tenant, TenantInstallOptions options,
+                                                ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                                ProxyContext pc) {
     if (mdTo == null || !options.getInvoke()
         || mdTo.getSystemInterface("_tenantPermissions") == null) {
-      fut.handle(new Success<>());
-      return;
+      return Future.succeededFuture();
     }
+
     // enabling permissions module.
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
-    findSystemInterface(tenant, res -> {
-      if (res.failed()) {
-        if (res.getType() != ErrorType.NOT_FOUND) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-          return;
-        }
+    Future<ModuleDescriptor> future = findSystemInterface(tenant, "_tenantPermissions");
+    return future.compose(res -> {
+      Promise<Void> promise = Promise.promise();
+      if (res == null) { // == null : no permissions module already enabled
         Set<String> listModules = tenant.listModules();
         Iterator<String> modit = listModules.iterator();
-        loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, mdTo, pc, fut);
+        loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, mdTo, pc, x -> {
+          if (x.failed()) {
+            promise.fail(x.cause());
+          } else {
+            promise.complete();
+          }
+        });
       } else {
-        invokePermissionsForModule(tenant, mdTo, mdTo, pc, fut);
+        invokePermissionsForModule(tenant, mdTo, mdTo, pc, x -> {
+          if (x.failed()) {
+            promise.fail(x.cause());
+          } else {
+            promise.complete();
+          }
+        });
       }
+      return promise.future();
     });
   }
 
@@ -879,39 +894,26 @@ public class TenantManager {
    * be enabled for the tenant.
    *
    * @param tenant tenant to check for
-   * @param fut callback with a @return ModuleDescriptor for the module
-   *
+   * @param interfaceName system interface to search for
+   * @return future with ModuleDescriptor result (== null for not found)
    */
-  private void findSystemInterface(Tenant tenant,
-                                   Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
 
-    Iterator<String> it = tenant.getEnabled().keySet().iterator();
-    findSystemInterfaceR(tenant, "_tenantPermissions", it, fut);
-  }
-
-  private void findSystemInterfaceR(Tenant tenant, String interfaceName,
-                                    Iterator<String> it,
-                                    Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10403", interfaceName)));
-      return;
-    }
-    String mid = it.next();
-    moduleManager.get(mid, gres -> {
-      if (gres.failed()) { // should not happen
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+  private Future<ModuleDescriptor> findSystemInterface(Tenant tenant, String interfaceName) {
+    Promise<ModuleDescriptor> promise = Promise.promise();
+    moduleManager.getEnabledModules(tenant, res -> {
+      if (res.failed()) {
+        promise.fail(res.cause());
         return;
       }
-      ModuleDescriptor md = gres.result();
-      logger.debug("findSystemInterface: looking at {} system interface {}",
-          mid, md.getSystemInterface(interfaceName));
-      if (md.getSystemInterface(interfaceName) != null) {
-        logger.debug("findSystemInterface: found {}", mid);
-        fut.handle(new Success<>(md));
-        return;
+      for (ModuleDescriptor md : res.result()) {
+        if (md.getSystemInterface(interfaceName) != null) {
+          promise.complete(md);
+          return;
+        }
       }
-      findSystemInterfaceR(tenant, interfaceName, it, fut);
+      promise.complete(null);
     });
+    return promise.future();
   }
 
   void listInterfaces(String tenantId, boolean full, String interfaceType,
@@ -1074,27 +1076,18 @@ public class TenantManager {
       if (options.getDeploy()) {
         future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
       }
-      future.onComplete(res1 -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
+      for (TenantModuleDescriptor tm : tml) {
+        future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+      }
+      if (options.getDeploy()) {
+        future.compose(x -> autoUndeploy(t, modsAvailable, tml));
+      }
+      future.onComplete(x -> {
+        if (x.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, x.cause()));
           return;
         }
-        Future<Void> f = Future.succeededFuture();
-        for (TenantModuleDescriptor tm : tml) {
-          f = f.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
-        }
-        if (options.getDeploy()) {
-          for (TenantModuleDescriptor tm : tml) {
-            f = f.compose(x -> installUndeploy(t, modsAvailable, tm));
-          }
-        }
-        f.onComplete(x -> {
-          if (x.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, x.cause()));
-            return;
-          }
-          fut.handle(new Success<>(tml));
-        });
+        fut.handle(new Success<>(tml));
       });
     });
   }
@@ -1110,9 +1103,7 @@ public class TenantManager {
         proxyService.autoDeploy(md, res -> p.handle(res.mapEmpty()));
       }
     }
-    Promise<Void> promise = Promise.promise();
-    CompositeFuture.all(futures).onComplete(res -> promise.handle(res.mapEmpty()));
-    return promise.future();
+    return CompositeFuture.all(futures).mapEmpty();
   }
 
   private Future<Void> installTenantModule(Tenant tenant, ProxyContext pc,
@@ -1140,9 +1131,17 @@ public class TenantManager {
     return promise.future();
   }
 
-  private Future<Void> installUndeploy(Tenant tenant,
-                                       Map<String, ModuleDescriptor> modsAvailable,
-                                       TenantModuleDescriptor tm) {
+  private Future<Void> autoUndeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
+                                  List<TenantModuleDescriptor> tml) {
+    List<Future> futures = new LinkedList<>();
+    for (TenantModuleDescriptor tm : tml) {
+      futures.add(autoUndeploy(t, modsAvailable, tm));
+    }
+    return CompositeFuture.all(futures).mapEmpty();
+  }
+
+  private Future<Void> autoUndeploy(Tenant tenant, Map<String, ModuleDescriptor> modsAvailable,
+                                    TenantModuleDescriptor tm) {
     ModuleDescriptor md = null;
     if (tm.getAction() == Action.enable) {
       md = modsAvailable.get(tm.getFrom());
