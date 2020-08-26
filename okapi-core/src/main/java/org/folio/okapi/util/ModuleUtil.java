@@ -33,6 +33,7 @@ public class ModuleUtil {
     options.setPurge(getParamBoolean(req, "purge", false));
     options.setTenantParameters(req.getParam("tenantParameters"));
     options.setInvoke(getParamBoolean(req, "invoke", true));
+    options.setAsync(getParamBoolean(req, "async", false));
     return options;
   }
 
