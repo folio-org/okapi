@@ -366,13 +366,12 @@ public class TenantManager {
     if (mdFrom == null && mdTo == null) {
       return Future.succeededFuture("");
     }
-    Future<Void> future = invokePermissions(tenant, options, mdTo, pc);
-    future = future.compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc));
-    future = future.compose(x -> invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc));
-    future = future.compose(x -> ead5commit(tenant, mdFrom, mdTo, pc));
-    return future.compose(x -> {
-      return Future.succeededFuture((mdTo != null ? mdTo.getId() : ""));
-    });
+    return invokePermissions(tenant, options, mdTo, pc)
+        .compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc))
+        .compose(x -> invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc))
+        .compose(x -> ead5commit(tenant, mdFrom, mdTo, pc))
+        .compose(x -> Future.succeededFuture((mdTo != null ? mdTo.getId() : ""))
+    );
   }
 
   /**
