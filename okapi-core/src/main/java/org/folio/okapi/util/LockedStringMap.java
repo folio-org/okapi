@@ -2,6 +2,7 @@ package org.folio.okapi.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -118,14 +119,25 @@ public class LockedStringMap {
    * @param fut async result with values if successful
    */
   public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    list.keys(res -> {
+    Future<Collection<String>> f = getKeys();
+    f.onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       } else {
-        List<String> s2 = new ArrayList<>(res.result());
-        java.util.Collections.sort(s2);
-        fut.handle(new Success<>(s2));
+        fut.handle(new Success<>(res.result()));
       }
+    });
+  }
+
+  /**
+   * Get all keys from shared map (sorted).
+   * @return Future with sorted keys
+   */
+  public Future<Collection<String>> getKeys() {
+    return list.keys().compose(res -> {
+      List<String> s = new ArrayList<>(res);
+      java.util.Collections.sort(s);
+      return Future.succeededFuture(s);
     });
   }
 

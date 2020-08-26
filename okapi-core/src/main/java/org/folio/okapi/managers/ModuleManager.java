@@ -287,14 +287,15 @@ public class ModuleManager {
       if (deleteCheckDep(id, fut, ares.result())) {
         return;
       }
-      tenantManager.getModuleUser(id, ures -> {
+      tenantManager.getModuleUser(id).onComplete(ures -> {
         if (ures.failed()) {
-          if (ures.getType() == ErrorType.ANY) {
-            String ten = ures.cause().getMessage();
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10206", id, ten)));
-          } else {
-            fut.handle(new Failure<>(ures.getType(), ures.cause()));
-          }
+          fut.handle(new Failure<>(ErrorType.USER, ures.cause()));
+          return;
+        }
+        List<String> tenants = ures.result();
+        if (!tenants.isEmpty()) {
+          fut.handle(new Failure<>(ErrorType.USER,
+              messages.getMessage("10206", id, tenants.get(0))));
         } else if (moduleStore == null) {
           deleteInternal(id, fut);
         } else {

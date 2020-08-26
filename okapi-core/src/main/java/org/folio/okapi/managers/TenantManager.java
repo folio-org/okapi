@@ -1128,13 +1128,12 @@ public class TenantManager {
     }
     Promise promise = Promise.promise();
     final ModuleDescriptor mdF = md;
-    getModuleUser(md.getId(), ures -> {
-      if (ures.failed()) {
+    Future<List<String>> f = getModuleUser(md.getId());
+    f.onComplete(ures -> {
+      if (ures.failed() || !ures.result().isEmpty()) {
         promise.complete();
-        // in use or other error, so skip
         return;
       }
-      // success means : not in use, so we can undeploy it
       logger.info("autoUndeploy mdF {}", mdF.getId());
       proxyService.autoUndeploy(mdF, res -> {
         if (res.failed()) {
@@ -1172,43 +1171,31 @@ public class TenantManager {
   }
 
   /**
-   * Get the (first) tenant that uses the given module. Used to check if a
-   * module may be deleted.
-   *
-   * @param mod id of the module in question.
-   * @param fut - Succeeds if not in use. Fails with ANY and the module name
+   * Return tenants using module.
+   * @param mod module Id
+   * @return future with tenants that have this module enabled
    */
-  public void getModuleUser(String mod, Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.getKeys(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {
-        Collection<String> tkeys = kres.result();
-        Iterator<String> it = tkeys.iterator();
-        getModuleUserR(mod, it, fut);
-      }
-    });
-  }
-
-  private void getModuleUserR(String mod, Iterator<String> it,
-                              Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) { // no problems found
-      fut.handle(new Success<>());
-    } else {
-      String tid = it.next();
-      tenants.get(tid, gres -> {
-        if (gres.failed()) {
-          fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        } else {
+  public Future<List<String>> getModuleUser(String mod) {
+    return tenants.getKeys().compose(kres -> {
+      List<String> users = new LinkedList<>();
+      List<Future> futures = new LinkedList<>();
+      for (String tid : kres) {
+        Promise promise1 = Promise.promise();
+        tenants.get(tid, gres -> {
+          if (gres.failed()) {
+            promise1.fail(gres.cause());
+            return;
+          }
           Tenant t = gres.result();
           if (t.isEnabled(mod)) {
-            fut.handle(new Failure<>(ErrorType.ANY, tid));
-          } else {
-            getModuleUserR(mod, it, fut);
+            users.add(tid);
           }
-        }
-      });
-    }
+          promise1.complete();
+        });
+        futures.add(promise1.future());
+      }
+      return CompositeFuture.all(futures).map(users);
+    });
   }
 
   /**
