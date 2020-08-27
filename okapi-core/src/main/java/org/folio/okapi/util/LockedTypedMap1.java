@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
@@ -27,6 +28,11 @@ public class LockedTypedMap1<T> extends LockedStringMap {
   public void put(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
     String json = Json.encode(value);
     addOrReplace(true, k, null, json, fut);
+  }
+
+  public Future<Void> put(String k, T value) {
+    String json = Json.encode(value);
+    return addOrReplace(true, k, null, json);
   }
 
   /**
