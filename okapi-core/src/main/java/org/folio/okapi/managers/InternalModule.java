@@ -793,8 +793,7 @@ public class InternalModule {
     }
   }
 
-  private void installTenantModulesGet(ProxyContext pc, String tenantId, String installId,
-                                       Handler<ExtendedAsyncResult<String>> fut) {
+  private void installTenantModulesGet(String installId, Handler<ExtendedAsyncResult<String>> fut) {
     tenantManager.installUpgradeGet(installId).onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(ErrorType.USER, res.cause()));
@@ -1450,7 +1449,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:tid/install/:rid
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
-          installTenantModulesGet(pc, decodedSegs[4], decodedSegs[6], fut);
+          installTenantModulesGet(decodedSegs[6], fut);
           return;
         }
         // /_/proxy/tenants/:id/upgrade
