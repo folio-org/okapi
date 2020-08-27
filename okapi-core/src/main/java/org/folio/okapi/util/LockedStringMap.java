@@ -164,60 +164,77 @@ public class LockedStringMap {
    */
   public void addOrReplace(boolean allowReplace, String k, String k2, String value,
                            Handler<ExtendedAsyncResult<Void>> fut) {
-    list.get(k, resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
-      } else {
-        String oldVal = resGet.result();
-        String newVal;
-        if (k2 == null) {
-          newVal = value;
-        } else {
-          StringMap smap = new StringMap();
-          if (oldVal != null) {
-            StringMap oldList = Json.decodeValue(oldVal, StringMap.class);
-            smap.strings.putAll(oldList.strings);
-          }
-          if (!allowReplace && smap.strings.containsKey(k2)) {
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11400", k2)));
-            return;
-          }
-          smap.strings.put(k2, value);
-          newVal = Json.encodePrettily(smap);
-        }
-        addOrReplace2(allowReplace, k, k2, value, oldVal, newVal, fut);
-      } // get success
+    addOrReplace(allowReplace, k, k2, value).onComplete(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
+      }
+      fut.handle(new Success<>());
     });
   }
 
-  private void addOrReplace2(boolean allowReplace, String k, String k2, String value,
-                             String oldVal, String newVal, Handler<ExtendedAsyncResult<Void>> fut) {
+  /**
+   * Update value in shared map.
+   * @param allowReplace true: both insert and replace; false: insert only
+   * @param k primary-level key
+   * @param k2 secondary-level key
+   * @param value new value
+   * @return fut async result
+*/
+  public Future<Void> addOrReplace(boolean allowReplace, String k, String k2, String value) {
+    Promise<Void> promise = Promise.promise();
+    list.get(k, resGet -> {
+      if (resGet.failed()) {
+        promise.fail(resGet.cause());
+        return;
+      }
+      String oldVal = resGet.result();
+      String newVal;
+      if (k2 == null) {
+        newVal = value;
+      } else {
+        StringMap smap = new StringMap();
+        if (oldVal != null) {
+          StringMap oldList = Json.decodeValue(oldVal, StringMap.class);
+          smap.strings.putAll(oldList.strings);
+        }
+        if (!allowReplace && smap.strings.containsKey(k2)) {
+          promise.fail(messages.getMessage("11400", k2));
+          return;
+        }
+        smap.strings.put(k2, value);
+        newVal = Json.encodePrettily(smap);
+      }
+      addOrReplace2(allowReplace, k, k2, value, oldVal, newVal).onComplete(promise::handle);
+    });
+    return promise.future();
+  }
+
+  private Future<Void> addOrReplace2(boolean allowReplace, String k, String k2, String value,
+                                     String oldVal, String newVal) {
 
     if (oldVal == null) { // new entry
-      list.putIfAbsent(k, newVal, resPut -> {
-        if (resPut.succeeded()) {
-          if (resPut.result() == null) {
-            fut.handle(new Success<>());
-          } else { // Someone messed with it, try again
-            vertx.setTimer(DELAY, res
-                -> addOrReplace(allowReplace, k, k2, value, fut));
-          }
-        } else {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, resPut.cause()));
+      return list.putIfAbsent(k, newVal).compose(resPut -> {
+        if (resPut == null) {
+          return Future.succeededFuture();
         }
+        // Someone messed with it, try again
+        logger.info("addOrReplace2 timer 1");
+        Promise promise = Promise.promise();
+        vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
+            .onComplete(promise::handle));
+        return promise.future();
       });
     } else { // existing entry, put and retry if someone else messed with it
-      list.replaceIfPresent(k, oldVal, newVal, resRepl -> {
-        if (resRepl.succeeded()) {
-          if (Boolean.TRUE.equals(resRepl.result())) {
-            fut.handle(new Success<>());
-          } else {
-            vertx.setTimer(DELAY, res
-                -> addOrReplace(allowReplace, k, k2, value, fut));
-          }
-        } else {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, resRepl.cause()));
+      return list.replaceIfPresent(k, oldVal, newVal).compose(resRepl -> {
+        if (Boolean.TRUE.equals(resRepl)) {
+          return Future.succeededFuture();
         }
+        logger.info("addOrReplace2 timer 2");
+        Promise promise = Promise.promise();
+        vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
+            .onComplete(promise::handle));
+        return promise.future();
       });
     }
   }
