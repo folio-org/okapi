@@ -41,14 +41,27 @@ public class LockedStringMap {
    * @param fut async result
    */
   public void init(Vertx vertx, String mapName, Handler<ExtendedAsyncResult<Void>> fut) {
-    this.vertx = vertx;
-    AsyncMapFactory.<String, String>create(vertx, mapName, res -> {
+    init(vertx, mapName).onComplete(res -> {
       if (res.succeeded()) {
-        this.list = res.result();
         fut.handle(new Success<>());
       } else {
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
       }
+    });
+  }
+
+  /**
+   * Initialize a shared map.
+   * @param vertx Vert.x handle
+   * @param mapName name of shared map
+   * @return Future
+   */
+  public Future<Void> init(Vertx vertx, String mapName) {
+    this.vertx = vertx;
+    return AsyncMapFactory.<String, String>create(vertx, mapName).compose(res -> {
+      this.list = res;
+      logger.info("initialized map {} ok", mapName);
+      return Future.succeededFuture();
     });
   }
 

@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.shareddata.AsyncMap;
@@ -22,23 +23,16 @@ class AsyncMapFactory {
   /**
    * Creates an AsyncMap.
    *
-   * @param <K> Key type
-   * @param <V> Value type
-   * @param vertx Vert.x handle
+   * @param vertx   Vert.x handle
    * @param mapName name of the map. If null, will always create a local map
-   * @param fut future
+   * @param <K>     Key type
+   * @param <V>     Value type
+   * @return Future with AsyncMap result
    */
-  public static <K, V> void create(Vertx vertx, String mapName,
-                                   Handler<ExtendedAsyncResult<AsyncMap<K, V>>> fut) {
+  public static <K, V> Future<AsyncMap<K, V>> create(Vertx vertx, String mapName) {
     SharedData shared = vertx.sharedData();
     if (vertx.isClustered() && mapName != null) {
-      shared.<K, V>getClusterWideMap(mapName, res -> {
-        if (res.succeeded()) {
-          fut.handle(new Success<>(res.result()));
-        } else {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        }
-      });
+      return shared.<K, V>getClusterWideMap(mapName);
     } else {
       // Dirty trickery to make sure we can run two verticles in our tests,
       // without them sharing the 'shared' memory. Only when running in non-
@@ -49,13 +43,7 @@ class AsyncMapFactory {
       if (mapName != null) {
         id = mapName + id;
       }
-      shared.<K, V>getLocalAsyncMap(id, res -> {
-        if (res.succeeded()) {
-          fut.handle(new Success<>(res.result()));
-        } else {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        }
-      });
+      return shared.<K, V>getLocalAsyncMap(id);
     }
   }
 }
