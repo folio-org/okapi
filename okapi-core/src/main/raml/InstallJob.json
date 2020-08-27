@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "InstallJob",
+  "description": "Install job",
+  "type": "object",
+  "additionalProperties" : false,
+  "properties": {
+    "complete": {
+      "description": "Whether job is complete",
+      "type": "boolean"
+    },
+    "modules": {
+      "description": "List of modules involved in install job",
+     "$ref": "TenantModuleDescriptorList.json"
+    }
+  },
+  "required": ["complete", "modules"]
+}

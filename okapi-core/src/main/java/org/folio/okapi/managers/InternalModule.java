@@ -18,6 +18,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
+import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
@@ -259,6 +260,11 @@ public class InternalModule {
         + "    \"methods\" :  [ \"POST\" ],"
         + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install\","
         + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.post\" ], "
+        + "    \"type\" : \"internal\" "
+        + "   }, {"
+        + "    \"methods\" :  [ \"GET\" ],"
+        + "    \"pathPattern\" : \"/_/proxy/tenants/{tenantId}/install/{installId}\","
+        + "    \"permissionsRequired\" : [ \"okapi.proxy.tenants.install.get\" ], "
         + "    \"type\" : \"internal\" "
         + "   }, {"
         + "    \"methods\" :  [ \"POST\" ],"
@@ -758,8 +764,8 @@ public class InternalModule {
     });
   }
 
-  private void installModulesForTenant(ProxyContext pc, String id,
-                                       String body, Handler<ExtendedAsyncResult<String>> fut) {
+  private void installTenantModulesPost(ProxyContext pc, String id,
+                                        String body, Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
@@ -768,12 +774,18 @@ public class InternalModule {
           TenantModuleDescriptor[].class);
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
-      tenantManager.installUpgradeModules(id, pc, options, tm, res -> {
+      UUID installId = UUID.randomUUID();
+      tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        String jsonResponse = Json.encodePrettily(res.result());
+        logger.info("installTenantModulesPost returns: {}", jsonResponse);
+        if (options.getAsync()) {
+          location(pc, installId.toString(), null, jsonResponse, fut);
         } else {
-          logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
-          fut.handle(new Success<>(Json.encodePrettily(res.result())));
+          fut.handle(new Success<>(jsonResponse));
         }
       });
     } catch (DecodeException ex) {
@@ -781,11 +793,28 @@ public class InternalModule {
     }
   }
 
+  private void installTenantModulesGet(ProxyContext pc, String tenantId, String installId,
+                                       Handler<ExtendedAsyncResult<String>> fut) {
+    tenantManager.installUpgradeGet(installId).onComplete(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+        return;
+      }
+      InstallJob installJob = res.result();
+      if (installJob == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, res.cause()));
+      } else {
+        fut.handle(new Success<>(Json.encodePrettily(installJob)));
+      }
+    });
+  }
+
   private void upgradeModulesForTenant(ProxyContext pc, String id,
                                        Handler<ExtendedAsyncResult<String>> fut) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    tenantManager.installUpgradeModules(id, pc, options, null, res -> {
+    UUID installId = UUID.randomUUID();
+    tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {
@@ -1416,7 +1445,12 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {
-          installModulesForTenant(pc, decodedSegs[4], req, fut);
+          installTenantModulesPost(pc, decodedSegs[4], req, fut);
+          return;
+        }
+        // /_/proxy/tenants/:tid/install/:rid
+        if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
+          installTenantModulesGet(pc, decodedSegs[4], decodedSegs[6], fut);
           return;
         }
         // /_/proxy/tenants/:id/upgrade

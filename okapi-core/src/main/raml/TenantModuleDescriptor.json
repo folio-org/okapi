@@ -18,6 +18,11 @@
       "type" : "string",
       "enum" : [ "enable", "disable", "uptodate", "suggest", "conflict" ]
     },
+    "status" : {
+      "description": "Status",
+      "type" : "string",
+      "enum" : [ "idle", "deploy", "call", "undeploy", "done" ]
+    },
     "message": {
       "description": "Diagnostic Message",
       "type": "string"

@@ -9,6 +9,7 @@ types:
   ModuleList: !include ModuleList.json
   InterfaceDescriptor: !include InterfaceDescriptor.json
   InterfaceList: !include InterfaceList.json
+  InstallJob: !include InstallJob.json
   TenantDescriptor: !include TenantDescriptor.json
   TenantList: !include TenantList.json
   TenantModuleDescriptor: !include TenantModuleDescriptor.json
@@ -790,6 +791,10 @@ types:
           must be deployed (optionally) and enabled/disabled by the existing
           tenants-modules CRUD service.
         queryParameters:
+          async:
+            description: Whether to install in the background
+            type: boolean
+            required: false
           deploy:
             description: Whether to deploy (or undeploy if disabling)
             type: boolean
@@ -834,6 +839,16 @@ types:
             headers:
               X-Okapi-Trace:
                 description: Okapi trace and timing
+          201:
+            description: Install job created (async mode)
+            body:
+              application/json:
+                type: TenantModuleDescriptorList
+            headers:
+              Location:
+                description: URI to the install job
+              X-Okapi-Trace:
+                description: Okapi trace and timing
           400:
             description: Bad Request
             body:
@@ -846,6 +861,30 @@ types:
             description: Server Error
             body:
               text/plain:
+      /{install_id}:
+        get:
+          description: Get install job status
+          responses:
+            200:
+              description: OK
+              body:
+                application/json:
+                  type: InstallJob
+              headers:
+                X-Okapi-Trace:
+                  description: Okapi trace and timing
+            400:
+              description: User error
+              body:
+                text/plain:
+            404:
+              description: Not Found
+              body:
+                text/plain:
+            500:
+              description: User error
+              body:
+                text/plain:
     /upgrade:
       post:
         description: Check if newer modules exist, and upgrade for tenant.

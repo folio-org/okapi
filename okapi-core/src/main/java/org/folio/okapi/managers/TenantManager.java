@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.logging.log4j.Logger;
+import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.ModuleInstance;
@@ -56,6 +57,7 @@ public class TenantManager {
   private final TenantStore tenantStore;
   private LockedTypedMap1<Tenant> tenants = new LockedTypedMap1<>(Tenant.class);
   private String mapName = "tenants";
+  private LockedTypedMap1<InstallJob> jobs = new LockedTypedMap1<>(InstallJob.class);
   private static final String EVENT_NAME = "timer";
   private Set<String> timers = new HashSet<>();
   private Messages messages = Messages.getInstance();
@@ -94,9 +96,12 @@ public class TenantManager {
   public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
     this.vertx = vertx;
 
-    tenants.init(vertx, mapName, ires -> {
+    Future<Void> future = tenants.init(vertx, mapName)
+        .compose(x -> jobs.init(vertx, "installJobs"));
+    future.onComplete(ires -> {
+
       if (ires.failed()) {
-        fut.handle(new Failure<>(ires.getType(), ires.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, ires.cause()));
       } else {
         loadTenants(fut);
       }
@@ -971,10 +976,24 @@ public class TenantManager {
     }); // tenant
   }
 
-  void installUpgradeModules(String tenantId, ProxyContext pc,
-                             TenantInstallOptions options, List<TenantModuleDescriptor> tml,
-                             Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+  Future<InstallJob> installUpgradeGet(String installId) {
+    logger.info("installUpgradeGet InstallId={}", installId);
+    Promise<InstallJob> promise = Promise.promise();
+    jobs.get(installId, res -> {
+      if (res.failed()) {
+        promise.fail(res.cause());
+        return;
+      }
+      promise.complete(res.result());
+    });
+    return promise.future();
+  }
 
+  void installUpgradeCreate(String tenantId, String installId, ProxyContext pc,
+                            TenantInstallOptions options, List<TenantModuleDescriptor> tml,
+                            Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+
+    logger.info("installUpgradeCreate InstallId={}", installId);
     if (tml != null) {
       for (TenantModuleDescriptor tm : tml) {
         if (tm.getAction() == null) {
@@ -1006,44 +1025,46 @@ public class TenantManager {
                 modsEnabled.put(md.getId(), md);
               }
             }
-            List<TenantModuleDescriptor> tml2
-                = prepareTenantModuleList(modsAvailable, modsEnabled, tml);
-            installUpgradeModules2(t, pc, options, modsAvailable, modsEnabled, tml2, fut);
+            InstallJob job = new InstallJob();
+            job.setId(installId);
+            if (tml == null) {
+              job.setModules(upgrades(modsAvailable, modsEnabled));
+            } else {
+              job.setModules(tml);
+            }
+            job.setComplete(false);
+            runJob(t, pc, options, modsAvailable, modsEnabled, job, fut);
           });
     });
   }
 
-  private List<TenantModuleDescriptor> prepareTenantModuleList(
-      Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml) {
+  private List<TenantModuleDescriptor> upgrades(
+      Map<String, ModuleDescriptor> modsAvailable, Map<String, ModuleDescriptor> modsEnabled) {
 
-    if (tml == null) { // upgrade case . Mark all newer modules for install
-      List<TenantModuleDescriptor> tml2 = new LinkedList<>();
-      for (String id : modsEnabled.keySet()) {
-        ModuleId moduleId = new ModuleId(id);
-        String latestId = moduleId.getLatest(modsAvailable.keySet());
-        if (!latestId.equals(id)) {
-          TenantModuleDescriptor tmd = new TenantModuleDescriptor();
-          tmd.setAction(Action.enable);
-          tmd.setId(latestId);
-          logger.info("upgrade.. enable {}", latestId);
-          tmd.setFrom(id);
-          tml2.add(tmd);
-        }
+    List<TenantModuleDescriptor> tml = new LinkedList<>();
+    for (String id : modsEnabled.keySet()) {
+      ModuleId moduleId = new ModuleId(id);
+      String latestId = moduleId.getLatest(modsAvailable.keySet());
+      if (!latestId.equals(id)) {
+        TenantModuleDescriptor tmd = new TenantModuleDescriptor();
+        tmd.setAction(Action.enable);
+        tmd.setId(latestId);
+        logger.info("upgrade.. enable {}", latestId);
+        tmd.setFrom(id);
+        tml.add(tmd);
       }
-      return tml2;
-    } else {
-      return tml;
     }
+    return tml;
   }
 
-  private void installUpgradeModules2(
+  private void runJob(
       Tenant t, ProxyContext pc,
       TenantInstallOptions options,
       Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, List<TenantModuleDescriptor> tml,
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job,
       Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
 
+    List<TenantModuleDescriptor> tml = job.getModules();
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
@@ -1053,17 +1074,62 @@ public class TenantManager {
         fut.handle(new Success<>(tml));
         return;
       }
+
       Future<Void> future = Future.succeededFuture();
+
+      future = future.compose(x -> jobs.put(job.getId(), job));
+
+      if (options.getAsync()) {
+        future = future.onComplete(x -> {
+          logger.info("RETURNING IMMEDIATELY");
+          if (x.failed()) {
+            fut.handle(new Failure<>(ErrorType.USER, x.cause()));
+            return;
+          }
+          fut.handle(new Success<>(tml));
+        });
+        future = future.compose(x -> {
+          for (TenantModuleDescriptor tm : tml) {
+            tm.setStatus(TenantModuleDescriptor.Status.idle);
+          }
+          return jobs.put(job.getId(), job);
+        });
+      }
       if (options.getDeploy()) {
+        if (options.getAsync()) {
+          future = future.compose(x -> {
+            for (TenantModuleDescriptor tm : tml) {
+              tm.setStatus(TenantModuleDescriptor.Status.deploy);
+            }
+            return jobs.put(job.getId(), job);
+          });
+        }
         future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
       }
       for (TenantModuleDescriptor tm : tml) {
+        if (options.getAsync()) {
+          future = future.compose(x -> {
+            tm.setStatus(TenantModuleDescriptor.Status.call);
+            return jobs.put(job.getId(), job);
+          });
+        }
         future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+        if (options.getAsync()) {
+          future = future.compose(x -> {
+            tm.setStatus(TenantModuleDescriptor.Status.done);
+            return jobs.put(job.getId(), job);
+          });
+        }
       }
       if (options.getDeploy()) {
         future.compose(x -> autoUndeploy(t, modsAvailable, tml));
       }
       future.onComplete(x -> {
+        job.setComplete(true);
+        jobs.put(job.getId(), job).onComplete(y -> logger.info("job complete"));
+        if (options.getAsync()) {
+          return;
+        }
         if (x.failed()) {
           fut.handle(new Failure<>(ErrorType.USER, x.cause()));
           return;

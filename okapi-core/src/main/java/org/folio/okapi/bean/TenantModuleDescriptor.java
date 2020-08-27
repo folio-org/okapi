@@ -27,6 +27,13 @@ public class TenantModuleDescriptor {
 
   private String message;
 
+  @java.lang.SuppressWarnings({"squid:S00115"})
+  public enum Status {
+    idle, deploy, call, undeploy, done
+  }
+
+  private Status status;
+
   public String getId() {
     return id;
   }
@@ -58,4 +65,13 @@ public class TenantModuleDescriptor {
   public void setMessage(String message) {
     this.message = message;
   }
+
+  public Status getStatus() {
+    return status;
+  }
+
+  public void setStatus(Status status) {
+    this.status = status;
+  }
+
 }

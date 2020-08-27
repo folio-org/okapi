@@ -253,7 +253,6 @@ public class MainVerticle extends AbstractVerticle {
         }
         checkSuperTenant(okapiModule, promise);
       });
-
     });
     return promise.future();
   }
