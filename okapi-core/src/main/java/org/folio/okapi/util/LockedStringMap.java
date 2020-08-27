@@ -183,13 +183,8 @@ public class LockedStringMap {
    * @return fut async result
 */
   public Future<Void> addOrReplace(boolean allowReplace, String k, String k2, String value) {
-    Promise<Void> promise = Promise.promise();
-    list.get(k, resGet -> {
-      if (resGet.failed()) {
-        promise.fail(resGet.cause());
-        return;
-      }
-      String oldVal = resGet.result();
+    return list.get(k).compose(resGet -> {
+      String oldVal = resGet;
       String newVal;
       if (k2 == null) {
         newVal = value;
@@ -200,15 +195,13 @@ public class LockedStringMap {
           smap.strings.putAll(oldList.strings);
         }
         if (!allowReplace && smap.strings.containsKey(k2)) {
-          promise.fail(messages.getMessage("11400", k2));
-          return;
+          return Future.failedFuture(messages.getMessage("11400", k2));
         }
         smap.strings.put(k2, value);
         newVal = Json.encodePrettily(smap);
       }
-      addOrReplace2(allowReplace, k, k2, value, oldVal, newVal).onComplete(promise::handle);
+      return addOrReplace2(allowReplace, k, k2, value, oldVal, newVal);
     });
-    return promise.future();
   }
 
   private Future<Void> addOrReplace2(boolean allowReplace, String k, String k2, String value,
@@ -220,7 +213,6 @@ public class LockedStringMap {
           return Future.succeededFuture();
         }
         // Someone messed with it, try again
-        logger.info("addOrReplace2 timer 1");
         Promise promise = Promise.promise();
         vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
             .onComplete(promise::handle));
@@ -231,7 +223,6 @@ public class LockedStringMap {
         if (Boolean.TRUE.equals(resRepl)) {
           return Future.succeededFuture();
         }
-        logger.info("addOrReplace2 timer 2");
         Promise promise = Promise.promise();
         vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
             .onComplete(promise::handle));
