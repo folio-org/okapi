@@ -38,10 +38,8 @@ public class LockedStringMapTest {
 
   @Test
   public void testit(TestContext context) {
-    async = context.async();
-    map.init(vertx, "FooMap", res -> {
-      listEmpty(context);
-    });
+    map.init(vertx, "FooMap")
+        .onComplete(context.asyncAssertSuccess(res -> listEmpty(context)));
   }
 
   public void listEmpty(TestContext context) {

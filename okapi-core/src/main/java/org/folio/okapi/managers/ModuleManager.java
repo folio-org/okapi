@@ -72,18 +72,13 @@ public class ModuleManager {
   /**
    * Initialize module manager.
    * @param vertx Vert.x handle
-   * @param fut async result
+   * @return future result
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
     consumeModulesUpdated();
-    modules.init(vertx, mapName, ires -> {
-      if (ires.failed()) {
-        fut.handle(new Failure<>(ires.getType(), ires.cause()));
-      } else {
-        loadModules(fut);
-      }
-    });
+    return modules.init(vertx, mapName)
+        .compose(x -> loadModules());
   }
 
   private void consumeModulesUpdated() {
@@ -100,34 +95,33 @@ public class ModuleManager {
 
   /**
    * Load the modules from the database, if not already loaded.
+   * @return future result
    */
-  private void loadModules(Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> loadModules() {
     if (moduleStore == null) {
-      fut.handle(new Success<>());
-    } else {
-      modules.size(kres -> {
-        if (kres.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, kres.cause()));
-        } else if (kres.result() > 0) {
-          logger.debug("Not loading modules, looks like someone already did");
-          fut.handle(new Success<>());
-        } else {
-          moduleStore.getAll(mres -> {
-            if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
-            } else {
-              CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
-              for (ModuleDescriptor md : mres.result()) {
-                Promise<Void> promise = Promise.promise();
-                modules.add(md.getId(), md, promise::handle);
-                futures.add(promise);
-              }
-              futures.all(fut);
-            }
-          });
-        }
-      });
+      return Future.succeededFuture();
     }
+    return modules.size().compose(kres -> {
+      if (kres > 0) {
+        logger.debug("Not loading modules, looks like someone already did");
+        return Future.succeededFuture();
+      }
+      Promise<Void> promise = Promise.promise();
+      moduleStore.getAll(mres -> {
+        if (mres.failed()) {
+          promise.fail(mres.cause());
+          return;
+        }
+        List<Future> futures = new LinkedList<>();
+        for (ModuleDescriptor md : mres.result()) {
+          Promise<Void> promise1 = Promise.promise();
+          modules.add(md.getId(), md, promise1::handle);
+          futures.add(promise1.future());
+        }
+        CompositeFuture.all(futures).onComplete(x -> promise.handle(x.mapEmpty()));
+      });
+      return promise.future();
+    });
   }
 
   Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
@@ -290,7 +284,7 @@ public class ModuleManager {
       }
       tenantManager.getModuleUser(id).onComplete(ures -> {
         if (ures.failed()) {
-          fut.handle(new Failure<>(ErrorType.USER, ures.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
           return;
         }
         List<String> tenants = ures.result();

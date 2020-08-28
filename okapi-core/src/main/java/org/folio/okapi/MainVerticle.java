@@ -214,9 +214,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future<Void> startModmanager() {
     logger.info("startModmanager");
-    Promise<Void> promise = Promise.promise();
-    moduleManager.init(vertx, promise::handle);
-    return promise.future();
+    return moduleManager.init(vertx);
   }
 
   private Future<Void> startTenants() {
@@ -283,22 +281,23 @@ public class MainVerticle extends AbstractVerticle {
           logger.warn("checkSuperTenant: This Okapi is too old,"
                   + "{} we already have {} in the database. Use that!",
               okapiVersion, ev);
-        } else {
-          logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
-              ev, okapiModule);
-          // Use the commit, easier interface.
-          // the internal module can not have dependencies
-          // See Okapi-359 about version checks across the cluster
-          tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
-            if (ures.failed()) {
-              promise.fail(ures.cause());
-              return;
-            }
-            logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
-                ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
-          });
+          promise.complete();
+          return;
         }
-        promise.complete();
+        logger.info("checkSuperTenant: Need to upgrade the stored version from {} to {}",
+            ev, okapiModule);
+        // Use the commit, easier interface.
+        // the internal module can not have dependencies
+        // See Okapi-359 about version checks across the cluster
+        tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
+          if (ures.failed()) {
+            promise.fail(ures.cause());
+            return;
+          }
+          logger.info("Upgraded the InternalModule version from '{}' to '{}' for {}",
+              ev, okapiModule, XOkapiHeaders.SUPERTENANT_ID);
+          promise.complete();
+        });
         return;
       }
       if (gres.getType() != ErrorType.NOT_FOUND) {
@@ -323,9 +322,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future<Void> startEnv() {
     logger.info("starting env");
-    Promise<Void> promise = Promise.promise();
-    envManager.init(vertx, promise::handle);
-    return promise.future();
+    return envManager.init(vertx);
   }
 
   private Future<Void> startDiscovery() {

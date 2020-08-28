@@ -1,5 +1,7 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -28,7 +30,7 @@ public class EnvManager {
   private final Messages messages = Messages.getInstance();
 
   /**
-   * Construct event manager.
+   * Construct environment manager.
    * @param s storage
    */
   public EnvManager(EnvStore s) {
@@ -36,30 +38,28 @@ public class EnvManager {
   }
 
   /**
-   * Initialize event manager.
+   * Initialize environment manager.
    * @param vertx Vert.x handle
-   * @param fut async result
+   * @return fut async result
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(Vertx vertx) {
     logger.debug("starting EnvManager");
-    envMap.init(vertx, "env", res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        envStore.getAll(res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          } else {
-            CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
-            for (EnvEntry e : res2.result()) {
-              Promise<Void> promise = Promise.promise();
-              add1(e, promise::handle);
-              futures.add(promise);
-            }
-            futures.all(fut);
-          }
-        });
-      }
+    return envMap.init(vertx, "env").compose(res -> {
+      Promise<Void> promise = Promise.promise();
+      envStore.getAll(res2 -> {
+        if (res2.failed()) {
+          promise.fail(res2.cause());
+          return;
+        }
+        List<Future> futures = new LinkedList<>();
+        for (EnvEntry e : res2.result()) {
+          Promise<Void> promise1 = Promise.promise();
+          add1(e, promise1::handle);
+          futures.add(promise1.future());
+        }
+        CompositeFuture.all(futures).onComplete(x -> promise.handle(x.mapEmpty()));
+      });
+      return promise.future();
     });
   }
 

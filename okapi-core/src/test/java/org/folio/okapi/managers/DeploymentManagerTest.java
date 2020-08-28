@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -40,15 +41,15 @@ public class DeploymentManagerTest {
     Async async = context.async();
     EnvManager em = new EnvManager(envStore);
     DeploymentStore ds = new DeploymentStoreNull();
-    em.init(vertx, res1 -> {
-      DiscoveryManager dis = new DiscoveryManager(ds);
-      dis.init(vertx).onComplete(res2 -> {
-        dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
-        async.complete();
-      });
-    });
+    DiscoveryManager dis = new DiscoveryManager(ds);
+    em.init(vertx)
+        .compose(x -> dis.init(vertx))
+        .onComplete(context.asyncAssertSuccess(x -> {
+          dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
+          async.complete();
+        }));
     async.await();
-  }
+}
 
   private void createDeploymentManager(TestContext context) {
     DeploymentManagerTest.this.createDeploymentManager(context, new EnvStoreNull(), new JsonObject());
