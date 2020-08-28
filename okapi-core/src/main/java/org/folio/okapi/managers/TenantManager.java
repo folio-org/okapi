@@ -1145,7 +1145,7 @@ public class TenantManager {
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        Promise p = Promise.promise();
+        Promise<Void> p = Promise.promise();
         futures.add(p.future());
         proxyService.autoDeploy(md, res -> p.handle(res.mapEmpty()));
       }
@@ -1191,7 +1191,7 @@ public class TenantManager {
     if (md == null) {
       return Future.succeededFuture();
     }
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     final ModuleDescriptor mdF = md;
     Future<List<String>> f = getModuleUser(md.getId());
     f.onComplete(ures -> {

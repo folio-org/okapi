@@ -1082,9 +1082,13 @@ public class InternalModule {
   private void getDiscoveryNode(String id,
                                 Handler<ExtendedAsyncResult<String>> fut) {
     logger.debug("Int: getDiscoveryNode: {}", id);
-    discoveryManager.getNode(id, res -> {
+    discoveryManager.getNode(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
+      }
+      if (res.result() == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1107,9 +1111,9 @@ public class InternalModule {
   }
 
   private void listDiscoveryNodes(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.getNodes(res -> {
+    discoveryManager.getNodes().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());

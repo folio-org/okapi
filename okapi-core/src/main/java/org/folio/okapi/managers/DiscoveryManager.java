@@ -1,5 +1,7 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -237,9 +239,9 @@ public class DiscoveryManager implements NodeListener {
   private void callDeploy(String nodeId, DeploymentDescriptor dd,
                           Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
 
-    getNode(nodeId, nodeRes -> {
+    getNode(nodeId).onComplete(nodeRes -> {
       if (nodeRes.failed()) {
-        fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, nodeRes.cause()));
       } else {
         String reqData = Json.encode(dd);
         vertx.eventBus().request(nodeRes.result().getUrl() + "/deploy", reqData,
@@ -325,24 +327,24 @@ public class DiscoveryManager implements NodeListener {
     if (nodeId == null) {
       logger.info("callUndeploy remove");
       remove(md.getSrvcId(), md.getInstId(), fut);
-    } else {
-      logger.info("callUndeploy calling..");
-      getNode(nodeId, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          String reqdata = md.getInstId();
-          vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
-              deliveryOptions, ar -> {
-                if (ar.failed()) {
-                  fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-                } else {
-                  fut.handle(new Success<>());
-                }
-              });
-        }
-      });
+      return;
     }
+    logger.info("callUndeploy calling..");
+    getNode(nodeId).onComplete(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
+      }
+      String reqdata = md.getInstId();
+      vertx.eventBus().request(res.result().getUrl() + "/undeploy", reqdata,
+          deliveryOptions, ar -> {
+            if (ar.failed()) {
+              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+            } else {
+              fut.handle(new Success<>());
+            }
+          });
+    });
   }
 
   void remove(String srvcId, String instId,
@@ -639,50 +641,36 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Translate node url or node name to its id. If not found, returns the id itself.
    *
-   * @param nodeId node ID
-   * @param fut future
+   * @param nodeId node ID or URL
+   * @return future with id
    */
-  private void nodeUrl(String nodeId, Handler<ExtendedAsyncResult<String>> fut) {
-    getNodes(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        List<NodeDescriptor> result = res.result();
-        for (NodeDescriptor nd : result) {
-          if (nodeId.compareTo(nd.getUrl()) == 0) {
-            fut.handle(new Success<>(nd.getNodeId()));
-            return;
-          }
-          String nm = nd.getNodeName();
-          if (nm != null && nodeId.compareTo(nm) == 0) {
-            fut.handle(new Success<>(nd.getNodeId()));
-            return;
-          }
+  private Future<String> nodeUrl(String nodeId) {
+    return getNodes().compose(result -> {
+      for (NodeDescriptor nd : result) {
+        if (nodeId.compareTo(nd.getUrl()) == 0) {
+          return Future.succeededFuture(nd.getNodeId());
         }
-        fut.handle(new Success<>(nodeId)); // try with the original id
+        String nm = nd.getNodeName();
+        if (nm != null && nodeId.compareTo(nm) == 0) {
+          return Future.succeededFuture(nd.getNodeId());
+        }
       }
+      return Future.succeededFuture(nodeId); // try with the original id
     });
   }
 
-  void getNode(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
-    nodeUrl(nodeId, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        getNode1(res.result(), fut);
-      }
-    });
+  Future<NodeDescriptor> getNode(String nodeId) {
+    return nodeUrl(nodeId).compose(x -> getNode1(x));
   }
 
-  private void getNode1(String nodeId, Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+  private Future<NodeDescriptor> getNode1(String nodeId) {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10806", nodeId)));
-        return;
+        return Future.succeededFuture(null);
       }
     }
-    nodes.get(nodeId, fut);
+    return nodes.get(nodeId);
   }
 
   void updateNode(String nodeId, NodeDescriptor nd,
@@ -718,30 +706,23 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void getNodes(Handler<ExtendedAsyncResult<List<NodeDescriptor>>> fut) {
-    nodes.getKeys(resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-      } else {
-        Collection<String> keys = resGet.result();
-        if (clusterManager != null) {
-          List<String> n = clusterManager.getNodes();
-          keys.retainAll(n);
-        }
-        List<NodeDescriptor> all = new LinkedList<>();
-        CompList<List<NodeDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
-        for (String nodeId : keys) {
-          Promise<NodeDescriptor> promise = Promise.promise();
-          getNode1(nodeId, res -> {
-            if (res.succeeded()) {
-              all.add(res.result());
-            }
-            promise.handle(res);
-          });
-          futures.add(promise);
-        }
-        futures.all(all, fut);
+  Future<List<NodeDescriptor>> getNodes() {
+    return nodes.getKeys().compose(keys -> {
+      if (clusterManager != null) {
+        List<String> n = clusterManager.getNodes();
+        keys.retainAll(n);
       }
+      List<NodeDescriptor> nodes = new LinkedList<>();
+      List<Future> futures = new LinkedList<>();
+      for (String nodeId : keys) {
+        futures.add(getNode1(nodeId).compose(x -> {
+          nodes.add(x);
+          return Future.succeededFuture();
+        }));
+      }
+      return CompositeFuture.all(futures).compose(res -> {
+        return Future.succeededFuture(nodes);
+      });
     });
   }
 

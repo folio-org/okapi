@@ -235,7 +235,7 @@ public class LockedStringMap {
   }
 
   private Future<Void> addOrReplace2(boolean allowReplace, String k, String k2, String value) {
-    Promise promise = Promise.promise();
+    Promise<Void> promise = Promise.promise();
     vertx.setTimer(DELAY, x -> addOrReplace(allowReplace, k, k2, value)
         .onComplete(promise::handle));
     return promise.future();
@@ -298,7 +298,7 @@ public class LockedStringMap {
     if (Boolean.TRUE.equals(result)) {
       return Future.succeededFuture(true);
     } else {
-      Promise promise = Promise.promise();
+      Promise<Boolean> promise = Promise.promise();
       vertx.setTimer(DELAY, res -> remove(k, k2).onComplete(promise::handle));
       return promise.future();
     }
