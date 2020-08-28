@@ -1,11 +1,12 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
-import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
@@ -51,32 +52,39 @@ public class LockedTypedMap1<T> extends LockedStringMap {
   }
 
   /**
+   * Get and deserialize to type from shared map.
+   * @param k key
+   * @return future with value if found (null if not found)
+   */
+  public Future<T> get(String k) {
+    return getString(k, (String) null).compose(res -> {
+      return Future.succeededFuture(Json.decodeValue(res, clazz));
+    });
+  }
+
+  /**
    * Get all records in the map. Returns them in a LinkedHashMap, so they come
    * in well defined order.
    *
    * @param fut callback with the result, or some failure.
    */
   public void getAll(Handler<ExtendedAsyncResult<LinkedHashMap<String, T>>> fut) {
-    getKeys(keyRes -> {
-      if (keyRes.failed()) {
-        fut.handle(new Failure<>(keyRes.getType(), keyRes.cause()));
-        return;
-      }
-      Collection<String> keys = keyRes.result();
+    getKeys().compose(keys -> {
       LinkedHashMap<String, T> results = new LinkedHashMap<>();
-      CompList<LinkedHashMap<String,T>> futures = new CompList<>(ErrorType.INTERNAL);
+      List<Future> futures = new LinkedList<>();
       for (String key : keys) {
-        Promise<String> promise = Promise.promise();
-        getString(key, null, res -> {
-          if (res.succeeded()) {
-            T t = Json.decodeValue(res.result(), clazz);
-            results.put(key, t);
-          }
-          promise.handle(res);
-        });
-        futures.add(promise);
+        futures.add(getString(key, (String) null).compose(res -> {
+          T t = Json.decodeValue(res, clazz);
+          results.put(key, t);
+          return Future.succeededFuture();
+        }));
       }
-      futures.all(results, fut);
+      return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(results));
+    }).onComplete(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+      }
+      fut.handle(new Success<>(res.result()));
     });
   }
 

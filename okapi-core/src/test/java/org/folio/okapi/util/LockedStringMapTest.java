@@ -138,7 +138,7 @@ public class LockedStringMapTest {
   private void deleteKey1(TestContext context) {
     map.remove("k1", "k2", res -> {
       assertTrue(res.succeeded());
-      assertFalse(res.result()); // there is still k1/k2.2 left
+      assertTrue(res.result()); // k1, k2 deleted ok
       deleteKey1again(context);
     });
   }

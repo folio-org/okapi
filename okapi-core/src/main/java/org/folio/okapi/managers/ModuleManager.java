@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
@@ -406,29 +407,28 @@ public class ModuleManager {
                                 Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
-    CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
+    List<Future> futures = new LinkedList<>();
     for (String id : ten.getEnabled().keySet()) {
       if (enabledModulesCache.containsKey(id)) {
         ModuleDescriptor md = enabledModulesCache.get(id);
         mdl.add(md);
         updateExpandedPermModuleTenants(ten.getId(), md);
       } else {
-        Promise<ModuleDescriptor> promise = Promise.promise();
-        modules.get(id, res -> {
-          if (res.succeeded()) {
-            ModuleDescriptor md = res.result();
-            enabledModulesCache.put(id, md);
-            mdl.add(md);
-            updateExpandedPermModuleTenants(ten.getId(), md);
-          } else {
-            logger.warn("getEnabledModules id={} failed", id, res.cause());
-          }
-          promise.handle(res);
-        });
-        futures.add(promise);
+        futures.add(modules.get(id).compose(md -> {
+          enabledModulesCache.put(id, md);
+          mdl.add(md);
+          updateExpandedPermModuleTenants(ten.getId(), md);
+          return Future.succeededFuture();
+        }));
       }
     }
-    futures.all(mdl, fut);
+    CompositeFuture.all(futures).onComplete(res -> {
+      if (res.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+      } else {
+        fut.handle(new Success<>(mdl));
+      }
+    });
   }
 
   private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {
