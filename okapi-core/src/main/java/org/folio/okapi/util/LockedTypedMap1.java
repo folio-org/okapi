@@ -58,6 +58,9 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    */
   public Future<T> get(String k) {
     return getString(k, (String) null).compose(res -> {
+      if (res == null) {
+        return Future.succeededFuture(null);
+      }
       return Future.succeededFuture(Json.decodeValue(res, clazz));
     });
   }

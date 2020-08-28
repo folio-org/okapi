@@ -42,7 +42,7 @@ public class DeploymentManagerTest {
     DeploymentStore ds = new DeploymentStoreNull();
     em.init(vertx, res1 -> {
       DiscoveryManager dis = new DiscoveryManager(ds);
-      dis.init(vertx, res2 -> {
+      dis.init(vertx).onComplete(res2 -> {
         dm = new DeploymentManager(vertx, dis, em, "myhost.index", 9230, "", config);
         async.complete();
       });

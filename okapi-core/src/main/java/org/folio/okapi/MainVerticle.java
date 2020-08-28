@@ -330,9 +330,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future<Void> startDiscovery() {
     logger.info("Starting discovery");
-    Promise<Void> promise = Promise.promise();
-    discoveryManager.init(vertx, promise::handle);
-    return promise.future();
+    return discoveryManager.init(vertx);
   }
 
   private Future<Void> startDeployment() {

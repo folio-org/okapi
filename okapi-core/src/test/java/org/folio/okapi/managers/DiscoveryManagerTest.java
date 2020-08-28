@@ -16,16 +16,16 @@ public class DiscoveryManagerTest extends TestBase {
   @Test
   public void isLeaderWithoutClusterManager(TestContext context) {
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx(), asyncAssertSuccess(context, then -> {
-      Assert.assertEquals(true, discoveryManager.isLeader());
-    }));
+
+    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(then ->
+        Assert.assertEquals(true, discoveryManager.isLeader())));
   }
 
   @Test
   public void healthUnknown(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx(), asyncAssertSuccess(context, res -> {
+    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       discoveryManager.health(dd, res1 -> {
         context.assertTrue(res1.succeeded());
@@ -41,7 +41,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthUnknown2(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx(), asyncAssertSuccess(context, res -> {
+    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("");
       discoveryManager.health(dd, res1 -> {
@@ -58,7 +58,7 @@ public class DiscoveryManagerTest extends TestBase {
   public void healthFails(TestContext context) {
     Async async = context.async();
     DiscoveryManager discoveryManager = new DiscoveryManager(null);
-    discoveryManager.init(Vertx.vertx(), asyncAssertSuccess(context, res -> {
+    discoveryManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(res -> {
       DeploymentDescriptor dd = new DeploymentDescriptor();
       dd.setUrl("http://localhost:9230");
       discoveryManager.health(dd, res1 -> {

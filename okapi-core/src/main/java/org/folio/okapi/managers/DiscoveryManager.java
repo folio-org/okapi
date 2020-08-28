@@ -60,25 +60,14 @@ public class DiscoveryManager implements NodeListener {
   /**
    * Initialize discovery manager.
    * @param vertx Vert.x handle
-   * @param fut async result
+   * @return future result
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
     this.httpClient = vertx.createHttpClient();
     deliveryOptions = new DeliveryOptions().setSendTimeout(300000); // 5 minutes
-    deployments.init(vertx, "discoveryList", res1 -> {
-      if (res1.failed()) {
-        fut.handle(new Failure<>(res1.getType(), res1.cause()));
-      } else {
-        nodes.init(vertx, "discoveryNodes", res2 -> {
-          if (res2.failed()) {
-            fut.handle(new Failure<>(res2.getType(), res2.cause()));
-          } else {
-            fut.handle(new Success<>());
-          }
-        });
-      }
-    });
+    return deployments.init(vertx, "discoveryList").compose(x ->
+        nodes.init(vertx, "discoveryNodes"));
   }
 
   /**
@@ -242,19 +231,24 @@ public class DiscoveryManager implements NodeListener {
     getNode(nodeId).onComplete(nodeRes -> {
       if (nodeRes.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, nodeRes.cause()));
-      } else {
-        String reqData = Json.encode(dd);
-        vertx.eventBus().request(nodeRes.result().getUrl() + "/deploy", reqData,
-            deliveryOptions, ar -> {
-              if (ar.failed()) {
-                fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
-              } else {
-                String b = (String) ar.result().body();
-                DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
-                fut.handle(new Success<>(pmd));
-              }
-            });
+        return;
       }
+      NodeDescriptor nodeDescriptor = nodeRes.result();
+      if (nodeDescriptor == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, nodeId));
+        return;
+      }
+      String reqData = Json.encode(dd);
+      vertx.eventBus().request(nodeDescriptor.getUrl() + "/deploy", reqData,
+          deliveryOptions, ar -> {
+            if (ar.failed()) {
+              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+            } else {
+              String b = (String) ar.result().body();
+              DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
+              fut.handle(new Success<>(pmd));
+            }
+          });
     });
   }
 

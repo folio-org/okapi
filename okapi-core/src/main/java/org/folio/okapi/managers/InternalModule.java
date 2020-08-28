@@ -1087,11 +1087,12 @@ public class InternalModule {
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
-      if (res.result() == null) {
+      NodeDescriptor nodeDescriptor = res.result();
+      if (nodeDescriptor == null) {
         fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
         return;
       }
-      final String s = Json.encodePrettily(res.result());
+      final String s = Json.encodePrettily(nodeDescriptor);
       fut.handle(new Success<>(s));
     });
   }
