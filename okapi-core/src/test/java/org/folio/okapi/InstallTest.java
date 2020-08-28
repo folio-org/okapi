@@ -71,7 +71,7 @@ public class InstallTest {
 
     c = api.createRestAssured3();
     c.given()
-        .get("/_/proxy/tenants/roskilde/modules/12121")
+        .get("/_/proxy/tenants/foo/modules/12121")
         .then().statusCode(404);
     Assert.assertTrue(
         "raml: " + c.getLastReport().toString(),
@@ -190,5 +190,23 @@ public class InstallTest {
     Assert.assertTrue(
         "raml: " + c1.getLastReport().toString(),
         c1.getLastReport().isEmpty());
+
+    // known installId but unknown tenantId
+    c = api.createRestAssured3();
+    c.given()
+        .get(suffix.replace("roskilde", "nosuchtenant"))
+        .then().statusCode(404);
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    // unknown installId, known tenantId
+    c = api.createRestAssured3();
+    c.given()
+        .get("/_/proxy/tenants/roskilde/modules/12121")
+        .then().statusCode(404);
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
   }
 }

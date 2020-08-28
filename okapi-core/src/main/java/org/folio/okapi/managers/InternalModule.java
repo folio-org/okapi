@@ -764,7 +764,7 @@ public class InternalModule {
     });
   }
 
-  private void installTenantModulesPost(ProxyContext pc, String id,
+  private void installTenantModulesPost(ProxyContext pc, String tenantId,
                                         String body, Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
@@ -775,7 +775,7 @@ public class InternalModule {
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
       UUID installId = UUID.randomUUID();
-      tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, tm, res -> {
+      tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm, res -> {
         if (res.failed()) {
           fut.handle(new Failure<>(res.getType(), res.cause()));
           return;
@@ -793,10 +793,11 @@ public class InternalModule {
     }
   }
 
-  private void installTenantModulesGet(String installId, Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.installUpgradeGet(installId).onComplete(res -> {
+  private void installTenantModulesGet(String tenantId, String installId,
+                                       Handler<ExtendedAsyncResult<String>> fut) {
+    tenantManager.installUpgradeGet(tenantId, installId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       InstallJob installJob = res.result();
@@ -1454,7 +1455,7 @@ public class InternalModule {
         }
         // /_/proxy/tenants/:tid/install/:rid
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
-          installTenantModulesGet(decodedSegs[6], fut);
+          installTenantModulesGet(decodedSegs[4], decodedSegs[6], fut);
           return;
         }
         // /_/proxy/tenants/:id/upgrade

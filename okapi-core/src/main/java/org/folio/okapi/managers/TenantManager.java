@@ -976,17 +976,14 @@ public class TenantManager {
     }); // tenant
   }
 
-  Future<InstallJob> installUpgradeGet(String installId) {
+  Future<InstallJob> installUpgradeGet(String tenantId, String installId) {
     logger.info("installUpgradeGet InstallId={}", installId);
-    Promise<InstallJob> promise = Promise.promise();
-    jobs.get(installId, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-        return;
+    return tenants.get(tenantId).compose(x -> {
+      if (x == null) {
+        return Future.succeededFuture(null); // no such tenant
       }
-      promise.complete(res.result());
+      return jobs.get(installId);
     });
-    return promise.future();
   }
 
   void installUpgradeCreate(String tenantId, String installId, ProxyContext pc,
@@ -1245,19 +1242,12 @@ public class TenantManager {
       List<String> users = new LinkedList<>();
       List<Future> futures = new LinkedList<>();
       for (String tid : kres) {
-        Promise promise1 = Promise.promise();
-        tenants.get(tid, gres -> {
-          if (gres.failed()) {
-            promise1.fail(gres.cause());
-            return;
-          }
-          Tenant t = gres.result();
+        futures.add(tenants.get(tid).compose(t -> {
           if (t.isEnabled(mod)) {
             users.add(tid);
           }
-          promise1.complete();
-        });
-        futures.add(promise1.future());
+          return Future.succeededFuture();
+        }));
       }
       return CompositeFuture.all(futures).map(users);
     });
