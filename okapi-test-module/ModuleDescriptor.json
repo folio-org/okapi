@@ -1,0 +1,21 @@
+{
+  "id": "test-basic-1.0.0",
+  "name": "Okapi test module",
+  "provides": [
+    {
+      "id": "test-basic",
+      "version": "2.2",
+      "handlers": [
+        {
+          "methods": [ "GET", "POST" ],
+          "pathPattern": "/testb",
+          "permissionsRequired": [ "test-basic.get.list" ]
+        }
+      ]
+    }
+  ],
+  "requires": [],
+  "launchDescriptor": {
+    "dockerImage": "okapi-test-module"
+  }
+}
