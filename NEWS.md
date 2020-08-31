@@ -1,3 +1,7 @@
+## 4.1.1 2020-08-31
+
+ * [OKAPI-883](https://issues.folio.org/browse/OKAPI-883) Log4j2Plugins.dat in fat jar causes "Unrecognized format specifier"
+
 ## 4.1.0 2020-08-25
 
  * [OKAPI-871](https://issues.folio.org/browse/OKAPI-871) PoC: structured logging with JSON in Okapi
