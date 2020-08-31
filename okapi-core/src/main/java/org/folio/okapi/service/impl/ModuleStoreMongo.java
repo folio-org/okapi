@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
@@ -39,8 +40,8 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    util.getAll(ModuleDescriptor.class, fut);
+  public Future<List<ModuleDescriptor>> getAll() {
+    return util.getAll(ModuleDescriptor.class);
   }
 
   @Override

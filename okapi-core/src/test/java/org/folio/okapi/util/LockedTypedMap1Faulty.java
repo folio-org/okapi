@@ -1,5 +1,6 @@
 package org.folio.okapi.util;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.Collection;
 import org.folio.okapi.common.ErrorType;
@@ -27,6 +28,15 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
     super.get(k, fut);
   }
 
+  @Override
+  public Future<T> get(String k) {
+    if (getError != null) {
+      return Future.failedFuture(getError);
+    }
+    return super.get(k);
+  }
+
+
   private String addError;
 
   public void setAddError(String addError) {
@@ -42,6 +52,14 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
     super.add(k, value, fut);
   }
 
+  @Override
+  public Future<Void> add(String k, T value) {
+    if (addError != null) {
+      return Future.failedFuture(addError);
+    }
+    return super.add(k, value);
+  }
+
   private String getKeysError;
 
   public void setGetKeysError(String getKeysError) {
@@ -55,6 +73,14 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
       return;
     }
     super.getKeys(fut);
+  }
+
+  @Override
+  public Future<Collection<String>> getKeys() {
+    if (getKeysError != null) {
+      return Future.failedFuture(getKeysError);
+    }
+    return super.getKeys();
   }
 
 }

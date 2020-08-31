@@ -25,6 +25,7 @@ public class TenantManagerTest extends TestBase {
   @Before
   public void setUp(TestContext context) {
     vertx = Vertx.vertx();
+
   }
 
   @After
@@ -37,7 +38,7 @@ public class TenantManagerTest extends TestBase {
     TenantManager tm = new TenantManager(null, new TenantStoreNull());
     {
       Async async = context.async();
-      tm.init(vertx, res -> async.complete());
+      tm.init(vertx).onComplete(context.asyncAssertSuccess(x -> async.complete()));
       async.await();
     }
     TenantDescriptor td = new TenantDescriptor();
@@ -107,7 +108,7 @@ public class TenantManagerTest extends TestBase {
     TenantManager tm = new TenantManager(null, new TenantStoreFaulty(ErrorType.INTERNAL, fakeMsg));
     {
       Async async = context.async();
-      tm.init(vertx, res -> async.complete());
+      tm.init(vertx).onComplete(x -> async.complete()); // init fails
       async.await();
     }
     TenantDescriptor td = new TenantDescriptor();
@@ -161,11 +162,8 @@ public class TenantManagerTest extends TestBase {
     LockedTypedMap1Faulty<Tenant> tenantsMap = new LockedTypedMap1Faulty<>(Tenant.class);
     tm.setTenantsMap(tenantsMap);
 
-    {
-      Async async = context.async();
-      tm.init(vertx, res -> async.complete());
-      async.await();
-    }
+    tm.init(vertx).onComplete(context.asyncAssertSuccess());
+
     tenantsMap.setGetError("gerror");
     tenantsMap.setAddError(null);
     tenantsMap.setGetKeysError(null);
@@ -252,7 +250,7 @@ public class TenantManagerTest extends TestBase {
   public void handleTimerForNonexistingTenant(TestContext context) {
     TenantManager tenantManager = new TenantManager(null, new TenantStoreNull());
     tenantManager.getTimers().add("tenantId_moduleId_0");
-    tenantManager.init(Vertx.vertx(), asyncAssertSuccess(context, done -> {
+    tenantManager.init(Vertx.vertx()).onComplete(context.asyncAssertSuccess(done -> {
       tenantManager.handleTimer("tenantId", "moduleId", 0);
       Assert.assertEquals(0, tenantManager.getTimers().size());
     }));

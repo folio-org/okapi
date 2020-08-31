@@ -1,6 +1,8 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.mongo.MongoClient;
@@ -89,8 +91,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    util.getAll(Tenant.class, fut);
+  public Future<List<Tenant>> listTenants() {
+    return util.getAll(Tenant.class);
   }
 
   @Override

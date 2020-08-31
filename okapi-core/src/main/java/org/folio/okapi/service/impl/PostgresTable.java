@@ -1,6 +1,8 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
@@ -121,12 +123,14 @@ class PostgresTable<T> {
     });
   }
 
-  void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
+  // TODO
+  Future<List<T>> getAll(Class<T> clazz) {
+    Promise<List<T>> promise = Promise.promise();
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + jsonColumn + " FROM " + table;
     q.query(sql, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        promise.fail(res.cause());
         return;
       }
       List<T> ml = new ArrayList<>();
@@ -136,7 +140,9 @@ class PostgresTable<T> {
         ml.add(md);
       }
       q.close();
-      fut.handle(new Success<>(ml));
+      promise.complete(ml);
     });
+    return promise.future();
   }
+
 }

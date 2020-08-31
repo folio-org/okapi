@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import java.util.SortedMap;
@@ -40,8 +41,8 @@ public class TenantStoreFaulty implements TenantStore {
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<List<Tenant>> listTenants() {
+    return Future.failedFuture(msg);
   }
 
   @Override

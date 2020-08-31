@@ -91,21 +91,14 @@ public class TenantManager {
    * Initialize the TenantManager.
    *
    * @param vertx Vert.x handle
-   * @param fut future
+   * @return fut future
    */
-  public void init(Vertx vertx, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(Vertx vertx) {
     this.vertx = vertx;
 
-    Future<Void> future = tenants.init(vertx, mapName)
-        .compose(x -> jobs.init(vertx, "installJobs"));
-    future.onComplete(ires -> {
-
-      if (ires.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, ires.cause()));
-      } else {
-        loadTenants(fut);
-      }
-    });
+    return tenants.init(vertx, mapName)
+        .compose(x -> jobs.init(vertx, "installJobs"))
+        .compose(x -> loadTenants());
   }
 
   /**
@@ -136,21 +129,23 @@ public class TenantManager {
    */
   public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
     String id = t.getId();
-    tenants.get(id, gres -> {
-      if (gres.succeeded()) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10400", id)));
-      } else if (gres.getType() == ErrorType.NOT_FOUND) {
-        tenantStore.insert(t, res -> {
-          if (res.failed()) {
-            logger.warn("TenantManager: Adding {} failed: {}", id, res);
-            fut.handle(new Failure<>(res.getType(), res.cause()));
-          } else {
-            insert2(t, id, fut);
-          }
-        });
-      } else {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+    tenants.get(id).onComplete(gres -> {
+      if (gres.failed()) {
+        fut.handle(new Failure<>(ErrorType.INTERNAL, gres.cause()));
+        return;
       }
+      if (gres.result() != null) { // already exists
+        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10400", id)));
+        return;
+      }
+      tenantStore.insert(t, res -> {
+        if (res.failed()) {
+          logger.warn("TenantManager: Adding {} failed: {}", id, res);
+          fut.handle(new Failure<>(res.getType(), res.cause()));
+          return;
+        }
+        insert2(t, id, fut);
+      });
     });
   }
 
@@ -1256,31 +1251,21 @@ public class TenantManager {
   /**
    * Load tenants from the store into the shared memory map.
    *
-   * @param fut future
+   * @return fut future
    */
-  private void loadTenants(Handler<ExtendedAsyncResult<Void>> fut) {
-    tenants.getKeys(gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        return;
-      }
-      Collection<String> keys = gres.result();
+  private Future<Void> loadTenants() {
+    return tenants.getKeys().compose(keys -> {
       if (!keys.isEmpty()) {
-        fut.handle(new Success<>());
-        return;
+        return Future.succeededFuture();
       }
-      tenantStore.listTenants(lres -> {
-        if (lres.failed()) {
-          fut.handle(new Failure<>(lres.getType(), lres.cause()));
-          return;
+      return tenantStore.listTenants().compose(res -> {
+        List<Future> futures = new LinkedList<>();
+        for (Tenant t : res) {
+          Promise<Void> p = Promise.promise();
+          tenants.add(t.getId(), t, p::handle);
+          futures.add(p.future());
         }
-        CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
-        for (Tenant t : lres.result()) {
-          Promise<Void> f = Promise.promise();
-          tenants.add(t.getId(), t, f::handle);
-          futures.add(f);
-        }
-        futures.all(fut);
+        return CompositeFuture.all(futures).mapEmpty();
       });
     });
   }

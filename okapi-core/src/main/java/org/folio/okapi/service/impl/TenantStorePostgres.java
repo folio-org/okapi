@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
@@ -53,8 +54,8 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    pgTable.getAll(Tenant.class, fut);
+  public Future<List<Tenant>> listTenants() {
+    return pgTable.getAll(Tenant.class);
   }
 
   @Override

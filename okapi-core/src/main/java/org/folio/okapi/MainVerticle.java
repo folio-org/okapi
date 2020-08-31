@@ -219,9 +219,7 @@ public class MainVerticle extends AbstractVerticle {
 
   private Future<Void> startTenants() {
     logger.info("startTenants");
-    Promise<Void> promise = Promise.promise();
-    tenantManager.init(vertx, promise::handle);
-    return promise.future();
+    return tenantManager.init(vertx);
   }
 
   private Future<Void> checkInternalModules() {
@@ -383,20 +381,13 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startRedeploy() {
-    Promise<Void> promise = Promise.promise();
-    discoveryManager.restartModules(res -> {
-      if (res.succeeded()) {
-        logger.info("Deploy completed succesfully");
-      } else {
-        // not reporting failure if re-deploy fails
-        logger.info("Deploy failed", res.cause());
+    return discoveryManager.restartModules().compose(res -> {
+      if (!enableProxy) {
+        return Future.succeededFuture();
       }
-      if (enableProxy) {
-        tenantManager.startTimers(promise, discoveryManager);
-      } else {
-        promise.complete();
-      }
+      Promise<Void> promise = Promise.promise();
+      tenantManager.startTimers(promise, discoveryManager);
+      return promise.future();
     });
-    return promise.future();
   }
 }

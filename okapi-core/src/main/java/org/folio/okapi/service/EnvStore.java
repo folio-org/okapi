@@ -1,5 +1,6 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
@@ -13,5 +14,5 @@ public interface EnvStore {
 
   void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void getAll(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut);
+  Future<List<EnvEntry>> getAll();
 }

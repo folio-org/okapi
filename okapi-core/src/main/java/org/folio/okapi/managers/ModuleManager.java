@@ -106,21 +106,13 @@ public class ModuleManager {
         logger.debug("Not loading modules, looks like someone already did");
         return Future.succeededFuture();
       }
-      Promise<Void> promise = Promise.promise();
-      moduleStore.getAll(mres -> {
-        if (mres.failed()) {
-          promise.fail(mres.cause());
-          return;
-        }
+      return moduleStore.getAll().compose(res -> {
         List<Future> futures = new LinkedList<>();
-        for (ModuleDescriptor md : mres.result()) {
-          Promise<Void> promise1 = Promise.promise();
-          modules.add(md.getId(), md, promise1::handle);
-          futures.add(promise1.future());
+        for (ModuleDescriptor md : res) {
+          futures.add(modules.add(md.getId(), md));
         }
-        CompositeFuture.all(futures).onComplete(x -> promise.handle(x.mapEmpty()));
+        return CompositeFuture.all(futures).mapEmpty();
       });
-      return promise.future();
     });
   }
 
@@ -226,45 +218,38 @@ public class ModuleManager {
           return;
         }
       }
-      createList2(newList, fut);
+      createList2(newList).onComplete(res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
+        } else {
+          fut.handle(new Success<>());
+        }
+      });
     });
   }
 
-  private void createList2(List<ModuleDescriptor> list, Handler<ExtendedAsyncResult<Void>> fut) {
-    CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
+  private Future<Void> createList2(List<ModuleDescriptor> list) {
+    List<Future> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
-      Promise<Void> promise = Promise.promise();
-      createList3(md, promise::handle);
-      futures.add(promise);
+      futures.add(createList3(md));
     }
-    futures.all(fut);
+    return CompositeFuture.all(futures).mapEmpty();
   }
 
-  private void createList3(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> createList3(ModuleDescriptor md) {
     String id = md.getId();
     if (moduleStore == null) {
-      modules.add(id, md, ares -> {
-        if (ares.failed()) {
-          fut.handle(new Failure<>(ares.getType(), ares.cause()));
-          return;
-        }
-        fut.handle(new Success<>());
-      });
-    } else {
-      moduleStore.insert(md, ires -> {
-        if (ires.failed()) {
-          fut.handle(new Failure<>(ires.getType(), ires.cause()));
-          return;
-        }
-        modules.add(id, md, ares -> {
-          if (ares.failed()) {
-            fut.handle(new Failure<>(ares.getType(), ares.cause()));
-            return;
-          }
-          fut.handle(new Success<>());
-        });
-      });
+      return modules.add(id, md);
     }
+    Promise<Void> promise = Promise.promise();
+    moduleStore.insert(md, ires -> {
+      if (ires.failed()) {
+        promise.fail(ires.cause());
+        return;
+      }
+      modules.add(id, md).onComplete(promise::handle);
+    });
+    return promise.future();
   }
 
   /**

@@ -26,6 +26,11 @@ public class LockedTypedMap1<T> extends LockedStringMap {
     addOrReplace(false, k, null, json, fut);
   }
 
+  public Future<Void> add(String k, T value) {
+    String json = Json.encode(value);
+    return addOrReplace(false, k, null, json);
+  }
+
   public void put(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
     String json = Json.encode(value);
     addOrReplace(true, k, null, json, fut);

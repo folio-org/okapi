@@ -44,42 +44,34 @@ public class EnvManager {
    */
   public Future<Void> init(Vertx vertx) {
     logger.debug("starting EnvManager");
-    return envMap.init(vertx, "env").compose(res -> {
-      Promise<Void> promise = Promise.promise();
-      envStore.getAll(res2 -> {
-        if (res2.failed()) {
-          promise.fail(res2.cause());
-          return;
-        }
-        List<Future> futures = new LinkedList<>();
-        for (EnvEntry e : res2.result()) {
-          Promise<Void> promise1 = Promise.promise();
-          add1(e, promise1::handle);
-          futures.add(promise1.future());
-        }
-        CompositeFuture.all(futures).onComplete(x -> promise.handle(x.mapEmpty()));
-      });
-      return promise.future();
-    });
+    return envMap.init(vertx, "env")
+        .compose(x -> envStore.getAll())
+        .compose(x -> {
+          List<Future> futures = new LinkedList<>();
+          for (EnvEntry e : x) {
+            futures.add(add1(e));
+          }
+          return CompositeFuture.all(futures).mapEmpty();
+        });
   }
 
-  private void add1(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> add1(EnvEntry env) {
     if (env.getName() == null) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10900")));
+      return Future.failedFuture(messages.getMessage("10900"));
     } else if (env.getValue() == null) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10901")));
+      return Future.failedFuture(messages.getMessage("10901"));
     } else {
-      envMap.add(env.getName(), env, fut);
+      return envMap.add(env.getName(), env);
     }
   }
 
   void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
-    add1(env, res -> {
+    add1(env).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        envStore.add(env, fut);
+        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
+        return;
       }
+      envStore.add(env, fut);
     });
   }
 

@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
@@ -87,22 +88,17 @@ class MongoUtil<T> {
     });
   }
 
-  public void getAll(Class<T> clazz, Handler<ExtendedAsyncResult<List<T>>> fut) {
+  public Future<List<T>> getAll(Class<T> clazz) {
     final String q = "{}";
     JsonObject jq = new JsonObject(q);
-    cli.find(collection, jq, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        List<JsonObject> resl = res.result();
-        List<T> ml = new LinkedList<>();
-        for (JsonObject jo : resl) {
-          decode(jo);
-          T env = Json.decodeValue(jo.encode(), clazz);
-          ml.add(env);
-        }
-        fut.handle(new Success<>(ml));
+    return cli.find(collection, jq).compose(resl -> {
+      List<T> ml = new LinkedList<>();
+      for (JsonObject jo : resl) {
+        decode(jo);
+        T env = Json.decodeValue(jo.encode(), clazz);
+        ml.add(env);
       }
+      return Future.succeededFuture(ml);
     });
   }
 

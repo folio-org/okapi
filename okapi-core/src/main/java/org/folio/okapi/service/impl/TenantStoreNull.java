@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.LinkedList;
 import java.util.List;
@@ -34,8 +35,8 @@ public class TenantStoreNull implements TenantStore {
   }
 
   @Override
-  public void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut) {
-    fut.handle(new Success<>(new LinkedList<>()));
+  public Future<List<Tenant>> listTenants() {
+    return Future.succeededFuture(new LinkedList<>());
   }
 
   @Override

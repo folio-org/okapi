@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.ArrayList;
 import java.util.List;
@@ -26,8 +27,8 @@ public class DeploymentStoreNull implements DeploymentStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    fut.handle(new Success<>(new ArrayList<>()));
+  public Future<List<DeploymentDescriptor>> getAll() {
+    return Future.succeededFuture(new ArrayList<>());
   }
 
 }

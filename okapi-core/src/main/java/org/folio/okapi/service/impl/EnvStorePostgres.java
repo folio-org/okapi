@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
@@ -33,8 +34,8 @@ public class EnvStorePostgres implements EnvStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    table.getAll(EnvEntry.class, fut);
+  public Future<List<EnvEntry>> getAll() {
+    return table.getAll(EnvEntry.class);
   }
 
 }

@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -34,8 +35,8 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    pgTable.getAll(ModuleDescriptor.class, fut);
+  public Future<List<ModuleDescriptor>> getAll() {
+    return pgTable.getAll(ModuleDescriptor.class);
   }
 
   @Override

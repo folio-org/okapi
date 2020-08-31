@@ -72,21 +72,17 @@ public class DiscoveryManager implements NodeListener {
 
   /**
    * Restart modules that were persisted in storage.
-   * @param fut async result
+   * @return async result
    */
-  public void restartModules(Handler<ExtendedAsyncResult<Void>> fut) {
-    deploymentStore.getAll(res1 -> {
-      if (res1.failed()) {
-        fut.handle(new Failure<>(res1.getType(), res1.cause()));
-      } else {
-        CompList<List<Void>> futures = new CompList<>(ErrorType.INTERNAL);
-        for (DeploymentDescriptor dd : res1.result()) {
-          Promise<DeploymentDescriptor> promise = Promise.promise();
-          addAndDeploy0(dd, promise::handle);
-          futures.add(promise);
-        }
-        futures.all(fut);
+  public Future<Void> restartModules() {
+    return deploymentStore.getAll().compose(result -> {
+      List<Future> futures = new LinkedList<>();
+      for (DeploymentDescriptor dd : result) {
+        Promise<DeploymentDescriptor> promise = Promise.promise();
+        addAndDeploy0(dd, promise::handle);
+        futures.add(promise.future());
       }
+      return CompositeFuture.all(futures).mapEmpty();
     });
   }
 

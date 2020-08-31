@@ -1,5 +1,6 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import java.util.SortedMap;
@@ -19,7 +20,7 @@ public interface TenantStore {
 
   void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void listTenants(Handler<ExtendedAsyncResult<List<Tenant>>> fut);
+  Future<List<Tenant>> listTenants();
 
   void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
 }

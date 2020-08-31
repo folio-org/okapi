@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -35,7 +36,7 @@ public class DeploymentStorePostgres implements DeploymentStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    table.getAll(DeploymentDescriptor.class, fut);
+  public Future<List<DeploymentDescriptor>> getAll() {
+    return table.getAll(DeploymentDescriptor.class);
   }
 }

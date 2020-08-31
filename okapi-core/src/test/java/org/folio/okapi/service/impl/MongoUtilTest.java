@@ -306,7 +306,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<List<JsonObject>> find(String string, JsonObject jo) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("find failed");
     }
 
     @Override
@@ -523,7 +523,7 @@ public class MongoUtilTest {
   public void testGetAll(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<DeploymentDescriptor> util = new MongoUtil<>("collection", cli);
-    util.getAll(DeploymentDescriptor.class, res -> {
+    util.getAll(DeploymentDescriptor.class).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("find failed", res.cause().getMessage());
     });

@@ -1,6 +1,8 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
@@ -33,7 +35,7 @@ public class DeploymentStoreMongo implements DeploymentStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    util.getAll(DeploymentDescriptor.class, fut);
+  public Future<List<DeploymentDescriptor>> getAll() {
+    return util.getAll(DeploymentDescriptor.class);
   }
 }

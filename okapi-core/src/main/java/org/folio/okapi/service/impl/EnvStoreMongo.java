@@ -1,5 +1,6 @@
 package org.folio.okapi.service.impl;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
@@ -33,7 +34,7 @@ public class EnvStoreMongo implements EnvStore {
   }
 
   @Override
-  public void getAll(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    util.getAll(EnvEntry.class, fut);
+  public Future<List<EnvEntry>> getAll() {
+    return util.getAll(EnvEntry.class);
   }
 }

@@ -1,5 +1,6 @@
 package org.folio.okapi.service;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
@@ -9,7 +10,7 @@ public interface ModuleStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void getAll(Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut);
+  Future<List<ModuleDescriptor>> getAll();
 
   void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
 
