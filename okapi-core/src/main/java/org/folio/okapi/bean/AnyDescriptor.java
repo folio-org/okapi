@@ -18,7 +18,8 @@ public class AnyDescriptor {
   }
 
   @JsonAnySetter
-  public void set(String fieldName, Object value) {
+  public AnyDescriptor set(String fieldName, Object value) {
     this.properties.put(fieldName, value);
+    return this;
   }
 }

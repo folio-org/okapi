@@ -1,12 +1,15 @@
 ###
 # vert.x docker example using a Java verticle packaged as a fatjar
 # To build:
-#  docker build -t okapi-test-module .
-# To run:
+#   docker build -t okapi-test-module .
+# To run directly:
 #   docker run -t -i -p 8080:8080 okapi-test-module
+# To let okapi run it:
+#   curl -w '\n' -D - -d @ModuleDescriptor.json http://localhost:9130/_/proxy/modules
+#   curl -w '\n' -D - -d '{"srvcId":"test-basic-1.0.0", "nodeId":"localhost"}' http://localhost:9130/_/discovery/modules
 ###
 
-FROM java:8
+FROM folioci/alpine-jre-openjdk11:latest
 
 # Set the location of the verticles
 ENV VERTICLE_HOME /usr/verticles

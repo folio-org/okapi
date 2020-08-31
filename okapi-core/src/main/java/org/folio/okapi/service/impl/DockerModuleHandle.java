@@ -16,6 +16,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.AnyDescriptor;
 import org.folio.okapi.bean.EnvEntry;
@@ -26,6 +27,7 @@ import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.util.TcpPortWaiting;
+import org.folio.okapi.util.VariableSubstitutor;
 
 
 // Docker Module. Using the Docker HTTP API.
@@ -35,7 +37,7 @@ import org.folio.okapi.util.TcpPortWaiting;
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class DockerModuleHandle implements ModuleHandle {
 
-  private final Logger logger = OkapiLogger.get();
+  private final Logger logger;
 
   private final int hostPort;
   private final Ports ports;
@@ -58,7 +60,9 @@ public class DockerModuleHandle implements ModuleHandle {
   static final String DEFAULT_DOCKER_VERSION = "v1.25";
 
   DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
-                     String id, Ports ports, String containerHost, int port, JsonObject config) {
+                     String id, Ports ports, String containerHost, int port, JsonObject config,
+                     Logger logger) {
+    this.logger = logger;
     this.hostPort = port;
     this.ports = ports;
     this.id = id;
@@ -85,6 +89,11 @@ public class DockerModuleHandle implements ModuleHandle {
     if (desc.getWaitIterations() != null) {
       tcpPortWaiting.setMaxIterations(desc.getWaitIterations());
     }
+  }
+
+  DockerModuleHandle(Vertx vertx, LaunchDescriptor desc,
+      String id, Ports ports, String containerHost, int port, JsonObject config) {
+    this(vertx, desc, id, ports, containerHost, port, config, OkapiLogger.get());
   }
 
   static String setupDockerAddress(StringBuilder socketAddress, String u) {
@@ -280,8 +289,7 @@ public class DockerModuleHandle implements ModuleHandle {
     });
   }
 
-  private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
-    logger.info("create container from image {}", image);
+  String getCreateContainerDoc(int exposedPort) {
     JsonObject j = new JsonObject();
     j.put("AttachStdin", Boolean.FALSE);
     j.put("AttachStdout", Boolean.TRUE);
@@ -312,13 +320,29 @@ public class DockerModuleHandle implements ModuleHandle {
       j.put("Cmd", a);
     }
     if (dockerArgs != null) {
-      for (Map.Entry<String, Object> entry : dockerArgs.properties().entrySet()) {
-        j.put(entry.getKey(), entry.getValue());
-      }
+      JsonObject dockerArgsJson = new JsonObject(dockerArgs.properties());
+      VariableSubstitutor.replace(dockerArgsJson, Integer.toString(hostPort), containerHost);
+      j.mergeIn(dockerArgsJson);
     }
+
     String doc = j.encodePrettily();
-    doc = doc.replace("%p", Integer.toString(hostPort)).replace("%c", containerHost);
-    logger.info("createContainer {}", doc);
+
+    logger.info("createContainer {}", (Supplier<String>) () -> {
+      if (! j.containsKey("env")) {
+        return doc;
+      }
+      // don't show env variables that may contain sensitive credentials in the log
+      j.put("env", new JsonArray().add("..."));
+      return j.encodePrettily();
+    });
+
+    return doc;
+  }
+
+  private void createContainer(int exposedPort, Handler<AsyncResult<Void>> future) {
+    logger.info("create container from image {}", image);
+
+    String doc = getCreateContainerDoc(exposedPort);
     postUrlJson("/containers/create", "createContainer", doc, res -> {
       if (res.succeeded()) {
         containerId = res.result().toJsonObject().getString("Id");
