@@ -27,7 +27,6 @@ import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
-import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
 
