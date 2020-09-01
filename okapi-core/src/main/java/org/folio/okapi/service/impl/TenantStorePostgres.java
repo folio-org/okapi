@@ -36,8 +36,8 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return pgTable.init(reset);
   }
 
   @Override

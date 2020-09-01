@@ -21,8 +21,8 @@ public class DeploymentStorePostgres implements DeploymentStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    table.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return table.init(reset);
   }
 
   @Override

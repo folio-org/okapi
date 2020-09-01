@@ -386,7 +386,7 @@ public class MongoUtilTest {
 
     @Override
     public Future<Void> dropCollection(String string) {
-      throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+      return Future.failedFuture("dropCollection failed");
     }
 
     @Override
@@ -493,7 +493,7 @@ public class MongoUtilTest {
   public void testInit(TestContext context) {
     MongoClient cli = new FakeMongoClient();
     MongoUtil<String> util = new MongoUtil<>("collection", cli);
-    util.init(true, res -> {
+    util.init(true).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("dropCollection failed", res.cause().getMessage());
     });

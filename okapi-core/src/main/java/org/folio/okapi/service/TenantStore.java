@@ -22,5 +22,5 @@ public interface TenantStore {
 
   Future<List<Tenant>> listTenants();
 
-  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> init(boolean reset);
 }

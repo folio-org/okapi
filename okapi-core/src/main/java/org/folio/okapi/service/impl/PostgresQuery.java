@@ -62,8 +62,7 @@ public class PostgresQuery {
     });
   }
 
-  void query(String sql,
-             Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
+  void query(String sql, Handler<ExtendedAsyncResult<RowSet<Row>>> fut) {
 
     getCon(gres -> {
       if (gres.failed()) {

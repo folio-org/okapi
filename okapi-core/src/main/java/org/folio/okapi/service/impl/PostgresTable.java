@@ -36,42 +36,45 @@ class PostgresTable<T> {
     this.indexName = indexName;
   }
 
-  private void create(boolean reset, PostgresQuery q, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> create(boolean reset, PostgresQuery q) {
     String notExists = reset ? "" : "IF NOT EXISTS ";
     String createSql = "CREATE TABLE " + notExists + table
         + " ( " + jsonColumn + " JSONB NOT NULL )";
+    Promise<Void> promise = Promise.promise();
     q.query(createSql, res1 -> {
       if (res1.failed()) {
-        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+        promise.fail(res1.cause());
         return;
       }
       String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
           + table + " USING btree((" + idIndex + "))";
       q.query(createSql1, res2 -> {
         if (res1.failed()) {
-          fut.handle(new Failure<>(res2.getType(), res2.cause()));
-        } else {
-          fut.handle(new Success<>());
-          q.close();
+          promise.fail(res2.cause());
+          return;
         }
+        promise.complete();
+        q.close();
       });
     });
+    return promise.future();
   }
 
-  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> init(boolean reset) {
     PostgresQuery q = pg.getQuery();
     if (!reset) {
-      create(false, q, fut);
-      return;
+      return create(false, q);
     }
     String dropSql = "DROP TABLE IF EXISTS " + table;
+    Promise<Void> promise = Promise.promise();
     q.query(dropSql, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        promise.fail(res.cause());
         return;
       }
-      create(true, q, fut);
+      create(true, q).onComplete(promise::handle);
     });
+    return promise.future();
   }
 
   void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {

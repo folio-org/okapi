@@ -41,18 +41,11 @@ class MongoUtil<T> {
     });
   }
 
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> init(boolean reset) {
     if (!reset) {
-      fut.handle(new Success<>());
-    } else {
-      cli.dropCollection(collection, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
+      return Future.succeededFuture();
     }
+    return cli.dropCollection(collection);
   }
 
   public void add(T env, String id, Handler<ExtendedAsyncResult<Void>> fut) {

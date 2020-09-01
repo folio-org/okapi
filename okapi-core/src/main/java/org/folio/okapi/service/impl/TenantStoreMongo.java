@@ -47,8 +47,8 @@ public class TenantStoreMongo implements TenantStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.init(reset, fut);
+  public Future<Void> init(boolean reset) {
+    return util.init(reset);
   }
 
   @Override

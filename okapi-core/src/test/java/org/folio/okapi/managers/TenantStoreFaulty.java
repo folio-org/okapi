@@ -46,8 +46,8 @@ public class TenantStoreFaulty implements TenantStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<Void> init(boolean reset) {
+    return Future.failedFuture(msg);
   }
   
 }

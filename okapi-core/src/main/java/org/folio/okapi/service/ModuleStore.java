@@ -16,5 +16,5 @@ public interface ModuleStore {
 
   void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> init(boolean reset);
 }

@@ -23,8 +23,8 @@ public class EnvStoreNull implements EnvStore {
   }
 
   @Override
-  public void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Success<>());
+  public Future<Void> init(boolean reset) {
+    return Future.succeededFuture();
   }
 
   @Override

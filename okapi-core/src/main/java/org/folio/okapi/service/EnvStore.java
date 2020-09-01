@@ -12,7 +12,7 @@ public interface EnvStore {
 
   void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
 
-  void init(boolean reset, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> init(boolean reset);
 
   Future<List<EnvEntry>> getAll();
 }
