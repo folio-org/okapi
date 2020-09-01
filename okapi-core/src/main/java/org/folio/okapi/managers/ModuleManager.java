@@ -230,25 +230,12 @@ public class ModuleManager {
   private Future<Void> createList2(List<ModuleDescriptor> list) {
     List<Future> futures = new LinkedList<>();
     for (ModuleDescriptor md : list) {
-      futures.add(createList3(md));
+      if (moduleStore != null) {
+        futures.add(moduleStore.insert(md));
+      }
+      futures.add(modules.add(md.getId(), md));
     }
     return CompositeFuture.all(futures).mapEmpty();
-  }
-
-  private Future<Void> createList3(ModuleDescriptor md) {
-    String id = md.getId();
-    if (moduleStore == null) {
-      return modules.add(id, md);
-    }
-    Promise<Void> promise = Promise.promise();
-    moduleStore.insert(md, ires -> {
-      if (ires.failed()) {
-        promise.fail(ires.cause());
-        return;
-      }
-      modules.add(id, md).onComplete(promise::handle);
-    });
-    return promise.future();
   }
 
   /**
@@ -275,17 +262,24 @@ public class ModuleManager {
         if (!tenants.isEmpty()) {
           fut.handle(new Failure<>(ErrorType.USER,
               messages.getMessage("10206", id, tenants.get(0))));
-        } else if (moduleStore == null) {
-          deleteInternal(id, fut);
-        } else {
-          moduleStore.delete(id, dres -> {
-            if (dres.failed()) {
-              fut.handle(new Failure<>(dres.getType(), dres.cause()));
-            } else {
-              deleteInternal(id, fut);
-            }
-          });
+          return;
         }
+        if (moduleStore == null) {
+          deleteInternal(id, fut);
+          return;
+        }
+        moduleStore.delete(id).onComplete(dres -> {
+          if (dres.failed()) {
+            fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
+            return;
+          }
+          if (Boolean.FALSE.equals(dres.result())) {
+            fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
+            return;
+          }
+          deleteInternal(id, fut);
+        });
+
       });
     });
   }

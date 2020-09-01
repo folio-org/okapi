@@ -1,13 +1,10 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.ext.mongo.MongoClient;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.DeploymentStore;
-
 
 public class DeploymentStoreMongo implements DeploymentStore {
 
@@ -19,13 +16,13 @@ public class DeploymentStoreMongo implements DeploymentStore {
   }
 
   @Override
-  public void insert(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.add(dd, dd.getInstId(), fut);
+  public Future<Void> insert(DeploymentDescriptor dd) {
+    return util.add(dd, dd.getInstId());
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    util.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return util.delete(id);
   }
 
   @Override

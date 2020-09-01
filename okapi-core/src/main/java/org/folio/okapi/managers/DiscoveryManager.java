@@ -132,15 +132,15 @@ public class DiscoveryManager implements NodeListener {
     addAndDeploy0(dd, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        deploymentStore.insert(res.result(), res1 -> {
-          if (res1.failed()) {
-            fut.handle(new Failure<>(res1.getType(), res1.cause()));
-          } else {
-            fut.handle(new Success<>(res.result()));
-          }
-        });
+        return;
       }
+      deploymentStore.insert(res.result()).onComplete(res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause()));
+          return;
+        }
+        fut.handle(new Success<>(res.result()));
+      });
     });
   }
 
@@ -297,11 +297,11 @@ public class DiscoveryManager implements NodeListener {
       Promise<Void> promise = Promise.promise();
       logger.info("removeAndUndeploy {} {}", dd.getSrvcId(), dd.getInstId());
       callUndeploy(dd, res -> {
-        if (res.succeeded()) {
-          deploymentStore.delete(dd.getInstId(), promise::handle);
-        } else {
+        if (res.failed()) {
           promise.handle(res);
+          return;
         }
+        deploymentStore.delete(dd.getInstId()).onComplete(x -> promise.handle(x.mapEmpty()));
       });
       futures.add(promise);
     }

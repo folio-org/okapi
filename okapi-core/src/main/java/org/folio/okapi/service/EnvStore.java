@@ -8,9 +8,9 @@ import org.folio.okapi.common.ExtendedAsyncResult;
 
 public interface EnvStore {
 
-  void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> add(EnvEntry env);
 
-  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Boolean> delete(String id);
 
   Future<Void> init(boolean reset);
 

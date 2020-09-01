@@ -17,13 +17,10 @@ import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.SqlResult;
 import io.vertx.sqlclient.Transaction;
 import io.vertx.sqlclient.Tuple;
+import io.vertx.sqlclient.spi.DatabaseMetadata;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collector;
-
-import io.vertx.sqlclient.spi.DatabaseMetadata;
-import org.folio.okapi.common.ErrorType;
-
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -150,12 +147,11 @@ public class PostgresQueryTest {
     }
 
     @Override
-    public void getConnection(Handler<AsyncResult<SqlConnection>> con) {
+    public Future<SqlConnection> getConnection() {
       if ("0".equals(conf.getString("postgres_port"))) {
-        con.handle(Future.failedFuture("getConnection failed"));
-        return;
+        return Future.failedFuture("getConnection failed");
       }
-      con.handle(Future.succeededFuture(new FakeSqlConnection()));
+      return Future.succeededFuture(new FakeSqlConnection());
     }
   }
 
@@ -166,8 +162,8 @@ public class PostgresQueryTest {
     }
 
     @Override
-    public void getConnection(Handler<AsyncResult<SqlConnection>> con) {
-      con.handle(Future.succeededFuture(new FakeSqlConnection()));
+    public Future<SqlConnection> getConnection() {
+      return Future.succeededFuture(new FakeSqlConnection());
     }
 
   }
@@ -208,9 +204,8 @@ public class PostgresQueryTest {
     FakeHandle h = new FakeHandle(vertx, obj);
 
     PostgresQuery q = new PostgresQuery(h);
-    q.query("select", Tuple.of("id"), res -> {
+    q.query("select", Tuple.of("id")).onComplete(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("fake query failed", res.cause().getMessage());
       async.complete();
     });
@@ -224,9 +219,8 @@ public class PostgresQueryTest {
 
     PostgresQuery q = new PostgresQuery(h);
     q.close(); // try without an existing connection
-    q.query("select", res -> {
+    q.query("select").onComplete(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("fake query failed", res.cause().getMessage());
       async.complete();
     });
@@ -240,9 +234,8 @@ public class PostgresQueryTest {
     FakeHandle h = new FakeHandle(vertx, obj);
 
     PostgresQuery q = new PostgresQuery(h);
-    q.query("select", res -> {
+    q.query("select").onComplete(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("getConnection failed", res.cause().getMessage());
       async.complete();
     });
@@ -256,9 +249,8 @@ public class PostgresQueryTest {
     FakeHandle h = new FakeHandle(vertx, obj);
 
     PostgresQuery q = new PostgresQuery(h);
-    q.query("select", Tuple.of("id"), res -> {
+    q.query("select", Tuple.of("id")).onComplete(res -> {
       context.assertTrue(res.failed());
-      context.assertEquals(ErrorType.INTERNAL, res.getType());
       context.assertEquals("getConnection failed", res.cause().getMessage());
       async.complete();
     });

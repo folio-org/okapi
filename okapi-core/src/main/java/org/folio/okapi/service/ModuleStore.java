@@ -1,20 +1,18 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
 
 public interface ModuleStore {
 
-  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Boolean> delete(String id);
 
   Future<List<ModuleDescriptor>> getAll();
 
-  void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> insert(ModuleDescriptor md);
 
-  void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> update(ModuleDescriptor md);
 
   Future<Void> init(boolean reset);
 }

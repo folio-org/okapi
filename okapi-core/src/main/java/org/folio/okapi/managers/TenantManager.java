@@ -137,10 +137,10 @@ public class TenantManager {
         fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10400", id)));
         return;
       }
-      tenantStore.insert(t, res -> {
+      tenantStore.insert(t).onComplete(res -> {
         if (res.failed()) {
           logger.warn("TenantManager: Adding {} failed: {}", id, res);
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
           return;
         }
         insert2(t, id, fut);
@@ -163,7 +163,7 @@ public class TenantManager {
       } else {
         t = new Tenant(td);
       }
-      tenantStore.updateDescriptor(td, upres -> {
+      tenantStore.updateDescriptor(td).onComplete(upres -> {
         if (upres.failed()) {
           logger.warn("TenantManager: Updating database for {} failed: {}", id, upres);
           fut.handle(new Failure<>(ErrorType.INTERNAL, upres.cause()));
@@ -213,13 +213,17 @@ public class TenantManager {
    * @param fut future with a boolean, true if actually deleted, false if not there.
    */
   public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    tenantStore.delete(id, dres -> {
-      if (dres.failed() && dres.getType() != ErrorType.NOT_FOUND) {
+    tenantStore.delete(id).onComplete(dres -> {
+      if (dres.failed()) {
         logger.warn("TenantManager: Deleting {} failed: {}", id, dres);
         fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
-      } else {
-        tenants.remove(id, fut);
+        return;
       }
+      if (Boolean.FALSE.equals(dres.result())) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
+        return;
+      }
+      tenants.remove(id, fut);
     });
   }
 
@@ -261,12 +265,16 @@ public class TenantManager {
     if (moduleTo != null) {
       t.enableModule(moduleTo);
     }
-    tenantStore.updateModules(id, t.getEnabled(), ures -> {
+    tenantStore.updateModules(id, t.getEnabled()).onComplete(ures -> {
       if (ures.failed()) {
-        fut.handle(new Failure<>(ures.getType(), ures.cause()));
-      } else {
-        tenants.put(id, t, fut);
+        fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
+        return;
       }
+      if (Boolean.FALSE.equals(ures.result())) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
+        return;
+      }
+      tenants.put(id, t, fut);
     });
   }
 

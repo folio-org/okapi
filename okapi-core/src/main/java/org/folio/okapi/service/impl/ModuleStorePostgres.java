@@ -1,10 +1,8 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.ModuleDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.service.ModuleStore;
 
 public class ModuleStorePostgres implements ModuleStore {
@@ -25,13 +23,13 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void insert(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.insert(md, fut);
+  public Future<Void> insert(ModuleDescriptor md) {
+    return pgTable.insert(md);
   }
 
   @Override
-  public void update(ModuleDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.update(md, fut);
+  public Future<Void> update(ModuleDescriptor md) {
+    return pgTable.update(md);
   }
 
   @Override
@@ -40,7 +38,7 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return pgTable.delete(id);
   }
 }

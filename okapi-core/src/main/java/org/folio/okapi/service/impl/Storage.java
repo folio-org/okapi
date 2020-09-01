@@ -1,7 +1,6 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.apache.logging.log4j.Logger;

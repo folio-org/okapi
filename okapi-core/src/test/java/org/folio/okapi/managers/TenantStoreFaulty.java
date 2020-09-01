@@ -21,23 +21,23 @@ public class TenantStoreFaulty implements TenantStore {
   }
   
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<Boolean> delete(String id) {
+    return Future.failedFuture(msg);
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<Boolean> updateModules(String id, SortedMap<String, Boolean> enabled) {
+    return Future.failedFuture(msg);
   }
 
   @Override
-  public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<Void> insert(Tenant t) {
+    return Future.failedFuture(msg);
   }
 
   @Override
-  public void updateDescriptor(TenantDescriptor td, Handler<ExtendedAsyncResult<Void>> fut) {
-    fut.handle(new Failure<>(code, msg));
+  public Future<Void> updateDescriptor(TenantDescriptor td) {
+    return Future.failedFuture(msg);
   }
 
   @Override

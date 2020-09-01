@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -71,7 +72,7 @@ public class EnvManager {
         fut.handle(new Failure<>(ErrorType.USER, res.cause()));
         return;
       }
-      envStore.add(env, fut);
+      envStore.add(env).onComplete(res1 -> toExtendedAsyncResult(res1, fut));
     });
   }
 
@@ -113,13 +114,22 @@ public class EnvManager {
     });
   }
 
+  private static <T> void toExtendedAsyncResult(AsyncResult<T> res,
+                                                Handler<ExtendedAsyncResult<Void>> fut) {
+    if (res.failed()) {
+      fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+      return;
+    }
+    fut.handle(new Success<>());
+  }
+
   void remove(String name, Handler<ExtendedAsyncResult<Void>> fut) {
     envMap.remove(name, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        envStore.delete(name, fut);
+        return;
       }
+      envStore.delete(name).onComplete(res1 -> toExtendedAsyncResult(res1, fut));
     });
   }
 }

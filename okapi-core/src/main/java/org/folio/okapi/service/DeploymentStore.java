@@ -1,16 +1,13 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.DeploymentDescriptor;
-import org.folio.okapi.common.ExtendedAsyncResult;
-
 
 public interface DeploymentStore {
-  void insert(DeploymentDescriptor dd, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Void> insert(DeploymentDescriptor dd);
 
-  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut);
+  Future<Boolean> delete(String id);
 
   Future<Void> init(boolean reset);
 

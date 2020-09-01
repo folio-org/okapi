@@ -1,7 +1,6 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -11,10 +10,6 @@ import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
 
 /**
@@ -41,16 +36,15 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void insert(Tenant t, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.insert(t, fut);
+  public Future<Void> insert(Tenant t) {
+    return pgTable.insert(t);
   }
 
   @Override
-  public void updateDescriptor(TenantDescriptor td,
-                               Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> updateDescriptor(TenantDescriptor td) {
 
     Tenant t = new Tenant(td);
-    pgTable.update(t, fut);
+    return pgTable.update(t);
   }
 
   @Override
@@ -59,18 +53,17 @@ public class TenantStorePostgres implements TenantStore {
   }
 
   @Override
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    pgTable.delete(id, fut);
+  public Future<Boolean> delete(String id) {
+    return pgTable.delete(id);
   }
 
-  private void updateModuleR(PostgresQuery q, String id,
+  private Future<Boolean> updateModuleR(PostgresQuery q, String id,
                              SortedMap<String, Boolean> enabled,
-                             Iterator<Row> it, Handler<ExtendedAsyncResult<Void>> fut) {
+                             Iterator<Row> it) {
 
     if (!it.hasNext()) {
-      fut.handle(new Success<>());
       q.close();
-      return;
+      return Future.succeededFuture(Boolean.TRUE);
     }
     Row r = it.next();
     String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
@@ -78,28 +71,20 @@ public class TenantStorePostgres implements TenantStore {
     Tenant t = o.mapTo(Tenant.class);
     t.setEnabled(enabled);
     JsonObject doc = JsonObject.mapFrom(t);
-    q.query(sql, Tuple.of(id, doc), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        updateModuleR(q, id, enabled, it, fut);
-      }
-    });
+    return q.query(sql, Tuple.of(id, doc)).compose(res -> updateModuleR(q, id, enabled, it));
   }
 
   @Override
-  public void updateModules(String id, SortedMap<String, Boolean> enabled,
-                            Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Boolean> updateModules(String id, SortedMap<String, Boolean> enabled) {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    q.query(sql, Tuple.of(id), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
+    return q.query(sql, Tuple.of(id)).compose(res -> {
+      RowSet<Row> rs = res;
+      if (res.rowCount() == 0) {
+        return Future.succeededFuture(Boolean.FALSE);
       }
-      RowSet<Row> rs = res.result();
-      updateModuleR(q, id, enabled, rs.iterator(), fut);
+      return updateModuleR(q, id, enabled, rs.iterator());
     });
   }
 }

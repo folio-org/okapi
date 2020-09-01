@@ -1,20 +1,12 @@
 package org.folio.okapi.service.impl;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.sqlclient.Row;
-import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 import java.util.ArrayList;
 import java.util.List;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
-import org.folio.okapi.common.Success;
-
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 class PostgresTable<T> {
@@ -28,6 +20,8 @@ class PostgresTable<T> {
 
   PostgresTable(PostgresHandle pg, String table, String jsonColumn,
                 String idIndex, String idSelect, String indexName) {
+
+
     this.pg = pg;
     this.table = table;
     this.jsonColumn = jsonColumn;
@@ -40,24 +34,11 @@ class PostgresTable<T> {
     String notExists = reset ? "" : "IF NOT EXISTS ";
     String createSql = "CREATE TABLE " + notExists + table
         + " ( " + jsonColumn + " JSONB NOT NULL )";
-    Promise<Void> promise = Promise.promise();
-    q.query(createSql, res1 -> {
-      if (res1.failed()) {
-        promise.fail(res1.cause());
-        return;
-      }
+    return q.query(createSql).compose(x -> {
       String createSql1 = "CREATE UNIQUE INDEX " + notExists + indexName + " ON "
           + table + " USING btree((" + idIndex + "))";
-      q.query(createSql1, res2 -> {
-        if (res1.failed()) {
-          promise.fail(res2.cause());
-          return;
-        }
-        promise.complete();
-        q.close();
-      });
+      return q.query(createSql1).onSuccess(y -> q.close()).mapEmpty();
     });
-    return promise.future();
   }
 
   Future<Void> init(boolean reset) {
@@ -66,86 +47,57 @@ class PostgresTable<T> {
       return create(false, q);
     }
     String dropSql = "DROP TABLE IF EXISTS " + table;
-    Promise<Void> promise = Promise.promise();
-    q.query(dropSql, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-        return;
-      }
-      create(true, q).onComplete(promise::handle);
-    });
-    return promise.future();
+    return q.query(dropSql).compose(x -> create(true, q));
   }
 
-  void insert(T dd, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> insert(T dd) {
     PostgresQuery q = pg.getQuery();
     final String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)";
     String s = Json.encode(dd);
     JsonObject doc = new JsonObject(s);
-    q.query(sql, Tuple.of(doc), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
+    return q.query(sql, Tuple.of(doc)).compose(res -> {
       q.close();
-      fut.handle(new Success<>());
+      return Future.succeededFuture();
     });
   }
 
-  void update(T md, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> update(T md) {
     PostgresQuery q = pg.getQuery();
     String sql = "INSERT INTO " + table + "(" + jsonColumn + ") VALUES ($1::JSONB)"
         + " ON CONFLICT ((" + idIndex + ")) DO UPDATE SET " + jsonColumn + "= $1::JSONB";
     String s = Json.encode(md);
     JsonObject doc = new JsonObject(s);
-    q.query(sql, Tuple.of(doc), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
+    return q.query(sql, Tuple.of(doc)).compose(res -> {
       q.close();
-      fut.handle(new Success<>());
+      return Future.succeededFuture();
     });
   }
 
-  void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Boolean> delete(String id) {
     PostgresQuery q = pg.getQuery();
     String sql = "DELETE FROM " + table + " WHERE " + idSelect;
-    q.query(sql, Tuple.of(id), res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
+    return q.query(sql, Tuple.of(id)).compose(res -> {
       q.close();
-      RowSet<Row> result = res.result();
-      if (result.rowCount() == 0) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
-        return;
+      if (res.rowCount() == 0) {
+        return Future.succeededFuture(Boolean.FALSE);
       }
-      fut.handle(new Success<>());
+      return Future.succeededFuture(Boolean.TRUE);
     });
   }
 
-  // TODO
   Future<List<T>> getAll(Class<T> clazz) {
-    Promise<List<T>> promise = Promise.promise();
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + jsonColumn + " FROM " + table;
-    q.query(sql, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-        return;
-      }
+    return q.query(sql).compose(res -> {
       List<T> ml = new ArrayList<>();
-      for (Row r : res.result()) {
+      for (Row r : res) {
         JsonObject o = (JsonObject) r.getValue(0);
         T md = o.mapTo(clazz);
         ml.add(md);
       }
       q.close();
-      promise.complete(ml);
+      return Future.succeededFuture(ml);
     });
-    return promise.future();
   }
 
 }
