@@ -9,7 +9,18 @@
         {
           "methods": [ "GET", "POST" ],
           "pathPattern": "/testb",
-          "permissionsRequired": [ "test-basic.get.list" ]
+          "permissionsRequired": []
+        }
+      ]
+    },
+    {
+      "id": "recurse",
+      "version": "1.0",
+      "handlers": [
+        {
+          "methods": [ "GET" ],
+          "pathPattern": "/recurse",
+          "permissionsRequired": []
         }
       ]
     }
@@ -19,3 +30,4 @@
     "dockerImage": "okapi-test-module"
   }
 }
+
