@@ -5,7 +5,7 @@
 # To run directly:
 #   docker run -t -i -p 8080:8080 okapi-test-module
 # To let okapi run it:
-#   curl -w '\n' -D - -d @ModuleDescriptor.json http://localhost:9130/_/proxy/modules
+#   curl -w '\n' -D - -d @descriptors/ModuleDescriptor-dockerImage.json http://localhost:9130/_/proxy/modules
 #   curl -w '\n' -D - -d '{"srvcId":"test-basic-1.0.0", "nodeId":"localhost"}' http://localhost:9130/_/discovery/modules
 ###
 
