@@ -360,24 +360,21 @@ public class MainVerticle extends AbstractVerticle {
       router.route("/*").handler(proxyService::proxy);
     }
 
-    Promise<Void> promise = Promise.promise();
     logger.debug("About to start HTTP server");
     HttpServerOptions so = new HttpServerOptions()
         .setHandle100ContinueAutomatically(true);
-    vertx.createHttpServer(so)
+    return vertx.createHttpServer(so)
         .requestHandler(router)
-        .listen(port,
-            result -> {
-              if (result.succeeded()) {
-                logger.info("API Gateway started PID {}. Listening on port {}",
-                    ManagementFactory.getRuntimeMXBean().getName(), port);
-              } else {
-                logger.fatal("createHttpServer failed for port {}", port, result.cause());
-              }
-              promise.handle(result.mapEmpty());
-            }
-        );
-    return promise.future();
+        .listen(port)
+        .onComplete(result -> {
+          if (result.succeeded()) {
+            logger.info("API Gateway started PID {}. Listening on port {}",
+                ManagementFactory.getRuntimeMXBean().getName(), port);
+          } else {
+            logger.fatal("createHttpServer failed for port {}", port, result.cause());
+          }
+        })
+        .mapEmpty();
   }
 
   private Future<Void> startRedeploy() {
