@@ -1,10 +1,8 @@
 package org.folio.okapi.service;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.List;
 import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.common.ExtendedAsyncResult;
 
 public interface EnvStore {
 
