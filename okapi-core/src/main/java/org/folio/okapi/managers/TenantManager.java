@@ -586,21 +586,18 @@ public class TenantManager {
 
   /**
    * start timers for all tenants.
-   * @param promise async result
+   * @param discoveryManager discovery manager
+   * @return async result
    */
-  public void startTimers(Promise<Void> promise, DiscoveryManager discoveryManager) {
+  public Future<Void> startTimers(DiscoveryManager discoveryManager) {
     this.discoveryManager = discoveryManager;
-    tenants.getKeys().onComplete(res -> {
-      if (res.succeeded()) {
-        for (String tenantId : res.result()) {
-          logger.info("starting {}", tenantId);
-          handleTimer(tenantId);
-        }
-        consumeTimers();
-        promise.complete();
-      } else {
-        promise.fail(res.cause());
+    return tenants.getKeys().compose(res -> {
+      for (String tenantId : res) {
+        logger.info("starting {}", tenantId);
+        handleTimer(tenantId);
       }
+      consumeTimers();
+      return Future.succeededFuture();
     });
   }
 

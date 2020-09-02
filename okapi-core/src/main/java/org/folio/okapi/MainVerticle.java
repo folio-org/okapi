@@ -382,9 +382,7 @@ public class MainVerticle extends AbstractVerticle {
       if (!enableProxy) {
         return Future.succeededFuture();
       }
-      Promise<Void> promise = Promise.promise();
-      tenantManager.startTimers(promise, discoveryManager);
-      return promise.future();
+      return tenantManager.startTimers(discoveryManager);
     });
   }
 }
