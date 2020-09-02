@@ -4,6 +4,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.json.Json;
 import java.util.LinkedList;
 import java.util.List;
+import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.common.ExtendedAsyncResult;
 import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Success;
@@ -33,12 +34,16 @@ public class LockedTypedMap2<T> extends LockedStringMap {
    * @param fut async result with deserialized value on success
    */
   public void get(String k, String k2, Handler<ExtendedAsyncResult<T>> fut) {
-    getString(k, k2, res -> {
+    getString(k, k2).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        fut.handle(new Success<>(Json.decodeValue(res.result(), clazz)));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
       }
+      if (res.result() == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + "/" + k2));
+        return;
+      }
+      fut.handle(new Success<>(Json.decodeValue(res.result(), clazz)));
     });
   }
 
@@ -48,7 +53,7 @@ public class LockedTypedMap2<T> extends LockedStringMap {
    * @param fut async result with deserialized values on success
    */
   public void get(String k, Handler<ExtendedAsyncResult<List<T>>> fut) {
-    getString(k, res -> {
+    getPrefix(k, res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(res.getType(), res.cause()));
       } else {

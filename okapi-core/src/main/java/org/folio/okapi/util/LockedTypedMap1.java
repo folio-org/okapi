@@ -47,12 +47,16 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    * @param fut result with value if successful
    */
   public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
-    getString(k, null, res -> {
+    get(k).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        fut.handle(new Success<>(Json.decodeValue(res.result(), clazz)));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
       }
+      if (res.result() == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
+        return;
+      }
+      fut.handle(new Success<>(res.result()));
     });
   }
 
@@ -62,7 +66,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    * @return future with value if found (null if not found)
    */
   public Future<T> get(String k) {
-    return getString(k, (String) null).compose(res -> {
+    return getString(k, null).compose(res -> {
       if (res == null) {
         return Future.succeededFuture(null);
       }

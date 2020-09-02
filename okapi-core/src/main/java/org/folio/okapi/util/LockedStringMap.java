@@ -58,27 +58,6 @@ public class LockedStringMap {
    * Get value from shared map - primary and secondary level keys.
    * @param k primary-level key
    * @param k2 secondary-level key
-   * @param fut async result with value if successful
-   */
-  public void getString(String k, String k2, Handler<ExtendedAsyncResult<String>> fut) {
-    getString(k, k2).onComplete(resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
-        return;
-      }
-      String res = resGet.result();
-      if (res == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + (k2 == null ? "" : "/" +  k2)));
-      } else {
-        fut.handle(new Success<>(res));
-      }
-    });
-  }
-
-  /**
-   * Get value from shared map - primary and secondary level keys.
-   * @param k primary-level key
-   * @param k2 secondary-level key
    * @return future with value (null if not found)
    */
   public Future<String> getString(String k, String k2) {
@@ -98,8 +77,8 @@ public class LockedStringMap {
    * @param k primary-level key
    * @param fut async result with values if successful
    */
-  public void getString(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    getString(k).onComplete(resGet -> {
+  public void getPrefix(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
+    getPrefix(k).onComplete(resGet -> {
       if (resGet.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
         return;
@@ -118,7 +97,7 @@ public class LockedStringMap {
    * @param k primary-level key
    * @return future with values (null if not found)
    */
-  public Future<Collection<String>> getString(String k) {
+  public Future<Collection<String>> getPrefix(String k) {
     return list.get(k).compose(val -> {
       if (val == null) {
         return Future.succeededFuture(null);

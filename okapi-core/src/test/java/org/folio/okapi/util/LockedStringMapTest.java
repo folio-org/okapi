@@ -57,7 +57,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getString("k1", "k2", res -> {
+      map.getString("k1", "k2").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("FOOBAR", res.result());
         async.complete();
@@ -66,18 +66,18 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getString("k1", "k3", res -> {
-        context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+      map.getString("k1", "k3").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(null, res.result());
         async.complete();
       });
       async.await();
     }
     {
       Async async = context.async();
-      map.getString("foo", "k2", res -> {
-        context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+      map.getString("foo", "k2").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(null, res.result());
         async.complete();
       });
       async.await();
@@ -101,7 +101,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getString("k1", res -> {
+      map.getPrefix("k1", res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[FOOBAR]", res.result().toString());
         async.complete();
@@ -126,7 +126,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getString("k1", res -> {
+      map.getPrefix("k1", res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[FOOBAR, SecondFoo]", res.result().toString());
         async.complete();
