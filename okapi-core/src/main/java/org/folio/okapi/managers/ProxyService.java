@@ -397,9 +397,9 @@ public class ProxyService {
         resolveUrls(it, fut);
         return;
       }
-      discoveryManager.get(mi.getModuleDescriptor().getId(), res -> {
+      discoveryManager.get(mi.getModuleDescriptor().getId()).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           DeploymentDescriptor instance = pickInstance(res.result());
           if (instance == null) {
@@ -1210,7 +1210,7 @@ public class ProxyService {
       MultiMap headersIn,
       String tenantId, String authToken, ModuleInstance inst, String modPerms,
       String request, Handler<AsyncResult<OkapiClient>> fut) {
-    discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId(), gres -> {
+    discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId()).onComplete(gres -> {
       DeploymentDescriptor instance = null;
       if (gres.succeeded()) {
         instance = pickInstance(gres.result());
@@ -1316,16 +1316,12 @@ public class ProxyService {
     ctx.reroute(newPath);
   }
 
-  public void autoDeploy(ModuleDescriptor md,
-                         Handler<ExtendedAsyncResult<Void>> fut) {
-
-    discoveryManager.autoDeploy(md, fut);
+  public Future<Void> autoDeploy(ModuleDescriptor md) {
+    return discoveryManager.autoDeploy(md);
   }
 
-  public void autoUndeploy(ModuleDescriptor md,
-                           Handler<ExtendedAsyncResult<Void>> fut) {
-
-    discoveryManager.autoUndeploy(md, fut);
+  public Future<Void> autoUndeploy(ModuleDescriptor md) {
+    return discoveryManager.autoUndeploy(md);
   }
 
   // store Auth/Handler response, and pass header as needed

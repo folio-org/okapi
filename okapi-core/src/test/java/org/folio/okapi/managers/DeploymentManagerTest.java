@@ -66,7 +66,7 @@ public class DeploymentManagerTest {
     DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
     dm.deploy(dd, res1 -> {
       context.assertTrue(res1.succeeded());
-      dm.undeploy(res1.result().getInstId(), res2 -> {
+      dm.undeploy(res1.result().getInstId()).onComplete(res2 -> {
         // after undeploy so we have no stale process
         context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
@@ -121,7 +121,7 @@ public class DeploymentManagerTest {
     createDeploymentManager(context);
     Async async = context.async();
     LaunchDescriptor descriptor = new LaunchDescriptor();
-    dm.undeploy("1234", res -> {
+    dm.undeploy("1234").onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("not found: 1234", res.cause().getMessage());
       async.complete();

@@ -1140,9 +1140,7 @@ public class TenantManager {
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        Promise<Void> p = Promise.promise();
-        futures.add(p.future());
-        proxyService.autoDeploy(md, res -> p.handle(res.mapEmpty()));
+        futures.add(proxyService.autoDeploy(md));
       }
     }
     return CompositeFuture.all(futures).mapEmpty();
@@ -1186,24 +1184,13 @@ public class TenantManager {
     if (md == null) {
       return Future.succeededFuture();
     }
-    Promise<Void> promise = Promise.promise();
     final ModuleDescriptor mdF = md;
-    Future<List<String>> f = getModuleUser(md.getId());
-    f.onComplete(ures -> {
-      if (ures.failed() || !ures.result().isEmpty()) {
-        promise.complete();
-        return;
+    return getModuleUser(md.getId()).compose(res -> {
+      if (!res.isEmpty()) { // tenants using module, skip undeploy
+        return Future.succeededFuture();
       }
-      logger.info("autoUndeploy mdF {}", mdF.getId());
-      proxyService.autoUndeploy(mdF, res -> {
-        if (res.failed()) {
-          promise.fail(res.cause());
-          return;
-        }
-        promise.complete();
-      });
+      return proxyService.autoUndeploy(mdF);
     });
-    return promise.future();
   }
 
   void listModules(String id, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {

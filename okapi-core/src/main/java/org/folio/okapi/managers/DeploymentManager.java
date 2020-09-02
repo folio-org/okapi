@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -30,6 +31,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.util.CompList;
+import org.folio.okapi.util.NotFound;
 
 
 /**
@@ -100,9 +102,9 @@ public class DeploymentManager {
     });
     eventBus.consumer(nd.getUrl() + "/undeploy", message -> {
       String instId = (String) message.body();
-      undeploy(instId, res -> {
+      undeploy(instId).onComplete(res -> {
         if (res.failed()) {
-          message.fail(res.getType().ordinal(), res.cause().getMessage());
+          message.fail(400, res.cause().getMessage());
         } else {
           message.reply(null);
         }
@@ -207,33 +209,30 @@ public class DeploymentManager {
             moduleUrl, descriptor, mh);
         md2.setNodeId(md1.getNodeId() != null ? md1.getNodeId() : host);
         list.put(md2.getInstId(), md2);
-        dm.add(md2, res -> fut.handle(new Success<>(md2)));
+        dm.add(md2).onComplete(res -> fut.handle(new Success<>(md2)));
       });
     });
   }
 
-  void undeploy(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> undeploy(String id) {
     logger.info("undeploy instId {}", id);
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10705", id)));
-    } else {
-      DeploymentDescriptor md = list.get(id);
-      dm.remove(md.getSrvcId(), md.getInstId(), res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
-        } else {
-          ModuleHandle mh = md.getModuleHandle();
-          mh.stop(future -> {
-            if (future.failed()) {
-              fut.handle(new Failure<>(ErrorType.INTERNAL, future.cause()));
-            } else {
-              fut.handle(new Success<>());
-              list.remove(id);
-            }
-          });
-        }
-      });
+      return Future.failedFuture(new NotFound(messages.getMessage("10705", id)));
     }
+    DeploymentDescriptor md = list.get(id);
+    return dm.remove(md.getSrvcId(), md.getInstId()).compose(res -> {
+      ModuleHandle mh = md.getModuleHandle();
+      Promise<Void> promise = Promise.promise();
+      mh.stop(future -> {
+        if (future.failed()) {
+          promise.fail(future.cause());
+          return;
+        }
+        list.remove(id);
+        promise.complete();
+      });
+      return promise.future();
+    }).mapEmpty();
   }
 
   void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {

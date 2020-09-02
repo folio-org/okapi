@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -1068,12 +1069,10 @@ public class InternalModule {
     }
   }
 
-  private void deleteDeployment(String id,
-                                Handler<ExtendedAsyncResult<String>> fut) {
-
-    deploymentManager.undeploy(id, res -> {
+  private void deleteDeployment(String id, Handler<ExtendedAsyncResult<String>> fut) {
+    deploymentManager.undeploy(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -1124,9 +1123,9 @@ public class InternalModule {
   }
 
   private void listDiscoveryModules(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.get(res -> {
+    discoveryManager.get().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1137,9 +1136,9 @@ public class InternalModule {
   private void discoveryGetSrvcId(String srvcId,
                                   Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.getNonEmpty(srvcId, res -> {
+    discoveryManager.getNonEmpty(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1186,21 +1185,20 @@ public class InternalModule {
   private void discoveryUndeploy(String srvcId, String instId,
                                  Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(srvcId, instId, res -> {
+    discoveryManager.removeAndUndeploy(srvcId, instId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
     });
   }
 
-  private void discoveryUndeploy(String srvcId,
-                                 Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(srvcId, res -> {
+  private void discoveryUndeploy(String srvcId, Handler<ExtendedAsyncResult<String>> fut) {
+    discoveryManager.removeAndUndeploy(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -1209,9 +1207,9 @@ public class InternalModule {
 
   private void discoveryUndeploy(Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.removeAndUndeploy(res -> {
+    discoveryManager.removeAndUndeploy().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
