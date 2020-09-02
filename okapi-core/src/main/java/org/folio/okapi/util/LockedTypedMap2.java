@@ -53,16 +53,20 @@ public class LockedTypedMap2<T> extends LockedStringMap {
    * @param fut async result with deserialized values on success
    */
   public void get(String k, Handler<ExtendedAsyncResult<List<T>>> fut) {
-    getPrefix(k, res -> {
+    getPrefix(k).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        LinkedList<T> t = new LinkedList<>();
-        for (String s : res.result()) {
-          t.add(Json.decodeValue(s, clazz));
-        }
-        fut.handle(new Success<>(t));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        return;
       }
+      if (res.result() == null) {
+        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
+        return;
+      }
+      LinkedList<T> t = new LinkedList<>();
+      for (String s : res.result()) {
+        t.add(Json.decodeValue(s, clazz));
+      }
+      fut.handle(new Success<>(t));
     });
   }
 }

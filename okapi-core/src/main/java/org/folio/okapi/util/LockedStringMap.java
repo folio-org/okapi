@@ -75,26 +75,6 @@ public class LockedStringMap {
   /**
    * Get values from shared map with primary key.
    * @param k primary-level key
-   * @param fut async result with values if successful
-   */
-  public void getPrefix(String k, Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    getPrefix(k).onComplete(resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
-        return;
-      }
-      Collection<String> res = resGet.result();
-      if (res == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
-      } else {
-        fut.handle(new Success<>(res));
-      }
-    });
-  }
-
-  /**
-   * Get values from shared map with primary key.
-   * @param k primary-level key
    * @return future with values (null if not found)
    */
   public Future<Collection<String>> getPrefix(String k) {

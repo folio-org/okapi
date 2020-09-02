@@ -101,7 +101,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getPrefix("k1", res -> {
+      map.getPrefix("k1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[FOOBAR]", res.result().toString());
         async.complete();
@@ -126,9 +126,18 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getPrefix("k1", res -> {
+      map.getPrefix("k1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[FOOBAR, SecondFoo]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getPrefix("i").onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertNull(res.result());
         async.complete();
       });
       async.await();
