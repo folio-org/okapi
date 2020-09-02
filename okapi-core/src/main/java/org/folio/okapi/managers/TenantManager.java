@@ -1080,7 +1080,6 @@ public class TenantManager {
 
       if (options.getAsync()) {
         future = future.onComplete(x -> {
-          logger.info("RETURNING IMMEDIATELY");
           if (x.failed()) {
             fut.handle(new Failure<>(ErrorType.USER, x.cause()));
             return;
