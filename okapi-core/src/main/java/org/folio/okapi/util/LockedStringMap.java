@@ -88,20 +88,6 @@ public class LockedStringMap {
   }
 
   /**
-   * Get all values from shared map.
-   * @param fut async result with values if successful
-   */
-  public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    getKeys().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        fut.handle(new Success<>(res.result()));
-      }
-    });
-  }
-
-  /**
    * Get all keys from shared map (sorted).
    * @return Future with sorted keys
    */

@@ -32,7 +32,7 @@ public class LockedStringMapTest {
   }
 
   @Test
-  public void test(TestContext context) {
+  public void test1(TestContext context) {
     {
       Async async = context.async();
       map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
@@ -40,9 +40,63 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getKeys(res -> {
+      map.getKeys().onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", null, "v1", res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.addOrReplace(false, "k1", null, "v2", res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+
+    {
+      Async async = context.async();
+      map.getString("k1", null).onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+
+  }
+
+  @Test
+  public void test2(TestContext context) {
+    {
+      Async async = context.async();
+      map.init(vertx, "FooMap").onComplete(context.asyncAssertSuccess(x -> async.complete()));
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals("[]", res.result().toString());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(0, res.result());
         async.complete();
       });
       async.await();
@@ -118,8 +172,26 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(1, res.result());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
       map.addOrReplace(false, "k1.1", "x", "SecondKey", res -> {
         context.assertTrue(res.succeeded());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.size().onComplete(res -> {
+        context.assertTrue(res.succeeded());
+        context.assertEquals(2, res.result());
         async.complete();
       });
       async.await();
@@ -145,7 +217,7 @@ public class LockedStringMapTest {
 
     {
       Async async = context.async();
-      map.getKeys(res -> {
+      map.getKeys().onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[k1, k1.1]", res.result().toString());
         async.complete();
@@ -171,7 +243,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getKeys(res -> {
+      map.getKeys().onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[k1, k1.1]", res.result().toString());
         async.complete();
@@ -190,7 +262,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getKeys(res -> {
+      map.getKeys().onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[k1.1]", res.result().toString());
         async.complete();
@@ -208,7 +280,16 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.getKeys(res -> {
+      map.remove("k", "x", res -> {
+        context.assertTrue(res.failed());
+        context.assertEquals("k/x", res.cause().getMessage());
+        async.complete();
+      });
+      async.await();
+    }
+    {
+      Async async = context.async();
+      map.getKeys().onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertEquals("[]", res.result().toString());
         async.complete();

@@ -100,9 +100,9 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void add(DeploymentDescriptor md, Handler<ExtendedAsyncResult<Void>> fut) {
-    deployments.getKeys(res -> {
+    deployments.getKeys().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         return;
       }
       CompList<Void> futures = new CompList<>(ErrorType.INTERNAL);
@@ -376,9 +376,9 @@ public class DiscoveryManager implements NodeListener {
       fut.handle(new Success<>());
       return;
     }
-    nodes.getKeys(res1 -> {
+    nodes.getKeys().onComplete(res1 -> {
       if (res1.failed()) {
-        fut.handle(new Failure<>(res1.getType(), res1.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause()));
       } else {
         Collection<String> allNodes = res1.result();
         deployments.get(md.getId(), res -> {
@@ -493,9 +493,9 @@ public class DiscoveryManager implements NodeListener {
    * Get all known DeploymentDescriptors (all services on all nodes).
    */
   public void get(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
-    deployments.getKeys(resGet -> {
+    deployments.getKeys().onComplete(resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
         List<DeploymentDescriptor> all = new LinkedList<>();

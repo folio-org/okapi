@@ -175,7 +175,7 @@ public class TenantManager {
   }
 
   void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
-    tenants.getKeys(lres -> {
+    tenants.getKeys().onComplete(lres -> {
       if (lres.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, lres.cause()));
       } else {
@@ -590,7 +590,7 @@ public class TenantManager {
    */
   public void startTimers(Promise<Void> promise, DiscoveryManager discoveryManager) {
     this.discoveryManager = discoveryManager;
-    tenants.getKeys(res -> {
+    tenants.getKeys().onComplete(res -> {
       if (res.succeeded()) {
         for (String tenantId : res.result()) {
           logger.info("starting {}", tenantId);

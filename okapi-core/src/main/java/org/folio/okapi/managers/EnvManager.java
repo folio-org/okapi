@@ -99,9 +99,9 @@ public class EnvManager {
   }
 
   void get(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    envMap.getKeys(resGet -> {
+    envMap.getKeys().onComplete(resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
+        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
       } else {
         Collection<String> keys = resGet.result();
         List<EnvEntry> all = new LinkedList<>();

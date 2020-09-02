@@ -331,9 +331,9 @@ public class ModuleManager {
     if (moduleId.hasSemVer()) {
       get(id, fut);
     } else {
-      modules.getKeys(res -> {
+      modules.getKeys().onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
         } else {
           String latest = moduleId.getLatest(res.result());
           get(latest, fut);

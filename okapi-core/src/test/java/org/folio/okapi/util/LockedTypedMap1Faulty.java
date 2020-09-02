@@ -66,14 +66,6 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
     this.getKeysError = getKeysError;
   }
 
-  @Override
-  public void getKeys(Handler<ExtendedAsyncResult<Collection<String>>> fut) {
-    if (getKeysError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, getKeysError));
-      return;
-    }
-    super.getKeys(fut);
-  }
 
   @Override
   public Future<Collection<String>> getKeys() {
