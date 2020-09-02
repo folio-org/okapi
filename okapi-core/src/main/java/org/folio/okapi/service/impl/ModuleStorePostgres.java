@@ -28,11 +28,6 @@ public class ModuleStorePostgres implements ModuleStore {
   }
 
   @Override
-  public Future<Void> update(ModuleDescriptor md) {
-    return pgTable.update(md);
-  }
-
-  @Override
   public Future<List<ModuleDescriptor>> getAll() {
     return pgTable.getAll(ModuleDescriptor.class);
   }

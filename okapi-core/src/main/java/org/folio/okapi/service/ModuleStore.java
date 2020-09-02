@@ -12,7 +12,5 @@ public interface ModuleStore {
 
   Future<Void> insert(ModuleDescriptor md);
 
-  Future<Void> update(ModuleDescriptor md);
-
   Future<Void> init(boolean reset);
 }

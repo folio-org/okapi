@@ -30,11 +30,6 @@ public class ModuleStoreMongo implements ModuleStore {
   }
 
   @Override
-  public Future<Void> update(ModuleDescriptor md) {
-    return util.add(md, md.getId());
-  }
-
-  @Override
   public Future<List<ModuleDescriptor>> getAll() {
     return util.getAll(ModuleDescriptor.class);
   }
