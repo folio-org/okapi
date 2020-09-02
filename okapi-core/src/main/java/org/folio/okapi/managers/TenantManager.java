@@ -139,7 +139,7 @@ public class TenantManager {
       }
       tenantStore.insert(t).onComplete(res -> {
         if (res.failed()) {
-          logger.warn("TenantManager: Adding {} failed: {}", id, res);
+          logger.warn("Adding {} failed", id, res.cause());
           fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
           return;
         }
@@ -153,7 +153,7 @@ public class TenantManager {
     final String id = td.getId();
     tenants.get(id, gres -> {
       if (gres.failed() && gres.getType() != ErrorType.NOT_FOUND) {
-        logger.warn("TenantManager: updateDescriptor: getting {} failed: {}", id, gres);
+        logger.warn("updateDescriptor: getting {} failed", id, gres.cause());
         fut.handle(new Failure<>(ErrorType.INTERNAL, gres.cause()));
         return;
       }
@@ -165,7 +165,7 @@ public class TenantManager {
       }
       tenantStore.updateDescriptor(td).onComplete(upres -> {
         if (upres.failed()) {
-          logger.warn("TenantManager: Updating database for {} failed: {}", id, upres);
+          logger.warn("Updating database for {} failed", id, upres.cause());
           fut.handle(new Failure<>(ErrorType.INTERNAL, upres.cause()));
         } else {
           tenants.add(id, t, fut); // handles success
@@ -215,7 +215,7 @@ public class TenantManager {
   public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
     tenantStore.delete(id).onComplete(dres -> {
       if (dres.failed()) {
-        logger.warn("TenantManager: Deleting {} failed: {}", id, dres);
+        logger.warn("Deleting {} failed", id, dres.cause());
         fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
         return;
       }
