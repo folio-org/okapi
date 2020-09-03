@@ -8,6 +8,14 @@ public class EnvEntry {
   private String value;
   private String description;
 
+  public EnvEntry() {
+  }
+
+  public EnvEntry(String name, String value) {
+    this.name = name;
+    this.value = value;
+  }
+
   public String getName() {
     return name;
   }

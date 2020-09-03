@@ -6,19 +6,22 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import java.util.function.Supplier;
 import org.apache.logging.log4j.Logger;
+import org.assertj.core.api.WithAssertions;
+import org.folio.okapi.bean.AnyDescriptor;
+import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.Ports;
-import org.folio.okapi.common.OkapiLogger;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.AdditionalAnswers;
+import static org.mockito.Mockito.*;
 
 @RunWith(VertxUnitRunner.class)
-public class DockerModuleHandleTest {
-
-  private final Logger logger = OkapiLogger.get();
+public class DockerModuleHandleTest implements WithAssertions {
 
   @Test
   public void testDomainSocketAddresses() {
@@ -70,14 +73,13 @@ public class DockerModuleHandleTest {
 
   @Test
   public void testDockerVersionAtLocal(TestContext context) {
-    VertxOptions options = new VertxOptions();
-    options.setPreferNativeTransport(true);
-    Vertx vertx = Vertx.vertx(options);
+    // native transport = call docker via unix domain socket
+    Vertx vertx = Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
     LaunchDescriptor ld = new LaunchDescriptor();
     Ports ports = new Ports(9232, 9233);
 
     DockerModuleHandle dh = new DockerModuleHandle(vertx, ld,
-      "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
+        "mod-users-5.0.0-SNAPSHOT", ports, "localhost", 9232, new JsonObject());
 
     JsonObject versionRes = new JsonObject();
     Async async = context.async();
@@ -101,5 +103,31 @@ public class DockerModuleHandleTest {
           cause2.getMessage());
       }));
     }));
+  }
+
+  @Test
+  public void testGetCreateContainerDoc() {
+    LaunchDescriptor launchDescriptor = new LaunchDescriptor();
+    launchDescriptor.setEnv(new EnvEntry []
+        { new EnvEntry("username", "foobar"), new EnvEntry("password", "uvwxyz%p%c")});
+    launchDescriptor.setDockerArgs(new AnyDescriptor().set("%p", "%p"));
+    Logger logger = mock(Logger.class);
+    StringBuilder logMessage = new StringBuilder();
+    doAnswer(AdditionalAnswers.answerVoid(
+        (String msg, Supplier<Object> supplier) -> logMessage.append(msg).append(supplier.get())))
+    .when(logger).info(anyString(), any(Supplier.class));
+    DockerModuleHandle dockerModuleHandle = new DockerModuleHandle(Vertx.vertx(), launchDescriptor,
+        "mod-users-5.0.0-SNAPSHOT", new Ports(9232, 9233), "localhost", 9232, new JsonObject(),
+        logger);
+    assertThat(dockerModuleHandle.getCreateContainerDoc(8000))
+        .contains("8000/tcp")
+        .contains("\"%p\" : \"9232\"")  // dockerArgs variable expansion in values, not in keys
+        .contains("foobar")
+        .contains("uvwxyz%p%c");  // no %p or %c variable expansion in Env values
+    assertThat(logMessage.toString())
+        .contains("8000/tcp")
+        .contains("\"%p\" : \"9232\"")
+        .doesNotContain("foobar")  // no env values in the log because they may contain credentials
+        .doesNotContain("uvwxyz");
   }
 }
