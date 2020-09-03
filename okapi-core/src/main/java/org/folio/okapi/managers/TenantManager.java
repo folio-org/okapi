@@ -110,42 +110,25 @@ public class TenantManager {
     this.proxyService = px;
   }
 
-  private void insert2(Tenant t, String id, Handler<ExtendedAsyncResult<String>> fut) {
-    tenants.add(id, t).onComplete(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(ares.cause()), ares.cause()));
-      } else {
-        fut.handle(new Success<>(id));
-      }
-    });
-  }
-
   /**
    * Insert a tenant.
    *
    * @param t tenant
-   * @param fut future
+   * @return future
    */
-  public void insert(Tenant t, Handler<ExtendedAsyncResult<String>> fut) {
+  public Future<String> insert(Tenant t) {
     String id = t.getId();
-    tenants.get(id).onComplete(gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(gres.cause()), gres.cause()));
-        return;
-      }
-      if (gres.result() != null) { // already exists
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10400", id)));
-        return;
-      }
-      tenantStore.insert(t).onComplete(res -> {
-        if (res.failed()) {
-          logger.warn("Adding {} failed", id, res.cause());
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-          return;
-        }
-        insert2(t, id, fut);
-      });
-    });
+    return tenants.get(id)
+        .compose(gres -> {
+          if (gres != null) { // already exists
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10400", id)));
+          }
+          return Future.succeededFuture();
+        })
+        .compose(res1 -> tenantStore.insert(t))
+        .compose(res2 -> tenants.add(id, t))
+        .compose(x -> Future.succeededFuture(id));
   }
 
   Future<Void> updateDescriptor(TenantDescriptor td) {

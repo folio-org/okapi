@@ -658,9 +658,9 @@ public class InternalModule {
         return;
       }
       Tenant t = new Tenant(td);
-      tenantManager.insert(t, res -> {
+      tenantManager.insert(t).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         location(pc, id, null, Json.encodePrettily(t.getDescriptor()), fut);

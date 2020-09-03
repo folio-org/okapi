@@ -315,7 +315,7 @@ public class MainVerticle extends AbstractVerticle {
           + "}"
           + "}";
       final Tenant ten = Json.decodeValue(docTenant, Tenant.class);
-      tenantManager.insert(ten, res -> promise.handle(res.mapEmpty()));
+      tenantManager.insert(ten).onComplete(res -> promise.handle(res.mapEmpty()));
     });
   }
 

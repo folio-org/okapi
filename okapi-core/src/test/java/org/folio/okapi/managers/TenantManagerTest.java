@@ -52,7 +52,7 @@ public class TenantManagerTest extends TestBase {
     Tenant tenant = new Tenant(td);
     {
       Async async = context.async();
-      tm.insert(tenant, res -> {
+      tm.insert(tenant).onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -127,9 +127,9 @@ public class TenantManagerTest extends TestBase {
     Tenant tenant = new Tenant(td);
     {
       Async async = context.async();
-      tm.insert(tenant, res -> {
+      tm.insert(tenant).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals(fakeMsg, res.cause().getMessage());
         async.complete();
       });
@@ -184,9 +184,9 @@ public class TenantManagerTest extends TestBase {
     Tenant tenant = new Tenant(td);
     {
       Async async = context.async();
-      tm.insert(tenant, res -> {
+      tm.insert(tenant).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("gerror", res.cause().getMessage());
         async.complete();
       });
@@ -208,9 +208,9 @@ public class TenantManagerTest extends TestBase {
     tenantsMap.setGetKeysError(null);
     {
       Async async = context.async();
-      tm.insert(tenant, res -> {
+      tm.insert(tenant).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("aerror", res.cause().getMessage());
         async.complete();
       });
