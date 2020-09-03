@@ -61,6 +61,9 @@ public class LockedStringMap {
    * @return future with value (null if not found)
    */
   public Future<String> getString(String k, String k2) {
+    if (list == null) {
+      return Future.failedFuture("NULL");
+    }
     return list.get(k).compose(val -> {
       if (k2 == null || val == null) {
         return Future.succeededFuture(val);
@@ -96,25 +99,6 @@ public class LockedStringMap {
       List<String> s = new ArrayList<>(res);
       java.util.Collections.sort(s);
       return Future.succeededFuture(s);
-    });
-  }
-
-  /**
-   * Update value in shared map.
-   * @param allowReplace true: both insert and replace; false: insert only
-   * @param k primary-level key
-   * @param k2 secondary-level key
-   * @param value new value
-   * @param fut async result
-   */
-  public void addOrReplace(boolean allowReplace, String k, String k2, String value,
-                           Handler<ExtendedAsyncResult<Void>> fut) {
-    addOrReplace(allowReplace, k, k2, value).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
-      fut.handle(new Success<>());
     });
   }
 

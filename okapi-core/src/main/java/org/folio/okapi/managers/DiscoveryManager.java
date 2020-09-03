@@ -79,9 +79,7 @@ public class DiscoveryManager implements NodeListener {
     return deploymentStore.getAll().compose(result -> {
       List<Future> futures = new LinkedList<>();
       for (DeploymentDescriptor dd : result) {
-        Promise<DeploymentDescriptor> promise = Promise.promise();
-        addAndDeploy0(dd, promise::handle);
-        futures.add(promise.future());
+        futures.add(addAndDeploy0(dd));
       }
       return CompositeFuture.all(futures).mapEmpty();
     });
@@ -118,20 +116,9 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void addAndDeploy(DeploymentDescriptor dd,
-                    Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    addAndDeploy0(dd, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
-      }
-      deploymentStore.insert(res.result()).onComplete(res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res1.cause()), res1.cause()));
-          return;
-        }
-        fut.handle(new Success<>(res.result()));
-      });
+  Future<DeploymentDescriptor> addAndDeploy(DeploymentDescriptor dd) {
+    return addAndDeploy0(dd).compose(res -> {
+      return deploymentStore.insert(res).compose(x -> Future.succeededFuture(res));
     });
   }
 
@@ -143,99 +130,71 @@ public class DiscoveryManager implements NodeListener {
    *   3: No nodeId: Do not deploy at all, just record the existence (URL and instId) of the module.
    * </p>
    */
-  private void addAndDeploy0(DeploymentDescriptor dd,
-                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  private Future<DeploymentDescriptor> addAndDeploy0(DeploymentDescriptor dd) {
 
     String tmp = Json.encodePrettily(dd);
     logger.info("addAndDeploy: {}", tmp);
     final String modId = dd.getSrvcId();
     if (modId == null) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10800")));
-      return;
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10800")));
     }
-    moduleManager.get(modId, gres -> {
-      if (gres.failed()) {
-        if (gres.getType() == ErrorType.NOT_FOUND) {
-          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10801", modId)));
-        } else {
-          fut.handle(new Failure<>(gres.getType(), gres.cause()));
-        }
-      } else {
-        addAndDeploy1(dd, gres.result(), fut);
-      }
-    });
+    return moduleManager.get(modId).compose(gres -> addAndDeploy1(dd, gres));
   }
 
-  private void addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md,
-                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  private Future<DeploymentDescriptor> addAndDeploy1(DeploymentDescriptor dd, ModuleDescriptor md) {
 
     LaunchDescriptor launchDesc = dd.getDescriptor();
     final String nodeId = dd.getNodeId();
     if (nodeId == null) {
       if (launchDesc == null) { // 3: externally deployed
         if (dd.getInstId() == null) {
-          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10802")));
+          return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10802")));
         } else {
-          add(dd).onComplete(res -> { // just add it
-            if (res.failed()) {
-              fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-            } else {
-              fut.handle(new Success<>(dd));
-            }
-          });
+          return add(dd).compose(x -> Future.succeededFuture(dd));
         }
       } else {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10803")));
+        return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10803")));
       }
     } else {
       if (launchDesc == null) {
-        addAndDeploy2(dd, md, fut, nodeId);
+        return addAndDeploy2(dd, md, nodeId);
       } else { // Have a launch descriptor already in dd
-        callDeploy(nodeId, dd, fut);
+        return callDeploy(nodeId, dd);
       }
     }
   }
 
-  private void addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
-                             Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut,
-                             String nodeId) {
+  private Future<DeploymentDescriptor> addAndDeploy2(DeploymentDescriptor dd, ModuleDescriptor md,
+                                                     String nodeId) {
     String modId = dd.getSrvcId();
     LaunchDescriptor modLaunchDesc = md.getLaunchDescriptor();
     if (modLaunchDesc == null) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10804", modId)));
-    } else {
-      dd.setDescriptor(modLaunchDesc);
-      callDeploy(nodeId, dd, fut);
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          messages.getMessage("10804", modId)));
     }
+    dd.setDescriptor(modLaunchDesc);
+    return callDeploy(nodeId, dd);
   }
 
   /**
    * Helper to actually launch (deploy) a module on a node.
    */
-  private void callDeploy(String nodeId, DeploymentDescriptor dd,
-                          Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  private Future<DeploymentDescriptor> callDeploy(String nodeId, DeploymentDescriptor dd) {
 
-    getNode(nodeId).onComplete(nodeRes -> {
-      if (nodeRes.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(nodeRes.cause()), nodeRes.cause()));
-        return;
-      }
-      NodeDescriptor nodeDescriptor = nodeRes.result();
-      if (nodeDescriptor == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, nodeId));
-        return;
-      }
+    return getNode(nodeId).compose(nodeDescriptor -> {
       String reqData = Json.encode(dd);
+      Promise<DeploymentDescriptor> promise = Promise.promise();
       vertx.eventBus().request(nodeDescriptor.getUrl() + "/deploy", reqData,
           deliveryOptions, ar -> {
             if (ar.failed()) {
-              fut.handle(new Failure<>(ErrorType.USER, ar.cause().getMessage()));
+              promise.fail(new OkapiError(ErrorType.USER, ar.cause().getMessage()));
             } else {
               String b = (String) ar.result().body();
               DeploymentDescriptor pmd = Json.decodeValue(b, DeploymentDescriptor.class);
-              fut.handle(new Success<>(pmd));
+              promise.complete(pmd);
             }
           });
+      return promise.future();
     });
   }
 
@@ -361,17 +320,7 @@ public class DiscoveryManager implements NodeListener {
         dd.setDescriptor(modLaunchDesc);
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
-        Promise<DeploymentDescriptor> promise = Promise.promise();
-        addAndDeploy(dd, res -> {
-          if (res.failed()) {
-            logger.info("failed to deploy {}", md.getId());
-            promise.fail(res.cause());
-            return;
-          }
-          logger.info("successfully deployed {}", md.getId());
-          promise.complete(res.result());
-        });
-        futures.add(promise.future());
+        futures.add(addAndDeploy(dd));
       } else {
         logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
       }
@@ -597,39 +546,28 @@ public class DiscoveryManager implements NodeListener {
         return Future.succeededFuture(null);
       }
     }
-    return nodes.get(nodeId);
+    return nodes.getNotFound(nodeId);
   }
 
-  void updateNode(String nodeId, NodeDescriptor nd,
-                  Handler<ExtendedAsyncResult<NodeDescriptor>> fut) {
+  Future<NodeDescriptor> updateNode(String nodeId, NodeDescriptor nd) {
     if (clusterManager != null) {
       List<String> n = clusterManager.getNodes();
       if (!n.contains(nodeId)) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10806", nodeId)));
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+            messages.getMessage("10806", nodeId)));
       }
     }
-    nodes.getNotFound(nodeId, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        NodeDescriptor old = gres.result();
-        if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
-          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10807", nodeId)));
-          return;
-        }
-        if (!old.getUrl().equals(nd.getUrl())) {
-          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10808", nodeId)));
-          return;
-        }
-        nodes.put(nodeId, nd).onComplete(pres -> {
-          if (pres.failed()) {
-            fut.handle(new Failure<>(OkapiError.getType(pres.cause()), pres.cause()));
-          } else {
-            fut.handle(new Success<>(nd));
-          }
-        });
+    return nodes.getNotFound(nodeId).compose(gres -> {
+      NodeDescriptor old = gres;
+      if (!old.getNodeId().equals(nd.getNodeId()) || !nd.getNodeId().equals(nodeId)) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("10807", nodeId)));
       }
+      if (!old.getUrl().equals(nd.getUrl())) {
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("10808", nodeId)));
+      }
+      return nodes.put(nodeId, nd).compose(x -> Future.succeededFuture(nd));
     });
   }
 

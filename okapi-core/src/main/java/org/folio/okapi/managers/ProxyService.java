@@ -552,7 +552,7 @@ public class ProxyService {
         pc.getUserId());
 
     sanitizeAuthHeaders(headers);
-    tenantManager.get(tenantId, gres -> {
+    tenantManager.get(tenantId).onComplete(gres -> {
       if (gres.failed()) {
         stream.resume();
         pc.responseError(400, messages.getMessage("10106", tenantId));

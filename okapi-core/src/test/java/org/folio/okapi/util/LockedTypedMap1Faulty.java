@@ -20,12 +20,8 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
   }
 
   @Override
-  public void getNotFound(String k, Handler<ExtendedAsyncResult<T>> fut) {
-    if (getError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, getError));
-      return;
-    }
-    super.getNotFound(k, fut);
+  public Future<T> getNotFound(String k) {
+    return get(k);
   }
 
   @Override

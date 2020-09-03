@@ -316,30 +316,24 @@ public class ModuleManager {
    * Get a module descriptor from ID.
    *
    * @param id to get. If null, returns a null.
-   * @param fut future with resulting Module Descriptor
+   * @returns fut future with resulting Module Descriptor
    */
-  public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
-    if (id != null) {
-      modules.getNotFound(id, fut);
-    } else {
-      fut.handle(new Success<>(null));
+  public Future<ModuleDescriptor> get(String id) {
+    if (id == null) {
+      return Future.succeededFuture(null);
     }
+    return modules.getNotFound(id);
   }
 
-  void getLatest(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
+  Future<ModuleDescriptor> getLatest(String id) {
     ModuleId moduleId = new ModuleId(id);
     if (moduleId.hasSemVer()) {
-      get(id, fut);
-    } else {
-      modules.getKeys().onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        } else {
-          String latest = moduleId.getLatest(res.result());
-          get(latest, fut);
-        }
-      });
+      return get(id);
     }
+    return modules.getKeys().compose(res -> {
+      String latest = moduleId.getLatest(res);
+      return get(latest);
+    });
   }
 
   void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,

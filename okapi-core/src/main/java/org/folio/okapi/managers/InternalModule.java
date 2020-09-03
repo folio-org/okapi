@@ -693,9 +693,9 @@ public class InternalModule {
   }
 
   private void listTenants(Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.list(res -> {
+    tenantManager.list().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       List<TenantDescriptor> tdl = res.result();
@@ -705,9 +705,9 @@ public class InternalModule {
   }
 
   private void getTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.get(id, res -> {
+    tenantManager.get(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       Tenant te = res.result();
@@ -853,9 +853,9 @@ public class InternalModule {
                                     Handler<ExtendedAsyncResult<String>> fut) {
 
     try {
-      tenantManager.listModules(id, res -> {
+      tenantManager.listModules(id).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         List<ModuleDescriptor> mdl = res.result();
@@ -891,9 +891,9 @@ public class InternalModule {
   private void getModuleForTenant(String id, String mod,
                                   Handler<ExtendedAsyncResult<String>> fut) {
 
-    tenantManager.get(id, res -> {
+    tenantManager.get(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       Tenant t = res.result();
@@ -974,9 +974,9 @@ public class InternalModule {
   }
 
   private void getModule(String id, Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.get(id, res -> {
+    moduleManager.get(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       String s = Json.encodePrettily(res.result());
@@ -1089,10 +1089,6 @@ public class InternalModule {
         return;
       }
       NodeDescriptor nodeDescriptor = res.result();
-      if (nodeDescriptor == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
-        return;
-      }
       final String s = Json.encodePrettily(nodeDescriptor);
       fut.handle(new Success<>(s));
     });
@@ -1102,9 +1098,9 @@ public class InternalModule {
                                 Handler<ExtendedAsyncResult<String>> fut) {
     logger.debug("Int: putDiscoveryNode: {} {}", id, body);
     final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
-    discoveryManager.updateNode(id, nd, res -> {
+    discoveryManager.updateNode(id, nd).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1165,9 +1161,9 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
           DeploymentDescriptor.class);
-      discoveryManager.addAndDeploy(pmd, res -> {
+      discoveryManager.addAndDeploy(pmd).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         DeploymentDescriptor md = res.result();

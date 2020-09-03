@@ -40,6 +40,7 @@ import org.folio.okapi.service.impl.Storage.InitMode;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.LogHelper;
+import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class MainVerticle extends AbstractVerticle {
@@ -228,7 +229,7 @@ public class MainVerticle extends AbstractVerticle {
     final ModuleDescriptor md = InternalModule.moduleDescriptor(okapiVersion);
     final String okapiModule = md.getId();
     final String interfaceVersion = md.getProvides()[0].getVersion();
-    moduleManager.get(okapiModule, gres -> {
+    moduleManager.get(okapiModule).onComplete(gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.debug("checkInternalModules: Already have {} "
             + " with interface version {}", okapiModule, interfaceVersion);
@@ -236,7 +237,7 @@ public class MainVerticle extends AbstractVerticle {
         checkSuperTenant(okapiModule, promise);
         return;
       }
-      if (gres.getType() != ErrorType.NOT_FOUND) {
+      if (OkapiError.getType(gres.cause()) != ErrorType.NOT_FOUND) {
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }
@@ -254,7 +255,7 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private void checkSuperTenant(String okapiModule, Promise<Void> promise) {
-    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID, gres -> {
+    tenantManager.get(XOkapiHeaders.SUPERTENANT_ID).onComplete(gres -> {
       if (gres.succeeded()) { // we already have one, go on
         logger.info("checkSuperTenant: Already have " + XOkapiHeaders.SUPERTENANT_ID);
         Tenant st = gres.result();
@@ -298,7 +299,7 @@ public class MainVerticle extends AbstractVerticle {
         });
         return;
       }
-      if (gres.getType() != ErrorType.NOT_FOUND) {
+      if (OkapiError.getType(gres.cause()) != ErrorType.NOT_FOUND) {
         promise.fail(gres.cause()); // something went badly wrong
         return;
       }

@@ -5,9 +5,12 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import java.util.List;
+
+import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
+import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
 import org.folio.okapi.util.OkapiError;
@@ -20,6 +23,7 @@ import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
 public class TenantManagerTest extends TestBase {
+  private final Logger logger = OkapiLogger.get();
 
   private Vertx vertx;
 
@@ -54,6 +58,7 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
+    logger.info("test1 a");
     {
       Async async = context.async();
       td.setName("second name");
@@ -63,9 +68,10 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
+    logger.info("test1 b");
     {
       Async async = context.async();
-      tm.list(res -> {
+      tm.list().onComplete(res -> {
         context.assertTrue(res.succeeded());
         List<TenantDescriptor> list = res.result();
         context.assertEquals(1, list.size());
@@ -76,6 +82,7 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
+    logger.info("test1 c");
     {
       Async async = context.async();
       tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
@@ -84,6 +91,7 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
+    logger.info("test1 d");
     {
       Async async = context.async();
       tm.delete(td.getId(), res -> {
@@ -92,6 +100,7 @@ public class TenantManagerTest extends TestBase {
       });
       async.await();
     }
+    logger.info("test1 e");
     {
       Async async = context.async();
       tm.delete(td.getId(), res -> {
@@ -138,7 +147,7 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.list(res -> {
+      tm.list().onComplete(res -> {
         context.assertTrue(res.succeeded()); // ok, no tenantStore in use
         async.complete();
       });
@@ -223,7 +232,7 @@ public class TenantManagerTest extends TestBase {
     tenantsMap.setGetKeysError(null);
     {
       Async async = context.async();
-      tm.list(res -> {
+      tm.list().onComplete(res -> {
         // the add failure is ignored, so empty list is returned
         context.assertTrue(res.succeeded());
         context.assertEquals(0, res.result().size());
@@ -237,9 +246,9 @@ public class TenantManagerTest extends TestBase {
     tenantsMap.setGetKeysError("gkerror");
     {
       Async async = context.async();
-      tm.list(res -> {
+      tm.list().onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("gkerror", res.cause().getMessage());
         async.complete();
       });

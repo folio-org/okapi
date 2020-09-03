@@ -34,19 +34,14 @@ public class LockedTypedMap1<T> extends LockedStringMap {
   /**
    * Get and deserialize to type from shared map.
    * @param k key
-   * @param fut result with value if successful
+   * @return result with value if successful
    */
-  public void getNotFound(String k, Handler<ExtendedAsyncResult<T>> fut) {
-    get(k).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
+  public Future<T> getNotFound(String k) {
+    return get(k).compose(res -> {
+      if (res == null) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, k));
       }
-      if (res.result() == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k));
-        return;
-      }
-      fut.handle(new Success<>(res.result()));
+      return Future.succeededFuture(res);
     });
   }
 

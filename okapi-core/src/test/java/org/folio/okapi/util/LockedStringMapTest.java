@@ -50,7 +50,7 @@ public class LockedStringMapTest {
 
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1", null, "v1", res -> {
+      map.addOrReplace(false, "k1", null, "v1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -58,7 +58,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1", null, "v2", res -> {
+      map.addOrReplace(false, "k1", null, "v2").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -103,7 +103,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
+      map.addOrReplace(false, "k1", "k2", "FOOBAR").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -138,7 +138,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.addOrReplace(true, "k1", "k2", "FOOBAR", res -> {
+      map.addOrReplace(true, "k1", "k2", "FOOBAR").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -147,7 +147,7 @@ public class LockedStringMapTest {
 
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1", "k2", "FOOBAR", res -> {
+      map.addOrReplace(false, "k1", "k2", "FOOBAR").onComplete(res -> {
         context.assertFalse(res.succeeded());
         async.complete();
       });
@@ -164,7 +164,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1", "k2.2", "SecondFoo", res -> {
+      map.addOrReplace(false, "k1", "k2.2", "SecondFoo").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -181,7 +181,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.addOrReplace(false, "k1.1", "x", "SecondKey", res -> {
+      map.addOrReplace(false, "k1.1", "x", "SecondKey").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });

@@ -164,25 +164,17 @@ public class TenantManager {
     });
   }
 
-  void list(Handler<ExtendedAsyncResult<List<TenantDescriptor>>> fut) {
-    tenants.getKeys().onComplete(lres -> {
-      if (lres.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, lres.cause()));
-      } else {
-        CompList<List<TenantDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
-        List<TenantDescriptor> tdl = new LinkedList<>();
-        for (String s : lres.result()) {
-          Promise<Tenant> promise = Promise.promise();
-          tenants.getNotFound(s, res -> {
-            if (res.succeeded()) {
-              tdl.add(res.result().getDescriptor());
-            }
-            promise.handle(res);
-          });
-          futures.add(promise);
-        }
-        futures.all(tdl, fut);
+  Future<List<TenantDescriptor>> list() {
+    return tenants.getKeys().compose(lres -> {
+      List<Future> futures = new LinkedList<>();
+      List<TenantDescriptor> tdl = new LinkedList<>();
+      for (String s : lres) {
+        futures.add(tenants.getNotFound(s).compose(res -> {
+          tdl.add(res.getDescriptor());
+          return Future.succeededFuture();
+        }));
       }
+      return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(tdl));
     });
   }
 
@@ -190,10 +182,10 @@ public class TenantManager {
    * Get a tenant.
    *
    * @param id tenant ID
-   * @param fut future
+   * @return fut future
    */
-  public void get(String id, Handler<ExtendedAsyncResult<Tenant>> fut) {
-    tenants.getNotFound(id, fut);
+  public Future<Tenant> get(String id) {
+    return tenants.getNotFound(id);
   }
 
   /**
@@ -261,9 +253,9 @@ public class TenantManager {
   void enableAndDisableModule(String tenantId, TenantInstallOptions options,
                               String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
                               Handler<ExtendedAsyncResult<String>> fut) {
-    tenants.getNotFound(tenantId, tres -> {
+    tenants.getNotFound(tenantId).onComplete(tres -> {
       if (tres.failed()) {
-        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
         return;
       }
       Tenant tenant = tres.result();
@@ -278,9 +270,9 @@ public class TenantManager {
     if (td == null) {
       enableAndDisableModule2(tenant, options, moduleFrom, null, pc, fut);
     } else {
-      moduleManager.getLatest(td.getId(), resTo -> {
+      moduleManager.getLatest(td.getId()).onComplete(resTo -> {
         if (resTo.failed()) {
-          fut.handle(new Failure<>(resTo.getType(), resTo.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(resTo.cause()), resTo.cause()));
           return;
         }
         ModuleDescriptor mdTo = resTo.result();
@@ -304,30 +296,24 @@ public class TenantManager {
   }
 
   Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
-    Promise<Void> promise = Promise.promise();
     options.setDepCheck(false);
-    listModules(tenantId, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-        return;
-      }
+    return listModules(tenantId).compose(res -> {
       Future<Void> future = Future.succeededFuture();
-      for (ModuleDescriptor md : res.result()) {
+      for (ModuleDescriptor md : res) {
         future = future.compose(x -> enableAndDisableModuleFut(tenantId, options,
-          md.getId(), null, pc));
+            md.getId(), null, pc));
       }
-      future.onComplete(promise::handle);
+      return future;
     });
-    return promise.future();
   }
 
   private void enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
                                        String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc,
                                        Handler<ExtendedAsyncResult<String>> fut) {
 
-    moduleManager.get(moduleFrom, resFrom -> {
+    moduleManager.get(moduleFrom).onComplete(resFrom -> {
       if (resFrom.failed()) {
-        fut.handle(new Failure<>(resFrom.getType(), resFrom.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(resFrom.cause()), resFrom.cause()));
         return;
       }
       ModuleDescriptor mdFrom = resFrom.result();
@@ -515,9 +501,9 @@ public class TenantManager {
       return;
     }
     String mdid = modit.next();
-    moduleManager.get(mdid, res -> {
+    moduleManager.get(mdid).onComplete(res -> {
       if (res.failed()) { // not likely to happen
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       ModuleDescriptor md = res.result();
@@ -603,7 +589,7 @@ public class TenantManager {
 
   void handleTimer(String tenantId, String moduleId, int seq1) {
     logger.info("handleTimer tenant {} module {} seq1 {}", tenantId, moduleId, seq1);
-    tenants.getNotFound(tenantId, tres -> {
+    tenants.getNotFound(tenantId).onComplete(tres -> {
       if (tres.failed()) {
         // tenant no longer exist
         stopTimer(tenantId, moduleId, seq1);
@@ -879,9 +865,9 @@ public class TenantManager {
   void listInterfaces(String tenantId, boolean full, String interfaceType,
                       Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
 
-    tenants.getNotFound(tenantId, tres -> {
+    tenants.getNotFound(tenantId).onComplete(tres -> {
       if (tres.failed()) {
-        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
       } else {
         listInterfaces(tres.result(), full, interfaceType, fut);
       }
@@ -923,9 +909,9 @@ public class TenantManager {
                                 String interfaceName, String interfaceType,
                                 Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
 
-    tenants.getNotFound(tenantId, tres -> {
+    tenants.getNotFound(tenantId).onComplete(tres -> {
       if (tres.failed()) {
-        fut.handle(new Failure<>(tres.getType(), tres.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
         return;
       }
       Tenant tenant = tres.result();
@@ -973,9 +959,9 @@ public class TenantManager {
         }
       }
     }
-    tenants.getNotFound(tenantId, gres -> {
+    tenants.getNotFound(tenantId).onComplete(gres -> {
       if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(gres.cause()), gres.cause()));
         return;
       }
       Tenant t = gres.result();
@@ -1168,27 +1154,17 @@ public class TenantManager {
     });
   }
 
-  void listModules(String id, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-
-    tenants.getNotFound(id, gres -> {
-      if (gres.failed()) {
-        fut.handle(new Failure<>(gres.getType(), gres.cause()));
-      } else {
-        Tenant t = gres.result();
-        List<ModuleDescriptor> tl = new LinkedList<>();
-        CompList<List<ModuleDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
-        for (String moduleId : t.listModules()) {
-          Promise<ModuleDescriptor> promise = Promise.promise();
-          moduleManager.get(moduleId, res -> {
-            if (res.succeeded()) {
-              tl.add(res.result());
-            }
-            promise.handle(res);
-          });
-          futures.add(promise);
-        }
-        futures.all(tl, fut);
+  Future<List<ModuleDescriptor>> listModules(String id) {
+    return tenants.getNotFound(id).compose(t -> {
+      List<ModuleDescriptor> tl = new LinkedList<>();
+      List<Future> futures = new LinkedList<>();
+      for (String moduleId : t.listModules()) {
+        futures.add(moduleManager.get(moduleId).compose(x -> {
+          tl.add(x);
+          return Future.succeededFuture();
+        }));
       }
+      return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(tl));
     });
   }
 
