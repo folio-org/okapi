@@ -2799,14 +2799,17 @@ environment variable name and value respectively.
 
 When launching a module, a TCP listening port is assigned. The module
 should be listening on that port after successful deployment (serving
-HTTP requests).  The port is passed as `%p` in the value of properties
-`exec` and `cmdlineStart`. For Docker deployment, Okapi will map the
-exposed port (`EXPOSE`) to the dynamically assigned port.
+HTTP requests).  The port is passed as `%p` in the `exec` value,
+`cmdlineStart` value, and the `dockerArgs` properties values.
+For Docker deployment, Okapi will map the exposed port (`EXPOSE`) to
+the dynamically assigned port.
 
 When starting, Docker modules can be accessed from Okapi at the host
 given by setting `containerHost` - defaults to `localhost`.
 The value of `containerHost` can be referred to as `%c` in
-`dockerArgs` of the deployment.
+`dockerArgs` properties values of the deployment.
+
+Use `%%` for a literal `%` in `dockerArgs` properties values.
 
 It is also possible to refer to an already-launched process (maybe
 running in your development IDE), by POSTing a DeploymentDescriptor to
