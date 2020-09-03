@@ -31,7 +31,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.util.CompList;
-import org.folio.okapi.util.NotFound;
+import org.folio.okapi.util.OkapiError;
 
 
 /**
@@ -217,7 +217,8 @@ public class DeploymentManager {
   Future<Void> undeploy(String id) {
     logger.info("undeploy instId {}", id);
     if (!list.containsKey(id)) {
-      return Future.failedFuture(new NotFound(messages.getMessage("10705", id)));
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+          messages.getMessage("10705", id)));
     }
     DeploymentDescriptor md = list.get(id);
     return dm.remove(md.getSrvcId(), md.getInstId()).compose(res -> {

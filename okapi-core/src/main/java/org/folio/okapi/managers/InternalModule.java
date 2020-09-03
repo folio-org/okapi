@@ -36,6 +36,7 @@ import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
 import org.folio.okapi.util.ModuleUtil;
+import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 import org.folio.okapi.util.TenantInstallOptions;
 
@@ -1084,7 +1085,7 @@ public class InternalModule {
     logger.debug("Int: getDiscoveryNode: {}", id);
     discoveryManager.getNode(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       NodeDescriptor nodeDescriptor = res.result();
@@ -1114,7 +1115,7 @@ public class InternalModule {
   private void listDiscoveryNodes(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.getNodes().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1125,7 +1126,7 @@ public class InternalModule {
   private void listDiscoveryModules(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.get().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1138,7 +1139,7 @@ public class InternalModule {
 
     discoveryManager.getNonEmpty(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1187,7 +1188,7 @@ public class InternalModule {
 
     discoveryManager.removeAndUndeploy(srvcId, instId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -1198,7 +1199,7 @@ public class InternalModule {
   private void discoveryUndeploy(String srvcId, Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.removeAndUndeploy(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -1209,13 +1210,12 @@ public class InternalModule {
 
     discoveryManager.removeAndUndeploy().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
     });
   }
-
 
   private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
     discoveryManager.health(res -> {

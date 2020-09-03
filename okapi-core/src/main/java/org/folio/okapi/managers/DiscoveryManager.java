@@ -34,7 +34,7 @@ import org.folio.okapi.service.DeploymentStore;
 import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
-import org.folio.okapi.util.NotFound;
+import org.folio.okapi.util.OkapiError;
 
 
 /**
@@ -102,11 +102,17 @@ public class DiscoveryManager implements NodeListener {
 
   Future<Void> add(DeploymentDescriptor md) {
     return deployments.getKeys().compose(res -> {
-      List<Future> futures = new LinkedList<>();
+      Future<Void> future = Future.succeededFuture();
       for (String moduleId : res) {
-        futures.add(deployments.get(moduleId, md.getInstId()).mapEmpty());
+        future = future.compose(a -> deployments.get(moduleId, md.getInstId()).compose(b -> {
+          if (b != null) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10809", md.getInstId())));
+          }
+          return Future.succeededFuture();
+        }));
       }
-      return CompositeFuture.all(futures).compose(res2 -> {
+      return future.compose(res2 -> {
         return deployments.add(md.getSrvcId(), md.getInstId(), md);
       }).mapEmpty();
     });
@@ -121,7 +127,7 @@ public class DiscoveryManager implements NodeListener {
       }
       deploymentStore.insert(res.result()).onComplete(res1 -> {
         if (res1.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res1.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res1.cause()), res1.cause()));
           return;
         }
         fut.handle(new Success<>(res.result()));
@@ -172,7 +178,7 @@ public class DiscoveryManager implements NodeListener {
         } else {
           add(dd).onComplete(res -> { // just add it
             if (res.failed()) {
-              fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+              fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
             } else {
               fut.handle(new Success<>(dd));
             }
@@ -211,7 +217,7 @@ public class DiscoveryManager implements NodeListener {
 
     getNode(nodeId).onComplete(nodeRes -> {
       if (nodeRes.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, nodeRes.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(nodeRes.cause()), nodeRes.cause()));
         return;
       }
       NodeDescriptor nodeDescriptor = nodeRes.result();
@@ -235,7 +241,7 @@ public class DiscoveryManager implements NodeListener {
 
   Future<Void> removeAndUndeploy(String srvcId, String instId) {
     logger.info("removeAndUndeploy: srvcId {} instId {}", srvcId, instId);
-    return deployments.get(srvcId, instId).compose(res -> {
+    return deployments.getNotFound(srvcId, instId).compose(res -> {
       List<DeploymentDescriptor> ddList = new LinkedList<>();
       ddList.add(res);
       return removeAndUndeploy(ddList);
@@ -246,7 +252,7 @@ public class DiscoveryManager implements NodeListener {
     logger.info("removeAndUndeploy: srvcId {}", srvcId);
     return deployments.get(srvcId).compose(res -> {
       if (res == null) {
-        return Future.failedFuture(new NotFound(srvcId));
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, srvcId));
       }
       return removeAndUndeploy(res);
     });
@@ -325,8 +331,9 @@ public class DiscoveryManager implements NodeListener {
     }
     return nodes.getKeys().compose(allNodes -> {
       return deployments.get(md.getId()).compose(res -> {
-        if (res == null) {
-          return Future.failedFuture(new NotFound(md.getId()));
+        logger.info("autoDeploy {} res={}", md.getId(), res);
+        if (res != null) {
+          return Future.succeededFuture(); // already deployed
         }
         return autoDeploy2(md, allNodes, new LinkedList<>());
       });
@@ -355,7 +362,15 @@ public class DiscoveryManager implements NodeListener {
         dd.setSrvcId(md.getId());
         dd.setNodeId(node);
         Promise<DeploymentDescriptor> promise = Promise.promise();
-        addAndDeploy(dd, promise::handle);
+        addAndDeploy(dd, res -> {
+          if (res.failed()) {
+            logger.info("failed to deploy {}", md.getId());
+            promise.fail(res.cause());
+            return;
+          }
+          logger.info("successfully deployed {}", md.getId());
+          promise.complete(res.result());
+        });
         futures.add(promise.future());
       } else {
         logger.info("autoDeploy {} already deployed on {}", md.getId(), node);
@@ -373,7 +388,7 @@ public class DiscoveryManager implements NodeListener {
     return deployments.get(md.getId()).compose(res -> {
       List<DeploymentDescriptor> ddList = res;
       if (ddList == null) {
-        return Future.failedFuture(new NotFound(md.getId()));
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, md.getId()));
       }
       List<Future> futures = new LinkedList<>();
       for (DeploymentDescriptor dd : ddList) {
@@ -386,6 +401,15 @@ public class DiscoveryManager implements NodeListener {
   }
 
   Future<List<DeploymentDescriptor>> getNonEmpty(String srvcId) {
+    return get(srvcId).compose(res -> {
+      if (res.isEmpty()) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, srvcId));
+      }
+      return Future.succeededFuture(res);
+    });
+  }
+
+  Future<List<DeploymentDescriptor>> get(String srvcId) {
     return deployments.get(srvcId).compose(result -> {
       if (result == null) {
         return Future.succeededFuture(new LinkedList<>());
@@ -410,10 +434,6 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  Future<List<DeploymentDescriptor>> get(String srvcId) {
-    return getNonEmpty(srvcId);
-  }
-
   /**
    * Get all known DeploymentDescriptors (all services on all nodes).
    */
@@ -434,10 +454,9 @@ public class DiscoveryManager implements NodeListener {
   }
 
   void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-
-    deployments.get(srvcId, instId).onComplete(resGet -> {
+    deployments.getNotFound(srvcId, instId).onComplete(resGet -> {
       if (resGet.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(resGet.cause()), resGet.cause()));
         return;
       }
       DeploymentDescriptor md = resGet.result();
@@ -512,7 +531,7 @@ public class DiscoveryManager implements NodeListener {
   void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
     DiscoveryManager.this.get().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
       } else {
         healthList(res.result(), fut);
       }
@@ -532,7 +551,7 @@ public class DiscoveryManager implements NodeListener {
   void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
     getNonEmpty(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
       } else {
         healthList(res.result(), fut);
       }
