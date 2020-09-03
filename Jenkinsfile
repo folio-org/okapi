@@ -1,4 +1,4 @@
-@Library ('folio_jenkins_shared_libs@buildDeb') _
+@Library ('folio_jenkins_shared_libs') _
 
 buildMvn {
   publishModDescriptor = 'no'
