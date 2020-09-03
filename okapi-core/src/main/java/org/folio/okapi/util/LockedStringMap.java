@@ -56,9 +56,6 @@ public class LockedStringMap {
    * @return future with value (null if not found)
    */
   public Future<String> getString(String k, String k2) {
-    if (list == null) {
-      return Future.failedFuture("NULL");
-    }
     return list.get(k).compose(val -> {
       if (k2 == null || val == null) {
         return Future.succeededFuture(val);
