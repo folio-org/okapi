@@ -64,13 +64,13 @@ public class DeploymentManagerTest {
       "java -Dport=%p -jar "
       + "../okapi-test-module/target/okapi-test-module-fat.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("1", "sid", descriptor);
-    dm.deploy(dd, res1 -> {
+    dm.deploy(dd).onComplete(res1 -> {
       context.assertTrue(res1.succeeded());
       dm.undeploy(res1.result().getInstId()).onComplete(res2 -> {
         // after undeploy so we have no stale process
         context.assertEquals("http://myhost.index:9231", res1.result().getUrl());
         context.assertTrue(res2.succeeded());
-        dm.shutdown(res3 -> {
+        dm.shutdown().onComplete(res3 -> {
           context.assertTrue(res3.succeeded());
           async.complete();
         });
@@ -88,7 +88,7 @@ public class DeploymentManagerTest {
             "java -Dport=%p -jar "
             + "../okapi-test-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
-    dm.deploy(dd, res -> {
+    dm.deploy(dd).onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("Service returned with exit code 1", res.cause().getMessage());
       async.complete();
@@ -108,7 +108,7 @@ public class DeploymentManagerTest {
             "java -Dport=%p -jar "
             + "../okapi-test-module/target/unknown.jar");
     DeploymentDescriptor dd = new DeploymentDescriptor("2", "sid", descriptor);
-    dm.deploy(dd, res -> {
+    dm.deploy(dd).onComplete(res -> {
       context.assertFalse(res.succeeded());
       context.assertEquals("all ports in use", res.cause().getMessage());
       async.complete();

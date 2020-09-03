@@ -558,11 +558,11 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void addNode(NodeDescriptor nd, Handler<ExtendedAsyncResult<Void>> fut) {
+  Future<Void> addNode(NodeDescriptor nd) {
     if (clusterManager != null) {
       nd.setNodeId(clusterManager.getNodeId());
     }
-    nodes.put(nd.getNodeId(), nd, fut);
+    return nodes.put(nd.getNodeId(), nd);
   }
 
   /**

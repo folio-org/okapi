@@ -1057,9 +1057,9 @@ public class InternalModule {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
           DeploymentDescriptor.class);
-      deploymentManager.deploy(pmd, res -> {
+      deploymentManager.deploy(pmd).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         final String s = Json.encodePrettily(res.result());

@@ -138,7 +138,7 @@ public class MainVerticle extends AbstractVerticle {
         @Override
         public void run() {
           CountDownLatch latch = new CountDownLatch(1);
-          deploymentManager.shutdown(ar -> latch.countDown());
+          deploymentManager.shutdown().onComplete(ar -> latch.countDown());
           try {
             if (!latch.await(2, TimeUnit.MINUTES)) {
               logger.error("Timed out waiting to undeploy all");
@@ -329,14 +329,10 @@ public class MainVerticle extends AbstractVerticle {
   }
 
   private Future<Void> startDeployment() {
-    Promise<Void> promise = Promise.promise();
     if (deploymentManager == null) {
-      promise.complete();
-    } else {
-      logger.info("Starting deployment");
-      deploymentManager.init(promise::handle);
+      return Future.succeededFuture();
     }
-    return promise.future();
+    return deploymentManager.init();
   }
 
   private Future<Void> startListening() {
