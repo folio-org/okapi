@@ -186,9 +186,9 @@ public class ModuleManager {
    */
   public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
                          boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, npmSnapshot, null, ares -> {
+    getModulesWithFilter(preRelease, npmSnapshot, null).onComplete(ares -> {
       if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(ares.cause()), ares.cause()));
         return;
       }
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
@@ -243,56 +243,45 @@ public class ModuleManager {
    * Delete a module.
    *
    * @param id module ID
-   * @param fut future
+   * @return future
    */
-  public void delete(String id, Handler<ExtendedAsyncResult<Void>> fut) {
-    modules.getAll(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(ares.getType(), ares.cause()));
-        return;
-      }
-      if (deleteCheckDep(id, fut, ares.result())) {
-        return;
-      }
-      tenantManager.getModuleUser(id).compose(tenants -> {
-        if (!tenants.isEmpty()) {
-          return Future.failedFuture(new OkapiError(ErrorType.USER,
-              messages.getMessage("10206", id, tenants.get(0))));
-        }
-        if (moduleStore == null) {
-          return deleteInternal(id);
-        }
-        return moduleStore.delete(id).compose(dres -> {
-          if (Boolean.FALSE.equals(dres)) {
+  public Future<Void> delete(String id) {
+    return modules.getAll()
+        .compose(ares -> deleteCheckDep(id, ares))
+        .compose(check -> tenantManager.getModuleUser(id))
+        .compose(tenants -> {
+          if (!tenants.isEmpty()) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10206", id, tenants.get(0))));
+          }
+          return Future.succeededFuture();
+        })
+        .compose(res2 -> {
+          if (moduleStore == null) {
+            return Future.succeededFuture(Boolean.TRUE);
+          } else {
+            return moduleStore.delete(id);
+          }
+        })
+        .compose(res3 -> {
+          if (Boolean.FALSE.equals(res3)) {
             return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
           }
           return deleteInternal(id).mapEmpty();
-        }).mapEmpty();
-      }).onComplete(res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res1.cause()), res1.cause()));
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
-    });
+        });
   }
 
-  private boolean deleteCheckDep(String id, Handler<ExtendedAsyncResult<Void>> fut,
-                                 LinkedHashMap<String, ModuleDescriptor> mods) {
-
+  private Future<Void> deleteCheckDep(String id, LinkedHashMap<String, ModuleDescriptor> mods) {
     if (!mods.containsKey(id)) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10207")));
-      return true;
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("10207")));
     }
     mods.remove(id);
     String res = DepResolution.checkAllDependencies(mods);
     if (!res.isEmpty()) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10208", id, res)));
-      return true;
-    } else {
-      return false;
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
+          messages.getMessage("10208", id, res)));
     }
+    return Future.succeededFuture();
   }
 
   private Future<Void> deleteInternal(String id) {
@@ -324,30 +313,25 @@ public class ModuleManager {
     });
   }
 
-  void getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
-                            List<String> skipModules,
-                            Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  Future<List<ModuleDescriptor>> getModulesWithFilter(boolean preRelease, boolean npmSnapshot,
+                                                      List<String> skipModules) {
 
     Set<String> skipIds = new TreeSet<>();
     if (skipModules != null) {
       skipIds.addAll(skipModules);
     }
-    modules.getAll(kres -> {
-      if (kres.failed()) {
-        fut.handle(new Failure<>(kres.getType(), kres.cause()));
-      } else {
-        List<ModuleDescriptor> mdl = new LinkedList<>();
-        for (ModuleDescriptor md : kres.result().values()) {
-          String id = md.getId();
-          ModuleId idThis = new ModuleId(id);
-          if ((npmSnapshot || !idThis.hasNpmSnapshot())
-              && (preRelease || !idThis.hasPreRelease())
-              && !skipIds.contains(id)) {
-            mdl.add(md);
-          }
+    return modules.getAll().compose(kres -> {
+      List<ModuleDescriptor> mdl = new LinkedList<>();
+      for (ModuleDescriptor md : kres.values()) {
+        String id = md.getId();
+        ModuleId idThis = new ModuleId(id);
+        if ((npmSnapshot || !idThis.hasNpmSnapshot())
+            && (preRelease || !idThis.hasPreRelease())
+            && !skipIds.contains(id)) {
+          mdl.add(md);
         }
-        fut.handle(new Success<>(mdl));
       }
+      return Future.succeededFuture(mdl);
     });
   }
 

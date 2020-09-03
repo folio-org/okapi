@@ -24,6 +24,7 @@ import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
+import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
 public class PullManager {
@@ -155,10 +156,10 @@ public class PullManager {
         fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
         return;
       }
-      moduleManager.getModulesWithFilter(true, true, null,
+      moduleManager.getModulesWithFilter(true, true, null).onComplete(
           resLocal -> {
             if (resLocal.failed()) {
-              fut.handle(new Failure<>(resLocal.getType(), resLocal.cause()));
+              fut.handle(new Failure<>(OkapiError.getType(resLocal.cause()), resLocal.cause()));
               return;
             }
             final String remoteUrl = resUrl.result().get(0);

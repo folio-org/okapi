@@ -2,7 +2,6 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -24,14 +23,10 @@ import org.folio.okapi.bean.LaunchDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.service.DeploymentStore;
-import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.LockedTypedMap2;
 import org.folio.okapi.util.OkapiError;
@@ -363,13 +358,8 @@ public class DiscoveryManager implements NodeListener {
       if (result == null) {
         return Future.succeededFuture(new LinkedList<>());
       }
-      Promise<List<DeploymentDescriptor>> promise = Promise.promise();
-      nodes.getAll(nodeRes -> {
-        if (nodeRes.failed()) {
-          promise.fail(nodeRes.cause());
-          return;
-        }
-        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
+      return nodes.getAll().compose(nodeRes -> {
+        Collection<NodeDescriptor> nodesCollection = nodeRes.values();
         Iterator<DeploymentDescriptor> it = result.iterator();
         while (it.hasNext()) {
           DeploymentDescriptor md = it.next();
@@ -377,9 +367,8 @@ public class DiscoveryManager implements NodeListener {
             it.remove();
           }
         }
-        promise.complete(result);
+        return Future.succeededFuture(result);
       });
-      return promise.future();
     });
   }
 
@@ -402,49 +391,33 @@ public class DiscoveryManager implements NodeListener {
     });
   }
 
-  void get(String srvcId, String instId, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
-    deployments.getNotFound(srvcId, instId).onComplete(resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(resGet.cause()), resGet.cause()));
-        return;
-      }
-      DeploymentDescriptor md = resGet.result();
-      nodes.getAll(nodeRes -> {
-        if (nodeRes.failed()) {
-          fut.handle(new Failure<>(nodeRes.getType(), nodeRes.cause()));
-          return;
-        }
-        Collection<NodeDescriptor> nodesCollection = nodeRes.result().values();
+  Future<DeploymentDescriptor> get(String srvcId, String instId) {
+    return deployments.getNotFound(srvcId, instId).compose(md -> {
+      return nodes.getAll().compose(nodeRes -> {
+        Collection<NodeDescriptor> nodesCollection = nodeRes.values();
         // check that the node is alive, but only on non-url instances
         if (!isAlive(md, nodesCollection)) {
-          fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10805")));
-          return;
+          return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+              messages.getMessage("10805")));
         }
-        fut.handle(new Success<>(md));
+        return Future.succeededFuture(md);
       });
     });
   }
 
-  private void healthList(List<DeploymentDescriptor> list,
-                          Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-
+  private Future<List<HealthDescriptor>> healthList(List<DeploymentDescriptor> list) {
     List<HealthDescriptor> all = new LinkedList<>();
-    CompList<List<HealthDescriptor>> futures = new CompList<>(ErrorType.INTERNAL);
+    List<Future> futures = new LinkedList<>();
     for (DeploymentDescriptor md : list) {
-      Promise<HealthDescriptor> promise = Promise.promise();
-      health(md, res -> {
-        if (res.succeeded()) {
-          all.add(res.result());
-        }
-        promise.handle(res);
-      });
-      futures.add(promise);
+      futures.add(health(md).compose(x -> {
+        all.add(x);
+        return Future.succeededFuture();
+      }));
     }
-    futures.all(all, fut);
+    return CompositeFuture.all(futures).compose(x -> Future.succeededFuture(all));
   }
 
-  void health(DeploymentDescriptor md,
-                      Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
+  Future<HealthDescriptor> health(DeploymentDescriptor md) {
 
     HealthDescriptor hd = new HealthDescriptor();
     String url = md.getUrl();
@@ -453,58 +426,41 @@ public class DiscoveryManager implements NodeListener {
     if (url == null || url.length() == 0) {
       hd.setHealthMessage("Unknown");
       hd.setHealthStatus(false);
-      fut.handle(new Success<>(hd));
-      return;
+      return Future.succeededFuture(hd);
     }
-    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
+    Promise<HealthDescriptor> promise = Promise.promise();
+    httpClient.get(new RequestOptions().setAbsoluteURI(url)).onComplete(res1 -> {
       if (res1.failed()) {
         hd.setHealthMessage("Fail: " + res1.cause().getMessage());
         hd.setHealthStatus(false);
-        fut.handle(new Success<>(hd));
+        promise.complete(hd);
         return;
       }
       HttpClientResponse response = res1.result();
       response.endHandler(res -> {
         hd.setHealthMessage("OK");
         hd.setHealthStatus(true);
-        fut.handle(new Success<>(hd));
+        promise.complete(hd);
       });
       response.exceptionHandler(res -> {
         hd.setHealthMessage("Fail: " + res.getMessage());
         hd.setHealthStatus(false);
-        fut.handle(new Success<>(hd));
+        promise.complete(hd);
       });
     });
+    return promise.future();
   }
 
-  void health(Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-    DiscoveryManager.this.get().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-      } else {
-        healthList(res.result(), fut);
-      }
-    });
+  Future<List<HealthDescriptor>> health() {
+    return get().compose(res -> healthList(res));
   }
 
-  void health(String srvcId, String instId, Handler<ExtendedAsyncResult<HealthDescriptor>> fut) {
-    DiscoveryManager.this.get(srvcId, instId, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-      } else {
-        health(res.result(), fut);
-      }
-    });
+  Future<HealthDescriptor> health(String srvcId, String instId) {
+    return DiscoveryManager.this.get(srvcId, instId).compose(res -> health(res));
   }
 
-  void health(String srvcId, Handler<ExtendedAsyncResult<List<HealthDescriptor>>> fut) {
-    getNonEmpty(srvcId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-      } else {
-        healthList(res.result(), fut);
-      }
-    });
+  Future<List<HealthDescriptor>> health(String srvcId) {
+    return getNonEmpty(srvcId).compose(res -> healthList(res));
   }
 
   Future<Void> addNode(NodeDescriptor nd) {

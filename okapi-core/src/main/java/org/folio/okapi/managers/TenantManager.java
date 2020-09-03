@@ -37,7 +37,6 @@ import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
-import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
 import org.folio.okapi.util.OkapiError;
@@ -960,9 +959,9 @@ public class TenantManager {
       }
       Tenant t = gres.result();
       moduleManager.getModulesWithFilter(options.getPreRelease(),
-          options.getNpmSnapshot(), null, mres -> {
+          options.getNpmSnapshot(), null).onComplete(mres -> {
             if (mres.failed()) {
-              fut.handle(new Failure<>(mres.getType(), mres.cause()));
+              fut.handle(new Failure<>(OkapiError.getType(mres.cause()), mres.cause()));
               return;
             }
             List<ModuleDescriptor> modResult = mres.result();

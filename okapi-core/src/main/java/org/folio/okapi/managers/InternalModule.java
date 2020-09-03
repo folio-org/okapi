@@ -992,9 +992,9 @@ public class InternalModule {
     if (!body.isEmpty()) {
       skipModules = Json.decodeValue(body, skipModules.getClass());
     }
-    moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules), res -> {
+    moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules)).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       try {
@@ -1017,11 +1017,9 @@ public class InternalModule {
 
   private void deleteModule(ProxyContext pc, String id,
                             Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.delete(id, res -> {
+    moduleManager.delete(id).onComplete(res -> {
       if (res.failed()) {
-        pc.error("delete module failed: " + res.getType()
-            + ":" + res.cause().getMessage());
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -1145,14 +1143,12 @@ public class InternalModule {
 
   private void discoveryGetInstId(String srvcId, String instId,
                                   Handler<ExtendedAsyncResult<String>> fut) {
-
-    discoveryManager.get(srvcId, instId, res -> {
+    discoveryManager.get(srvcId, instId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
+      fut.handle(new Success<>(Json.encodePrettily(res.result())));
     });
   }
 
@@ -1214,9 +1210,9 @@ public class InternalModule {
   }
 
   private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.health(res -> {
+    discoveryManager.health().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1227,9 +1223,9 @@ public class InternalModule {
   private void discoveryHealthSrvcId(String srvcId,
                                      Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.health(srvcId, res -> {
+    discoveryManager.health(srvcId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1240,9 +1236,9 @@ public class InternalModule {
   private void discoveryHealthOne(String srvcId, String instId,
                                   Handler<ExtendedAsyncResult<String>> fut) {
 
-    discoveryManager.health(srvcId, instId, res -> {
+    discoveryManager.health(srvcId, instId).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
