@@ -10,6 +10,7 @@ import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
 import org.folio.okapi.service.impl.TenantStoreNull;
 import org.folio.okapi.util.LockedTypedMap1Faulty;
+import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.TestBase;
 import org.junit.After;
 import org.junit.Assert;
@@ -56,7 +57,7 @@ public class TenantManagerTest extends TestBase {
     {
       Async async = context.async();
       td.setName("second name");
-      tm.updateDescriptor(td, res -> {
+      tm.updateDescriptor(td).onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -77,7 +78,7 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1", res -> {
+      tm.updateModuleCommit(td.getId(), "mod-1.0.0", "mod-1.0.1").onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -127,9 +128,9 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateDescriptor(td, res -> {
+      tm.updateDescriptor(td).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals(fakeMsg, res.cause().getMessage());
         async.complete();
       });
@@ -184,9 +185,9 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateDescriptor(td, res -> {
+      tm.updateDescriptor(td).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("gerror", res.cause().getMessage());
         async.complete();
       });
@@ -208,9 +209,9 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.updateDescriptor(td, res -> {
+      tm.updateDescriptor(td).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("aerror", res.cause().getMessage());
         async.complete();
       });

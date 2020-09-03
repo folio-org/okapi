@@ -609,7 +609,7 @@ public class DiscoveryManager implements NodeListener {
         return;
       }
     }
-    nodes.get(nodeId, gres -> {
+    nodes.getNotFound(nodeId, gres -> {
       if (gres.failed()) {
         fut.handle(new Failure<>(gres.getType(), gres.cause()));
       } else {
@@ -622,9 +622,9 @@ public class DiscoveryManager implements NodeListener {
           fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10808", nodeId)));
           return;
         }
-        nodes.put(nodeId, nd, pres -> {
+        nodes.put(nodeId, nd).onComplete(pres -> {
           if (pres.failed()) {
-            fut.handle(new Failure<>(pres.getType(), pres.cause()));
+            fut.handle(new Failure<>(OkapiError.getType(pres.cause()), pres.cause()));
           } else {
             fut.handle(new Success<>(nd));
           }

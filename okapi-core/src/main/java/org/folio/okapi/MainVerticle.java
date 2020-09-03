@@ -287,7 +287,7 @@ public class MainVerticle extends AbstractVerticle {
         // Use the commit, easier interface.
         // the internal module can not have dependencies
         // See Okapi-359 about version checks across the cluster
-        tenantManager.updateModuleCommit(st, ev, okapiModule, ures -> {
+        tenantManager.updateModuleCommit(st, ev, okapiModule).onComplete(ures -> {
           if (ures.failed()) {
             promise.fail(ures.cause());
             return;

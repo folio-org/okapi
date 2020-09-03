@@ -21,19 +21,9 @@ public class LockedTypedMap1<T> extends LockedStringMap {
     this.clazz = c;
   }
 
-  public void add(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
-    String json = Json.encode(value);
-    addOrReplace(false, k, null, json, fut);
-  }
-
   public Future<Void> add(String k, T value) {
     String json = Json.encode(value);
     return addOrReplace(false, k, null, json);
-  }
-
-  public void put(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
-    String json = Json.encode(value);
-    addOrReplace(true, k, null, json, fut);
   }
 
   public Future<Void> put(String k, T value) {
@@ -46,7 +36,7 @@ public class LockedTypedMap1<T> extends LockedStringMap {
    * @param k key
    * @param fut result with value if successful
    */
-  public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
+  public void getNotFound(String k, Handler<ExtendedAsyncResult<T>> fut) {
     get(k).onComplete(res -> {
       if (res.failed()) {
         fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));

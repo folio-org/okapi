@@ -20,12 +20,12 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
   }
 
   @Override
-  public void get(String k, Handler<ExtendedAsyncResult<T>> fut) {
+  public void getNotFound(String k, Handler<ExtendedAsyncResult<T>> fut) {
     if (getError != null) {
       fut.handle(new Failure<>(ErrorType.INTERNAL, getError));
       return;
     }
-    super.get(k, fut);
+    super.getNotFound(k, fut);
   }
 
   @Override
@@ -36,20 +36,10 @@ public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
     return super.get(k);
   }
 
-
   private String addError;
 
   public void setAddError(String addError) {
     this.addError = addError;
-  }
-
-  @Override
-  public void add(String k, T value, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (addError != null) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, addError));
-      return;
-    }
-    super.add(k, value, fut);
   }
 
   @Override

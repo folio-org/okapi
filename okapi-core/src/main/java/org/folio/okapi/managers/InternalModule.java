@@ -679,9 +679,9 @@ public class InternalModule {
         return;
       }
       Tenant t = new Tenant(td);
-      tenantManager.updateDescriptor(td, res -> {
+      tenantManager.updateDescriptor(td).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         final String s = Json.encodePrettily(t.getDescriptor());

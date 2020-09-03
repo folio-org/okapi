@@ -320,7 +320,7 @@ public class ModuleManager {
    */
   public void get(String id, Handler<ExtendedAsyncResult<ModuleDescriptor>> fut) {
     if (id != null) {
-      modules.get(id, fut);
+      modules.getNotFound(id, fut);
     } else {
       fut.handle(new Success<>(null));
     }
