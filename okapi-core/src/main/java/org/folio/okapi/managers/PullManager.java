@@ -1,6 +1,7 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -19,11 +20,8 @@ import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.util.OkapiError;
 
 @java.lang.SuppressWarnings({"squid:S1192"})
@@ -39,11 +37,9 @@ public class PullManager {
     this.moduleManager = moduleManager;
   }
 
-  private void getRemoteUrl(Iterator<String> it,
-                            Handler<ExtendedAsyncResult<List<String>>> fut) {
+  private Future<List<String>> getRemoteUrl(Iterator<String> it) {
     if (!it.hasNext()) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("11000")));
-      return;
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, messages.getMessage("11000")));
     }
     final String baseUrl = it.next();
     String url = baseUrl;
@@ -52,11 +48,12 @@ public class PullManager {
     }
     url += "_/version";
     final Buffer body = Buffer.buffer();
-    httpClient.get(new RequestOptions().setAbsoluteURI(url), res1 -> {
+    Promise<List<String>> promise = Promise.promise();
+    httpClient.get(new RequestOptions().setAbsoluteURI(url)).onComplete(res1 -> {
       if (res1.failed()) {
         logger.warn("pull for {} failed: {}", baseUrl,
             res1.cause().getMessage(), res1.cause());
-        getRemoteUrl(it, fut);
+        getRemoteUrl(it).onComplete(promise::handle);
         return;
       }
       HttpClientResponse res = res1.result();
@@ -65,25 +62,23 @@ public class PullManager {
         if (res.statusCode() != 200) {
           logger.warn("pull for {} failed with status {}",
               baseUrl, res.statusCode());
-          fut.handle(new Failure<>(ErrorType.USER,
+          promise.fail(new OkapiError(ErrorType.USER,
               "pull for " + baseUrl + " returned status "
-                  + res.statusCode() + "\n" + body.toString()));
+              + res.statusCode() + "\n" + body.toString()));
         } else {
           List<String> result = new LinkedList<>();
           result.add(baseUrl);
           result.add(body.toString());
-          fut.handle(new Success<>(result));
+          promise.complete(result);
         }
       });
-      res.exceptionHandler(x
-          -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage()))
-      );
+      res.exceptionHandler(x -> promise.fail(x.getMessage()));
     });
+    return promise.future();
   }
 
-  private void getList(String urlBase,
-                       Collection<ModuleDescriptor> skipList,
-                       Handler<ExtendedAsyncResult<ModuleDescriptor[]>> fut) {
+  private Future<ModuleDescriptor[]> getList(String urlBase,
+                                             Collection<ModuleDescriptor> skipList) {
     String url = urlBase;
     if (!url.endsWith("/")) {
       url += "/";
@@ -94,39 +89,36 @@ public class PullManager {
     for (ModuleDescriptor md : skipList) {
       idList[i++] = md.getId();
     }
+    Promise<ModuleDescriptor[]> promise = Promise.promise();
     httpClient.request(
         new RequestOptions().setMethod(HttpMethod.GET).setAbsoluteURI(url))
-        .onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())))
+        .onFailure(res -> promise.fail(res.getMessage()))
         .onSuccess(req -> {
           req.end(Json.encodePrettily(idList));
-          req.onFailure(res -> fut.handle(new Failure<>(ErrorType.INTERNAL, res.getMessage())));
+          req.onFailure(res -> promise.fail(res.getMessage()));
           req.onSuccess(res -> {
             final Buffer body = Buffer.buffer();
             res.handler(body::appendBuffer);
             res.endHandler(x -> {
               if (res.statusCode() != 200) {
-                fut.handle(new Failure<>(ErrorType.USER, body.toString()));
+                promise.fail(new OkapiError(ErrorType.USER, body.toString()));
                 return;
               }
               ModuleDescriptor[] ml = Json.decodeValue(body.toString(),
                   ModuleDescriptor[].class);
-              fut.handle(new Success<>(ml));
+              promise.complete(ml);
             });
             res.exceptionHandler(x
-                -> fut.handle(new Failure<>(ErrorType.INTERNAL, x.getMessage())));
+                -> promise.fail(x.getMessage()));
           });
         });
+    return promise.future();
   }
 
-  private void pullSmart(String remoteUrl, Collection<ModuleDescriptor> localList,
-                         Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-
-    getList(remoteUrl, localList, resRemote -> {
-      if (resRemote.failed()) {
-        fut.handle(new Failure<>(resRemote.getType(), resRemote.cause()));
-        return;
-      }
-      ModuleDescriptor[] remoteList = resRemote.result();
+  private Future<List<ModuleDescriptor>> pullSmart(String remoteUrl,
+                                                   Collection<ModuleDescriptor> localList) {
+    return getList(remoteUrl, localList).compose(res -> {
+      ModuleDescriptor[] remoteList = res;
       List<ModuleDescriptor> mustAddList = new LinkedList<>();
       List<ModuleDescriptor> briefList = new LinkedList<>();
       Set<String> enabled = new TreeSet<>();
@@ -140,34 +132,29 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
+      Promise<List<ModuleDescriptor>> promise = Promise.promise();
       moduleManager.createList(mustAddList, true, true, true, res1 -> {
         if (res1.failed()) {
-          fut.handle(new Failure<>(res1.getType(), res1.cause()));
+          promise.fail(res1.cause());
           return;
         }
-        fut.handle(new Success<>(briefList));
+        promise.complete(briefList);
       });
+      return promise.future();
     });
   }
 
-  void pull(PullDescriptor pd, Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
-    getRemoteUrl(Arrays.asList(pd.getUrls()).iterator(), resUrl -> {
-      if (resUrl.failed()) {
-        fut.handle(new Failure<>(resUrl.getType(), resUrl.cause()));
-        return;
-      }
-      moduleManager.getModulesWithFilter(true, true, null).onComplete(
-          resLocal -> {
-            if (resLocal.failed()) {
-              fut.handle(new Failure<>(OkapiError.getType(resLocal.cause()), resLocal.cause()));
-              return;
-            }
-            final String remoteUrl = resUrl.result().get(0);
-            final String remoteVersion = resUrl.result().get(1);
-            logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
-            logger.info("pull smart");
-            pullSmart(remoteUrl, resLocal.result(), fut);
-          });
-    });
+  Future<List<ModuleDescriptor>> pull(PullDescriptor pd) {
+    return getRemoteUrl(Arrays.asList(pd.getUrls()).iterator())
+        .compose(resUrl ->
+            moduleManager.getModulesWithFilter(true, true, null).compose(
+                resLocal -> {
+                  final String remoteUrl = resUrl.get(0);
+                  final String remoteVersion = resUrl.get(1);
+                  logger.info("Remote registry at {} is version {}", remoteUrl, remoteVersion);
+                  logger.info("pull smart");
+                  return pullSmart(remoteUrl, resLocal);
+                }));
+
   }
 }

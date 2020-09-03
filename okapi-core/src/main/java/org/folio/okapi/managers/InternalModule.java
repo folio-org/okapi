@@ -1014,7 +1014,7 @@ public class InternalModule {
     });
   }
 
-  private void deleteModule(ProxyContext pc, String id,
+  private void deleteModule(String id,
                             Handler<ExtendedAsyncResult<String>> fut) {
     moduleManager.delete(id).onComplete(res -> {
       if (res.failed()) {
@@ -1303,9 +1303,9 @@ public class InternalModule {
 
     try {
       final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
-      pullManager.pull(pmd, res -> {
+      pullManager.pull(pmd).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         fut.handle(new Success<>(Json.encodePrettily(res.result())));
@@ -1382,7 +1382,7 @@ public class InternalModule {
           return;
         }
         if (n == 5 && m.equals(HttpMethod.DELETE)) {
-          deleteModule(pc, decodedSegs[4], fut);
+          deleteModule(decodedSegs[4], fut);
           return;
         }
       } // /_/proxy/modules
