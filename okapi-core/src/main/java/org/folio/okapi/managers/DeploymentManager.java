@@ -24,11 +24,8 @@ import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.Ports;
 import org.folio.okapi.common.Config;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleHandle;
 import org.folio.okapi.service.impl.ModuleHandleFactory;
 import org.folio.okapi.util.OkapiError;
@@ -165,15 +162,8 @@ public class DeploymentManager {
         entries.put(e.getName(), e);
       }
     }
-    Promise<DeploymentDescriptor> promise = Promise.promise();
-    em.get(eres -> {
-      if (eres.failed()) {
-        ports.free(usePort);
-        promise.fail(new OkapiError(ErrorType.INTERNAL,
-            messages.getMessage("10704", eres.cause().getMessage())));
-        return;
-      }
-      for (EnvEntry er : eres.result()) {
+    return em.get().compose(eres -> {
+      for (EnvEntry er : eres) {
         entries.put(er.getName(), er);
       }
       if (entries.size() > 0) {
@@ -191,6 +181,7 @@ public class DeploymentManager {
       }
       ModuleHandle mh = ModuleHandleFactory.create(vertx, descriptor,
           md1.getSrvcId(), ports, moduleHost, usePort, config);
+      Promise<DeploymentDescriptor> promise = Promise.promise();
       mh.start(future -> {
         if (future.failed()) {
           ports.free(usePort);
@@ -207,10 +198,9 @@ public class DeploymentManager {
           promise.complete(md2);
         });
       });
+      return promise.future();
     });
-    return promise.future();
   }
-
 
   Future<Void> undeploy(String id) {
     logger.info("undeploy instId {}", id);
@@ -234,19 +224,19 @@ public class DeploymentManager {
     }).mapEmpty();
   }
 
-  void list(Handler<ExtendedAsyncResult<List<DeploymentDescriptor>>> fut) {
+  Future<List<DeploymentDescriptor>> list() {
     List<DeploymentDescriptor> ml = new LinkedList<>();
     for (Map.Entry<String, DeploymentDescriptor> entry : list.entrySet()) {
       ml.add(entry.getValue());
     }
-    fut.handle(new Success<>(ml));
+    return Future.succeededFuture(ml);
   }
 
-  void get(String id, Handler<ExtendedAsyncResult<DeploymentDescriptor>> fut) {
+  Future<DeploymentDescriptor> get(String id) {
     if (!list.containsKey(id)) {
-      fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10705", id)));
-    } else {
-      fut.handle(new Success<>(list.get(id)));
+      return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+          messages.getMessage("10705", id)));
     }
+    return Future.succeededFuture(list.get(id));
   }
 }

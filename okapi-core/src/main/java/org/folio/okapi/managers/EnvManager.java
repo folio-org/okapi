@@ -1,26 +1,18 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.EnvEntry;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.EnvStore;
-import org.folio.okapi.util.CompList;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.OkapiError;
 
 
 public class EnvManager {
@@ -58,78 +50,47 @@ public class EnvManager {
 
   private Future<Void> add1(EnvEntry env) {
     if (env.getName() == null) {
-      return Future.failedFuture(messages.getMessage("10900"));
-    } else if (env.getValue() == null) {
-      return Future.failedFuture(messages.getMessage("10901"));
-    } else {
-      return envMap.add(env.getName(), env);
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10900")));
     }
+    if (env.getValue() == null) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("10901")));
+    }
+    return envMap.add(env.getName(), env);
   }
 
-  void add(EnvEntry env, Handler<ExtendedAsyncResult<Void>> fut) {
-    add1(env).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
-        return;
+  Future<Void> add(EnvEntry env) {
+    return add1(env).compose(res -> envStore.add(env));
+  }
+
+  Future<EnvEntry> get(String name) {
+    return envMap.get(name).compose(x -> {
+      if (x == null) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, name));
       }
-      envStore.add(env).onComplete(res1 -> toExtendedAsyncResult(res1, fut));
+      return Future.succeededFuture(x);
     });
   }
 
-  private void getR(Iterator<String> it, List<EnvEntry> all,
-          Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>(all));
-    } else {
-      String srvcId = it.next();
-      get(srvcId, resGet -> {
-        if (resGet.failed()) {
-          fut.handle(new Failure<>(resGet.getType(), resGet.cause()));
-        } else {
-          EnvEntry dpl = resGet.result();
-          all.add(dpl);
-          getR(it, all, fut);
-        }
-      });
-    }
-  }
-
-  void get(String name, Handler<ExtendedAsyncResult<EnvEntry>> fut) {
-    envMap.get(name, fut);
-  }
-
-  void get(Handler<ExtendedAsyncResult<List<EnvEntry>>> fut) {
-    envMap.getKeys().onComplete(resGet -> {
-      if (resGet.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, resGet.cause()));
-      } else {
-        Collection<String> keys = resGet.result();
-        List<EnvEntry> all = new LinkedList<>();
-        if (keys == null || keys.isEmpty()) {
-          fut.handle(new Success<>(all));
-        } else {
-          getR(keys.iterator(), all, fut);
-        }
+  Future<List<EnvEntry>> get() {
+    return envMap.getKeys().compose(keys -> {
+      List<EnvEntry> list = new LinkedList<>();
+      Future<Void> future = Future.succeededFuture();
+      for (String key : keys) {
+        future = future.compose(a -> envMap.get(key).compose(x -> {
+          list.add(x);
+          return Future.succeededFuture();
+        }));
       }
+      return future.compose(x -> Future.succeededFuture(list));
     });
   }
 
-  private static <T> void toExtendedAsyncResult(AsyncResult<T> res,
-                                                Handler<ExtendedAsyncResult<Void>> fut) {
-    if (res.failed()) {
-      fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      return;
-    }
-    fut.handle(new Success<>());
-  }
-
-  void remove(String name, Handler<ExtendedAsyncResult<Void>> fut) {
-    envMap.remove(name, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
-        return;
+  Future<Void> remove(String name) {
+    return envMap.remove(name).compose(res -> {
+      if (Boolean.FALSE.equals(res)) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, name));
       }
-      envStore.delete(name).onComplete(res1 -> toExtendedAsyncResult(res1, fut));
+      return envStore.delete(name).mapEmpty();
     });
   }
 }

@@ -1031,9 +1031,9 @@ public class InternalModule {
   private void getDeployment(String id,
                              Handler<ExtendedAsyncResult<String>> fut) {
 
-    deploymentManager.get(id, res -> {
+    deploymentManager.get(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1042,9 +1042,9 @@ public class InternalModule {
   }
 
   private void listDeployments(Handler<ExtendedAsyncResult<String>> fut) {
-    deploymentManager.list(res -> {
+    deploymentManager.list().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1255,9 +1255,9 @@ public class InternalModule {
   }
 
   private void listEnv(Handler<ExtendedAsyncResult<String>> fut) {
-    envManager.get(res -> {
+    envManager.get().onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1268,9 +1268,9 @@ public class InternalModule {
   private void getEnv(String id,
                       Handler<ExtendedAsyncResult<String>> fut) {
 
-    envManager.get(id, res -> {
+    envManager.get(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       final String s = Json.encodePrettily(res.result());
@@ -1283,9 +1283,9 @@ public class InternalModule {
 
     try {
       final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
-      envManager.add(pmd, res -> {
+      envManager.add(pmd).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         final String js = Json.encodePrettily(pmd);
@@ -1298,9 +1298,9 @@ public class InternalModule {
 
   private void deleteEnv(String id, Handler<ExtendedAsyncResult<String>> fut) {
 
-    envManager.remove(id, res -> {
+    envManager.remove(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));

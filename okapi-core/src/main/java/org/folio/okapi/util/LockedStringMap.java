@@ -174,6 +174,11 @@ public class LockedStringMap {
     remove(k, null, fut);
   }
 
+  public Future<Boolean> remove(String k) {
+    return remove(k, (String) null);
+  }
+
+
   /**
    * Remove entry from shared map.
    * @param k primary-level key
