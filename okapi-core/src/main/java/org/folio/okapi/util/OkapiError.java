@@ -3,8 +3,8 @@ package org.folio.okapi.util;
 import org.folio.okapi.common.ErrorType;
 
 public class OkapiError extends Throwable {
-  String msg;
-  ErrorType type;
+  private final String msg;
+  private final ErrorType type;
 
   public OkapiError(ErrorType type, String msg) {
     this.msg = msg;
