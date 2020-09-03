@@ -192,20 +192,14 @@ public class TenantManager {
    * Delete a tenant.
    *
    * @param id tenant ID
-   * @param fut future with a boolean, true if actually deleted, false if not there.
+   * @return future .. OkapiError if id not found
    */
-  public void delete(String id, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    tenantStore.delete(id).onComplete(dres -> {
-      if (dres.failed()) {
-        logger.warn("Deleting {} failed", id, dres.cause());
-        fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
-        return;
+  public Future<Void> delete(String id) {
+    return tenantStore.delete(id).compose(x -> {
+      if (Boolean.FALSE.equals(x)) {
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
       }
-      if (Boolean.FALSE.equals(dres.result())) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
-        return;
-      }
-      tenants.remove(id, fut);
+      return tenants.removeNotFound(id).mapEmpty();
     });
   }
 

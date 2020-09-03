@@ -29,6 +29,7 @@ import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
+import org.folio.okapi.util.OkapiError;
 
 /**
  * Manages a list of modules known to Okapi's "/_/proxy". Maintains consistency
@@ -253,33 +254,26 @@ public class ModuleManager {
       if (deleteCheckDep(id, fut, ares.result())) {
         return;
       }
-      tenantManager.getModuleUser(id).onComplete(ures -> {
-        if (ures.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, ures.cause()));
-          return;
-        }
-        List<String> tenants = ures.result();
+      tenantManager.getModuleUser(id).compose(tenants -> {
         if (!tenants.isEmpty()) {
-          fut.handle(new Failure<>(ErrorType.USER,
+          return Future.failedFuture(new OkapiError(ErrorType.USER,
               messages.getMessage("10206", id, tenants.get(0))));
-          return;
         }
         if (moduleStore == null) {
-          deleteInternal(id, fut);
-          return;
+          return deleteInternal(id);
         }
-        moduleStore.delete(id).onComplete(dres -> {
-          if (dres.failed()) {
-            fut.handle(new Failure<>(ErrorType.INTERNAL, dres.cause()));
-            return;
+        return moduleStore.delete(id).compose(dres -> {
+          if (Boolean.FALSE.equals(dres)) {
+            return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
           }
-          if (Boolean.FALSE.equals(dres.result())) {
-            fut.handle(new Failure<>(ErrorType.NOT_FOUND, id));
-            return;
-          }
-          deleteInternal(id, fut);
-        });
-
+          return deleteInternal(id).mapEmpty();
+        }).mapEmpty();
+      }).onComplete(res1 -> {
+        if (res1.failed()) {
+          fut.handle(new Failure<>(OkapiError.getType(res1.cause()), res1.cause()));
+        } else {
+          fut.handle(new Success<>());
+        }
       });
     });
   }
@@ -301,15 +295,9 @@ public class ModuleManager {
     }
   }
 
-  private void deleteInternal(String id, Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> deleteInternal(String id) {
     invalidateCacheEntry(id);
-    modules.remove(id, rres -> {
-      if (rres.failed()) {
-        fut.handle(new Failure<>(rres.getType(), rres.cause()));
-      } else {
-        fut.handle(new Success<>());
-      }
-    });
+    return modules.remove(id).mapEmpty();
   }
 
   /**

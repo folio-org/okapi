@@ -1,9 +1,7 @@
 package org.folio.okapi.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
@@ -15,11 +13,8 @@ import java.util.List;
 import java.util.Map;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 
 public class LockedStringMap {
 
@@ -154,34 +149,29 @@ public class LockedStringMap {
     return promise.future();
   }
 
-  public void remove(String k, Handler<ExtendedAsyncResult<Boolean>> fut) {
-    remove(k, null, fut);
+  public Future<Void> removeNotFound(String k) {
+    return removeNotFound(k, null);
   }
-
-  public Future<Boolean> remove(String k) {
-    return remove(k, (String) null);
-  }
-
 
   /**
    * Remove entry from shared map.
    * @param k primary-level key
    * @param k2 secondary-level key
-   * @param fut async result (true if removed)
+   * @return fut async result (Returns NotFound if k/k2 is not removed)
    */
-  public void remove(String k, String k2,
-                     Handler<ExtendedAsyncResult<Boolean>> fut) {
-    remove(k, k2).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
-      if (Boolean.TRUE.equals(res.result())) {
-        fut.handle(new Success<>(res.result()));
+  public Future<Void> removeNotFound(String k, String k2) {
+    return remove(k, k2).compose(res -> {
+      if (Boolean.TRUE.equals(res)) {
+        return Future.succeededFuture();
       } else {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, k + (k2 == null ? "" : "/" +  k2)));
+        return Future.failedFuture(
+            new OkapiError(ErrorType.NOT_FOUND, k + (k2 == null ? "" : "/" +  k2)));
       }
     });
+  }
+
+  public Future<Boolean> remove(String k) {
+    return remove(k, (String) null);
   }
 
   /**

@@ -723,9 +723,9 @@ public class InternalModule {
       // Change of behavior, used to return 403
       return;
     }
-    tenantManager.delete(id, res -> {
+    tenantManager.delete(id).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));

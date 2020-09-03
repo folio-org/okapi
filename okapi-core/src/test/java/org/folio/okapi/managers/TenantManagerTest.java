@@ -94,7 +94,7 @@ public class TenantManagerTest extends TestBase {
     logger.info("test1 d");
     {
       Async async = context.async();
-      tm.delete(td.getId(), res -> {
+      tm.delete(td.getId()).onComplete(res -> {
         context.assertTrue(res.succeeded());
         async.complete();
       });
@@ -103,9 +103,9 @@ public class TenantManagerTest extends TestBase {
     logger.info("test1 e");
     {
       Async async = context.async();
-      tm.delete(td.getId(), res -> {
+      tm.delete(td.getId()).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.NOT_FOUND, res.getType());
+        context.assertEquals(ErrorType.NOT_FOUND, OkapiError.getType(res.cause()));
         async.complete();
       });
       async.await();
@@ -155,9 +155,9 @@ public class TenantManagerTest extends TestBase {
     }
     {
       Async async = context.async();
-      tm.delete(td.getId(), res -> {
+      tm.delete(td.getId()).onComplete(res -> {
         context.assertTrue(res.failed());
-        context.assertEquals(ErrorType.INTERNAL, res.getType());
+        context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals(fakeMsg, res.cause().getMessage());
         async.complete();
       });

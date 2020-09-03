@@ -598,9 +598,8 @@ public class DiscoveryManager implements NodeListener {
 
   @Override
   public void nodeLeft(String nodeID) {
-    nodes.remove(nodeID, res
-        -> logger.info("node.remove {} result={}", nodeID, res.result())
-    );
+    nodes.remove(nodeID).onComplete(res ->
+        logger.info("node.remove {} result={}", nodeID, res.result()));
   }
 
   /**

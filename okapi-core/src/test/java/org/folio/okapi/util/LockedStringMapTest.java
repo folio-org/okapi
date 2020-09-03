@@ -226,7 +226,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.remove("k1", "k2", res -> {
+      map.remove("k1", "k2").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertTrue(res.result()); // k1, k2 deleted ok
         async.complete();
@@ -235,7 +235,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.remove("k1", "k2", res -> {
+      map.removeNotFound("k1", "k2").onComplete(res -> {
         context.assertFalse(res.succeeded());
         async.complete();
       });
@@ -253,7 +253,7 @@ public class LockedStringMapTest {
 
     {
       Async async = context.async();
-      map.remove("k1", "k2.2", res -> {
+      map.remove("k1", "k2.2").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertTrue(res.result()); // no keys left
         async.complete();
@@ -271,7 +271,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.remove("k1.1", "x", res -> {
+      map.remove("k1.1", "x").onComplete(res -> {
         context.assertTrue(res.succeeded());
         context.assertTrue(res.result());
         async.complete();
@@ -280,7 +280,7 @@ public class LockedStringMapTest {
     }
     {
       Async async = context.async();
-      map.remove("k", "x", res -> {
+      map.removeNotFound("k", "x").onComplete(res -> {
         context.assertTrue(res.failed());
         context.assertEquals("k/x", res.cause().getMessage());
         async.complete();
