@@ -226,49 +226,31 @@ public class TenantManager {
     });
   }
 
-  void enableAndDisableModule(String tenantId, TenantInstallOptions options,
-                              String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
-                              Handler<ExtendedAsyncResult<String>> fut) {
-    tenants.getNotFound(tenantId).onComplete(tres -> {
-      if (tres.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
-        return;
-      }
-      Tenant tenant = tres.result();
-      enableAndDisableModule(tenant, options, moduleFrom, td, pc, fut);
-    });
+  Future<String> enableAndDisableModule(
+      String tenantId, TenantInstallOptions options, String moduleFrom,
+      TenantModuleDescriptor td, ProxyContext pc) {
+
+    return tenants.getNotFound(tenantId)
+        .compose(tenant -> enableAndDisableModule(tenant, options, moduleFrom, td, pc));
   }
 
-  private void enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
-                                      String moduleFrom, TenantModuleDescriptor td, ProxyContext pc,
-                                      Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> enableAndDisableModule(
+      Tenant tenant, TenantInstallOptions options, String moduleFrom,
+      TenantModuleDescriptor td, ProxyContext pc) {
 
-    if (td == null) {
-      enableAndDisableModule2(tenant, options, moduleFrom, null, pc, fut);
-    } else {
-      moduleManager.getLatest(td.getId()).onComplete(resTo -> {
-        if (resTo.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(resTo.cause()), resTo.cause()));
-          return;
-        }
-        ModuleDescriptor mdTo = resTo.result();
-        enableAndDisableModule2(tenant, options, moduleFrom, mdTo, pc, fut);
-      });
-    }
+    return Future.succeededFuture().compose(res -> {
+      if (td == null) {
+        return Future.succeededFuture(null);
+      }
+      return  moduleManager.getLatest(td.getId());
+    }).compose(mdTo -> enableAndDisableModule2(tenant, options, moduleFrom, mdTo, pc));
   }
 
-  private Future<Void> enableAndDisableModuleFut(String tenantId, TenantInstallOptions options,
-                                                 String moduleFrom, TenantModuleDescriptor td,
-                                                 ProxyContext pc) {
-    Promise<Void> promise = Promise.promise();
-    enableAndDisableModule(tenantId, options, moduleFrom, td, pc, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-      } else {
-        promise.complete();
-      }
-    });
-    return promise.future();
+  private Future<Void> enableAndDisableModuleFut(
+      String tenantId, TenantInstallOptions options, String moduleFrom,
+      TenantModuleDescriptor td, ProxyContext pc) {
+
+    return enableAndDisableModule(tenantId, options, moduleFrom, td, pc).mapEmpty();
   }
 
   Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
@@ -283,29 +265,15 @@ public class TenantManager {
     });
   }
 
-  private void enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
-                                       String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc,
-                                       Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
+                                       String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc) {
 
-    moduleManager.get(moduleFrom).onComplete(resFrom -> {
-      if (resFrom.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(resFrom.cause()), resFrom.cause()));
-        return;
-      }
-      ModuleDescriptor mdFrom = resFrom.result();
+    return moduleManager.get(moduleFrom).compose(mdFrom -> {
       Future<Void> future = Future.succeededFuture();
       if (options.getDepCheck()) {
         future = future.compose(x -> moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo));
       }
-      Future<String> future2 = future.compose(x ->
-          enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc));
-      future2.onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.USER, res.cause()));
-          return;
-        }
-        fut.handle(new Success<>(res.result()));
-      });
+      return future.compose(x -> enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc));
     });
   }
 
@@ -354,6 +322,8 @@ public class TenantManager {
           logger.debug("eadTenantInterface: {} has no support for tenant init",
               (mdTo != null ? mdTo.getId() : mdFrom.getId()));
           promise.complete();
+        } else if (ires.getType() == ErrorType.USER) {
+          promise.fail(new OkapiError(ErrorType.USER, ires.cause().getMessage()));
         } else {
           promise.fail(ires.cause());
         }

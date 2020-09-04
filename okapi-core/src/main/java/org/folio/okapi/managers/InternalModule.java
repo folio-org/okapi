@@ -738,9 +738,9 @@ public class InternalModule {
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, options, null, td, pc, eres -> {
+      tenantManager.enableAndDisableModule(id, options, null, td, pc).onComplete(eres -> {
         if (eres.failed()) {
-          fut.handle(new Failure<>(eres.getType(), eres.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(eres.cause()), eres.cause()));
           return;
         }
         td.setId(eres.result());
@@ -756,9 +756,9 @@ public class InternalModule {
                                       Handler<ExtendedAsyncResult<String>> fut) {
     pc.debug("disablemodule t=" + id + " m=" + module);
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    tenantManager.enableAndDisableModule(id, options, module, null, pc, res -> {
+    tenantManager.enableAndDisableModule(id, options, module, null, pc).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       fut.handle(new Success<>(""));
@@ -832,9 +832,9 @@ public class InternalModule {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, options, module_from, td, pc, res -> {
+      tenantManager.enableAndDisableModule(id, options, module_from, td, pc).onComplete(res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         td.setId(res.result());
