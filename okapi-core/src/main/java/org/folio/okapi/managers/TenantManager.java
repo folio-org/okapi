@@ -572,7 +572,7 @@ public class TenantManager {
         return;
       }
       Tenant tenant = tres.result();
-      moduleManager.getEnabledModules(tenant, mres -> {
+      moduleManager.getEnabledModules(tenant).onComplete(mres -> {
         if (mres.failed()) {
           stopTimer(tenantId, moduleId, seq1);
           return;
@@ -821,45 +821,26 @@ public class TenantManager {
    */
 
   private Future<ModuleDescriptor> findSystemInterface(Tenant tenant, String interfaceName) {
-    Promise<ModuleDescriptor> promise = Promise.promise();
-    moduleManager.getEnabledModules(tenant, res -> {
-      if (res.failed()) {
-        promise.fail(res.cause());
-        return;
-      }
-      for (ModuleDescriptor md : res.result()) {
+    return moduleManager.getEnabledModules(tenant).compose(res -> {
+      for (ModuleDescriptor md : res) {
         if (md.getSystemInterface(interfaceName) != null) {
-          promise.complete(md);
-          return;
+          return Future.succeededFuture(md);
         }
       }
-      promise.complete(null);
-    });
-    return promise.future();
-  }
-
-  void listInterfaces(String tenantId, boolean full, String interfaceType,
-                      Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
-
-    tenants.getNotFound(tenantId).onComplete(tres -> {
-      if (tres.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
-      } else {
-        listInterfaces(tres.result(), full, interfaceType, fut);
-      }
+      return Future.succeededFuture(null);
     });
   }
 
-  private void listInterfaces(Tenant tenant, boolean full, String interfaceType,
-                              Handler<ExtendedAsyncResult<List<InterfaceDescriptor>>> fut) {
+  Future<List<InterfaceDescriptor>> listInterfaces(String tenantId, boolean full,
+                                                   String interfaceType) {
+    return tenants.getNotFound(tenantId)
+        .compose(tres -> listInterfaces(tres, full, interfaceType));
+  }
 
-    List<InterfaceDescriptor> intList = new LinkedList<>();
-    moduleManager.getEnabledModules(tenant, mres -> {
-      if (mres.failed()) {
-        fut.handle(new Failure<>(mres.getType(), mres.cause()));
-        return;
-      }
-      List<ModuleDescriptor> modlist = mres.result();
+  private Future<List<InterfaceDescriptor>> listInterfaces(Tenant tenant, boolean full,
+                                                           String interfaceType) {
+    return moduleManager.getEnabledModules(tenant).compose(modlist -> {
+      List<InterfaceDescriptor> intList = new LinkedList<>();
       Set<String> ids = new HashSet<>();
       for (ModuleDescriptor md : modlist) {
         for (InterfaceDescriptor provide : md.getProvidesList()) {
@@ -877,27 +858,16 @@ public class TenantManager {
           }
         }
       }
-      fut.handle(new Success<>(intList));
+      return Future.succeededFuture(intList);
     });
   }
 
-  void listModulesFromInterface(String tenantId,
-                                String interfaceName, String interfaceType,
-                                Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  Future<List<ModuleDescriptor>> listModulesFromInterface(
+      String tenantId, String interfaceName, String interfaceType) {
 
-    tenants.getNotFound(tenantId).onComplete(tres -> {
-      if (tres.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(tres.cause()), tres.cause()));
-        return;
-      }
-      Tenant tenant = tres.result();
+    return tenants.getNotFound(tenantId).compose(tenant -> {
       List<ModuleDescriptor> mdList = new LinkedList<>();
-      moduleManager.getEnabledModules(tenant, mres -> {
-        if (mres.failed()) {
-          fut.handle(new Failure<>(mres.getType(), mres.cause()));
-          return;
-        }
-        List<ModuleDescriptor> modlist = mres.result();
+      return moduleManager.getEnabledModules(tenant).compose(modlist -> {
         for (ModuleDescriptor md : modlist) {
           for (InterfaceDescriptor provide : md.getProvidesList()) {
             if (interfaceName.equals(provide.getId())
@@ -907,9 +877,9 @@ public class TenantManager {
             }
           }
         }
-        fut.handle(new Success<>(mdList));
-      }); // modlist
-    }); // tenant
+        return Future.succeededFuture(mdList);
+      });
+    });
   }
 
   Future<InstallJob> installUpgradeGet(String tenantId, String installId) {

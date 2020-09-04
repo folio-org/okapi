@@ -2,8 +2,6 @@ package org.folio.okapi.managers;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.Json;
@@ -20,12 +18,9 @@ import org.folio.okapi.bean.InterfaceDescriptor;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.ModuleStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
@@ -119,13 +114,7 @@ public class ModuleManager {
   Future<Void> enableAndDisableCheck(Tenant tenant, ModuleDescriptor modFrom,
                                      ModuleDescriptor modTo) {
 
-    Promise<Void> promise = Promise.promise();
-    getEnabledModules(tenant, gres -> {
-      if (gres.failed()) {
-        promise.fail(gres.cause());
-        return;
-      }
-      List<ModuleDescriptor> modlist = gres.result();
+    return getEnabledModules(tenant).compose(modlist -> {
       HashMap<String, ModuleDescriptor> mods = new HashMap<>(modlist.size());
       for (ModuleDescriptor md : modlist) {
         mods.put(md.getId(), md);
@@ -133,8 +122,7 @@ public class ModuleManager {
       if (modTo == null) {
         String deps = DepResolution.checkAllDependencies(mods);
         if (!deps.isEmpty()) {
-          promise.complete(); // failures even before we remove a module
-          return;
+          return Future.succeededFuture(); // failures even before we remove a module
         }
       }
       if (modFrom != null) {
@@ -143,20 +131,18 @@ public class ModuleManager {
       if (modTo != null) {
         ModuleDescriptor already = mods.get(modTo.getId());
         if (already != null) {
-          promise.fail("Module " + modTo.getId() + " already provided");
-          return;
+          return Future.failedFuture(new OkapiError(ErrorType.USER,
+              "Module " + modTo.getId() + " already provided"));
         }
         mods.put(modTo.getId(), modTo);
       }
       String conflicts = DepResolution.checkAllConflicts(mods);
       String deps = DepResolution.checkAllDependencies(mods);
       if (!conflicts.isEmpty() || !deps.isEmpty()) {
-        promise.fail(conflicts + " " + deps);
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.USER, conflicts + " " + deps));
       }
-      promise.complete();
+      return Future.succeededFuture();
     });
-    return promise.future();
   }
 
   /**
@@ -328,10 +314,9 @@ public class ModuleManager {
    * Get all modules that are enabled for the given tenant.
    *
    * @param ten tenant to check for
-   * @param fut callback with a list of ModuleDescriptors (may be empty list)
+   * @return fut callback with a list of ModuleDescriptors (may be empty list)
    */
-  public void getEnabledModules(Tenant ten,
-                                Handler<ExtendedAsyncResult<List<ModuleDescriptor>>> fut) {
+  public Future<List<ModuleDescriptor>> getEnabledModules(Tenant ten) {
 
     List<ModuleDescriptor> mdl = new LinkedList<>();
     List<Future> futures = new LinkedList<>();
@@ -349,13 +334,7 @@ public class ModuleManager {
         }));
       }
     }
-    CompositeFuture.all(futures).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-      } else {
-        fut.handle(new Success<>(mdl));
-      }
-    });
+    return CompositeFuture.all(futures).compose(res -> Future.succeededFuture(mdl));
   }
 
   private void updateExpandedPermModuleTenants(String tenant, ModuleDescriptor md) {

@@ -50,6 +50,7 @@ import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
 import org.folio.okapi.util.MetricsHelper;
+import org.folio.okapi.util.OkapiError;
 import org.folio.okapi.util.ProxyContext;
 
 
@@ -559,10 +560,10 @@ public class ProxyService {
         return;
       }
       Tenant tenant = gres.result();
-      moduleManager.getEnabledModules(tenant, mres -> {
+      moduleManager.getEnabledModules(tenant).onComplete(mres -> {
         if (mres.failed()) {
           stream.resume();
-          pc.responseError(mres.getType(), mres.cause());
+          pc.responseError(OkapiError.getType(mres.cause()), mres.cause());
           return;
         }
         List<ModuleDescriptor> enabledModules = mres.result();
@@ -1130,9 +1131,9 @@ public class ProxyService {
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
-    moduleManager.getEnabledModules(tenant, mres -> {
+    moduleManager.getEnabledModules(tenant).onComplete(mres -> {
       if (mres.failed()) { // Should not happen
-        fut.handle(new Failure<>(mres.getType(), mres.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(mres.cause()), mres.cause()));
         return;
       }
       List<ModuleDescriptor> enabledModules = mres.result();

@@ -913,9 +913,9 @@ public class InternalModule {
 
     final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
     final String type = pc.getCtx().request().getParam("type");
-    tenantManager.listInterfaces(id, full, type, res -> {
+    tenantManager.listInterfaces(id, full, type).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
       } else {
         String s = Json.encodePrettily(res.result());
         fut.handle(new Success<>(s));
@@ -927,9 +927,9 @@ public class InternalModule {
                                         Handler<ExtendedAsyncResult<String>> fut) {
 
     final String type = pc.getCtx().request().getParam("type");
-    tenantManager.listModulesFromInterface(id, intId, type, res -> {
+    tenantManager.listModulesFromInterface(id, intId, type).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       List<ModuleDescriptor> mdL = res.result();
