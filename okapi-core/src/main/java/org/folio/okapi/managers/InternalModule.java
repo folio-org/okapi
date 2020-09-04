@@ -959,9 +959,9 @@ public class InternalModule {
         fut.handle(new Failure<>(ErrorType.USER, validerr));
         return;
       }
-      moduleManager.create(md, check, preRelease, npmSnapshot, cres -> {
+      moduleManager.create(md, check, preRelease, npmSnapshot).onComplete(cres -> {
         if (cres.failed()) {
-          fut.handle(new Failure<>(cres.getType(), cres.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(cres.cause()), cres.cause()));
           return;
         }
         location(pc, md.getId(), null, Json.encodePrettily(md), fut);

@@ -243,7 +243,7 @@ public class MainVerticle extends AbstractVerticle {
       }
       logger.debug("Creating the internal Okapi module {} with interface version {}",
           okapiModule, interfaceVersion);
-      moduleManager.create(md, true, true, true, ires -> {
+      moduleManager.create(md, true, true, true).onComplete(ires -> {
         if (ires.failed()) {
           promise.fail(ires.cause()); // something went badly wrong
           return;

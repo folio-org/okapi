@@ -132,15 +132,8 @@ public class PullManager {
         }
       }
       logger.info("pull: {} MDs to insert", mustAddList.size());
-      Promise<List<ModuleDescriptor>> promise = Promise.promise();
-      moduleManager.createList(mustAddList, true, true, true, res1 -> {
-        if (res1.failed()) {
-          promise.fail(res1.cause());
-          return;
-        }
-        promise.complete(briefList);
-      });
-      return promise.future();
+      return moduleManager.createList(mustAddList, true, true,true)
+          .compose(res1 -> Future.succeededFuture(briefList));
     });
   }
 

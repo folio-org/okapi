@@ -166,13 +166,13 @@ public class ModuleManager {
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-release
    * @param npmSnapshot whether to allow npm snapshot
-   * @param fut future
+   * @return future
    */
-  public void create(ModuleDescriptor md, boolean check, boolean preRelease,
-                     boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
+  public Future<Void> create(ModuleDescriptor md, boolean check, boolean preRelease,
+                             boolean npmSnapshot) {
     List<ModuleDescriptor> l = new LinkedList<>();
     l.add(md);
-    createList(l, check, preRelease, npmSnapshot, fut);
+    return createList(l, check, preRelease, npmSnapshot);
   }
 
   /**
@@ -182,17 +182,13 @@ public class ModuleManager {
    * @param check whether to check dependencies
    * @param preRelease whether to allow pre-releasee
    * @param npmSnapshot whether to allow npm-snapshot
-   * @param fut future
+   * @return future
    */
-  public void createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
-                         boolean npmSnapshot, Handler<ExtendedAsyncResult<Void>> fut) {
-    getModulesWithFilter(preRelease, npmSnapshot, null).onComplete(ares -> {
-      if (ares.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(ares.cause()), ares.cause()));
-        return;
-      }
+  public Future<Void> createList(List<ModuleDescriptor> list, boolean check, boolean preRelease,
+                                 boolean npmSnapshot) {
+    return getModulesWithFilter(preRelease, npmSnapshot, null).compose(ares -> {
       Map<String, ModuleDescriptor> tempList = new HashMap<>();
-      for (ModuleDescriptor md : ares.result()) {
+      for (ModuleDescriptor md : ares) {
         tempList.put(md.getId(), md);
       }
       LinkedList<ModuleDescriptor> newList = new LinkedList<>();
@@ -203,8 +199,8 @@ public class ModuleManager {
           String exJson = Json.encodePrettily(exMd);
           String json = Json.encodePrettily(md);
           if (!json.equals(exJson)) {
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10203", id)));
-            return;
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10203", id)));
           }
         } else {
           tempList.put(id, md);
@@ -214,17 +210,10 @@ public class ModuleManager {
       if (check) {
         String res = DepResolution.checkDependencies(tempList.values(), newList);
         if (!res.isEmpty()) {
-          fut.handle(new Failure<>(ErrorType.USER, res));
-          return;
+          return Future.failedFuture(new OkapiError(ErrorType.USER, res));
         }
       }
-      createList2(newList).onComplete(res1 -> {
-        if (res1.failed()) {
-          fut.handle(new Failure<>(ErrorType.USER, res1.cause()));
-        } else {
-          fut.handle(new Success<>());
-        }
-      });
+      return createList2(newList);
     });
   }
 
