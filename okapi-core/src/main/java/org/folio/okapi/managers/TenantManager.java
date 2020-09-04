@@ -190,12 +190,7 @@ public class TenantManager {
    * @return fut callback for errors.
    */
   public Future<Void> updateModuleCommit(String id, String moduleFrom, String moduleTo) {
-    return tenants.get(id).compose(gres -> {
-      if (gres == null) {
-        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, id));
-      }
-      return updateModuleCommit(gres, moduleFrom, moduleTo);
-    });
+    return tenants.getNotFound(id).compose(t -> updateModuleCommit(t, moduleFrom, moduleTo));
   }
 
   /**
