@@ -13,7 +13,6 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -315,25 +314,20 @@ public class TenantManager {
     }
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
-    return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge).compose(instance -> {
-      if (instance == null) {
-        logger.debug("{}: has no support for tenant init",
-            (mdTo != null ? mdTo.getId() : mdFrom.getId()));
-        return Future.succeededFuture();
-      }
-      final String req = purge ? "" : jo.encodePrettily();
-      Promise<Void> promise = Promise.promise();
-      proxyService.callSystemInterface(tenant, instance, req, pc, cres -> {
-        if (cres.failed()) {
-          promise.fail(cres.cause());
-        } else {
-          pc.passOkapiTraceHeaders(cres.result());
-          // We can ignore the result, the call went well.
-          promise.complete();
-        }
-      });
-      return promise.future();
-    });
+    return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge)
+        .compose(instance -> {
+          if (instance == null) {
+            logger.debug("{}: has no support for tenant init",
+                (mdTo != null ? mdTo.getId() : mdFrom.getId()));
+            return Future.succeededFuture();
+          }
+          final String req = purge ? "" : jo.encodePrettily();
+          return proxyService.callSystemInterface(tenant, instance, req, pc).compose(cres -> {
+            pc.passOkapiTraceHeaders(cres);
+            // We can ignore the result, the call went well.
+            return Future.succeededFuture();
+          });
+        });
   }
 
   /**
@@ -352,20 +346,11 @@ public class TenantManager {
         || mdTo.getSystemInterface("_tenantPermissions") != null) {
       return Future.succeededFuture();
     }
-    Future<ModuleDescriptor> future = findSystemInterface(tenant, "_tenantPermissions");
-    return future.compose(x -> {
-      if (x == null) {
+    return findSystemInterface(tenant, "_tenantPermissions").compose(md -> {
+      if (md == null) {
         return Future.succeededFuture();
       }
-      Promise<Void> promise = Promise.promise();
-      invokePermissionsForModule(tenant, mdTo, x, pc, m -> {
-        if (m.failed()) {
-          promise.fail(m.cause());
-        } else {
-          promise.complete();
-        }
-      });
-      return promise.future();
+      return invokePermissionsForModule(tenant, mdTo, md, pc);
     });
   }
 
@@ -386,74 +371,36 @@ public class TenantManager {
         || mdTo.getSystemInterface("_tenantPermissions") == null) {
       return Future.succeededFuture();
     }
-
     // enabling permissions module.
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
-    Future<ModuleDescriptor> future = findSystemInterface(tenant, "_tenantPermissions");
-    return future.compose(res -> {
-      Promise<Void> promise = Promise.promise();
-      if (res == null) { // == null : no permissions module already enabled
-        Set<String> listModules = tenant.listModules();
-        Iterator<String> modit = listModules.iterator();
-        loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, mdTo, pc, x -> {
-          if (x.failed()) {
-            promise.fail(x.cause());
+    return findSystemInterface(tenant, "_tenantPermissions")
+        .compose(res -> {
+          if (res == null) { // == null : no permissions module already enabled
+            return loadPermissionsForEnabled(tenant, mdTo, pc);
           } else {
-            promise.complete();
+            return Future.succeededFuture();
           }
-        });
-      } else {
-        invokePermissionsForModule(tenant, mdTo, mdTo, pc, x -> {
-          if (x.failed()) {
-            promise.fail(x.cause());
-          } else {
-            promise.complete();
-          }
-        });
-      }
-      return promise.future();
-    });
+        })
+        .compose(res -> invokePermissionsForModule(tenant, mdTo, mdTo, pc));
   }
 
   /**
-   * Reload permissions. When we enable a module that
-   * provides the tenantPermissions interface, we may have other modules already
-   * enabled, who have not got their permissions pushed. Now that we have a
-   * place to push those permissions to, we do it recursively for all enabled
-   * modules.
+   * Announce permissions for a set of modules to a permissions module.
    *
    * @param tenant tenant
-   * @param moduleFrom module from
-   * @param mdTo module to
    * @param permsModule permissions module
    * @param pc ProxyContext
-   * @param fut future
+   * @return future
    */
-  private void loadPermissionsForEnabled(
-      Tenant tenant, Iterator<String> modit,
-      String moduleFrom, ModuleDescriptor mdTo, ModuleDescriptor permsModule,
-      ProxyContext pc, Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!modit.hasNext()) {
-      pc.debug("ead3RealoadPerms: No more modules to reload");
-      invokePermissionsForModule(tenant, mdTo, permsModule, pc, fut);
-      return;
+  private Future<Void> loadPermissionsForEnabled(
+      Tenant tenant, ModuleDescriptor permsModule, ProxyContext pc) {
+
+    Future<Void> future = Future.succeededFuture();
+    for (String mdid : tenant.listModules()) {
+      future = future.compose(x -> moduleManager.get(mdid)
+          .compose(md -> invokePermissionsForModule(tenant, md, permsModule, pc)));
     }
-    String mdid = modit.next();
-    moduleManager.get(mdid).onComplete(res -> {
-      if (res.failed()) { // not likely to happen
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      ModuleDescriptor md = res.result();
-      pc.debug("ead3RealoadPerms: Should reload perms for " + md.getName());
-      invokePermissionsForModule(tenant, md, permsModule, pc, pres -> {
-        if (pres.failed()) { // not likely to happen
-          fut.handle(pres);
-          return;
-        }
-        loadPermissionsForEnabled(tenant, modit, moduleFrom, mdTo, permsModule, pc, fut);
-      });
-    });
+    return future;
   }
 
   /**
@@ -607,7 +554,7 @@ public class TenantManager {
     ModuleInstance inst = new ModuleInstance(md, re, path, httpMethod, true);
     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
     logger.info("timer call start module {} for tenant {}", md.getId(), tenantId);
-    proxyService.callSystemInterface(headers, tenant, inst, "", cres -> {
+    proxyService.callSystemInterface(headers, tenant, inst, "").onComplete(cres -> {
       if (cres.succeeded()) {
         logger.info("timer call succeeded to module {} for tenant {}",
             md.getId(), tenantId);
@@ -618,9 +565,8 @@ public class TenantManager {
     });
   }
 
-  private void invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
-                                          ModuleDescriptor permsModule, ProxyContext pc,
-                                          Handler<ExtendedAsyncResult<Void>> fut) {
+  private Future<Void> invokePermissionsForModule(Tenant tenant, ModuleDescriptor mdTo,
+                                                  ModuleDescriptor permsModule, ProxyContext pc) {
 
     pc.debug("Loading permissions for " + mdTo.getName()
         + " (using " + permsModule.getName() + ")");
@@ -646,23 +592,17 @@ public class TenantManager {
       }
     }
     if (permInst == null) {
-      fut.handle(new Failure<>(ErrorType.USER,
+      return Future.failedFuture(new OkapiError(ErrorType.USER,
           "Bad _tenantPermissions interface in module " + permsModule.getId()
               + ". No path to POST to"));
-      return;
     }
     pc.debug("tenantPerms: " + permsModule.getId() + " and " + permPath);
-    proxyService.callSystemInterface(tenant, permInst,
-        pljson, pc, cres -> {
-          if (cres.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, cres.cause()));
-          } else {
-            pc.passOkapiTraceHeaders(cres.result());
-            pc.debug("tenantPerms request to " + permsModule.getName()
-                + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
-            fut.handle(new Success<>());
-          }
-        });
+    return proxyService.callSystemInterface(tenant, permInst, pljson, pc).compose(cres -> {
+      pc.passOkapiTraceHeaders(cres);
+      pc.debug("tenantPerms request to " + permsModule.getName()
+          + " succeeded for module " + moduleTo + " and tenant " + tenant.getId());
+      return Future.succeededFuture();
+    });
   }
 
   /**

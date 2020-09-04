@@ -5,6 +5,7 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClient;
@@ -1108,20 +1109,17 @@ public class ProxyService {
    * @param inst carries the moduleDescriptor, RoutingEntry, and getPath to be called
    * @param request body to send in the request
    * @param pc ProxyContext for logging, and returning resp headers
-   * @param fut Callback with the OkapiClient that contains the body, headers,
-   *     and/or errors
+   * @return future with the OkapiClient that contains the body, headers
    */
-  public void callSystemInterface(Tenant tenant, ModuleInstance inst,
-                                  String request, ProxyContext pc,
-                                  Handler<AsyncResult<OkapiClient>> fut) {
+  public Future<OkapiClient> callSystemInterface(Tenant tenant, ModuleInstance inst,
+                                                 String request, ProxyContext pc) {
 
     MultiMap headersIn = pc.getCtx().request().headers();
-    callSystemInterface(headersIn, tenant, inst, request, fut);
+    return callSystemInterface(headersIn, tenant, inst, request);
   }
 
-  void callSystemInterface(MultiMap headersIn,
-                           Tenant tenant, ModuleInstance inst,
-                           String request, Handler<AsyncResult<OkapiClient>> fut) {
+  Future<OkapiClient> callSystemInterface(MultiMap headersIn, Tenant tenant,
+                                          ModuleInstance inst, String request) {
 
     if (!headersIn.contains(XOkapiHeaders.URL)) {
       headersIn.set(XOkapiHeaders.URL, okapiUrl);
@@ -1131,27 +1129,21 @@ public class ProxyService {
     // If we have auth for current (super)tenant is irrelevant here!
     logger.debug("callSystemInterface: Checking if {} has auth", tenantId);
 
-    moduleManager.getEnabledModules(tenant).onComplete(mres -> {
-      if (mres.failed()) { // Should not happen
-        fut.handle(new Failure<>(OkapiError.getType(mres.cause()), mres.cause()));
-        return;
-      }
-      List<ModuleDescriptor> enabledModules = mres.result();
+    return moduleManager.getEnabledModules(tenant).compose(enabledModules -> {
       for (ModuleDescriptor md : enabledModules) {
         RoutingEntry[] filters = md.getFilters();
         if (filters != null) {
           for (RoutingEntry filt : filters) {
             if (XOkapiHeaders.FILTER_AUTH.equals(filt.getPhase())) {
               logger.debug("callSystemInterface: Found auth filter in {}", md.getId());
-              authForSystemInterface(md, filt, tenantId, inst, request, headersIn, fut);
-              return;
+              return authForSystemInterface(md, filt, tenantId, inst, request, headersIn);
             }
           }
         }
       }
       logger.debug("callSystemInterface: No auth for {} calling with "
           + "tenant header only", tenantId);
-      doCallSystemInterface(headersIn, tenantId, null, inst, null, request, fut);
+      return doCallSystemInterface(headersIn, tenantId, null, inst, null, request);
     });
   }
 
@@ -1159,10 +1151,10 @@ public class ProxyService {
    * Helper to get a new authtoken before invoking doCallSystemInterface.
    *
    */
-  private void authForSystemInterface(
+  private Future<OkapiClient> authForSystemInterface(
       ModuleDescriptor authMod, RoutingEntry filt,
-      String tenantId, ModuleInstance inst, String request, MultiMap headers,
-      Handler<AsyncResult<OkapiClient>> fut) {
+      String tenantId, ModuleInstance inst, String request, MultiMap headers) {
+
     logger.debug("Calling doCallSystemInterface to get auth token");
     RoutingEntry re = inst.getRoutingEntry();
     String modPerms = "";
@@ -1186,40 +1178,35 @@ public class ProxyService {
     }
     ModuleInstance authInst = new ModuleInstance(authMod, filt, inst.getPath(),
         inst.getMethod(), inst.isHandler());
-    doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "", res -> {
-      if (res.failed()) {
-        fut.handle(res);
-        return;
-      }
-      OkapiClient cli = res.result();
-      String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
-      logger.debug("authForSystemInterface: {}",
-          () -> Json.encode(cli.getRespHeaders().entries()));
-      String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
-      JsonObject jo = new JsonObject(modTok);
-      String token = jo.getString(modId, deftok);
-      logger.debug("authForSystemInterface: Got token {}", token);
-      doCallSystemInterface(headers, tenantId, token, inst, null, request, fut);
-    });
+    return doCallSystemInterface(headers, tenantId, null, authInst, modPerms, "")
+        .compose(cli -> {
+          String deftok = cli.getRespHeaders().get(XOkapiHeaders.TOKEN);
+          logger.debug("authForSystemInterface: {}",
+              () -> Json.encode(cli.getRespHeaders().entries()));
+          String modTok = cli.getRespHeaders().get(XOkapiHeaders.MODULE_TOKENS);
+          JsonObject jo = new JsonObject(modTok);
+          String token = jo.getString(modId, deftok);
+          logger.debug("authForSystemInterface: Got token {}", token);
+          return doCallSystemInterface(headers, tenantId, token, inst, null, request);
+        });
   }
 
   /**
    * Actually make a request to a system interface, like _tenant. Assumes we are
    * operating as the correct tenant.
    */
-  private void doCallSystemInterface(
-      MultiMap headersIn,
-      String tenantId, String authToken, ModuleInstance inst, String modPerms,
-      String request, Handler<AsyncResult<OkapiClient>> fut) {
-    discoveryManager.getNonEmpty(inst.getModuleDescriptor().getId()).onComplete(gres -> {
+  private Future<OkapiClient> doCallSystemInterface(
+      MultiMap headersIn, String tenantId, String authToken,
+      ModuleInstance inst, String modPerms, String request) {
+
+    return discoveryManager.get(inst.getModuleDescriptor().getId()).compose(gres -> {
       DeploymentDescriptor instance = null;
-      if (gres.succeeded()) {
-        instance = pickInstance(gres.result());
+      if (gres != null) {
+        instance = pickInstance(gres);
       }
       if (instance == null) {
-        fut.handle(Future.failedFuture(messages.getMessage("11100",
+        return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11100",
             inst.getModuleDescriptor().getId(), inst.getPath())));
-        return;
       }
       String baseurl = instance.getUrl();
       Map<String, String> headers = sysReqHeaders(headersIn, tenantId, authToken, inst, modPerms);
@@ -1233,6 +1220,7 @@ public class ProxyService {
         cli.setClosedRetry(40000);
       }
       final Timer.Sample sample = MetricsHelper.getTimerSample();
+      Promise<OkapiClient> promise = Promise.promise();
       cli.request(inst.getMethod(), inst.getPath(), request, cres -> {
         logger.info("syscall return {} {}{}", inst.getMethod(), baseurl, inst.getPath());
         if (cres.failed()) {
@@ -1240,14 +1228,14 @@ public class ProxyService {
               inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
           MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
-          fut.handle(Future.failedFuture(msg));
-          return;
+          promise.fail(msg);
         }
         MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
             inst.getMethod().name(), inst);
         // Pass response headers - needed for unit test, if nothing else
-        fut.handle(Future.succeededFuture(cli));
+        promise.complete(cli);
       });
+      return promise.future();
     });
   }
 
