@@ -1,11 +1,7 @@
 package org.folio.okapi.util;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.Collection;
-import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 
 public class LockedTypedMap1Faulty<T> extends LockedTypedMap1<T> {
 
