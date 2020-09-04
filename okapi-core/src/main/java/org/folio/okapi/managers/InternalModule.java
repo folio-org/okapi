@@ -778,7 +778,7 @@ public class InternalModule {
       UUID installId = UUID.randomUUID();
       tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm, res -> {
         if (res.failed()) {
-          fut.handle(new Failure<>(res.getType(), res.cause()));
+          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
           return;
         }
         String jsonResponse = Json.encodePrettily(res.result());
@@ -817,7 +817,7 @@ public class InternalModule {
     UUID installId = UUID.randomUUID();
     tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null, res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
       } else {
         logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
         fut.handle(new Success<>(Json.encodePrettily(res.result())));

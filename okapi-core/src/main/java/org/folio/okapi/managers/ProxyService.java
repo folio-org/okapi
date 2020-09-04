@@ -1,7 +1,6 @@
 package org.folio.okapi.managers;
 
 import io.micrometer.core.instrument.Timer;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
@@ -1228,7 +1227,7 @@ public class ProxyService {
               inst.getModuleDescriptor().getId(), inst.getPath(), cres.cause().getMessage());
           logger.warn(msg);
           MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
-          promise.fail(msg);
+          promise.fail(new OkapiError(ErrorType.USER, msg));
         }
         MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
             inst.getMethod().name(), inst);

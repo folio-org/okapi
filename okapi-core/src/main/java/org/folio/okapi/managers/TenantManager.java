@@ -1,5 +1,6 @@
 package org.folio.okapi.managers;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
@@ -29,12 +30,9 @@ import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor.Action;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.ModuleId;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.service.TenantStore;
 import org.folio.okapi.util.DepResolution;
 import org.folio.okapi.util.LockedTypedMap1;
@@ -794,27 +792,28 @@ public class TenantManager {
 
   void installUpgradeCreate(String tenantId, String installId, ProxyContext pc,
                             TenantInstallOptions options, List<TenantModuleDescriptor> tml,
-                            Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+                            Handler<AsyncResult<List<TenantModuleDescriptor>>> fut) {
 
     logger.info("installUpgradeCreate InstallId={}", installId);
     if (tml != null) {
       for (TenantModuleDescriptor tm : tml) {
         if (tm.getAction() == null) {
-          fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10405", tm.getId())));
+          fut.handle(Future.failedFuture(new OkapiError(ErrorType.USER,
+              messages.getMessage("10405", tm.getId()))));
           return;
         }
       }
     }
     tenants.getNotFound(tenantId).onComplete(gres -> {
       if (gres.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(gres.cause()), gres.cause()));
+        fut.handle(gres.mapEmpty());
         return;
       }
       Tenant t = gres.result();
       moduleManager.getModulesWithFilter(options.getPreRelease(),
           options.getNpmSnapshot(), null).onComplete(mres -> {
             if (mres.failed()) {
-              fut.handle(new Failure<>(OkapiError.getType(mres.cause()), mres.cause()));
+              fut.handle(Future.failedFuture(mres.cause()));
               return;
             }
             List<ModuleDescriptor> modResult = mres.result();
@@ -865,16 +864,16 @@ public class TenantManager {
       TenantInstallOptions options,
       Map<String, ModuleDescriptor> modsAvailable,
       Map<String, ModuleDescriptor> modsEnabled, InstallJob job,
-      Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
+      Handler<AsyncResult<List<TenantModuleDescriptor>>> fut) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
     DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
+        fut.handle(Future.failedFuture(res.cause()));
         return;
       }
       if (options.getSimulate()) {
-        fut.handle(new Success<>(tml));
+        fut.handle(Future.succeededFuture(tml));
         return;
       }
 
@@ -885,10 +884,10 @@ public class TenantManager {
       if (options.getAsync()) {
         future = future.onComplete(x -> {
           if (x.failed()) {
-            fut.handle(new Failure<>(ErrorType.USER, x.cause()));
+            fut.handle(x.mapEmpty());
             return;
           }
-          fut.handle(new Success<>(tml));
+          fut.handle(Future.succeededFuture(tml));
         });
         future = future.compose(x -> {
           for (TenantModuleDescriptor tm : tml) {
@@ -933,10 +932,9 @@ public class TenantManager {
           return;
         }
         if (x.failed()) {
-          fut.handle(new Failure<>(ErrorType.USER, x.cause()));
-          return;
+          fut.handle(Future.failedFuture(x.cause()));
         }
-        fut.handle(new Success<>(tml));
+        fut.handle(Future.succeededFuture(tml));
       });
     });
   }
