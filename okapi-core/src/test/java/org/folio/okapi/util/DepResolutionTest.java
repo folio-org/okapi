@@ -143,7 +143,7 @@ public class DepResolutionTest {
     tm.setId(mdA100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -174,7 +174,7 @@ public class DepResolutionTest {
     tm.setId(mdB.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -209,7 +209,7 @@ public class DepResolutionTest {
     tm.setId(mdA110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -241,7 +241,7 @@ public class DepResolutionTest {
     tm.setId(mdE100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -272,7 +272,7 @@ public class DepResolutionTest {
     tm.setId(mdD100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -303,7 +303,7 @@ public class DepResolutionTest {
     tm.setId(mdD100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -334,7 +334,7 @@ public class DepResolutionTest {
     tm.setId(mdD110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals("enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 not found", res.cause().getMessage());
       async.complete();
@@ -362,7 +362,7 @@ public class DepResolutionTest {
     tm.setId(mdD110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -397,7 +397,7 @@ public class DepResolutionTest {
     tm.setId(mdA110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(1, tml.size());
@@ -429,7 +429,7 @@ public class DepResolutionTest {
     tm.setId(mdD110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -467,7 +467,7 @@ public class DepResolutionTest {
     tm.setId(mdA200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -505,7 +505,7 @@ public class DepResolutionTest {
     tm.setId(mdD200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -543,7 +543,7 @@ public class DepResolutionTest {
     tm.setId(mdD110.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
         "enable moduleD-1.1.0 failed: interface int required by module moduleD-1.1.0 is provided by multiple products: moduleA, moduleC"
@@ -573,7 +573,7 @@ public class DepResolutionTest {
     tm.setId(mdA200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -611,7 +611,7 @@ public class DepResolutionTest {
     tm.setId(mdE200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -649,7 +649,7 @@ public class DepResolutionTest {
     tm.setId(mdA200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -684,7 +684,7 @@ public class DepResolutionTest {
     tm.setId(mdE200.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -721,7 +721,7 @@ public class DepResolutionTest {
     tm1.setId(mdA100.getId());
     tml.add(tm1);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -758,7 +758,7 @@ public class DepResolutionTest {
     tm1.setId(mdB.getId());
     tml.add(tm1);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       context.assertEquals(2, tml.size());
@@ -789,7 +789,7 @@ public class DepResolutionTest {
     tm.setId(mdE100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
         "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleB"
@@ -815,7 +815,7 @@ public class DepResolutionTest {
     tm.setId(mdE100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       context.assertEquals(
         "enable moduleE-1.0.0 failed: interface int required by module moduleE-1.0.0 is provided by multiple products: moduleA, moduleC"
@@ -841,7 +841,7 @@ public class DepResolutionTest {
     tm.setId(mdE100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       async.complete();
@@ -867,7 +867,7 @@ public class DepResolutionTest {
     tm.setId(mdE100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       logger.debug("tml result = " + Json.encodePrettily(tml));
       async.complete();
@@ -888,7 +888,7 @@ public class DepResolutionTest {
     tm.setId(mdA100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       async.complete();
     });
@@ -908,7 +908,7 @@ public class DepResolutionTest {
     tm.setId(mdA100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.failed());
       async.complete();
     });
@@ -928,7 +928,7 @@ public class DepResolutionTest {
     tm.setId(mdA100.getId());
     tml.add(tm);
 
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       context.assertTrue(res.succeeded());
       async.complete();
     });

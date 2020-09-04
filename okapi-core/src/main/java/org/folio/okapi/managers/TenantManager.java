@@ -868,9 +868,9 @@ public class TenantManager {
       Handler<ExtendedAsyncResult<List<TenantModuleDescriptor>>> fut) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml, res -> {
+    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
       if (res.failed()) {
-        fut.handle(new Failure<>(res.getType(), res.cause()));
+        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
         return;
       }
       if (options.getSimulate()) {
