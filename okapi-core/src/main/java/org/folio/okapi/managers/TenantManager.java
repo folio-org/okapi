@@ -315,33 +315,25 @@ public class TenantManager {
     }
     String tenantParameters = options.getTenantParameters();
     boolean purge = mdTo == null && options.getPurge();
-    Promise<Void> promise = Promise.promise();
-    getTenantInterface(mdFrom, mdTo, jo, tenantParameters, purge, ires -> {
-      if (ires.failed()) {
-        if (ires.getType() == ErrorType.NOT_FOUND) {
-          logger.debug("eadTenantInterface: {} has no support for tenant init",
-              (mdTo != null ? mdTo.getId() : mdFrom.getId()));
-          promise.complete();
-        } else if (ires.getType() == ErrorType.USER) {
-          promise.fail(new OkapiError(ErrorType.USER, ires.cause().getMessage()));
-        } else {
-          promise.fail(ires.cause());
-        }
-      } else {
-        ModuleInstance tenInst = ires.result();
-        final String req = purge ? "" : jo.encodePrettily();
-        proxyService.callSystemInterface(tenant, tenInst, req, pc, cres -> {
-          if (cres.failed()) {
-            promise.fail(cres.cause());
-          } else {
-            pc.passOkapiTraceHeaders(cres.result());
-            // We can ignore the result, the call went well.
-            promise.complete();
-          }
-        });
+    return getTenantInstanceForModule(mdFrom, mdTo, jo, tenantParameters, purge).compose(instance -> {
+      if (instance == null) {
+        logger.debug("{}: has no support for tenant init",
+            (mdTo != null ? mdTo.getId() : mdFrom.getId()));
+        return Future.succeededFuture();
       }
+      final String req = purge ? "" : jo.encodePrettily();
+      Promise<Void> promise = Promise.promise();
+      proxyService.callSystemInterface(tenant, instance, req, pc, cres -> {
+        if (cres.failed()) {
+          promise.fail(cres.cause());
+        } else {
+          pc.passOkapiTraceHeaders(cres.result());
+          // We can ignore the result, the call went well.
+          promise.complete();
+        }
+      });
+      return promise.future();
     });
-    return promise.future();
   }
 
   /**
@@ -685,12 +677,11 @@ public class TenantManager {
    * @param jo Json Object to be POSTed
    * @param tenantParameters tenant parameters (eg sample data)
    * @param purge true if purging (DELETE)
-   * @param fut future
+   * @return future (result==null if no tenant interface!)
    */
-  private void getTenantInterface(
+  private Future<ModuleInstance> getTenantInstanceForModule(
       ModuleDescriptor mdFrom,
-      ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge,
-      Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
+      ModuleDescriptor mdTo, JsonObject jo, String tenantParameters, boolean purge) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     InterfaceDescriptor[] prov = md.getProvidesList();
@@ -699,39 +690,42 @@ public class TenantManager {
       if ("_tenant".equals(pi.getId())) {
         final String v = pi.getVersion();
         final String method = purge ? "DELETE" : "POST";
+        ModuleInstance instance;
         switch (v) {
           case "1.0":
-            if (mdTo == null && !purge) {
-              break;
-            } else if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
-              return;
-            } else if (!purge) {
-              logger.warn("Module '{}' uses old-fashioned tenant "
-                  + "interface. Define InterfaceType=system, and add a RoutingEntry."
-                  + " Falling back to calling /_/tenant.", md.getId());
-              fut.handle(new Success<>(new ModuleInstance(md, null,
-                  "/_/tenant", HttpMethod.POST, true).withRetry()));
-              return;
+            if (mdTo != null || purge) {
+              instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
+              if (instance != null) {
+                return Future.succeededFuture(instance);
+              } else if (!purge) {
+                logger.warn("Module '{}' uses old-fashioned tenant "
+                    + "interface. Define InterfaceType=system, and add a RoutingEntry."
+                    + " Falling back to calling /_/tenant.", md.getId());
+                return Future.succeededFuture(new ModuleInstance(md, null,
+                    "/_/tenant", HttpMethod.POST, true).withRetry());
+              }
             }
             break;
           case "1.1":
-            if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
-              return;
+            instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
+            if (instance != null) {
+              return Future.succeededFuture(instance);
             }
             break;
           case "1.2":
             putTenantParameters(jo, tenantParameters);
-            if (getTenantInterface1(pi, mdFrom, mdTo, method, fut)) {
-              return;
+            instance = getTenantInstanceForInterface(pi, mdFrom, mdTo, method);
+            if (instance != null) {
+              return Future.succeededFuture(instance);
             }
             break;
           default:
-            fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("10401", v)));
-            return;
+            return Future.failedFuture(new OkapiError(ErrorType.USER,
+                messages.getMessage("10401", v)));
         }
       }
     }
-    fut.handle(new Failure<>(ErrorType.NOT_FOUND, messages.getMessage("10402", md.getId())));
+    return Future.succeededFuture(null);
   }
 
   private void putTenantParameters(JsonObject jo, String tenantParameters) {
@@ -752,9 +746,9 @@ public class TenantManager {
     }
   }
 
-  private boolean getTenantInterface1(InterfaceDescriptor pi,
-                                      ModuleDescriptor mdFrom, ModuleDescriptor mdTo, String method,
-                                      Handler<ExtendedAsyncResult<ModuleInstance>> fut) {
+  private ModuleInstance getTenantInstanceForInterface(
+      InterfaceDescriptor pi, ModuleDescriptor mdFrom,
+      ModuleDescriptor mdTo, String method) {
 
     ModuleDescriptor md = mdTo != null ? mdTo : mdFrom;
     if ("system".equals(pi.getInterfaceType())) {
@@ -763,22 +757,18 @@ public class TenantManager {
         if (re.match(null, method)) {
           String pattern = re.getStaticPath();
           if (method.equals("DELETE")) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.DELETE, true)));
-            return true;
+            return new ModuleInstance(md, re, pattern, HttpMethod.DELETE, true);
           } else if ("/_/tenant/disable".equals(pattern)) {
             if (mdTo == null) {
-              fut.handle(new Success<>(new ModuleInstance(md, re, pattern, HttpMethod.POST, true)));
-              return true;
+              return new ModuleInstance(md, re, pattern, HttpMethod.POST, true);
             }
           } else if (mdTo != null) {
-            fut.handle(new Success<>(new ModuleInstance(md, re, pattern,
-                HttpMethod.POST, true).withRetry()));
-            return true;
+            return new ModuleInstance(md, re, pattern, HttpMethod.POST, true).withRetry();
           }
         }
       }
     }
-    return false;
+    return null;
   }
 
   /**
