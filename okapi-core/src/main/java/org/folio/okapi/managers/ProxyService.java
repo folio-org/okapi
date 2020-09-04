@@ -39,13 +39,10 @@ import org.folio.okapi.bean.RoutingEntry;
 import org.folio.okapi.bean.RoutingEntry.ProxyType;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiClient;
 import org.folio.okapi.common.OkapiLogger;
 import org.folio.okapi.common.OkapiToken;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.common.logging.FolioLoggingContext;
 import org.folio.okapi.util.CorsHelper;
@@ -387,33 +384,26 @@ public class ProxyService {
     }
   }
 
-  private void resolveUrls(Iterator<ModuleInstance> it,
-                           Handler<ExtendedAsyncResult<Void>> fut) {
-    if (!it.hasNext()) {
-      fut.handle(new Success<>());
-    } else {
-      ModuleInstance mi = it.next();
-      if (mi.getRoutingEntry().getProxyType() == ProxyType.INTERNAL) {
-        mi.setUrl("");
-        resolveUrls(it, fut);
-        return;
+  private Future<Void> resolveUrls(List<ModuleInstance> instances) {
+    Future<Void> future = Future.succeededFuture();
+    for (ModuleInstance instance : instances) {
+      if (instance.getRoutingEntry().getProxyType() == ProxyType.INTERNAL) {
+        instance.setUrl("");
+      } else {
+        future = future.compose(x -> discoveryManager.get(instance.getModuleDescriptor().getId())
+            .compose(res -> {
+              DeploymentDescriptor dd = pickInstance(res);
+              if (dd == null) {
+                return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND,
+                    "No running module instance found for "
+                        + instance.getModuleDescriptor().getId()));
+              }
+              instance.setUrl(dd.getUrl());
+              return Future.succeededFuture();
+            }));
       }
-      discoveryManager.get(mi.getModuleDescriptor().getId()).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        } else {
-          DeploymentDescriptor instance = pickInstance(res.result());
-          if (instance == null) {
-            fut.handle(new Failure<>(ErrorType.NOT_FOUND,
-                "No running module instance found for "
-                    + mi.getModuleDescriptor().getId()));
-            return;
-          }
-          mi.setUrl(instance.getUrl());
-          resolveUrls(it, fut);
-        }
-      });
     }
+    return future;
   }
 
   private void relayToResponse(HttpServerResponse hres,
@@ -594,10 +584,10 @@ public class ProxyService {
         headers.set(XOkapiHeaders.REQUEST_TIMESTAMP, "" + System.currentTimeMillis());
         headers.set(XOkapiHeaders.REQUEST_METHOD, ctx.request().method().name());
 
-        resolveUrls(l.iterator(), res -> {
+        resolveUrls(l).onComplete(res -> {
           if (res.failed()) {
             stream.resume();
-            pc.responseError(res.getType(), res.cause());
+            pc.responseError(OkapiError.getType(res.cause()), res.cause());
           } else {
             List<HttpClientRequest> clientRequest = new LinkedList<>();
             proxyR(l.iterator(), pc, stream, null, clientRequest);
