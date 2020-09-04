@@ -137,9 +137,7 @@ public class TenantManager {
       } else {
         t = new Tenant(td);
       }
-      return tenantStore.updateDescriptor(td).compose(res -> {
-        return tenants.add(id, t); // handles success
-      });
+      return tenantStore.updateDescriptor(td).compose(res -> tenants.add(id, t));
     });
   }
 
