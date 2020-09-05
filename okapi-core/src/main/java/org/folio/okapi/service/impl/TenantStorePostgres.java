@@ -42,7 +42,6 @@ public class TenantStorePostgres implements TenantStore {
 
   @Override
   public Future<Void> updateDescriptor(TenantDescriptor td) {
-
     Tenant t = new Tenant(td);
     return pgTable.update(t);
   }
@@ -57,21 +56,21 @@ public class TenantStorePostgres implements TenantStore {
     return pgTable.delete(id);
   }
 
-  private Future<Boolean> updateModuleR(PostgresQuery q, String id,
-                             SortedMap<String, Boolean> enabled,
-                             Iterator<Row> it) {
 
-    if (!it.hasNext()) {
-      q.close();
-      return Future.succeededFuture(Boolean.TRUE);
+  private Future<Boolean> updateModule(PostgresQuery q, String id,
+                                      SortedMap<String, Boolean> enabled,
+                                      RowSet<Row> set) {
+    Future<Boolean> future = Future.succeededFuture(Boolean.FALSE);
+    for (Row r : set) {
+      String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
+      JsonObject o = (JsonObject) r.getValue(0);
+      Tenant t = o.mapTo(Tenant.class);
+      t.setEnabled(enabled);
+      JsonObject doc = JsonObject.mapFrom(t);
+      future = future.compose(a -> q.query(sql, Tuple.of(id, doc))
+          .compose(b -> Future.succeededFuture(Boolean.TRUE)));
     }
-    Row r = it.next();
-    String sql = "UPDATE " + TABLE + " SET " + JSON_COLUMN + " = $2 WHERE " + ID_SELECT;
-    JsonObject o = (JsonObject) r.getValue(0);
-    Tenant t = o.mapTo(Tenant.class);
-    t.setEnabled(enabled);
-    JsonObject doc = JsonObject.mapFrom(t);
-    return q.query(sql, Tuple.of(id, doc)).compose(res -> updateModuleR(q, id, enabled, it));
+    return future;
   }
 
   @Override
@@ -79,12 +78,8 @@ public class TenantStorePostgres implements TenantStore {
 
     PostgresQuery q = pg.getQuery();
     String sql = "SELECT " + JSON_COLUMN + " FROM " + TABLE + " WHERE " + ID_SELECT;
-    return q.query(sql, Tuple.of(id)).compose(res -> {
-      RowSet<Row> rs = res;
-      if (res.rowCount() == 0) {
-        return Future.succeededFuture(Boolean.FALSE);
-      }
-      return updateModuleR(q, id, enabled, rs.iterator());
-    });
+    return q.query(sql, Tuple.of(id))
+        .compose(res -> updateModule(q, id, enabled, res))
+        .onComplete(x -> q.close());
   }
 }
