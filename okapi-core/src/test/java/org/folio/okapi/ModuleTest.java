@@ -2673,15 +2673,15 @@ public class ModuleTest {
 
     c = api.createRestAssured3();
     r = c.given()
-      .header("Content-Type", "application/json")
-      .body(docSampleModule)
-      .post("/_/proxy/modules")
-      .then()
-      .statusCode(201)
-      .log().ifValidationFails()
-      .extract().response();
+        .header("Content-Type", "application/json")
+        .body(docSampleModule)
+        .post("/_/proxy/modules")
+        .then()
+        .statusCode(201)
+        .log().ifValidationFails()
+        .extract().response();
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
-      c.getLastReport().isEmpty());
+        c.getLastReport().isEmpty());
 
     async.complete();
   }
@@ -2791,5 +2791,35 @@ public class ModuleTest {
     undeployFirstAndDeploy(context, context.asyncAssertSuccess());
     async.await(1000);
     conf.remove("okapiVersion");
+  }
+
+  @Test
+  public void testNoTenant(TestContext context) {
+    RestAssuredClient c;
+    Response r;
+
+    final String tenant = "noTenant";
+
+    c = api.createRestAssured3();
+    c.given().get("/_/proxy/tenants/" + tenant).then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    c = api.createRestAssured3();
+    c.given().delete("/_/proxy/tenants/" + tenant).then().statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    final String docEnable = "{" + LS
+        + "  \"id\" : \"" + "mod-1.2.3"+ "\"" + LS
+        + "}";
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docEnable)
+        .post("/_/proxy/tenants/" + tenant + "/modules")
+        .then()
+        .statusCode(404);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
   }
 }
