@@ -214,26 +214,6 @@ public class TenantManager {
     });
   }
 
-  Future<String> enableAndDisableModule(
-      String tenantId, TenantInstallOptions options, String moduleFrom,
-      TenantModuleDescriptor td, ProxyContext pc) {
-
-    return tenants.getNotFound(tenantId)
-        .compose(tenant -> enableAndDisableModule(tenant, options, moduleFrom, td, pc));
-  }
-
-  private Future<String> enableAndDisableModule(
-      Tenant tenant, TenantInstallOptions options, String moduleFrom,
-      TenantModuleDescriptor td, ProxyContext pc) {
-
-    return Future.succeededFuture().compose(res -> {
-      if (td == null) {
-        return Future.succeededFuture(null);
-      }
-      return  moduleManager.getLatest(td.getId());
-    }).compose(mdTo -> enableAndDisableModule2(tenant, options, moduleFrom, mdTo, pc));
-  }
-
   Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
     options.setDepCheck(false);
     return listModules(tenantId).compose(res -> {
@@ -246,29 +226,41 @@ public class TenantManager {
     });
   }
 
-  private Future<String> enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
-                                                 String moduleFrom, ModuleDescriptor mdTo,
-                                                 ProxyContext pc) {
+  Future<String> enableAndDisableModule(
+      String tenantId, TenantInstallOptions options, String moduleFrom,
+      TenantModuleDescriptor td, ProxyContext pc) {
 
-    return moduleManager.get(moduleFrom).compose(mdFrom -> {
-      Future<Void> future = Future.succeededFuture();
-      if (options.getDepCheck()) {
-        future = future.compose(x -> moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo));
-      }
-      return future.compose(x -> enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc));
-    });
+    return tenants.getNotFound(tenantId)
+        .compose(tenant -> Future.succeededFuture()
+            .compose(res -> {
+              if (td == null) {
+                return Future.succeededFuture(null);
+              }
+              return moduleManager.getLatest(td.getId());
+            }).compose(mdTo ->
+                moduleManager.get(moduleFrom).compose(mdFrom -> {
+                  Future<Void> future = Future.succeededFuture();
+                  if (options.getDepCheck()) {
+                    future = future
+                        .compose(x -> moduleManager.enableAndDisableCheck(tenant, mdFrom, mdTo));
+                  }
+                  return future
+                      .compose(x -> enableAndDisableModule(tenant, options, mdFrom, mdTo, pc));
+                })
+            )
+        );
   }
 
-  private Future<String> enableAndDisableModule3(Tenant tenant, TenantInstallOptions options,
-                                                 ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                                 ProxyContext pc) {
+  private Future<String> enableAndDisableModule(Tenant tenant, TenantInstallOptions options,
+                                                ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                                ProxyContext pc) {
     if (mdFrom == null && mdTo == null) {
       return Future.succeededFuture("");
     }
     return invokePermissions(tenant, options, mdTo, pc)
         .compose(x -> invokeTenantInterface(tenant, options, mdFrom, mdTo, pc))
         .compose(x -> invokePermissionsPermMod(tenant, options, mdFrom, mdTo, pc))
-        .compose(x -> ead5commit(tenant, mdFrom, mdTo, pc))
+        .compose(x -> commitModuleChange(tenant, mdFrom, mdTo, pc))
         .compose(x -> Future.succeededFuture((mdTo != null ? mdTo.getId() : ""))
     );
   }
@@ -387,28 +379,26 @@ public class TenantManager {
   }
 
   /**
-   * enableAndDisable helper 5: Commit the change in modules.
+   * Commit change of module for tenant and publish on event bus about it.
    *
    * @param tenant tenant
-   * @param mdFrom module from
-   * @param mdTo module to
+   * @param mdFrom module from (null if new module)
+   * @param mdTo module to (null if module is removed)
    * @param pc ProxyContext
    * @return future
    */
-  private Future<Void> ead5commit(Tenant tenant, ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                  ProxyContext pc) {
+  private Future<Void> commitModuleChange(Tenant tenant, ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
+                                          ProxyContext pc) {
 
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo != null ? mdTo.getId() : null;
 
-    pc.debug("ead5commit: " + moduleFrom + " " + moduleTo);
     Promise<Void> promise = Promise.promise();
     return updateModuleCommit(tenant, moduleFrom, moduleTo).compose(ures -> {
       if (moduleTo != null) {
         EventBus eb = vertx.eventBus();
         eb.publish(EVENT_NAME, tenant.getId());
       }
-      pc.debug("ead5commit done");
       return Future.succeededFuture();
     });
   }
@@ -931,7 +921,7 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    return enableAndDisableModule3(tenant, options, mdFrom, mdTo, pc).mapEmpty();
+    return enableAndDisableModule(tenant, options, mdFrom, mdTo, pc).mapEmpty();
   }
 
   private Future<Void> autoUndeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
