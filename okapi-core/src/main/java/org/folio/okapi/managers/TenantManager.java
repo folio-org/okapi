@@ -234,27 +234,21 @@ public class TenantManager {
     }).compose(mdTo -> enableAndDisableModule2(tenant, options, moduleFrom, mdTo, pc));
   }
 
-  private Future<Void> enableAndDisableModuleFut(
-      String tenantId, TenantInstallOptions options, String moduleFrom,
-      TenantModuleDescriptor td, ProxyContext pc) {
-
-    return enableAndDisableModule(tenantId, options, moduleFrom, td, pc).mapEmpty();
-  }
-
   Future<Void> disableModules(String tenantId, TenantInstallOptions options, ProxyContext pc) {
     options.setDepCheck(false);
     return listModules(tenantId).compose(res -> {
       Future<Void> future = Future.succeededFuture();
       for (ModuleDescriptor md : res) {
-        future = future.compose(x -> enableAndDisableModuleFut(tenantId, options,
-            md.getId(), null, pc));
+        future = future.compose(x -> enableAndDisableModule(tenantId, options,
+            md.getId(), null, pc).mapEmpty());
       }
       return future;
     });
   }
 
   private Future<String> enableAndDisableModule2(Tenant tenant, TenantInstallOptions options,
-                                       String moduleFrom, ModuleDescriptor mdTo, ProxyContext pc) {
+                                                 String moduleFrom, ModuleDescriptor mdTo,
+                                                 ProxyContext pc) {
 
     return moduleManager.get(moduleFrom).compose(mdFrom -> {
       Future<Void> future = Future.succeededFuture();
