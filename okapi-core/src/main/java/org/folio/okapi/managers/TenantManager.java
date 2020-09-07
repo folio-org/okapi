@@ -1,9 +1,7 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
@@ -43,7 +41,7 @@ import org.folio.okapi.util.TenantInstallOptions;
 /**
  * Manages the tenants in the shared map, and passes updates to the database.
  */
-@java.lang.SuppressWarnings({"squid:S1192"})
+@java.lang.SuppressWarnings({"squid:S1192"}) // String literals should not be duplicated
 public class TenantManager {
 
   private final Logger logger = OkapiLogger.get();
@@ -818,15 +816,7 @@ public class TenantManager {
                 job.setModules(tml);
               }
               job.setComplete(false);
-              Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
-              runJob(tenant, pc, options, modsAvailable, modsEnabled, job, res -> {
-                if (res.failed()) {
-                  promise.fail(res.cause());
-                } else {
-                  promise.complete(res.result());
-                }
-              });
-              return promise.future();
+              return runJob(tenant, pc, options, modsAvailable, modsEnabled, job);
             }));
   }
 
@@ -849,87 +839,74 @@ public class TenantManager {
     return tml;
   }
 
-  private void runJob(
-      Tenant t, ProxyContext pc,
-      TenantInstallOptions options,
+  private Future<List<TenantModuleDescriptor>> runJob(
+      Tenant t, ProxyContext pc, TenantInstallOptions options,
       Map<String, ModuleDescriptor> modsAvailable,
-      Map<String, ModuleDescriptor> modsEnabled, InstallJob job,
-      Handler<AsyncResult<List<TenantModuleDescriptor>>> fut) {
+      Map<String, ModuleDescriptor> modsEnabled, InstallJob job) {
 
     List<TenantModuleDescriptor> tml = job.getModules();
-    DepResolution.installSimulate(modsAvailable, modsEnabled, tml).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(Future.failedFuture(res.cause()));
-        return;
-      }
+    return DepResolution.installSimulate(modsAvailable, modsEnabled, tml).compose(res -> {
       if (options.getSimulate()) {
-        fut.handle(Future.succeededFuture(tml));
-        return;
+        return Future.succeededFuture(tml);
       }
-
-      Future<Void> future = Future.succeededFuture();
-
-      future = future.compose(x -> jobs.put(job.getId(), job));
-
-      if (options.getAsync()) {
-        future = future.onComplete(x -> {
-          if (x.failed()) {
-            fut.handle(x.mapEmpty());
-            return;
-          }
+      return jobs.put(job.getId(), job).compose(res2 -> {
+        Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
+        Future<Void> future = Future.succeededFuture();
+        if (options.getAsync()) {
           List<TenantModuleDescriptor> tml2 = new LinkedList<>();
           for (TenantModuleDescriptor tm : tml) {
             tml2.add(tm.cloneWithoutStatus());
           }
-          fut.handle(Future.succeededFuture(tml2));
-        });
-        future = future.compose(x -> {
-          for (TenantModuleDescriptor tm : tml) {
-            tm.setStatus(TenantModuleDescriptor.Status.idle);
-          }
-          return jobs.put(job.getId(), job);
-        });
-      }
-      if (options.getDeploy()) {
-        if (options.getAsync()) {
+          promise.complete(tml2);
           future = future.compose(x -> {
             for (TenantModuleDescriptor tm : tml) {
-              tm.setStatus(TenantModuleDescriptor.Status.deploy);
+              tm.setStatus(TenantModuleDescriptor.Status.idle);
             }
             return jobs.put(job.getId(), job);
           });
         }
-        future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
-      }
-      for (TenantModuleDescriptor tm : tml) {
-        if (options.getAsync()) {
-          future = future.compose(x -> {
-            tm.setStatus(TenantModuleDescriptor.Status.call);
-            return jobs.put(job.getId(), job);
-          });
+        if (options.getDeploy()) {
+          if (options.getAsync()) {
+            future = future.compose(x -> {
+              for (TenantModuleDescriptor tm : tml) {
+                tm.setStatus(TenantModuleDescriptor.Status.deploy);
+              }
+              return jobs.put(job.getId(), job);
+            });
+          }
+          future = future.compose(x -> autoDeploy(t, modsAvailable, tml));
         }
-        future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
-        if (options.getAsync()) {
-          future = future.compose(x -> {
-            tm.setStatus(TenantModuleDescriptor.Status.done);
-            return jobs.put(job.getId(), job);
-          });
+        for (TenantModuleDescriptor tm : tml) {
+          if (options.getAsync()) {
+            future = future.compose(x -> {
+              tm.setStatus(TenantModuleDescriptor.Status.call);
+              return jobs.put(job.getId(), job);
+            });
+          }
+          future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+          if (options.getAsync()) {
+            future = future.compose(x -> {
+              tm.setStatus(TenantModuleDescriptor.Status.done);
+              return jobs.put(job.getId(), job);
+            });
+          }
         }
-      }
-      if (options.getDeploy()) {
-        future.compose(x -> autoUndeploy(t, modsAvailable, tml));
-      }
-      future.onComplete(x -> {
-        job.setComplete(true);
-        jobs.put(job.getId(), job).onComplete(y -> logger.info("job complete"));
-        if (options.getAsync()) {
-          return;
+        if (options.getDeploy()) {
+          future.compose(x -> autoUndeploy(t, modsAvailable, tml));
         }
-        if (x.failed()) {
-          fut.handle(Future.failedFuture(x.cause()));
-          return;
-        }
-        fut.handle(Future.succeededFuture(tml));
+        future.onComplete(x -> {
+          job.setComplete(true);
+          jobs.put(job.getId(), job).onComplete(y -> logger.info("job complete"));
+          if (options.getAsync()) {
+            return;
+          }
+          if (x.failed()) {
+            promise.fail(x.cause());
+            return;
+          }
+          promise.complete(tml);
+        });
+        return promise.future();
       });
     });
   }
