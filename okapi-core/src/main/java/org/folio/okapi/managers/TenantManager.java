@@ -387,8 +387,8 @@ public class TenantManager {
    * @param pc ProxyContext
    * @return future
    */
-  private Future<Void> commitModuleChange(Tenant tenant, ModuleDescriptor mdFrom, ModuleDescriptor mdTo,
-                                          ProxyContext pc) {
+  private Future<Void> commitModuleChange(Tenant tenant, ModuleDescriptor mdFrom,
+                                          ModuleDescriptor mdTo, ProxyContext pc) {
 
     String moduleFrom = mdFrom != null ? mdFrom.getId() : null;
     String moduleTo = mdTo != null ? mdTo.getId() : null;
