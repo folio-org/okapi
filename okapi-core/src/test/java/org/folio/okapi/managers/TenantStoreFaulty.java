@@ -1,14 +1,11 @@
 package org.folio.okapi.managers;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import java.util.List;
 import java.util.SortedMap;
 import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.service.TenantStore;
 
 public class TenantStoreFaulty implements TenantStore {

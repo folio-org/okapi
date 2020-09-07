@@ -1812,7 +1812,7 @@ public class ProxyTest {
     c = api.createRestAssured3();
     c.given()
       .delete("/_/proxy/tenants/unknown-tenant/modules")
-      .then().statusCode(400);
+      .then().statusCode(404);
     Assert.assertTrue("raml: " + c.getLastReport().toString(),
       c.getLastReport().isEmpty());
 

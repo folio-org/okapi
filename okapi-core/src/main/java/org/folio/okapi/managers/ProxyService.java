@@ -945,9 +945,9 @@ public class ProxyService {
     RoutingContext ctx = pc.getCtx();
 
     clientsEnd(bcontent, clientRequestList);
-    internalModule.internalService(req, pc, res -> {
+    internalModule.internalService(req, pc).onComplete(res -> {
       if (res.failed()) {
-        pc.responseError(res.getType(), res.cause());
+        pc.responseError(OkapiError.getType(res.cause()), res.cause());
         return;
       }
       String resp = res.result();

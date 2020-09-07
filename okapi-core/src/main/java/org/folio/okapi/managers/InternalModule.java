@@ -1,6 +1,6 @@
 package org.folio.okapi.managers;
 
-import io.vertx.core.Handler;
+import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.json.DecodeException;
@@ -18,7 +18,6 @@ import java.util.UUID;
 import org.apache.logging.log4j.Logger;
 import org.folio.okapi.bean.DeploymentDescriptor;
 import org.folio.okapi.bean.EnvEntry;
-import org.folio.okapi.bean.InstallJob;
 import org.folio.okapi.bean.ModuleDescriptor;
 import org.folio.okapi.bean.NodeDescriptor;
 import org.folio.okapi.bean.PullDescriptor;
@@ -26,11 +25,8 @@ import org.folio.okapi.bean.Tenant;
 import org.folio.okapi.bean.TenantDescriptor;
 import org.folio.okapi.bean.TenantModuleDescriptor;
 import org.folio.okapi.common.ErrorType;
-import org.folio.okapi.common.ExtendedAsyncResult;
-import org.folio.okapi.common.Failure;
 import org.folio.okapi.common.Messages;
 import org.folio.okapi.common.OkapiLogger;
-import org.folio.okapi.common.Success;
 import org.folio.okapi.common.UrlDecoder;
 import org.folio.okapi.common.XOkapiHeaders;
 import org.folio.okapi.util.GraphDot;
@@ -610,8 +606,7 @@ public class InternalModule {
    * to it, and puts it in the Location header in pc.response. Also sets the
    * return code to 201-Created. You can overwrite it after, if needed.
    */
-  private void location(ProxyContext pc, String[] ids, String baseUri,
-                        String s, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> location(ProxyContext pc, String[] ids, String baseUri, String s) {
 
     String uri;
     if (baseUri == null) {
@@ -628,24 +623,21 @@ public class InternalModule {
       try {
         uriEncoded.append("/" + URLEncoder.encode(id, "UTF-8"));
       } catch (UnsupportedEncodingException ex) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL,
-            messages.getMessage("11600", id, ex.getMessage())));
+        return Future.failedFuture(messages.getMessage("11600", id, ex.getMessage()));
       }
     }
     pc.getCtx().response().putHeader("Location", uriEncoded.toString());
     pc.getCtx().response().setStatusCode(201);
-    fut.handle(new Success<>(s));
+    return Future.succeededFuture(s);
   }
 
-  private void location(ProxyContext pc, String id, String baseUri,
-                        String s, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> location(ProxyContext pc, String id, String baseUri, String s) {
     String [] ids = new String[1];
     ids[0] = id;
-    location(pc, ids, baseUri, s, fut);
+    return location(pc, ids, baseUri, s);
   }
 
-  private void createTenant(ProxyContext pc, String body,
-                            Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> createTenant(ProxyContext pc, String body) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (td.getId() == null || td.getId().isEmpty()) {
@@ -653,120 +645,73 @@ public class InternalModule {
       }
       final String id = td.getId();
       if (!id.matches("^[a-z0-9_-]+$")) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11601", id)));
-        return;
+        return Future.failedFuture(
+            new OkapiError(ErrorType.USER, messages.getMessage("11601", id)));
       }
       Tenant t = new Tenant(td);
-      tenantManager.insert(t).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        location(pc, id, null, Json.encodePrettily(t.getDescriptor()), fut);
-      });
+      return tenantManager.insert(t).compose(res ->
+        location(pc, id, null, Json.encodePrettily(t.getDescriptor())));
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void updateTenant(String id, String body,
-                            Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> updateTenant(String id, String body) {
     try {
       final TenantDescriptor td = Json.decodeValue(body, TenantDescriptor.class);
       if (!id.equals(td.getId())) {
-        fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11602", td.getId(), id)));
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.USER,
+            messages.getMessage("11602", td.getId(), id)));
       }
       Tenant t = new Tenant(td);
-      tenantManager.updateDescriptor(td).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        final String s = Json.encodePrettily(t.getDescriptor());
-        fut.handle(new Success<>(s));
-      });
+      return tenantManager.updateDescriptor(td).compose(res ->
+          Future.succeededFuture(Json.encodePrettily(t.getDescriptor())));
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void listTenants(Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.list().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      List<TenantDescriptor> tdl = res.result();
-      String s = Json.encodePrettily(tdl);
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> listTenants() {
+    return tenantManager.list().compose(res ->
+        Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void getTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.get(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      Tenant te = res.result();
-      TenantDescriptor td = te.getDescriptor();
-      String s = Json.encodePrettily(td);
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> getTenant(String id) {
+    return tenantManager.get(id).compose(res ->
+        Future.succeededFuture(Json.encodePrettily(res.getDescriptor())));
   }
 
-  private void deleteTenant(String id, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> deleteTenant(String id) {
     if (XOkapiHeaders.SUPERTENANT_ID.equals(id)) {
-      fut.handle(new Failure<>(ErrorType.USER, messages.getMessage("11603", id)));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, messages.getMessage("11603", id)));
       // Change of behavior, used to return 403
-      return;
     }
-    tenantManager.delete(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+    return tenantManager.delete(id).compose(res -> Future.succeededFuture(""));
   }
 
-  private void enableModuleForTenant(ProxyContext pc, String id, String body,
-                                     Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> enableModuleForTenant(ProxyContext pc, String id, String body) {
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
 
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, options, null, td, pc).onComplete(eres -> {
-        if (eres.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(eres.cause()), eres.cause()));
-          return;
-        }
-        td.setId(eres.result());
-        location(pc, td.getId(), null, Json.encodePrettily(td), fut);
-      });
-
+      return tenantManager.enableAndDisableModule(id, options, null, td, pc)
+          .compose(eres -> {
+            td.setId(eres);
+            return location(pc, td.getId(), null, Json.encodePrettily(td));
+          });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void disableModuleForTenant(ProxyContext pc, String id, String module,
-                                      Handler<ExtendedAsyncResult<String>> fut) {
-    pc.debug("disablemodule t=" + id + " m=" + module);
+  private Future<String> disableModuleForTenant(ProxyContext pc, String id, String module) {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    tenantManager.enableAndDisableModule(id, options, module, null, pc).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+    return tenantManager.enableAndDisableModule(id, options, module, null, pc)
+        .compose(res -> Future.succeededFuture(""));
   }
 
-  private void installTenantModulesPost(ProxyContext pc, String tenantId,
-                                        String body, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> installTenantModulesPost(ProxyContext pc, String tenantId, String body) {
 
     try {
       TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
@@ -776,178 +721,119 @@ public class InternalModule {
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
       UUID installId = UUID.randomUUID();
-      tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
-          .onComplete(res -> {
-            if (res.failed()) {
-              fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-              return;
-            }
-            String jsonResponse = Json.encodePrettily(res.result());
+      return tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
+          .compose(res -> {
+            String jsonResponse = Json.encodePrettily(res);
             logger.info("installTenantModulesPost returns: {}", jsonResponse);
             if (options.getAsync()) {
-              location(pc, installId.toString(), null, jsonResponse, fut);
+              return location(pc, installId.toString(), null, jsonResponse);
             } else {
-              fut.handle(new Success<>(jsonResponse));
+              return Future.succeededFuture(jsonResponse);
             }
           });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void installTenantModulesGet(String tenantId, String installId,
-                                       Handler<ExtendedAsyncResult<String>> fut) {
-    tenantManager.installUpgradeGet(tenantId, installId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.INTERNAL, res.cause()));
-        return;
-      }
-      InstallJob installJob = res.result();
+  private Future<String> installTenantModulesGet(String tenantId, String installId) {
+    return tenantManager.installUpgradeGet(tenantId, installId).compose(installJob -> {
       if (installJob == null) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, res.cause()));
-      } else {
-        fut.handle(new Success<>(Json.encodePrettily(installJob)));
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, installId));
       }
+      return Future.succeededFuture(Json.encodePrettily(installJob));
     });
   }
 
-  private void upgradeModulesForTenant(ProxyContext pc, String id,
-                                       Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> upgradeModulesForTenant(ProxyContext pc, String id) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     UUID installId = UUID.randomUUID();
-    tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null)
-        .onComplete(res -> {
-          if (res.failed()) {
-            fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          } else {
-            logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
-            fut.handle(new Success<>(Json.encodePrettily(res.result())));
-          }
-        });
+    return tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void upgradeModuleForTenant(ProxyContext pc, String id, String mod,
-                                      String body, Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> upgradeModuleForTenant(ProxyContext pc, String id,
+                                                String mod, String body) {
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     try {
       final String module_from = mod;
       final TenantModuleDescriptor td = Json.decodeValue(body,
           TenantModuleDescriptor.class);
-      tenantManager.enableAndDisableModule(id, options, module_from, td, pc).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        td.setId(res.result());
-        final String uri = pc.getCtx().request().uri();
-        final String regex = "^(.*)/" + module_from + "$";
-        final String newuri = uri.replaceAll(regex, "$1");
-        location(pc, td.getId(), newuri, Json.encodePrettily(td), fut);
-      });
+      return tenantManager.enableAndDisableModule(id, options, module_from, td, pc)
+          .compose(res -> {
+            td.setId(res);
+            final String uri = pc.getCtx().request().uri();
+            final String regex = "^(.*)/" + module_from + "$";
+            final String newuri = uri.replaceAll(regex, "$1");
+            return location(pc, td.getId(), newuri, Json.encodePrettily(td));
+          });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void listModulesForTenant(ProxyContext pc, String id,
-                                    Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> listModulesForTenant(ProxyContext pc, String id) {
 
     try {
-      tenantManager.listModules(id).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        List<ModuleDescriptor> mdl = res.result();
+      return tenantManager.listModules(id).compose(mdl -> {
         final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
         mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, false);
         if (dot) {
           String s = GraphDot.report(mdl);
           pc.getCtx().response().putHeader("Content-Type", "text/plain");
-          fut.handle(new Success<>(s));
-        } else {
-          String s = Json.encodePrettily(mdl);
-          fut.handle(new Success<>(s));
+          return Future.succeededFuture(s);
         }
+        return Future.succeededFuture(Json.encodePrettily(mdl));
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void disableModulesForTenant(ProxyContext pc, String id,
-                                       Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> disableModulesForTenant(ProxyContext pc, String id) {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
-    tenantManager.disableModules(id, options, pc).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+    return tenantManager.disableModules(id, options, pc)
+        .compose(res -> Future.succeededFuture(""));
   }
 
-  private void getModuleForTenant(String id, String mod,
-                                  Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> getModuleForTenant(String id, String mod) {
 
-    tenantManager.get(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      Tenant t = res.result();
-      Set<String> ml = t.listModules();  // Convert the list of module names
+    return tenantManager.get(id).compose(tenant -> {
+      Set<String> ml = tenant.listModules();  // Convert the list of module names
       if (!ml.contains(mod)) {
-        fut.handle(new Failure<>(ErrorType.NOT_FOUND, mod));
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, mod));
       }
       TenantModuleDescriptor tmd = new TenantModuleDescriptor();
       tmd.setId(mod);
-      String s = Json.encodePrettily(tmd);
-      fut.handle(new Success<>(s));
+      return Future.succeededFuture(Json.encodePrettily(tmd));
     });
   }
 
-  private void listInterfaces(ProxyContext pc, String id,
-                              Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> listInterfaces(ProxyContext pc, String id) {
 
     final boolean full = ModuleUtil.getParamBoolean(pc.getCtx().request(), "full", false);
     final String type = pc.getCtx().request().getParam("type");
-    tenantManager.listInterfaces(id, full, type).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-      } else {
-        String s = Json.encodePrettily(res.result());
-        fut.handle(new Success<>(s));
-      }
-    });
+    return tenantManager.listInterfaces(id, full, type)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void listModulesFromInterface(ProxyContext pc, String id, String intId,
-                                        Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> listModulesFromInterface(ProxyContext pc, String id, String intId) {
 
     final String type = pc.getCtx().request().getParam("type");
-    tenantManager.listModulesFromInterface(id, intId, type).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      List<ModuleDescriptor> mdL = res.result();
+    return tenantManager.listModulesFromInterface(id, intId, type).compose(modules -> {
       ArrayList<TenantModuleDescriptor> ta = new ArrayList<>();
-      for (ModuleDescriptor md : mdL) {
+      for (ModuleDescriptor md : modules) {
         TenantModuleDescriptor tmd = new TenantModuleDescriptor();
         tmd.setId(md.getId());
         ta.add(tmd);
       }
-      String s = Json.encodePrettily(ta);
-      fut.handle(new Success<>(s));
+      return Future.succeededFuture(Json.encodePrettily(ta));
     });
   }
 
-  private void createModule(ProxyContext pc, String body,
-                            Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> createModule(ProxyContext pc, String body) {
     try {
       final ModuleDescriptor md = Json.decodeValue(body, ModuleDescriptor.class);
       HttpServerRequest req = pc.getCtx().request();
@@ -958,380 +844,207 @@ public class InternalModule {
       String validerr = md.validate(pc);
       if (!validerr.isEmpty()) {
         logger.info("createModule validate failed: {}", validerr);
-        fut.handle(new Failure<>(ErrorType.USER, validerr));
-        return;
+        return Future.failedFuture(new OkapiError(ErrorType.USER, validerr));
       }
-      moduleManager.create(md, check, preRelease, npmSnapshot).onComplete(cres -> {
-        if (cres.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(cres.cause()), cres.cause()));
-          return;
-        }
-        location(pc, md.getId(), null, Json.encodePrettily(md), fut);
-      });
+      return moduleManager.create(md, check, preRelease, npmSnapshot)
+          .compose(res -> location(pc, md.getId(), null, Json.encodePrettily(md)));
     } catch (DecodeException ex) {
-      pc.debug("Failed to decode md: " + pc.getCtx().getBodyAsString());
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void getModule(String id, Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.get(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> getModule(String id) {
+    return moduleManager.get(id).compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void listModules(ProxyContext pc,
-                           String body,
-                           Handler<ExtendedAsyncResult<String>> fut) {
-
+  private Future<String> listModules(ProxyContext pc, String body) {
     String [] skipModules = new String [0];
     if (!body.isEmpty()) {
       skipModules = Json.decodeValue(body, skipModules.getClass());
     }
-    moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules)).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      try {
-        List<ModuleDescriptor> mdl = res.result();
-        final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
-        mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, true);
-        if (dot) {
-          String s = GraphDot.report(mdl);
-          pc.getCtx().response().putHeader("Content-Type", "text/plain");
-          fut.handle(new Success<>(s));
-        } else {
-          String s = Json.encodePrettily(mdl);
-          fut.handle(new Success<>(s));
-        }
-      } catch (DecodeException ex) {
-        fut.handle(new Failure<>(ErrorType.USER, ex));
-      }
-    });
+    return moduleManager.getModulesWithFilter(true, true, Arrays.asList(skipModules))
+        .compose(mdl -> {
+          try {
+            final boolean dot = ModuleUtil.getParamBoolean(pc.getCtx().request(), "dot", false);
+            mdl = ModuleUtil.filter(pc.getCtx().request(), mdl, dot, true);
+            if (dot) {
+              String s = GraphDot.report(mdl);
+              pc.getCtx().response().putHeader("Content-Type", "text/plain");
+              return Future.succeededFuture(s);
+            } else {
+              String s = Json.encodePrettily(mdl);
+              return Future.succeededFuture(s);
+            }
+          } catch (DecodeException ex) {
+            return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+          }
+        });
   }
 
-  private void deleteModule(String id,
-                            Handler<ExtendedAsyncResult<String>> fut) {
-    moduleManager.delete(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> deleteModule(String id) {
+    return moduleManager.delete(id).compose(res -> Future.succeededFuture(""));
   }
 
-  private void getDeployment(String id,
-                             Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> getDeployment(String id) {
 
-    deploymentManager.get(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+    return deploymentManager.get(id)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void listDeployments(Handler<ExtendedAsyncResult<String>> fut) {
-    deploymentManager.list().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> listDeployments() {
+    return deploymentManager.list()
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void createDeployment(ProxyContext pc, String body,
-                                Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> createDeployment(ProxyContext pc, String body) {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
           DeploymentDescriptor.class);
-      deploymentManager.deploy(pmd).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        final String s = Json.encodePrettily(res.result());
-        location(pc, res.result().getInstId(), null, s, fut);
+      return deploymentManager.deploy(pmd).compose(res -> {
+        final String s = Json.encodePrettily(res);
+        return location(pc, res.getInstId(), null, s);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void deleteDeployment(String id, Handler<ExtendedAsyncResult<String>> fut) {
-    deploymentManager.undeploy(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(ErrorType.USER, res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> deleteDeployment(String id) {
+    return deploymentManager.undeploy(id).compose(res -> Future.succeededFuture(""));
   }
 
-  private void getDiscoveryNode(String id,
-                                Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Int: getDiscoveryNode: {}", id);
-    discoveryManager.getNode(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      NodeDescriptor nodeDescriptor = res.result();
-      final String s = Json.encodePrettily(nodeDescriptor);
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> getDiscoveryNode(String id) {
+    return discoveryManager.getNode(id)
+        .compose(node -> Future.succeededFuture(Json.encodePrettily(node)));
   }
 
-  private void putDiscoveryNode(String id, String body,
-                                Handler<ExtendedAsyncResult<String>> fut) {
-    logger.debug("Int: putDiscoveryNode: {} {}", id, body);
-    final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
-    discoveryManager.updateNode(id, nd).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> putDiscoveryNode(String id, String body) {
+    try {
+      final NodeDescriptor nd = Json.decodeValue(body, NodeDescriptor.class);
+      return discoveryManager.updateNode(id, nd)
+          .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
+    } catch (DecodeException ex) {
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
+    }
   }
 
-  private void listDiscoveryNodes(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.getNodes().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> listDiscoveryNodes() {
+    return discoveryManager.getNodes()
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void listDiscoveryModules(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.get().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> listDiscoveryModules() {
+    return discoveryManager.get()
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void discoveryGetSrvcId(String srvcId,
-                                  Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> discoveryGetSrvcId(String srvcId) {
 
-    discoveryManager.getNonEmpty(srvcId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+    return discoveryManager.getNonEmpty(srvcId)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void discoveryGetInstId(String srvcId, String instId,
-                                  Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.get(srvcId, instId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(Json.encodePrettily(res.result())));
-    });
+  private Future<String> discoveryGetInstId(String srvcId, String instId) {
+    return discoveryManager.get(srvcId, instId)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void discoveryDeploy(ProxyContext pc, String body,
-                               Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> discoveryDeploy(ProxyContext pc, String body) {
     try {
       final DeploymentDescriptor pmd = Json.decodeValue(body,
           DeploymentDescriptor.class);
-      discoveryManager.addAndDeploy(pmd).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        DeploymentDescriptor md = res.result();
+      return discoveryManager.addAndDeploy(pmd).compose(md -> {
         final String s = Json.encodePrettily(md);
         final String baseuri = pc.getCtx().request().uri();
         String[] ids = new String [2];
         ids[0] = md.getSrvcId();
         ids[1] = md.getInstId();
-        location(pc, ids, baseuri, s, fut);
+        return location(pc, ids, baseuri, s);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void discoveryUndeploy(String srvcId, String instId,
-                                 Handler<ExtendedAsyncResult<String>> fut) {
-
-    discoveryManager.removeAndUndeploy(srvcId, instId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> discoveryUndeploy(String srvcId, String instId) {
+    return discoveryManager.removeAndUndeploy(srvcId, instId)
+        .compose(res -> Future.succeededFuture(""));
   }
 
-
-  private void discoveryUndeploy(String srvcId, Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.removeAndUndeploy(srvcId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> discoveryUndeploy(String srvcId) {
+    return discoveryManager.removeAndUndeploy(srvcId)
+        .compose(res -> Future.succeededFuture(""));
   }
 
-  private void discoveryUndeploy(Handler<ExtendedAsyncResult<String>> fut) {
-
-    discoveryManager.removeAndUndeploy().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> discoveryUndeploy() {
+    return discoveryManager.removeAndUndeploy()
+        .compose(res -> Future.succeededFuture(""));
   }
 
-  private void discoveryHealthAll(Handler<ExtendedAsyncResult<String>> fut) {
-    discoveryManager.health().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> discoveryHealthAll() {
+    return discoveryManager.health()
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void discoveryHealthSrvcId(String srvcId,
-                                     Handler<ExtendedAsyncResult<String>> fut) {
-
-    discoveryManager.health(srvcId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> discoveryHealthSrvcId(String srvcId) {
+    return discoveryManager.health(srvcId)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void discoveryHealthOne(String srvcId, String instId,
-                                  Handler<ExtendedAsyncResult<String>> fut) {
-
-    discoveryManager.health(srvcId, instId).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> discoveryHealthOne(String srvcId, String instId) {
+    return discoveryManager.health(srvcId, instId)
+        .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void listEnv(Handler<ExtendedAsyncResult<String>> fut) {
-    envManager.get().onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> listEnv() {
+    return envManager.get().compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void getEnv(String id,
-                      Handler<ExtendedAsyncResult<String>> fut) {
-
-    envManager.get(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      final String s = Json.encodePrettily(res.result());
-      fut.handle(new Success<>(s));
-    });
+  private Future<String> getEnv(String id) {
+    return envManager.get(id).compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
   }
 
-  private void createEnv(ProxyContext pc, String body,
-                         Handler<ExtendedAsyncResult<String>> fut) {
-
+  private Future<String> createEnv(ProxyContext pc, String body) {
     try {
       final EnvEntry pmd = Json.decodeValue(body, EnvEntry.class);
-      envManager.add(pmd).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
+      return envManager.add(pmd).compose(res -> {
         final String js = Json.encodePrettily(pmd);
-        location(pc, pmd.getName(), null, js, fut);
+        return location(pc, pmd.getName(), null, js);
       });
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
-  private void deleteEnv(String id, Handler<ExtendedAsyncResult<String>> fut) {
-
-    envManager.remove(id).onComplete(res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-        return;
-      }
-      fut.handle(new Success<>(""));
-    });
+  private Future<String> deleteEnv(String id) {
+    return envManager.remove(id).compose(res -> Future.succeededFuture(""));
   }
 
-  private void pullModules(String body,
-                           Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> pullModules(String body) {
 
     try {
       final PullDescriptor pmd = Json.decodeValue(body, PullDescriptor.class);
-      pullManager.pull(pmd).onComplete(res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        fut.handle(new Success<>(Json.encodePrettily(res.result())));
-      });
+      return pullManager.pull(pmd)
+          .compose(res -> Future.succeededFuture(Json.encodePrettily(res)));
     } catch (DecodeException ex) {
-      fut.handle(new Failure<>(ErrorType.USER, ex));
+      return Future.failedFuture(new OkapiError(ErrorType.USER, ex.getMessage()));
     }
   }
 
   /**
    * Pretty simplistic health check.
    */
-  private void getHealth(Handler<ExtendedAsyncResult<String>> fut) {
-    fut.handle(new Success<>("[ ]"));
+  private Future<String> getHealth() {
+    return Future.succeededFuture("[ ]");
   }
 
-  private void getVersion(ProxyContext pc,
-                          Handler<ExtendedAsyncResult<String>> fut) {
+  private Future<String> getVersion(ProxyContext pc) {
     String v = okapiVersion;
     if (v == null) {
       v = "0.0.0";
     }
     pc.getCtx().response().putHeader("Content-Type", "text/plain"); // !!
-    fut.handle(new Success<>(v));
+    return Future.succeededFuture(v);
   }
 
   /**
@@ -1345,13 +1058,12 @@ public class InternalModule {
    *
    * @param req The request body
    * @param pc Proxy context, gives a ctx, path, and method
-   * @param fut Callback with the response body
+   * @return Callback with the response body
    */
   // Cognitive Complexity of methods should not be too high
   // but this function is really just a big switch
   @java.lang.SuppressWarnings({"squid:S3776"})
-  public void internalService(String req, ProxyContext pc,
-                              Handler<ExtendedAsyncResult<String>> fut) {
+  public Future<String> internalService(String req, ProxyContext pc) {
 
     RoutingContext ctx = pc.getCtx();
     String p = ctx.normalizedPath();
@@ -1371,21 +1083,17 @@ public class InternalModule {
           && moduleManager != null) {
         // /_/proxy/modules
         if (n == 4 && m.equals(HttpMethod.GET)) {
-          listModules(pc, req, fut);
-          return;
+          return listModules(pc, req);
         }
         if (n == 4 && m.equals(HttpMethod.POST)) {
-          createModule(pc, req, fut);
-          return;
+          return createModule(pc, req);
         }
         // /_/proxy/modules/:id
         if (n == 5 && m.equals(HttpMethod.GET)) {
-          getModule(decodedSegs[4], fut);
-          return;
+          return getModule(decodedSegs[4]);
         }
         if (n == 5 && m.equals(HttpMethod.DELETE)) {
-          deleteModule(decodedSegs[4], fut);
-          return;
+          return deleteModule(decodedSegs[4]);
         }
       } // /_/proxy/modules
 
@@ -1393,90 +1101,72 @@ public class InternalModule {
           && tenantManager != null) {
         // /_/proxy/tenants
         if (n == 4 && m.equals(HttpMethod.GET)) {
-          listTenants(fut);
-          return;
+          return listTenants();
         }
         if (n == 4 && m.equals(HttpMethod.POST)) {
-          createTenant(pc, req, fut);
-          return;
+          return createTenant(pc, req);
         }
         // /_/proxy/tenants/:id
         if (n == 5 && m.equals(HttpMethod.GET)) {
-          getTenant(decodedSegs[4], fut);
-          return;
+          return getTenant(decodedSegs[4]);
         }
         if (n == 5 && m.equals(HttpMethod.PUT)) {
-          updateTenant(decodedSegs[4], req, fut);
-          return;
+          return updateTenant(decodedSegs[4], req);
         }
         if (n == 5 && m.equals(HttpMethod.DELETE)) {
-          deleteTenant(decodedSegs[4], fut);
-          return;
+          return deleteTenant(decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/modules
         if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("modules")) {
-          listModulesForTenant(pc, decodedSegs[4], fut);
-          return;
+          return listModulesForTenant(pc, decodedSegs[4]);
         }
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("modules")) {
-          enableModuleForTenant(pc, decodedSegs[4], req, fut);
-          return;
+          return enableModuleForTenant(pc, decodedSegs[4], req);
         }
         if (n == 6 && m.equals(HttpMethod.DELETE) && segments[5].equals("modules")) {
-          disableModulesForTenant(pc, decodedSegs[4], fut);
-          return;
+          return disableModulesForTenant(pc, decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/modules/:mod
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("modules")) {
-          getModuleForTenant(decodedSegs[4], decodedSegs[6], fut);
-          return;
+          return getModuleForTenant(decodedSegs[4], decodedSegs[6]);
         }
         if (n == 7 && m.equals(HttpMethod.POST) && segments[5].equals("modules")) {
-          upgradeModuleForTenant(pc, decodedSegs[4], decodedSegs[6], req, fut);
-          return;
+          return upgradeModuleForTenant(pc, decodedSegs[4], decodedSegs[6], req);
         }
         if (n == 7 && m.equals(HttpMethod.DELETE) && segments[5].equals("modules")) {
-          disableModuleForTenant(pc, decodedSegs[4], decodedSegs[6], fut);
-          return;
+          return disableModuleForTenant(pc, decodedSegs[4], decodedSegs[6]);
         }
         // /_/proxy/tenants/:id/install
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("install")) {
-          installTenantModulesPost(pc, decodedSegs[4], req, fut);
-          return;
+          return installTenantModulesPost(pc, decodedSegs[4], req);
         }
         // /_/proxy/tenants/:tid/install/:rid
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("install")) {
-          installTenantModulesGet(decodedSegs[4], decodedSegs[6], fut);
-          return;
+          return installTenantModulesGet(decodedSegs[4], decodedSegs[6]);
         }
         // /_/proxy/tenants/:id/upgrade
         if (n == 6 && m.equals(HttpMethod.POST) && segments[5].equals("upgrade")) {
-          upgradeModulesForTenant(pc, decodedSegs[4], fut);
-          return;
+          return upgradeModulesForTenant(pc, decodedSegs[4]);
         }
         // /_/proxy/tenants/:id/interfaces
         if (n == 6 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
-          listInterfaces(pc, decodedSegs[4], fut);
-          return;
+          return listInterfaces(pc, decodedSegs[4]);
         }
 
         // /_/proxy/tenants/:id/interfaces/:int
         if (n == 7 && m.equals(HttpMethod.GET) && segments[5].equals("interfaces")) {
-          listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6], fut);
-          return;
+          return listModulesFromInterface(pc, decodedSegs[4], decodedSegs[6]);
         }
       } // /_/proxy/tenants
 
       // /_/proxy/pull/modules
       if (n == 5 && segments[3].equals("pull") && segments[4].equals("modules")
           && m.equals(HttpMethod.POST) && pullManager != null) {
-        pullModules(req, fut);
-        return;
+        return pullModules(req);
       }
       // /_/proxy/health
       if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
-        getHealth(fut);
-        return;
+        return getHealth();
       }
 
     } // _/proxy
@@ -1487,21 +1177,17 @@ public class InternalModule {
         && deploymentManager != null) {
       // /_/deployment/modules
       if (n == 4 && m.equals(HttpMethod.GET)) {
-        listDeployments(fut);
-        return;
+        return listDeployments();
       }
       if (n == 4 && m.equals(HttpMethod.POST)) {
-        createDeployment(pc, req, fut);
-        return;
+        return createDeployment(pc, req);
       }
       // /_/deployment/modules/:id:
       if (n == 5 && m.equals(HttpMethod.GET)) {
-        getDeployment(decodedSegs[4], fut);
-        return;
+        return getDeployment(decodedSegs[4]);
       }
       if (n == 5 && m.equals(HttpMethod.DELETE)) {
-        deleteDeployment(decodedSegs[4], fut);
-        return;
+        return deleteDeployment(decodedSegs[4]);
       }
     } // deployment
 
@@ -1509,65 +1195,52 @@ public class InternalModule {
         && discoveryManager != null) {
       // /_/discovery/nodes
       if (n == 4 && segments[3].equals("nodes") && m.equals(HttpMethod.GET)) {
-        listDiscoveryNodes(fut);
-        return;
+        return listDiscoveryNodes();
       }
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(HttpMethod.GET)) {
-        getDiscoveryNode(decodedSegs[4], fut);
-        return;
+        return getDiscoveryNode(decodedSegs[4]);
       }
       // /_/discovery/nodes/:nodeid
       if (n == 5 && segments[3].equals("nodes") && m.equals(HttpMethod.PUT)) {
-        putDiscoveryNode(decodedSegs[4], req, fut);
-        return;
+        return putDiscoveryNode(decodedSegs[4], req);
       }
 
       // /_/discovery/modules
       if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
-        listDiscoveryModules(fut);
-        return;
+        return listDiscoveryModules();
       }
       if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.POST)) {
-        discoveryDeploy(pc, req, fut);
-        return;
+        return discoveryDeploy(pc, req);
       }
       // /_/discovery/modules/:srvcid
       if (n == 5 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
-        discoveryGetSrvcId(decodedSegs[4], fut);
-        return;
+        return discoveryGetSrvcId(decodedSegs[4]);
       }
       // /_/discovery/modules/:srvcid/:instid"
       if (n == 6 && segments[3].equals("modules") && m.equals(HttpMethod.GET)) {
-        discoveryGetInstId(decodedSegs[4], decodedSegs[5], fut);
-        return;
+        return discoveryGetInstId(decodedSegs[4], decodedSegs[5]);
       }
       if (n == 6 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
-        discoveryUndeploy(decodedSegs[4], decodedSegs[5], fut);
-        return;
+        return discoveryUndeploy(decodedSegs[4], decodedSegs[5]);
       }
       if (n == 5 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
-        discoveryUndeploy(decodedSegs[4], fut);
-        return;
+        return discoveryUndeploy(decodedSegs[4]);
       }
       if (n == 4 && segments[3].equals("modules") && m.equals(HttpMethod.DELETE)) {
-        discoveryUndeploy(fut);
-        return;
+        return discoveryUndeploy();
       }
       // /_/discovery/health
       if (n == 4 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
-        discoveryHealthAll(fut);
-        return;
+        return discoveryHealthAll();
       }
       // /_/discovery/health/:srvcId
       if (n == 5 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
-        discoveryHealthSrvcId(decodedSegs[4], fut);
-        return;
+        return discoveryHealthSrvcId(decodedSegs[4]);
       }
       // /_/discovery/health/:srvcId/:instid
       if (n == 6 && segments[3].equals("health") && m.equals(HttpMethod.GET)) {
-        discoveryHealthOne(decodedSegs[4], decodedSegs[5], fut);
-        return;
+        return discoveryHealthOne(decodedSegs[4], decodedSegs[5]);
       }
     } // discovery
 
@@ -1576,30 +1249,25 @@ public class InternalModule {
 
       // /_/env
       if (n == 3 && m.equals(HttpMethod.GET)) {
-        listEnv(fut);
-        return;
+        return listEnv();
       }
       if (n == 3 && m.equals(HttpMethod.POST)) {
-        createEnv(pc, req, fut);
-        return;
+        return createEnv(pc, req);
       }
       // /_/env/name
       if (n == 4 && m.equals(HttpMethod.GET)) {
-        getEnv(decodedSegs[3], fut);
-        return;
+        return getEnv(decodedSegs[3]);
       }
       if (n == 4 && m.equals(HttpMethod.DELETE)) {
-        deleteEnv(decodedSegs[3], fut);
-        return;
+        return deleteEnv(decodedSegs[3]);
       }
 
     } // env
 
     if (p.equals("/_/version") && m.equals(HttpMethod.GET)) {
-      getVersion(pc, fut);
-      return;
+      return getVersion(pc);
     }
-    fut.handle(new Failure<>(ErrorType.INTERNAL, messages.getMessage("11607", p)));
+    return Future.failedFuture(messages.getMessage("11607", p));
   }
 
 }
