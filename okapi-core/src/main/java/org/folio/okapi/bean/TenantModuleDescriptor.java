@@ -1,5 +1,6 @@
 package org.folio.okapi.bean;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
@@ -72,6 +73,20 @@ public class TenantModuleDescriptor {
 
   public void setStatus(Status status) {
     this.status = status;
+  }
+
+  /**
+   * Close an entry without status (for Install without async).
+   * @return entry
+   */
+  @JsonIgnore
+  public TenantModuleDescriptor cloneWithoutStatus() {
+    TenantModuleDescriptor tm = new TenantModuleDescriptor();
+    tm.action = this.action;
+    tm.id = this.id;
+    tm.from = this.from;
+    tm.message = this.message;
+    return tm;
   }
 
 }

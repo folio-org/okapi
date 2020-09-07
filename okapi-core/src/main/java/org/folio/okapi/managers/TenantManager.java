@@ -783,54 +783,51 @@ public class TenantManager {
     });
   }
 
-  void installUpgradeCreate(String tenantId, String installId, ProxyContext pc,
-                            TenantInstallOptions options, List<TenantModuleDescriptor> tml,
-                            Handler<AsyncResult<List<TenantModuleDescriptor>>> fut) {
+  Future<List<TenantModuleDescriptor>> installUpgradeCreate(
+      String tenantId, String installId, ProxyContext pc,
+      TenantInstallOptions options, List<TenantModuleDescriptor> tml) {
 
     logger.info("installUpgradeCreate InstallId={}", installId);
     if (tml != null) {
       for (TenantModuleDescriptor tm : tml) {
         if (tm.getAction() == null) {
-          fut.handle(Future.failedFuture(new OkapiError(ErrorType.USER,
-              messages.getMessage("10405", tm.getId()))));
-          return;
+          return Future.failedFuture(new OkapiError(ErrorType.USER,
+              messages.getMessage("10405", tm.getId())));
         }
       }
     }
-    tenants.getNotFound(tenantId).onComplete(gres -> {
-      if (gres.failed()) {
-        fut.handle(gres.mapEmpty());
-        return;
-      }
-      Tenant t = gres.result();
-      moduleManager.getModulesWithFilter(options.getPreRelease(),
-          options.getNpmSnapshot(), null).onComplete(mres -> {
-            if (mres.failed()) {
-              fut.handle(Future.failedFuture(mres.cause()));
-              return;
-            }
-            List<ModuleDescriptor> modResult = mres.result();
-            HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modResult.size());
-            HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
-            for (ModuleDescriptor md : modResult) {
-              modsAvailable.put(md.getId(), md);
-              logger.info("mod available: {}", md.getId());
-              if (t.isEnabled(md.getId())) {
-                logger.info("mod enabled: {}", md.getId());
-                modsEnabled.put(md.getId(), md);
+    return tenants.getNotFound(tenantId).compose(tenant ->
+        moduleManager.getModulesWithFilter(options.getPreRelease(),
+            options.getNpmSnapshot(), null)
+            .compose(modules -> {
+              HashMap<String, ModuleDescriptor> modsAvailable = new HashMap<>(modules.size());
+              HashMap<String, ModuleDescriptor> modsEnabled = new HashMap<>();
+              for (ModuleDescriptor md : modules) {
+                modsAvailable.put(md.getId(), md);
+                logger.info("mod available: {}", md.getId());
+                if (tenant.isEnabled(md.getId())) {
+                  logger.info("mod enabled: {}", md.getId());
+                  modsEnabled.put(md.getId(), md);
+                }
               }
-            }
-            InstallJob job = new InstallJob();
-            job.setId(installId);
-            if (tml == null) {
-              job.setModules(upgrades(modsAvailable, modsEnabled));
-            } else {
-              job.setModules(tml);
-            }
-            job.setComplete(false);
-            runJob(t, pc, options, modsAvailable, modsEnabled, job, fut);
-          });
-    });
+              InstallJob job = new InstallJob();
+              job.setId(installId);
+              if (tml == null) {
+                job.setModules(upgrades(modsAvailable, modsEnabled));
+              } else {
+                job.setModules(tml);
+              }
+              job.setComplete(false);
+              Promise<List<TenantModuleDescriptor>> promise = Promise.promise();
+              runJob(tenant, pc, options, modsAvailable, modsEnabled, job, res -> {
+                if (res.failed()) {
+                  promise.fail(res.cause());
+                } else {
+                  promise.complete(res.result());
+                }
+              });
+              return promise.future();
+            }));
   }
 
   private List<TenantModuleDescriptor> upgrades(
@@ -880,7 +877,11 @@ public class TenantManager {
             fut.handle(x.mapEmpty());
             return;
           }
-          fut.handle(Future.succeededFuture(tml));
+          List<TenantModuleDescriptor> tml2 = new LinkedList<>();
+          for (TenantModuleDescriptor tm : tml) {
+            tml2.add(tm.cloneWithoutStatus());
+          }
+          fut.handle(Future.succeededFuture(tml2));
         });
         future = future.compose(x -> {
           for (TenantModuleDescriptor tm : tml) {

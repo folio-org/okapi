@@ -776,19 +776,20 @@ public class InternalModule {
       List<TenantModuleDescriptor> tm = new LinkedList<>();
       Collections.addAll(tm, tml);
       UUID installId = UUID.randomUUID();
-      tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm, res -> {
-        if (res.failed()) {
-          fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-          return;
-        }
-        String jsonResponse = Json.encodePrettily(res.result());
-        logger.info("installTenantModulesPost returns: {}", jsonResponse);
-        if (options.getAsync()) {
-          location(pc, installId.toString(), null, jsonResponse, fut);
-        } else {
-          fut.handle(new Success<>(jsonResponse));
-        }
-      });
+      tenantManager.installUpgradeCreate(tenantId, installId.toString(), pc, options, tm)
+          .onComplete(res -> {
+            if (res.failed()) {
+              fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
+              return;
+            }
+            String jsonResponse = Json.encodePrettily(res.result());
+            logger.info("installTenantModulesPost returns: {}", jsonResponse);
+            if (options.getAsync()) {
+              location(pc, installId.toString(), null, jsonResponse, fut);
+            } else {
+              fut.handle(new Success<>(jsonResponse));
+            }
+          });
     } catch (DecodeException ex) {
       fut.handle(new Failure<>(ErrorType.USER, ex));
     }
@@ -815,14 +816,15 @@ public class InternalModule {
 
     TenantInstallOptions options = ModuleUtil.createTenantOptions(pc.getCtx().request());
     UUID installId = UUID.randomUUID();
-    tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null, res -> {
-      if (res.failed()) {
-        fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
-      } else {
-        logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
-        fut.handle(new Success<>(Json.encodePrettily(res.result())));
-      }
-    });
+    tenantManager.installUpgradeCreate(id, installId.toString(), pc, options, null)
+        .onComplete(res -> {
+          if (res.failed()) {
+            fut.handle(new Failure<>(OkapiError.getType(res.cause()), res.cause()));
+          } else {
+            logger.info("installUpgradeModules returns: {}", Json.encodePrettily(res.result()));
+            fut.handle(new Success<>(Json.encodePrettily(res.result())));
+          }
+        });
   }
 
   private void upgradeModuleForTenant(ProxyContext pc, String id, String mod,
