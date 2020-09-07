@@ -1218,6 +1218,7 @@ public class ProxyService {
           logger.warn(msg);
           MetricsHelper.recordHttpClientError(tenantId, inst.getMethod().name(), inst.getPath());
           promise.fail(new OkapiError(ErrorType.USER, msg));
+          return;
         }
         MetricsHelper.recordHttpClientResponse(sample, tenantId, cli.getStatusCode(),
             inst.getMethod().name(), inst);

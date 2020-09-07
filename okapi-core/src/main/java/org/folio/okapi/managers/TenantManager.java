@@ -926,6 +926,7 @@ public class TenantManager {
         }
         if (x.failed()) {
           fut.handle(Future.failedFuture(x.cause()));
+          return;
         }
         fut.handle(Future.succeededFuture(tml));
       });
