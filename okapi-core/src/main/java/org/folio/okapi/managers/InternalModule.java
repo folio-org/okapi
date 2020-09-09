@@ -737,12 +737,8 @@ public class InternalModule {
   }
 
   private Future<String> installTenantModulesGet(String tenantId, String installId) {
-    return tenantManager.installUpgradeGet(tenantId, installId).compose(installJob -> {
-      if (installJob == null) {
-        return Future.failedFuture(new OkapiError(ErrorType.NOT_FOUND, installId));
-      }
-      return Future.succeededFuture(Json.encodePrettily(installJob));
-    });
+    return tenantManager.installUpgradeGet(tenantId, installId)
+        .compose(installJob -> Future.succeededFuture(Json.encodePrettily(installJob)));
   }
 
   private Future<String> upgradeModulesForTenant(ProxyContext pc, String id) {

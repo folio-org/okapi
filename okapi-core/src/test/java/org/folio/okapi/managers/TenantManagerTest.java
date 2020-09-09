@@ -208,7 +208,7 @@ public class TenantManagerTest extends TestBase {
     tenantsMap.setGetKeysError(null);
     {
       Async async = context.async();
-      tm.insert(tenant).onComplete(res -> {
+      tm.insert(tenant).onComplete(res -> { // TODO: null pointer sometimes
         context.assertTrue(res.failed());
         context.assertEquals(ErrorType.INTERNAL, OkapiError.getType(res.cause()));
         context.assertEquals("aerror", res.cause().getMessage());

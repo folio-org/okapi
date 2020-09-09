@@ -757,12 +757,7 @@ public class TenantManager {
 
   Future<InstallJob> installUpgradeGet(String tenantId, String installId) {
     logger.info("installUpgradeGet InstallId={}", installId);
-    return tenants.get(tenantId).compose(x -> {
-      if (x == null) {
-        return Future.succeededFuture(null); // no such tenant
-      }
-      return jobs.get(installId);
-    });
+    return tenants.getNotFound(tenantId).compose(x -> jobs.getNotFound(installId));
   }
 
   Future<List<TenantModuleDescriptor>> installUpgradeCreate(
@@ -901,7 +896,8 @@ public class TenantManager {
     for (TenantModuleDescriptor tm : tml) {
       if (tm.getAction() == Action.enable || tm.getAction() == Action.uptodate) {
         ModuleDescriptor md = modsAvailable.get(tm.getId());
-        futures.add(proxyService.autoDeploy(md));
+        futures.add(proxyService.autoDeploy(md)
+            .onFailure(x -> tm.setMessage(x.getMessage())));
       }
     }
     return CompositeFuture.all(futures).mapEmpty();
@@ -921,7 +917,9 @@ public class TenantManager {
     } else if (tm.getAction() == Action.disable) {
       mdFrom = modsAvailable.get(tm.getId());
     }
-    return enableAndDisableModule(tenant, options, mdFrom, mdTo, pc).mapEmpty();
+    return enableAndDisableModule(tenant, options, mdFrom, mdTo, pc)
+        .onFailure(x -> tm.setMessage(x.getMessage()))
+        .mapEmpty();
   }
 
   private Future<Void> autoUndeploy(Tenant t, Map<String, ModuleDescriptor> modsAvailable,
