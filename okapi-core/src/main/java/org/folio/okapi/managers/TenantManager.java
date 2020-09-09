@@ -866,7 +866,8 @@ public class TenantManager {
             Promise<Void> promise1 = Promise.promise();
             installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
               if (x.failed()) {
-                logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), x.cause());
+                logger.warn("Ignoring error for tenant {} module {}",
+                    t.getId(), tm.getId(), x.cause());
               }
               promise1.complete();
             });
