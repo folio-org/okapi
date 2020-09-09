@@ -11,6 +11,7 @@ public class TenantInstallOptions {
   private boolean depCheck = true;
   private boolean invoke = true;
   private boolean async = false;
+  private boolean ignoreErrors = false;
 
   public void setPreRelease(boolean v) {
     preRelease = v;
@@ -82,5 +83,13 @@ public class TenantInstallOptions {
 
   public boolean getAsync() {
     return async;
+  }
+
+  public boolean getIgnoreErrors() {
+    return ignoreErrors;
+  }
+
+  public void setIgnoreErrors(boolean ignoreErrors) {
+    this.ignoreErrors = ignoreErrors;
   }
 }

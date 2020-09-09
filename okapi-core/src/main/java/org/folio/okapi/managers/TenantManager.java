@@ -862,10 +862,23 @@ public class TenantManager {
               return jobs.put(job.getId(), job);
             });
           }
-          future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+          if (options.getIgnoreErrors()) {
+            Promise<Void> promise1 = Promise.promise();
+            installTenantModule(t, pc, options, modsAvailable, tm).onComplete(x -> {
+              if (x.failed()) {
+                logger.warn("Ignoring error for tenant {} module {}", t.getId(), tm.getId(), x.cause());
+              }
+              promise1.complete();
+            });
+            future = future.compose(x -> promise1.future());
+          } else {
+            future = future.compose(x -> installTenantModule(t, pc, options, modsAvailable, tm));
+          }
           if (options.getAsync()) {
             future = future.compose(x -> {
-              tm.setStatus(TenantModuleDescriptor.Status.done);
+              if (tm.getMessage() == null) {
+                tm.setStatus(TenantModuleDescriptor.Status.done);
+              }
               return jobs.put(job.getId(), job);
             });
           }

@@ -624,6 +624,180 @@ public class InstallTest {
             + "  } ]" + LS
             + "}"));
 
+    c = api.createRestAssured3();
+    c.given()
+        .header("X-Okapi-Tenant", okapiTenant)
+        .header("Content-Type", "application/json")
+        .body("{}")
+        .post("/timercall/1")
+        .then().statusCode(200);
+
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"timer-module-1.0.0\", \"action\" : \"disable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"disable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+
+    pollComplete(context, suffix).body(equalTo(
+        "{" + LS
+            + "  \"complete\" : true," + LS
+            + "  \"modules\" : [ {" + LS
+            + "    \"id\" : \"timer-module-1.0.0\"," + LS
+            + "    \"action\" : \"disable\"," + LS
+            + "    \"status\" : \"done\"" + LS
+            + "  } ]" + LS
+            + "}"));
+
+    timerTenantInitStatus = 401;
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=true")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    pollComplete(context, suffix).body(equalTo(
+        "{" + LS
+            + "  \"complete\" : true," + LS
+            + "  \"modules\" : [ {" + LS
+            + "    \"id\" : \"timer-module-1.0.0\"," + LS
+            + "    \"action\" : \"enable\"," + LS
+            + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
+            + "    \"status\" : \"call\"" + LS
+            + "  } ]" + LS
+            + "}"));
+
+    final String docOther_1_0_0 = "{" + LS
+        + "  \"id\" : \"other-module-1.0.0\"," + LS
+        + "  \"name\" : \"timer module\"," + LS
+        + "  \"provides\" : [ {" + LS
+        + "    \"id\" : \"_tenant\"," + LS
+        + "    \"version\" : \"1.1\"," + LS
+        + "    \"interfaceType\" : \"system\"," + LS
+        + "    \"handlers\" : [ {" + LS
+        + "      \"methods\" : [ \"POST\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant/disable\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    }, {" + LS
+        + "      \"methods\" : [ \"POST\", \"DELETE\" ]," + LS
+        + "      \"pathPattern\" : \"/_/tenant\"," + LS
+        + "      \"permissionsRequired\" : [ ]" + LS
+        + "    } ]" + LS
+        + "  } ]," + LS
+        + "  \"requires\" : [ ]" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given()
+        .header("Content-Type", "application/json")
+        .body(docOther_1_0_0).post("/_/proxy/modules").then().statusCode(201)
+        .extract().response();
+
+    final String nodeDoc2 = "{" + LS
+        + "  \"instId\" : \"localhost2-" + Integer.toString(portTimer) + "\"," + LS
+        + "  \"srvcId\" : \"other-module-1.0.0\"," + LS
+        + "  \"url\" : \"http://localhost:" + Integer.toString(portTimer) + "\"" + LS
+        + "}";
+
+    c = api.createRestAssured3();
+    c.given().header("Content-Type", "application/json")
+        .body(nodeDoc2).post("/_/discovery/modules")
+        .then().statusCode(201);
+    Assert.assertTrue("raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+
+    timerTenantInitStatus = 401;
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"other-module-1.0.0\", \"action\":\"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=true")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"other-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    pollComplete(context, suffix).body(equalTo(
+        "{" + LS
+            + "  \"complete\" : true," + LS
+            + "  \"modules\" : [ {" + LS
+            + "    \"id\" : \"timer-module-1.0.0\"," + LS
+            + "    \"action\" : \"enable\"," + LS
+            + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
+            + "    \"status\" : \"call\"" + LS
+            + "  }, {" + LS
+            + "    \"id\" : \"other-module-1.0.0\"," + LS
+            + "    \"action\" : \"enable\"," + LS
+            + "    \"message\" : \"POST request for other-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
+            + "    \"status\" : \"call\"" + LS
+            + "  } ]" + LS
+            + "}"));
+
+    timerTenantInitStatus = 401;
+    c = api.createRestAssured3();
+    r = c.given()
+        .header("Content-Type", "application/json")
+        .body("[ {\"id\" : \"timer-module-1.0.0\", \"action\" : \"enable\"}, {\"id\":\"other-module-1.0.0\", \"action\":\"enable\"} ]")
+        .post("/_/proxy/tenants/" + okapiTenant + "/install?async=true&ignoreErrors=false")
+        .then().statusCode(201)
+        .body(equalTo("[ {" + LS
+            + "  \"id\" : \"timer-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "}, {" + LS
+            + "  \"id\" : \"other-module-1.0.0\"," + LS
+            + "  \"action\" : \"enable\"" + LS
+            + "} ]"))
+        .extract().response();
+    Assert.assertTrue(
+        "raml: " + c.getLastReport().toString(),
+        c.getLastReport().isEmpty());
+    locationInstallJob = r.getHeader("Location");
+    suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    pollComplete(context, suffix).body(equalTo(
+        "{" + LS
+            + "  \"complete\" : true," + LS
+            + "  \"modules\" : [ {" + LS
+            + "    \"id\" : \"timer-module-1.0.0\"," + LS
+            + "    \"action\" : \"enable\"," + LS
+            + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 401: timer response\"," + LS
+            + "    \"status\" : \"call\"" + LS
+            + "  }, {" + LS
+            + "    \"id\" : \"other-module-1.0.0\"," + LS
+            + "    \"action\" : \"enable\"," + LS
+            + "    \"status\" : \"idle\"" + LS
+            + "  } ]" + LS
+            + "}"));
+
     timerServer.close();
   }
 
