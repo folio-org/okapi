@@ -35,6 +35,7 @@ managing and running microservices.
     * [Install modules per tenant](#install-modules-per-tenant)
     * [Upgrading modules per tenant](#upgrading-modules-per-tenant)
     * [Auto-deployment](#auto-deployment)
+    * [Install jobs and asynchronous operations](#install-jobs-and-asynchronous-operations)
     * [Purge](#purge)
 * [Reference](#reference)
     * [Okapi program](#okapi-program)
@@ -2620,6 +2621,56 @@ optional parameter, `deploy`, which takes a boolean value. If true,
 the install operation will also deploy and un-deploy as
 necessary. This will only work if the ModuleDescriptor has the
 launchDescriptor property.
+
+### Install jobs and asynchronous operations
+
+For Okapi 4.2.0 and later, the install operation can be asynchronous.
+The asynchronous operation is enabled by URI parameter 'async=true'.
+As for the "synchronous" operation, the dependency check is performed
+first and install/upgrade will return 400 HTTP error upon failure.
+
+Following that, the install operation will create an install "job" on the
+server side and return HTTP status 201 along with a location of the newly
+created install job. The returned JSON content is defined by schema
+([InstallJob.json](../okapi-core/src/main/raml/InstallJob.json)).
+
+This location can then be inspected with HTTP GET for the progress of
+the install operation. The location is same base URI as install, but
+with a slash + the job ID. The install job has properties such as
+
+ * `complete`: boolean which tells whether the job has completed
+ * `id`: job id
+ * `date`: start time of job in UTC ISO8601 format.
+ * `modules`: enable/disable list of modules along with status.
+
+Each module entry is defined by schema
+([TenantModuleDescriptor.json](../okapi-core/src/main/raml/TenantModuleDescriptor.json)).
+Brief list of properties:
+
+ * `id`: module ID
+ * `from`: old module ID (absent if not upgrading)
+ * `action`: enable/disable/uptodate
+ * `status`: the current state of the module
+ * `message`: present upon error (error message)
+
+If `message` property is present an error has occurred and `status`
+indicates at which stage the error occurred.
+
+If no `message` property is present and `status` is `idle`, the module
+upgrade has not begun yet.
+
+If no `message` property is present and `status` is `done`, the module
+the module upgrade is complete.
+
+Note that install jobs are also created for synchronous operations (default
+and when using async=false). However in order to stay backwards compatible
+HTTP status 200 is returned with JSON content defined by schema
+[TenantModuleDescriptorList.json](../okapi-core/src/main/raml/TenantModuleDescriptorList.json)).
+
+All install jobs for a tenant can be retrieved with GET to
+`/_/proxy/tenants/tenant/install`. If successful, HTTP 200 is returned
+with JSON content defined by schema
+[InstallJobList.json](../okapi-core/src/main/raml/InstallJobList.json)).
 
 ### Purge
 
