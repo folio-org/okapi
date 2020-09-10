@@ -114,6 +114,7 @@
                   <manifestEntries>
                     <Main-Class>org.folio.okapi.common.MainLauncher</Main-Class>
                     <Main-Verticle>org.folio.okapi.sample.MainVerticle</Main-Verticle>
+                    <Multi-Release>true</Multi-Release>
                   </manifestEntries>
                 </transformer>
               </transformers>
