@@ -572,6 +572,7 @@ public class TenantManager {
         return;
       }
       if (moduleTo != null) {
+        logger.info("publish module {} for tenant {}", moduleTo, tenant.getId());
         EventBus eb = vertx.eventBus();
         eb.publish(EVENT_NAME, tenant.getId());
       }
@@ -611,6 +612,7 @@ public class TenantManager {
     EventBus eb = vertx.eventBus();
     eb.consumer(EVENT_NAME, res -> {
       String tenantId = (String) res.body();
+      logger.info("consume for tenant {}", tenantId);
       handleTimer(tenantId);
     });
   }
