@@ -5,6 +5,10 @@
   "type": "object",
   "additionalProperties" : false,
   "properties": {
+    "id": {
+      "description": "Job ID",
+      "type": "string"
+    },
     "complete": {
       "description": "Whether job is complete",
       "type": "boolean"

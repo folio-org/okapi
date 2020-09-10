@@ -184,15 +184,18 @@ public class InstallTest {
     final String locationInstallJob = r.getHeader("Location");
 
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    String id = suffix.substring(suffix.lastIndexOf('/') + 1);
+
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"basic-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"message\" : \"Service returned with exit code 1\"," + LS
-            + "    \"status\" : \"deploy\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"basic-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"Service returned with exit code 1\"," + LS
+        + "    \"status\" : \"deploy\"" + LS
+        + "  } ]" + LS
+        + "}"));
   }
 
   @Test
@@ -270,12 +273,14 @@ public class InstallTest {
     final String locationInstallJob = r.getHeader("Location");
 
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    String id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     c = api.createRestAssured3();
     c.given()
         .get(suffix)
         .then().statusCode(200)
         .body(equalTo("{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : false," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"basic-module-1.0.0\"," + LS
@@ -288,13 +293,14 @@ public class InstallTest {
         c.getLastReport().isEmpty());
 
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"basic-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"status\" : \"done\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"basic-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"status\" : \"done\"" + LS
+        + "  } ]" + LS
+        + "}"));
 
     // known installId but unknown tenantId
     c = api.createRestAssured3();
@@ -504,6 +510,7 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     String locationInstallJob = r.getHeader("Location");
     String suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    String id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     c = api.createRestAssured3();
     r = c.given()
@@ -517,14 +524,15 @@ public class InstallTest {
     context.assertEquals(1, r.jsonPath().getList("$").size());
 
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"timer-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"message\" : \"Module timer-module-1.0.0 has no launchDescriptor\"," + LS
-            + "    \"status\" : \"deploy\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"Module timer-module-1.0.0 has no launchDescriptor\"," + LS
+        + "    \"status\" : \"deploy\"" + LS
+        + "  } ]" + LS
+        + "}"));
 
     c = api.createRestAssured3();
     r = c.given()
@@ -542,16 +550,18 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"timer-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"message\" : \"No running instances for module timer-module-1.0.0. Can not invoke /_/tenant\"," + LS
-            + "    \"status\" : \"call\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"No running instances for module timer-module-1.0.0. Can not invoke /_/tenant\"," + LS
+        + "    \"status\" : \"call\"" + LS
+        + "  } ]" + LS
+        + "}"));
 
     c = api.createRestAssured3();
     r = c.given()
@@ -595,16 +605,18 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"timer-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 403: timer response\"," + LS
-            + "    \"status\" : \"call\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"POST request for timer-module-1.0.0 /_/tenant failed with 403: timer response\"," + LS
+        + "    \"status\" : \"call\"" + LS
+        + "  } ]" + LS
+        + "}"));
 
     timerTenantInitStatus = 200;
     timerTenantPermissionsStatus = 500;
@@ -625,16 +637,18 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     pollComplete(context, suffix).body(equalTo("{" + LS
-            + "  \"complete\" : true," + LS
-            + "  \"modules\" : [ {" + LS
-            + "    \"id\" : \"timer-module-1.0.0\"," + LS
-            + "    \"action\" : \"enable\"," + LS
-            + "    \"message\" : \"POST request for timer-module-1.0.0 /permissionscall failed with 500: timer permissions response\"," + LS
-            + "    \"status\" : \"call\"" + LS
-            + "  } ]" + LS
-            + "}"));
+        + "  \"id\" : \"" + id + "\"," + LS
+        + "  \"complete\" : true," + LS
+        + "  \"modules\" : [ {" + LS
+        + "    \"id\" : \"timer-module-1.0.0\"," + LS
+        + "    \"action\" : \"enable\"," + LS
+        + "    \"message\" : \"POST request for timer-module-1.0.0 /permissionscall failed with 500: timer permissions response\"," + LS
+        + "    \"status\" : \"call\"" + LS
+        + "  } ]" + LS
+        + "}"));
 
     timerTenantInitStatus = 200;
     timerTenantPermissionsStatus = 200;
@@ -655,9 +669,11 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     pollComplete(context, suffix).body(equalTo(
         "{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -691,9 +707,11 @@ public class InstallTest {
 
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
 
     pollComplete(context, suffix).body(equalTo(
         "{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -719,8 +737,10 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
     pollComplete(context, suffix).body(equalTo(
         "{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -789,8 +809,10 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
     pollComplete(context, suffix).body(equalTo(
         "{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
@@ -825,8 +847,10 @@ public class InstallTest {
         c.getLastReport().isEmpty());
     locationInstallJob = r.getHeader("Location");
     suffix = locationInstallJob.substring(locationInstallJob.indexOf("/_/"));
+    id = suffix.substring(suffix.lastIndexOf('/') + 1);
     pollComplete(context, suffix).body(equalTo(
         "{" + LS
+            + "  \"id\" : \"" + id + "\"," + LS
             + "  \"complete\" : true," + LS
             + "  \"modules\" : [ {" + LS
             + "    \"id\" : \"timer-module-1.0.0\"," + LS
